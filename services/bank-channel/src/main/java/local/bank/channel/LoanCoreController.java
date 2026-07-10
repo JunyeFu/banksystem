@@ -64,6 +64,12 @@ public class LoanCoreController {
   @PostMapping("/api/customer/v1/loans/applications/{id}/close")
   public Map<String,Object> close(@AuthenticationPrincipal Jwt jwt,@PathVariable UUID id,@RequestHeader("Idempotency-Key") String key){
     Long loanId=coreLoanFor(jwt.getSubject(), id);
+    Map<String,Object> current=fineract.loanDetails(loanId);
+    Object statusObject=current.get("status"); String currentStatus=""; if(statusObject instanceof Map<?,?> raw){Object value=raw.get("value");currentStatus=value==null?"":String.valueOf(value);}
+    if(currentStatus.toLowerCase().startsWith("closed") || currentStatus.equalsIgnoreCase("Fully Paid") || currentStatus.equalsIgnoreCase("Overpaid")){
+      jdbc.update("UPDATE loan_application SET status='CLOSED',version=version+1 WHERE application_id=?",id);
+      return Map.of("applicationId",id.toString(),"coreLoanId",loanId,"status","CLOSED","core",current);
+    }
     Map<String,Object> payload=new HashMap<>(); payload.put("transactionDate",LocalDate.now().toString()); payload.put("dateFormat","yyyy-MM-dd"); payload.put("locale","en");
     Map<String,Object> result=fineract.loanTransaction(loanId,"close",payload,key);
     jdbc.update("UPDATE loan_application SET status='CLOSED',version=version+1 WHERE application_id=?",id);
