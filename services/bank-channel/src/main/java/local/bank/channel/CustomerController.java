@@ -42,12 +42,16 @@ public class CustomerController {
     String masked = raw.length() <= 4 ? "****" : "****" + raw.substring(raw.length() - Math.min(4, raw.length()));
     Object balance = source.getOrDefault("accountBalance", source.getOrDefault("balance", "0.00"));
     Object currency = source.getOrDefault("currency", source.getOrDefault("currencyCode", ""));
+    if (currency instanceof Map<?, ?> map) { Object code = map.get("code"); currency = code == null ? "" : code; }
     return Map.of("accountId", String.valueOf(source.getOrDefault("id", source.getOrDefault("accountId", ""))), "maskedAccountNumber", masked, "currency", String.valueOf(currency), "balance", String.valueOf(balance));
   }
 
   @GetMapping("/api/customer/v1/customers/me")
   public Map<String, Object> me(@AuthenticationPrincipal Jwt jwt) {
-    return Map.of("customerId", jwt.getSubject(), "displayName", jwt.getClaimAsString("name"));
+    String displayName = jwt.getClaimAsString("name");
+    if (displayName == null || displayName.isBlank()) displayName = jwt.getClaimAsString("preferred_username");
+    if (displayName == null || displayName.isBlank()) displayName = jwt.getSubject();
+    return Map.of("customerId", jwt.getSubject(), "displayName", displayName);
   }
 
   @GetMapping("/api/customer/v1/loans")

@@ -3,7 +3,7 @@
 | Capability | Implemented | Runtime evidence | Status |
 |---|---:|---|---|
 | Phase 0 baseline and backup | Yes | Hash, OpenAPI parse, restore drill | VERIFIED |
-| Customer login and account query | Yes | Keycloak discovery, Customer Web 200, API 401 without token | PARTIALLY_VERIFIED |
+| Customer login and account query | Yes | Authorized customer profile/account E2E, Gateway-only Customer Web, API 401 without token | VERIFIED |
 | Beneficiary tokenization | Yes | Authorized customer create/list returned masked `****7890`; temporary data removed | VERIFIED |
 | Notifications | Yes | Customer transfer produced one subject-scoped `TRANSFER_SETTLED` notification | VERIFIED |
 | Transfer receipts/statements | Partial | Repeatable customer E2E verifies JSON/PDF receipts, 64-digit SHA-256, and CSV/PDF statements; full balance equation/document reconciliation remains | PARTIALLY_VERIFIED |
