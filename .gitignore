@@ -4,6 +4,8 @@ backups/
 # Machine-local deployment secrets. Generate with scripts/deploy/restore-runtime-env.ps1.
 .env
 .env.*.local
+**/.env
+**/.env.*.local
 
 # Docker database volumes and local runtime output are machine-specific.
 data/
