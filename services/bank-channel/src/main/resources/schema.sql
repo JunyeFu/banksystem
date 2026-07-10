@@ -144,3 +144,14 @@ CREATE TABLE IF NOT EXISTS dead_letter_event (
   payload TEXT NOT NULL,
   created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
+CREATE TABLE IF NOT EXISTS transfer_reversal (
+  reversal_id UUID PRIMARY KEY,
+  transfer_id UUID NOT NULL UNIQUE REFERENCES transfer(transfer_id),
+  maker_subject VARCHAR(128) NOT NULL,
+  checker_subject VARCHAR(128),
+  status VARCHAR(24) NOT NULL,
+  reason VARCHAR(240) NOT NULL,
+  version INTEGER NOT NULL DEFAULT 1,
+  core_reference VARCHAR(128),
+  created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP
+);

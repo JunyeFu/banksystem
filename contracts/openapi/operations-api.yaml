@@ -40,6 +40,39 @@ paths:
           content:
             application/json: { schema: { $ref: '#/components/schemas/Transfer' } }
         '404': { $ref: '#/components/responses/Problem' }
+  /transfers/{transferId}/reversal:
+    parameters: [{ $ref: '#/components/parameters/TransferId' }]
+    post:
+      operationId: requestTransferReversal
+      summary: Request a maker-checker transfer reversal
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { type: object, required: [reason], properties: { reason: { type: string, minLength: 1, maxLength: 240 } } }
+      responses:
+        '200': { description: Pending reversal }
+        '409': { $ref: '#/components/responses/Problem' }
+  /transfers/reversals/{reversalId}/approve:
+    parameters:
+      - name: reversalId
+        in: path
+        required: true
+        schema: { type: string, format: uuid }
+      - $ref: '#/components/parameters/IdempotencyKey'
+    post:
+      operationId: approveTransferReversal
+      summary: Approve and post a compensating transfer
+      parameters:
+        - { name: version, in: query, required: true, schema: { type: integer, minimum: 1 } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { type: object, required: [reason], properties: { reason: { type: string, minLength: 1, maxLength: 240 } } }
+      responses:
+        '200': { description: Compensating transfer posted }
+        '409': { $ref: '#/components/responses/Problem' }
 components:
   securitySchemes:
     bearerAuth: { type: http, scheme: bearer, bearerFormat: JWT }
