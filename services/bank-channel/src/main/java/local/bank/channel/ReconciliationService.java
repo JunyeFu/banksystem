@@ -20,8 +20,8 @@ public class ReconciliationService {
       differences=jdbc.queryForObject("SELECT count(*) FROM transfer WHERE status='POSTED' AND (core_reference IS NULL OR core_reference='')",Integer.class);
       details=differences==0?"Every posted channel transfer has a Fineract reference":"Posted transfer is missing a Fineract reference";
     } else if(type.equals("CHANNEL_TO_CLEARING")) {
-      differences=jdbc.queryForObject("SELECT count(*) FROM clearing_payment c LEFT JOIN transfer t ON t.transfer_id=c.transfer_id WHERE c.status='SETTLED' AND (t.transfer_id IS NULL OR t.status NOT IN ('POSTED','SETTLED'))",Integer.class);
-      details=differences==0?"Clearing settlement statuses are aligned":"Clearing settlement differs from channel transfer status";
+      differences=jdbc.queryForObject("SELECT count(*) FROM clearing_payment c LEFT JOIN transfer t ON t.transfer_id=c.transfer_id WHERE c.status='SETTLED' AND (t.transfer_id IS NULL OR t.status NOT IN ('POSTED','SETTLED') OR t.core_reference IS NULL OR t.core_reference='')",Integer.class);
+      details=differences==0?"Clearing settlement statuses and core references are aligned":"Clearing settlement differs from channel transfer status or core posting";
     } else {
       differences=jdbc.queryForObject("SELECT count(*) FROM transfer WHERE status IN ('POSTED','SETTLED') AND (core_reference IS NULL OR core_reference='')",Integer.class);
       var entries=fineract.journalEntries();java.math.BigDecimal debits=java.math.BigDecimal.ZERO,credits=java.math.BigDecimal.ZERO;for(var entry:entries){var amount=new java.math.BigDecimal(String.valueOf(entry.getOrDefault("amount","0")));if("DEBIT".equals(String.valueOf(((Map<?,?>)entry.getOrDefault("entryType",Map.of())).get("value"))))debits=debits.add(amount);else if("CREDIT".equals(String.valueOf(((Map<?,?>)entry.getOrDefault("entryType",Map.of())).get("value"))))credits=credits.add(amount);}if(debits.compareTo(credits)!=0)differences++;details=debits.compareTo(credits)==0?"Core references and journal debit/credit totals are balanced":"Journal debit/credit totals are not balanced";

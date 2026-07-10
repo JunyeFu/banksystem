@@ -72,8 +72,8 @@ phases:
     tasks:
       - {id: BANK-0401, owner: A6, title: Implement mock clearing service, status: DONE, dependsOn: [BANK-0101, BANK-0102]}
       - {id: BANK-0402, owner: A6, title: Implement risk rules and manual review, status: DONE, dependsOn: [BANK-0302]}
-      - {id: BANK-0403, owner: A7, title: Implement payment operations UI, status: REVIEW, dependsOn: [BANK-0402]}
-      - {id: BANK-0404, owner: A8, title: Verify external mock payments, status: REVIEW, dependsOn: [BANK-0401, BANK-0402, BANK-0403]}
+      - {id: BANK-0403, owner: A7, title: Implement payment operations UI, status: DONE, dependsOn: [BANK-0402]}
+      - {id: BANK-0404, owner: A8, title: Verify external mock payments, status: DONE, dependsOn: [BANK-0401, BANK-0402, BANK-0403]}
   - id: P6
     name: reliability-and-final-audit
     tasks:
@@ -88,6 +88,6 @@ phases:
       - {id: BANK-0502, owner: A4, title: Implement loan documents and checklist, status: DONE, dependsOn: [BANK-0501]}
       - {id: BANK-0503, owner: A6, title: Implement deterministic loan scoring, status: DONE, dependsOn: [BANK-0501]}
       - {id: BANK-0504, owner: A6, title: Implement loan Maker-Checker, status: DONE, dependsOn: [BANK-0503]}
-      - {id: BANK-0505, owner: A8, title: Verify loan lifecycle and accounting, status: REVIEW, dependsOn: [BANK-0504]}
-      - {id: BANK-0506, owner: A7, title: Verify cashier operations, status: REVIEW, dependsOn: [BANK-0505]}
+      - {id: BANK-0505, owner: A8, title: Verify loan lifecycle and accounting, status: DONE, dependsOn: [BANK-0504]}
+      - {id: BANK-0506, owner: A7, title: Verify cashier operations, status: DONE, dependsOn: [BANK-0505]}
       - {id: BANK-0507, owner: A3, title: Verify freeze close and maturity operations, status: DONE, dependsOn: [BANK-0505]}
