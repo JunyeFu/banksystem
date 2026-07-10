@@ -4,7 +4,7 @@ param(
 )
 $ErrorActionPreference='Stop'
 $name="channel-restore-drill-$([guid]::NewGuid().ToString('N').Substring(0,8))"
-$password='restore-only-local-secret'
+$password="restore-$([guid]::NewGuid().ToString('N'))"
 docker run -d --name $name -e POSTGRES_PASSWORD=$password $Image | Out-Null
 try {
   for($i=0;$i -lt 30;$i++){if((docker exec $name pg_isready -U postgres) -match 'accepting connections'){break};Start-Sleep 2}
