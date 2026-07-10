@@ -73,6 +73,26 @@ paths:
       responses:
         '200': { description: Masked beneficiary list }
         '401': { $ref: '#/components/responses/Unauthorized' }
+  /notifications:
+    get:
+      operationId: listNotifications
+      summary: List customer notifications
+      responses:
+        '200': { description: Customer-scoped notifications }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+  /transfers/{transferId}/receipt:
+    parameters:
+      - name: transferId
+        in: path
+        required: true
+        schema: { type: string, format: uuid }
+    get:
+      operationId: getTransferReceipt
+      summary: Get a transfer receipt
+      responses:
+        '200': { description: Receipt payload and SHA-256 checksum }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '404': { $ref: '#/components/responses/NotFound' }
     post:
       operationId: createBeneficiary
       summary: Create beneficiary

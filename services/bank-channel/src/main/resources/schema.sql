@@ -23,6 +23,23 @@ CREATE TABLE IF NOT EXISTS transfer (
   core_reference VARCHAR(128),
   created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
+ALTER TABLE transfer ADD COLUMN IF NOT EXISTS subject VARCHAR(128);
+CREATE TABLE IF NOT EXISTS notification (
+  notification_id UUID PRIMARY KEY,
+  subject VARCHAR(128) NOT NULL,
+  notification_type VARCHAR(64) NOT NULL,
+  payload TEXT NOT NULL,
+  read_at TIMESTAMPTZ,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+CREATE TABLE IF NOT EXISTS transfer_receipt (
+  receipt_id UUID PRIMARY KEY,
+  transfer_id UUID NOT NULL UNIQUE REFERENCES transfer(transfer_id),
+  subject VARCHAR(128) NOT NULL,
+  payload TEXT NOT NULL,
+  sha256 CHAR(64) NOT NULL,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
 CREATE TABLE IF NOT EXISTS beneficiary (
   beneficiary_id UUID PRIMARY KEY,
   subject VARCHAR(128) NOT NULL,

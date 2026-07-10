@@ -40,7 +40,7 @@ public class TransferController {
     Map<String, Object> response = Map.<String, Object>of("transferId", id, "status", "RECEIVED", "amount", request.amount().toPlainString(), "currency", request.currency());
     String body = mapper.writeValueAsString(response);
     jdbc.update("INSERT INTO idempotency_record(idempotency_key, request_hash, response_body, status_code) VALUES (?, ?, ?, ?)", key, hash, body, 202);
-    jdbc.update("INSERT INTO transfer(transfer_id,idempotency_key,source_account_id,destination_account_id,amount,currency,status) VALUES (?,?,?,?,?,?,?)", UUID.fromString(id), key, request.sourceAccountId(), request.destinationAccountId(), request.amount(), request.currency(), "RECEIVED");
+    jdbc.update("INSERT INTO transfer(transfer_id,idempotency_key,source_account_id,destination_account_id,amount,currency,status,subject) VALUES (?,?,?,?,?,?,?,?)", UUID.fromString(id), key, request.sourceAccountId(), request.destinationAccountId(), request.amount(), request.currency(), "RECEIVED", jwt.getSubject());
     jdbc.update("INSERT INTO transfer_outbox(event_id,transfer_id,event_type,payload) VALUES (?,?,?,?)", UUID.randomUUID(), UUID.fromString(id), "transfer.status.changed", body);
     return ResponseEntity.status(HttpStatus.ACCEPTED).body(response);
   }

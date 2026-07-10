@@ -17,7 +17,7 @@ public class TransferProcessor {
 
   @Transactional
   public Map<String, Object> process(UUID transferId) {
-    var rows = jdbc.query("SELECT source_account_id,destination_account_id,amount,currency,status,idempotency_key FROM transfer WHERE transfer_id = ? FOR UPDATE", (rs, n) -> Map.<String,Object>of("source", rs.getString(1), "destination", rs.getString(2), "amount", rs.getBigDecimal(3), "currency", rs.getString(4), "status", rs.getString(5), "key", rs.getString(6)), transferId);
+    var rows = jdbc.query("SELECT source_account_id,destination_account_id,amount,currency,status,idempotency_key,subject FROM transfer WHERE transfer_id = ? FOR UPDATE", (rs, n) -> Map.<String,Object>of("source", rs.getString(1), "destination", rs.getString(2), "amount", rs.getBigDecimal(3), "currency", rs.getString(4), "status", rs.getString(5), "key", rs.getString(6), "subject", rs.getString(7)), transferId);
     if (rows.isEmpty()) throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Transfer not found");
     Map<String,Object> row = rows.get(0);
     if (!"RECEIVED".equals(row.get("status"))) return Map.of("transferId", transferId.toString(), "status", row.get("status"));
@@ -26,6 +26,12 @@ public class TransferProcessor {
     String reference = String.valueOf(core == null ? "" : core.getOrDefault("resourceId", core.getOrDefault("id", "")));
     jdbc.update("UPDATE transfer SET status='POSTED', core_reference=? WHERE transfer_id=?", reference, transferId);
     jdbc.update("INSERT INTO transfer_outbox(event_id,transfer_id,event_type,payload) VALUES (?,?,?,?)", UUID.randomUUID(), transferId, "transfer.status.changed", "{\"transferId\":\"" + transferId + "\",\"status\":\"POSTED\"}");
+    String receiptPayload="{\"transferId\":\""+transferId+"\",\"amount\":\""+row.get("amount")+"\",\"currency\":\""+row.get("currency")+"\",\"status\":\"POSTED\",\"coreReference\":\""+reference+"\"}";
+    String receiptHash=sha256(receiptPayload);
+    jdbc.update("INSERT INTO transfer_receipt(receipt_id,transfer_id,subject,payload,sha256) VALUES (?,?,?,?,?) ON CONFLICT (transfer_id) DO NOTHING",UUID.randomUUID(),transferId,(String)row.get("subject"),receiptPayload,receiptHash);
+    jdbc.update("INSERT INTO notification(notification_id,subject,notification_type,payload) VALUES (?,?,?,?)",UUID.randomUUID(),(String)row.get("subject"),"TRANSFER_SETTLED",receiptPayload);
     return Map.of("transferId", transferId.toString(), "status", "POSTED", "coreReference", reference);
   }
+
+  private static String sha256(String input){try{var d=java.security.MessageDigest.getInstance("SHA-256").digest(input.getBytes(java.nio.charset.StandardCharsets.UTF_8));return java.util.HexFormat.of().formatHex(d);}catch(Exception e){throw new IllegalStateException(e);}}
 }
