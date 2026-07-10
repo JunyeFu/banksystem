@@ -23,3 +23,9 @@ tasks:
   BANK-0601: {status: DONE, owner: A8}
   BANK-0602: {status: DONE, owner: A8}
   BANK-0603: {status: REVIEW, owner: A9}
+  BANK-0501: {status: DONE, owner: A4}
+  BANK-0502: {status: REVIEW, owner: A4}
+  BANK-0503: {status: REVIEW, owner: A6}
+  BANK-0504: {status: REVIEW, owner: A6}
+  BANK-0505: {status: REVIEW, owner: A8}
+  BANK-0604: {status: REVIEW, owner: A8}

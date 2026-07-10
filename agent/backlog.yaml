@@ -80,3 +80,14 @@ phases:
       - {id: BANK-0601, owner: A8, title: Implement monitoring and alert verification, status: DONE, dependsOn: [BANK-0304, BANK-0404]}
       - {id: BANK-0602, owner: A8, title: Automate backup and restore drill, status: DONE, dependsOn: [BANK-0601]}
       - {id: BANK-0603, owner: A9, title: Final architecture and security review, status: REVIEW, dependsOn: [BANK-0602]}
+      - {id: BANK-0604, owner: A8, title: Implement EOD and reconciliation orchestration, status: REVIEW, dependsOn: [BANK-0603]}
+  - id: P5
+    name: lending-and-operations
+    tasks:
+      - {id: BANK-0501, owner: A4, title: Implement loan application draft and submit, status: DONE, dependsOn: [BANK-0202]}
+      - {id: BANK-0502, owner: A4, title: Implement loan documents and checklist, status: REVIEW, dependsOn: [BANK-0501]}
+      - {id: BANK-0503, owner: A6, title: Implement deterministic loan scoring, status: REVIEW, dependsOn: [BANK-0501]}
+      - {id: BANK-0504, owner: A6, title: Implement loan Maker-Checker, status: REVIEW, dependsOn: [BANK-0503]}
+      - {id: BANK-0505, owner: A8, title: Verify loan lifecycle and accounting, status: REVIEW, dependsOn: [BANK-0504]}
+      - {id: BANK-0506, owner: A7, title: Verify cashier operations, status: TODO, dependsOn: [BANK-0505]}
+      - {id: BANK-0507, owner: A3, title: Verify freeze close and maturity operations, status: TODO, dependsOn: [BANK-0505]}

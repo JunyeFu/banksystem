@@ -18,6 +18,8 @@ CREATE TABLE IF NOT EXISTS transfer (
   amount NUMERIC(20,4) NOT NULL CHECK (amount > 0),
   currency CHAR(3) NOT NULL,
   status VARCHAR(32) NOT NULL,
+  score INTEGER,
+  scoring_reason VARCHAR(240),
   core_reference VARCHAR(128),
   created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
@@ -63,5 +65,42 @@ CREATE TABLE IF NOT EXISTS risk_decision (
   checker_subject VARCHAR(128),
   approval_reason VARCHAR(240),
   version INTEGER NOT NULL DEFAULT 1,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+CREATE TABLE IF NOT EXISTS loan_application (
+  application_id UUID PRIMARY KEY,
+  subject VARCHAR(128) NOT NULL,
+  fineract_client_id BIGINT,
+  requested_amount NUMERIC(20,4) NOT NULL CHECK (requested_amount > 0),
+  term_months INTEGER NOT NULL CHECK (term_months BETWEEN 1 AND 480),
+  purpose VARCHAR(240) NOT NULL,
+  status VARCHAR(32) NOT NULL,
+  version INTEGER NOT NULL DEFAULT 1,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+CREATE TABLE IF NOT EXISTS loan_document (
+  document_id UUID PRIMARY KEY,
+  application_id UUID NOT NULL REFERENCES loan_application(application_id),
+  subject VARCHAR(128) NOT NULL,
+  document_type VARCHAR(64) NOT NULL,
+  storage_ref VARCHAR(240) NOT NULL,
+  status VARCHAR(32) NOT NULL DEFAULT 'RECEIVED',
+  created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+CREATE TABLE IF NOT EXISTS loan_approval (
+  approval_id UUID PRIMARY KEY,
+  application_id UUID NOT NULL REFERENCES loan_application(application_id),
+  maker_subject VARCHAR(128) NOT NULL,
+  checker_subject VARCHAR(128),
+  status VARCHAR(24) NOT NULL,
+  reason VARCHAR(240) NOT NULL,
+  version INTEGER NOT NULL DEFAULT 1
+);
+CREATE TABLE IF NOT EXISTS eod_run (
+  run_id UUID PRIMARY KEY,
+  business_date DATE NOT NULL,
+  status VARCHAR(24) NOT NULL,
+  reconciliation_status VARCHAR(24) NOT NULL,
+  reason VARCHAR(240),
   created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP
 );

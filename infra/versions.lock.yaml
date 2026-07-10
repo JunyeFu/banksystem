@@ -22,5 +22,5 @@ channel:
   keycloak:
     reference: 'quay.io/keycloak/keycloak:26.3.3@sha256:6a7217a100bd3e5de4063a27a538ef999a3c5a88c4b4ec0ffc0a642aee7b2597'
   channelService:
-    reference: 'local/bank-channel-service@sha256:f73124a2f4a810483d42c60f9e4e4bd9394a57130c190230fbbfe7d094e34fa1'
+    reference: 'local/bank-channel-service@sha256:07eaa0c39390b49ef466e7f5022af011920894650b0fdf1b76ad2185125d35f0'
     builder: 'maven@sha256:3a4ab3276a087bf276f79cae96b1af04f53731bec53fb2e651aca79e4b10211e'

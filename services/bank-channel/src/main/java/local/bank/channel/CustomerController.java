@@ -48,4 +48,7 @@ public class CustomerController {
   public Map<String, Object> me(@AuthenticationPrincipal Jwt jwt) {
     return Map.of("customerId", jwt.getSubject(), "displayName", jwt.getClaimAsString("name"));
   }
+
+  @GetMapping("/api/customer/v1/loans")
+  public Map<String,Object> loans(@AuthenticationPrincipal Jwt jwt){return Map.of("items",fineract.clientLoans(linkedClient(jwt.getSubject())));}
 }

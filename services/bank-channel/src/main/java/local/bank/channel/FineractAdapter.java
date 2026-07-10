@@ -51,6 +51,11 @@ public class FineractAdapter {
     return result;
   }
 
+  @SuppressWarnings("unchecked")
+  public List<Map<String,Object>> clientLoans(long clientId) {
+    Map<String,Object> body=client.get().uri("/api/v1/clients/{id}/accounts",clientId).retrieve().body(Map.class);if(body==null||!(body.get("loanAccounts") instanceof List<?> list))return List.of();return list.stream().filter(x->x instanceof Map<?,?>).map(x->(Map<String,Object>)x).toList();
+  }
+
   public Map<String, Object> accountTransfer(long fromAccountId, long toAccountId, java.math.BigDecimal amount, String currency, String idempotencyKey) {
     Map<String, Object> from = accountDetails(fromAccountId);
     Map<String, Object> to = accountDetails(toAccountId);
