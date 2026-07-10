@@ -102,6 +102,8 @@ paths:
     get:
       operationId: getTransferReceipt
       summary: Get a transfer receipt
+      parameters:
+        - { name: format, in: query, schema: { type: string, enum: [json, pdf], default: json } }
       responses:
         '200': { description: Receipt payload and SHA-256 checksum }
         '401': { $ref: '#/components/responses/Unauthorized' }

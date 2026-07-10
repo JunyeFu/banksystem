@@ -22,7 +22,17 @@ public class TransferProcessor {
     Map<String,Object> row = rows.get(0);
     if (!"RECEIVED".equals(row.get("status"))) return Map.of("transferId", transferId.toString(), "status", row.get("status"));
     jdbc.update("UPDATE transfer SET status='PROCESSING' WHERE transfer_id=?", transferId);
-    Map<String,Object> core = fineract.accountTransfer(Long.parseLong((String) row.get("source")), Long.parseLong((String) row.get("destination")), (BigDecimal) row.get("amount"), (String) row.get("currency"), (String) row.get("key"));
+    Map<String,Object> core;
+    try {
+      core = fineract.accountTransfer(Long.parseLong((String) row.get("source")), Long.parseLong((String) row.get("destination")), (BigDecimal) row.get("amount"), (String) row.get("currency"), (String) row.get("key"));
+    } catch (RuntimeException ex) {
+      String rawReason = ex instanceof org.springframework.web.client.HttpClientErrorException http
+          ? http.getStatusCode()+" "+http.getResponseBodyAsString() : ex.getMessage();
+      String reason = rawReason == null ? "Core transfer rejected" : rawReason.substring(0, Math.min(240, rawReason.length()));
+      jdbc.update("UPDATE transfer SET status='FAILED', failure_reason=? WHERE transfer_id=?", reason, transferId);
+      jdbc.update("INSERT INTO transfer_outbox(event_id,transfer_id,event_type,payload) VALUES (?,?,?,?)", UUID.randomUUID(), transferId, "transfer.status.changed", "{\"transferId\":\"" + transferId + "\",\"status\":\"FAILED\"}");
+      return Map.of("transferId", transferId.toString(), "status", "FAILED", "failureReason", reason);
+    }
     String reference = String.valueOf(core == null ? "" : core.getOrDefault("resourceId", core.getOrDefault("id", "")));
     jdbc.update("UPDATE transfer SET status='POSTED', core_reference=? WHERE transfer_id=?", reference, transferId);
     jdbc.update("INSERT INTO transfer_outbox(event_id,transfer_id,event_type,payload) VALUES (?,?,?,?)", UUID.randomUUID(), transferId, "transfer.status.changed", "{\"transferId\":\"" + transferId + "\",\"status\":\"POSTED\"}");

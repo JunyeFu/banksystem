@@ -68,7 +68,8 @@ public class FineractAdapter {
       connection.setRequestMethod("POST"); connection.setDoOutput(true); connection.setFixedLengthStreamingMode(json.getBytes(java.nio.charset.StandardCharsets.UTF_8).length);
       connection.setRequestProperty("Authorization", "Basic " + auth); connection.setRequestProperty("fineract-platform-tenantid", tenant);
       connection.setRequestProperty("Content-Type", MediaType.APPLICATION_JSON_VALUE); connection.setRequestProperty("Accept", MediaType.APPLICATION_JSON_VALUE);
-      connection.setRequestProperty("Idempotency-Key", idempotencyKey); connection.setRequestProperty("X-Idempotency-Key", idempotencyKey);
+      String coreKey = coreIdempotencyKey(idempotencyKey);
+      connection.setRequestProperty("Idempotency-Key", coreKey); connection.setRequestProperty("X-Idempotency-Key", coreKey);
       try (var output = connection.getOutputStream()) { output.write(json.getBytes(java.nio.charset.StandardCharsets.UTF_8)); }
       int status = connection.getResponseCode();
       try (var input = status >= 400 ? connection.getErrorStream() : connection.getInputStream()) {
@@ -77,6 +78,14 @@ public class FineractAdapter {
         return mapper.readValue(response, Map.class);
       }
     } catch (java.io.IOException ex) { throw new IllegalStateException("Core transfer request failed", ex); }
+  }
+
+  private String coreIdempotencyKey(String key) {
+    if (key == null || key.length() <= 48) return key;
+    try {
+      byte[] digest = java.security.MessageDigest.getInstance("SHA-256").digest(key.getBytes(java.nio.charset.StandardCharsets.UTF_8));
+      return "ch-" + java.util.HexFormat.of().formatHex(digest).substring(0, 45);
+    } catch (java.security.GeneralSecurityException ex) { throw new IllegalStateException(ex); }
   }
 
   private record AccountTransferRequest(long fromAccountId, long toAccountId, java.math.BigDecimal transferAmount, String transferDate, int fromAccountType, int toAccountType, int fromOfficeId, long fromClientId, int toOfficeId, long toClientId, String transferDescription, String locale, String dateFormat, String currencyCode) {}
@@ -99,19 +108,19 @@ public class FineractAdapter {
   }
 
   public Map<String,Object> submitLoan(Map<String,Object> body, String idempotencyKey){
-    return client.post().uri("/api/v1/loans").header("Idempotency-Key", idempotencyKey).header("X-Idempotency-Key", idempotencyKey).body(body).retrieve().body(Map.class);
+    String coreKey=coreIdempotencyKey(idempotencyKey); return client.post().uri("/api/v1/loans").header("Idempotency-Key", coreKey).header("X-Idempotency-Key", coreKey).body(body).retrieve().body(Map.class);
   }
 
   public Map<String,Object> loanCommand(long loanId, String command, Map<String,Object> body, String idempotencyKey){
     if(!java.util.Set.of("approve","reject","withdrawnByApplicant","disburse","undodisbursal","undoapproval").contains(command)) throw new IllegalArgumentException("Unsupported loan command");
-    return client.post().uri(uri->uri.path("/api/v1/loans/{id}").queryParam("command",command).build(loanId)).header("Idempotency-Key", idempotencyKey).header("X-Idempotency-Key", idempotencyKey).body(body==null?Map.of():body).retrieve().body(Map.class);
+    String coreKey=coreIdempotencyKey(idempotencyKey); return client.post().uri(uri->uri.path("/api/v1/loans/{id}").queryParam("command",command).build(loanId)).header("Idempotency-Key", coreKey).header("X-Idempotency-Key", coreKey).body(body==null?Map.of():body).retrieve().body(Map.class);
   }
 
   public Map<String,Object> loanDetails(long loanId){return client.get().uri(uri->uri.path("/api/v1/loans/{id}").queryParam("associations","all").build(loanId)).retrieve().body(Map.class);}
 
   public Map<String,Object> loanTransaction(long loanId, String command, Map<String,Object> body, String idempotencyKey){
     if(!java.util.Set.of("repayment","foreclosure","close","writeoff","undowriteoff").contains(command)) throw new IllegalArgumentException("Unsupported loan transaction");
-    return client.post().uri(uri->uri.path("/api/v1/loans/{id}/transactions").queryParam("command",command).build(loanId)).header("Idempotency-Key", idempotencyKey).header("X-Idempotency-Key", idempotencyKey).body(body==null?Map.of():body).retrieve().body(Map.class);
+    String coreKey=coreIdempotencyKey(idempotencyKey); return client.post().uri(uri->uri.path("/api/v1/loans/{id}/transactions").queryParam("command",command).build(loanId)).header("Idempotency-Key", coreKey).header("X-Idempotency-Key", coreKey).body(body==null?Map.of():body).retrieve().body(Map.class);
   }
 
   @SuppressWarnings("unchecked")
