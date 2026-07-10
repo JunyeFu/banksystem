@@ -45,8 +45,7 @@ public class LoanCoreController {
   @PostMapping("/api/customer/v1/loans/applications/{id}/core/{command}")
   public Map<String,Object> command(@AuthenticationPrincipal Jwt jwt,@PathVariable UUID id,@PathVariable String command,
       @RequestHeader("Idempotency-Key") String key,@RequestBody(required=false) Map<String,Object> body) {
-    Long loanId=jdbc.queryForObject("SELECT core_loan_id FROM loan_application WHERE application_id=? AND subject=?",Long.class,id,jwt.getSubject());
-    if(loanId==null) throw new ResponseStatusException(HttpStatus.CONFLICT,"Core loan has not been submitted");
+    Long loanId=coreLoanFor(jwt.getSubject(), id);
     Map<String,Object> payload=body==null?new HashMap<>():new HashMap<>(body); String today=LocalDate.now().toString();
     if(command.equals("approve")){payload.putIfAbsent("approvedOnDate",today);payload.putIfAbsent("approvedLoanAmount",payload.getOrDefault("approvedLoanAmount",payload.getOrDefault("amount",null)));payload.putIfAbsent("dateFormat","yyyy-MM-dd");payload.putIfAbsent("locale","en");}
     if(command.equals("disburse")){payload.putIfAbsent("actualDisbursementDate",today);payload.putIfAbsent("dateFormat","yyyy-MM-dd");payload.putIfAbsent("locale","en");}
@@ -57,19 +56,24 @@ public class LoanCoreController {
 
   @PostMapping("/api/customer/v1/loans/applications/{id}/repayment")
   public Map<String,Object> repayment(@AuthenticationPrincipal Jwt jwt,@PathVariable UUID id,@RequestHeader("Idempotency-Key") String key,@RequestBody Map<String,Object> body){
-    Long loanId=jdbc.queryForObject("SELECT core_loan_id FROM loan_application WHERE application_id=? AND subject=?",Long.class,id,jwt.getSubject());
-    if(loanId==null) throw new ResponseStatusException(HttpStatus.CONFLICT,"Core loan has not been submitted");
+    Long loanId=coreLoanFor(jwt.getSubject(), id);
     Map<String,Object> payload=new HashMap<>(body); payload.putIfAbsent("transactionDate",LocalDate.now().toString()); payload.putIfAbsent("dateFormat","yyyy-MM-dd"); payload.putIfAbsent("locale","en");
     return Map.of("applicationId",id.toString(),"coreLoanId",loanId,"core",fineract.loanTransaction(loanId,"repayment",payload,key));
   }
 
   @PostMapping("/api/customer/v1/loans/applications/{id}/close")
   public Map<String,Object> close(@AuthenticationPrincipal Jwt jwt,@PathVariable UUID id,@RequestHeader("Idempotency-Key") String key){
-    Long loanId=jdbc.queryForObject("SELECT core_loan_id FROM loan_application WHERE application_id=? AND subject=?",Long.class,id,jwt.getSubject());
-    if(loanId==null) throw new ResponseStatusException(HttpStatus.CONFLICT,"Core loan has not been submitted");
+    Long loanId=coreLoanFor(jwt.getSubject(), id);
     Map<String,Object> payload=new HashMap<>(); payload.put("transactionDate",LocalDate.now().toString()); payload.put("dateFormat","yyyy-MM-dd"); payload.put("locale","en");
     Map<String,Object> result=fineract.loanTransaction(loanId,"close",payload,key);
     jdbc.update("UPDATE loan_application SET status='CLOSED',version=version+1 WHERE application_id=?",id);
     return Map.of("applicationId",id.toString(),"coreLoanId",loanId,"status","CLOSED","core",result);
+  }
+
+  private Long coreLoanFor(String subject, UUID id) {
+    var rows=jdbc.query("SELECT core_loan_id FROM loan_application WHERE application_id=? AND subject=?",(rs,n)->(Long)rs.getObject(1),id,subject);
+    if(rows.isEmpty()) throw new ResponseStatusException(HttpStatus.NOT_FOUND,"Loan application not found");
+    if(rows.get(0)==null) throw new ResponseStatusException(HttpStatus.CONFLICT,"Core loan has not been submitted");
+    return rows.get(0);
   }
 }
