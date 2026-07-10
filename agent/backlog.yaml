@@ -80,7 +80,7 @@ phases:
       - {id: BANK-0601, owner: A8, title: Implement monitoring and alert verification, status: DONE, dependsOn: [BANK-0304, BANK-0404]}
       - {id: BANK-0602, owner: A8, title: Automate backup and restore drill, status: DONE, dependsOn: [BANK-0601]}
       - {id: BANK-0603, owner: A9, title: Final architecture and security review, status: REVIEW, dependsOn: [BANK-0602]}
-      - {id: BANK-0604, owner: A8, title: Implement EOD and reconciliation orchestration, status: REVIEW, dependsOn: [BANK-0603]}
+      - {id: BANK-0604, owner: A8, title: Implement EOD and reconciliation orchestration, status: DONE, dependsOn: [BANK-0603]}
   - id: P5
     name: lending-and-operations
     tasks:
