@@ -16,5 +16,5 @@
 | Deterministic loan scoring/Maker-Checker | Yes | Channel API and version/reason guards | IMPLEMENTED_NOT_VERIFIED |
 | Loan core lifecycle/accounting | No | No controlled Fineract loan adapter yet | NOT_STARTED |
 | EOD/reconciliation orchestration | Yes | Protected EOD endpoint and `eod_run` evidence | IMPLEMENTED_NOT_VERIFIED |
-| Cashier/freeze/close/maturity operations | No | No implementation evidence yet | NOT_STARTED |
+| Cashier/freeze/close/maturity operations | Partial | Operations cashier read API and guarded block/unblock/close/prematureClose forwarding are implemented; runtime authorization and Fineract command verification remain | IMPLEMENTED_NOT_VERIFIED |
 | Final full regression | No | E2E-001 to E2E-014 not all executed | NOT_STARTED |

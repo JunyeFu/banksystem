@@ -89,5 +89,5 @@ phases:
       - {id: BANK-0503, owner: A6, title: Implement deterministic loan scoring, status: REVIEW, dependsOn: [BANK-0501]}
       - {id: BANK-0504, owner: A6, title: Implement loan Maker-Checker, status: REVIEW, dependsOn: [BANK-0503]}
       - {id: BANK-0505, owner: A8, title: Verify loan lifecycle and accounting, status: REVIEW, dependsOn: [BANK-0504]}
-      - {id: BANK-0506, owner: A7, title: Verify cashier operations, status: TODO, dependsOn: [BANK-0505]}
-      - {id: BANK-0507, owner: A3, title: Verify freeze close and maturity operations, status: TODO, dependsOn: [BANK-0505]}
+      - {id: BANK-0506, owner: A7, title: Verify cashier operations, status: REVIEW, dependsOn: [BANK-0505]}
+      - {id: BANK-0507, owner: A3, title: Verify freeze close and maturity operations, status: REVIEW, dependsOn: [BANK-0505]}

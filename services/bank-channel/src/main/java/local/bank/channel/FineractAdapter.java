@@ -85,4 +85,10 @@ public class FineractAdapter {
   private Map<String, Object> accountDetails(long accountId) {
     return client.get().uri("/api/v1/savingsaccounts/{id}", accountId).retrieve().body(Map.class);
   }
+
+  @SuppressWarnings("unchecked")
+  public List<Map<String,Object>> cashiers(){var body=client.get().uri("/api/v1/cashiers").retrieve().body(List.class);return body==null?List.of():body;}
+
+  @SuppressWarnings("unchecked")
+  public Map<String,Object> savingsCommand(long accountId,String command,Map<String,Object> body){if(!java.util.Set.of("block","unblock","close","prematureClose").contains(command))throw new IllegalArgumentException("Unsupported savings command");return client.post().uri(uri->uri.path("/api/v1/savingsaccounts/{id}").queryParam("command",command).build(accountId)).body(body==null?Map.of():body).retrieve().body(Map.class);}
 }

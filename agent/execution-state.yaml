@@ -1,5 +1,5 @@
 schemaVersion: 1
-updatedAt: '2026-07-10T00:00:00+08:00'
+updatedAt: '2026-07-10T13:35:00+08:00'
 activeTask: null
 tasks:
   BANK-0001: {status: DONE, owner: A0}
@@ -28,4 +28,6 @@ tasks:
   BANK-0503: {status: REVIEW, owner: A6}
   BANK-0504: {status: REVIEW, owner: A6}
   BANK-0505: {status: REVIEW, owner: A8}
+  BANK-0506: {status: REVIEW, owner: A7}
+  BANK-0507: {status: REVIEW, owner: A3}
   BANK-0604: {status: REVIEW, owner: A8}
