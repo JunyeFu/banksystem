@@ -12,3 +12,15 @@ core:
 notes:
   - Immutable digests are observed runtime identities, not upgrade approval.
   - The mutable develop, dev, and latest tags are a Phase 0 audit finding.
+channel:
+  postgresql:
+    reference: 'postgres:18.3@sha256:7e32e9833a6fb1c92c32552794cb6ed569d51b445a54907d35fc112ef39684db'
+  gateway:
+    reference: 'nginx:1.27-alpine@sha256:65645c7bb6a0661892a8b03b89d0743208a18dd2f3f17a54ef4b76fb8e2f2a10'
+  javaRuntime:
+    reference: 'eclipse-temurin:21-jre@sha256:d2b9f8f12212cadcfdf889461531784e8fd097feade954d65b31ee7a71c473ec'
+  keycloak:
+    reference: 'quay.io/keycloak/keycloak:26.3.3@sha256:6a7217a100bd3e5de4063a27a538ef999a3c5a88c4b4ec0ffc0a642aee7b2597'
+  channelService:
+    reference: 'local/bank-channel-service@sha256:4c6c7cdad70abac7db7b85abc0d0c10d7d26ea42ef231338dae2dd84e6695933'
+    builder: 'maven@sha256:3a4ab3276a087bf276f79cae96b1af04f53731bec53fb2e651aca79e4b10211e'

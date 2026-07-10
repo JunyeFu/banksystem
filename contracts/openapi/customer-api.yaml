@@ -1,0 +1,96 @@
+openapi: 3.1.1
+info:
+  title: Bank Customer API
+  version: 0.1.0
+  description: Customer-facing BFF contract. Browsers never call Fineract directly.
+servers:
+  - url: /api/customer/v1
+security:
+  - bearerAuth: []
+paths:
+  /customers/me:
+    get:
+      operationId: getCurrentCustomer
+      responses:
+        '200':
+          description: Current linked customer
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Customer' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+  /accounts:
+    get:
+      operationId: listAccounts
+      responses:
+        '200':
+          description: Accounts linked to the authenticated customer
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [items]
+                properties:
+                  items:
+                    type: array
+                    items: { $ref: '#/components/schemas/AccountSummary' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+  /accounts/{accountId}:
+    parameters:
+      - $ref: '#/components/parameters/AccountId'
+    get:
+      operationId: getAccount
+      responses:
+        '200':
+          description: Account summary
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/AccountSummary' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '404': { $ref: '#/components/responses/NotFound' }
+components:
+  securitySchemes:
+    bearerAuth: { type: http, scheme: bearer, bearerFormat: JWT }
+  parameters:
+    AccountId:
+      name: accountId
+      in: path
+      required: true
+      schema: { type: string, minLength: 1, maxLength: 64 }
+  responses:
+    Unauthorized:
+      description: Authentication required
+      content:
+        application/problem+json: { schema: { $ref: '#/components/schemas/Problem' } }
+    NotFound:
+      description: Resource is not linked to the current customer
+      content:
+        application/problem+json: { schema: { $ref: '#/components/schemas/Problem' } }
+  schemas:
+    Money:
+      type: string
+      pattern: '^-?(0|[1-9][0-9]*)(\.[0-9]{1,4})?$'
+      description: Decimal money value serialized as a string; never a JSON number.
+      examples: ['1250.00']
+    Customer:
+      type: object
+      required: [customerId, displayName]
+      properties:
+        customerId: { type: string, minLength: 1, maxLength: 64 }
+        displayName: { type: string, minLength: 1, maxLength: 160 }
+    AccountSummary:
+      type: object
+      required: [accountId, maskedAccountNumber, currency, balance]
+      properties:
+        accountId: { type: string, minLength: 1, maxLength: 64 }
+        maskedAccountNumber: { type: string, pattern: '^\*{4,}[0-9]{2,4}$' }
+        currency: { type: string, pattern: '^[A-Z]{3}$' }
+        balance: { $ref: '#/components/schemas/Money' }
+    Problem:
+      type: object
+      required: [type, title, status, code]
+      properties:
+        type: { type: string, format: uri-reference }
+        title: { type: string }
+        status: { type: integer, minimum: 400, maximum: 599 }
+        code: { type: string }
+        detail: { type: string }

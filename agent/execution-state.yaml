@@ -1,8 +1,17 @@
 schemaVersion: 1
 updatedAt: '2026-07-10T00:00:00+08:00'
-activeTask: null
+activeTask: BANK-0303
 tasks:
-  BANK-0001: {status: REVIEW, owner: A0}
-  BANK-0002: {status: REVIEW, owner: A0}
-  BANK-0003: {status: REVIEW, owner: A0}
-  BANK-0004: {status: REVIEW, owner: A8}
+  BANK-0001: {status: DONE, owner: A0}
+  BANK-0002: {status: DONE, owner: A0}
+  BANK-0003: {status: DONE, owner: A0}
+  BANK-0004: {status: DONE, owner: A8}
+  BANK-0101: {status: DONE, owner: A1}
+  BANK-0102: {status: DONE, owner: A2}
+  BANK-0103: {status: DONE, owner: A2}
+  BANK-0201: {status: DONE, owner: A3}
+  BANK-0202: {status: DONE, owner: A4}
+  BANK-0203: {status: DONE, owner: A5}
+  BANK-0301: {status: REVIEW, owner: A4}
+  BANK-0302: {status: DONE, owner: A6}
+  BANK-0303: {status: BLOCKED, owner: A3}

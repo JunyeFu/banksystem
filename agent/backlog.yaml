@@ -22,7 +22,7 @@ phases:
       - id: BANK-0001
         owner: A0
         title: Inventory runtime and containers
-        status: REVIEW
+        status: DONE
         dependsOn: []
         allowedPaths: [docs/baseline/**, scripts/baseline/**]
         outputs: [docs/baseline/container-inventory.json, docs/baseline/runtime-inventory.md, infra/versions.lock.yaml]
@@ -30,42 +30,42 @@ phases:
       - id: BANK-0002
         owner: A0
         title: Export local Fineract OpenAPI
-        status: REVIEW
+        status: DONE
         dependsOn: [BANK-0001]
         outputs: [docs/baseline/swagger-original.json, docs/baseline/fineract-api-index.md]
         acceptance: [OpenAPI file parses successfully, Client savings loan transfer audit and maker-checker APIs are indexed]
       - id: BANK-0003
         owner: A0
         title: Audit security and operational configuration
-        status: REVIEW
+        status: DONE
         dependsOn: [BANK-0001, BANK-0002]
         outputs: [docs/baseline/security-config.md, docs/baseline/risk-register.md]
         acceptance: [Authentication mode is verified, Tenant header is verified, Fineract idempotency header is verified, Maker-checker and external event settings are verified]
       - id: BANK-0004
         owner: A8
         title: Create verified core backup
-        status: REVIEW
+        status: DONE
         dependsOn: [BANK-0001]
         outputs: [docs/test-evidence/core-backup-verification.md]
         acceptance: [Backup SHA-256 exists, Restore command is documented, Backup file is ignored by Git]
   - id: P1
     name: contracts-and-platform
     tasks:
-      - {id: BANK-0101, owner: A1, title: Freeze domain state machines and API contracts, status: TODO, dependsOn: [BANK-0002, BANK-0003], allowedPaths: [contracts/**, docs/architecture/**]}
-      - {id: BANK-0102, owner: A2, title: Add isolated channel infrastructure, status: TODO, dependsOn: [BANK-0001], allowedPaths: [infra/**, compose.channel.yaml, .env.example]}
-      - {id: BANK-0103, owner: A2, title: Configure Keycloak customer and internal realms, status: TODO, dependsOn: [BANK-0102]}
+      - {id: BANK-0101, owner: A1, title: Freeze domain state machines and API contracts, status: DONE, dependsOn: [BANK-0002, BANK-0003], allowedPaths: [contracts/**, docs/architecture/**]}
+      - {id: BANK-0102, owner: A2, title: Add isolated channel infrastructure, status: DONE, dependsOn: [BANK-0001], allowedPaths: [infra/**, compose.channel.yaml, .env.example]}
+      - {id: BANK-0103, owner: A2, title: Configure Keycloak customer and internal realms, status: DONE, dependsOn: [BANK-0102]}
   - id: P2
     name: customer-read-model
     tasks:
-      - {id: BANK-0201, owner: A3, title: Implement Fineract adapter, status: TODO, dependsOn: [BANK-0101, BANK-0102]}
-      - {id: BANK-0202, owner: A4, title: Implement customer identity link and account query API, status: TODO, dependsOn: [BANK-0101, BANK-0103, BANK-0201]}
-      - {id: BANK-0203, owner: A5, title: Implement customer login and dashboard, status: TODO, dependsOn: [BANK-0101, BANK-0103]}
+      - {id: BANK-0201, owner: A3, title: Implement Fineract adapter, status: DONE, dependsOn: [BANK-0101, BANK-0102]}
+      - {id: BANK-0202, owner: A4, title: Implement customer identity link and account query API, status: DONE, dependsOn: [BANK-0101, BANK-0103, BANK-0201]}
+      - {id: BANK-0203, owner: A5, title: Implement customer login and dashboard, status: DONE, dependsOn: [BANK-0101, BANK-0103]}
   - id: P3
     name: internal-payments
     tasks:
-      - {id: BANK-0301, owner: A4, title: Implement beneficiary and idempotency modules, status: TODO, dependsOn: [BANK-0202]}
-      - {id: BANK-0302, owner: A6, title: Implement transfer state machine and outbox, status: TODO, dependsOn: [BANK-0101, BANK-0301]}
-      - {id: BANK-0303, owner: A3, title: Integrate Fineract account transfer, status: TODO, dependsOn: [BANK-0201, BANK-0302]}
+      - {id: BANK-0301, owner: A4, title: Implement beneficiary and idempotency modules, status: REVIEW, dependsOn: [BANK-0202]}
+      - {id: BANK-0302, owner: A6, title: Implement transfer state machine and outbox, status: DONE, dependsOn: [BANK-0101, BANK-0301]}
+      - {id: BANK-0303, owner: A3, title: Integrate Fineract account transfer, status: BLOCKED, dependsOn: [BANK-0201, BANK-0302]}
       - {id: BANK-0304, owner: A8, title: Verify internal transfer end to end, status: TODO, dependsOn: [BANK-0303]}
   - id: P4
     name: mock-clearing-risk-operations
