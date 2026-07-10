@@ -30,6 +30,7 @@ public class SecurityConfig {
             .requestMatchers("/api/operations/v1/cashiers").hasAnyAuthority("ROLE_TELLER", "ROLE_AUDITOR", "ROLE_SYSTEM_ADMIN")
             .requestMatchers("/api/operations/v1/savings/**").hasAnyAuthority("ROLE_TELLER", "ROLE_SYSTEM_ADMIN")
             .requestMatchers("/api/operations/v1/transfers/**").hasAnyAuthority("ROLE_PAYMENT_OPERATOR", "ROLE_PAYMENT_APPROVER", "ROLE_SYSTEM_ADMIN")
+            .requestMatchers("/api/operations/v1/loans/**").hasAnyAuthority("ROLE_LOAN_OFFICER", "ROLE_LOAN_APPROVER", "ROLE_AUDITOR", "ROLE_SYSTEM_ADMIN")
             .requestMatchers("/api/operations/v1/risk/**", "/api/operations/v1/clearing/**", "/internal/mock-clearing/**")
               .hasAnyAuthority("ROLE_PAYMENT_OPERATOR", "ROLE_PAYMENT_APPROVER", "ROLE_AUDITOR", "ROLE_SYSTEM_ADMIN")
             .requestMatchers("/internal/eod/**", "/internal/monitoring/**")
