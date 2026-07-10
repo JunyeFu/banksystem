@@ -1,0 +1,82 @@
+schemaVersion: 1
+project: mifos-isolated-digital-bank
+root: 'D:\\Agent\\banksystem'
+defaultBranch: main
+constraints:
+  preserveExistingCore: true
+  directWriteToFineractDatabase: false
+  exposeDatabasePortsToHost: false
+  realMoney: false
+  tenant: default
+qualityGates:
+  contractLint: true
+  unitTests: true
+  integrationTests: true
+  e2eForMoneyChange: true
+  reconciliationAssertion: true
+  securityReview: true
+phases:
+  - id: P0
+    name: baseline
+    tasks:
+      - id: BANK-0001
+        owner: A0
+        title: Inventory runtime and containers
+        status: REVIEW
+        dependsOn: []
+        allowedPaths: [docs/baseline/**, scripts/baseline/**]
+        outputs: [docs/baseline/container-inventory.json, docs/baseline/runtime-inventory.md, infra/versions.lock.yaml]
+        acceptance: [All running containers have image version and digest, Host port mappings are recorded, No secret value is written to reports]
+      - id: BANK-0002
+        owner: A0
+        title: Export local Fineract OpenAPI
+        status: REVIEW
+        dependsOn: [BANK-0001]
+        outputs: [docs/baseline/swagger-original.json, docs/baseline/fineract-api-index.md]
+        acceptance: [OpenAPI file parses successfully, Client savings loan transfer audit and maker-checker APIs are indexed]
+      - id: BANK-0003
+        owner: A0
+        title: Audit security and operational configuration
+        status: REVIEW
+        dependsOn: [BANK-0001, BANK-0002]
+        outputs: [docs/baseline/security-config.md, docs/baseline/risk-register.md]
+        acceptance: [Authentication mode is verified, Tenant header is verified, Fineract idempotency header is verified, Maker-checker and external event settings are verified]
+      - id: BANK-0004
+        owner: A8
+        title: Create verified core backup
+        status: REVIEW
+        dependsOn: [BANK-0001]
+        outputs: [docs/test-evidence/core-backup-verification.md]
+        acceptance: [Backup SHA-256 exists, Restore command is documented, Backup file is ignored by Git]
+  - id: P1
+    name: contracts-and-platform
+    tasks:
+      - {id: BANK-0101, owner: A1, title: Freeze domain state machines and API contracts, status: TODO, dependsOn: [BANK-0002, BANK-0003], allowedPaths: [contracts/**, docs/architecture/**]}
+      - {id: BANK-0102, owner: A2, title: Add isolated channel infrastructure, status: TODO, dependsOn: [BANK-0001], allowedPaths: [infra/**, compose.channel.yaml, .env.example]}
+      - {id: BANK-0103, owner: A2, title: Configure Keycloak customer and internal realms, status: TODO, dependsOn: [BANK-0102]}
+  - id: P2
+    name: customer-read-model
+    tasks:
+      - {id: BANK-0201, owner: A3, title: Implement Fineract adapter, status: TODO, dependsOn: [BANK-0101, BANK-0102]}
+      - {id: BANK-0202, owner: A4, title: Implement customer identity link and account query API, status: TODO, dependsOn: [BANK-0101, BANK-0103, BANK-0201]}
+      - {id: BANK-0203, owner: A5, title: Implement customer login and dashboard, status: TODO, dependsOn: [BANK-0101, BANK-0103]}
+  - id: P3
+    name: internal-payments
+    tasks:
+      - {id: BANK-0301, owner: A4, title: Implement beneficiary and idempotency modules, status: TODO, dependsOn: [BANK-0202]}
+      - {id: BANK-0302, owner: A6, title: Implement transfer state machine and outbox, status: TODO, dependsOn: [BANK-0101, BANK-0301]}
+      - {id: BANK-0303, owner: A3, title: Integrate Fineract account transfer, status: TODO, dependsOn: [BANK-0201, BANK-0302]}
+      - {id: BANK-0304, owner: A8, title: Verify internal transfer end to end, status: TODO, dependsOn: [BANK-0303]}
+  - id: P4
+    name: mock-clearing-risk-operations
+    tasks:
+      - {id: BANK-0401, owner: A6, title: Implement mock clearing service, status: TODO, dependsOn: [BANK-0101, BANK-0102]}
+      - {id: BANK-0402, owner: A6, title: Implement risk rules and manual review, status: TODO, dependsOn: [BANK-0302]}
+      - {id: BANK-0403, owner: A7, title: Implement payment operations UI, status: TODO, dependsOn: [BANK-0402]}
+      - {id: BANK-0404, owner: A8, title: Verify external mock payments, status: TODO, dependsOn: [BANK-0401, BANK-0402, BANK-0403]}
+  - id: P6
+    name: reliability-and-final-audit
+    tasks:
+      - {id: BANK-0601, owner: A8, title: Implement monitoring and alert verification, status: TODO, dependsOn: [BANK-0304, BANK-0404]}
+      - {id: BANK-0602, owner: A8, title: Automate backup and restore drill, status: TODO, dependsOn: [BANK-0601]}
+      - {id: BANK-0603, owner: A9, title: Final architecture and security review, status: TODO, dependsOn: [BANK-0602]}

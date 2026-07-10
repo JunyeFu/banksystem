@@ -1,0 +1,8 @@
+schemaVersion: 1
+updatedAt: '2026-07-10T00:00:00+08:00'
+activeTask: null
+tasks:
+  BANK-0001: {status: REVIEW, owner: A0}
+  BANK-0002: {status: REVIEW, owner: A0}
+  BANK-0003: {status: REVIEW, owner: A0}
+  BANK-0004: {status: REVIEW, owner: A8}

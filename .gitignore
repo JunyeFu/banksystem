@@ -1,0 +1,2 @@
+# Local core database backups and restore artefacts are never committed.
+backups/
