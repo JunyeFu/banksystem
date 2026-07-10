@@ -22,7 +22,7 @@ public class MockClearingService {
 
   @Transactional
   public Map<String,Object> submit(UUID transferId, String scenario, String key) {
-    if (!java.util.Set.of("SUCCESS", "TIMEOUT", "DUPLICATE", "OUT_OF_ORDER").contains(scenario)) throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Unsupported clearing scenario");
+    if (!java.util.Set.of("SUCCESS", "TIMEOUT", "DUPLICATE", "OUT_OF_ORDER", "RETURNED").contains(scenario)) throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Unsupported clearing scenario");
     var found = jdbc.query("SELECT clearing_id,status FROM clearing_payment WHERE idempotency_key=?", (rs,n)->Map.<String,Object>of("id",rs.getString(1),"status",rs.getString(2)), key);
     if (!found.isEmpty()) return Map.of("clearingId", found.get(0).get("id"), "status", found.get(0).get("status"));
     UUID id = UUID.randomUUID();
@@ -35,7 +35,7 @@ public class MockClearingService {
     var rows=jdbc.query("SELECT scenario,delivery_count,last_sequence FROM clearing_payment WHERE clearing_id=? FOR UPDATE",(rs,n)->{var m=new java.util.HashMap<String,Object>();m.put("scenario",rs.getString(1));m.put("count",rs.getInt(2));m.put("last",(Integer)rs.getObject(3));return m;},clearingId);
     if(rows.isEmpty()) throw new ResponseStatusException(HttpStatus.NOT_FOUND,"Clearing payment not found");
     Map<String,Object> row=rows.get(0); int count=(Integer)row.get("count")+1; int previous=row.get("last")==null?0:(Integer)row.get("last");
-    String status="SUCCESS".equals(row.get("scenario"))?"SETTLED":("TIMEOUT".equals(row.get("scenario"))?"TIMED_OUT":"CALLBACK_RECEIVED");
+    String status="SUCCESS".equals(row.get("scenario"))?"SETTLED":("TIMEOUT".equals(row.get("scenario"))?"TIMED_OUT":("RETURNED".equals(row.get("scenario"))?"RETURNED":"CALLBACK_RECEIVED"));
     boolean duplicate=sequence<=previous; boolean outOfOrder=sequence>previous+1;
     if(!duplicate) jdbc.update("UPDATE clearing_payment SET delivery_count=?,last_sequence=?,status=? WHERE clearing_id=?",count,sequence,status,clearingId);
     String signature=sign(clearingId+":"+sequence+":"+status);
