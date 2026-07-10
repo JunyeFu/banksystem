@@ -4,6 +4,7 @@
   "registrationAllowed": false,
   "loginWithEmailAllowed": true,
   "duplicateEmailsAllowed": false,
+  "roles": {"realm": [{"name":"CUSTOMER"},{"name":"CUSTOMER_MFA_VERIFIED"},{"name":"CUSTOMER_BLOCKED"}]},
   "sslRequired": "external",
   "clients": [
     {

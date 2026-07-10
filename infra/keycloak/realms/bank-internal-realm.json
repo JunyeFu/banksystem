@@ -3,6 +3,18 @@
   "enabled": true,
   "registrationAllowed": false,
   "loginWithEmailAllowed": false,
+  "roles": {
+    "realm": [
+      {"name":"TELLER"},
+      {"name":"LOAN_OFFICER"},
+      {"name":"LOAN_APPROVER"},
+      {"name":"PAYMENT_OPERATOR"},
+      {"name":"PAYMENT_APPROVER"},
+      {"name":"AML_ANALYST"},
+      {"name":"AUDITOR"},
+      {"name":"SYSTEM_ADMIN"}
+    ]
+  },
   "clients": [
     {
       "clientId": "bank-operations-api",
