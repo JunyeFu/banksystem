@@ -3,6 +3,7 @@ info:
   title: Bank Customer API
   version: 0.1.0
   description: Customer-facing BFF contract. Browsers never call Fineract directly.
+  license: { name: Apache-2.0, identifier: Apache-2.0 }
 servers:
   - url: /api/customer/v1
 security:
@@ -11,6 +12,7 @@ paths:
   /customers/me:
     get:
       operationId: getCurrentCustomer
+      summary: Get current customer
       responses:
         '200':
           description: Current linked customer
@@ -21,6 +23,7 @@ paths:
   /accounts:
     get:
       operationId: listAccounts
+      summary: List customer accounts
       responses:
         '200':
           description: Accounts linked to the authenticated customer
@@ -39,6 +42,7 @@ paths:
       - $ref: '#/components/parameters/AccountId'
     get:
       operationId: getAccount
+      summary: Get customer account
       responses:
         '200':
           description: Account summary
@@ -50,6 +54,7 @@ paths:
   /loans/applications:
     post:
       operationId: createLoanApplication
+      summary: Create loan application draft
       requestBody:
         required: true
         content:
@@ -65,6 +70,7 @@ paths:
     parameters: [{ $ref: '#/components/parameters/ApplicationId' }]
     post:
       operationId: submitLoanApplication
+      summary: Submit loan application
       responses:
         '200':
           description: Submitted channel application
@@ -75,6 +81,7 @@ paths:
     parameters: [{ $ref: '#/components/parameters/ApplicationId' }]
     post:
       operationId: submitLoanToCore
+      summary: Submit loan application to Fineract
       parameters: [{ $ref: '#/components/parameters/IdempotencyKey' }]
       responses:
         '200':
@@ -92,6 +99,7 @@ paths:
         schema: { type: string, enum: [approve, disburse, reject, withdrawByApplicant, undoapproval, undodisbursal] }
     post:
       operationId: commandCoreLoan
+      summary: Execute core loan command
       parameters: [{ $ref: '#/components/parameters/IdempotencyKey' }]
       requestBody:
         required: false
@@ -104,6 +112,7 @@ paths:
     parameters: [{ $ref: '#/components/parameters/ApplicationId' }]
     post:
       operationId: repayCoreLoan
+      summary: Repay core loan
       parameters: [{ $ref: '#/components/parameters/IdempotencyKey' }]
       requestBody:
         required: true
@@ -116,6 +125,7 @@ paths:
     parameters: [{ $ref: '#/components/parameters/ApplicationId' }]
     post:
       operationId: closeCoreLoan
+      summary: Close core loan
       parameters: [{ $ref: '#/components/parameters/IdempotencyKey' }]
       responses:
         '200': { description: Closed loan result }

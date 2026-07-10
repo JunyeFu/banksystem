@@ -2,6 +2,7 @@ openapi: 3.1.1
 info:
   title: Bank Operations API
   version: 0.1.0
+  license: { name: Apache-2.0, identifier: Apache-2.0 }
   description: Internal operations and money-changing contract.
 servers:
   - url: /api/operations/v1
@@ -32,6 +33,7 @@ paths:
       - $ref: '#/components/parameters/TransferId'
     get:
       operationId: getTransfer
+      summary: Get transfer status
       responses:
         '200':
           description: Transfer state
