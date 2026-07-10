@@ -15,6 +15,6 @@
 | Loan documents/checklist | Yes | Channel API and `loan_document` schema | IMPLEMENTED_NOT_VERIFIED |
 | Deterministic loan scoring/Maker-Checker | Yes | Channel API and version/reason guards | IMPLEMENTED_NOT_VERIFIED |
 | Loan core lifecycle/accounting | Partial | Controlled Fineract submit/approve/disburse/repayment adapter and authorized E2E are implemented; closure and reconciliation regression remain | PARTIALLY_VERIFIED |
-| EOD/reconciliation orchestration | Yes | Protected EOD endpoint and `eod_run` evidence | IMPLEMENTED_NOT_VERIFIED |
+| EOD/reconciliation orchestration | Partial | Protected EOD endpoint plus `CHANNEL_TO_CORE`, `CHANNEL_TO_CLEARING`, and `CORE_TO_GENERAL_LEDGER` invariant runs; full ledger and clearing reconciliation remain | PARTIALLY_VERIFIED |
 | Cashier/freeze/close/maturity operations | Partial | Authorized cashier read and block/unblock E2E passed; close/prematureClose and maturity scenarios remain unexecuted to preserve fixtures | PARTIALLY_VERIFIED |
 | Final full regression | No | E2E-001 to E2E-014 not all executed | NOT_STARTED |

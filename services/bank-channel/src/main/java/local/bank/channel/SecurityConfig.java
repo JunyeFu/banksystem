@@ -34,6 +34,8 @@ public class SecurityConfig {
               .hasAnyAuthority("ROLE_PAYMENT_OPERATOR", "ROLE_PAYMENT_APPROVER", "ROLE_AUDITOR", "ROLE_SYSTEM_ADMIN")
             .requestMatchers("/internal/eod/**", "/internal/monitoring/**")
               .hasAnyAuthority("ROLE_AUDITOR", "ROLE_SYSTEM_ADMIN", "ROLE_PAYMENT_APPROVER")
+            .requestMatchers("/internal/reconciliation/**")
+              .hasAnyAuthority("ROLE_AUDITOR", "ROLE_SYSTEM_ADMIN", "ROLE_PAYMENT_APPROVER")
             .anyRequest().authenticated())
         .oauth2ResourceServer(oauth -> oauth.authenticationManagerResolver(authenticationManagerResolver()))
         .build();
