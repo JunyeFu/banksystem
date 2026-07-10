@@ -113,4 +113,10 @@ public class FineractAdapter {
     if(!java.util.Set.of("repayment","foreclosure","close","writeoff","undowriteoff").contains(command)) throw new IllegalArgumentException("Unsupported loan transaction");
     return client.post().uri(uri->uri.path("/api/v1/loans/{id}/transactions").queryParam("command",command).build(loanId)).header("Idempotency-Key", idempotencyKey).header("X-Idempotency-Key", idempotencyKey).body(body==null?Map.of():body).retrieve().body(Map.class);
   }
+
+  @SuppressWarnings("unchecked")
+  public List<Map<String,Object>> journalEntries(){
+    Map<String,Object> body=client.get().uri(uri->uri.path("/api/v1/journalentries").queryParam("limit",1000).queryParam("transactionDetails",true).build()).retrieve().body(Map.class);
+    if(body==null||!(body.get("pageItems") instanceof List<?> list))return List.of();return list.stream().filter(x->x instanceof Map<?,?>).map(x->(Map<String,Object>)x).toList();
+  }
 }

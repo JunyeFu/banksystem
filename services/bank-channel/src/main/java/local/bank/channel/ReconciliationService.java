@@ -8,8 +8,8 @@ import org.springframework.transaction.annotation.Transactional;
 
 @Service
 public class ReconciliationService {
-  private final JdbcTemplate jdbc;
-  public ReconciliationService(JdbcTemplate jdbc){this.jdbc=jdbc;}
+  private final JdbcTemplate jdbc; private final FineractAdapter fineract;
+  public ReconciliationService(JdbcTemplate jdbc,FineractAdapter fineract){this.jdbc=jdbc;this.fineract=fineract;}
 
   @Transactional
   public Map<String,Object> run(String type){
@@ -24,7 +24,7 @@ public class ReconciliationService {
       details=differences==0?"Clearing settlement statuses are aligned":"Clearing settlement differs from channel transfer status";
     } else {
       differences=jdbc.queryForObject("SELECT count(*) FROM transfer WHERE status IN ('POSTED','SETTLED') AND (core_reference IS NULL OR core_reference='')",Integer.class);
-      details=differences==0?"Core reference invariant holds":"Core reference invariant failed";
+      var entries=fineract.journalEntries();java.math.BigDecimal debits=java.math.BigDecimal.ZERO,credits=java.math.BigDecimal.ZERO;for(var entry:entries){var amount=new java.math.BigDecimal(String.valueOf(entry.getOrDefault("amount","0")));if("DEBIT".equals(String.valueOf(((Map<?,?>)entry.getOrDefault("entryType",Map.of())).get("value"))))debits=debits.add(amount);else if("CREDIT".equals(String.valueOf(((Map<?,?>)entry.getOrDefault("entryType",Map.of())).get("value"))))credits=credits.add(amount);}if(debits.compareTo(credits)!=0)differences++;details=debits.compareTo(credits)==0?"Core references and journal debit/credit totals are balanced":"Journal debit/credit totals are not balanced";
     }
     UUID id=UUID.randomUUID();String status=differences==0?"MATCHED":"DIFFERENCE";
     jdbc.update("INSERT INTO reconciliation_run(run_id,reconciliation_type,status,difference_count,details) VALUES(?,?,?,?,?)",id,type,status,differences,details);
