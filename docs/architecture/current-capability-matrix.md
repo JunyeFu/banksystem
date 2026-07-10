@@ -6,7 +6,7 @@
 | Customer login and account query | Yes | Authorized customer profile/account E2E, Gateway-only Customer Web, API 401 without token | VERIFIED |
 | Beneficiary tokenization | Yes | Authorized customer create/list returned masked `****7890`; temporary data removed | VERIFIED |
 | Notifications | Yes | Customer transfer produced one subject-scoped `TRANSFER_SETTLED` notification | VERIFIED |
-| Transfer receipts/statements | Partial | Repeatable customer E2E verifies JSON/PDF receipts, 64-digit SHA-256, and CSV/PDF statements; full balance equation/document reconciliation remains | PARTIALLY_VERIFIED |
+| Transfer receipts/statements | Yes | Repeatable customer E2E verifies JSON/PDF receipts, 64-digit SHA-256, CSV/PDF statements, balance equation, and identical statement replay | VERIFIED |
 | Internal transfer | Yes | Customer-owned source enforcement (403), successful Fineract posting with receipt/notification, and insufficient-funds `FAILED` path | VERIFIED |
 | Mock clearing | Yes | Authorized E2E runner passed SUCCESS, TIMEOUT, DUPLICATE and OUT_OF_ORDER with signed callbacks | VERIFIED |
 | Risk/Maker-Checker | Yes | REVIEW decision, maker self-check 409, independent PAYMENT_APPROVER ALLOW | VERIFIED |
