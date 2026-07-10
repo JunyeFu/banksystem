@@ -65,18 +65,18 @@ phases:
     tasks:
       - {id: BANK-0301, owner: A4, title: Implement beneficiary and idempotency modules, status: REVIEW, dependsOn: [BANK-0202]}
       - {id: BANK-0302, owner: A6, title: Implement transfer state machine and outbox, status: DONE, dependsOn: [BANK-0101, BANK-0301]}
-      - {id: BANK-0303, owner: A3, title: Integrate Fineract account transfer, status: BLOCKED, dependsOn: [BANK-0201, BANK-0302]}
-      - {id: BANK-0304, owner: A8, title: Verify internal transfer end to end, status: TODO, dependsOn: [BANK-0303]}
+      - {id: BANK-0303, owner: A3, title: Integrate Fineract account transfer, status: DONE, dependsOn: [BANK-0201, BANK-0302]}
+      - {id: BANK-0304, owner: A8, title: Verify internal transfer end to end, status: REVIEW, dependsOn: [BANK-0303]}
   - id: P4
     name: mock-clearing-risk-operations
     tasks:
-      - {id: BANK-0401, owner: A6, title: Implement mock clearing service, status: TODO, dependsOn: [BANK-0101, BANK-0102]}
-      - {id: BANK-0402, owner: A6, title: Implement risk rules and manual review, status: TODO, dependsOn: [BANK-0302]}
-      - {id: BANK-0403, owner: A7, title: Implement payment operations UI, status: TODO, dependsOn: [BANK-0402]}
-      - {id: BANK-0404, owner: A8, title: Verify external mock payments, status: TODO, dependsOn: [BANK-0401, BANK-0402, BANK-0403]}
+      - {id: BANK-0401, owner: A6, title: Implement mock clearing service, status: DONE, dependsOn: [BANK-0101, BANK-0102]}
+      - {id: BANK-0402, owner: A6, title: Implement risk rules and manual review, status: DONE, dependsOn: [BANK-0302]}
+      - {id: BANK-0403, owner: A7, title: Implement payment operations UI, status: REVIEW, dependsOn: [BANK-0402]}
+      - {id: BANK-0404, owner: A8, title: Verify external mock payments, status: REVIEW, dependsOn: [BANK-0401, BANK-0402, BANK-0403]}
   - id: P6
     name: reliability-and-final-audit
     tasks:
-      - {id: BANK-0601, owner: A8, title: Implement monitoring and alert verification, status: TODO, dependsOn: [BANK-0304, BANK-0404]}
-      - {id: BANK-0602, owner: A8, title: Automate backup and restore drill, status: TODO, dependsOn: [BANK-0601]}
-      - {id: BANK-0603, owner: A9, title: Final architecture and security review, status: TODO, dependsOn: [BANK-0602]}
+      - {id: BANK-0601, owner: A8, title: Implement monitoring and alert verification, status: DONE, dependsOn: [BANK-0304, BANK-0404]}
+      - {id: BANK-0602, owner: A8, title: Automate backup and restore drill, status: DONE, dependsOn: [BANK-0601]}
+      - {id: BANK-0603, owner: A9, title: Final architecture and security review, status: REVIEW, dependsOn: [BANK-0602]}

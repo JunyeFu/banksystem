@@ -44,3 +44,24 @@ CREATE TABLE IF NOT EXISTS inbox_event (
   processed_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
   PRIMARY KEY (consumer_name, event_id)
 );
+CREATE TABLE IF NOT EXISTS clearing_payment (
+  clearing_id UUID PRIMARY KEY,
+  idempotency_key VARCHAR(128) NOT NULL UNIQUE,
+  transfer_id UUID NOT NULL,
+  scenario VARCHAR(32) NOT NULL,
+  status VARCHAR(32) NOT NULL,
+  delivery_count INTEGER NOT NULL DEFAULT 0,
+  last_sequence INTEGER,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+CREATE TABLE IF NOT EXISTS risk_decision (
+  decision_id UUID PRIMARY KEY,
+  transfer_id UUID NOT NULL,
+  decision VARCHAR(16) NOT NULL,
+  reason VARCHAR(240) NOT NULL,
+  maker_subject VARCHAR(128) NOT NULL,
+  checker_subject VARCHAR(128),
+  approval_reason VARCHAR(240),
+  version INTEGER NOT NULL DEFAULT 1,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP
+);

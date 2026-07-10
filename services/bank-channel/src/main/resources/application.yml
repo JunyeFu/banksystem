@@ -18,6 +18,8 @@ fineract:
   tenant: ${FINERACT_TENANT:default}
   username: ${FINERACT_USERNAME}
   password: ${FINERACT_PASSWORD}
+clearing:
+  callback-secret: ${CLEARING_CALLBACK_SECRET:local-only-change-me}
 management:
   endpoints:
     web:

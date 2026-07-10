@@ -25,8 +25,12 @@ services:
     image: nginx:1.27-alpine@sha256:65645c7bb6a0661892a8b03b89d0743208a18dd2f3f17a54ef4b76fb8e2f2a10
     volumes: ['./apps/customer-web:/usr/share/nginx/html:ro']
     networks: [channel_front]
+  operations-web:
+    image: nginx:1.27-alpine@sha256:65645c7bb6a0661892a8b03b89d0743208a18dd2f3f17a54ef4b76fb8e2f2a10
+    volumes: ['./apps/operations-web:/usr/share/nginx/html:ro']
+    networks: [channel_front]
   channel-service:
-    image: local/bank-channel-service@sha256:4c6c7cdad70abac7db7b85abc0d0c10d7d26ea42ef231338dae2dd84e6695933
+    image: local/bank-channel-service@sha256:f73124a2f4a810483d42c60f9e4e4bd9394a57130c190230fbbfe7d094e34fa1
     environment:
       CHANNEL_DB_PASSWORD: ${CHANNEL_DB_PASSWORD:?CHANNEL_DB_PASSWORD is required}
       FINERACT_USERNAME: ${FINERACT_USERNAME:?FINERACT_USERNAME is required}

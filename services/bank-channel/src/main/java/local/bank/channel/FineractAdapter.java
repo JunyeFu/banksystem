@@ -9,24 +9,16 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestClient;
-import java.net.URI;
-import java.net.http.HttpClient;
-import java.net.http.HttpRequest;
-import java.net.http.HttpResponse;
 import java.util.Base64;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 @Component
 public class FineractAdapter {
-  private static final Logger LOG = LoggerFactory.getLogger(FineractAdapter.class);
   private final RestClient client;
   private final String tenant;
   private final ObjectMapper mapper;
   private final String baseUrl;
   private final String username;
   private final String password;
-  private final HttpClient http = HttpClient.newBuilder().version(HttpClient.Version.HTTP_1_1).build();
 
   public FineractAdapter(
       @Value("${fineract.base-url}") String baseUrl,
@@ -67,15 +59,19 @@ public class FineractAdapter {
       String json = mapper.writeValueAsString(body);
       String auth = Base64.getEncoder().encodeToString((username + ":" + password).getBytes(java.nio.charset.StandardCharsets.ISO_8859_1));
       String query = "?fromOfficeId=1&fromClientId=" + ((Number) from.get("clientId")).longValue() + "&toOfficeId=1&toClientId=" + ((Number) to.get("clientId")).longValue() + "&transferDescription=Local%20channel%20transfer";
-      HttpRequest request = HttpRequest.newBuilder(URI.create(baseUrl + "/api/v1/accounttransfers" + query))
-          .header("Authorization", "Basic " + auth).header("fineract-platform-tenantid", tenant)
-          .header("Content-Type", MediaType.APPLICATION_JSON_VALUE).header("Accept", MediaType.APPLICATION_JSON_VALUE)
-          .header("Idempotency-Key", idempotencyKey).header("X-Idempotency-Key", idempotencyKey)
-          .POST(HttpRequest.BodyPublishers.ofByteArray(json.getBytes(java.nio.charset.StandardCharsets.UTF_8))).build();
-      HttpResponse<String> response = http.send(request, HttpResponse.BodyHandlers.ofString());
-      if (response.statusCode() >= 400) throw org.springframework.web.client.HttpClientErrorException.create(org.springframework.http.HttpStatusCode.valueOf(response.statusCode()), "Fineract transfer rejected", org.springframework.http.HttpHeaders.EMPTY, response.body().getBytes(java.nio.charset.StandardCharsets.UTF_8), java.nio.charset.StandardCharsets.UTF_8);
-      return mapper.readValue(response.body(), Map.class);
-    } catch (java.io.IOException | InterruptedException ex) { if (ex instanceof InterruptedException) Thread.currentThread().interrupt(); throw new IllegalStateException("Core transfer request failed", ex); }
+      java.net.HttpURLConnection connection = (java.net.HttpURLConnection) new java.net.URL(baseUrl + "/api/v1/accounttransfers" + query).openConnection();
+      connection.setRequestMethod("POST"); connection.setDoOutput(true); connection.setFixedLengthStreamingMode(json.getBytes(java.nio.charset.StandardCharsets.UTF_8).length);
+      connection.setRequestProperty("Authorization", "Basic " + auth); connection.setRequestProperty("fineract-platform-tenantid", tenant);
+      connection.setRequestProperty("Content-Type", MediaType.APPLICATION_JSON_VALUE); connection.setRequestProperty("Accept", MediaType.APPLICATION_JSON_VALUE);
+      connection.setRequestProperty("Idempotency-Key", idempotencyKey); connection.setRequestProperty("X-Idempotency-Key", idempotencyKey);
+      try (var output = connection.getOutputStream()) { output.write(json.getBytes(java.nio.charset.StandardCharsets.UTF_8)); }
+      int status = connection.getResponseCode();
+      try (var input = status >= 400 ? connection.getErrorStream() : connection.getInputStream()) {
+        String response = new String(input.readAllBytes(), java.nio.charset.StandardCharsets.UTF_8);
+        if (status >= 400) throw org.springframework.web.client.HttpClientErrorException.create(org.springframework.http.HttpStatusCode.valueOf(status), "Fineract transfer rejected", org.springframework.http.HttpHeaders.EMPTY, response.getBytes(java.nio.charset.StandardCharsets.UTF_8), java.nio.charset.StandardCharsets.UTF_8);
+        return mapper.readValue(response, Map.class);
+      }
+    } catch (java.io.IOException ex) { throw new IllegalStateException("Core transfer request failed", ex); }
   }
 
   private record AccountTransferRequest(long fromAccountId, long toAccountId, java.math.BigDecimal transferAmount, String transferDate, int fromAccountType, int toAccountType, int fromOfficeId, long fromClientId, int toOfficeId, long toClientId, String transferDescription, String locale, String dateFormat, String currencyCode) {}
