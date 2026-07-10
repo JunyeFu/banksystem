@@ -3,11 +3,11 @@
 | Capability | Implemented | Runtime evidence | Status |
 |---|---:|---|---|
 | Phase 0 baseline and backup | Yes | Hash, OpenAPI parse, restore drill | VERIFIED |
-| Customer login and account query | Yes | Authorized customer profile/account E2E, Gateway-only Customer Web, API 401 without token | VERIFIED |
+| Customer login and account query | Yes | Authorized profile/account E2E, Gateway-only Customer Web, API 401 without token, foreign account HTTP 404 | VERIFIED |
 | Beneficiary tokenization | Yes | Authorized customer create/list returned masked `****7890`; temporary data removed | VERIFIED |
 | Notifications | Yes | Customer transfer produced one subject-scoped `TRANSFER_SETTLED` notification | VERIFIED |
 | Transfer receipts/statements | Yes | Repeatable customer E2E verifies JSON/PDF receipts, 64-digit SHA-256, CSV/PDF statements, balance equation, and identical statement replay | VERIFIED |
-| Internal transfer | Yes | Customer-owned source enforcement (403), successful Fineract posting with receipt/notification, insufficient-funds `FAILED`, and checker-approved `COMPENSATED` reversal | VERIFIED |
+| Internal transfer | Yes | Customer-owned source enforcement (403), idempotency replay/409 conflict, successful core posting with receipt/notification, insufficient-funds `FAILED`, and checker-approved `COMPENSATED` reversal | VERIFIED |
 | Mock clearing | Yes | Authorized E2E runner passed SUCCESS, TIMEOUT, DUPLICATE, OUT_OF_ORDER and RETURNED with signed callbacks; compensation uses reversal workflow | VERIFIED |
 | Risk/Maker-Checker | Yes | REVIEW decision, maker self-check 409, independent PAYMENT_APPROVER ALLOW | VERIFIED |
 | Operations Web | Yes | `/ops/` HTTP 200; role user allowed and no-role user denied on risk API | VERIFIED |
