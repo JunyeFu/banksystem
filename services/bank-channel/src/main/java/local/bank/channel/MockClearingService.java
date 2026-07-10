@@ -32,7 +32,7 @@ public class MockClearingService {
 
   @Transactional
   public Map<String,Object> deliver(UUID clearingId, int sequence) {
-    var rows=jdbc.query("SELECT scenario,delivery_count,last_sequence FROM clearing_payment WHERE clearing_id=? FOR UPDATE",(rs,n)->Map.<String,Object>of("scenario",rs.getString(1),"count",rs.getInt(2),"last",(Integer)rs.getObject(3)),clearingId);
+    var rows=jdbc.query("SELECT scenario,delivery_count,last_sequence FROM clearing_payment WHERE clearing_id=? FOR UPDATE",(rs,n)->{var m=new java.util.HashMap<String,Object>();m.put("scenario",rs.getString(1));m.put("count",rs.getInt(2));m.put("last",(Integer)rs.getObject(3));return m;},clearingId);
     if(rows.isEmpty()) throw new ResponseStatusException(HttpStatus.NOT_FOUND,"Clearing payment not found");
     Map<String,Object> row=rows.get(0); int count=(Integer)row.get("count")+1; int previous=row.get("last")==null?0:(Integer)row.get("last");
     String status="SUCCESS".equals(row.get("scenario"))?"SETTLED":("TIMEOUT".equals(row.get("scenario"))?"TIMED_OUT":"CALLBACK_RECEIVED");
