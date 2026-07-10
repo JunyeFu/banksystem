@@ -11,7 +11,7 @@
 | Mock clearing | Yes | Authorized E2E runner passed SUCCESS, TIMEOUT, DUPLICATE and OUT_OF_ORDER with signed callbacks | VERIFIED |
 | Risk/Maker-Checker | Yes | Deterministic rules and version/reason guards | IMPLEMENTED_NOT_VERIFIED |
 | Operations Web | Yes | `/ops/` HTTP 200; role user allowed and no-role user denied on risk API | VERIFIED |
-| Monitoring alerts | Yes | Protected alert endpoint | IMPLEMENTED_NOT_VERIFIED |
+| Monitoring alerts | Yes | Authorized monitoring endpoint returned 200 and surfaced OUTBOX_BACKLOG P2 | VERIFIED |
 | Backup/restore | Yes | Core temporary-target restore (285 tables) and channel temporary-target restore (12 tables) | VERIFIED |
 | Loan application draft/submit | Yes | Channel API and `loan_application` schema | IMPLEMENTED_NOT_VERIFIED |
 | Loan documents/checklist | Yes | Channel API and `loan_document` schema | IMPLEMENTED_NOT_VERIFIED |
