@@ -1,0 +1,178 @@
+---
+id: ci-intro
+title: "Setting up CI"
+---
+import Tabs from '@theme/Tabs';
+import TabItem from '@theme/TabItem';
+import HTMLCard from '@site/src/components/HTMLCard';
+
+## Introduction
+
+Playwright tests can be run on any CI provider. In this section we cover running tests on GitHub using GitHub Actions. If you would like to see how to configure other CI providers, check out our detailed [doc on Continuous Integration](./ci.mdx).
+
+#### You will learn
+- [How to set up GitHub Actions](/ci-intro.mdx#setting-up-github-actions)
+- [How to view test logs](/ci-intro.mdx#viewing-test-logs)
+- [How to view the trace](/ci-intro.mdx#viewing-the-trace)
+
+## Setting up GitHub Actions
+
+To add a [GitHub Actions](https://docs.github.com/en/actions) file, first create `.github/workflows` folder and inside it add a `playwright.yml` file containing the example code below so that your tests run on each push and pull request for the main/master branch.
+
+```yml title=".github/workflows/playwright.yml"
+name: Playwright Tests
+on:
+  push:
+    branches: [ main, master ]
+  pull_request:
+    branches: [ main, master ]
+jobs:
+  test:
+    timeout-minutes: 60
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v5
+    - name: Setup dotnet
+      uses: actions/setup-dotnet@v5
+      with:
+        dotnet-version: 8.0.x
+    - name: Build & Install
+      run: dotnet build
+    - name: Ensure browsers are installed
+      run: pwsh bin/Debug/net8.0/playwright.ps1 install --with-deps
+    - name: Run your tests
+      run: dotnet test
+```
+
+To learn more about this, see ["Understanding GitHub Actions"](https://docs.github.com/en/actions/learn-github-actions/understanding-github-actions).
+
+Looking at the list of steps in `jobs.test.steps`, you can see that the workflow performs these steps:
+1. Clone your repository
+1. Install language dependencies
+1. Install project dependencies and build
+1. Install Playwright Browsers
+1. Run tests
+
+## Create a Repo and Push to GitHub
+
+Once you have your [GitHub Actions workflow](#setting-up-github-actions) setup, then all you need to do is [Create a repo on GitHub](https://docs.github.com/en/get-started/quickstart/create-a-repo) or push your code to an existing repository. Follow the instructions on GitHub and don't forget to [initialize a git repository](https://github.com/git-guides/git-init) using the `git init` command so you can [add](https://github.com/git-guides/git-add), [commit](https://github.com/git-guides/git-commit), and [push](https://github.com/git-guides/git-push) your code.
+
+###### 
+<img src="https://github.com/microsoft/playwright/assets/13063165/4f1b4cc3-b850-4d60-a99e-24057eaf91ad" alt="dotnet repo on github" width="2802" height="1570" />
+
+## Opening the Workflows
+
+Click on the **Actions** tab to see the workflows. Here you see if your tests have passed or failed.
+
+###### 
+<img src="https://github.com/microsoft/playwright/assets/13063165/71793c09-0815-4faa-866b-85684a1f87e5" alt="opening the workflow" width="2812" height="824" />
+
+On Pull Requests you can also click on the **Details** link in the [PR status check](https://docs.github.com/en/pull-requests/collaborating-with-pull-requests/collaborating-on-repositories-with-code-quality-features/about-status-checks).
+
+<img height="404" width="1290" alt="pr status checked" src="https://user-images.githubusercontent.com/13063165/183722462-17a985db-0e10-4205-b16c-8aaac36117b9.png" />
+
+## Viewing Test Logs
+
+Clicking on the workflow run shows you all the actions that GitHub performed and clicking on **Run Playwright tests** shows the error messages, what was expected and what was received as well as the call log.
+
+###### 
+<img src="https://github.com/microsoft/playwright/assets/13063165/ba2d8d7b-ffce-42de-95e0-bcb35c421975" alt="viewing the test logs" width="2794" height="1858" />
+
+## Viewing the Trace
+
+You can upload Traces which get created on your CI like GitHub Actions as artifacts. This requires [starting and stopping the trace](./trace-viewer-intro#recording-a-trace). We recommend only recording traces for failing tests. Once your traces have been uploaded to CI, they can then be downloaded and opened using [trace.playwright.dev](https://trace.playwright.dev), which is a statically hosted variant of the Trace Viewer. You can upload trace files using drag and drop.
+
+###### 
+![playwright trace viewer](../images/getting-started/trace-viewer-failed-test.png)
+
+## Properly handling Secrets
+
+Artifacts like trace files or console logs contain information about your test execution. They can contain sensitive data like user credentials for a test user, access tokens to a staging backend, testing source code, or sometimes even your application source code. Treat these files just as carefully as you treat that sensitive data. If you upload reports and traces as part of your CI workflow, make sure that you only upload them to trusted artifact stores, or that you encrypt the files before upload. The same is true for sharing artifacts with team members: Use a trusted file share or encrypt the files before sharing.
+
+## What's Next
+- [Learn how to use Locators](./locators.mdx)
+- [Learn how to perform Actions](./input.mdx)
+- [Learn how to write Assertions](./test-assertions.mdx)
+- [Learn more about the Trace Viewer](/trace-viewer.mdx)
+- [Learn more ways of running tests on GitHub Actions](/ci.mdx#github-actions)
+- [Learn more about running tests on other CI providers](/ci.mdx)
+
+
+[APIRequest]: /api/class-apirequest.mdx "APIRequest"
+[APIRequestContext]: /api/class-apirequestcontext.mdx "APIRequestContext"
+[APIResponse]: /api/class-apiresponse.mdx "APIResponse"
+[APIResponseAssertions]: /api/class-apiresponseassertions.mdx "APIResponseAssertions"
+[Browser]: /api/class-browser.mdx "Browser"
+[BrowserContext]: /api/class-browsercontext.mdx "BrowserContext"
+[BrowserType]: /api/class-browsertype.mdx "BrowserType"
+[CDPSession]: /api/class-cdpsession.mdx "CDPSession"
+[CDPSessionEvent]: /api/class-cdpsessionevent.mdx "CDPSessionEvent"
+[Clock]: /api/class-clock.mdx "Clock"
+[ConsoleMessage]: /api/class-consolemessage.mdx "ConsoleMessage"
+[Credentials]: /api/class-credentials.mdx "Credentials"
+[Debugger]: /api/class-debugger.mdx "Debugger"
+[Dialog]: /api/class-dialog.mdx "Dialog"
+[Download]: /api/class-download.mdx "Download"
+[ElementHandle]: /api/class-elementhandle.mdx "ElementHandle"
+[FileChooser]: /api/class-filechooser.mdx "FileChooser"
+[FormData]: /api/class-formdata.mdx "FormData"
+[Frame]: /api/class-frame.mdx "Frame"
+[FrameLocator]: /api/class-framelocator.mdx "FrameLocator"
+[JSHandle]: /api/class-jshandle.mdx "JSHandle"
+[Keyboard]: /api/class-keyboard.mdx "Keyboard"
+[Locator]: /api/class-locator.mdx "Locator"
+[LocatorAssertions]: /api/class-locatorassertions.mdx "LocatorAssertions"
+[Mouse]: /api/class-mouse.mdx "Mouse"
+[Page]: /api/class-page.mdx "Page"
+[PageAssertions]: /api/class-pageassertions.mdx "PageAssertions"
+[Playwright]: /api/class-playwright.mdx "Playwright"
+[PlaywrightAssertions]: /api/class-playwrightassertions.mdx "PlaywrightAssertions"
+[Request]: /api/class-request.mdx "Request"
+[Response]: /api/class-response.mdx "Response"
+[Route]: /api/class-route.mdx "Route"
+[Screencast]: /api/class-screencast.mdx "Screencast"
+[Selectors]: /api/class-selectors.mdx "Selectors"
+[TimeoutError]: /api/class-timeouterror.mdx "TimeoutError"
+[Touchscreen]: /api/class-touchscreen.mdx "Touchscreen"
+[Tracing]: /api/class-tracing.mdx "Tracing"
+[Video]: /api/class-video.mdx "Video"
+[WebError]: /api/class-weberror.mdx "WebError"
+[WebSocket]: /api/class-websocket.mdx "WebSocket"
+[WebSocketFrame]: /api/class-websocketframe.mdx "WebSocketFrame"
+[WebSocketRoute]: /api/class-websocketroute.mdx "WebSocketRoute"
+[WebStorage]: /api/class-webstorage.mdx "WebStorage"
+[Worker]: /api/class-worker.mdx "Worker"
+[Element]: https://developer.mozilla.org/en-US/docs/Web/API/element "Element"
+[EvaluationArgument]: /evaluating.mdx#evaluation-argument "EvaluationArgument"
+[Promise]: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Promise "Promise"
+[iterator]: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Iteration_protocols "Iterator"
+[origin]: https://developer.mozilla.org/en-US/docs/Glossary/Origin "Origin"
+[selector]: https://developer.mozilla.org/en-US/docs/Web/CSS/CSS_Selectors "selector"
+[Serializable]: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/JSON/stringify#Description "Serializable"
+[UIEvent.detail]: https://developer.mozilla.org/en-US/docs/Web/API/UIEvent/detail "UIEvent.detail"
+[UnixTime]: https://en.wikipedia.org/wiki/Unix_time "Unix Time"
+[xpath]: https://developer.mozilla.org/en-US/docs/Web/XPath "xpath"
+
+[bool]: https://docs.microsoft.com/en-us/dotnet/api/system.boolean "bool"
+[Date]: https://learn.microsoft.com/en-us/dotnet/api/system.datetime "DateTime"
+[double]: https://docs.microsoft.com/en-us/dotnet/api/system.double "double"
+[byte]: https://docs.microsoft.com/en-us/dotnet/api/system.byte "byte"
+[int]: https://docs.microsoft.com/en-us/dotnet/api/system.int32 "int"
+[long]: https://docs.microsoft.com/en-us/dotnet/api/system.int64 "long"
+[void]: https://docs.microsoft.com/en-us/dotnet/csharp/language-reference/builtin-types/void "void"
+[string]: https://docs.microsoft.com/en-us/dotnet/api/system.string "string"
+[URL]: https://nodejs.org/api/url.html "URL"
+[Regex]: https://docs.microsoft.com/en-us/dotnet/api/system.text.regularexpressions.regex "Regex"
+
+[Action]: https://docs.microsoft.com/en-us/dotnet/api/system.action-1 "Action"
+[Func]: https://docs.microsoft.com/en-us/dotnet/api/system.func-2 "Func"
+[IEnumerable]: https://docs.microsoft.com/en-us/dotnet/api/system.collections.ienumerable "IEnumerable"
+[IReadOnlyList]: https://learn.microsoft.com/en-us/dotnet/api/system.collections.generic.ireadonlylist-1?view=net-9.0 "IReadOnlyList"
+[IDictionary]: https://docs.microsoft.com/en-us/dotnet/api/system.collections.idictionary "IDictionary"
+[Task]: https://docs.microsoft.com/en-us/dotnet/api/system.threading.tasks.task?view=net-5.0 "Task"
+[IReadOnlyDictionary]: https://docs.microsoft.com/en-us/dotnet/api/system.collections.generic.ireadonlydictionary-2 "IReadOnlyDictionary"
+[JsonElement]: https://docs.microsoft.com/en-us/dotnet/api/system.text.json.jsonelement "JsonElement"
+
+[all available image tags]: https://mcr.microsoft.com/en-us/product/playwright/dotnet/about "all available image tags"
+[Microsoft Artifact Registry]: https://mcr.microsoft.com/en-us/product/playwright/dotnet/about "Microsoft Artifact Registry"
+[Dockerfile.noble]: https://github.com/microsoft/playwright-dotnet/blob/main/utils/docker/Dockerfile.noble "Dockerfile.noble"

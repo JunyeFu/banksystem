@@ -18,7 +18,7 @@ import org.springframework.http.HttpStatus;
 public class MockClearingService {
   private final JdbcTemplate jdbc;
   private final String secret;
-  public MockClearingService(JdbcTemplate jdbc, @Value("${clearing.callback-secret:local-only-change-me}") String secret) { this.jdbc = jdbc; this.secret = secret; }
+  public MockClearingService(JdbcTemplate jdbc, @Value("${clearing.callback-secret}") String secret) { this.jdbc = jdbc; this.secret = secret; }
 
   @Transactional
   public Map<String,Object> submit(UUID transferId, String scenario, String key) {

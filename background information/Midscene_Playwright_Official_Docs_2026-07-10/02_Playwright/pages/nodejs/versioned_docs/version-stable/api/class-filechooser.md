@@ -1,0 +1,226 @@
+---
+id: class-filechooser
+title: "FileChooser"
+---
+import Tabs from '@theme/Tabs';
+import TabItem from '@theme/TabItem';
+import HTMLCard from '@site/src/components/HTMLCard';
+
+
+[FileChooser] objects are dispatched by the page in the [page.on('filechooser')](/api/class-page.mdx#page-event-file-chooser) event.
+
+```js
+// Start waiting for file chooser before clicking. Note no await.
+const fileChooserPromise = page.waitForEvent('filechooser');
+await page.getByText('Upload file').click();
+const fileChooser = await fileChooserPromise;
+await fileChooser.setFiles(path.join(__dirname, 'myfile.pdf'));
+```
+
+
+---
+
+## Methods
+
+### element {/* #file-chooser-element */}
+
+<font size="2" style={{position: "relative", top: "-20px"}}>Added before v1.9</font><x-search>fileChooser.element</x-search>
+
+Returns input element associated with this file chooser.
+
+**Usage**
+
+```js
+fileChooser.element();
+```
+
+**Returns**
+- [ElementHandle]<a aria-hidden="true" tabIndex="-1" class="list-anchor-link" id="file-chooser-element-return"/><a href="#file-chooser-element-return" class="list-anchor">#</a>
+
+---
+
+### isMultiple {/* #file-chooser-is-multiple */}
+
+<font size="2" style={{position: "relative", top: "-20px"}}>Added before v1.9</font><x-search>fileChooser.isMultiple</x-search>
+
+Returns whether this file chooser accepts multiple files.
+
+**Usage**
+
+```js
+fileChooser.isMultiple();
+```
+
+**Returns**
+- [boolean]<a aria-hidden="true" tabIndex="-1" class="list-anchor-link" id="file-chooser-is-multiple-return"/><a href="#file-chooser-is-multiple-return" class="list-anchor">#</a>
+
+---
+
+### page {/* #file-chooser-page */}
+
+<font size="2" style={{position: "relative", top: "-20px"}}>Added before v1.9</font><x-search>fileChooser.page</x-search>
+
+Returns page this file chooser belongs to.
+
+**Usage**
+
+```js
+fileChooser.page();
+```
+
+**Returns**
+- [Page]<a aria-hidden="true" tabIndex="-1" class="list-anchor-link" id="file-chooser-page-return"/><a href="#file-chooser-page-return" class="list-anchor">#</a>
+
+---
+
+### setFiles {/* #file-chooser-set-files */}
+
+<font size="2" style={{position: "relative", top: "-20px"}}>Added before v1.9</font><x-search>fileChooser.setFiles</x-search>
+
+Sets the value of the file input this chooser is associated with. If some of the `filePaths` are relative paths, then they are resolved relative to the current working directory. For empty array, clears the selected files.
+
+**Usage**
+
+```js
+await fileChooser.setFiles(files);
+await fileChooser.setFiles(files, options);
+```
+
+**Arguments**
+- `files` [string] | [Array]&lt;[string]&gt; | [Object] | [Array]&lt;[Object]&gt;<a aria-hidden="true" tabIndex="-1" class="list-anchor-link" id="file-chooser-set-files-option-files"/><a href="#file-chooser-set-files-option-files" class="list-anchor">#</a>
+  - `name` [string]
+    
+    File name
+  - `mimeType` [string]
+    
+    File type
+  - `buffer` [Buffer]
+    
+    File content
+- `options` [Object] *(optional)*
+  - `noWaitAfter` [boolean] *(optional)*<a aria-hidden="true" tabIndex="-1" class="list-anchor-link" id="file-chooser-set-files-option-no-wait-after"/><a href="#file-chooser-set-files-option-no-wait-after" class="list-anchor">#</a>
+    
+    :::warning[Deprecated]
+    This option has no effect.
+    :::
+    
+    
+    This option has no effect.
+  - `timeout` [number] *(optional)*<a aria-hidden="true" tabIndex="-1" class="list-anchor-link" id="file-chooser-set-files-option-timeout"/><a href="#file-chooser-set-files-option-timeout" class="list-anchor">#</a>
+    
+    Maximum time in milliseconds. Defaults to `0` - no timeout. The default value can be changed via `actionTimeout` option in the config, or by using the [browserContext.setDefaultTimeout()](/api/class-browsercontext.mdx#browser-context-set-default-timeout) or [page.setDefaultTimeout()](/api/class-page.mdx#page-set-default-timeout) methods.
+
+**Returns**
+- [Promise]&lt;[void]&gt;<a aria-hidden="true" tabIndex="-1" class="list-anchor-link" id="file-chooser-set-files-return"/><a href="#file-chooser-set-files-return" class="list-anchor">#</a>
+
+
+[APIRequest]: /api/class-apirequest.mdx "APIRequest"
+[APIRequestContext]: /api/class-apirequestcontext.mdx "APIRequestContext"
+[APIResponse]: /api/class-apiresponse.mdx "APIResponse"
+[APIResponseAssertions]: /api/class-apiresponseassertions.mdx "APIResponseAssertions"
+[Browser]: /api/class-browser.mdx "Browser"
+[BrowserContext]: /api/class-browsercontext.mdx "BrowserContext"
+[BrowserServer]: /api/class-browserserver.mdx "BrowserServer"
+[BrowserType]: /api/class-browsertype.mdx "BrowserType"
+[CDPSession]: /api/class-cdpsession.mdx "CDPSession"
+[Clock]: /api/class-clock.mdx "Clock"
+[ConsoleMessage]: /api/class-consolemessage.mdx "ConsoleMessage"
+[Coverage]: /api/class-coverage.mdx "Coverage"
+[Credentials]: /api/class-credentials.mdx "Credentials"
+[Debugger]: /api/class-debugger.mdx "Debugger"
+[Dialog]: /api/class-dialog.mdx "Dialog"
+[Disposable]: /api/class-disposable.mdx "Disposable"
+[Download]: /api/class-download.mdx "Download"
+[ElementHandle]: /api/class-elementhandle.mdx "ElementHandle"
+[FileChooser]: /api/class-filechooser.mdx "FileChooser"
+[Frame]: /api/class-frame.mdx "Frame"
+[FrameLocator]: /api/class-framelocator.mdx "FrameLocator"
+[GenericAssertions]: /api/class-genericassertions.mdx "GenericAssertions"
+[JSHandle]: /api/class-jshandle.mdx "JSHandle"
+[Keyboard]: /api/class-keyboard.mdx "Keyboard"
+[Locator]: /api/class-locator.mdx "Locator"
+[LocatorAssertions]: /api/class-locatorassertions.mdx "LocatorAssertions"
+[Logger]: /api/class-logger.mdx "Logger"
+[Mouse]: /api/class-mouse.mdx "Mouse"
+[Page]: /api/class-page.mdx "Page"
+[PageAssertions]: /api/class-pageassertions.mdx "PageAssertions"
+[Playwright]: /api/class-playwright.mdx "Playwright"
+[PlaywrightAssertions]: /api/class-playwrightassertions.mdx "PlaywrightAssertions"
+[Request]: /api/class-request.mdx "Request"
+[Response]: /api/class-response.mdx "Response"
+[Route]: /api/class-route.mdx "Route"
+[Screencast]: /api/class-screencast.mdx "Screencast"
+[Selectors]: /api/class-selectors.mdx "Selectors"
+[SnapshotAssertions]: /api/class-snapshotassertions.mdx "SnapshotAssertions"
+[TimeoutError]: /api/class-timeouterror.mdx "TimeoutError"
+[Touchscreen]: /api/class-touchscreen.mdx "Touchscreen"
+[Tracing]: /api/class-tracing.mdx "Tracing"
+[Video]: /api/class-video.mdx "Video"
+[WebError]: /api/class-weberror.mdx "WebError"
+[WebSocket]: /api/class-websocket.mdx "WebSocket"
+[WebSocketRoute]: /api/class-websocketroute.mdx "WebSocketRoute"
+[WebStorage]: /api/class-webstorage.mdx "WebStorage"
+[Worker]: /api/class-worker.mdx "Worker"
+[Electron]: /api/class-electron.mdx "Electron"
+[ElectronApplication]: /api/class-electronapplication.mdx "ElectronApplication"
+[Android]: /api/class-android.mdx "Android"
+[AndroidDevice]: /api/class-androiddevice.mdx "AndroidDevice"
+[AndroidInput]: /api/class-androidinput.mdx "AndroidInput"
+[AndroidSocket]: /api/class-androidsocket.mdx "AndroidSocket"
+[AndroidWebView]: /api/class-androidwebview.mdx "AndroidWebView"
+[Fixtures]: /api/class-fixtures.mdx "Fixtures"
+[FullConfig]: /api/class-fullconfig.mdx "FullConfig"
+[FullProject]: /api/class-fullproject.mdx "FullProject"
+[Location]: /api/class-location.mdx "Location"
+[Test]: /api/class-test.mdx "Test"
+[TestConfig]: /api/class-testconfig.mdx "TestConfig"
+[TestInfo]: /api/class-testinfo.mdx "TestInfo"
+[TestInfoError]: /api/class-testinfoerror.mdx "TestInfoError"
+[TestOptions]: /api/class-testoptions.mdx "TestOptions"
+[TestProject]: /api/class-testproject.mdx "TestProject"
+[TestStepInfo]: /api/class-teststepinfo.mdx "TestStepInfo"
+[WorkerInfo]: /api/class-workerinfo.mdx "WorkerInfo"
+[Reporter]: /api/class-reporter.mdx "Reporter"
+[Suite]: /api/class-suite.mdx "Suite"
+[TestCase]: /api/class-testcase.mdx "TestCase"
+[TestError]: /api/class-testerror.mdx "TestError"
+[TestResult]: /api/class-testresult.mdx "TestResult"
+[TestStep]: /api/class-teststep.mdx "TestStep"
+[Element]: https://developer.mozilla.org/en-US/docs/Web/API/element "Element"
+[EvaluationArgument]: /evaluating.mdx#evaluation-argument "EvaluationArgument"
+[Promise]: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Promise "Promise"
+[iterator]: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Iteration_protocols "Iterator"
+[origin]: https://developer.mozilla.org/en-US/docs/Glossary/Origin "Origin"
+[selector]: https://developer.mozilla.org/en-US/docs/Web/CSS/CSS_Selectors "selector"
+[Serializable]: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/JSON/stringify#Description "Serializable"
+[UIEvent.detail]: https://developer.mozilla.org/en-US/docs/Web/API/UIEvent/detail "UIEvent.detail"
+[UnixTime]: https://en.wikipedia.org/wiki/Unix_time "Unix Time"
+[xpath]: https://developer.mozilla.org/en-US/docs/Web/XPath "xpath"
+
+[Array]: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Array "Array"
+[boolean]: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Data_structures#Boolean_type "Boolean"
+[Buffer]: https://nodejs.org/api/buffer.html#buffer_class_buffer "Buffer"
+[ChildProcess]: https://nodejs.org/api/child_process.html "ChildProcess"
+[Date]: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Date "Date"
+[Error]: https://nodejs.org/api/errors.html#errors_class_error "Error"
+[EventEmitter]: https://nodejs.org/api/events.html#events_class_eventemitter "EventEmitter"
+[function]: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Function "Function"
+[FormData]: https://developer.mozilla.org/en-US/docs/Web/API/FormData "FormData"
+[Map]: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Map "Map"
+[Metadata]: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Object "Object&lt;string, any&gt;"
+[null]: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/null "null"
+[number]: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Data_structures#Number_type "Number"
+[Object]: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Object "Object"
+[Promise]: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Promise "Promise"
+[Readable]: https://nodejs.org/api/stream.html#stream_class_stream_readable "Readable"
+[ReadStream]: https://nodejs.org/api/fs.html#class-fsreadstream "ReadStream"
+[RegExp]: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/RegExp "RegExp"
+[string]: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Data_structures#String_type "string"
+[void]: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/undefined "void"
+[URL]: https://nodejs.org/api/url.html "URL"
+[URLPattern]: https://developer.mozilla.org/en-US/docs/Web/API/URLPattern "URLPattern"
+[URLSearchParams]: https://developer.mozilla.org/en-US/docs/Web/API/URLSearchParams "URLSearchParams"
+
+[all available image tags]: https://mcr.microsoft.com/en-us/product/playwright/about "all available image tags"
+[Microsoft Artifact Registry]: https://mcr.microsoft.com/en-us/product/playwright/about "Microsoft Artifact Registry"
+[Dockerfile.noble]: https://github.com/microsoft/playwright/blob/main/utils/docker/Dockerfile.noble "Dockerfile.noble"

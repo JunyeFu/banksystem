@@ -1,0 +1,175 @@
+---
+id: codegen-intro
+title: "Generating tests"
+---
+import Tabs from '@theme/Tabs';
+import TabItem from '@theme/TabItem';
+import HTMLCard from '@site/src/components/HTMLCard';
+
+## Introduction
+
+Playwright can generate tests automatically, providing a quick way to get started with testing. Codegen opens a browser window for interaction and the Playwright Inspector for recording, copying, and managing your generated tests.
+
+**You will learn**
+- [How to record a test](/codegen.mdx#recording-a-test)
+- [How to generate locators](/codegen.mdx#generating-locators)
+
+## Running Codegen
+
+Use the `codegen` command to run the test generator followed by the URL of the website you want to generate tests for. The URL is optional and can be added directly in the browser window if omitted.
+
+```bash
+npx playwright codegen demo.playwright.dev/todomvc
+```
+
+### Recording a test
+
+Run `codegen` and perform actions in the browser. Playwright generates code for your interactions automatically. Codegen analyzes the rendered page and recommends the best locator, prioritizing role, text, and test id locators. When multiple elements match a locator, the generator improves it to uniquely identify the target element, reducing test failures and flakiness.
+
+With the test generator you can record:
+* Actions like click or fill by interacting with the page
+* Assertions by clicking a toolbar icon, then clicking a page element to assert against. You can choose:
+  * `'assert visibility'` to assert that an element is visible
+  * `'assert text'` to assert that an element contains specific text
+  * `'assert value'` to assert that an element has a specific value
+
+###### 
+![Recording a test](../images/getting-started/record-test-js.png)
+
+###### 
+When you finish interacting with the page, press the `'record'` button to stop recording and use the `'copy'` button to copy the generated code to your editor.
+
+Use the `'clear'` button to clear the code and start recording again. Once finished, close the Playwright Inspector window or stop the terminal command.
+
+To learn more about generating tests, check out our detailed guide on [Codegen](./codegen.mdx).
+
+### Generating locators
+
+You can generate [locators](/locators.mdx) with the test generator.
+* Press the `'Record'` button to stop recording and the `'Pick Locator'` button will appear
+* Click the `'Pick Locator'` button and hover over elements in the browser window to see the locator highlighted underneath each element
+* Click the element you want to locate and the code for that locator will appear in the locator playground next to the Pick Locator button
+* Edit the locator in the locator playground to fine-tune it and see the matching element highlighted in the browser window
+* Use the copy button to copy the locator and paste it into your code
+
+###### 
+![picking a locator](../images/getting-started/pick-locator-js.png)
+
+### Emulation
+
+You can generate tests using emulation for specific viewports, devices, color schemes, geolocation, language, or timezone. The test generator can also preserve authenticated state. Check out the [Test Generator](./codegen.mdx#emulation) guide to learn more.
+
+## What's Next
+- [See a trace of your tests](./trace-viewer-intro.mdx)
+
+
+[APIRequest]: /api/class-apirequest.mdx "APIRequest"
+[APIRequestContext]: /api/class-apirequestcontext.mdx "APIRequestContext"
+[APIResponse]: /api/class-apiresponse.mdx "APIResponse"
+[APIResponseAssertions]: /api/class-apiresponseassertions.mdx "APIResponseAssertions"
+[Browser]: /api/class-browser.mdx "Browser"
+[BrowserContext]: /api/class-browsercontext.mdx "BrowserContext"
+[BrowserServer]: /api/class-browserserver.mdx "BrowserServer"
+[BrowserType]: /api/class-browsertype.mdx "BrowserType"
+[CDPSession]: /api/class-cdpsession.mdx "CDPSession"
+[Clock]: /api/class-clock.mdx "Clock"
+[ConsoleMessage]: /api/class-consolemessage.mdx "ConsoleMessage"
+[Coverage]: /api/class-coverage.mdx "Coverage"
+[Credentials]: /api/class-credentials.mdx "Credentials"
+[Debugger]: /api/class-debugger.mdx "Debugger"
+[Dialog]: /api/class-dialog.mdx "Dialog"
+[Disposable]: /api/class-disposable.mdx "Disposable"
+[Download]: /api/class-download.mdx "Download"
+[ElementHandle]: /api/class-elementhandle.mdx "ElementHandle"
+[FileChooser]: /api/class-filechooser.mdx "FileChooser"
+[Frame]: /api/class-frame.mdx "Frame"
+[FrameLocator]: /api/class-framelocator.mdx "FrameLocator"
+[GenericAssertions]: /api/class-genericassertions.mdx "GenericAssertions"
+[JSHandle]: /api/class-jshandle.mdx "JSHandle"
+[Keyboard]: /api/class-keyboard.mdx "Keyboard"
+[Locator]: /api/class-locator.mdx "Locator"
+[LocatorAssertions]: /api/class-locatorassertions.mdx "LocatorAssertions"
+[Logger]: /api/class-logger.mdx "Logger"
+[Mouse]: /api/class-mouse.mdx "Mouse"
+[Page]: /api/class-page.mdx "Page"
+[PageAssertions]: /api/class-pageassertions.mdx "PageAssertions"
+[Playwright]: /api/class-playwright.mdx "Playwright"
+[PlaywrightAssertions]: /api/class-playwrightassertions.mdx "PlaywrightAssertions"
+[Request]: /api/class-request.mdx "Request"
+[Response]: /api/class-response.mdx "Response"
+[Route]: /api/class-route.mdx "Route"
+[Screencast]: /api/class-screencast.mdx "Screencast"
+[Selectors]: /api/class-selectors.mdx "Selectors"
+[SnapshotAssertions]: /api/class-snapshotassertions.mdx "SnapshotAssertions"
+[TimeoutError]: /api/class-timeouterror.mdx "TimeoutError"
+[Touchscreen]: /api/class-touchscreen.mdx "Touchscreen"
+[Tracing]: /api/class-tracing.mdx "Tracing"
+[Video]: /api/class-video.mdx "Video"
+[WebError]: /api/class-weberror.mdx "WebError"
+[WebSocket]: /api/class-websocket.mdx "WebSocket"
+[WebSocketRoute]: /api/class-websocketroute.mdx "WebSocketRoute"
+[WebStorage]: /api/class-webstorage.mdx "WebStorage"
+[Worker]: /api/class-worker.mdx "Worker"
+[Electron]: /api/class-electron.mdx "Electron"
+[ElectronApplication]: /api/class-electronapplication.mdx "ElectronApplication"
+[Android]: /api/class-android.mdx "Android"
+[AndroidDevice]: /api/class-androiddevice.mdx "AndroidDevice"
+[AndroidInput]: /api/class-androidinput.mdx "AndroidInput"
+[AndroidSocket]: /api/class-androidsocket.mdx "AndroidSocket"
+[AndroidWebView]: /api/class-androidwebview.mdx "AndroidWebView"
+[Fixtures]: /api/class-fixtures.mdx "Fixtures"
+[FullConfig]: /api/class-fullconfig.mdx "FullConfig"
+[FullProject]: /api/class-fullproject.mdx "FullProject"
+[Location]: /api/class-location.mdx "Location"
+[Test]: /api/class-test.mdx "Test"
+[TestConfig]: /api/class-testconfig.mdx "TestConfig"
+[TestInfo]: /api/class-testinfo.mdx "TestInfo"
+[TestInfoError]: /api/class-testinfoerror.mdx "TestInfoError"
+[TestOptions]: /api/class-testoptions.mdx "TestOptions"
+[TestProject]: /api/class-testproject.mdx "TestProject"
+[TestStepInfo]: /api/class-teststepinfo.mdx "TestStepInfo"
+[WorkerInfo]: /api/class-workerinfo.mdx "WorkerInfo"
+[Reporter]: /api/class-reporter.mdx "Reporter"
+[Suite]: /api/class-suite.mdx "Suite"
+[TestCase]: /api/class-testcase.mdx "TestCase"
+[TestError]: /api/class-testerror.mdx "TestError"
+[TestResult]: /api/class-testresult.mdx "TestResult"
+[TestStep]: /api/class-teststep.mdx "TestStep"
+[Element]: https://developer.mozilla.org/en-US/docs/Web/API/element "Element"
+[EvaluationArgument]: /evaluating.mdx#evaluation-argument "EvaluationArgument"
+[Promise]: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Promise "Promise"
+[iterator]: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Iteration_protocols "Iterator"
+[origin]: https://developer.mozilla.org/en-US/docs/Glossary/Origin "Origin"
+[selector]: https://developer.mozilla.org/en-US/docs/Web/CSS/CSS_Selectors "selector"
+[Serializable]: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/JSON/stringify#Description "Serializable"
+[UIEvent.detail]: https://developer.mozilla.org/en-US/docs/Web/API/UIEvent/detail "UIEvent.detail"
+[UnixTime]: https://en.wikipedia.org/wiki/Unix_time "Unix Time"
+[xpath]: https://developer.mozilla.org/en-US/docs/Web/XPath "xpath"
+
+[Array]: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Array "Array"
+[boolean]: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Data_structures#Boolean_type "Boolean"
+[Buffer]: https://nodejs.org/api/buffer.html#buffer_class_buffer "Buffer"
+[ChildProcess]: https://nodejs.org/api/child_process.html "ChildProcess"
+[Date]: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Date "Date"
+[Error]: https://nodejs.org/api/errors.html#errors_class_error "Error"
+[EventEmitter]: https://nodejs.org/api/events.html#events_class_eventemitter "EventEmitter"
+[function]: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Function "Function"
+[FormData]: https://developer.mozilla.org/en-US/docs/Web/API/FormData "FormData"
+[Map]: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Map "Map"
+[Metadata]: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Object "Object&lt;string, any&gt;"
+[null]: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/null "null"
+[number]: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Data_structures#Number_type "Number"
+[Object]: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Object "Object"
+[Promise]: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Promise "Promise"
+[Readable]: https://nodejs.org/api/stream.html#stream_class_stream_readable "Readable"
+[ReadStream]: https://nodejs.org/api/fs.html#class-fsreadstream "ReadStream"
+[RegExp]: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/RegExp "RegExp"
+[string]: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Data_structures#String_type "string"
+[void]: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/undefined "void"
+[URL]: https://nodejs.org/api/url.html "URL"
+[URLPattern]: https://developer.mozilla.org/en-US/docs/Web/API/URLPattern "URLPattern"
+[URLSearchParams]: https://developer.mozilla.org/en-US/docs/Web/API/URLSearchParams "URLSearchParams"
+
+[all available image tags]: https://mcr.microsoft.com/en-us/product/playwright/about "all available image tags"
+[Microsoft Artifact Registry]: https://mcr.microsoft.com/en-us/product/playwright/about "Microsoft Artifact Registry"
+[Dockerfile.noble]: https://github.com/microsoft/playwright/blob/main/utils/docker/Dockerfile.noble "Dockerfile.noble"

@@ -46,10 +46,10 @@ $approval = Invoke-RestMethod -Method Post -Uri "$GatewayBaseUrl/api/operations/
 $selfStatus = 0
 try { Invoke-RestMethod -Method Post -Uri "$GatewayBaseUrl/api/operations/v1/loans/approvals/$($approval.approvalId)/approve?version=1" -Headers $makerHeaders -Body (@{reason='self check'}|ConvertTo-Json) | Out-Null }
 catch { $selfStatus = $_.Exception.Response.StatusCode.value__ }
-Assert-Equal $selfStatus 409 'maker self-approval rejection'
+Assert-Equal $selfStatus 403 'maker approval-role rejection'
 $checked = Invoke-RestMethod -Method Post -Uri "$GatewayBaseUrl/api/operations/v1/loans/approvals/$($approval.approvalId)/approve?version=1" -Headers $checkerHeaders -Body (@{reason='independent review'}|ConvertTo-Json)
 Assert-Equal $checked.status 'APPROVED' 'checker approval status'
-try { Write-Output "SCORING=PASS score=$($score.score) SELF_CHECK=PASS CHECKER=PASS application=$($application.applicationId)" }
+try { Write-Output "SCORING=PASS score=$($score.score) MAKER_ROLE_DENIED=PASS CHECKER=PASS application=$($application.applicationId)" }
 finally {
   docker exec mifos-channel-channel-db-1 psql -U bank_channel -d bank_channel -c "delete from loan_document where subject in ('$($customer.Id)'); delete from loan_approval where application_id='$($application.applicationId)'; delete from loan_application where application_id='$($application.applicationId)';" | Out-Null
   foreach ($item in $created) {

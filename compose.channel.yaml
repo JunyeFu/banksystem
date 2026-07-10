@@ -30,11 +30,15 @@ services:
     volumes: ['./apps/operations-web:/usr/share/nginx/html:ro']
     networks: [channel_front]
   channel-service:
-    image: local/bank-channel-service@sha256:cc46bb70af60946c33cc801f85a76d47600651c3d8b4daaa2bb8c213a71c50fb
+    build:
+      context: ./services/bank-channel
+      dockerfile: Dockerfile
+    image: local/bank-channel-service:0.1.0
     environment:
       CHANNEL_DB_PASSWORD: ${CHANNEL_DB_PASSWORD:?CHANNEL_DB_PASSWORD is required}
       FINERACT_USERNAME: ${FINERACT_USERNAME:?FINERACT_USERNAME is required}
       FINERACT_PASSWORD: ${FINERACT_PASSWORD:?FINERACT_PASSWORD is required}
+      CLEARING_CALLBACK_SECRET: ${CLEARING_CALLBACK_SECRET:?CLEARING_CALLBACK_SECRET is required}
       FINERACT_BASE_URL: ${FINERACT_BASE_URL:-http://mifos-isolated-fineract-server-1:8080/fineract-provider}
       BANK_CUSTOMER_ISSUER_URI: ${BANK_CUSTOMER_ISSUER_URI:-http://127.0.0.1:18082/realms/bank-customer}
       BANK_CUSTOMER_JWK_SET_URI: ${BANK_CUSTOMER_JWK_SET_URI:-http://keycloak:8080/realms/bank-customer/protocol/openid-connect/certs}

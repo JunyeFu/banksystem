@@ -19,6 +19,7 @@ import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationConverter;
 import org.springframework.security.oauth2.server.resource.authentication.JwtGrantedAuthoritiesConverter;
+import org.springframework.http.HttpMethod;
 
 @Configuration
 public class SecurityConfig {
@@ -29,14 +30,23 @@ public class SecurityConfig {
             .requestMatchers("/internal/health", "/actuator/health", "/error").permitAll()
             .requestMatchers("/api/operations/v1/cashiers").hasAnyAuthority("ROLE_TELLER", "ROLE_AUDITOR", "ROLE_SYSTEM_ADMIN")
             .requestMatchers("/api/operations/v1/savings/**").hasAnyAuthority("ROLE_TELLER", "ROLE_SYSTEM_ADMIN")
+            .requestMatchers(HttpMethod.POST, "/api/operations/v1/transfers/reversals/*/approve").hasAnyAuthority("ROLE_PAYMENT_APPROVER", "ROLE_SYSTEM_ADMIN")
+            .requestMatchers(HttpMethod.POST, "/api/operations/v1/transfers/*/reversal").hasAnyAuthority("ROLE_PAYMENT_OPERATOR", "ROLE_SYSTEM_ADMIN")
             .requestMatchers("/api/operations/v1/transfers/**").hasAnyAuthority("ROLE_PAYMENT_OPERATOR", "ROLE_PAYMENT_APPROVER", "ROLE_SYSTEM_ADMIN")
-            .requestMatchers("/api/operations/v1/loans/**").hasAnyAuthority("ROLE_LOAN_OFFICER", "ROLE_LOAN_APPROVER", "ROLE_AUDITOR", "ROLE_SYSTEM_ADMIN")
-            .requestMatchers("/api/operations/v1/risk/**", "/api/operations/v1/clearing/**", "/internal/mock-clearing/**")
-              .hasAnyAuthority("ROLE_PAYMENT_OPERATOR", "ROLE_PAYMENT_APPROVER", "ROLE_AUDITOR", "ROLE_SYSTEM_ADMIN")
+            .requestMatchers(HttpMethod.POST, "/api/operations/v1/loans/approvals/*/approve").hasAnyAuthority("ROLE_LOAN_APPROVER", "ROLE_SYSTEM_ADMIN")
+            .requestMatchers("/api/operations/v1/loans/**").hasAnyAuthority("ROLE_LOAN_OFFICER", "ROLE_SYSTEM_ADMIN")
+            .requestMatchers(HttpMethod.POST, "/api/operations/v1/risk/*/approve").hasAnyAuthority("ROLE_PAYMENT_APPROVER", "ROLE_SYSTEM_ADMIN")
+            .requestMatchers("/api/operations/v1/risk/**").hasAnyAuthority("ROLE_PAYMENT_OPERATOR", "ROLE_SYSTEM_ADMIN")
+            .requestMatchers("/api/operations/v1/clearing/**").hasAnyAuthority("ROLE_PAYMENT_OPERATOR", "ROLE_SYSTEM_ADMIN")
+            .requestMatchers("/internal/mock-clearing/**").hasAuthority("ROLE_SYSTEM_ADMIN")
+            .requestMatchers("/internal/transfers/**").hasAnyAuthority("ROLE_PAYMENT_OPERATOR", "ROLE_SYSTEM_ADMIN")
+            .requestMatchers("/api/customer/v1/loans/applications/*/core/**").denyAll()
+            .requestMatchers(HttpMethod.POST, "/api/customer/v1/beneficiaries", "/api/customer/v1/transfers")
+              .hasAuthority("ROLE_CUSTOMER_MFA_VERIFIED")
             .requestMatchers("/internal/eod/**", "/internal/monitoring/**")
-              .hasAnyAuthority("ROLE_AUDITOR", "ROLE_SYSTEM_ADMIN", "ROLE_PAYMENT_APPROVER")
+              .hasAnyAuthority("ROLE_AUDITOR", "ROLE_SYSTEM_ADMIN")
             .requestMatchers("/internal/reconciliation/**")
-              .hasAnyAuthority("ROLE_AUDITOR", "ROLE_SYSTEM_ADMIN", "ROLE_PAYMENT_APPROVER")
+              .hasAnyAuthority("ROLE_AUDITOR", "ROLE_SYSTEM_ADMIN")
             .anyRequest().authenticated())
         .oauth2ResourceServer(oauth -> oauth.authenticationManagerResolver(authenticationManagerResolver()))
         .build();

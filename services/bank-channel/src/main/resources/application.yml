@@ -20,7 +20,7 @@ fineract:
   username: ${FINERACT_USERNAME}
   password: ${FINERACT_PASSWORD}
 clearing:
-  callback-secret: ${CLEARING_CALLBACK_SECRET:local-only-change-me}
+  callback-secret: ${CLEARING_CALLBACK_SECRET}
 management:
   endpoints:
     web:

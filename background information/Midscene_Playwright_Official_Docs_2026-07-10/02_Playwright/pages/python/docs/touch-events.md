@@ -1,0 +1,384 @@
+---
+id: touch-events
+title: "Touch events (legacy)"
+---
+import Tabs from '@theme/Tabs';
+import TabItem from '@theme/TabItem';
+import HTMLCard from '@site/src/components/HTMLCard';
+
+## Introduction
+
+Web applications that handle legacy [touch events](https://developer.mozilla.org/en-US/docs/Web/API/Touch_events) to respond to gestures like swipe, pinch, and tap can be tested by manually dispatching [TouchEvent](https://developer.mozilla.org/en-US/docs/Web/API/TouchEvent/TouchEvent)s to the page. The examples below demonstrate how to use [locator.dispatch_event()](/api/class-locator.mdx#locator-dispatch-event) and pass [Touch](https://developer.mozilla.org/en-US/docs/Web/API/Touch) points as arguments.
+
+Note that [locator.dispatch_event()](/api/class-locator.mdx#locator-dispatch-event) does not set [`Event.isTrusted`](https://developer.mozilla.org/en-US/docs/Web/API/Event/isTrusted) property. If your web page relies on it, make sure to disable `isTrusted` check during the test.
+
+### Emulating pan gesture
+
+In the example below, we emulate pan gesture that is expected to move the map. The app under test only uses `clientX/clientY` coordinates of the touch point, so we initialize just that. In a more complex scenario you may need to also set `pageX/pageY/screenX/screenY`, if your app needs them.
+
+<Tabs
+  groupId="python-flavor"
+  defaultValue="sync"
+  values={[
+    {label: 'Sync', value: 'sync'},
+    {label: 'Async', value: 'async'}
+  ]
+}>
+<TabItem value="sync">
+
+```py
+from playwright.sync_api import sync_playwright, expect
+
+def pan(locator, deltaX=0, deltaY=0, steps=5):
+    bounds = locator.bounding_box()
+    centerX = bounds['x'] + bounds['width'] / 2
+    centerY = bounds['y'] + bounds['height'] / 2
+
+    touches = [{
+        'identifier': 0,
+        'clientX': centerX,
+        'clientY': centerY,
+    }]
+    locator.dispatch_event('touchstart', {
+        'touches': touches,
+        'changedTouches': touches,
+        'targetTouches': touches
+    })
+
+    for i in range(1, steps + 1):
+        touches = [{
+            'identifier': 0,
+            'clientX': centerX + deltaX * i / steps,
+            'clientY': centerY + deltaY * i / steps,
+        }]
+        locator.dispatch_event('touchmove', {
+            'touches': touches,
+            'changedTouches': touches,
+            'targetTouches': touches
+        })
+
+    locator.dispatch_event('touchend')
+
+def test_pan_gesture_to_move_the_map(page):
+    page.goto('https://www.google.com/maps/place/@37.4117722,-122.0713234,15z', wait_until='commit')
+    page.get_by_role('button', name='Keep using web').click()
+    expect(page.get_by_role('button', name='Keep using web')).not_to_be_visible()
+    met = page.locator('[data-test-id="met"]')
+    for _ in range(5):
+        pan(met, 200, 100)
+    page.screenshot(path="screenshot.png")
+
+with sync_playwright() as p:
+    browser = p.chromium.launch()
+    context = browser.new_context(**p.devices['Pixel 7'])
+    page = context.new_page()
+    test_pan_gesture_to_move_the_map(page)
+    browser.close()
+```
+
+</TabItem>
+<TabItem value="async">
+
+```py
+from playwright.async_api import async_playwright, expect
+
+async def pan(locator, deltaX=0, deltaY=0, steps=5):
+    bounds = await locator.bounding_box()
+    centerX = bounds['x'] + bounds['width'] / 2
+    centerY = bounds['y'] + bounds['height'] / 2
+
+    touches = [{
+        'identifier': 0,
+        'clientX': centerX,
+        'clientY': centerY,
+    }]
+    await locator.dispatch_event('touchstart', {
+        'touches': touches,
+        'changedTouches': touches,
+        'targetTouches': touches
+    })
+
+    for i in range(1, steps + 1):
+        touches = [{
+            'identifier': 0,
+            'clientX': centerX + deltaX * i / steps,
+            'clientY': centerY + deltaY * i / steps,
+        }]
+        await locator.dispatch_event('touchmove', {
+            'touches': touches,
+            'changedTouches': touches,
+            'targetTouches': touches
+        })
+
+    await locator.dispatch_event('touchend')
+
+async def test_pan_gesture_to_move_the_map(page):
+    await page.goto('https://www.google.com/maps/place/@37.4117722,-122.0713234,15z', wait_until='commit')
+    await page.get_by_role('button', name='Keep using web').click()
+    await expect(page.get_by_role('button', name='Keep using web')).not_to_be_visible()
+    met = page.locator('[data-test-id="met"]')
+    for _ in range(5):
+        await pan(met, 200, 100)
+    await page.screenshot(path="screenshot.png")
+
+async def main():
+    async with async_playwright() as p:
+        browser = await p.chromium.launch()
+        context = await browser.new_context(**p.devices['Pixel 7'])
+        page = await context.new_page()
+        await test_pan_gesture_to_move_the_map(page)
+        await browser.close()
+
+import asyncio
+asyncio.run(main())
+```
+
+</TabItem>
+</Tabs>
+
+### Emulating pinch gesture
+
+In the example below, we emulate pinch gesture, i.e. two touch points moving closer to each other. It is expected to zoom out the map. The app under test only uses `clientX/clientY` coordinates of touch points, so we initialize just that. In a more complex scenario you may need to also set `pageX/pageY/screenX/screenY`, if your app needs them.
+
+<Tabs
+  groupId="python-flavor"
+  defaultValue="sync"
+  values={[
+    {label: 'Sync', value: 'sync'},
+    {label: 'Async', value: 'async'}
+  ]
+}>
+<TabItem value="sync">
+
+```py
+from playwright.sync_api import sync_playwright, expect
+
+def pinch(locator, arg):
+    bounds = locator.bounding_box()
+    centerX = bounds['x'] + bounds['width'] / 2
+    centerY = bounds['y'] + bounds['height'] / 2
+
+    deltaX = arg.get('deltaX', 50)
+    steps = arg.get('steps', 5)
+    stepDeltaX = deltaX / (steps + 1)
+
+    touches = [
+        {
+            'identifier': 0,
+            'clientX': centerX - (deltaX if arg.get('direction') == 'in' else stepDeltaX),
+            'clientY': centerY,
+        },
+        {
+            'identifier': 1,
+            'clientX': centerX + (deltaX if arg.get('direction') == 'in' else stepDeltaX),
+            'clientY': centerY,
+        },
+    ]
+    locator.dispatch_event('touchstart', {
+        'touches': touches,
+        'changedTouches': touches,
+        'targetTouches': touches
+    })
+
+    for i in range(1, steps + 1):
+        offset = deltaX - i * stepDeltaX if arg.get('direction') == 'in' else stepDeltaX * (i + 1)
+        touches = [
+            {
+                'identifier': 0,
+                'clientX': centerX - offset,
+                'clientY': centerY,
+            },
+            {
+                'identifier': 1,
+                'clientX': centerX + offset,
+                'clientY': centerY,
+            },
+        ]
+        locator.dispatch_event('touchmove', {
+            'touches': touches,
+            'changedTouches': touches,
+            'targetTouches': touches
+        })
+
+    locator.dispatch_event('touchend', {
+        'touches': [],
+        'changedTouches': [],
+        'targetTouches': []
+    })
+
+def test_pinch_in_gesture_to_zoom_out_the_map(page):
+    page.goto('https://www.google.com/maps/place/@37.4117722,-122.0713234,15z', wait_until='commit')
+    page.get_by_role('button', name='Keep using web').click()
+    expect(page.get_by_role('button', name='Keep using web')).not_to_be_visible()
+    met = page.locator('[data-test-id="met"]')
+    for _ in range(5):
+        pinch(met, {'deltaX': 40, 'direction': 'in'})
+    page.screenshot(path="screenshot.png")
+
+with sync_playwright() as p:
+    browser = p.chromium.launch()
+    context = browser.new_context(**p.devices['Pixel 7'])
+    page = context.new_page()
+    test_pinch_in_gesture_to_zoom_out_the_map(page)
+    browser.close()
+```
+
+</TabItem>
+<TabItem value="async">
+
+```py
+from playwright.async_api import async_playwright, expect
+
+async def pinch(locator, arg):
+    bounds = await locator.bounding_box()
+    centerX = bounds['x'] + bounds['width'] / 2
+    centerY = bounds['y'] + bounds['height'] / 2
+
+    deltaX = arg.get('deltaX', 50)
+    steps = arg.get('steps', 5)
+    stepDeltaX = deltaX / (steps + 1)
+
+    touches = [
+        {
+            'identifier': 0,
+            'clientX': centerX - (deltaX if arg.get('direction') == 'in' else stepDeltaX),
+            'clientY': centerY,
+        },
+        {
+            'identifier': 1,
+            'clientX': centerX + (deltaX if arg.get('direction') == 'in' else stepDeltaX),
+            'clientY': centerY,
+        },
+    ]
+    await locator.dispatch_event('touchstart', {
+        'touches': touches,
+        'changedTouches': touches,
+        'targetTouches': touches
+    })
+
+    for i in range(1, steps + 1):
+        offset = deltaX - i * stepDeltaX if arg.get('direction') == 'in' else stepDeltaX * (i + 1)
+        touches = [
+            {
+                'identifier': 0,
+                'clientX': centerX - offset,
+                'clientY': centerY,
+            },
+            {
+                'identifier': 1,
+                'clientX': centerX + offset,
+                'clientY': centerY,
+            },
+        ]
+        await locator.dispatch_event('touchmove', {
+            'touches': touches,
+            'changedTouches': touches,
+            'targetTouches': touches
+        })
+
+    await locator.dispatch_event('touchend', {
+        'touches': [],
+        'changedTouches': [],
+        'targetTouches': []
+    })
+
+async def test_pinch_in_gesture_to_zoom_out_the_map(page):
+    await page.goto('https://www.google.com/maps/place/@37.4117722,-122.0713234,15z', wait_until='commit')
+    await page.get_by_role('button', name='Keep using web').click()
+    await expect(page.get_by_role('button', name='Keep using web')).not_to_be_visible()
+    met = page.locator('[data-test-id="met"]')
+    for _ in range(5):
+        await pinch(met, {'deltaX': 40, 'direction': 'in'})
+    await page.screenshot(path="screenshot.png")
+
+async def main():
+    async with async_playwright() as p:
+        browser = await p.chromium.launch()
+        context = await browser.new_context(**p.devices['Pixel 7'])
+        page = await context.new_page()
+        await test_pinch_in_gesture_to_zoom_out_the_map(page)
+        await browser.close()
+
+import asyncio
+asyncio.run(main())
+```
+
+</TabItem>
+</Tabs>
+
+
+[APIRequest]: /api/class-apirequest.mdx "APIRequest"
+[APIRequestContext]: /api/class-apirequestcontext.mdx "APIRequestContext"
+[APIResponse]: /api/class-apiresponse.mdx "APIResponse"
+[APIResponseAssertions]: /api/class-apiresponseassertions.mdx "APIResponseAssertions"
+[Browser]: /api/class-browser.mdx "Browser"
+[BrowserContext]: /api/class-browsercontext.mdx "BrowserContext"
+[BrowserType]: /api/class-browsertype.mdx "BrowserType"
+[CDPSession]: /api/class-cdpsession.mdx "CDPSession"
+[Clock]: /api/class-clock.mdx "Clock"
+[ConsoleMessage]: /api/class-consolemessage.mdx "ConsoleMessage"
+[Credentials]: /api/class-credentials.mdx "Credentials"
+[Debugger]: /api/class-debugger.mdx "Debugger"
+[Dialog]: /api/class-dialog.mdx "Dialog"
+[Download]: /api/class-download.mdx "Download"
+[ElementHandle]: /api/class-elementhandle.mdx "ElementHandle"
+[Error]: /api/class-error.mdx "Error"
+[FileChooser]: /api/class-filechooser.mdx "FileChooser"
+[FormData]: /api/class-formdata.mdx "FormData"
+[Frame]: /api/class-frame.mdx "Frame"
+[FrameLocator]: /api/class-framelocator.mdx "FrameLocator"
+[JSHandle]: /api/class-jshandle.mdx "JSHandle"
+[Keyboard]: /api/class-keyboard.mdx "Keyboard"
+[Locator]: /api/class-locator.mdx "Locator"
+[LocatorAssertions]: /api/class-locatorassertions.mdx "LocatorAssertions"
+[Mouse]: /api/class-mouse.mdx "Mouse"
+[Page]: /api/class-page.mdx "Page"
+[PageAssertions]: /api/class-pageassertions.mdx "PageAssertions"
+[Playwright]: /api/class-playwright.mdx "Playwright"
+[Request]: /api/class-request.mdx "Request"
+[Response]: /api/class-response.mdx "Response"
+[Route]: /api/class-route.mdx "Route"
+[Screencast]: /api/class-screencast.mdx "Screencast"
+[Selectors]: /api/class-selectors.mdx "Selectors"
+[TimeoutError]: /api/class-timeouterror.mdx "TimeoutError"
+[Touchscreen]: /api/class-touchscreen.mdx "Touchscreen"
+[Tracing]: /api/class-tracing.mdx "Tracing"
+[Video]: /api/class-video.mdx "Video"
+[WebError]: /api/class-weberror.mdx "WebError"
+[WebSocket]: /api/class-websocket.mdx "WebSocket"
+[WebSocketRoute]: /api/class-websocketroute.mdx "WebSocketRoute"
+[WebStorage]: /api/class-webstorage.mdx "WebStorage"
+[Worker]: /api/class-worker.mdx "Worker"
+[Element]: https://developer.mozilla.org/en-US/docs/Web/API/element "Element"
+[EvaluationArgument]: /evaluating.mdx#evaluation-argument "EvaluationArgument"
+[Promise]: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Promise "Promise"
+[iterator]: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Iteration_protocols "Iterator"
+[origin]: https://developer.mozilla.org/en-US/docs/Glossary/Origin "Origin"
+[selector]: https://developer.mozilla.org/en-US/docs/Web/CSS/CSS_Selectors "selector"
+[Serializable]: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/JSON/stringify#Description "Serializable"
+[UIEvent.detail]: https://developer.mozilla.org/en-US/docs/Web/API/UIEvent/detail "UIEvent.detail"
+[UnixTime]: https://en.wikipedia.org/wiki/Unix_time "Unix Time"
+[xpath]: https://developer.mozilla.org/en-US/docs/Web/XPath "xpath"
+
+[Any]: https://docs.python.org/3/library/typing.html#typing.Any "Any"
+[bool]: https://docs.python.org/3/library/stdtypes.html "bool"
+[bytes]: https://docs.python.org/3/library/stdtypes.html#bytes "bytes"
+[Callable]: https://docs.python.org/3/library/typing.html#typing.Callable "Callable"
+[EventContextManager]: https://docs.python.org/3/reference/datamodel.html#context-managers "Event context manager"
+[EventEmitter]: https://pyee.readthedocs.io/en/latest/#pyee.BaseEventEmitter "EventEmitter"
+[Exception]: https://docs.python.org/3/library/exceptions.html#Exception "Exception"
+[Dict]: https://docs.python.org/3/library/typing.html#typing.Dict "Dict"
+[float]: https://docs.python.org/3/library/stdtypes.html#numeric-types-int-float-complex "float"
+[int]: https://docs.python.org/3/library/stdtypes.html#numeric-types-int-float-complex "int"
+[List]: https://docs.python.org/3/library/typing.html#typing.List "List"
+[NoneType]: https://docs.python.org/3/library/constants.html#None "None"
+[Pattern]: https://docs.python.org/3/library/re.html "Pattern"
+[URL]: https://en.wikipedia.org/wiki/URL "URL"
+[pathlib.Path]: https://realpython.com/python-pathlib/ "pathlib.Path"
+[str]: https://docs.python.org/3/library/stdtypes.html#text-sequence-type-str "str"
+[Union]: https://docs.python.org/3/library/typing.html#typing.Union "Union"
+[datetime]: https://docs.python.org/3/library/datetime.html#datetime.datetime "datetime"
+
+[all available image tags]: https://mcr.microsoft.com/en-us/product/playwright/python/about "all available image tags"
+[Microsoft Artifact Registry]: https://mcr.microsoft.com/en-us/product/playwright/python/about "Microsoft Artifact Registry"
+[Dockerfile.noble]: https://github.com/microsoft/playwright-python/blob/main/utils/docker/Dockerfile.noble "Dockerfile.noble"
