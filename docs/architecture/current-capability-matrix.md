@@ -8,7 +8,7 @@
 | Notifications | Partial | Customer-scoped notification table and transfer-settled notification producer | IMPLEMENTED_NOT_VERIFIED |
 | Transfer receipts/statements | Partial | Customer-scoped receipt payload/SHA-256 plus authorized CSV and PDF statement responses; full document reconciliation remains | PARTIALLY_VERIFIED |
 | Internal transfer | Yes | Fineract reference 3, channel POSTED, replay same ID | VERIFIED |
-| Mock clearing | Yes | Deterministic runner and signed callback code | IMPLEMENTED_NOT_VERIFIED |
+| Mock clearing | Yes | Authorized E2E runner passed SUCCESS, TIMEOUT, DUPLICATE and OUT_OF_ORDER with signed callbacks | VERIFIED |
 | Risk/Maker-Checker | Yes | Deterministic rules and version/reason guards | IMPLEMENTED_NOT_VERIFIED |
 | Operations Web | Yes | `/ops/` HTTP 200; role user allowed and no-role user denied on risk API | VERIFIED |
 | Monitoring alerts | Yes | Protected alert endpoint | IMPLEMENTED_NOT_VERIFIED |
