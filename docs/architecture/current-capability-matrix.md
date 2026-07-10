@@ -5,6 +5,8 @@
 | Phase 0 baseline and backup | Yes | Hash, OpenAPI parse, restore drill | VERIFIED |
 | Customer login and account query | Yes | Keycloak discovery, Customer Web 200, API 401 without token | PARTIALLY_VERIFIED |
 | Beneficiary tokenization | Yes | Channel schema and controller | IMPLEMENTED_NOT_VERIFIED |
+| Notifications | Partial | Customer-scoped notification table and transfer-settled notification producer | IMPLEMENTED_NOT_VERIFIED |
+| Transfer receipts/statements | Partial | Customer-scoped receipt payload and SHA-256 endpoint; PDF/CSV statements remain | IMPLEMENTED_NOT_VERIFIED |
 | Internal transfer | Yes | Fineract reference 3, channel POSTED, replay same ID | VERIFIED |
 | Mock clearing | Yes | Deterministic runner and signed callback code | IMPLEMENTED_NOT_VERIFIED |
 | Risk/Maker-Checker | Yes | Deterministic rules and version/reason guards | IMPLEMENTED_NOT_VERIFIED |
