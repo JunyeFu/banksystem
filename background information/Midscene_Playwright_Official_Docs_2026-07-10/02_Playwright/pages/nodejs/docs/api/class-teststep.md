@@ -1,0 +1,341 @@
+---
+id: class-teststep
+title: "TestStep"
+---
+import Tabs from '@theme/Tabs';
+import TabItem from '@theme/TabItem';
+import HTMLCard from '@site/src/components/HTMLCard';
+
+
+Represents a step in the [TestRun].
+
+
+---
+
+## Methods
+
+### titlePath {/* #test-step-title-path */}
+
+<font size="2" style={{position: "relative", top: "-20px"}}>Added in: v1.10</font><x-search>testStep.titlePath</x-search>
+
+Returns a list of step titles from the root step down to this step.
+
+**Usage**
+
+```js
+testStep.titlePath();
+```
+
+**Returns**
+- [Array]&lt;[string]&gt;<a aria-hidden="true" tabIndex="-1" class="list-anchor-link" id="test-step-title-path-return"/><a href="#test-step-title-path-return" class="list-anchor">#</a>
+
+---
+
+## Properties
+
+### annotations {/* #test-step-annotations */}
+
+<font size="2" style={{position: "relative", top: "-20px"}}>Added in: v1.51</font><x-search>testStep.annotations</x-search>
+
+The list of annotations applicable to the current test step.
+
+**Usage**
+
+```js
+testStep.annotations
+```
+
+**Type**
+- [Array]&lt;[Object]&gt;
+  - `type` [string]
+    
+    Annotation type, for example `'skip'`.
+  - `description` [string] *(optional)*
+    
+    Optional description.
+  - `location` [Location] *(optional)*
+    
+    Optional location in the source where the annotation is added.
+
+---
+
+### attachments {/* #test-step-attachments */}
+
+<font size="2" style={{position: "relative", top: "-20px"}}>Added in: v1.50</font><x-search>testStep.attachments</x-search>
+
+The list of files or buffers attached in the step execution through [testInfo.attach()](/api/class-testinfo.mdx#test-info-attach).
+
+**Usage**
+
+```js
+testStep.attachments
+```
+
+**Type**
+- [Array]&lt;[Object]&gt;
+  - `name` [string]
+    
+    Attachment name.
+  - `contentType` [string]
+    
+    Content type of this attachment to properly present in the report, for example `'application/json'` or `'image/png'`.
+  - `path` [string] *(optional)*
+    
+    Optional path on the filesystem to the attached file.
+  - `body` [Buffer] *(optional)*
+    
+    Optional attachment body used instead of a file.
+
+---
+
+### category {/* #test-step-category */}
+
+<font size="2" style={{position: "relative", top: "-20px"}}>Added in: v1.10</font><x-search>testStep.category</x-search>
+
+Step category to differentiate steps with different origin and verbosity. Built-in categories are:
+* `expect` for expect calls
+* `fixture` for fixtures setup and teardown
+* `hook` for hooks initialization and teardown
+* `pw:api` for Playwright API calls.
+* `test.step` for test.step API calls.
+* `test.attach` for testInfo.attach API calls.
+
+**Usage**
+
+```js
+testStep.category
+```
+
+**Type**
+- [string]
+
+---
+
+### duration {/* #test-step-duration */}
+
+<font size="2" style={{position: "relative", top: "-20px"}}>Added in: v1.10</font><x-search>testStep.duration</x-search>
+
+Running time in milliseconds.
+
+**Usage**
+
+```js
+testStep.duration
+```
+
+**Type**
+- [number]
+
+---
+
+### error {/* #test-step-error */}
+
+<font size="2" style={{position: "relative", top: "-20px"}}>Added in: v1.10</font><x-search>testStep.error</x-search>
+
+Error thrown during the step execution, if any.
+
+**Usage**
+
+```js
+testStep.error
+```
+
+**Type**
+- [TestError]
+
+---
+
+### location {/* #test-step-location */}
+
+<font size="2" style={{position: "relative", top: "-20px"}}>Added in: v1.10</font><x-search>testStep.location</x-search>
+
+Optional location in the source where the step is defined.
+
+**Usage**
+
+```js
+testStep.location
+```
+
+**Type**
+- [Location]
+
+---
+
+### parent {/* #test-step-parent */}
+
+<font size="2" style={{position: "relative", top: "-20px"}}>Added in: v1.10</font><x-search>testStep.parent</x-search>
+
+Parent step, if any.
+
+**Usage**
+
+```js
+testStep.parent
+```
+
+**Type**
+- [TestStep]
+
+---
+
+### startTime {/* #test-step-start-time */}
+
+<font size="2" style={{position: "relative", top: "-20px"}}>Added in: v1.10</font><x-search>testStep.startTime</x-search>
+
+Start time of this particular test step.
+
+**Usage**
+
+```js
+testStep.startTime
+```
+
+**Type**
+- [Date]
+
+---
+
+### steps {/* #test-step-steps */}
+
+<font size="2" style={{position: "relative", top: "-20px"}}>Added in: v1.10</font><x-search>testStep.steps</x-search>
+
+List of steps inside this step.
+
+**Usage**
+
+```js
+testStep.steps
+```
+
+**Type**
+- [Array]&lt;[TestStep]&gt;
+
+---
+
+### title {/* #test-step-title */}
+
+<font size="2" style={{position: "relative", top: "-20px"}}>Added in: v1.10</font><x-search>testStep.title</x-search>
+
+User-friendly test step title.
+
+**Usage**
+
+```js
+testStep.title
+```
+
+**Type**
+- [string]
+
+
+[APIRequest]: /api/class-apirequest.mdx "APIRequest"
+[APIRequestContext]: /api/class-apirequestcontext.mdx "APIRequestContext"
+[APIResponse]: /api/class-apiresponse.mdx "APIResponse"
+[APIResponseAssertions]: /api/class-apiresponseassertions.mdx "APIResponseAssertions"
+[Browser]: /api/class-browser.mdx "Browser"
+[BrowserContext]: /api/class-browsercontext.mdx "BrowserContext"
+[BrowserServer]: /api/class-browserserver.mdx "BrowserServer"
+[BrowserType]: /api/class-browsertype.mdx "BrowserType"
+[CDPSession]: /api/class-cdpsession.mdx "CDPSession"
+[Clock]: /api/class-clock.mdx "Clock"
+[ConsoleMessage]: /api/class-consolemessage.mdx "ConsoleMessage"
+[Coverage]: /api/class-coverage.mdx "Coverage"
+[Credentials]: /api/class-credentials.mdx "Credentials"
+[Debugger]: /api/class-debugger.mdx "Debugger"
+[Dialog]: /api/class-dialog.mdx "Dialog"
+[Disposable]: /api/class-disposable.mdx "Disposable"
+[Download]: /api/class-download.mdx "Download"
+[ElementHandle]: /api/class-elementhandle.mdx "ElementHandle"
+[FileChooser]: /api/class-filechooser.mdx "FileChooser"
+[Frame]: /api/class-frame.mdx "Frame"
+[FrameLocator]: /api/class-framelocator.mdx "FrameLocator"
+[GenericAssertions]: /api/class-genericassertions.mdx "GenericAssertions"
+[JSHandle]: /api/class-jshandle.mdx "JSHandle"
+[Keyboard]: /api/class-keyboard.mdx "Keyboard"
+[Locator]: /api/class-locator.mdx "Locator"
+[LocatorAssertions]: /api/class-locatorassertions.mdx "LocatorAssertions"
+[Logger]: /api/class-logger.mdx "Logger"
+[Mouse]: /api/class-mouse.mdx "Mouse"
+[Page]: /api/class-page.mdx "Page"
+[PageAssertions]: /api/class-pageassertions.mdx "PageAssertions"
+[Playwright]: /api/class-playwright.mdx "Playwright"
+[PlaywrightAssertions]: /api/class-playwrightassertions.mdx "PlaywrightAssertions"
+[Request]: /api/class-request.mdx "Request"
+[Response]: /api/class-response.mdx "Response"
+[Route]: /api/class-route.mdx "Route"
+[Screencast]: /api/class-screencast.mdx "Screencast"
+[Selectors]: /api/class-selectors.mdx "Selectors"
+[SnapshotAssertions]: /api/class-snapshotassertions.mdx "SnapshotAssertions"
+[TimeoutError]: /api/class-timeouterror.mdx "TimeoutError"
+[Touchscreen]: /api/class-touchscreen.mdx "Touchscreen"
+[Tracing]: /api/class-tracing.mdx "Tracing"
+[Video]: /api/class-video.mdx "Video"
+[WebError]: /api/class-weberror.mdx "WebError"
+[WebSocket]: /api/class-websocket.mdx "WebSocket"
+[WebSocketRoute]: /api/class-websocketroute.mdx "WebSocketRoute"
+[WebStorage]: /api/class-webstorage.mdx "WebStorage"
+[Worker]: /api/class-worker.mdx "Worker"
+[Electron]: /api/class-electron.mdx "Electron"
+[ElectronApplication]: /api/class-electronapplication.mdx "ElectronApplication"
+[Android]: /api/class-android.mdx "Android"
+[AndroidDevice]: /api/class-androiddevice.mdx "AndroidDevice"
+[AndroidInput]: /api/class-androidinput.mdx "AndroidInput"
+[AndroidSocket]: /api/class-androidsocket.mdx "AndroidSocket"
+[AndroidWebView]: /api/class-androidwebview.mdx "AndroidWebView"
+[Fixtures]: /api/class-fixtures.mdx "Fixtures"
+[FullConfig]: /api/class-fullconfig.mdx "FullConfig"
+[FullProject]: /api/class-fullproject.mdx "FullProject"
+[Location]: /api/class-location.mdx "Location"
+[Test]: /api/class-test.mdx "Test"
+[TestConfig]: /api/class-testconfig.mdx "TestConfig"
+[TestInfo]: /api/class-testinfo.mdx "TestInfo"
+[TestInfoError]: /api/class-testinfoerror.mdx "TestInfoError"
+[TestOptions]: /api/class-testoptions.mdx "TestOptions"
+[TestProject]: /api/class-testproject.mdx "TestProject"
+[TestStepInfo]: /api/class-teststepinfo.mdx "TestStepInfo"
+[WorkerInfo]: /api/class-workerinfo.mdx "WorkerInfo"
+[Reporter]: /api/class-reporter.mdx "Reporter"
+[Suite]: /api/class-suite.mdx "Suite"
+[TestCase]: /api/class-testcase.mdx "TestCase"
+[TestError]: /api/class-testerror.mdx "TestError"
+[TestResult]: /api/class-testresult.mdx "TestResult"
+[TestStep]: /api/class-teststep.mdx "TestStep"
+[Element]: https://developer.mozilla.org/en-US/docs/Web/API/element "Element"
+[EvaluationArgument]: /evaluating.mdx#evaluation-argument "EvaluationArgument"
+[Promise]: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Promise "Promise"
+[iterator]: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Iteration_protocols "Iterator"
+[origin]: https://developer.mozilla.org/en-US/docs/Glossary/Origin "Origin"
+[selector]: https://developer.mozilla.org/en-US/docs/Web/CSS/CSS_Selectors "selector"
+[Serializable]: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/JSON/stringify#Description "Serializable"
+[UIEvent.detail]: https://developer.mozilla.org/en-US/docs/Web/API/UIEvent/detail "UIEvent.detail"
+[UnixTime]: https://en.wikipedia.org/wiki/Unix_time "Unix Time"
+[xpath]: https://developer.mozilla.org/en-US/docs/Web/XPath "xpath"
+
+[Array]: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Array "Array"
+[boolean]: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Data_structures#Boolean_type "Boolean"
+[Buffer]: https://nodejs.org/api/buffer.html#buffer_class_buffer "Buffer"
+[ChildProcess]: https://nodejs.org/api/child_process.html "ChildProcess"
+[Date]: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Date "Date"
+[Error]: https://nodejs.org/api/errors.html#errors_class_error "Error"
+[EventEmitter]: https://nodejs.org/api/events.html#events_class_eventemitter "EventEmitter"
+[function]: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Function "Function"
+[FormData]: https://developer.mozilla.org/en-US/docs/Web/API/FormData "FormData"
+[Map]: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Map "Map"
+[Metadata]: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Object "Object&lt;string, any&gt;"
+[null]: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/null "null"
+[number]: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Data_structures#Number_type "Number"
+[Object]: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Object "Object"
+[Promise]: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Promise "Promise"
+[Readable]: https://nodejs.org/api/stream.html#stream_class_stream_readable "Readable"
+[ReadStream]: https://nodejs.org/api/fs.html#class-fsreadstream "ReadStream"
+[RegExp]: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/RegExp "RegExp"
+[string]: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Data_structures#String_type "string"
+[void]: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/undefined "void"
+[URL]: https://nodejs.org/api/url.html "URL"
+[URLPattern]: https://developer.mozilla.org/en-US/docs/Web/API/URLPattern "URLPattern"
+[URLSearchParams]: https://developer.mozilla.org/en-US/docs/Web/API/URLSearchParams "URLSearchParams"
+
+[all available image tags]: https://mcr.microsoft.com/en-us/product/playwright/about "all available image tags"
+[Microsoft Artifact Registry]: https://mcr.microsoft.com/en-us/product/playwright/about "Microsoft Artifact Registry"
+[Dockerfile.noble]: https://github.com/microsoft/playwright/blob/main/utils/docker/Dockerfile.noble "Dockerfile.noble"

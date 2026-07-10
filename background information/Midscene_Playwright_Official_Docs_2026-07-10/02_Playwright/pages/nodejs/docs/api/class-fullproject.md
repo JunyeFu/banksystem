@@ -1,0 +1,397 @@
+---
+id: class-fullproject
+title: "FullProject"
+---
+import Tabs from '@theme/Tabs';
+import TabItem from '@theme/TabItem';
+import HTMLCard from '@site/src/components/HTMLCard';
+
+
+Runtime representation of the test project configuration. It is accessible in the tests via [testInfo.project](/api/class-testinfo.mdx#test-info-project) and [workerInfo.project](/api/class-workerinfo.mdx#worker-info-project) and is passed to the test reporters. To see the format of the project in the Playwright configuration file please see [TestProject] instead.
+
+
+---
+
+## Properties
+
+### dependencies {/* #full-project-dependencies */}
+
+<font size="2" style={{position: "relative", top: "-20px"}}>Added in: v1.31</font><x-search>fullProject.dependencies</x-search>
+
+See [testProject.dependencies](/api/class-testproject.mdx#test-project-dependencies).
+
+**Usage**
+
+```js
+fullProject.dependencies
+```
+
+**Type**
+- [Array]&lt;[string]&gt;
+
+---
+
+### grep {/* #full-project-grep */}
+
+<font size="2" style={{position: "relative", top: "-20px"}}>Added in: v1.10</font><x-search>fullProject.grep</x-search>
+
+See [testProject.grep](/api/class-testproject.mdx#test-project-grep).
+
+**Usage**
+
+```js
+fullProject.grep
+```
+
+**Type**
+- [RegExp] | [Array]&lt;[RegExp]&gt;
+
+---
+
+### grepInvert {/* #full-project-grep-invert */}
+
+<font size="2" style={{position: "relative", top: "-20px"}}>Added in: v1.10</font><x-search>fullProject.grepInvert</x-search>
+
+See [testProject.grepInvert](/api/class-testproject.mdx#test-project-grep-invert).
+
+**Usage**
+
+```js
+fullProject.grepInvert
+```
+
+**Type**
+- [null] | [RegExp] | [Array]&lt;[RegExp]&gt;
+
+---
+
+### ignoreSnapshots {/* #full-project-ignore-snapshots */}
+
+<font size="2" style={{position: "relative", top: "-20px"}}>Added in: v1.59</font><x-search>fullProject.ignoreSnapshots</x-search>
+
+See [testProject.ignoreSnapshots](/api/class-testproject.mdx#test-project-ignore-snapshots).
+
+**Usage**
+
+```js
+fullProject.ignoreSnapshots
+```
+
+**Type**
+- [boolean]
+
+---
+
+### metadata {/* #full-project-metadata */}
+
+<font size="2" style={{position: "relative", top: "-20px"}}>Added in: v1.10</font><x-search>fullProject.metadata</x-search>
+
+See [testProject.metadata](/api/class-testproject.mdx#test-project-metadata).
+
+**Usage**
+
+```js
+fullProject.metadata
+```
+
+**Type**
+- [Metadata]
+
+---
+
+### name {/* #full-project-name */}
+
+<font size="2" style={{position: "relative", top: "-20px"}}>Added in: v1.10</font><x-search>fullProject.name</x-search>
+
+See [testProject.name](/api/class-testproject.mdx#test-project-name).
+
+**Usage**
+
+```js
+fullProject.name
+```
+
+**Type**
+- [string]
+
+---
+
+### outputDir {/* #full-project-output-dir */}
+
+<font size="2" style={{position: "relative", top: "-20px"}}>Added in: v1.10</font><x-search>fullProject.outputDir</x-search>
+
+See [testProject.outputDir](/api/class-testproject.mdx#test-project-output-dir).
+
+**Usage**
+
+```js
+fullProject.outputDir
+```
+
+**Type**
+- [string]
+
+---
+
+### repeatEach {/* #full-project-repeat-each */}
+
+<font size="2" style={{position: "relative", top: "-20px"}}>Added in: v1.10</font><x-search>fullProject.repeatEach</x-search>
+
+See [testProject.repeatEach](/api/class-testproject.mdx#test-project-repeat-each).
+
+**Usage**
+
+```js
+fullProject.repeatEach
+```
+
+**Type**
+- [number]
+
+---
+
+### retries {/* #full-project-retries */}
+
+<font size="2" style={{position: "relative", top: "-20px"}}>Added in: v1.10</font><x-search>fullProject.retries</x-search>
+
+See [testProject.retries](/api/class-testproject.mdx#test-project-retries).
+
+**Usage**
+
+```js
+fullProject.retries
+```
+
+**Type**
+- [number]
+
+---
+
+### snapshotDir {/* #full-project-snapshot-dir */}
+
+<font size="2" style={{position: "relative", top: "-20px"}}>Added in: v1.10</font><x-search>fullProject.snapshotDir</x-search>
+
+See [testProject.snapshotDir](/api/class-testproject.mdx#test-project-snapshot-dir).
+
+**Usage**
+
+```js
+fullProject.snapshotDir
+```
+
+**Type**
+- [string]
+
+---
+
+### teardown {/* #full-project-teardown */}
+
+<font size="2" style={{position: "relative", top: "-20px"}}>Added in: v1.34</font><x-search>fullProject.teardown</x-search>
+
+See [testProject.teardown](/api/class-testproject.mdx#test-project-teardown).
+
+**Usage**
+
+```js
+fullProject.teardown
+```
+
+**Type**
+- [string]
+
+---
+
+### testDir {/* #full-project-test-dir */}
+
+<font size="2" style={{position: "relative", top: "-20px"}}>Added in: v1.10</font><x-search>fullProject.testDir</x-search>
+
+See [testProject.testDir](/api/class-testproject.mdx#test-project-test-dir).
+
+**Usage**
+
+```js
+fullProject.testDir
+```
+
+**Type**
+- [string]
+
+---
+
+### testIgnore {/* #full-project-test-ignore */}
+
+<font size="2" style={{position: "relative", top: "-20px"}}>Added in: v1.10</font><x-search>fullProject.testIgnore</x-search>
+
+See [testProject.testIgnore](/api/class-testproject.mdx#test-project-test-ignore).
+
+**Usage**
+
+```js
+fullProject.testIgnore
+```
+
+**Type**
+- [string] | [RegExp] | [Array]&lt;[string] | [RegExp]&gt;
+
+---
+
+### testMatch {/* #full-project-test-match */}
+
+<font size="2" style={{position: "relative", top: "-20px"}}>Added in: v1.10</font><x-search>fullProject.testMatch</x-search>
+
+See [testProject.testMatch](/api/class-testproject.mdx#test-project-test-match).
+
+**Usage**
+
+```js
+fullProject.testMatch
+```
+
+**Type**
+- [string] | [RegExp] | [Array]&lt;[string] | [RegExp]&gt;
+
+---
+
+### timeout {/* #full-project-timeout */}
+
+<font size="2" style={{position: "relative", top: "-20px"}}>Added in: v1.10</font><x-search>fullProject.timeout</x-search>
+
+See [testProject.timeout](/api/class-testproject.mdx#test-project-timeout).
+
+**Usage**
+
+```js
+fullProject.timeout
+```
+
+**Type**
+- [number]
+
+---
+
+### use {/* #full-project-use */}
+
+<font size="2" style={{position: "relative", top: "-20px"}}>Added in: v1.10</font><x-search>fullProject.use</x-search>
+
+See [testProject.use](/api/class-testproject.mdx#test-project-use).
+
+**Usage**
+
+```js
+fullProject.use
+```
+
+**Type**
+- [Fixtures]
+
+
+[APIRequest]: /api/class-apirequest.mdx "APIRequest"
+[APIRequestContext]: /api/class-apirequestcontext.mdx "APIRequestContext"
+[APIResponse]: /api/class-apiresponse.mdx "APIResponse"
+[APIResponseAssertions]: /api/class-apiresponseassertions.mdx "APIResponseAssertions"
+[Browser]: /api/class-browser.mdx "Browser"
+[BrowserContext]: /api/class-browsercontext.mdx "BrowserContext"
+[BrowserServer]: /api/class-browserserver.mdx "BrowserServer"
+[BrowserType]: /api/class-browsertype.mdx "BrowserType"
+[CDPSession]: /api/class-cdpsession.mdx "CDPSession"
+[Clock]: /api/class-clock.mdx "Clock"
+[ConsoleMessage]: /api/class-consolemessage.mdx "ConsoleMessage"
+[Coverage]: /api/class-coverage.mdx "Coverage"
+[Credentials]: /api/class-credentials.mdx "Credentials"
+[Debugger]: /api/class-debugger.mdx "Debugger"
+[Dialog]: /api/class-dialog.mdx "Dialog"
+[Disposable]: /api/class-disposable.mdx "Disposable"
+[Download]: /api/class-download.mdx "Download"
+[ElementHandle]: /api/class-elementhandle.mdx "ElementHandle"
+[FileChooser]: /api/class-filechooser.mdx "FileChooser"
+[Frame]: /api/class-frame.mdx "Frame"
+[FrameLocator]: /api/class-framelocator.mdx "FrameLocator"
+[GenericAssertions]: /api/class-genericassertions.mdx "GenericAssertions"
+[JSHandle]: /api/class-jshandle.mdx "JSHandle"
+[Keyboard]: /api/class-keyboard.mdx "Keyboard"
+[Locator]: /api/class-locator.mdx "Locator"
+[LocatorAssertions]: /api/class-locatorassertions.mdx "LocatorAssertions"
+[Logger]: /api/class-logger.mdx "Logger"
+[Mouse]: /api/class-mouse.mdx "Mouse"
+[Page]: /api/class-page.mdx "Page"
+[PageAssertions]: /api/class-pageassertions.mdx "PageAssertions"
+[Playwright]: /api/class-playwright.mdx "Playwright"
+[PlaywrightAssertions]: /api/class-playwrightassertions.mdx "PlaywrightAssertions"
+[Request]: /api/class-request.mdx "Request"
+[Response]: /api/class-response.mdx "Response"
+[Route]: /api/class-route.mdx "Route"
+[Screencast]: /api/class-screencast.mdx "Screencast"
+[Selectors]: /api/class-selectors.mdx "Selectors"
+[SnapshotAssertions]: /api/class-snapshotassertions.mdx "SnapshotAssertions"
+[TimeoutError]: /api/class-timeouterror.mdx "TimeoutError"
+[Touchscreen]: /api/class-touchscreen.mdx "Touchscreen"
+[Tracing]: /api/class-tracing.mdx "Tracing"
+[Video]: /api/class-video.mdx "Video"
+[WebError]: /api/class-weberror.mdx "WebError"
+[WebSocket]: /api/class-websocket.mdx "WebSocket"
+[WebSocketRoute]: /api/class-websocketroute.mdx "WebSocketRoute"
+[WebStorage]: /api/class-webstorage.mdx "WebStorage"
+[Worker]: /api/class-worker.mdx "Worker"
+[Electron]: /api/class-electron.mdx "Electron"
+[ElectronApplication]: /api/class-electronapplication.mdx "ElectronApplication"
+[Android]: /api/class-android.mdx "Android"
+[AndroidDevice]: /api/class-androiddevice.mdx "AndroidDevice"
+[AndroidInput]: /api/class-androidinput.mdx "AndroidInput"
+[AndroidSocket]: /api/class-androidsocket.mdx "AndroidSocket"
+[AndroidWebView]: /api/class-androidwebview.mdx "AndroidWebView"
+[Fixtures]: /api/class-fixtures.mdx "Fixtures"
+[FullConfig]: /api/class-fullconfig.mdx "FullConfig"
+[FullProject]: /api/class-fullproject.mdx "FullProject"
+[Location]: /api/class-location.mdx "Location"
+[Test]: /api/class-test.mdx "Test"
+[TestConfig]: /api/class-testconfig.mdx "TestConfig"
+[TestInfo]: /api/class-testinfo.mdx "TestInfo"
+[TestInfoError]: /api/class-testinfoerror.mdx "TestInfoError"
+[TestOptions]: /api/class-testoptions.mdx "TestOptions"
+[TestProject]: /api/class-testproject.mdx "TestProject"
+[TestStepInfo]: /api/class-teststepinfo.mdx "TestStepInfo"
+[WorkerInfo]: /api/class-workerinfo.mdx "WorkerInfo"
+[Reporter]: /api/class-reporter.mdx "Reporter"
+[Suite]: /api/class-suite.mdx "Suite"
+[TestCase]: /api/class-testcase.mdx "TestCase"
+[TestError]: /api/class-testerror.mdx "TestError"
+[TestResult]: /api/class-testresult.mdx "TestResult"
+[TestStep]: /api/class-teststep.mdx "TestStep"
+[Element]: https://developer.mozilla.org/en-US/docs/Web/API/element "Element"
+[EvaluationArgument]: /evaluating.mdx#evaluation-argument "EvaluationArgument"
+[Promise]: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Promise "Promise"
+[iterator]: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Iteration_protocols "Iterator"
+[origin]: https://developer.mozilla.org/en-US/docs/Glossary/Origin "Origin"
+[selector]: https://developer.mozilla.org/en-US/docs/Web/CSS/CSS_Selectors "selector"
+[Serializable]: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/JSON/stringify#Description "Serializable"
+[UIEvent.detail]: https://developer.mozilla.org/en-US/docs/Web/API/UIEvent/detail "UIEvent.detail"
+[UnixTime]: https://en.wikipedia.org/wiki/Unix_time "Unix Time"
+[xpath]: https://developer.mozilla.org/en-US/docs/Web/XPath "xpath"
+
+[Array]: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Array "Array"
+[boolean]: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Data_structures#Boolean_type "Boolean"
+[Buffer]: https://nodejs.org/api/buffer.html#buffer_class_buffer "Buffer"
+[ChildProcess]: https://nodejs.org/api/child_process.html "ChildProcess"
+[Date]: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Date "Date"
+[Error]: https://nodejs.org/api/errors.html#errors_class_error "Error"
+[EventEmitter]: https://nodejs.org/api/events.html#events_class_eventemitter "EventEmitter"
+[function]: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Function "Function"
+[FormData]: https://developer.mozilla.org/en-US/docs/Web/API/FormData "FormData"
+[Map]: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Map "Map"
+[Metadata]: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Object "Object&lt;string, any&gt;"
+[null]: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/null "null"
+[number]: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Data_structures#Number_type "Number"
+[Object]: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Object "Object"
+[Promise]: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Promise "Promise"
+[Readable]: https://nodejs.org/api/stream.html#stream_class_stream_readable "Readable"
+[ReadStream]: https://nodejs.org/api/fs.html#class-fsreadstream "ReadStream"
+[RegExp]: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/RegExp "RegExp"
+[string]: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Data_structures#String_type "string"
+[void]: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/undefined "void"
+[URL]: https://nodejs.org/api/url.html "URL"
+[URLPattern]: https://developer.mozilla.org/en-US/docs/Web/API/URLPattern "URLPattern"
+[URLSearchParams]: https://developer.mozilla.org/en-US/docs/Web/API/URLSearchParams "URLSearchParams"
+
+[all available image tags]: https://mcr.microsoft.com/en-us/product/playwright/about "all available image tags"
+[Microsoft Artifact Registry]: https://mcr.microsoft.com/en-us/product/playwright/about "Microsoft Artifact Registry"
+[Dockerfile.noble]: https://github.com/microsoft/playwright/blob/main/utils/docker/Dockerfile.noble "Dockerfile.noble"

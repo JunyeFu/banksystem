@@ -1,0 +1,2771 @@
+---
+id: class-frame
+title: "Frame"
+---
+import Tabs from '@theme/Tabs';
+import TabItem from '@theme/TabItem';
+import HTMLCard from '@site/src/components/HTMLCard';
+
+
+At every point of time, page exposes its current frame tree via the [page.mainFrame()](/api/class-page.mdx#page-main-frame) and [frame.childFrames()](/api/class-frame.mdx#frame-child-frames) methods.
+
+[Frame] object's lifecycle is controlled by three events, dispatched on the page object:
+* [page.on('frameattached')](/api/class-page.mdx#page-event-frame-attached) - fired when the frame gets attached to the page. A Frame can be attached to the page only once.
+* [page.on('framenavigated')](/api/class-page.mdx#page-event-frame-navigated) - fired when the frame commits navigation to a different URL.
+* [page.on('framedetached')](/api/class-page.mdx#page-event-frame-detached) - fired when the frame gets detached from the page.  A Frame can be detached from the page only once.
+
+An example of dumping frame tree:
+
+```js
+const { firefox } = require('playwright');  // Or 'chromium' or 'webkit'.
+
+(async () => {
+  const browser = await firefox.launch();
+  const page = await browser.newPage();
+  await page.goto('https://www.google.com/chrome/browser/canary.html');
+  dumpFrameTree(page.mainFrame(), '');
+  await browser.close();
+
+  function dumpFrameTree(frame, indent) {
+    console.log(indent + frame.url());
+    for (const child of frame.childFrames())
+      dumpFrameTree(child, indent + '  ');
+  }
+})();
+```
+
+
+---
+
+## Methods
+
+### addScriptTag {/* #frame-add-script-tag */}
+
+<font size="2" style={{position: "relative", top: "-20px"}}>Added before v1.9</font><x-search>frame.addScriptTag</x-search>
+
+Returns the added tag when the script's onload fires or when the script content was injected into frame.
+
+Adds a `<script>` tag into the page with the desired url or content.
+
+**Usage**
+
+```js
+await frame.addScriptTag();
+await frame.addScriptTag(options);
+```
+
+**Arguments**
+- `options` [Object] *(optional)*
+  - `content` [string] *(optional)*<a aria-hidden="true" tabIndex="-1" class="list-anchor-link" id="frame-add-script-tag-option-content"/><a href="#frame-add-script-tag-option-content" class="list-anchor">#</a>
+    
+    Raw JavaScript content to be injected into frame.
+  - `path` [string] *(optional)*<a aria-hidden="true" tabIndex="-1" class="list-anchor-link" id="frame-add-script-tag-option-path"/><a href="#frame-add-script-tag-option-path" class="list-anchor">#</a>
+    
+    Path to the JavaScript file to be injected into frame. If `path` is a relative path, then it is resolved relative to the current working directory.
+  - `type` [string] *(optional)*<a aria-hidden="true" tabIndex="-1" class="list-anchor-link" id="frame-add-script-tag-option-type"/><a href="#frame-add-script-tag-option-type" class="list-anchor">#</a>
+    
+    Script type. Use 'module' in order to load a JavaScript ES6 module. See [script](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/script) for more details.
+  - `url` [string] *(optional)*<a aria-hidden="true" tabIndex="-1" class="list-anchor-link" id="frame-add-script-tag-option-url"/><a href="#frame-add-script-tag-option-url" class="list-anchor">#</a>
+    
+    URL of a script to be added.
+
+**Returns**
+- [Promise]&lt;[ElementHandle]&gt;<a aria-hidden="true" tabIndex="-1" class="list-anchor-link" id="frame-add-script-tag-return"/><a href="#frame-add-script-tag-return" class="list-anchor">#</a>
+
+---
+
+### addStyleTag {/* #frame-add-style-tag */}
+
+<font size="2" style={{position: "relative", top: "-20px"}}>Added before v1.9</font><x-search>frame.addStyleTag</x-search>
+
+Returns the added tag when the stylesheet's onload fires or when the CSS content was injected into frame.
+
+Adds a `<link rel="stylesheet">` tag into the page with the desired url or a `<style type="text/css">` tag with the content.
+
+**Usage**
+
+```js
+await frame.addStyleTag();
+await frame.addStyleTag(options);
+```
+
+**Arguments**
+- `options` [Object] *(optional)*
+  - `content` [string] *(optional)*<a aria-hidden="true" tabIndex="-1" class="list-anchor-link" id="frame-add-style-tag-option-content"/><a href="#frame-add-style-tag-option-content" class="list-anchor">#</a>
+    
+    Raw CSS content to be injected into frame.
+  - `path` [string] *(optional)*<a aria-hidden="true" tabIndex="-1" class="list-anchor-link" id="frame-add-style-tag-option-path"/><a href="#frame-add-style-tag-option-path" class="list-anchor">#</a>
+    
+    Path to the CSS file to be injected into frame. If `path` is a relative path, then it is resolved relative to the current working directory.
+  - `url` [string] *(optional)*<a aria-hidden="true" tabIndex="-1" class="list-anchor-link" id="frame-add-style-tag-option-url"/><a href="#frame-add-style-tag-option-url" class="list-anchor">#</a>
+    
+    URL of the `<link>` tag.
+
+**Returns**
+- [Promise]&lt;[ElementHandle]&gt;<a aria-hidden="true" tabIndex="-1" class="list-anchor-link" id="frame-add-style-tag-return"/><a href="#frame-add-style-tag-return" class="list-anchor">#</a>
+
+---
+
+### childFrames {/* #frame-child-frames */}
+
+<font size="2" style={{position: "relative", top: "-20px"}}>Added before v1.9</font><x-search>frame.childFrames</x-search>
+
+**Usage**
+
+```js
+frame.childFrames();
+```
+
+**Returns**
+- [Array]&lt;[Frame]&gt;<a aria-hidden="true" tabIndex="-1" class="list-anchor-link" id="frame-child-frames-return"/><a href="#frame-child-frames-return" class="list-anchor">#</a>
+
+---
+
+### content {/* #frame-content */}
+
+<font size="2" style={{position: "relative", top: "-20px"}}>Added before v1.9</font><x-search>frame.content</x-search>
+
+Gets the full HTML contents of the frame, including the doctype.
+
+**Usage**
+
+```js
+await frame.content();
+```
+
+**Returns**
+- [Promise]&lt;[string]&gt;<a aria-hidden="true" tabIndex="-1" class="list-anchor-link" id="frame-content-return"/><a href="#frame-content-return" class="list-anchor">#</a>
+
+---
+
+### dragAndDrop {/* #frame-drag-and-drop */}
+
+<font size="2" style={{position: "relative", top: "-20px"}}>Added in: v1.13</font><x-search>frame.dragAndDrop</x-search>
+
+**Usage**
+
+```js
+await frame.dragAndDrop(source, target);
+await frame.dragAndDrop(source, target, options);
+```
+
+**Arguments**
+- `source` [string]<a aria-hidden="true" tabIndex="-1" class="list-anchor-link" id="frame-drag-and-drop-option-source"/><a href="#frame-drag-and-drop-option-source" class="list-anchor">#</a>
+  
+  A selector to search for an element to drag. If there are multiple elements satisfying the selector, the first will be used.
+- `target` [string]<a aria-hidden="true" tabIndex="-1" class="list-anchor-link" id="frame-drag-and-drop-option-target"/><a href="#frame-drag-and-drop-option-target" class="list-anchor">#</a>
+  
+  A selector to search for an element to drop onto. If there are multiple elements satisfying the selector, the first will be used.
+- `options` [Object] *(optional)*
+  - `force` [boolean] *(optional)*<a aria-hidden="true" tabIndex="-1" class="list-anchor-link" id="frame-drag-and-drop-option-force"/><a href="#frame-drag-and-drop-option-force" class="list-anchor">#</a>
+    
+    Whether to bypass the [actionability](../actionability.mdx) checks. Defaults to `false`.
+  - `noWaitAfter` [boolean] *(optional)*<a aria-hidden="true" tabIndex="-1" class="list-anchor-link" id="frame-drag-and-drop-option-no-wait-after"/><a href="#frame-drag-and-drop-option-no-wait-after" class="list-anchor">#</a>
+    
+    :::warning[Deprecated]
+    This option has no effect.
+    :::
+    
+    
+    This option has no effect.
+  - `sourcePosition` [Object] *(optional)* <font size="2">Added in: v1.14</font><a aria-hidden="true" tabIndex="-1" class="list-anchor-link" id="frame-drag-and-drop-option-source-position"/><a href="#frame-drag-and-drop-option-source-position" class="list-anchor">#</a>
+    - `x` [number]
+      
+      
+    - `y` [number]
+      
+      
+    Clicks on the source element at this point relative to the top-left corner of the element's padding box. If not specified, some visible point of the element is used.
+  - `steps` [number] *(optional)* <font size="2">Added in: v1.57</font><a aria-hidden="true" tabIndex="-1" class="list-anchor-link" id="frame-drag-and-drop-option-steps"/><a href="#frame-drag-and-drop-option-steps" class="list-anchor">#</a>
+    
+    Defaults to 1. Sends `n` interpolated `mousemove` events to represent travel between the `mousedown` and `mouseup` of the drag. When set to 1, emits a single `mousemove` event at the destination location.
+  - `strict` [boolean] *(optional)* <font size="2">Added in: v1.14</font><a aria-hidden="true" tabIndex="-1" class="list-anchor-link" id="frame-drag-and-drop-option-strict"/><a href="#frame-drag-and-drop-option-strict" class="list-anchor">#</a>
+    
+    When true, the call requires selector to resolve to a single element. If given selector resolves to more than one element, the call throws an exception.
+  - `targetPosition` [Object] *(optional)* <font size="2">Added in: v1.14</font><a aria-hidden="true" tabIndex="-1" class="list-anchor-link" id="frame-drag-and-drop-option-target-position"/><a href="#frame-drag-and-drop-option-target-position" class="list-anchor">#</a>
+    - `x` [number]
+      
+      
+    - `y` [number]
+      
+      
+    Drops on the target element at this point relative to the top-left corner of the element's padding box. If not specified, some visible point of the element is used.
+  - `timeout` [number] *(optional)*<a aria-hidden="true" tabIndex="-1" class="list-anchor-link" id="frame-drag-and-drop-option-timeout"/><a href="#frame-drag-and-drop-option-timeout" class="list-anchor">#</a>
+    
+    Maximum time in milliseconds. Defaults to `0` - no timeout. The default value can be changed via `actionTimeout` option in the config, or by using the [browserContext.setDefaultTimeout()](/api/class-browsercontext.mdx#browser-context-set-default-timeout) or [page.setDefaultTimeout()](/api/class-page.mdx#page-set-default-timeout) methods.
+  - `trial` [boolean] *(optional)*<a aria-hidden="true" tabIndex="-1" class="list-anchor-link" id="frame-drag-and-drop-option-trial"/><a href="#frame-drag-and-drop-option-trial" class="list-anchor">#</a>
+    
+    When set, this method only performs the [actionability](../actionability.mdx) checks and skips the action. Defaults to `false`. Useful to wait until the element is ready for the action without performing it.
+
+**Returns**
+- [Promise]&lt;[void]&gt;<a aria-hidden="true" tabIndex="-1" class="list-anchor-link" id="frame-drag-and-drop-return"/><a href="#frame-drag-and-drop-return" class="list-anchor">#</a>
+
+---
+
+### evaluate {/* #frame-evaluate */}
+
+<font size="2" style={{position: "relative", top: "-20px"}}>Added before v1.9</font><x-search>frame.evaluate</x-search>
+
+Returns the return value of [pageFunction](/api/class-frame.mdx#frame-evaluate-option-expression).
+
+If the function passed to the [frame.evaluate()](/api/class-frame.mdx#frame-evaluate) returns a [Promise], then [frame.evaluate()](/api/class-frame.mdx#frame-evaluate) would wait for the promise to resolve and return its value.
+
+If the function passed to the [frame.evaluate()](/api/class-frame.mdx#frame-evaluate) returns a non-[Serializable] value, then [frame.evaluate()](/api/class-frame.mdx#frame-evaluate) returns `undefined`. Playwright also supports transferring some additional values that are not serializable by `JSON`: `-0`, `NaN`, `Infinity`, `-Infinity`.
+
+**Usage**
+
+```js
+const result = await frame.evaluate(([x, y]) => {
+  return Promise.resolve(x * y);
+}, [7, 8]);
+console.log(result); // prints "56"
+```
+
+A string can also be passed in instead of a function.
+
+```js
+console.log(await frame.evaluate('1 + 2')); // prints "3"
+```
+
+[ElementHandle] instances can be passed as an argument to the [frame.evaluate()](/api/class-frame.mdx#frame-evaluate):
+
+```js
+const bodyHandle = await frame.evaluateHandle('document.body');
+const html = await frame.evaluate(([body, suffix]) =>
+  body.innerHTML + suffix, [bodyHandle, 'hello'],
+);
+await bodyHandle.dispose();
+```
+
+**Arguments**
+- `pageFunction` [function] | [string]<a aria-hidden="true" tabIndex="-1" class="list-anchor-link" id="frame-evaluate-option-expression"/><a href="#frame-evaluate-option-expression" class="list-anchor">#</a>
+  
+  Function to be evaluated in the page context.
+- `arg` [EvaluationArgument] *(optional)*<a aria-hidden="true" tabIndex="-1" class="list-anchor-link" id="frame-evaluate-option-arg"/><a href="#frame-evaluate-option-arg" class="list-anchor">#</a>
+  
+  Optional argument to pass to [pageFunction](/api/class-frame.mdx#frame-evaluate-option-expression).
+
+**Returns**
+- [Promise]&lt;[Serializable]&gt;<a aria-hidden="true" tabIndex="-1" class="list-anchor-link" id="frame-evaluate-return"/><a href="#frame-evaluate-return" class="list-anchor">#</a>
+
+---
+
+### evaluateHandle {/* #frame-evaluate-handle */}
+
+<font size="2" style={{position: "relative", top: "-20px"}}>Added before v1.9</font><x-search>frame.evaluateHandle</x-search>
+
+Returns the return value of [pageFunction](/api/class-frame.mdx#frame-evaluate-handle-option-expression) as a [JSHandle].
+
+The only difference between [frame.evaluate()](/api/class-frame.mdx#frame-evaluate) and [frame.evaluateHandle()](/api/class-frame.mdx#frame-evaluate-handle) is that [frame.evaluateHandle()](/api/class-frame.mdx#frame-evaluate-handle) returns [JSHandle].
+
+If the function, passed to the [frame.evaluateHandle()](/api/class-frame.mdx#frame-evaluate-handle), returns a [Promise], then [frame.evaluateHandle()](/api/class-frame.mdx#frame-evaluate-handle) would wait for the promise to resolve and return its value.
+
+**Usage**
+
+```js
+// Handle for the window object
+const aWindowHandle = await frame.evaluateHandle(() => Promise.resolve(window));
+```
+
+A string can also be passed in instead of a function.
+
+```js
+const aHandle = await frame.evaluateHandle('document'); // Handle for the 'document'.
+```
+
+[JSHandle] instances can be passed as an argument to the [frame.evaluateHandle()](/api/class-frame.mdx#frame-evaluate-handle):
+
+```js
+const aHandle = await frame.evaluateHandle(() => document.body);
+const resultHandle = await frame.evaluateHandle(([body, suffix]) =>
+  body.innerHTML + suffix, [aHandle, 'hello'],
+);
+console.log(await resultHandle.jsonValue());
+await resultHandle.dispose();
+```
+
+**Arguments**
+- `pageFunction` [function] | [string]<a aria-hidden="true" tabIndex="-1" class="list-anchor-link" id="frame-evaluate-handle-option-expression"/><a href="#frame-evaluate-handle-option-expression" class="list-anchor">#</a>
+  
+  Function to be evaluated in the page context.
+- `arg` [EvaluationArgument] *(optional)*<a aria-hidden="true" tabIndex="-1" class="list-anchor-link" id="frame-evaluate-handle-option-arg"/><a href="#frame-evaluate-handle-option-arg" class="list-anchor">#</a>
+  
+  Optional argument to pass to [pageFunction](/api/class-frame.mdx#frame-evaluate-handle-option-expression).
+
+**Returns**
+- [Promise]&lt;[JSHandle]&gt;<a aria-hidden="true" tabIndex="-1" class="list-anchor-link" id="frame-evaluate-handle-return"/><a href="#frame-evaluate-handle-return" class="list-anchor">#</a>
+
+---
+
+### frameElement {/* #frame-frame-element */}
+
+<font size="2" style={{position: "relative", top: "-20px"}}>Added before v1.9</font><x-search>frame.frameElement</x-search>
+
+Returns the `frame` or `iframe` element handle which corresponds to this frame.
+
+This is an inverse of [elementHandle.contentFrame()](/api/class-elementhandle.mdx#element-handle-content-frame). Note that returned handle actually belongs to the parent frame.
+
+This method throws an error if the frame has been detached before `frameElement()` returns.
+
+**Usage**
+
+```js
+const frameElement = await frame.frameElement();
+const contentFrame = await frameElement.contentFrame();
+console.log(frame === contentFrame);  // -> true
+```
+
+**Returns**
+- [Promise]&lt;[ElementHandle]&gt;<a aria-hidden="true" tabIndex="-1" class="list-anchor-link" id="frame-frame-element-return"/><a href="#frame-frame-element-return" class="list-anchor">#</a>
+
+---
+
+### frameLocator {/* #frame-frame-locator */}
+
+<font size="2" style={{position: "relative", top: "-20px"}}>Added in: v1.17</font><x-search>frame.frameLocator</x-search>
+
+When working with iframes, you can create a frame locator that will enter the iframe and allow selecting elements in that iframe.
+
+**Usage**
+
+Following snippet locates element with text "Submit" in the iframe with id `my-frame`, like `<iframe id="my-frame">`:
+
+```js
+const locator = frame.frameLocator('#my-iframe').getByText('Submit');
+await locator.click();
+```
+
+**Arguments**
+- `selector` [string]<a aria-hidden="true" tabIndex="-1" class="list-anchor-link" id="frame-frame-locator-option-selector"/><a href="#frame-frame-locator-option-selector" class="list-anchor">#</a>
+  
+  A selector to use when resolving DOM element.
+
+**Returns**
+- [FrameLocator]<a aria-hidden="true" tabIndex="-1" class="list-anchor-link" id="frame-frame-locator-return"/><a href="#frame-frame-locator-return" class="list-anchor">#</a>
+
+---
+
+### getByAltText {/* #frame-get-by-alt-text */}
+
+<font size="2" style={{position: "relative", top: "-20px"}}>Added in: v1.27</font><x-search>frame.getByAltText</x-search>
+
+Allows locating elements by their alt text.
+
+**Usage**
+
+For example, this method will find the image by alt text "Playwright logo":
+
+```html
+<img alt='Playwright logo'>
+```
+
+```js
+await page.getByAltText('Playwright logo').click();
+```
+
+**Arguments**
+- `text` [string] | [RegExp]<a aria-hidden="true" tabIndex="-1" class="list-anchor-link" id="frame-get-by-alt-text-option-text"/><a href="#frame-get-by-alt-text-option-text" class="list-anchor">#</a>
+  
+  Text to locate the element for.
+- `options` [Object] *(optional)*
+  - `exact` [boolean] *(optional)*<a aria-hidden="true" tabIndex="-1" class="list-anchor-link" id="frame-get-by-alt-text-option-exact"/><a href="#frame-get-by-alt-text-option-exact" class="list-anchor">#</a>
+    
+    Whether to find an exact match: case-sensitive and whole-string. Default to false. Ignored when locating by a regular expression. Note that exact match still trims whitespace.
+
+**Returns**
+- [Locator]<a aria-hidden="true" tabIndex="-1" class="list-anchor-link" id="frame-get-by-alt-text-return"/><a href="#frame-get-by-alt-text-return" class="list-anchor">#</a>
+
+---
+
+### getByLabel {/* #frame-get-by-label */}
+
+<font size="2" style={{position: "relative", top: "-20px"}}>Added in: v1.27</font><x-search>frame.getByLabel</x-search>
+
+Allows locating input elements by the text of the associated `<label>` or `aria-labelledby` element, or by the `aria-label` attribute.
+
+**Usage**
+
+For example, this method will find inputs by label "Username" and "Password" in the following DOM:
+
+```html
+<input aria-label="Username">
+<label for="password-input">Password:</label>
+<input id="password-input">
+```
+
+```js
+await page.getByLabel('Username').fill('john');
+await page.getByLabel('Password').fill('secret');
+```
+
+**Arguments**
+- `text` [string] | [RegExp]<a aria-hidden="true" tabIndex="-1" class="list-anchor-link" id="frame-get-by-label-option-text"/><a href="#frame-get-by-label-option-text" class="list-anchor">#</a>
+  
+  Text to locate the element for.
+- `options` [Object] *(optional)*
+  - `exact` [boolean] *(optional)*<a aria-hidden="true" tabIndex="-1" class="list-anchor-link" id="frame-get-by-label-option-exact"/><a href="#frame-get-by-label-option-exact" class="list-anchor">#</a>
+    
+    Whether to find an exact match: case-sensitive and whole-string. Default to false. Ignored when locating by a regular expression. Note that exact match still trims whitespace.
+
+**Returns**
+- [Locator]<a aria-hidden="true" tabIndex="-1" class="list-anchor-link" id="frame-get-by-label-return"/><a href="#frame-get-by-label-return" class="list-anchor">#</a>
+
+---
+
+### getByPlaceholder {/* #frame-get-by-placeholder */}
+
+<font size="2" style={{position: "relative", top: "-20px"}}>Added in: v1.27</font><x-search>frame.getByPlaceholder</x-search>
+
+Allows locating input elements by the placeholder text.
+
+**Usage**
+
+For example, consider the following DOM structure.
+
+```html
+<input type="email" placeholder="name@example.com" />
+```
+
+You can fill the input after locating it by the placeholder text:
+
+```js
+await page
+    .getByPlaceholder('name@example.com')
+    .fill('playwright@microsoft.com');
+```
+
+**Arguments**
+- `text` [string] | [RegExp]<a aria-hidden="true" tabIndex="-1" class="list-anchor-link" id="frame-get-by-placeholder-option-text"/><a href="#frame-get-by-placeholder-option-text" class="list-anchor">#</a>
+  
+  Text to locate the element for.
+- `options` [Object] *(optional)*
+  - `exact` [boolean] *(optional)*<a aria-hidden="true" tabIndex="-1" class="list-anchor-link" id="frame-get-by-placeholder-option-exact"/><a href="#frame-get-by-placeholder-option-exact" class="list-anchor">#</a>
+    
+    Whether to find an exact match: case-sensitive and whole-string. Default to false. Ignored when locating by a regular expression. Note that exact match still trims whitespace.
+
+**Returns**
+- [Locator]<a aria-hidden="true" tabIndex="-1" class="list-anchor-link" id="frame-get-by-placeholder-return"/><a href="#frame-get-by-placeholder-return" class="list-anchor">#</a>
+
+---
+
+### getByRole {/* #frame-get-by-role */}
+
+<font size="2" style={{position: "relative", top: "-20px"}}>Added in: v1.27</font><x-search>frame.getByRole</x-search>
+
+Allows locating elements by their [ARIA role](https://www.w3.org/TR/wai-aria-1.2/#roles), [ARIA attributes](https://www.w3.org/TR/wai-aria-1.2/#aria-attributes) and [accessible name](https://w3c.github.io/accname/#dfn-accessible-name).
+
+**Usage**
+
+Consider the following DOM structure.
+
+```html
+<h3>Sign up</h3>
+<label>
+  <input type="checkbox" /> Subscribe
+</label>
+<br/>
+<button>Submit</button>
+```
+
+You can locate each element by its implicit role:
+
+```js
+await expect(page.getByRole('heading', { name: 'Sign up' })).toBeVisible();
+
+await page.getByRole('checkbox', { name: 'Subscribe' }).check();
+
+await page.getByRole('button', { name: /submit/i }).click();
+```
+
+**Arguments**
+- `role` "alert" | "alertdialog" | "application" | "article" | "banner" | "blockquote" | "button" | "caption" | "cell" | "checkbox" | "code" | "columnheader" | "combobox" | "complementary" | "contentinfo" | "definition" | "deletion" | "dialog" | "directory" | "document" | "emphasis" | "feed" | "figure" | "form" | "generic" | "grid" | "gridcell" | "group" | "heading" | "img" | "insertion" | "link" | "list" | "listbox" | "listitem" | "log" | "main" | "marquee" | "math" | "meter" | "menu" | "menubar" | "menuitem" | "menuitemcheckbox" | "menuitemradio" | "navigation" | "none" | "note" | "option" | "paragraph" | "presentation" | "progressbar" | "radio" | "radiogroup" | "region" | "row" | "rowgroup" | "rowheader" | "scrollbar" | "search" | "searchbox" | "separator" | "slider" | "spinbutton" | "status" | "strong" | "subscript" | "superscript" | "switch" | "tab" | "table" | "tablist" | "tabpanel" | "term" | "textbox" | "time" | "timer" | "toolbar" | "tooltip" | "tree" | "treegrid" | "treeitem"<a aria-hidden="true" tabIndex="-1" class="list-anchor-link" id="frame-get-by-role-option-role"/><a href="#frame-get-by-role-option-role" class="list-anchor">#</a>
+  
+  Required aria role.
+- `options` [Object] *(optional)*
+  - `checked` [boolean] *(optional)*<a aria-hidden="true" tabIndex="-1" class="list-anchor-link" id="frame-get-by-role-option-checked"/><a href="#frame-get-by-role-option-checked" class="list-anchor">#</a>
+    
+    An attribute that is usually set by `aria-checked` or native `<input type=checkbox>` controls.
+    
+    Learn more about [`aria-checked`](https://www.w3.org/TR/wai-aria-1.2/#aria-checked).
+  - `description` [string] | [RegExp] *(optional)* <font size="2">Added in: v1.60</font><a aria-hidden="true" tabIndex="-1" class="list-anchor-link" id="frame-get-by-role-option-description"/><a href="#frame-get-by-role-option-description" class="list-anchor">#</a>
+    
+    Option to match the [accessible description](https://w3c.github.io/accname/#dfn-accessible-description). By default, matching is case-insensitive and searches for a substring, use [exact](/api/class-frame.mdx#frame-get-by-role-option-exact) to control this behavior.
+    
+    Learn more about [accessible description](https://w3c.github.io/accname/#dfn-accessible-description).
+  - `disabled` [boolean] *(optional)*<a aria-hidden="true" tabIndex="-1" class="list-anchor-link" id="frame-get-by-role-option-disabled"/><a href="#frame-get-by-role-option-disabled" class="list-anchor">#</a>
+    
+    An attribute that is usually set by `aria-disabled` or `disabled`.
+    
+    :::note
+    
+    Unlike most other attributes, `disabled` is inherited through the DOM hierarchy. Learn more about [`aria-disabled`](https://www.w3.org/TR/wai-aria-1.2/#aria-disabled).
+    :::
+    
+  - `exact` [boolean] *(optional)* <font size="2">Added in: v1.28</font><a aria-hidden="true" tabIndex="-1" class="list-anchor-link" id="frame-get-by-role-option-exact"/><a href="#frame-get-by-role-option-exact" class="list-anchor">#</a>
+    
+    Whether [name](/api/class-frame.mdx#frame-get-by-role-option-name) and [description](/api/class-frame.mdx#frame-get-by-role-option-description) are matched exactly: case-sensitive and whole-string. Defaults to false. Ignored when the value is a regular expression. Note that exact match still trims whitespace.
+  - `expanded` [boolean] *(optional)*<a aria-hidden="true" tabIndex="-1" class="list-anchor-link" id="frame-get-by-role-option-expanded"/><a href="#frame-get-by-role-option-expanded" class="list-anchor">#</a>
+    
+    An attribute that is usually set by `aria-expanded`.
+    
+    Learn more about [`aria-expanded`](https://www.w3.org/TR/wai-aria-1.2/#aria-expanded).
+  - `includeHidden` [boolean] *(optional)*<a aria-hidden="true" tabIndex="-1" class="list-anchor-link" id="frame-get-by-role-option-include-hidden"/><a href="#frame-get-by-role-option-include-hidden" class="list-anchor">#</a>
+    
+    Option that controls whether hidden elements are matched. By default, only non-hidden elements, as [defined by ARIA](https://www.w3.org/TR/wai-aria-1.2/#tree_exclusion), are matched by role selector.
+    
+    Learn more about [`aria-hidden`](https://www.w3.org/TR/wai-aria-1.2/#aria-hidden).
+  - `level` [number] *(optional)*<a aria-hidden="true" tabIndex="-1" class="list-anchor-link" id="frame-get-by-role-option-level"/><a href="#frame-get-by-role-option-level" class="list-anchor">#</a>
+    
+    A number attribute that is usually present for roles `heading`, `listitem`, `row`, `treeitem`, with default values for `<h1>-<h6>` elements.
+    
+    Learn more about [`aria-level`](https://www.w3.org/TR/wai-aria-1.2/#aria-level).
+  - `name` [string] | [RegExp] *(optional)*<a aria-hidden="true" tabIndex="-1" class="list-anchor-link" id="frame-get-by-role-option-name"/><a href="#frame-get-by-role-option-name" class="list-anchor">#</a>
+    
+    Option to match the [accessible name](https://w3c.github.io/accname/#dfn-accessible-name). By default, matching is case-insensitive and searches for a substring, use [exact](/api/class-frame.mdx#frame-get-by-role-option-exact) to control this behavior.
+    
+    Learn more about [accessible name](https://w3c.github.io/accname/#dfn-accessible-name).
+  - `pressed` [boolean] *(optional)*<a aria-hidden="true" tabIndex="-1" class="list-anchor-link" id="frame-get-by-role-option-pressed"/><a href="#frame-get-by-role-option-pressed" class="list-anchor">#</a>
+    
+    An attribute that is usually set by `aria-pressed`.
+    
+    Learn more about [`aria-pressed`](https://www.w3.org/TR/wai-aria-1.2/#aria-pressed).
+  - `selected` [boolean] *(optional)*<a aria-hidden="true" tabIndex="-1" class="list-anchor-link" id="frame-get-by-role-option-selected"/><a href="#frame-get-by-role-option-selected" class="list-anchor">#</a>
+    
+    An attribute that is usually set by `aria-selected`.
+    
+    Learn more about [`aria-selected`](https://www.w3.org/TR/wai-aria-1.2/#aria-selected).
+
+**Returns**
+- [Locator]<a aria-hidden="true" tabIndex="-1" class="list-anchor-link" id="frame-get-by-role-return"/><a href="#frame-get-by-role-return" class="list-anchor">#</a>
+
+**Details**
+
+Role selector **does not replace** accessibility audits and conformance tests, but rather gives early feedback about the ARIA guidelines.
+
+Many html elements have an implicitly [defined role](https://w3c.github.io/html-aam/#html-element-role-mappings) that is recognized by the role selector. You can find all the [supported roles here](https://www.w3.org/TR/wai-aria-1.2/#role_definitions). ARIA guidelines **do not recommend** duplicating implicit roles and attributes by setting `role` and/or `aria-*` attributes to default values.
+
+---
+
+### getByTestId {/* #frame-get-by-test-id */}
+
+<font size="2" style={{position: "relative", top: "-20px"}}>Added in: v1.27</font><x-search>frame.getByTestId</x-search>
+
+Locate element by the test id.
+
+**Usage**
+
+Consider the following DOM structure.
+
+```html
+<button data-testid="directions">Itinéraire</button>
+```
+
+You can locate the element by its test id:
+
+```js
+await page.getByTestId('directions').click();
+```
+
+**Arguments**
+- `testId` [string] | [RegExp]<a aria-hidden="true" tabIndex="-1" class="list-anchor-link" id="frame-get-by-test-id-option-test-id"/><a href="#frame-get-by-test-id-option-test-id" class="list-anchor">#</a>
+  
+  Id to locate the element by.
+
+**Returns**
+- [Locator]<a aria-hidden="true" tabIndex="-1" class="list-anchor-link" id="frame-get-by-test-id-return"/><a href="#frame-get-by-test-id-return" class="list-anchor">#</a>
+
+**Details**
+
+By default, the `data-testid` attribute is used as a test id. Use [selectors.setTestIdAttribute()](/api/class-selectors.mdx#selectors-set-test-id-attribute) to configure a different test id attribute if necessary.
+
+```js
+// Set custom test id attribute from @playwright/test config:
+import { defineConfig } from '@playwright/test';
+
+export default defineConfig({
+  use: {
+    testIdAttribute: 'data-pw'
+  },
+});
+```
+
+---
+
+### getByText {/* #frame-get-by-text */}
+
+<font size="2" style={{position: "relative", top: "-20px"}}>Added in: v1.27</font><x-search>frame.getByText</x-search>
+
+Allows locating elements that contain given text.
+
+See also [locator.filter()](/api/class-locator.mdx#locator-filter) that allows to match by another criteria, like an accessible role, and then filter by the text content.
+
+**Usage**
+
+Consider the following DOM structure:
+
+```html
+<div>Hello <span>world</span></div>
+<div>Hello</div>
+```
+
+You can locate by text substring, exact string, or a regular expression:
+
+```js
+// Matches <span>
+page.getByText('world');
+
+// Matches first <div>
+page.getByText('Hello world');
+
+// Matches second <div>
+page.getByText('Hello', { exact: true });
+
+// Matches both <div>s
+page.getByText(/Hello/);
+
+// Matches second <div>
+page.getByText(/^hello$/i);
+```
+
+**Arguments**
+- `text` [string] | [RegExp]<a aria-hidden="true" tabIndex="-1" class="list-anchor-link" id="frame-get-by-text-option-text"/><a href="#frame-get-by-text-option-text" class="list-anchor">#</a>
+  
+  Text to locate the element for.
+- `options` [Object] *(optional)*
+  - `exact` [boolean] *(optional)*<a aria-hidden="true" tabIndex="-1" class="list-anchor-link" id="frame-get-by-text-option-exact"/><a href="#frame-get-by-text-option-exact" class="list-anchor">#</a>
+    
+    Whether to find an exact match: case-sensitive and whole-string. Default to false. Ignored when locating by a regular expression. Note that exact match still trims whitespace.
+
+**Returns**
+- [Locator]<a aria-hidden="true" tabIndex="-1" class="list-anchor-link" id="frame-get-by-text-return"/><a href="#frame-get-by-text-return" class="list-anchor">#</a>
+
+**Details**
+
+Matching by text always normalizes whitespace, even with exact match. For example, it turns multiple spaces into one, turns line breaks into spaces and ignores leading and trailing whitespace.
+
+Input elements of the type `button` and `submit` are matched by their `value` instead of the text content. For example, locating by text `"Log in"` matches `<input type=button value="Log in">`.
+
+---
+
+### getByTitle {/* #frame-get-by-title */}
+
+<font size="2" style={{position: "relative", top: "-20px"}}>Added in: v1.27</font><x-search>frame.getByTitle</x-search>
+
+Allows locating elements by their title attribute.
+
+**Usage**
+
+Consider the following DOM structure.
+
+```html
+<span title='Issues count'>25 issues</span>
+```
+
+You can check the issues count after locating it by the title text:
+
+```js
+await expect(page.getByTitle('Issues count')).toHaveText('25 issues');
+```
+
+**Arguments**
+- `text` [string] | [RegExp]<a aria-hidden="true" tabIndex="-1" class="list-anchor-link" id="frame-get-by-title-option-text"/><a href="#frame-get-by-title-option-text" class="list-anchor">#</a>
+  
+  Text to locate the element for.
+- `options` [Object] *(optional)*
+  - `exact` [boolean] *(optional)*<a aria-hidden="true" tabIndex="-1" class="list-anchor-link" id="frame-get-by-title-option-exact"/><a href="#frame-get-by-title-option-exact" class="list-anchor">#</a>
+    
+    Whether to find an exact match: case-sensitive and whole-string. Default to false. Ignored when locating by a regular expression. Note that exact match still trims whitespace.
+
+**Returns**
+- [Locator]<a aria-hidden="true" tabIndex="-1" class="list-anchor-link" id="frame-get-by-title-return"/><a href="#frame-get-by-title-return" class="list-anchor">#</a>
+
+---
+
+### goto {/* #frame-goto */}
+
+<font size="2" style={{position: "relative", top: "-20px"}}>Added before v1.9</font><x-search>frame.goto</x-search>
+
+Returns the main resource response. In case of multiple redirects, the navigation will resolve with the response of the last redirect.
+
+The method will throw an error if:
+* there's an SSL error (e.g. in case of self-signed certificates).
+* target URL is invalid.
+* the [timeout](/api/class-frame.mdx#frame-goto-option-timeout) is exceeded during navigation.
+* the remote server does not respond or is unreachable.
+* the main resource failed to load.
+
+The method will not throw an error when any valid HTTP status code is returned by the remote server, including 404 "Not Found" and 500 "Internal Server Error".  The status code for such responses can be retrieved by calling [response.status()](/api/class-response.mdx#response-status).
+
+:::note
+
+The method either throws an error or returns a main resource response. The only exceptions are navigation to `about:blank` or navigation to the same URL with a different hash, which would succeed and return `null`.
+:::
+
+:::note
+Headless mode doesn't support navigation to a PDF document. See the [upstream issue](https://bugs.chromium.org/p/chromium/issues/detail?id=761295).
+:::
+
+**Usage**
+
+```js
+await frame.goto(url);
+await frame.goto(url, options);
+```
+
+**Arguments**
+- `url` [string]<a aria-hidden="true" tabIndex="-1" class="list-anchor-link" id="frame-goto-option-url"/><a href="#frame-goto-option-url" class="list-anchor">#</a>
+  
+  URL to navigate frame to. The url should include scheme, e.g. `https://`.
+- `options` [Object] *(optional)*
+  - `referer` [string] *(optional)*<a aria-hidden="true" tabIndex="-1" class="list-anchor-link" id="frame-goto-option-referer"/><a href="#frame-goto-option-referer" class="list-anchor">#</a>
+    
+    Referer header value. If provided it will take preference over the referer header value set by [page.setExtraHTTPHeaders()](/api/class-page.mdx#page-set-extra-http-headers).
+  - `timeout` [number] *(optional)*<a aria-hidden="true" tabIndex="-1" class="list-anchor-link" id="frame-goto-option-timeout"/><a href="#frame-goto-option-timeout" class="list-anchor">#</a>
+    
+    Maximum operation time in milliseconds. Defaults to `0` - no timeout. The default value can be changed via `navigationTimeout` option in the config, or by using the [browserContext.setDefaultNavigationTimeout()](/api/class-browsercontext.mdx#browser-context-set-default-navigation-timeout), [browserContext.setDefaultTimeout()](/api/class-browsercontext.mdx#browser-context-set-default-timeout), [page.setDefaultNavigationTimeout()](/api/class-page.mdx#page-set-default-navigation-timeout) or [page.setDefaultTimeout()](/api/class-page.mdx#page-set-default-timeout) methods.
+  - `waitUntil` "load" | "domcontentloaded" | "networkidle" | "commit" *(optional)*<a aria-hidden="true" tabIndex="-1" class="list-anchor-link" id="frame-goto-option-wait-until"/><a href="#frame-goto-option-wait-until" class="list-anchor">#</a>
+    
+    When to consider operation succeeded, defaults to `load`. Events can be either:
+    * `'domcontentloaded'` - consider operation to be finished when the `DOMContentLoaded` event is fired.
+    * `'load'` - consider operation to be finished when the `load` event is fired.
+    * `'networkidle'` - **DISCOURAGED** consider operation to be finished when there are no network connections for at least `500` ms. Don't use this method for testing, rely on web assertions to assess readiness instead.
+    * `'commit'` - consider operation to be finished when network response is received and the document started loading.
+
+**Returns**
+- [Promise]&lt;[null] | [Response]&gt;<a aria-hidden="true" tabIndex="-1" class="list-anchor-link" id="frame-goto-return"/><a href="#frame-goto-return" class="list-anchor">#</a>
+
+---
+
+### isDetached {/* #frame-is-detached */}
+
+<font size="2" style={{position: "relative", top: "-20px"}}>Added before v1.9</font><x-search>frame.isDetached</x-search>
+
+Returns `true` if the frame has been detached, or `false` otherwise.
+
+**Usage**
+
+```js
+frame.isDetached();
+```
+
+**Returns**
+- [boolean]<a aria-hidden="true" tabIndex="-1" class="list-anchor-link" id="frame-is-detached-return"/><a href="#frame-is-detached-return" class="list-anchor">#</a>
+
+---
+
+### isEnabled {/* #frame-is-enabled */}
+
+<font size="2" style={{position: "relative", top: "-20px"}}>Added before v1.9</font><x-search>frame.isEnabled</x-search>
+
+Returns whether the element is [enabled](../actionability.mdx#enabled).
+
+**Usage**
+
+```js
+await frame.isEnabled(selector);
+await frame.isEnabled(selector, options);
+```
+
+**Arguments**
+- `selector` [string]<a aria-hidden="true" tabIndex="-1" class="list-anchor-link" id="frame-is-enabled-option-selector"/><a href="#frame-is-enabled-option-selector" class="list-anchor">#</a>
+  
+  A selector to search for an element. If there are multiple elements satisfying the selector, the first will be used.
+- `options` [Object] *(optional)*
+  - `strict` [boolean] *(optional)* <font size="2">Added in: v1.14</font><a aria-hidden="true" tabIndex="-1" class="list-anchor-link" id="frame-is-enabled-option-strict"/><a href="#frame-is-enabled-option-strict" class="list-anchor">#</a>
+    
+    When true, the call requires selector to resolve to a single element. If given selector resolves to more than one element, the call throws an exception.
+  - `timeout` [number] *(optional)*<a aria-hidden="true" tabIndex="-1" class="list-anchor-link" id="frame-is-enabled-option-timeout"/><a href="#frame-is-enabled-option-timeout" class="list-anchor">#</a>
+    
+    Maximum time in milliseconds. Defaults to `0` - no timeout. The default value can be changed via `actionTimeout` option in the config, or by using the [browserContext.setDefaultTimeout()](/api/class-browsercontext.mdx#browser-context-set-default-timeout) or [page.setDefaultTimeout()](/api/class-page.mdx#page-set-default-timeout) methods.
+
+**Returns**
+- [Promise]&lt;[boolean]&gt;<a aria-hidden="true" tabIndex="-1" class="list-anchor-link" id="frame-is-enabled-return"/><a href="#frame-is-enabled-return" class="list-anchor">#</a>
+
+---
+
+### locator {/* #frame-locator */}
+
+<font size="2" style={{position: "relative", top: "-20px"}}>Added in: v1.14</font><x-search>frame.locator</x-search>
+
+The method returns an element locator that can be used to perform actions on this page / frame. Locator is resolved to the element immediately before performing an action, so a series of actions on the same locator can in fact be performed on different DOM elements. That would happen if the DOM structure between those actions has changed.
+
+[Learn more about locators](../locators.mdx).
+
+[Learn more about locators](../locators.mdx).
+
+**Usage**
+
+```js
+frame.locator(selector);
+frame.locator(selector, options);
+```
+
+**Arguments**
+- `selector` [string]<a aria-hidden="true" tabIndex="-1" class="list-anchor-link" id="frame-locator-option-selector"/><a href="#frame-locator-option-selector" class="list-anchor">#</a>
+  
+  A selector to use when resolving DOM element.
+- `options` [Object] *(optional)*
+  - `has` [Locator] *(optional)*<a aria-hidden="true" tabIndex="-1" class="list-anchor-link" id="frame-locator-option-has"/><a href="#frame-locator-option-has" class="list-anchor">#</a>
+    
+    Narrows down the results of the method to those which contain elements matching this relative locator. For example, `article` that has `text=Playwright` matches `<article><div>Playwright</div></article>`.
+    
+    Inner locator **must be relative** to the outer locator and is queried starting with the outer locator match, not the document root. For example, you can find `content` that has `div` in `<article><content><div>Playwright</div></content></article>`. However, looking for `content` that has `article div` will fail, because the inner locator must be relative and should not use any elements outside the `content`.
+    
+    Note that outer and inner locators must belong to the same frame. Inner locator must not contain [FrameLocator]s.
+  - `hasNot` [Locator] *(optional)* <font size="2">Added in: v1.33</font><a aria-hidden="true" tabIndex="-1" class="list-anchor-link" id="frame-locator-option-has-not"/><a href="#frame-locator-option-has-not" class="list-anchor">#</a>
+    
+    Matches elements that do not contain an element that matches an inner locator. Inner locator is queried against the outer one. For example, `article` that does not have `div` matches `<article><span>Playwright</span></article>`.
+    
+    Note that outer and inner locators must belong to the same frame. Inner locator must not contain [FrameLocator]s.
+  - `hasNotText` [string] | [RegExp] *(optional)* <font size="2">Added in: v1.33</font><a aria-hidden="true" tabIndex="-1" class="list-anchor-link" id="frame-locator-option-has-not-text"/><a href="#frame-locator-option-has-not-text" class="list-anchor">#</a>
+    
+    Matches elements that do not contain specified text somewhere inside, possibly in a child or a descendant element. When passed a [string], matching is case-insensitive and searches for a substring.
+  - `hasText` [string] | [RegExp] *(optional)*<a aria-hidden="true" tabIndex="-1" class="list-anchor-link" id="frame-locator-option-has-text"/><a href="#frame-locator-option-has-text" class="list-anchor">#</a>
+    
+    Matches elements containing specified text somewhere inside, possibly in a child or a descendant element. When passed a [string], matching is case-insensitive and searches for a substring. For example, `"Playwright"` matches `<article><div>Playwright</div></article>`.
+
+**Returns**
+- [Locator]<a aria-hidden="true" tabIndex="-1" class="list-anchor-link" id="frame-locator-return"/><a href="#frame-locator-return" class="list-anchor">#</a>
+
+---
+
+### name {/* #frame-name */}
+
+<font size="2" style={{position: "relative", top: "-20px"}}>Added before v1.9</font><x-search>frame.name</x-search>
+
+Returns frame's name attribute as specified in the tag.
+
+If the name is empty, returns the id attribute instead.
+
+:::note
+
+This value is calculated once when the frame is created, and will not update if the attribute is changed later.
+:::
+
+**Usage**
+
+```js
+frame.name();
+```
+
+**Returns**
+- [string]<a aria-hidden="true" tabIndex="-1" class="list-anchor-link" id="frame-name-return"/><a href="#frame-name-return" class="list-anchor">#</a>
+
+---
+
+### page {/* #frame-page */}
+
+<font size="2" style={{position: "relative", top: "-20px"}}>Added before v1.9</font><x-search>frame.page</x-search>
+
+Returns the page containing this frame.
+
+**Usage**
+
+```js
+frame.page();
+```
+
+**Returns**
+- [Page]<a aria-hidden="true" tabIndex="-1" class="list-anchor-link" id="frame-page-return"/><a href="#frame-page-return" class="list-anchor">#</a>
+
+---
+
+### parentFrame {/* #frame-parent-frame */}
+
+<font size="2" style={{position: "relative", top: "-20px"}}>Added before v1.9</font><x-search>frame.parentFrame</x-search>
+
+Parent frame, if any. Detached frames and main frames return `null`.
+
+**Usage**
+
+```js
+frame.parentFrame();
+```
+
+**Returns**
+- [null] | [Frame]<a aria-hidden="true" tabIndex="-1" class="list-anchor-link" id="frame-parent-frame-return"/><a href="#frame-parent-frame-return" class="list-anchor">#</a>
+
+---
+
+### setContent {/* #frame-set-content */}
+
+<font size="2" style={{position: "relative", top: "-20px"}}>Added before v1.9</font><x-search>frame.setContent</x-search>
+
+This method internally calls [document.write()](https://developer.mozilla.org/en-US/docs/Web/API/Document/write), inheriting all its specific characteristics and behaviors.
+
+**Usage**
+
+```js
+await frame.setContent(html);
+await frame.setContent(html, options);
+```
+
+**Arguments**
+- `html` [string]<a aria-hidden="true" tabIndex="-1" class="list-anchor-link" id="frame-set-content-option-html"/><a href="#frame-set-content-option-html" class="list-anchor">#</a>
+  
+  HTML markup to assign to the page.
+- `options` [Object] *(optional)*
+  - `timeout` [number] *(optional)*<a aria-hidden="true" tabIndex="-1" class="list-anchor-link" id="frame-set-content-option-timeout"/><a href="#frame-set-content-option-timeout" class="list-anchor">#</a>
+    
+    Maximum operation time in milliseconds. Defaults to `0` - no timeout. The default value can be changed via `navigationTimeout` option in the config, or by using the [browserContext.setDefaultNavigationTimeout()](/api/class-browsercontext.mdx#browser-context-set-default-navigation-timeout), [browserContext.setDefaultTimeout()](/api/class-browsercontext.mdx#browser-context-set-default-timeout), [page.setDefaultNavigationTimeout()](/api/class-page.mdx#page-set-default-navigation-timeout) or [page.setDefaultTimeout()](/api/class-page.mdx#page-set-default-timeout) methods.
+  - `waitUntil` "load" | "domcontentloaded" | "networkidle" | "commit" *(optional)*<a aria-hidden="true" tabIndex="-1" class="list-anchor-link" id="frame-set-content-option-wait-until"/><a href="#frame-set-content-option-wait-until" class="list-anchor">#</a>
+    
+    When to consider operation succeeded, defaults to `load`. Events can be either:
+    * `'domcontentloaded'` - consider operation to be finished when the `DOMContentLoaded` event is fired.
+    * `'load'` - consider operation to be finished when the `load` event is fired.
+    * `'networkidle'` - **DISCOURAGED** consider operation to be finished when there are no network connections for at least `500` ms. Don't use this method for testing, rely on web assertions to assess readiness instead.
+    * `'commit'` - consider operation to be finished when network response is received and the document started loading.
+
+**Returns**
+- [Promise]&lt;[void]&gt;<a aria-hidden="true" tabIndex="-1" class="list-anchor-link" id="frame-set-content-return"/><a href="#frame-set-content-return" class="list-anchor">#</a>
+
+---
+
+### title {/* #frame-title */}
+
+<font size="2" style={{position: "relative", top: "-20px"}}>Added before v1.9</font><x-search>frame.title</x-search>
+
+Returns the page title.
+
+**Usage**
+
+```js
+await frame.title();
+```
+
+**Returns**
+- [Promise]&lt;[string]&gt;<a aria-hidden="true" tabIndex="-1" class="list-anchor-link" id="frame-title-return"/><a href="#frame-title-return" class="list-anchor">#</a>
+
+---
+
+### url {/* #frame-url */}
+
+<font size="2" style={{position: "relative", top: "-20px"}}>Added before v1.9</font><x-search>frame.url</x-search>
+
+Returns frame's url.
+
+**Usage**
+
+```js
+frame.url();
+```
+
+**Returns**
+- [string]<a aria-hidden="true" tabIndex="-1" class="list-anchor-link" id="frame-url-return"/><a href="#frame-url-return" class="list-anchor">#</a>
+
+---
+
+### waitForFunction {/* #frame-wait-for-function */}
+
+<font size="2" style={{position: "relative", top: "-20px"}}>Added before v1.9</font><x-search>frame.waitForFunction</x-search>
+
+Returns when the [pageFunction](/api/class-frame.mdx#frame-wait-for-function-option-expression) returns a truthy value, returns that value.
+
+**Usage**
+
+The [frame.waitForFunction()](/api/class-frame.mdx#frame-wait-for-function) can be used to observe viewport size change:
+
+```js
+const { firefox } = require('playwright');  // Or 'chromium' or 'webkit'.
+
+(async () => {
+  const browser = await firefox.launch();
+  const page = await browser.newPage();
+  const watchDog = page.mainFrame().waitForFunction('window.innerWidth < 100');
+  await page.setViewportSize({ width: 50, height: 50 });
+  await watchDog;
+  await browser.close();
+})();
+```
+
+To pass an argument to the predicate of `frame.waitForFunction` function:
+
+```js
+const selector = '.foo';
+await frame.waitForFunction(selector => !!document.querySelector(selector), selector);
+```
+
+**Arguments**
+- `pageFunction` [function] | [string]<a aria-hidden="true" tabIndex="-1" class="list-anchor-link" id="frame-wait-for-function-option-expression"/><a href="#frame-wait-for-function-option-expression" class="list-anchor">#</a>
+  
+  Function to be evaluated in the page context.
+- `arg` [EvaluationArgument] *(optional)*<a aria-hidden="true" tabIndex="-1" class="list-anchor-link" id="frame-wait-for-function-option-arg"/><a href="#frame-wait-for-function-option-arg" class="list-anchor">#</a>
+  
+  Optional argument to pass to [pageFunction](/api/class-frame.mdx#frame-wait-for-function-option-expression).
+- `options` [Object] *(optional)*
+  - `polling` [number] | "raf" *(optional)*<a aria-hidden="true" tabIndex="-1" class="list-anchor-link" id="frame-wait-for-function-option-polling"/><a href="#frame-wait-for-function-option-polling" class="list-anchor">#</a>
+    
+    If [polling](/api/class-frame.mdx#frame-wait-for-function-option-polling) is `'raf'`, then [pageFunction](/api/class-frame.mdx#frame-wait-for-function-option-expression) is constantly executed in `requestAnimationFrame` callback. If [polling](/api/class-frame.mdx#frame-wait-for-function-option-polling) is a number, then it is treated as an interval in milliseconds at which the function would be executed. Defaults to `raf`.
+  - `timeout` [number] *(optional)*<a aria-hidden="true" tabIndex="-1" class="list-anchor-link" id="frame-wait-for-function-option-timeout"/><a href="#frame-wait-for-function-option-timeout" class="list-anchor">#</a>
+    
+    Maximum time to wait for in milliseconds. Defaults to `0` - no timeout. The default value can be changed via `actionTimeout` option in the config, or by using the [browserContext.setDefaultTimeout()](/api/class-browsercontext.mdx#browser-context-set-default-timeout) or [page.setDefaultTimeout()](/api/class-page.mdx#page-set-default-timeout) methods.
+
+**Returns**
+- [Promise]&lt;[JSHandle]&gt;<a aria-hidden="true" tabIndex="-1" class="list-anchor-link" id="frame-wait-for-function-return"/><a href="#frame-wait-for-function-return" class="list-anchor">#</a>
+
+---
+
+### waitForLoadState {/* #frame-wait-for-load-state */}
+
+<font size="2" style={{position: "relative", top: "-20px"}}>Added before v1.9</font><x-search>frame.waitForLoadState</x-search>
+
+Waits for the required load state to be reached.
+
+This returns when the frame reaches a required load state, `load` by default. The navigation must have been committed when this method is called. If current document has already reached the required state, resolves immediately.
+
+:::note
+
+Most of the time, this method is not needed because Playwright [auto-waits before every action](../actionability.mdx).
+:::
+
+**Usage**
+
+```js
+await frame.click('button'); // Click triggers navigation.
+await frame.waitForLoadState(); // Waits for 'load' state by default.
+```
+
+**Arguments**
+- `state` "load" | "domcontentloaded" | "networkidle" *(optional)*<a aria-hidden="true" tabIndex="-1" class="list-anchor-link" id="frame-wait-for-load-state-option-state"/><a href="#frame-wait-for-load-state-option-state" class="list-anchor">#</a>
+  
+  Optional load state to wait for, defaults to `load`. If the state has been already reached while loading current document, the method resolves immediately. Can be one of:
+  * `'load'` - wait for the `load` event to be fired.
+  * `'domcontentloaded'` - wait for the `DOMContentLoaded` event to be fired.
+  * `'networkidle'` - **DISCOURAGED** wait until there are no network connections for at least `500` ms. Don't use this method for testing, rely on web assertions to assess readiness instead.
+- `options` [Object] *(optional)*
+  - `timeout` [number] *(optional)*<a aria-hidden="true" tabIndex="-1" class="list-anchor-link" id="frame-wait-for-load-state-option-timeout"/><a href="#frame-wait-for-load-state-option-timeout" class="list-anchor">#</a>
+    
+    Maximum operation time in milliseconds. Defaults to `0` - no timeout. The default value can be changed via `navigationTimeout` option in the config, or by using the [browserContext.setDefaultNavigationTimeout()](/api/class-browsercontext.mdx#browser-context-set-default-navigation-timeout), [browserContext.setDefaultTimeout()](/api/class-browsercontext.mdx#browser-context-set-default-timeout), [page.setDefaultNavigationTimeout()](/api/class-page.mdx#page-set-default-navigation-timeout) or [page.setDefaultTimeout()](/api/class-page.mdx#page-set-default-timeout) methods.
+
+**Returns**
+- [Promise]&lt;[void]&gt;<a aria-hidden="true" tabIndex="-1" class="list-anchor-link" id="frame-wait-for-load-state-return"/><a href="#frame-wait-for-load-state-return" class="list-anchor">#</a>
+
+---
+
+### waitForURL {/* #frame-wait-for-url */}
+
+<font size="2" style={{position: "relative", top: "-20px"}}>Added in: v1.11</font><x-search>frame.waitForURL</x-search>
+
+Waits for the frame to navigate to the given URL.
+
+**Usage**
+
+```js
+await frame.click('a.delayed-navigation'); // Clicking the link will indirectly cause a navigation
+await frame.waitForURL('**/target.html');
+```
+
+**Arguments**
+- `url` [string] | [RegExp] | [URLPattern] | [function]\([URL]\):[boolean]<a aria-hidden="true" tabIndex="-1" class="list-anchor-link" id="frame-wait-for-url-option-url"/><a href="#frame-wait-for-url-option-url" class="list-anchor">#</a>
+  
+  A glob pattern, regex pattern, URL pattern, or predicate receiving [URL] to match while waiting for the navigation. Note that if the parameter is a string without wildcard characters, the method will wait for navigation to URL that is exactly equal to the string.
+- `options` [Object] *(optional)*
+  - `timeout` [number] *(optional)*<a aria-hidden="true" tabIndex="-1" class="list-anchor-link" id="frame-wait-for-url-option-timeout"/><a href="#frame-wait-for-url-option-timeout" class="list-anchor">#</a>
+    
+    Maximum operation time in milliseconds. Defaults to `0` - no timeout. The default value can be changed via `navigationTimeout` option in the config, or by using the [browserContext.setDefaultNavigationTimeout()](/api/class-browsercontext.mdx#browser-context-set-default-navigation-timeout), [browserContext.setDefaultTimeout()](/api/class-browsercontext.mdx#browser-context-set-default-timeout), [page.setDefaultNavigationTimeout()](/api/class-page.mdx#page-set-default-navigation-timeout) or [page.setDefaultTimeout()](/api/class-page.mdx#page-set-default-timeout) methods.
+  - `waitUntil` "load" | "domcontentloaded" | "networkidle" | "commit" *(optional)*<a aria-hidden="true" tabIndex="-1" class="list-anchor-link" id="frame-wait-for-url-option-wait-until"/><a href="#frame-wait-for-url-option-wait-until" class="list-anchor">#</a>
+    
+    When to consider operation succeeded, defaults to `load`. Events can be either:
+    * `'domcontentloaded'` - consider operation to be finished when the `DOMContentLoaded` event is fired.
+    * `'load'` - consider operation to be finished when the `load` event is fired.
+    * `'networkidle'` - **DISCOURAGED** consider operation to be finished when there are no network connections for at least `500` ms. Don't use this method for testing, rely on web assertions to assess readiness instead.
+    * `'commit'` - consider operation to be finished when network response is received and the document started loading.
+
+**Returns**
+- [Promise]&lt;[void]&gt;<a aria-hidden="true" tabIndex="-1" class="list-anchor-link" id="frame-wait-for-url-return"/><a href="#frame-wait-for-url-return" class="list-anchor">#</a>
+
+---
+
+## Deprecated
+
+### $ {/* #frame-query-selector */}
+
+<font size="2" style={{position: "relative", top: "-20px"}}>Added in: v1.9</font><x-search>frame.$</x-search>
+
+:::warning[Discouraged]
+
+Use locator-based [frame.locator()](/api/class-frame.mdx#frame-locator) instead. Read more about [locators](../locators.mdx).
+
+:::
+
+
+Returns the ElementHandle pointing to the frame element.
+
+:::caution
+
+The use of [ElementHandle] is discouraged, use [Locator] objects and web-first assertions instead.
+:::
+
+The method finds an element matching the specified selector within the frame. If no elements match the selector, returns `null`.
+
+**Usage**
+
+```js
+await frame.$(selector);
+await frame.$(selector, options);
+```
+
+**Arguments**
+- `selector` [string]<a aria-hidden="true" tabIndex="-1" class="list-anchor-link" id="frame-query-selector-option-selector"/><a href="#frame-query-selector-option-selector" class="list-anchor">#</a>
+  
+  A selector to query for.
+- `options` [Object] *(optional)*
+  - `strict` [boolean] *(optional)* <font size="2">Added in: v1.14</font><a aria-hidden="true" tabIndex="-1" class="list-anchor-link" id="frame-query-selector-option-strict"/><a href="#frame-query-selector-option-strict" class="list-anchor">#</a>
+    
+    When true, the call requires selector to resolve to a single element. If given selector resolves to more than one element, the call throws an exception.
+
+**Returns**
+- [Promise]&lt;[null] | [ElementHandle]&gt;<a aria-hidden="true" tabIndex="-1" class="list-anchor-link" id="frame-query-selector-return"/><a href="#frame-query-selector-return" class="list-anchor">#</a>
+
+---
+
+### $$ {/* #frame-query-selector-all */}
+
+<font size="2" style={{position: "relative", top: "-20px"}}>Added in: v1.9</font><x-search>frame.$$</x-search>
+
+:::warning[Discouraged]
+
+Use locator-based [frame.locator()](/api/class-frame.mdx#frame-locator) instead. Read more about [locators](../locators.mdx).
+
+:::
+
+
+Returns the ElementHandles pointing to the frame elements.
+
+:::caution
+
+The use of [ElementHandle] is discouraged, use [Locator] objects instead.
+:::
+
+The method finds all elements matching the specified selector within the frame. If no elements match the selector, returns empty array.
+
+**Usage**
+
+```js
+await frame.$$(selector);
+```
+
+**Arguments**
+- `selector` [string]<a aria-hidden="true" tabIndex="-1" class="list-anchor-link" id="frame-query-selector-all-option-selector"/><a href="#frame-query-selector-all-option-selector" class="list-anchor">#</a>
+  
+  A selector to query for.
+
+**Returns**
+- [Promise]&lt;[Array]&lt;[ElementHandle]&gt;&gt;<a aria-hidden="true" tabIndex="-1" class="list-anchor-link" id="frame-query-selector-all-return"/><a href="#frame-query-selector-all-return" class="list-anchor">#</a>
+
+---
+
+### $eval {/* #frame-eval-on-selector */}
+
+<font size="2" style={{position: "relative", top: "-20px"}}>Added in: v1.9</font><x-search>frame.$eval</x-search>
+
+:::warning[Discouraged]
+
+This method does not wait for the element to pass the actionability checks and therefore can lead to the flaky tests. Use [locator.evaluate()](/api/class-locator.mdx#locator-evaluate), other [Locator] helper methods or web-first assertions instead.
+
+:::
+
+
+Returns the return value of [pageFunction](/api/class-frame.mdx#frame-eval-on-selector-option-expression).
+
+The method finds an element matching the specified selector within the frame and passes it as a first argument to [pageFunction](/api/class-frame.mdx#frame-eval-on-selector-option-expression). If no elements match the selector, the method throws an error.
+
+If [pageFunction](/api/class-frame.mdx#frame-eval-on-selector-option-expression) returns a [Promise], then [frame.$eval()](/api/class-frame.mdx#frame-eval-on-selector) would wait for the promise to resolve and return its value.
+
+**Usage**
+
+```js
+const searchValue = await frame.$eval('#search', el => el.value);
+const preloadHref = await frame.$eval('link[rel=preload]', el => el.href);
+const html = await frame.$eval('.main-container', (e, suffix) => e.outerHTML + suffix, 'hello');
+```
+
+**Arguments**
+- `selector` [string]<a aria-hidden="true" tabIndex="-1" class="list-anchor-link" id="frame-eval-on-selector-option-selector"/><a href="#frame-eval-on-selector-option-selector" class="list-anchor">#</a>
+  
+  A selector to query for.
+- `pageFunction` [function]\([Element]\) | [string]<a aria-hidden="true" tabIndex="-1" class="list-anchor-link" id="frame-eval-on-selector-option-expression"/><a href="#frame-eval-on-selector-option-expression" class="list-anchor">#</a>
+  
+  Function to be evaluated in the page context.
+- `arg` [EvaluationArgument] *(optional)*<a aria-hidden="true" tabIndex="-1" class="list-anchor-link" id="frame-eval-on-selector-option-arg"/><a href="#frame-eval-on-selector-option-arg" class="list-anchor">#</a>
+  
+  Optional argument to pass to [pageFunction](/api/class-frame.mdx#frame-eval-on-selector-option-expression).
+- `options` [Object] *(optional)*
+  - `strict` [boolean] *(optional)* <font size="2">Added in: v1.14</font><a aria-hidden="true" tabIndex="-1" class="list-anchor-link" id="frame-eval-on-selector-option-strict"/><a href="#frame-eval-on-selector-option-strict" class="list-anchor">#</a>
+    
+    When true, the call requires selector to resolve to a single element. If given selector resolves to more than one element, the call throws an exception.
+
+**Returns**
+- [Promise]&lt;[Serializable]&gt;<a aria-hidden="true" tabIndex="-1" class="list-anchor-link" id="frame-eval-on-selector-return"/><a href="#frame-eval-on-selector-return" class="list-anchor">#</a>
+
+---
+
+### $$eval {/* #frame-eval-on-selector-all */}
+
+<font size="2" style={{position: "relative", top: "-20px"}}>Added in: v1.9</font><x-search>frame.$$eval</x-search>
+
+:::warning[Discouraged]
+
+In most cases, [locator.evaluateAll()](/api/class-locator.mdx#locator-evaluate-all), other [Locator] helper methods and web-first assertions do a better job.
+
+:::
+
+
+Returns the return value of [pageFunction](/api/class-frame.mdx#frame-eval-on-selector-all-option-expression).
+
+The method finds all elements matching the specified selector within the frame and passes an array of matched elements as a first argument to [pageFunction](/api/class-frame.mdx#frame-eval-on-selector-all-option-expression).
+
+If [pageFunction](/api/class-frame.mdx#frame-eval-on-selector-all-option-expression) returns a [Promise], then [frame.$$eval()](/api/class-frame.mdx#frame-eval-on-selector-all) would wait for the promise to resolve and return its value.
+
+**Usage**
+
+```js
+const divsCounts = await frame.$$eval('div', (divs, min) => divs.length >= min, 10);
+```
+
+**Arguments**
+- `selector` [string]<a aria-hidden="true" tabIndex="-1" class="list-anchor-link" id="frame-eval-on-selector-all-option-selector"/><a href="#frame-eval-on-selector-all-option-selector" class="list-anchor">#</a>
+  
+  A selector to query for.
+- `pageFunction` [function]\([Array]&lt;[Element]&gt;\) | [string]<a aria-hidden="true" tabIndex="-1" class="list-anchor-link" id="frame-eval-on-selector-all-option-expression"/><a href="#frame-eval-on-selector-all-option-expression" class="list-anchor">#</a>
+  
+  Function to be evaluated in the page context.
+- `arg` [EvaluationArgument] *(optional)*<a aria-hidden="true" tabIndex="-1" class="list-anchor-link" id="frame-eval-on-selector-all-option-arg"/><a href="#frame-eval-on-selector-all-option-arg" class="list-anchor">#</a>
+  
+  Optional argument to pass to [pageFunction](/api/class-frame.mdx#frame-eval-on-selector-all-option-expression).
+
+**Returns**
+- [Promise]&lt;[Serializable]&gt;<a aria-hidden="true" tabIndex="-1" class="list-anchor-link" id="frame-eval-on-selector-all-return"/><a href="#frame-eval-on-selector-all-return" class="list-anchor">#</a>
+
+---
+
+### check {/* #frame-check */}
+
+<font size="2" style={{position: "relative", top: "-20px"}}>Added before v1.9</font><x-search>frame.check</x-search>
+
+:::warning[Discouraged]
+
+Use locator-based [locator.check()](/api/class-locator.mdx#locator-check) instead. Read more about [locators](../locators.mdx).
+
+:::
+
+
+This method checks an element matching [selector](/api/class-frame.mdx#frame-check-option-selector) by performing the following steps:
+1. Find an element matching [selector](/api/class-frame.mdx#frame-check-option-selector). If there is none, wait until a matching element is attached to the DOM.
+1. Ensure that matched element is a checkbox or a radio input. If not, this method throws. If the element is already checked, this method returns immediately.
+1. Wait for [actionability](../actionability.mdx) checks on the matched element, unless [force](/api/class-frame.mdx#frame-check-option-force) option is set. If the element is detached during the checks, the whole action is retried.
+1. Scroll the element into view if needed.
+1. Use [page.mouse](/api/class-page.mdx#page-mouse) to click in the center of the element.
+1. Ensure that the element is now checked. If not, this method throws.
+
+When all steps combined have not finished during the specified [timeout](/api/class-frame.mdx#frame-check-option-timeout), this method throws a [TimeoutError]. Passing zero timeout disables this.
+
+**Usage**
+
+```js
+await frame.check(selector);
+await frame.check(selector, options);
+```
+
+**Arguments**
+- `selector` [string]<a aria-hidden="true" tabIndex="-1" class="list-anchor-link" id="frame-check-option-selector"/><a href="#frame-check-option-selector" class="list-anchor">#</a>
+  
+  A selector to search for an element. If there are multiple elements satisfying the selector, the first will be used.
+- `options` [Object] *(optional)*
+  - `force` [boolean] *(optional)*<a aria-hidden="true" tabIndex="-1" class="list-anchor-link" id="frame-check-option-force"/><a href="#frame-check-option-force" class="list-anchor">#</a>
+    
+    Whether to bypass the [actionability](../actionability.mdx) checks. Defaults to `false`.
+  - `noWaitAfter` [boolean] *(optional)*<a aria-hidden="true" tabIndex="-1" class="list-anchor-link" id="frame-check-option-no-wait-after"/><a href="#frame-check-option-no-wait-after" class="list-anchor">#</a>
+    
+    :::warning[Deprecated]
+    This option has no effect.
+    :::
+    
+    
+    This option has no effect.
+  - `position` [Object] *(optional)* <font size="2">Added in: v1.11</font><a aria-hidden="true" tabIndex="-1" class="list-anchor-link" id="frame-check-option-position"/><a href="#frame-check-option-position" class="list-anchor">#</a>
+    - `x` [number]
+      
+      
+    - `y` [number]
+      
+      
+    A point to use relative to the top-left corner of element padding box. If not specified, uses some visible point of the element.
+  - `strict` [boolean] *(optional)* <font size="2">Added in: v1.14</font><a aria-hidden="true" tabIndex="-1" class="list-anchor-link" id="frame-check-option-strict"/><a href="#frame-check-option-strict" class="list-anchor">#</a>
+    
+    When true, the call requires selector to resolve to a single element. If given selector resolves to more than one element, the call throws an exception.
+  - `timeout` [number] *(optional)*<a aria-hidden="true" tabIndex="-1" class="list-anchor-link" id="frame-check-option-timeout"/><a href="#frame-check-option-timeout" class="list-anchor">#</a>
+    
+    Maximum time in milliseconds. Defaults to `0` - no timeout. The default value can be changed via `actionTimeout` option in the config, or by using the [browserContext.setDefaultTimeout()](/api/class-browsercontext.mdx#browser-context-set-default-timeout) or [page.setDefaultTimeout()](/api/class-page.mdx#page-set-default-timeout) methods.
+  - `trial` [boolean] *(optional)* <font size="2">Added in: v1.11</font><a aria-hidden="true" tabIndex="-1" class="list-anchor-link" id="frame-check-option-trial"/><a href="#frame-check-option-trial" class="list-anchor">#</a>
+    
+    When set, this method only performs the [actionability](../actionability.mdx) checks and skips the action. Defaults to `false`. Useful to wait until the element is ready for the action without performing it.
+
+**Returns**
+- [Promise]&lt;[void]&gt;<a aria-hidden="true" tabIndex="-1" class="list-anchor-link" id="frame-check-return"/><a href="#frame-check-return" class="list-anchor">#</a>
+
+---
+
+### click {/* #frame-click */}
+
+<font size="2" style={{position: "relative", top: "-20px"}}>Added before v1.9</font><x-search>frame.click</x-search>
+
+:::warning[Discouraged]
+
+Use locator-based [locator.click()](/api/class-locator.mdx#locator-click) instead. Read more about [locators](../locators.mdx).
+
+:::
+
+
+This method clicks an element matching [selector](/api/class-frame.mdx#frame-click-option-selector) by performing the following steps:
+1. Find an element matching [selector](/api/class-frame.mdx#frame-click-option-selector). If there is none, wait until a matching element is attached to the DOM.
+1. Wait for [actionability](../actionability.mdx) checks on the matched element, unless [force](/api/class-frame.mdx#frame-click-option-force) option is set. If the element is detached during the checks, the whole action is retried.
+1. Scroll the element into view if needed.
+1. Use [page.mouse](/api/class-page.mdx#page-mouse) to click in the center of the element, or the specified [position](/api/class-frame.mdx#frame-click-option-position).
+1. Wait for initiated navigations to either succeed or fail, unless [noWaitAfter](/api/class-frame.mdx#frame-click-option-no-wait-after) option is set.
+
+When all steps combined have not finished during the specified [timeout](/api/class-frame.mdx#frame-click-option-timeout), this method throws a [TimeoutError]. Passing zero timeout disables this.
+
+**Usage**
+
+```js
+await frame.click(selector);
+await frame.click(selector, options);
+```
+
+**Arguments**
+- `selector` [string]<a aria-hidden="true" tabIndex="-1" class="list-anchor-link" id="frame-click-option-selector"/><a href="#frame-click-option-selector" class="list-anchor">#</a>
+  
+  A selector to search for an element. If there are multiple elements satisfying the selector, the first will be used.
+- `options` [Object] *(optional)*
+  - `button` "left" | "right" | "middle" *(optional)*<a aria-hidden="true" tabIndex="-1" class="list-anchor-link" id="frame-click-option-button"/><a href="#frame-click-option-button" class="list-anchor">#</a>
+    
+    Defaults to `left`.
+  - `clickCount` [number] *(optional)*<a aria-hidden="true" tabIndex="-1" class="list-anchor-link" id="frame-click-option-click-count"/><a href="#frame-click-option-click-count" class="list-anchor">#</a>
+    
+    defaults to 1. See [UIEvent.detail].
+  - `delay` [number] *(optional)*<a aria-hidden="true" tabIndex="-1" class="list-anchor-link" id="frame-click-option-delay"/><a href="#frame-click-option-delay" class="list-anchor">#</a>
+    
+    Time to wait between `mousedown` and `mouseup` in milliseconds. Defaults to 0.
+  - `force` [boolean] *(optional)*<a aria-hidden="true" tabIndex="-1" class="list-anchor-link" id="frame-click-option-force"/><a href="#frame-click-option-force" class="list-anchor">#</a>
+    
+    Whether to bypass the [actionability](../actionability.mdx) checks. Defaults to `false`.
+  - `modifiers` [Array]&lt;"Alt" | "Control" | "ControlOrMeta" | "Meta" | "Shift"&gt; *(optional)*<a aria-hidden="true" tabIndex="-1" class="list-anchor-link" id="frame-click-option-modifiers"/><a href="#frame-click-option-modifiers" class="list-anchor">#</a>
+    
+    Modifier keys to press. Ensures that only these modifiers are pressed during the operation, and then restores current modifiers back. If not specified, currently pressed modifiers are used. "ControlOrMeta" resolves to "Control" on Windows and Linux and to "Meta" on macOS.
+  - `noWaitAfter` [boolean] *(optional)*<a aria-hidden="true" tabIndex="-1" class="list-anchor-link" id="frame-click-option-no-wait-after"/><a href="#frame-click-option-no-wait-after" class="list-anchor">#</a>
+    
+    :::warning[Deprecated]
+    This option will default to `true` in the future.
+    :::
+    
+    
+    Actions that initiate navigations are waiting for these navigations to happen and for pages to start loading. You can opt out of waiting via setting this flag. You would only need this option in the exceptional cases such as navigating to inaccessible pages. Defaults to `false`.
+  - `position` [Object] *(optional)*<a aria-hidden="true" tabIndex="-1" class="list-anchor-link" id="frame-click-option-position"/><a href="#frame-click-option-position" class="list-anchor">#</a>
+    - `x` [number]
+      
+      
+    - `y` [number]
+      
+      
+    A point to use relative to the top-left corner of element padding box. If not specified, uses some visible point of the element.
+  - `strict` [boolean] *(optional)* <font size="2">Added in: v1.14</font><a aria-hidden="true" tabIndex="-1" class="list-anchor-link" id="frame-click-option-strict"/><a href="#frame-click-option-strict" class="list-anchor">#</a>
+    
+    When true, the call requires selector to resolve to a single element. If given selector resolves to more than one element, the call throws an exception.
+  - `timeout` [number] *(optional)*<a aria-hidden="true" tabIndex="-1" class="list-anchor-link" id="frame-click-option-timeout"/><a href="#frame-click-option-timeout" class="list-anchor">#</a>
+    
+    Maximum time in milliseconds. Defaults to `0` - no timeout. The default value can be changed via `actionTimeout` option in the config, or by using the [browserContext.setDefaultTimeout()](/api/class-browsercontext.mdx#browser-context-set-default-timeout) or [page.setDefaultTimeout()](/api/class-page.mdx#page-set-default-timeout) methods.
+  - `trial` [boolean] *(optional)* <font size="2">Added in: v1.11</font><a aria-hidden="true" tabIndex="-1" class="list-anchor-link" id="frame-click-option-trial"/><a href="#frame-click-option-trial" class="list-anchor">#</a>
+    
+    When set, this method only performs the [actionability](../actionability.mdx) checks and skips the action. Defaults to `false`. Useful to wait until the element is ready for the action without performing it. Note that keyboard `modifiers` will be pressed regardless of `trial` to allow testing elements which are only visible when those keys are pressed.
+
+**Returns**
+- [Promise]&lt;[void]&gt;<a aria-hidden="true" tabIndex="-1" class="list-anchor-link" id="frame-click-return"/><a href="#frame-click-return" class="list-anchor">#</a>
+
+---
+
+### dblclick {/* #frame-dblclick */}
+
+<font size="2" style={{position: "relative", top: "-20px"}}>Added before v1.9</font><x-search>frame.dblclick</x-search>
+
+:::warning[Discouraged]
+
+Use locator-based [locator.dblclick()](/api/class-locator.mdx#locator-dblclick) instead. Read more about [locators](../locators.mdx).
+
+:::
+
+
+This method double clicks an element matching [selector](/api/class-frame.mdx#frame-dblclick-option-selector) by performing the following steps:
+1. Find an element matching [selector](/api/class-frame.mdx#frame-dblclick-option-selector). If there is none, wait until a matching element is attached to the DOM.
+1. Wait for [actionability](../actionability.mdx) checks on the matched element, unless [force](/api/class-frame.mdx#frame-dblclick-option-force) option is set. If the element is detached during the checks, the whole action is retried.
+1. Scroll the element into view if needed.
+1. Use [page.mouse](/api/class-page.mdx#page-mouse) to double click in the center of the element, or the specified [position](/api/class-frame.mdx#frame-dblclick-option-position). if the first click of the `dblclick()` triggers a navigation event, this method will throw.
+
+When all steps combined have not finished during the specified [timeout](/api/class-frame.mdx#frame-dblclick-option-timeout), this method throws a [TimeoutError]. Passing zero timeout disables this.
+
+:::note
+
+`frame.dblclick()` dispatches two `click` events and a single `dblclick` event.
+:::
+
+**Usage**
+
+```js
+await frame.dblclick(selector);
+await frame.dblclick(selector, options);
+```
+
+**Arguments**
+- `selector` [string]<a aria-hidden="true" tabIndex="-1" class="list-anchor-link" id="frame-dblclick-option-selector"/><a href="#frame-dblclick-option-selector" class="list-anchor">#</a>
+  
+  A selector to search for an element. If there are multiple elements satisfying the selector, the first will be used.
+- `options` [Object] *(optional)*
+  - `button` "left" | "right" | "middle" *(optional)*<a aria-hidden="true" tabIndex="-1" class="list-anchor-link" id="frame-dblclick-option-button"/><a href="#frame-dblclick-option-button" class="list-anchor">#</a>
+    
+    Defaults to `left`.
+  - `delay` [number] *(optional)*<a aria-hidden="true" tabIndex="-1" class="list-anchor-link" id="frame-dblclick-option-delay"/><a href="#frame-dblclick-option-delay" class="list-anchor">#</a>
+    
+    Time to wait between `mousedown` and `mouseup` in milliseconds. Defaults to 0.
+  - `force` [boolean] *(optional)*<a aria-hidden="true" tabIndex="-1" class="list-anchor-link" id="frame-dblclick-option-force"/><a href="#frame-dblclick-option-force" class="list-anchor">#</a>
+    
+    Whether to bypass the [actionability](../actionability.mdx) checks. Defaults to `false`.
+  - `modifiers` [Array]&lt;"Alt" | "Control" | "ControlOrMeta" | "Meta" | "Shift"&gt; *(optional)*<a aria-hidden="true" tabIndex="-1" class="list-anchor-link" id="frame-dblclick-option-modifiers"/><a href="#frame-dblclick-option-modifiers" class="list-anchor">#</a>
+    
+    Modifier keys to press. Ensures that only these modifiers are pressed during the operation, and then restores current modifiers back. If not specified, currently pressed modifiers are used. "ControlOrMeta" resolves to "Control" on Windows and Linux and to "Meta" on macOS.
+  - `noWaitAfter` [boolean] *(optional)*<a aria-hidden="true" tabIndex="-1" class="list-anchor-link" id="frame-dblclick-option-no-wait-after"/><a href="#frame-dblclick-option-no-wait-after" class="list-anchor">#</a>
+    
+    :::warning[Deprecated]
+    This option has no effect.
+    :::
+    
+    
+    This option has no effect.
+  - `position` [Object] *(optional)*<a aria-hidden="true" tabIndex="-1" class="list-anchor-link" id="frame-dblclick-option-position"/><a href="#frame-dblclick-option-position" class="list-anchor">#</a>
+    - `x` [number]
+      
+      
+    - `y` [number]
+      
+      
+    A point to use relative to the top-left corner of element padding box. If not specified, uses some visible point of the element.
+  - `strict` [boolean] *(optional)* <font size="2">Added in: v1.14</font><a aria-hidden="true" tabIndex="-1" class="list-anchor-link" id="frame-dblclick-option-strict"/><a href="#frame-dblclick-option-strict" class="list-anchor">#</a>
+    
+    When true, the call requires selector to resolve to a single element. If given selector resolves to more than one element, the call throws an exception.
+  - `timeout` [number] *(optional)*<a aria-hidden="true" tabIndex="-1" class="list-anchor-link" id="frame-dblclick-option-timeout"/><a href="#frame-dblclick-option-timeout" class="list-anchor">#</a>
+    
+    Maximum time in milliseconds. Defaults to `0` - no timeout. The default value can be changed via `actionTimeout` option in the config, or by using the [browserContext.setDefaultTimeout()](/api/class-browsercontext.mdx#browser-context-set-default-timeout) or [page.setDefaultTimeout()](/api/class-page.mdx#page-set-default-timeout) methods.
+  - `trial` [boolean] *(optional)* <font size="2">Added in: v1.11</font><a aria-hidden="true" tabIndex="-1" class="list-anchor-link" id="frame-dblclick-option-trial"/><a href="#frame-dblclick-option-trial" class="list-anchor">#</a>
+    
+    When set, this method only performs the [actionability](../actionability.mdx) checks and skips the action. Defaults to `false`. Useful to wait until the element is ready for the action without performing it. Note that keyboard `modifiers` will be pressed regardless of `trial` to allow testing elements which are only visible when those keys are pressed.
+
+**Returns**
+- [Promise]&lt;[void]&gt;<a aria-hidden="true" tabIndex="-1" class="list-anchor-link" id="frame-dblclick-return"/><a href="#frame-dblclick-return" class="list-anchor">#</a>
+
+---
+
+### dispatchEvent {/* #frame-dispatch-event */}
+
+<font size="2" style={{position: "relative", top: "-20px"}}>Added before v1.9</font><x-search>frame.dispatchEvent</x-search>
+
+:::warning[Discouraged]
+
+Use locator-based [locator.dispatchEvent()](/api/class-locator.mdx#locator-dispatch-event) instead. Read more about [locators](../locators.mdx).
+
+:::
+
+
+The snippet below dispatches the `click` event on the element. Regardless of the visibility state of the element, `click` is dispatched. This is equivalent to calling [element.click()](https://developer.mozilla.org/en-US/docs/Web/API/HTMLElement/click).
+
+**Usage**
+
+```js
+await frame.dispatchEvent('button#submit', 'click');
+```
+
+Under the hood, it creates an instance of an event based on the given [type](/api/class-frame.mdx#frame-dispatch-event-option-type), initializes it with [eventInit](/api/class-frame.mdx#frame-dispatch-event-option-event-init) properties and dispatches it on the element. Events are `composed`, `cancelable` and bubble by default.
+
+Since [eventInit](/api/class-frame.mdx#frame-dispatch-event-option-event-init) is event-specific, please refer to the events documentation for the lists of initial properties:
+* [DeviceMotionEvent](https://developer.mozilla.org/en-US/docs/Web/API/DeviceMotionEvent/DeviceMotionEvent)
+* [DeviceOrientationEvent](https://developer.mozilla.org/en-US/docs/Web/API/DeviceOrientationEvent/DeviceOrientationEvent)
+* [DragEvent](https://developer.mozilla.org/en-US/docs/Web/API/DragEvent/DragEvent)
+* [Event](https://developer.mozilla.org/en-US/docs/Web/API/Event/Event)
+* [FocusEvent](https://developer.mozilla.org/en-US/docs/Web/API/FocusEvent/FocusEvent)
+* [KeyboardEvent](https://developer.mozilla.org/en-US/docs/Web/API/KeyboardEvent/KeyboardEvent)
+* [MouseEvent](https://developer.mozilla.org/en-US/docs/Web/API/MouseEvent/MouseEvent)
+* [PointerEvent](https://developer.mozilla.org/en-US/docs/Web/API/PointerEvent/PointerEvent)
+* [TouchEvent](https://developer.mozilla.org/en-US/docs/Web/API/TouchEvent/TouchEvent)
+* [WheelEvent](https://developer.mozilla.org/en-US/docs/Web/API/WheelEvent/WheelEvent)
+
+You can also specify `JSHandle` as the property value if you want live objects to be passed into the event:
+
+```js
+// Note you can only create DataTransfer in Chromium and Firefox
+const dataTransfer = await frame.evaluateHandle(() => new DataTransfer());
+await frame.dispatchEvent('#source', 'dragstart', { dataTransfer });
+```
+
+**Arguments**
+- `selector` [string]<a aria-hidden="true" tabIndex="-1" class="list-anchor-link" id="frame-dispatch-event-option-selector"/><a href="#frame-dispatch-event-option-selector" class="list-anchor">#</a>
+  
+  A selector to search for an element. If there are multiple elements satisfying the selector, the first will be used.
+- `type` [string]<a aria-hidden="true" tabIndex="-1" class="list-anchor-link" id="frame-dispatch-event-option-type"/><a href="#frame-dispatch-event-option-type" class="list-anchor">#</a>
+  
+  DOM event type: `"click"`, `"dragstart"`, etc.
+- `eventInit` [EvaluationArgument] *(optional)*<a aria-hidden="true" tabIndex="-1" class="list-anchor-link" id="frame-dispatch-event-option-event-init"/><a href="#frame-dispatch-event-option-event-init" class="list-anchor">#</a>
+  
+  Optional event-specific initialization properties.
+- `options` [Object] *(optional)*
+  - `strict` [boolean] *(optional)* <font size="2">Added in: v1.14</font><a aria-hidden="true" tabIndex="-1" class="list-anchor-link" id="frame-dispatch-event-option-strict"/><a href="#frame-dispatch-event-option-strict" class="list-anchor">#</a>
+    
+    When true, the call requires selector to resolve to a single element. If given selector resolves to more than one element, the call throws an exception.
+  - `timeout` [number] *(optional)*<a aria-hidden="true" tabIndex="-1" class="list-anchor-link" id="frame-dispatch-event-option-timeout"/><a href="#frame-dispatch-event-option-timeout" class="list-anchor">#</a>
+    
+    Maximum time in milliseconds. Defaults to `0` - no timeout. The default value can be changed via `actionTimeout` option in the config, or by using the [browserContext.setDefaultTimeout()](/api/class-browsercontext.mdx#browser-context-set-default-timeout) or [page.setDefaultTimeout()](/api/class-page.mdx#page-set-default-timeout) methods.
+
+**Returns**
+- [Promise]&lt;[void]&gt;<a aria-hidden="true" tabIndex="-1" class="list-anchor-link" id="frame-dispatch-event-return"/><a href="#frame-dispatch-event-return" class="list-anchor">#</a>
+
+---
+
+### fill {/* #frame-fill */}
+
+<font size="2" style={{position: "relative", top: "-20px"}}>Added before v1.9</font><x-search>frame.fill</x-search>
+
+:::warning[Discouraged]
+
+Use locator-based [locator.fill()](/api/class-locator.mdx#locator-fill) instead. Read more about [locators](../locators.mdx).
+
+:::
+
+
+This method waits for an element matching [selector](/api/class-frame.mdx#frame-fill-option-selector), waits for [actionability](../actionability.mdx) checks, focuses the element, fills it and triggers an `input` event after filling. Note that you can pass an empty string to clear the input field.
+
+If the target element is not an `<input>`, `<textarea>` or `[contenteditable]` element, this method throws an error. However, if the element is inside the `<label>` element that has an associated [control](https://developer.mozilla.org/en-US/docs/Web/API/HTMLLabelElement/control), the control will be filled instead.
+
+To send fine-grained keyboard events, use [locator.pressSequentially()](/api/class-locator.mdx#locator-press-sequentially).
+
+**Usage**
+
+```js
+await frame.fill(selector, value);
+await frame.fill(selector, value, options);
+```
+
+**Arguments**
+- `selector` [string]<a aria-hidden="true" tabIndex="-1" class="list-anchor-link" id="frame-fill-option-selector"/><a href="#frame-fill-option-selector" class="list-anchor">#</a>
+  
+  A selector to search for an element. If there are multiple elements satisfying the selector, the first will be used.
+- `value` [string]<a aria-hidden="true" tabIndex="-1" class="list-anchor-link" id="frame-fill-option-value"/><a href="#frame-fill-option-value" class="list-anchor">#</a>
+  
+  Value to fill for the `<input>`, `<textarea>` or `[contenteditable]` element.
+- `options` [Object] *(optional)*
+  - `force` [boolean] *(optional)* <font size="2">Added in: v1.13</font><a aria-hidden="true" tabIndex="-1" class="list-anchor-link" id="frame-fill-option-force"/><a href="#frame-fill-option-force" class="list-anchor">#</a>
+    
+    Whether to bypass the [actionability](../actionability.mdx) checks. Defaults to `false`.
+  - `noWaitAfter` [boolean] *(optional)*<a aria-hidden="true" tabIndex="-1" class="list-anchor-link" id="frame-fill-option-no-wait-after"/><a href="#frame-fill-option-no-wait-after" class="list-anchor">#</a>
+    
+    :::warning[Deprecated]
+    This option has no effect.
+    :::
+    
+    
+    This option has no effect.
+  - `strict` [boolean] *(optional)* <font size="2">Added in: v1.14</font><a aria-hidden="true" tabIndex="-1" class="list-anchor-link" id="frame-fill-option-strict"/><a href="#frame-fill-option-strict" class="list-anchor">#</a>
+    
+    When true, the call requires selector to resolve to a single element. If given selector resolves to more than one element, the call throws an exception.
+  - `timeout` [number] *(optional)*<a aria-hidden="true" tabIndex="-1" class="list-anchor-link" id="frame-fill-option-timeout"/><a href="#frame-fill-option-timeout" class="list-anchor">#</a>
+    
+    Maximum time in milliseconds. Defaults to `0` - no timeout. The default value can be changed via `actionTimeout` option in the config, or by using the [browserContext.setDefaultTimeout()](/api/class-browsercontext.mdx#browser-context-set-default-timeout) or [page.setDefaultTimeout()](/api/class-page.mdx#page-set-default-timeout) methods.
+
+**Returns**
+- [Promise]&lt;[void]&gt;<a aria-hidden="true" tabIndex="-1" class="list-anchor-link" id="frame-fill-return"/><a href="#frame-fill-return" class="list-anchor">#</a>
+
+---
+
+### focus {/* #frame-focus */}
+
+<font size="2" style={{position: "relative", top: "-20px"}}>Added before v1.9</font><x-search>frame.focus</x-search>
+
+:::warning[Discouraged]
+
+Use locator-based [locator.focus()](/api/class-locator.mdx#locator-focus) instead. Read more about [locators](../locators.mdx).
+
+:::
+
+
+This method fetches an element with [selector](/api/class-frame.mdx#frame-focus-option-selector) and focuses it. If there's no element matching [selector](/api/class-frame.mdx#frame-focus-option-selector), the method waits until a matching element appears in the DOM.
+
+**Usage**
+
+```js
+await frame.focus(selector);
+await frame.focus(selector, options);
+```
+
+**Arguments**
+- `selector` [string]<a aria-hidden="true" tabIndex="-1" class="list-anchor-link" id="frame-focus-option-selector"/><a href="#frame-focus-option-selector" class="list-anchor">#</a>
+  
+  A selector to search for an element. If there are multiple elements satisfying the selector, the first will be used.
+- `options` [Object] *(optional)*
+  - `strict` [boolean] *(optional)* <font size="2">Added in: v1.14</font><a aria-hidden="true" tabIndex="-1" class="list-anchor-link" id="frame-focus-option-strict"/><a href="#frame-focus-option-strict" class="list-anchor">#</a>
+    
+    When true, the call requires selector to resolve to a single element. If given selector resolves to more than one element, the call throws an exception.
+  - `timeout` [number] *(optional)*<a aria-hidden="true" tabIndex="-1" class="list-anchor-link" id="frame-focus-option-timeout"/><a href="#frame-focus-option-timeout" class="list-anchor">#</a>
+    
+    Maximum time in milliseconds. Defaults to `0` - no timeout. The default value can be changed via `actionTimeout` option in the config, or by using the [browserContext.setDefaultTimeout()](/api/class-browsercontext.mdx#browser-context-set-default-timeout) or [page.setDefaultTimeout()](/api/class-page.mdx#page-set-default-timeout) methods.
+
+**Returns**
+- [Promise]&lt;[void]&gt;<a aria-hidden="true" tabIndex="-1" class="list-anchor-link" id="frame-focus-return"/><a href="#frame-focus-return" class="list-anchor">#</a>
+
+---
+
+### getAttribute {/* #frame-get-attribute */}
+
+<font size="2" style={{position: "relative", top: "-20px"}}>Added before v1.9</font><x-search>frame.getAttribute</x-search>
+
+:::warning[Discouraged]
+
+Use locator-based [locator.getAttribute()](/api/class-locator.mdx#locator-get-attribute) instead. Read more about [locators](../locators.mdx).
+
+:::
+
+
+Returns element attribute value.
+
+**Usage**
+
+```js
+await frame.getAttribute(selector, name);
+await frame.getAttribute(selector, name, options);
+```
+
+**Arguments**
+- `selector` [string]<a aria-hidden="true" tabIndex="-1" class="list-anchor-link" id="frame-get-attribute-option-selector"/><a href="#frame-get-attribute-option-selector" class="list-anchor">#</a>
+  
+  A selector to search for an element. If there are multiple elements satisfying the selector, the first will be used.
+- `name` [string]<a aria-hidden="true" tabIndex="-1" class="list-anchor-link" id="frame-get-attribute-option-name"/><a href="#frame-get-attribute-option-name" class="list-anchor">#</a>
+  
+  Attribute name to get the value for.
+- `options` [Object] *(optional)*
+  - `strict` [boolean] *(optional)* <font size="2">Added in: v1.14</font><a aria-hidden="true" tabIndex="-1" class="list-anchor-link" id="frame-get-attribute-option-strict"/><a href="#frame-get-attribute-option-strict" class="list-anchor">#</a>
+    
+    When true, the call requires selector to resolve to a single element. If given selector resolves to more than one element, the call throws an exception.
+  - `timeout` [number] *(optional)*<a aria-hidden="true" tabIndex="-1" class="list-anchor-link" id="frame-get-attribute-option-timeout"/><a href="#frame-get-attribute-option-timeout" class="list-anchor">#</a>
+    
+    Maximum time in milliseconds. Defaults to `0` - no timeout. The default value can be changed via `actionTimeout` option in the config, or by using the [browserContext.setDefaultTimeout()](/api/class-browsercontext.mdx#browser-context-set-default-timeout) or [page.setDefaultTimeout()](/api/class-page.mdx#page-set-default-timeout) methods.
+
+**Returns**
+- [Promise]&lt;[null] | [string]&gt;<a aria-hidden="true" tabIndex="-1" class="list-anchor-link" id="frame-get-attribute-return"/><a href="#frame-get-attribute-return" class="list-anchor">#</a>
+
+---
+
+### hover {/* #frame-hover */}
+
+<font size="2" style={{position: "relative", top: "-20px"}}>Added before v1.9</font><x-search>frame.hover</x-search>
+
+:::warning[Discouraged]
+
+Use locator-based [locator.hover()](/api/class-locator.mdx#locator-hover) instead. Read more about [locators](../locators.mdx).
+
+:::
+
+
+This method hovers over an element matching [selector](/api/class-frame.mdx#frame-hover-option-selector) by performing the following steps:
+1. Find an element matching [selector](/api/class-frame.mdx#frame-hover-option-selector). If there is none, wait until a matching element is attached to the DOM.
+1. Wait for [actionability](../actionability.mdx) checks on the matched element, unless [force](/api/class-frame.mdx#frame-hover-option-force) option is set. If the element is detached during the checks, the whole action is retried.
+1. Scroll the element into view if needed.
+1. Use [page.mouse](/api/class-page.mdx#page-mouse) to hover over the center of the element, or the specified [position](/api/class-frame.mdx#frame-hover-option-position).
+
+When all steps combined have not finished during the specified [timeout](/api/class-frame.mdx#frame-hover-option-timeout), this method throws a [TimeoutError]. Passing zero timeout disables this.
+
+**Usage**
+
+```js
+await frame.hover(selector);
+await frame.hover(selector, options);
+```
+
+**Arguments**
+- `selector` [string]<a aria-hidden="true" tabIndex="-1" class="list-anchor-link" id="frame-hover-option-selector"/><a href="#frame-hover-option-selector" class="list-anchor">#</a>
+  
+  A selector to search for an element. If there are multiple elements satisfying the selector, the first will be used.
+- `options` [Object] *(optional)*
+  - `force` [boolean] *(optional)*<a aria-hidden="true" tabIndex="-1" class="list-anchor-link" id="frame-hover-option-force"/><a href="#frame-hover-option-force" class="list-anchor">#</a>
+    
+    Whether to bypass the [actionability](../actionability.mdx) checks. Defaults to `false`.
+  - `modifiers` [Array]&lt;"Alt" | "Control" | "ControlOrMeta" | "Meta" | "Shift"&gt; *(optional)*<a aria-hidden="true" tabIndex="-1" class="list-anchor-link" id="frame-hover-option-modifiers"/><a href="#frame-hover-option-modifiers" class="list-anchor">#</a>
+    
+    Modifier keys to press. Ensures that only these modifiers are pressed during the operation, and then restores current modifiers back. If not specified, currently pressed modifiers are used. "ControlOrMeta" resolves to "Control" on Windows and Linux and to "Meta" on macOS.
+  - `noWaitAfter` [boolean] *(optional)* <font size="2">Added in: v1.28</font><a aria-hidden="true" tabIndex="-1" class="list-anchor-link" id="frame-hover-option-no-wait-after"/><a href="#frame-hover-option-no-wait-after" class="list-anchor">#</a>
+    
+    :::warning[Deprecated]
+    This option has no effect.
+    :::
+    
+    
+    This option has no effect.
+  - `position` [Object] *(optional)*<a aria-hidden="true" tabIndex="-1" class="list-anchor-link" id="frame-hover-option-position"/><a href="#frame-hover-option-position" class="list-anchor">#</a>
+    - `x` [number]
+      
+      
+    - `y` [number]
+      
+      
+    A point to use relative to the top-left corner of element padding box. If not specified, uses some visible point of the element.
+  - `strict` [boolean] *(optional)* <font size="2">Added in: v1.14</font><a aria-hidden="true" tabIndex="-1" class="list-anchor-link" id="frame-hover-option-strict"/><a href="#frame-hover-option-strict" class="list-anchor">#</a>
+    
+    When true, the call requires selector to resolve to a single element. If given selector resolves to more than one element, the call throws an exception.
+  - `timeout` [number] *(optional)*<a aria-hidden="true" tabIndex="-1" class="list-anchor-link" id="frame-hover-option-timeout"/><a href="#frame-hover-option-timeout" class="list-anchor">#</a>
+    
+    Maximum time in milliseconds. Defaults to `0` - no timeout. The default value can be changed via `actionTimeout` option in the config, or by using the [browserContext.setDefaultTimeout()](/api/class-browsercontext.mdx#browser-context-set-default-timeout) or [page.setDefaultTimeout()](/api/class-page.mdx#page-set-default-timeout) methods.
+  - `trial` [boolean] *(optional)* <font size="2">Added in: v1.11</font><a aria-hidden="true" tabIndex="-1" class="list-anchor-link" id="frame-hover-option-trial"/><a href="#frame-hover-option-trial" class="list-anchor">#</a>
+    
+    When set, this method only performs the [actionability](../actionability.mdx) checks and skips the action. Defaults to `false`. Useful to wait until the element is ready for the action without performing it. Note that keyboard `modifiers` will be pressed regardless of `trial` to allow testing elements which are only visible when those keys are pressed.
+
+**Returns**
+- [Promise]&lt;[void]&gt;<a aria-hidden="true" tabIndex="-1" class="list-anchor-link" id="frame-hover-return"/><a href="#frame-hover-return" class="list-anchor">#</a>
+
+---
+
+### innerHTML {/* #frame-inner-html */}
+
+<font size="2" style={{position: "relative", top: "-20px"}}>Added before v1.9</font><x-search>frame.innerHTML</x-search>
+
+:::warning[Discouraged]
+
+Use locator-based [locator.innerHTML()](/api/class-locator.mdx#locator-inner-html) instead. Read more about [locators](../locators.mdx).
+
+:::
+
+
+Returns `element.innerHTML`.
+
+**Usage**
+
+```js
+await frame.innerHTML(selector);
+await frame.innerHTML(selector, options);
+```
+
+**Arguments**
+- `selector` [string]<a aria-hidden="true" tabIndex="-1" class="list-anchor-link" id="frame-inner-html-option-selector"/><a href="#frame-inner-html-option-selector" class="list-anchor">#</a>
+  
+  A selector to search for an element. If there are multiple elements satisfying the selector, the first will be used.
+- `options` [Object] *(optional)*
+  - `strict` [boolean] *(optional)* <font size="2">Added in: v1.14</font><a aria-hidden="true" tabIndex="-1" class="list-anchor-link" id="frame-inner-html-option-strict"/><a href="#frame-inner-html-option-strict" class="list-anchor">#</a>
+    
+    When true, the call requires selector to resolve to a single element. If given selector resolves to more than one element, the call throws an exception.
+  - `timeout` [number] *(optional)*<a aria-hidden="true" tabIndex="-1" class="list-anchor-link" id="frame-inner-html-option-timeout"/><a href="#frame-inner-html-option-timeout" class="list-anchor">#</a>
+    
+    Maximum time in milliseconds. Defaults to `0` - no timeout. The default value can be changed via `actionTimeout` option in the config, or by using the [browserContext.setDefaultTimeout()](/api/class-browsercontext.mdx#browser-context-set-default-timeout) or [page.setDefaultTimeout()](/api/class-page.mdx#page-set-default-timeout) methods.
+
+**Returns**
+- [Promise]&lt;[string]&gt;<a aria-hidden="true" tabIndex="-1" class="list-anchor-link" id="frame-inner-html-return"/><a href="#frame-inner-html-return" class="list-anchor">#</a>
+
+---
+
+### innerText {/* #frame-inner-text */}
+
+<font size="2" style={{position: "relative", top: "-20px"}}>Added before v1.9</font><x-search>frame.innerText</x-search>
+
+:::warning[Discouraged]
+
+Use locator-based [locator.innerText()](/api/class-locator.mdx#locator-inner-text) instead. Read more about [locators](../locators.mdx).
+
+:::
+
+
+Returns `element.innerText`.
+
+**Usage**
+
+```js
+await frame.innerText(selector);
+await frame.innerText(selector, options);
+```
+
+**Arguments**
+- `selector` [string]<a aria-hidden="true" tabIndex="-1" class="list-anchor-link" id="frame-inner-text-option-selector"/><a href="#frame-inner-text-option-selector" class="list-anchor">#</a>
+  
+  A selector to search for an element. If there are multiple elements satisfying the selector, the first will be used.
+- `options` [Object] *(optional)*
+  - `strict` [boolean] *(optional)* <font size="2">Added in: v1.14</font><a aria-hidden="true" tabIndex="-1" class="list-anchor-link" id="frame-inner-text-option-strict"/><a href="#frame-inner-text-option-strict" class="list-anchor">#</a>
+    
+    When true, the call requires selector to resolve to a single element. If given selector resolves to more than one element, the call throws an exception.
+  - `timeout` [number] *(optional)*<a aria-hidden="true" tabIndex="-1" class="list-anchor-link" id="frame-inner-text-option-timeout"/><a href="#frame-inner-text-option-timeout" class="list-anchor">#</a>
+    
+    Maximum time in milliseconds. Defaults to `0` - no timeout. The default value can be changed via `actionTimeout` option in the config, or by using the [browserContext.setDefaultTimeout()](/api/class-browsercontext.mdx#browser-context-set-default-timeout) or [page.setDefaultTimeout()](/api/class-page.mdx#page-set-default-timeout) methods.
+
+**Returns**
+- [Promise]&lt;[string]&gt;<a aria-hidden="true" tabIndex="-1" class="list-anchor-link" id="frame-inner-text-return"/><a href="#frame-inner-text-return" class="list-anchor">#</a>
+
+---
+
+### inputValue {/* #frame-input-value */}
+
+<font size="2" style={{position: "relative", top: "-20px"}}>Added in: v1.13</font><x-search>frame.inputValue</x-search>
+
+:::warning[Discouraged]
+
+Use locator-based [locator.inputValue()](/api/class-locator.mdx#locator-input-value) instead. Read more about [locators](../locators.mdx).
+
+:::
+
+
+Returns `input.value` for the selected `<input>` or `<textarea>` or `<select>` element.
+
+Throws for non-input elements. However, if the element is inside the `<label>` element that has an associated [control](https://developer.mozilla.org/en-US/docs/Web/API/HTMLLabelElement/control), returns the value of the control.
+
+**Usage**
+
+```js
+await frame.inputValue(selector);
+await frame.inputValue(selector, options);
+```
+
+**Arguments**
+- `selector` [string]<a aria-hidden="true" tabIndex="-1" class="list-anchor-link" id="frame-input-value-option-selector"/><a href="#frame-input-value-option-selector" class="list-anchor">#</a>
+  
+  A selector to search for an element. If there are multiple elements satisfying the selector, the first will be used.
+- `options` [Object] *(optional)*
+  - `strict` [boolean] *(optional)* <font size="2">Added in: v1.14</font><a aria-hidden="true" tabIndex="-1" class="list-anchor-link" id="frame-input-value-option-strict"/><a href="#frame-input-value-option-strict" class="list-anchor">#</a>
+    
+    When true, the call requires selector to resolve to a single element. If given selector resolves to more than one element, the call throws an exception.
+  - `timeout` [number] *(optional)*<a aria-hidden="true" tabIndex="-1" class="list-anchor-link" id="frame-input-value-option-timeout"/><a href="#frame-input-value-option-timeout" class="list-anchor">#</a>
+    
+    Maximum time in milliseconds. Defaults to `0` - no timeout. The default value can be changed via `actionTimeout` option in the config, or by using the [browserContext.setDefaultTimeout()](/api/class-browsercontext.mdx#browser-context-set-default-timeout) or [page.setDefaultTimeout()](/api/class-page.mdx#page-set-default-timeout) methods.
+
+**Returns**
+- [Promise]&lt;[string]&gt;<a aria-hidden="true" tabIndex="-1" class="list-anchor-link" id="frame-input-value-return"/><a href="#frame-input-value-return" class="list-anchor">#</a>
+
+---
+
+### isChecked {/* #frame-is-checked */}
+
+<font size="2" style={{position: "relative", top: "-20px"}}>Added before v1.9</font><x-search>frame.isChecked</x-search>
+
+:::warning[Discouraged]
+
+Use locator-based [locator.isChecked()](/api/class-locator.mdx#locator-is-checked) instead. Read more about [locators](../locators.mdx).
+
+:::
+
+
+Returns whether the element is checked. Throws if the element is not a checkbox or radio input.
+
+**Usage**
+
+```js
+await frame.isChecked(selector);
+await frame.isChecked(selector, options);
+```
+
+**Arguments**
+- `selector` [string]<a aria-hidden="true" tabIndex="-1" class="list-anchor-link" id="frame-is-checked-option-selector"/><a href="#frame-is-checked-option-selector" class="list-anchor">#</a>
+  
+  A selector to search for an element. If there are multiple elements satisfying the selector, the first will be used.
+- `options` [Object] *(optional)*
+  - `strict` [boolean] *(optional)* <font size="2">Added in: v1.14</font><a aria-hidden="true" tabIndex="-1" class="list-anchor-link" id="frame-is-checked-option-strict"/><a href="#frame-is-checked-option-strict" class="list-anchor">#</a>
+    
+    When true, the call requires selector to resolve to a single element. If given selector resolves to more than one element, the call throws an exception.
+  - `timeout` [number] *(optional)*<a aria-hidden="true" tabIndex="-1" class="list-anchor-link" id="frame-is-checked-option-timeout"/><a href="#frame-is-checked-option-timeout" class="list-anchor">#</a>
+    
+    Maximum time in milliseconds. Defaults to `0` - no timeout. The default value can be changed via `actionTimeout` option in the config, or by using the [browserContext.setDefaultTimeout()](/api/class-browsercontext.mdx#browser-context-set-default-timeout) or [page.setDefaultTimeout()](/api/class-page.mdx#page-set-default-timeout) methods.
+
+**Returns**
+- [Promise]&lt;[boolean]&gt;<a aria-hidden="true" tabIndex="-1" class="list-anchor-link" id="frame-is-checked-return"/><a href="#frame-is-checked-return" class="list-anchor">#</a>
+
+---
+
+### isDisabled {/* #frame-is-disabled */}
+
+<font size="2" style={{position: "relative", top: "-20px"}}>Added before v1.9</font><x-search>frame.isDisabled</x-search>
+
+:::warning[Discouraged]
+
+Use locator-based [locator.isDisabled()](/api/class-locator.mdx#locator-is-disabled) instead. Read more about [locators](../locators.mdx).
+
+:::
+
+
+Returns whether the element is disabled, the opposite of [enabled](../actionability.mdx#enabled).
+
+**Usage**
+
+```js
+await frame.isDisabled(selector);
+await frame.isDisabled(selector, options);
+```
+
+**Arguments**
+- `selector` [string]<a aria-hidden="true" tabIndex="-1" class="list-anchor-link" id="frame-is-disabled-option-selector"/><a href="#frame-is-disabled-option-selector" class="list-anchor">#</a>
+  
+  A selector to search for an element. If there are multiple elements satisfying the selector, the first will be used.
+- `options` [Object] *(optional)*
+  - `strict` [boolean] *(optional)* <font size="2">Added in: v1.14</font><a aria-hidden="true" tabIndex="-1" class="list-anchor-link" id="frame-is-disabled-option-strict"/><a href="#frame-is-disabled-option-strict" class="list-anchor">#</a>
+    
+    When true, the call requires selector to resolve to a single element. If given selector resolves to more than one element, the call throws an exception.
+  - `timeout` [number] *(optional)*<a aria-hidden="true" tabIndex="-1" class="list-anchor-link" id="frame-is-disabled-option-timeout"/><a href="#frame-is-disabled-option-timeout" class="list-anchor">#</a>
+    
+    Maximum time in milliseconds. Defaults to `0` - no timeout. The default value can be changed via `actionTimeout` option in the config, or by using the [browserContext.setDefaultTimeout()](/api/class-browsercontext.mdx#browser-context-set-default-timeout) or [page.setDefaultTimeout()](/api/class-page.mdx#page-set-default-timeout) methods.
+
+**Returns**
+- [Promise]&lt;[boolean]&gt;<a aria-hidden="true" tabIndex="-1" class="list-anchor-link" id="frame-is-disabled-return"/><a href="#frame-is-disabled-return" class="list-anchor">#</a>
+
+---
+
+### isEditable {/* #frame-is-editable */}
+
+<font size="2" style={{position: "relative", top: "-20px"}}>Added before v1.9</font><x-search>frame.isEditable</x-search>
+
+:::warning[Discouraged]
+
+Use locator-based [locator.isEditable()](/api/class-locator.mdx#locator-is-editable) instead. Read more about [locators](../locators.mdx).
+
+:::
+
+
+Returns whether the element is [editable](../actionability.mdx#editable).
+
+**Usage**
+
+```js
+await frame.isEditable(selector);
+await frame.isEditable(selector, options);
+```
+
+**Arguments**
+- `selector` [string]<a aria-hidden="true" tabIndex="-1" class="list-anchor-link" id="frame-is-editable-option-selector"/><a href="#frame-is-editable-option-selector" class="list-anchor">#</a>
+  
+  A selector to search for an element. If there are multiple elements satisfying the selector, the first will be used.
+- `options` [Object] *(optional)*
+  - `strict` [boolean] *(optional)* <font size="2">Added in: v1.14</font><a aria-hidden="true" tabIndex="-1" class="list-anchor-link" id="frame-is-editable-option-strict"/><a href="#frame-is-editable-option-strict" class="list-anchor">#</a>
+    
+    When true, the call requires selector to resolve to a single element. If given selector resolves to more than one element, the call throws an exception.
+  - `timeout` [number] *(optional)*<a aria-hidden="true" tabIndex="-1" class="list-anchor-link" id="frame-is-editable-option-timeout"/><a href="#frame-is-editable-option-timeout" class="list-anchor">#</a>
+    
+    Maximum time in milliseconds. Defaults to `0` - no timeout. The default value can be changed via `actionTimeout` option in the config, or by using the [browserContext.setDefaultTimeout()](/api/class-browsercontext.mdx#browser-context-set-default-timeout) or [page.setDefaultTimeout()](/api/class-page.mdx#page-set-default-timeout) methods.
+
+**Returns**
+- [Promise]&lt;[boolean]&gt;<a aria-hidden="true" tabIndex="-1" class="list-anchor-link" id="frame-is-editable-return"/><a href="#frame-is-editable-return" class="list-anchor">#</a>
+
+---
+
+### isHidden {/* #frame-is-hidden */}
+
+<font size="2" style={{position: "relative", top: "-20px"}}>Added before v1.9</font><x-search>frame.isHidden</x-search>
+
+:::warning[Discouraged]
+
+Use locator-based [locator.isHidden()](/api/class-locator.mdx#locator-is-hidden) instead. Read more about [locators](../locators.mdx).
+
+:::
+
+
+Returns whether the element is hidden, the opposite of [visible](../actionability.mdx#visible).  [selector](/api/class-frame.mdx#frame-is-hidden-option-selector) that does not match any elements is considered hidden.
+
+**Usage**
+
+```js
+await frame.isHidden(selector);
+await frame.isHidden(selector, options);
+```
+
+**Arguments**
+- `selector` [string]<a aria-hidden="true" tabIndex="-1" class="list-anchor-link" id="frame-is-hidden-option-selector"/><a href="#frame-is-hidden-option-selector" class="list-anchor">#</a>
+  
+  A selector to search for an element. If there are multiple elements satisfying the selector, the first will be used.
+- `options` [Object] *(optional)*
+  - `strict` [boolean] *(optional)* <font size="2">Added in: v1.14</font><a aria-hidden="true" tabIndex="-1" class="list-anchor-link" id="frame-is-hidden-option-strict"/><a href="#frame-is-hidden-option-strict" class="list-anchor">#</a>
+    
+    When true, the call requires selector to resolve to a single element. If given selector resolves to more than one element, the call throws an exception.
+  - `timeout` [number] *(optional)*<a aria-hidden="true" tabIndex="-1" class="list-anchor-link" id="frame-is-hidden-option-timeout"/><a href="#frame-is-hidden-option-timeout" class="list-anchor">#</a>
+    
+    :::warning[Deprecated]
+    This option is ignored. [frame.isHidden()](/api/class-frame.mdx#frame-is-hidden) does not wait for the element to become hidden and returns immediately.
+    :::
+    
+
+**Returns**
+- [Promise]&lt;[boolean]&gt;<a aria-hidden="true" tabIndex="-1" class="list-anchor-link" id="frame-is-hidden-return"/><a href="#frame-is-hidden-return" class="list-anchor">#</a>
+
+---
+
+### isVisible {/* #frame-is-visible */}
+
+<font size="2" style={{position: "relative", top: "-20px"}}>Added before v1.9</font><x-search>frame.isVisible</x-search>
+
+:::warning[Discouraged]
+
+Use locator-based [locator.isVisible()](/api/class-locator.mdx#locator-is-visible) instead. Read more about [locators](../locators.mdx).
+
+:::
+
+
+Returns whether the element is [visible](../actionability.mdx#visible). [selector](/api/class-frame.mdx#frame-is-visible-option-selector) that does not match any elements is considered not visible.
+
+**Usage**
+
+```js
+await frame.isVisible(selector);
+await frame.isVisible(selector, options);
+```
+
+**Arguments**
+- `selector` [string]<a aria-hidden="true" tabIndex="-1" class="list-anchor-link" id="frame-is-visible-option-selector"/><a href="#frame-is-visible-option-selector" class="list-anchor">#</a>
+  
+  A selector to search for an element. If there are multiple elements satisfying the selector, the first will be used.
+- `options` [Object] *(optional)*
+  - `strict` [boolean] *(optional)* <font size="2">Added in: v1.14</font><a aria-hidden="true" tabIndex="-1" class="list-anchor-link" id="frame-is-visible-option-strict"/><a href="#frame-is-visible-option-strict" class="list-anchor">#</a>
+    
+    When true, the call requires selector to resolve to a single element. If given selector resolves to more than one element, the call throws an exception.
+  - `timeout` [number] *(optional)*<a aria-hidden="true" tabIndex="-1" class="list-anchor-link" id="frame-is-visible-option-timeout"/><a href="#frame-is-visible-option-timeout" class="list-anchor">#</a>
+    
+    :::warning[Deprecated]
+    This option is ignored. [frame.isVisible()](/api/class-frame.mdx#frame-is-visible) does not wait for the element to become visible and returns immediately.
+    :::
+    
+
+**Returns**
+- [Promise]&lt;[boolean]&gt;<a aria-hidden="true" tabIndex="-1" class="list-anchor-link" id="frame-is-visible-return"/><a href="#frame-is-visible-return" class="list-anchor">#</a>
+
+---
+
+### press {/* #frame-press */}
+
+<font size="2" style={{position: "relative", top: "-20px"}}>Added before v1.9</font><x-search>frame.press</x-search>
+
+:::warning[Discouraged]
+
+Use locator-based [locator.press()](/api/class-locator.mdx#locator-press) instead. Read more about [locators](../locators.mdx).
+
+:::
+
+
+[key](/api/class-frame.mdx#frame-press-option-key) can specify the intended [keyboardEvent.key](https://developer.mozilla.org/en-US/docs/Web/API/KeyboardEvent/key) value or a single character to generate the text for. A superset of the [key](/api/class-frame.mdx#frame-press-option-key) values can be found [here](https://developer.mozilla.org/en-US/docs/Web/API/KeyboardEvent/key/Key_Values). Examples of the keys are:
+
+`F1` - `F12`, `Digit0`- `Digit9`, `KeyA`- `KeyZ`, `Backquote`, `Minus`, `Equal`, `Backslash`, `Backspace`, `Tab`, `Delete`, `Escape`, `ArrowDown`, `End`, `Enter`, `Home`, `Insert`, `PageDown`, `PageUp`, `ArrowRight`, `ArrowUp`, etc.
+
+Following modification shortcuts are also supported: `Shift`, `Control`, `Alt`, `Meta`, `ShiftLeft`, `ControlOrMeta`. `ControlOrMeta` resolves to `Control` on Windows and Linux and to `Meta` on macOS.
+
+Holding down `Shift` will type the text that corresponds to the [key](/api/class-frame.mdx#frame-press-option-key) in the upper case.
+
+If [key](/api/class-frame.mdx#frame-press-option-key) is a single character, it is case-sensitive, so the values `a` and `A` will generate different respective texts.
+
+Shortcuts such as `key: "Control+o"`, `key: "Control++` or `key: "Control+Shift+T"` are supported as well. When specified with the modifier, modifier is pressed and being held while the subsequent key is being pressed.
+
+**Usage**
+
+```js
+await frame.press(selector, key);
+await frame.press(selector, key, options);
+```
+
+**Arguments**
+- `selector` [string]<a aria-hidden="true" tabIndex="-1" class="list-anchor-link" id="frame-press-option-selector"/><a href="#frame-press-option-selector" class="list-anchor">#</a>
+  
+  A selector to search for an element. If there are multiple elements satisfying the selector, the first will be used.
+- `key` [string]<a aria-hidden="true" tabIndex="-1" class="list-anchor-link" id="frame-press-option-key"/><a href="#frame-press-option-key" class="list-anchor">#</a>
+  
+  Name of the key to press or a character to generate, such as `ArrowLeft` or `a`.
+- `options` [Object] *(optional)*
+  - `delay` [number] *(optional)*<a aria-hidden="true" tabIndex="-1" class="list-anchor-link" id="frame-press-option-delay"/><a href="#frame-press-option-delay" class="list-anchor">#</a>
+    
+    Time to wait between `keydown` and `keyup` in milliseconds. Defaults to 0.
+  - `noWaitAfter` [boolean] *(optional)*<a aria-hidden="true" tabIndex="-1" class="list-anchor-link" id="frame-press-option-no-wait-after"/><a href="#frame-press-option-no-wait-after" class="list-anchor">#</a>
+    
+    :::warning[Deprecated]
+    This option will default to `true` in the future.
+    :::
+    
+    
+    Actions that initiate navigations are waiting for these navigations to happen and for pages to start loading. You can opt out of waiting via setting this flag. You would only need this option in the exceptional cases such as navigating to inaccessible pages. Defaults to `false`.
+  - `strict` [boolean] *(optional)* <font size="2">Added in: v1.14</font><a aria-hidden="true" tabIndex="-1" class="list-anchor-link" id="frame-press-option-strict"/><a href="#frame-press-option-strict" class="list-anchor">#</a>
+    
+    When true, the call requires selector to resolve to a single element. If given selector resolves to more than one element, the call throws an exception.
+  - `timeout` [number] *(optional)*<a aria-hidden="true" tabIndex="-1" class="list-anchor-link" id="frame-press-option-timeout"/><a href="#frame-press-option-timeout" class="list-anchor">#</a>
+    
+    Maximum time in milliseconds. Defaults to `0` - no timeout. The default value can be changed via `actionTimeout` option in the config, or by using the [browserContext.setDefaultTimeout()](/api/class-browsercontext.mdx#browser-context-set-default-timeout) or [page.setDefaultTimeout()](/api/class-page.mdx#page-set-default-timeout) methods.
+
+**Returns**
+- [Promise]&lt;[void]&gt;<a aria-hidden="true" tabIndex="-1" class="list-anchor-link" id="frame-press-return"/><a href="#frame-press-return" class="list-anchor">#</a>
+
+---
+
+### selectOption {/* #frame-select-option */}
+
+<font size="2" style={{position: "relative", top: "-20px"}}>Added before v1.9</font><x-search>frame.selectOption</x-search>
+
+:::warning[Discouraged]
+
+Use locator-based [locator.selectOption()](/api/class-locator.mdx#locator-select-option) instead. Read more about [locators](../locators.mdx).
+
+:::
+
+
+This method waits for an element matching [selector](/api/class-frame.mdx#frame-select-option-option-selector), waits for [actionability](../actionability.mdx) checks, waits until all specified options are present in the `<select>` element and selects these options.
+
+If the target element is not a `<select>` element, this method throws an error. However, if the element is inside the `<label>` element that has an associated [control](https://developer.mozilla.org/en-US/docs/Web/API/HTMLLabelElement/control), the control will be used instead.
+
+Returns the array of option values that have been successfully selected.
+
+Triggers a `change` and `input` event once all the provided options have been selected.
+
+**Usage**
+
+```js
+// Single selection matching the value or label
+frame.selectOption('select#colors', 'blue');
+
+// single selection matching both the value and the label
+frame.selectOption('select#colors', { label: 'Blue' });
+
+// multiple selection
+frame.selectOption('select#colors', 'red', 'green', 'blue');
+```
+
+**Arguments**
+- `selector` [string]<a aria-hidden="true" tabIndex="-1" class="list-anchor-link" id="frame-select-option-option-selector"/><a href="#frame-select-option-option-selector" class="list-anchor">#</a>
+  
+  A selector to query for.
+- `values` [null] | [string] | [ElementHandle] | [Array]&lt;[string]&gt; | [Object] | [Array]&lt;[ElementHandle]&gt; | [Array]&lt;[Object]&gt;<a aria-hidden="true" tabIndex="-1" class="list-anchor-link" id="frame-select-option-option-values"/><a href="#frame-select-option-option-values" class="list-anchor">#</a>
+  - `value` [string] *(optional)*
+    
+    Matches by `option.value`. Optional.
+  - `label` [string] *(optional)*
+    
+    Matches by `option.label`. Optional.
+  - `index` [number] *(optional)*
+    
+    Matches by the index. Optional.
+  
+  Options to select. If the `<select>` has the `multiple` attribute, all matching options are selected, otherwise only the first option matching one of the passed options is selected. String values are matching both values and labels. Option is considered matching if all specified properties match.
+- `options` [Object] *(optional)*
+  - `force` [boolean] *(optional)* <font size="2">Added in: v1.13</font><a aria-hidden="true" tabIndex="-1" class="list-anchor-link" id="frame-select-option-option-force"/><a href="#frame-select-option-option-force" class="list-anchor">#</a>
+    
+    Whether to bypass the [actionability](../actionability.mdx) checks. Defaults to `false`.
+  - `noWaitAfter` [boolean] *(optional)*<a aria-hidden="true" tabIndex="-1" class="list-anchor-link" id="frame-select-option-option-no-wait-after"/><a href="#frame-select-option-option-no-wait-after" class="list-anchor">#</a>
+    
+    :::warning[Deprecated]
+    This option has no effect.
+    :::
+    
+    
+    This option has no effect.
+  - `strict` [boolean] *(optional)* <font size="2">Added in: v1.14</font><a aria-hidden="true" tabIndex="-1" class="list-anchor-link" id="frame-select-option-option-strict"/><a href="#frame-select-option-option-strict" class="list-anchor">#</a>
+    
+    When true, the call requires selector to resolve to a single element. If given selector resolves to more than one element, the call throws an exception.
+  - `timeout` [number] *(optional)*<a aria-hidden="true" tabIndex="-1" class="list-anchor-link" id="frame-select-option-option-timeout"/><a href="#frame-select-option-option-timeout" class="list-anchor">#</a>
+    
+    Maximum time in milliseconds. Defaults to `0` - no timeout. The default value can be changed via `actionTimeout` option in the config, or by using the [browserContext.setDefaultTimeout()](/api/class-browsercontext.mdx#browser-context-set-default-timeout) or [page.setDefaultTimeout()](/api/class-page.mdx#page-set-default-timeout) methods.
+
+**Returns**
+- [Promise]&lt;[Array]&lt;[string]&gt;&gt;<a aria-hidden="true" tabIndex="-1" class="list-anchor-link" id="frame-select-option-return"/><a href="#frame-select-option-return" class="list-anchor">#</a>
+
+---
+
+### setChecked {/* #frame-set-checked */}
+
+<font size="2" style={{position: "relative", top: "-20px"}}>Added in: v1.15</font><x-search>frame.setChecked</x-search>
+
+:::warning[Discouraged]
+
+Use locator-based [locator.setChecked()](/api/class-locator.mdx#locator-set-checked) instead. Read more about [locators](../locators.mdx).
+
+:::
+
+
+This method checks or unchecks an element matching [selector](/api/class-frame.mdx#frame-set-checked-option-selector) by performing the following steps:
+1. Find an element matching [selector](/api/class-frame.mdx#frame-set-checked-option-selector). If there is none, wait until a matching element is attached to the DOM.
+1. Ensure that matched element is a checkbox or a radio input. If not, this method throws.
+1. If the element already has the right checked state, this method returns immediately.
+1. Wait for [actionability](../actionability.mdx) checks on the matched element, unless [force](/api/class-frame.mdx#frame-set-checked-option-force) option is set. If the element is detached during the checks, the whole action is retried.
+1. Scroll the element into view if needed.
+1. Use [page.mouse](/api/class-page.mdx#page-mouse) to click in the center of the element.
+1. Ensure that the element is now checked or unchecked. If not, this method throws.
+
+When all steps combined have not finished during the specified [timeout](/api/class-frame.mdx#frame-set-checked-option-timeout), this method throws a [TimeoutError]. Passing zero timeout disables this.
+
+**Usage**
+
+```js
+await frame.setChecked(selector, checked);
+await frame.setChecked(selector, checked, options);
+```
+
+**Arguments**
+- `selector` [string]<a aria-hidden="true" tabIndex="-1" class="list-anchor-link" id="frame-set-checked-option-selector"/><a href="#frame-set-checked-option-selector" class="list-anchor">#</a>
+  
+  A selector to search for an element. If there are multiple elements satisfying the selector, the first will be used.
+- `checked` [boolean]<a aria-hidden="true" tabIndex="-1" class="list-anchor-link" id="frame-set-checked-option-checked"/><a href="#frame-set-checked-option-checked" class="list-anchor">#</a>
+  
+  Whether to check or uncheck the checkbox.
+- `options` [Object] *(optional)*
+  - `force` [boolean] *(optional)*<a aria-hidden="true" tabIndex="-1" class="list-anchor-link" id="frame-set-checked-option-force"/><a href="#frame-set-checked-option-force" class="list-anchor">#</a>
+    
+    Whether to bypass the [actionability](../actionability.mdx) checks. Defaults to `false`.
+  - `noWaitAfter` [boolean] *(optional)*<a aria-hidden="true" tabIndex="-1" class="list-anchor-link" id="frame-set-checked-option-no-wait-after"/><a href="#frame-set-checked-option-no-wait-after" class="list-anchor">#</a>
+    
+    :::warning[Deprecated]
+    This option has no effect.
+    :::
+    
+    
+    This option has no effect.
+  - `position` [Object] *(optional)*<a aria-hidden="true" tabIndex="-1" class="list-anchor-link" id="frame-set-checked-option-position"/><a href="#frame-set-checked-option-position" class="list-anchor">#</a>
+    - `x` [number]
+      
+      
+    - `y` [number]
+      
+      
+    A point to use relative to the top-left corner of element padding box. If not specified, uses some visible point of the element.
+  - `strict` [boolean] *(optional)*<a aria-hidden="true" tabIndex="-1" class="list-anchor-link" id="frame-set-checked-option-strict"/><a href="#frame-set-checked-option-strict" class="list-anchor">#</a>
+    
+    When true, the call requires selector to resolve to a single element. If given selector resolves to more than one element, the call throws an exception.
+  - `timeout` [number] *(optional)*<a aria-hidden="true" tabIndex="-1" class="list-anchor-link" id="frame-set-checked-option-timeout"/><a href="#frame-set-checked-option-timeout" class="list-anchor">#</a>
+    
+    Maximum time in milliseconds. Defaults to `0` - no timeout. The default value can be changed via `actionTimeout` option in the config, or by using the [browserContext.setDefaultTimeout()](/api/class-browsercontext.mdx#browser-context-set-default-timeout) or [page.setDefaultTimeout()](/api/class-page.mdx#page-set-default-timeout) methods.
+  - `trial` [boolean] *(optional)*<a aria-hidden="true" tabIndex="-1" class="list-anchor-link" id="frame-set-checked-option-trial"/><a href="#frame-set-checked-option-trial" class="list-anchor">#</a>
+    
+    When set, this method only performs the [actionability](../actionability.mdx) checks and skips the action. Defaults to `false`. Useful to wait until the element is ready for the action without performing it.
+
+**Returns**
+- [Promise]&lt;[void]&gt;<a aria-hidden="true" tabIndex="-1" class="list-anchor-link" id="frame-set-checked-return"/><a href="#frame-set-checked-return" class="list-anchor">#</a>
+
+---
+
+### setInputFiles {/* #frame-set-input-files */}
+
+<font size="2" style={{position: "relative", top: "-20px"}}>Added before v1.9</font><x-search>frame.setInputFiles</x-search>
+
+:::warning[Discouraged]
+
+Use locator-based [locator.setInputFiles()](/api/class-locator.mdx#locator-set-input-files) instead. Read more about [locators](../locators.mdx).
+
+:::
+
+
+Sets the value of the file input to these file paths or files. If some of the `filePaths` are relative paths, then they are resolved relative to the current working directory. For empty array, clears the selected files.
+
+This method expects [selector](/api/class-frame.mdx#frame-set-input-files-option-selector) to point to an [input element](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/input). However, if the element is inside the `<label>` element that has an associated [control](https://developer.mozilla.org/en-US/docs/Web/API/HTMLLabelElement/control), targets the control instead.
+
+**Usage**
+
+```js
+await frame.setInputFiles(selector, files);
+await frame.setInputFiles(selector, files, options);
+```
+
+**Arguments**
+- `selector` [string]<a aria-hidden="true" tabIndex="-1" class="list-anchor-link" id="frame-set-input-files-option-selector"/><a href="#frame-set-input-files-option-selector" class="list-anchor">#</a>
+  
+  A selector to search for an element. If there are multiple elements satisfying the selector, the first will be used.
+- `files` [string] | [Array]&lt;[string]&gt; | [Object] | [Array]&lt;[Object]&gt;<a aria-hidden="true" tabIndex="-1" class="list-anchor-link" id="frame-set-input-files-option-files"/><a href="#frame-set-input-files-option-files" class="list-anchor">#</a>
+  - `name` [string]
+    
+    File name
+  - `mimeType` [string]
+    
+    File type
+  - `buffer` [Buffer]
+    
+    File content
+- `options` [Object] *(optional)*
+  - `noWaitAfter` [boolean] *(optional)*<a aria-hidden="true" tabIndex="-1" class="list-anchor-link" id="frame-set-input-files-option-no-wait-after"/><a href="#frame-set-input-files-option-no-wait-after" class="list-anchor">#</a>
+    
+    :::warning[Deprecated]
+    This option has no effect.
+    :::
+    
+    
+    This option has no effect.
+  - `strict` [boolean] *(optional)* <font size="2">Added in: v1.14</font><a aria-hidden="true" tabIndex="-1" class="list-anchor-link" id="frame-set-input-files-option-strict"/><a href="#frame-set-input-files-option-strict" class="list-anchor">#</a>
+    
+    When true, the call requires selector to resolve to a single element. If given selector resolves to more than one element, the call throws an exception.
+  - `timeout` [number] *(optional)*<a aria-hidden="true" tabIndex="-1" class="list-anchor-link" id="frame-set-input-files-option-timeout"/><a href="#frame-set-input-files-option-timeout" class="list-anchor">#</a>
+    
+    Maximum time in milliseconds. Defaults to `0` - no timeout. The default value can be changed via `actionTimeout` option in the config, or by using the [browserContext.setDefaultTimeout()](/api/class-browsercontext.mdx#browser-context-set-default-timeout) or [page.setDefaultTimeout()](/api/class-page.mdx#page-set-default-timeout) methods.
+
+**Returns**
+- [Promise]&lt;[void]&gt;<a aria-hidden="true" tabIndex="-1" class="list-anchor-link" id="frame-set-input-files-return"/><a href="#frame-set-input-files-return" class="list-anchor">#</a>
+
+---
+
+### tap {/* #frame-tap */}
+
+<font size="2" style={{position: "relative", top: "-20px"}}>Added before v1.9</font><x-search>frame.tap</x-search>
+
+:::warning[Discouraged]
+
+Use locator-based [locator.tap()](/api/class-locator.mdx#locator-tap) instead. Read more about [locators](../locators.mdx).
+
+:::
+
+
+This method taps an element matching [selector](/api/class-frame.mdx#frame-tap-option-selector) by performing the following steps:
+1. Find an element matching [selector](/api/class-frame.mdx#frame-tap-option-selector). If there is none, wait until a matching element is attached to the DOM.
+1. Wait for [actionability](../actionability.mdx) checks on the matched element, unless [force](/api/class-frame.mdx#frame-tap-option-force) option is set. If the element is detached during the checks, the whole action is retried.
+1. Scroll the element into view if needed.
+1. Use [page.touchscreen](/api/class-page.mdx#page-touchscreen) to tap the center of the element, or the specified [position](/api/class-frame.mdx#frame-tap-option-position).
+
+When all steps combined have not finished during the specified [timeout](/api/class-frame.mdx#frame-tap-option-timeout), this method throws a [TimeoutError]. Passing zero timeout disables this.
+
+:::note
+
+`frame.tap()` requires that the `hasTouch` option of the browser context be set to true.
+:::
+
+**Usage**
+
+```js
+await frame.tap(selector);
+await frame.tap(selector, options);
+```
+
+**Arguments**
+- `selector` [string]<a aria-hidden="true" tabIndex="-1" class="list-anchor-link" id="frame-tap-option-selector"/><a href="#frame-tap-option-selector" class="list-anchor">#</a>
+  
+  A selector to search for an element. If there are multiple elements satisfying the selector, the first will be used.
+- `options` [Object] *(optional)*
+  - `force` [boolean] *(optional)*<a aria-hidden="true" tabIndex="-1" class="list-anchor-link" id="frame-tap-option-force"/><a href="#frame-tap-option-force" class="list-anchor">#</a>
+    
+    Whether to bypass the [actionability](../actionability.mdx) checks. Defaults to `false`.
+  - `modifiers` [Array]&lt;"Alt" | "Control" | "ControlOrMeta" | "Meta" | "Shift"&gt; *(optional)*<a aria-hidden="true" tabIndex="-1" class="list-anchor-link" id="frame-tap-option-modifiers"/><a href="#frame-tap-option-modifiers" class="list-anchor">#</a>
+    
+    Modifier keys to press. Ensures that only these modifiers are pressed during the operation, and then restores current modifiers back. If not specified, currently pressed modifiers are used. "ControlOrMeta" resolves to "Control" on Windows and Linux and to "Meta" on macOS.
+  - `noWaitAfter` [boolean] *(optional)*<a aria-hidden="true" tabIndex="-1" class="list-anchor-link" id="frame-tap-option-no-wait-after"/><a href="#frame-tap-option-no-wait-after" class="list-anchor">#</a>
+    
+    :::warning[Deprecated]
+    This option has no effect.
+    :::
+    
+    
+    This option has no effect.
+  - `position` [Object] *(optional)*<a aria-hidden="true" tabIndex="-1" class="list-anchor-link" id="frame-tap-option-position"/><a href="#frame-tap-option-position" class="list-anchor">#</a>
+    - `x` [number]
+      
+      
+    - `y` [number]
+      
+      
+    A point to use relative to the top-left corner of element padding box. If not specified, uses some visible point of the element.
+  - `strict` [boolean] *(optional)* <font size="2">Added in: v1.14</font><a aria-hidden="true" tabIndex="-1" class="list-anchor-link" id="frame-tap-option-strict"/><a href="#frame-tap-option-strict" class="list-anchor">#</a>
+    
+    When true, the call requires selector to resolve to a single element. If given selector resolves to more than one element, the call throws an exception.
+  - `timeout` [number] *(optional)*<a aria-hidden="true" tabIndex="-1" class="list-anchor-link" id="frame-tap-option-timeout"/><a href="#frame-tap-option-timeout" class="list-anchor">#</a>
+    
+    Maximum time in milliseconds. Defaults to `0` - no timeout. The default value can be changed via `actionTimeout` option in the config, or by using the [browserContext.setDefaultTimeout()](/api/class-browsercontext.mdx#browser-context-set-default-timeout) or [page.setDefaultTimeout()](/api/class-page.mdx#page-set-default-timeout) methods.
+  - `trial` [boolean] *(optional)* <font size="2">Added in: v1.11</font><a aria-hidden="true" tabIndex="-1" class="list-anchor-link" id="frame-tap-option-trial"/><a href="#frame-tap-option-trial" class="list-anchor">#</a>
+    
+    When set, this method only performs the [actionability](../actionability.mdx) checks and skips the action. Defaults to `false`. Useful to wait until the element is ready for the action without performing it. Note that keyboard `modifiers` will be pressed regardless of `trial` to allow testing elements which are only visible when those keys are pressed.
+
+**Returns**
+- [Promise]&lt;[void]&gt;<a aria-hidden="true" tabIndex="-1" class="list-anchor-link" id="frame-tap-return"/><a href="#frame-tap-return" class="list-anchor">#</a>
+
+---
+
+### textContent {/* #frame-text-content */}
+
+<font size="2" style={{position: "relative", top: "-20px"}}>Added before v1.9</font><x-search>frame.textContent</x-search>
+
+:::warning[Discouraged]
+
+Use locator-based [locator.textContent()](/api/class-locator.mdx#locator-text-content) instead. Read more about [locators](../locators.mdx).
+
+:::
+
+
+Returns `element.textContent`.
+
+**Usage**
+
+```js
+await frame.textContent(selector);
+await frame.textContent(selector, options);
+```
+
+**Arguments**
+- `selector` [string]<a aria-hidden="true" tabIndex="-1" class="list-anchor-link" id="frame-text-content-option-selector"/><a href="#frame-text-content-option-selector" class="list-anchor">#</a>
+  
+  A selector to search for an element. If there are multiple elements satisfying the selector, the first will be used.
+- `options` [Object] *(optional)*
+  - `strict` [boolean] *(optional)* <font size="2">Added in: v1.14</font><a aria-hidden="true" tabIndex="-1" class="list-anchor-link" id="frame-text-content-option-strict"/><a href="#frame-text-content-option-strict" class="list-anchor">#</a>
+    
+    When true, the call requires selector to resolve to a single element. If given selector resolves to more than one element, the call throws an exception.
+  - `timeout` [number] *(optional)*<a aria-hidden="true" tabIndex="-1" class="list-anchor-link" id="frame-text-content-option-timeout"/><a href="#frame-text-content-option-timeout" class="list-anchor">#</a>
+    
+    Maximum time in milliseconds. Defaults to `0` - no timeout. The default value can be changed via `actionTimeout` option in the config, or by using the [browserContext.setDefaultTimeout()](/api/class-browsercontext.mdx#browser-context-set-default-timeout) or [page.setDefaultTimeout()](/api/class-page.mdx#page-set-default-timeout) methods.
+
+**Returns**
+- [Promise]&lt;[null] | [string]&gt;<a aria-hidden="true" tabIndex="-1" class="list-anchor-link" id="frame-text-content-return"/><a href="#frame-text-content-return" class="list-anchor">#</a>
+
+---
+
+### type {/* #frame-type */}
+
+<font size="2" style={{position: "relative", top: "-20px"}}>Added before v1.9</font><x-search>frame.type</x-search>
+
+:::warning[Deprecated]
+
+In most cases, you should use [locator.fill()](/api/class-locator.mdx#locator-fill) instead. You only need to press keys one by one if there is special keyboard handling on the page - in this case use [locator.pressSequentially()](/api/class-locator.mdx#locator-press-sequentially).
+
+:::
+
+
+Sends a `keydown`, `keypress`/`input`, and `keyup` event for each character in the text. `frame.type` can be used to send fine-grained keyboard events. To fill values in form fields, use [frame.fill()](/api/class-frame.mdx#frame-fill).
+
+To press a special key, like `Control` or `ArrowDown`, use [keyboard.press()](/api/class-keyboard.mdx#keyboard-press).
+
+**Usage**
+
+**Arguments**
+- `selector` [string]<a aria-hidden="true" tabIndex="-1" class="list-anchor-link" id="frame-type-option-selector"/><a href="#frame-type-option-selector" class="list-anchor">#</a>
+  
+  A selector to search for an element. If there are multiple elements satisfying the selector, the first will be used.
+- `text` [string]<a aria-hidden="true" tabIndex="-1" class="list-anchor-link" id="frame-type-option-text"/><a href="#frame-type-option-text" class="list-anchor">#</a>
+  
+  A text to type into a focused element.
+- `options` [Object] *(optional)*
+  - `delay` [number] *(optional)*<a aria-hidden="true" tabIndex="-1" class="list-anchor-link" id="frame-type-option-delay"/><a href="#frame-type-option-delay" class="list-anchor">#</a>
+    
+    Time to wait between key presses in milliseconds. Defaults to 0.
+  - `noWaitAfter` [boolean] *(optional)*<a aria-hidden="true" tabIndex="-1" class="list-anchor-link" id="frame-type-option-no-wait-after"/><a href="#frame-type-option-no-wait-after" class="list-anchor">#</a>
+    
+    :::warning[Deprecated]
+    This option has no effect.
+    :::
+    
+    
+    This option has no effect.
+  - `strict` [boolean] *(optional)* <font size="2">Added in: v1.14</font><a aria-hidden="true" tabIndex="-1" class="list-anchor-link" id="frame-type-option-strict"/><a href="#frame-type-option-strict" class="list-anchor">#</a>
+    
+    When true, the call requires selector to resolve to a single element. If given selector resolves to more than one element, the call throws an exception.
+  - `timeout` [number] *(optional)*<a aria-hidden="true" tabIndex="-1" class="list-anchor-link" id="frame-type-option-timeout"/><a href="#frame-type-option-timeout" class="list-anchor">#</a>
+    
+    Maximum time in milliseconds. Defaults to `0` - no timeout. The default value can be changed via `actionTimeout` option in the config, or by using the [browserContext.setDefaultTimeout()](/api/class-browsercontext.mdx#browser-context-set-default-timeout) or [page.setDefaultTimeout()](/api/class-page.mdx#page-set-default-timeout) methods.
+
+**Returns**
+- [Promise]&lt;[void]&gt;<a aria-hidden="true" tabIndex="-1" class="list-anchor-link" id="frame-type-return"/><a href="#frame-type-return" class="list-anchor">#</a>
+
+---
+
+### uncheck {/* #frame-uncheck */}
+
+<font size="2" style={{position: "relative", top: "-20px"}}>Added before v1.9</font><x-search>frame.uncheck</x-search>
+
+:::warning[Discouraged]
+
+Use locator-based [locator.uncheck()](/api/class-locator.mdx#locator-uncheck) instead. Read more about [locators](../locators.mdx).
+
+:::
+
+
+This method checks an element matching [selector](/api/class-frame.mdx#frame-uncheck-option-selector) by performing the following steps:
+1. Find an element matching [selector](/api/class-frame.mdx#frame-uncheck-option-selector). If there is none, wait until a matching element is attached to the DOM.
+1. Ensure that matched element is a checkbox or a radio input. If not, this method throws. If the element is already unchecked, this method returns immediately.
+1. Wait for [actionability](../actionability.mdx) checks on the matched element, unless [force](/api/class-frame.mdx#frame-uncheck-option-force) option is set. If the element is detached during the checks, the whole action is retried.
+1. Scroll the element into view if needed.
+1. Use [page.mouse](/api/class-page.mdx#page-mouse) to click in the center of the element.
+1. Ensure that the element is now unchecked. If not, this method throws.
+
+When all steps combined have not finished during the specified [timeout](/api/class-frame.mdx#frame-uncheck-option-timeout), this method throws a [TimeoutError]. Passing zero timeout disables this.
+
+**Usage**
+
+```js
+await frame.uncheck(selector);
+await frame.uncheck(selector, options);
+```
+
+**Arguments**
+- `selector` [string]<a aria-hidden="true" tabIndex="-1" class="list-anchor-link" id="frame-uncheck-option-selector"/><a href="#frame-uncheck-option-selector" class="list-anchor">#</a>
+  
+  A selector to search for an element. If there are multiple elements satisfying the selector, the first will be used.
+- `options` [Object] *(optional)*
+  - `force` [boolean] *(optional)*<a aria-hidden="true" tabIndex="-1" class="list-anchor-link" id="frame-uncheck-option-force"/><a href="#frame-uncheck-option-force" class="list-anchor">#</a>
+    
+    Whether to bypass the [actionability](../actionability.mdx) checks. Defaults to `false`.
+  - `noWaitAfter` [boolean] *(optional)*<a aria-hidden="true" tabIndex="-1" class="list-anchor-link" id="frame-uncheck-option-no-wait-after"/><a href="#frame-uncheck-option-no-wait-after" class="list-anchor">#</a>
+    
+    :::warning[Deprecated]
+    This option has no effect.
+    :::
+    
+    
+    This option has no effect.
+  - `position` [Object] *(optional)* <font size="2">Added in: v1.11</font><a aria-hidden="true" tabIndex="-1" class="list-anchor-link" id="frame-uncheck-option-position"/><a href="#frame-uncheck-option-position" class="list-anchor">#</a>
+    - `x` [number]
+      
+      
+    - `y` [number]
+      
+      
+    A point to use relative to the top-left corner of element padding box. If not specified, uses some visible point of the element.
+  - `strict` [boolean] *(optional)* <font size="2">Added in: v1.14</font><a aria-hidden="true" tabIndex="-1" class="list-anchor-link" id="frame-uncheck-option-strict"/><a href="#frame-uncheck-option-strict" class="list-anchor">#</a>
+    
+    When true, the call requires selector to resolve to a single element. If given selector resolves to more than one element, the call throws an exception.
+  - `timeout` [number] *(optional)*<a aria-hidden="true" tabIndex="-1" class="list-anchor-link" id="frame-uncheck-option-timeout"/><a href="#frame-uncheck-option-timeout" class="list-anchor">#</a>
+    
+    Maximum time in milliseconds. Defaults to `0` - no timeout. The default value can be changed via `actionTimeout` option in the config, or by using the [browserContext.setDefaultTimeout()](/api/class-browsercontext.mdx#browser-context-set-default-timeout) or [page.setDefaultTimeout()](/api/class-page.mdx#page-set-default-timeout) methods.
+  - `trial` [boolean] *(optional)* <font size="2">Added in: v1.11</font><a aria-hidden="true" tabIndex="-1" class="list-anchor-link" id="frame-uncheck-option-trial"/><a href="#frame-uncheck-option-trial" class="list-anchor">#</a>
+    
+    When set, this method only performs the [actionability](../actionability.mdx) checks and skips the action. Defaults to `false`. Useful to wait until the element is ready for the action without performing it.
+
+**Returns**
+- [Promise]&lt;[void]&gt;<a aria-hidden="true" tabIndex="-1" class="list-anchor-link" id="frame-uncheck-return"/><a href="#frame-uncheck-return" class="list-anchor">#</a>
+
+---
+
+### waitForNavigation {/* #frame-wait-for-navigation */}
+
+<font size="2" style={{position: "relative", top: "-20px"}}>Added before v1.9</font><x-search>frame.waitForNavigation</x-search>
+
+:::warning[Deprecated]
+
+This method is inherently racy, please use [frame.waitForURL()](/api/class-frame.mdx#frame-wait-for-url) instead.
+
+:::
+
+
+Waits for the frame navigation and returns the main resource response. In case of multiple redirects, the navigation will resolve with the response of the last redirect. In case of navigation to a different anchor or navigation due to History API usage, the navigation will resolve with `null`.
+
+**Usage**
+
+This method waits for the frame to navigate to a new URL. It is useful for when you run code which will indirectly cause the frame to navigate. Consider this example:
+
+```js
+// Start waiting for navigation before clicking. Note no await.
+const navigationPromise = page.waitForNavigation();
+await page.getByText('Navigate after timeout').click();
+await navigationPromise;
+```
+
+:::note
+Usage of the [History API](https://developer.mozilla.org/en-US/docs/Web/API/History_API) to change the URL is considered a navigation.
+:::
+
+**Arguments**
+- `options` [Object] *(optional)*
+  - `timeout` [number] *(optional)*<a aria-hidden="true" tabIndex="-1" class="list-anchor-link" id="frame-wait-for-navigation-option-timeout"/><a href="#frame-wait-for-navigation-option-timeout" class="list-anchor">#</a>
+    
+    Maximum operation time in milliseconds. Defaults to `0` - no timeout. The default value can be changed via `navigationTimeout` option in the config, or by using the [browserContext.setDefaultNavigationTimeout()](/api/class-browsercontext.mdx#browser-context-set-default-navigation-timeout), [browserContext.setDefaultTimeout()](/api/class-browsercontext.mdx#browser-context-set-default-timeout), [page.setDefaultNavigationTimeout()](/api/class-page.mdx#page-set-default-navigation-timeout) or [page.setDefaultTimeout()](/api/class-page.mdx#page-set-default-timeout) methods.
+  - `url` [string] | [RegExp] | [URLPattern] | [function]\([URL]\):[boolean] *(optional)*<a aria-hidden="true" tabIndex="-1" class="list-anchor-link" id="frame-wait-for-navigation-option-url"/><a href="#frame-wait-for-navigation-option-url" class="list-anchor">#</a>
+    
+    A glob pattern, regex pattern, URL pattern, or predicate receiving [URL] to match while waiting for the navigation. Note that if the parameter is a string without wildcard characters, the method will wait for navigation to URL that is exactly equal to the string.
+  - `waitUntil` "load" | "domcontentloaded" | "networkidle" | "commit" *(optional)*<a aria-hidden="true" tabIndex="-1" class="list-anchor-link" id="frame-wait-for-navigation-option-wait-until"/><a href="#frame-wait-for-navigation-option-wait-until" class="list-anchor">#</a>
+    
+    When to consider operation succeeded, defaults to `load`. Events can be either:
+    * `'domcontentloaded'` - consider operation to be finished when the `DOMContentLoaded` event is fired.
+    * `'load'` - consider operation to be finished when the `load` event is fired.
+    * `'networkidle'` - **DISCOURAGED** consider operation to be finished when there are no network connections for at least `500` ms. Don't use this method for testing, rely on web assertions to assess readiness instead.
+    * `'commit'` - consider operation to be finished when network response is received and the document started loading.
+
+**Returns**
+- [Promise]&lt;[null] | [Response]&gt;<a aria-hidden="true" tabIndex="-1" class="list-anchor-link" id="frame-wait-for-navigation-return"/><a href="#frame-wait-for-navigation-return" class="list-anchor">#</a>
+
+---
+
+### waitForSelector {/* #frame-wait-for-selector */}
+
+<font size="2" style={{position: "relative", top: "-20px"}}>Added before v1.9</font><x-search>frame.waitForSelector</x-search>
+
+:::warning[Discouraged]
+
+Use web assertions that assert visibility or a locator-based [locator.waitFor()](/api/class-locator.mdx#locator-wait-for) instead. Read more about [locators](../locators.mdx).
+
+:::
+
+
+Returns when element specified by selector satisfies [state](/api/class-frame.mdx#frame-wait-for-selector-option-state) option. Returns `null` if waiting for `hidden` or `detached`.
+
+:::note
+
+Playwright automatically waits for element to be ready before performing an action. Using [Locator] objects and web-first assertions make the code wait-for-selector-free.
+:::
+
+Wait for the [selector](/api/class-frame.mdx#frame-wait-for-selector-option-selector) to satisfy [state](/api/class-frame.mdx#frame-wait-for-selector-option-state) option (either appear/disappear from dom, or become visible/hidden). If at the moment of calling the method [selector](/api/class-frame.mdx#frame-wait-for-selector-option-selector) already satisfies the condition, the method will return immediately. If the selector doesn't satisfy the condition for the [timeout](/api/class-frame.mdx#frame-wait-for-selector-option-timeout) milliseconds, the function will throw.
+
+**Usage**
+
+This method works across navigations:
+
+```js
+const { chromium } = require('playwright');  // Or 'firefox' or 'webkit'.
+
+(async () => {
+  const browser = await chromium.launch();
+  const page = await browser.newPage();
+  for (const currentURL of ['https://google.com', 'https://bbc.com']) {
+    await page.goto(currentURL);
+    const element = await page.mainFrame().waitForSelector('img');
+    console.log('Loaded image: ' + await element.getAttribute('src'));
+  }
+  await browser.close();
+})();
+```
+
+**Arguments**
+- `selector` [string]<a aria-hidden="true" tabIndex="-1" class="list-anchor-link" id="frame-wait-for-selector-option-selector"/><a href="#frame-wait-for-selector-option-selector" class="list-anchor">#</a>
+  
+  A selector to query for.
+- `options` [Object] *(optional)*
+  - `state` "attached" | "detached" | "visible" | "hidden" *(optional)*<a aria-hidden="true" tabIndex="-1" class="list-anchor-link" id="frame-wait-for-selector-option-state"/><a href="#frame-wait-for-selector-option-state" class="list-anchor">#</a>
+    
+    Defaults to `'visible'`. Can be either:
+    * `'attached'` - wait for element to be present in DOM.
+    * `'detached'` - wait for element to not be present in DOM.
+    * `'visible'` - wait for element to have non-empty bounding box and no `visibility:hidden`. Note that element without any content or with `display:none` has an empty bounding box and is not considered visible.
+    * `'hidden'` - wait for element to be either detached from DOM, or have an empty bounding box or `visibility:hidden`. This is opposite to the `'visible'` option.
+  - `strict` [boolean] *(optional)* <font size="2">Added in: v1.14</font><a aria-hidden="true" tabIndex="-1" class="list-anchor-link" id="frame-wait-for-selector-option-strict"/><a href="#frame-wait-for-selector-option-strict" class="list-anchor">#</a>
+    
+    When true, the call requires selector to resolve to a single element. If given selector resolves to more than one element, the call throws an exception.
+  - `timeout` [number] *(optional)*<a aria-hidden="true" tabIndex="-1" class="list-anchor-link" id="frame-wait-for-selector-option-timeout"/><a href="#frame-wait-for-selector-option-timeout" class="list-anchor">#</a>
+    
+    Maximum time in milliseconds. Defaults to `0` - no timeout. The default value can be changed via `actionTimeout` option in the config, or by using the [browserContext.setDefaultTimeout()](/api/class-browsercontext.mdx#browser-context-set-default-timeout) or [page.setDefaultTimeout()](/api/class-page.mdx#page-set-default-timeout) methods.
+
+**Returns**
+- [Promise]&lt;[null] | [ElementHandle]&gt;<a aria-hidden="true" tabIndex="-1" class="list-anchor-link" id="frame-wait-for-selector-return"/><a href="#frame-wait-for-selector-return" class="list-anchor">#</a>
+
+---
+
+### waitForTimeout {/* #frame-wait-for-timeout */}
+
+<font size="2" style={{position: "relative", top: "-20px"}}>Added before v1.9</font><x-search>frame.waitForTimeout</x-search>
+
+:::warning[Discouraged]
+
+Never wait for timeout in production. Tests that wait for time are inherently flaky. Use [Locator] actions and web assertions that wait automatically.
+
+:::
+
+
+Waits for the given [timeout](/api/class-frame.mdx#frame-wait-for-timeout-option-timeout) in milliseconds.
+
+Note that `frame.waitForTimeout()` should only be used for debugging. Tests using the timer in production are going to be flaky. Use signals such as network events, selectors becoming visible and others instead.
+
+**Usage**
+
+```js
+await frame.waitForTimeout(timeout);
+```
+
+**Arguments**
+- `timeout` [number]<a aria-hidden="true" tabIndex="-1" class="list-anchor-link" id="frame-wait-for-timeout-option-timeout"/><a href="#frame-wait-for-timeout-option-timeout" class="list-anchor">#</a>
+  
+  A timeout to wait for
+
+**Returns**
+- [Promise]&lt;[void]&gt;<a aria-hidden="true" tabIndex="-1" class="list-anchor-link" id="frame-wait-for-timeout-return"/><a href="#frame-wait-for-timeout-return" class="list-anchor">#</a>
+
+
+[APIRequest]: /api/class-apirequest.mdx "APIRequest"
+[APIRequestContext]: /api/class-apirequestcontext.mdx "APIRequestContext"
+[APIResponse]: /api/class-apiresponse.mdx "APIResponse"
+[APIResponseAssertions]: /api/class-apiresponseassertions.mdx "APIResponseAssertions"
+[Browser]: /api/class-browser.mdx "Browser"
+[BrowserContext]: /api/class-browsercontext.mdx "BrowserContext"
+[BrowserServer]: /api/class-browserserver.mdx "BrowserServer"
+[BrowserType]: /api/class-browsertype.mdx "BrowserType"
+[CDPSession]: /api/class-cdpsession.mdx "CDPSession"
+[Clock]: /api/class-clock.mdx "Clock"
+[ConsoleMessage]: /api/class-consolemessage.mdx "ConsoleMessage"
+[Coverage]: /api/class-coverage.mdx "Coverage"
+[Credentials]: /api/class-credentials.mdx "Credentials"
+[Debugger]: /api/class-debugger.mdx "Debugger"
+[Dialog]: /api/class-dialog.mdx "Dialog"
+[Disposable]: /api/class-disposable.mdx "Disposable"
+[Download]: /api/class-download.mdx "Download"
+[ElementHandle]: /api/class-elementhandle.mdx "ElementHandle"
+[FileChooser]: /api/class-filechooser.mdx "FileChooser"
+[Frame]: /api/class-frame.mdx "Frame"
+[FrameLocator]: /api/class-framelocator.mdx "FrameLocator"
+[GenericAssertions]: /api/class-genericassertions.mdx "GenericAssertions"
+[JSHandle]: /api/class-jshandle.mdx "JSHandle"
+[Keyboard]: /api/class-keyboard.mdx "Keyboard"
+[Locator]: /api/class-locator.mdx "Locator"
+[LocatorAssertions]: /api/class-locatorassertions.mdx "LocatorAssertions"
+[Logger]: /api/class-logger.mdx "Logger"
+[Mouse]: /api/class-mouse.mdx "Mouse"
+[Page]: /api/class-page.mdx "Page"
+[PageAssertions]: /api/class-pageassertions.mdx "PageAssertions"
+[Playwright]: /api/class-playwright.mdx "Playwright"
+[PlaywrightAssertions]: /api/class-playwrightassertions.mdx "PlaywrightAssertions"
+[Request]: /api/class-request.mdx "Request"
+[Response]: /api/class-response.mdx "Response"
+[Route]: /api/class-route.mdx "Route"
+[Screencast]: /api/class-screencast.mdx "Screencast"
+[Selectors]: /api/class-selectors.mdx "Selectors"
+[SnapshotAssertions]: /api/class-snapshotassertions.mdx "SnapshotAssertions"
+[TimeoutError]: /api/class-timeouterror.mdx "TimeoutError"
+[Touchscreen]: /api/class-touchscreen.mdx "Touchscreen"
+[Tracing]: /api/class-tracing.mdx "Tracing"
+[Video]: /api/class-video.mdx "Video"
+[WebError]: /api/class-weberror.mdx "WebError"
+[WebSocket]: /api/class-websocket.mdx "WebSocket"
+[WebSocketRoute]: /api/class-websocketroute.mdx "WebSocketRoute"
+[WebStorage]: /api/class-webstorage.mdx "WebStorage"
+[Worker]: /api/class-worker.mdx "Worker"
+[Electron]: /api/class-electron.mdx "Electron"
+[ElectronApplication]: /api/class-electronapplication.mdx "ElectronApplication"
+[Android]: /api/class-android.mdx "Android"
+[AndroidDevice]: /api/class-androiddevice.mdx "AndroidDevice"
+[AndroidInput]: /api/class-androidinput.mdx "AndroidInput"
+[AndroidSocket]: /api/class-androidsocket.mdx "AndroidSocket"
+[AndroidWebView]: /api/class-androidwebview.mdx "AndroidWebView"
+[Fixtures]: /api/class-fixtures.mdx "Fixtures"
+[FullConfig]: /api/class-fullconfig.mdx "FullConfig"
+[FullProject]: /api/class-fullproject.mdx "FullProject"
+[Location]: /api/class-location.mdx "Location"
+[Test]: /api/class-test.mdx "Test"
+[TestConfig]: /api/class-testconfig.mdx "TestConfig"
+[TestInfo]: /api/class-testinfo.mdx "TestInfo"
+[TestInfoError]: /api/class-testinfoerror.mdx "TestInfoError"
+[TestOptions]: /api/class-testoptions.mdx "TestOptions"
+[TestProject]: /api/class-testproject.mdx "TestProject"
+[TestStepInfo]: /api/class-teststepinfo.mdx "TestStepInfo"
+[WorkerInfo]: /api/class-workerinfo.mdx "WorkerInfo"
+[Reporter]: /api/class-reporter.mdx "Reporter"
+[Suite]: /api/class-suite.mdx "Suite"
+[TestCase]: /api/class-testcase.mdx "TestCase"
+[TestError]: /api/class-testerror.mdx "TestError"
+[TestResult]: /api/class-testresult.mdx "TestResult"
+[TestStep]: /api/class-teststep.mdx "TestStep"
+[Element]: https://developer.mozilla.org/en-US/docs/Web/API/element "Element"
+[EvaluationArgument]: /evaluating.mdx#evaluation-argument "EvaluationArgument"
+[Promise]: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Promise "Promise"
+[iterator]: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Iteration_protocols "Iterator"
+[origin]: https://developer.mozilla.org/en-US/docs/Glossary/Origin "Origin"
+[selector]: https://developer.mozilla.org/en-US/docs/Web/CSS/CSS_Selectors "selector"
+[Serializable]: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/JSON/stringify#Description "Serializable"
+[UIEvent.detail]: https://developer.mozilla.org/en-US/docs/Web/API/UIEvent/detail "UIEvent.detail"
+[UnixTime]: https://en.wikipedia.org/wiki/Unix_time "Unix Time"
+[xpath]: https://developer.mozilla.org/en-US/docs/Web/XPath "xpath"
+
+[Array]: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Array "Array"
+[boolean]: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Data_structures#Boolean_type "Boolean"
+[Buffer]: https://nodejs.org/api/buffer.html#buffer_class_buffer "Buffer"
+[ChildProcess]: https://nodejs.org/api/child_process.html "ChildProcess"
+[Date]: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Date "Date"
+[Error]: https://nodejs.org/api/errors.html#errors_class_error "Error"
+[EventEmitter]: https://nodejs.org/api/events.html#events_class_eventemitter "EventEmitter"
+[function]: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Function "Function"
+[FormData]: https://developer.mozilla.org/en-US/docs/Web/API/FormData "FormData"
+[Map]: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Map "Map"
+[Metadata]: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Object "Object&lt;string, any&gt;"
+[null]: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/null "null"
+[number]: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Data_structures#Number_type "Number"
+[Object]: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Object "Object"
+[Promise]: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Promise "Promise"
+[Readable]: https://nodejs.org/api/stream.html#stream_class_stream_readable "Readable"
+[ReadStream]: https://nodejs.org/api/fs.html#class-fsreadstream "ReadStream"
+[RegExp]: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/RegExp "RegExp"
+[string]: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Data_structures#String_type "string"
+[void]: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/undefined "void"
+[URL]: https://nodejs.org/api/url.html "URL"
+[URLPattern]: https://developer.mozilla.org/en-US/docs/Web/API/URLPattern "URLPattern"
+[URLSearchParams]: https://developer.mozilla.org/en-US/docs/Web/API/URLSearchParams "URLSearchParams"
+
+[all available image tags]: https://mcr.microsoft.com/en-us/product/playwright/about "all available image tags"
+[Microsoft Artifact Registry]: https://mcr.microsoft.com/en-us/product/playwright/about "Microsoft Artifact Registry"
+[Dockerfile.noble]: https://github.com/microsoft/playwright/blob/main/utils/docker/Dockerfile.noble "Dockerfile.noble"

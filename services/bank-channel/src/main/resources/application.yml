@@ -1,0 +1,28 @@
+server:
+  port: ${SERVER_PORT:8080}
+spring:
+  datasource:
+    url: ${CHANNEL_DB_URL:jdbc:postgresql://channel-db:5432/bank_channel}
+    username: ${CHANNEL_DB_USER:bank_channel}
+    password: ${CHANNEL_DB_PASSWORD}
+  sql:
+    init:
+      mode: always
+  security:
+    oauth2:
+      resourceserver:
+        jwt:
+          issuer-uri: ${BANK_CUSTOMER_ISSUER_URI:http://127.0.0.1:18082/realms/bank-customer}
+          jwk-set-uri: ${BANK_CUSTOMER_JWK_SET_URI:http://keycloak:8080/realms/bank-customer/protocol/openid-connect/certs}
+fineract:
+  base-url: ${FINERACT_BASE_URL:http://mifos-isolated-fineract-server-1:8080/fineract-provider}
+  tenant: ${FINERACT_TENANT:default}
+  username: ${FINERACT_USERNAME}
+  password: ${FINERACT_PASSWORD}
+clearing:
+  callback-secret: ${CLEARING_CALLBACK_SECRET}
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info

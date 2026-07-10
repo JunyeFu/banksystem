@@ -1,0 +1,449 @@
+---
+id: mock
+title: "Mock APIs"
+---
+import Tabs from '@theme/Tabs';
+import TabItem from '@theme/TabItem';
+import HTMLCard from '@site/src/components/HTMLCard';
+
+## Introduction
+
+Web APIs are usually implemented as HTTP endpoints. Playwright provides APIs to **mock** and **modify** network traffic, both HTTP and HTTPS. Any requests that a page does, including [XHRs](https://developer.mozilla.org/en-US/docs/Web/API/XMLHttpRequest) and [fetch](https://developer.mozilla.org/en-US/docs/Web/API/Fetch_API) requests, can be tracked, modified and mocked. With Playwright you can also mock using HAR files that contain multiple network requests made by the page.
+
+## Mock API requests
+
+The following code will intercept all the calls to `*/**/api/v1/fruits` and will return a custom response instead. No requests to the API will be made. The test goes to the URL that uses the mocked route and asserts that mock data is present on the page.
+
+<Tabs
+  groupId="python-flavor"
+  defaultValue="sync"
+  values={[
+    {label: 'Sync', value: 'sync'},
+    {label: 'Async', value: 'async'}
+  ]
+}>
+<TabItem value="sync">
+
+```py
+def test_mock_the_fruit_api(page: Page):
+    def handle(route: Route):
+        json = [{"name": "Strawberry", "id": 21}]
+        # fulfill the route with the mock data
+        route.fulfill(json=json)
+
+    # Intercept the route to the fruit API
+    page.route("*/**/api/v1/fruits", handle)
+
+    # Go to the page
+    page.goto("https://demo.playwright.dev/api-mocking")
+
+    # Assert that the Strawberry fruit is visible
+    expect(page.get_by_text("Strawberry")).to_be_visible()
+```
+
+</TabItem>
+<TabItem value="async">
+
+```py
+async def test_mock_the_fruit_api(page: Page):
+    async def handle(route: Route):
+        json = [{"name": "Strawberry", "id": 21}]
+        # fulfill the route with the mock data
+        await route.fulfill(json=json)
+
+    # Intercept the route to the fruit API
+    await page.route("*/**/api/v1/fruits", handle)
+
+    # Go to the page
+    await page.goto("https://demo.playwright.dev/api-mocking")
+
+    # Assert that the Strawberry fruit is visible
+    await expect(page.get_by_text("Strawberry")).to_be_visible()
+```
+
+</TabItem>
+</Tabs>
+
+You can see from the trace of the example test that the API was never called, it was however fulfilled with the mock data.
+
+<img src="https://github.com/microsoft/playwright/assets/13063165/3dc14cbf-c100-4efc-ac21-d7b52d698b53" alt="api mocking trace" width="2946" height="1902" />
+
+Read more about [advanced networking](./network.mdx).
+
+## Modify API responses
+
+Sometimes, it is essential to make an API request, but the response needs to be patched to allow for reproducible testing. In that case, instead of mocking the request, one can perform the request and fulfill it with the modified response.
+
+In the example below we intercept the call to the fruit API and add a new fruit called 'Loquat', to the data. We then go to the url and assert that this data is there:
+
+<Tabs
+  groupId="python-flavor"
+  defaultValue="sync"
+  values={[
+    {label: 'Sync', value: 'sync'},
+    {label: 'Async', value: 'async'}
+  ]
+}>
+<TabItem value="sync">
+
+```py
+def test_gets_the_json_from_api_and_adds_a_new_fruit(page: Page):
+    def handle(route: Route):
+        response = route.fetch()
+        json = response.json()
+        json.append({ "name": "Loquat", "id": 100})
+        # Fulfill using the original response, while patching the response body
+        # with the given JSON object.
+        route.fulfill(response=response, json=json)
+
+    page.route("https://demo.playwright.dev/api-mocking/api/v1/fruits", handle)
+
+    # Go to the page
+    page.goto("https://demo.playwright.dev/api-mocking")
+
+    # Assert that the new fruit is visible
+    expect(page.get_by_text("Loquat", exact=True)).to_be_visible()
+```
+
+</TabItem>
+<TabItem value="async">
+
+```py
+async def test_gets_the_json_from_api_and_adds_a_new_fruit(page: Page):
+    async def handle(route: Route):
+        response = await route.fetch()
+        json = await response.json()
+        json.append({ "name": "Loquat", "id": 100})
+        # Fulfill using the original response, while patching the response body
+        # with the given JSON object.
+        await route.fulfill(response=response, json=json)
+
+    await page.route("https://demo.playwright.dev/api-mocking/api/v1/fruits", handle)
+
+    # Go to the page
+    await page.goto("https://demo.playwright.dev/api-mocking")
+
+    # Assert that the new fruit is visible
+    await expect(page.get_by_text("Loquat", exact=True)).to_be_visible()
+```
+
+</TabItem>
+</Tabs>
+
+In the trace of our test we can see that the API was called and the response was modified.
+
+<img src="https://github.com/microsoft/playwright/assets/13063165/8b8dd82d-1b3e-428e-871b-840581fed439" alt="trace of test showing api being called and fulfilled" width="2946" height="1902" />
+
+By inspecting the response we can see that our new fruit was added to the list.
+
+<img src="https://github.com/microsoft/playwright/assets/13063165/03e6c87c-4ecc-47e8-9ca0-30fface25e9d" alt="trace of test showing the mock response" width="2946" height="1902" />
+
+Read more about [advanced networking](./network.mdx).
+
+## Mocking with HAR files
+
+A HAR file is an [HTTP Archive](http://www.softwareishard.com/blog/har-12-spec/) file that contains a record of all the network requests that are made when a page is loaded. It contains information about the request and response headers, cookies, content, timings, and more. You can use HAR files to mock network requests in your tests. You'll need to:
+1. Record a HAR file.
+1. Commit the HAR file alongside the tests.
+1. Route requests using the saved HAR files in the tests.
+
+### Recording a HAR file
+
+To record a HAR file we use [page.route_from_har()](/api/class-page.mdx#page-route-from-har) or [browser_context.route_from_har()](/api/class-browsercontext.mdx#browser-context-route-from-har) method. This method takes in the path to the HAR file and an optional object of options. The options object can contain the URL so that only requests with the URL matching the specified glob pattern will be served from the HAR File. If not specified, all requests will be served from the HAR file.
+
+Setting `update` option to true will create or update the HAR file with the actual network information instead of serving the requests from the HAR file. Use it when creating a test to populate the HAR with real data.
+
+#### 
+Alternatively, you can also record HAR files by using the [record_har_path](/api/class-browser.mdx#browser-new-context-option-record-har-path) option in [browser.new_context()](/api/class-browser.mdx#browser-new-context) when creating a browser context. This allows you to capture all network traffic for the entire context until the context is closed.
+
+<Tabs
+  groupId="python-flavor"
+  defaultValue="sync"
+  values={[
+    {label: 'Sync', value: 'sync'},
+    {label: 'Async', value: 'async'}
+  ]
+}>
+<TabItem value="sync">
+
+```py
+def test_records_or_updates_the_har_file(page: Page):
+    # Get the response from the HAR file
+    page.route_from_har("./hars/fruit.har", url="*/**/api/v1/fruits", update=True)
+
+    # Go to the page
+    page.goto("https://demo.playwright.dev/api-mocking")
+
+    # Assert that the fruit is visible
+    expect(page.get_by_text("Strawberry")).to_be_visible()
+```
+
+</TabItem>
+<TabItem value="async">
+
+```py
+async def test_records_or_updates_the_har_file(page: Page):
+    # Get the response from the HAR file
+    await page.route_from_har("./hars/fruit.har", url="*/**/api/v1/fruits", update=True)
+
+    # Go to the page
+    await page.goto("https://demo.playwright.dev/api-mocking")
+
+    # Assert that the fruit is visible
+    await expect(page.get_by_text("Strawberry")).to_be_visible()
+```
+
+</TabItem>
+</Tabs>
+
+### Modifying a HAR file
+
+Once you have recorded a HAR file you can modify it by opening the hashed .txt file inside your 'hars' folder and editing the JSON. This file should be committed to your source control. Anytime you run this test with `update: true` it will update your HAR file with the request from the API.
+
+```json
+[
+  {
+    "name": "Playwright",
+    "id": 100
+  },
+  // ... other fruits
+]
+```
+
+### Replaying from HAR
+
+Now that you have the HAR file recorded and modified the mock data, it can be used to serve matching responses in the test. For this, just turn off or simply remove the `update` option. This will run the test against the HAR file instead of hitting the API.
+
+<Tabs
+  groupId="python-flavor"
+  defaultValue="sync"
+  values={[
+    {label: 'Sync', value: 'sync'},
+    {label: 'Async', value: 'async'}
+  ]
+}>
+<TabItem value="sync">
+
+```py
+def test_gets_the_json_from_har_and_checks_the_new_fruit_has_been_added(page: Page):
+    # Replay API requests from HAR.
+    # Either use a matching response from the HAR,
+    # or abort the request if nothing matches.
+    page.route_from_har("./hars/fruit.har", url="*/**/api/v1/fruits", update=False)
+
+    # Go to the page
+    page.goto("https://demo.playwright.dev/api-mocking")
+
+    # Assert that the Playwright fruit is visible
+    expect(page.get_by_text("Playwright", exact=True)).to_be_visible()
+```
+
+</TabItem>
+<TabItem value="async">
+
+```py
+async def test_gets_the_json_from_har_and_checks_the_new_fruit_has_been_added(page: Page):
+    # Replay API requests from HAR.
+    # Either use a matching response from the HAR,
+    # or abort the request if nothing matches.
+    await page.route_from_har("./hars/fruit.har", url="*/**/api/v1/fruits", update=False)
+
+    # Go to the page
+    await page.goto("https://demo.playwright.dev/api-mocking")
+
+    # Assert that the Playwright fruit is visible
+    await expect(page.get_by_text("Playwright", exact=True)).to_be_visible()
+```
+
+</TabItem>
+</Tabs>
+
+In the trace of our test we can see that the route was fulfilled from the HAR file and the API was not called.
+
+<img src="https://github.com/microsoft/playwright/assets/13063165/1bd7ab66-ea4f-43c2-a4e5-ca17d4837ff1" alt="trace showing the HAR file being used" width="2946" height="1902" />
+
+If we inspect the response we can see our new fruit was added to the JSON, which was done by manually updating the hashed `.txt` file inside the `hars` folder.
+
+<img src="https://github.com/microsoft/playwright/assets/13063165/db3117fc-7b02-4973-9a51-29e213261a6a" alt="trace showing response from HAR file" width="2946" height="1902" />
+
+HAR replay matches URL and HTTP method strictly. For POST requests, it also matches POST payloads strictly. If multiple recordings match a request, the one with the most matching headers is picked. An entry resulting in a redirect will be followed automatically.
+
+Similar to when recording, if given HAR file name ends with `.zip`, it is considered an archive containing the HAR file along with network payloads stored as separate entries. You can also extract this archive, edit payloads or HAR log manually and point to the extracted har file. All the payloads will be resolved relative to the extracted har file on the file system.
+
+#### Recording HAR with CLI
+
+We recommend the `update` option to record HAR file for your test. However, you can also record the HAR with Playwright CLI.
+
+Open the browser with Playwright CLI and pass `--save-har` option to produce a HAR file. Optionally, use `--save-har-glob` to only save requests you are interested in, for example API endpoints. If the har file name ends with `.zip`, artifacts are written as separate files and are all compressed into a single `zip`.
+
+```bash
+# Save API requests from example.com as "example.har" archive.
+playwright open --save-har=example.har --save-har-glob="**/api/**" https://example.com
+```
+
+Read more about [advanced networking](./network.mdx).
+
+## Mock WebSockets
+
+The following code will intercept WebSocket connections and mock entire communication over the WebSocket, instead of connecting to the server. This example responds to a `"request"` with a `"response"`.
+
+<Tabs
+  groupId="python-flavor"
+  defaultValue="sync"
+  values={[
+    {label: 'Sync', value: 'sync'},
+    {label: 'Async', value: 'async'}
+  ]
+}>
+<TabItem value="sync">
+
+```py
+def message_handler(ws: WebSocketRoute, message: Union[str, bytes]):
+  if message == "request":
+    ws.send("response")
+
+page.route_web_socket("wss://example.com/ws", lambda ws: ws.on_message(
+    lambda message: message_handler(ws, message)
+))
+```
+
+</TabItem>
+<TabItem value="async">
+
+```py
+def message_handler(ws: WebSocketRoute, message: Union[str, bytes]):
+  if message == "request":
+    ws.send("response")
+
+await page.route_web_socket("wss://example.com/ws", lambda ws: ws.on_message(
+    lambda message: message_handler(ws, message)
+))
+```
+
+</TabItem>
+</Tabs>
+
+Alternatively, you may want to connect to the actual server, but intercept messages in-between and modify or block them. Here is an example that modifies some of the messages sent by the page to the server, and leaves the rest unmodified.
+
+<Tabs
+  groupId="python-flavor"
+  defaultValue="sync"
+  values={[
+    {label: 'Sync', value: 'sync'},
+    {label: 'Async', value: 'async'}
+  ]
+}>
+<TabItem value="sync">
+
+```py
+def message_handler(server: WebSocketRoute, message: Union[str, bytes]):
+  if message == "request":
+    server.send("request2")
+  else:
+    server.send(message)
+
+def handler(ws: WebSocketRoute):
+  server = ws.connect_to_server()
+  ws.on_message(lambda message: message_handler(server, message))
+
+page.route_web_socket("wss://example.com/ws", handler)
+```
+
+</TabItem>
+<TabItem value="async">
+
+```py
+def message_handler(server: WebSocketRoute, message: Union[str, bytes]):
+  if message == "request":
+    server.send("request2")
+  else:
+    server.send(message)
+
+def handler(ws: WebSocketRoute):
+  server = ws.connect_to_server()
+  ws.on_message(lambda message: message_handler(server, message))
+
+await page.route_web_socket("wss://example.com/ws", handler)
+```
+
+</TabItem>
+</Tabs>
+
+For more details, see [WebSocketRoute].
+
+
+[APIRequest]: /api/class-apirequest.mdx "APIRequest"
+[APIRequestContext]: /api/class-apirequestcontext.mdx "APIRequestContext"
+[APIResponse]: /api/class-apiresponse.mdx "APIResponse"
+[APIResponseAssertions]: /api/class-apiresponseassertions.mdx "APIResponseAssertions"
+[Browser]: /api/class-browser.mdx "Browser"
+[BrowserContext]: /api/class-browsercontext.mdx "BrowserContext"
+[BrowserType]: /api/class-browsertype.mdx "BrowserType"
+[CDPSession]: /api/class-cdpsession.mdx "CDPSession"
+[Clock]: /api/class-clock.mdx "Clock"
+[ConsoleMessage]: /api/class-consolemessage.mdx "ConsoleMessage"
+[Credentials]: /api/class-credentials.mdx "Credentials"
+[Debugger]: /api/class-debugger.mdx "Debugger"
+[Dialog]: /api/class-dialog.mdx "Dialog"
+[Download]: /api/class-download.mdx "Download"
+[ElementHandle]: /api/class-elementhandle.mdx "ElementHandle"
+[Error]: /api/class-error.mdx "Error"
+[FileChooser]: /api/class-filechooser.mdx "FileChooser"
+[FormData]: /api/class-formdata.mdx "FormData"
+[Frame]: /api/class-frame.mdx "Frame"
+[FrameLocator]: /api/class-framelocator.mdx "FrameLocator"
+[JSHandle]: /api/class-jshandle.mdx "JSHandle"
+[Keyboard]: /api/class-keyboard.mdx "Keyboard"
+[Locator]: /api/class-locator.mdx "Locator"
+[LocatorAssertions]: /api/class-locatorassertions.mdx "LocatorAssertions"
+[Mouse]: /api/class-mouse.mdx "Mouse"
+[Page]: /api/class-page.mdx "Page"
+[PageAssertions]: /api/class-pageassertions.mdx "PageAssertions"
+[Playwright]: /api/class-playwright.mdx "Playwright"
+[Request]: /api/class-request.mdx "Request"
+[Response]: /api/class-response.mdx "Response"
+[Route]: /api/class-route.mdx "Route"
+[Screencast]: /api/class-screencast.mdx "Screencast"
+[Selectors]: /api/class-selectors.mdx "Selectors"
+[TimeoutError]: /api/class-timeouterror.mdx "TimeoutError"
+[Touchscreen]: /api/class-touchscreen.mdx "Touchscreen"
+[Tracing]: /api/class-tracing.mdx "Tracing"
+[Video]: /api/class-video.mdx "Video"
+[WebError]: /api/class-weberror.mdx "WebError"
+[WebSocket]: /api/class-websocket.mdx "WebSocket"
+[WebSocketRoute]: /api/class-websocketroute.mdx "WebSocketRoute"
+[WebStorage]: /api/class-webstorage.mdx "WebStorage"
+[Worker]: /api/class-worker.mdx "Worker"
+[Element]: https://developer.mozilla.org/en-US/docs/Web/API/element "Element"
+[EvaluationArgument]: /evaluating.mdx#evaluation-argument "EvaluationArgument"
+[Promise]: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Promise "Promise"
+[iterator]: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Iteration_protocols "Iterator"
+[origin]: https://developer.mozilla.org/en-US/docs/Glossary/Origin "Origin"
+[selector]: https://developer.mozilla.org/en-US/docs/Web/CSS/CSS_Selectors "selector"
+[Serializable]: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/JSON/stringify#Description "Serializable"
+[UIEvent.detail]: https://developer.mozilla.org/en-US/docs/Web/API/UIEvent/detail "UIEvent.detail"
+[UnixTime]: https://en.wikipedia.org/wiki/Unix_time "Unix Time"
+[xpath]: https://developer.mozilla.org/en-US/docs/Web/XPath "xpath"
+
+[Any]: https://docs.python.org/3/library/typing.html#typing.Any "Any"
+[bool]: https://docs.python.org/3/library/stdtypes.html "bool"
+[bytes]: https://docs.python.org/3/library/stdtypes.html#bytes "bytes"
+[Callable]: https://docs.python.org/3/library/typing.html#typing.Callable "Callable"
+[EventContextManager]: https://docs.python.org/3/reference/datamodel.html#context-managers "Event context manager"
+[EventEmitter]: https://pyee.readthedocs.io/en/latest/#pyee.BaseEventEmitter "EventEmitter"
+[Exception]: https://docs.python.org/3/library/exceptions.html#Exception "Exception"
+[Dict]: https://docs.python.org/3/library/typing.html#typing.Dict "Dict"
+[float]: https://docs.python.org/3/library/stdtypes.html#numeric-types-int-float-complex "float"
+[int]: https://docs.python.org/3/library/stdtypes.html#numeric-types-int-float-complex "int"
+[List]: https://docs.python.org/3/library/typing.html#typing.List "List"
+[NoneType]: https://docs.python.org/3/library/constants.html#None "None"
+[Pattern]: https://docs.python.org/3/library/re.html "Pattern"
+[URL]: https://en.wikipedia.org/wiki/URL "URL"
+[pathlib.Path]: https://realpython.com/python-pathlib/ "pathlib.Path"
+[str]: https://docs.python.org/3/library/stdtypes.html#text-sequence-type-str "str"
+[Union]: https://docs.python.org/3/library/typing.html#typing.Union "Union"
+[datetime]: https://docs.python.org/3/library/datetime.html#datetime.datetime "datetime"
+
+[all available image tags]: https://mcr.microsoft.com/en-us/product/playwright/python/about "all available image tags"
+[Microsoft Artifact Registry]: https://mcr.microsoft.com/en-us/product/playwright/python/about "Microsoft Artifact Registry"
+[Dockerfile.noble]: https://github.com/microsoft/playwright-python/blob/main/utils/docker/Dockerfile.noble "Dockerfile.noble"

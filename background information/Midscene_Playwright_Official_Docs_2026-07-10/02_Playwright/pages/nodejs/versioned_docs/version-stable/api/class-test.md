@@ -1,0 +1,2016 @@
+---
+id: class-test
+title: "Playwright Test"
+---
+import Tabs from '@theme/Tabs';
+import TabItem from '@theme/TabItem';
+import HTMLCard from '@site/src/components/HTMLCard';
+
+
+Playwright Test provides a `test` function to declare tests and `expect` function to write assertions.
+
+```js
+import { test, expect } from '@playwright/test';
+
+test('basic test', async ({ page }) => {
+  await page.goto('https://playwright.dev/');
+  const name = await page.innerText('.navbar__title');
+  expect(name).toBe('Playwright');
+});
+```
+
+
+---
+
+## Methods
+
+### test {/* #test-call */}
+
+<font size="2" style={{position: "relative", top: "-20px"}}>Added in: v1.10</font><x-search>test.test</x-search>
+
+Declares a test.
+* `test(title, body)`
+* `test(title, details, body)`
+
+**Usage**
+
+```js
+import { test, expect } from '@playwright/test';
+
+test('basic test', async ({ page }) => {
+  await page.goto('https://playwright.dev/');
+  // ...
+});
+```
+
+**Tags**
+
+You can tag tests by providing additional test details. Alternatively, you can include tags in the test title. Note that each tag must start with `@` symbol.
+
+```js
+import { test, expect } from '@playwright/test';
+
+test('basic test', {
+  tag: '@smoke',
+}, async ({ page }) => {
+  await page.goto('https://playwright.dev/');
+  // ...
+});
+
+test('another test @smoke', async ({ page }) => {
+  await page.goto('https://playwright.dev/');
+  // ...
+});
+```
+
+Test tags are displayed in the test report, and are available to a custom reporter via `TestCase.tags` property.
+
+You can also filter tests by their tags during test execution:
+* in the [command line](../test-cli.mdx#all-options);
+* in the config with [testConfig.grep](/api/class-testconfig.mdx#test-config-grep) and [testProject.grep](/api/class-testproject.mdx#test-project-grep);
+
+Learn more about [tagging](../test-annotations.mdx#tag-tests).
+
+**Annotations**
+
+You can annotate tests by providing additional test details.
+
+```js
+import { test, expect } from '@playwright/test';
+
+test('basic test', {
+  annotation: {
+    type: 'issue',
+    description: 'https://github.com/microsoft/playwright/issues/23180',
+  },
+}, async ({ page }) => {
+  await page.goto('https://playwright.dev/');
+  // ...
+});
+```
+
+Test annotations are displayed in the test report, and are available to a custom reporter via `TestCase.annotations` property.
+
+You can also add annotations during runtime by manipulating [testInfo.annotations](/api/class-testinfo.mdx#test-info-annotations).
+
+Learn more about [test annotations](../test-annotations.mdx).
+
+**Arguments**
+- `title` [string]<a aria-hidden="true" tabIndex="-1" class="list-anchor-link" id="test-call-option-title"/><a href="#test-call-option-title" class="list-anchor">#</a>
+  
+  Test title.
+- `details` [Object] *(optional)* <font size="2">Added in: v1.42</font><a aria-hidden="true" tabIndex="-1" class="list-anchor-link" id="test-call-option-details"/><a href="#test-call-option-details" class="list-anchor">#</a>
+  - `tag` [string] | [Array]&lt;[string]&gt; *(optional)*
+    
+    
+  - `annotation` [Object] | [Array]&lt;[Object]&gt; *(optional)*
+    - `type` [string]
+      
+      Annotation type, for example `'issue'`.
+    - `description` [string] *(optional)*
+      
+      Optional annotation description, for example an issue url.
+    
+    
+  Additional test details.
+- `body` [function]\([Fixtures], [TestInfo]\)<a aria-hidden="true" tabIndex="-1" class="list-anchor-link" id="test-call-option-body"/><a href="#test-call-option-body" class="list-anchor">#</a>
+  
+  Test body that takes one or two arguments: an object with fixtures and optional [TestInfo].
+
+---
+
+### test.abort {/* #test-abort */}
+
+<font size="2" style={{position: "relative", top: "-20px"}}>Added in: v1.60</font><x-search>test.test.abort</x-search>
+
+Aborts the currently running test by throwing an error. The test is immediately marked as failed and execution stops. This is useful from inside a fixture or a route handler when you have detected an unrecoverable misuse and want to fail the test right away.
+
+**Usage**
+
+```js
+import { test, expect } from '@playwright/test';
+
+test('does not publish to shared page', async ({ page }) => {
+  await page.route('**/publish', route => {
+    test.abort('Tests must not publish to the shared page. Use the `clone` option.');
+    return route.abort();
+  });
+  // ...
+});
+```
+
+**Arguments**
+- `message` [string] *(optional)*<a aria-hidden="true" tabIndex="-1" class="list-anchor-link" id="test-abort-option-message"/><a href="#test-abort-option-message" class="list-anchor">#</a>
+  
+  Optional message describing the reason for the abort. It will be included in the failure error.
+
+---
+
+### test.afterAll {/* #test-after-all */}
+
+<font size="2" style={{position: "relative", top: "-20px"}}>Added in: v1.10</font><x-search>test.test.afterAll</x-search>
+
+Declares an `afterAll` hook that is executed once per worker after all tests.
+
+When called in the scope of a test file, runs after all tests in the file. When called inside a [test.describe()](/api/class-test.mdx#test-describe) group, runs after all tests in the group.
+
+**Usage**
+
+```js
+test.afterAll(async () => {
+  console.log('Done with tests');
+  // ...
+});
+```
+
+Alternatively, you can declare a hook **with a title**.
+
+```js
+test.afterAll('Teardown', async () => {
+  console.log('Done with tests');
+  // ...
+});
+```
+
+**Arguments**
+- `title` [string] *(optional)* <font size="2">Added in: v1.38</font><a aria-hidden="true" tabIndex="-1" class="list-anchor-link" id="test-after-all-option-title"/><a href="#test-after-all-option-title" class="list-anchor">#</a>
+  
+  Hook title.
+- `hookFunction` [function]\([Fixtures], [TestInfo]\)<a aria-hidden="true" tabIndex="-1" class="list-anchor-link" id="test-after-all-option-hook-function"/><a href="#test-after-all-option-hook-function" class="list-anchor">#</a>
+  
+  Hook function that takes one or two arguments: an object with worker fixtures and optional [TestInfo].
+
+**Details**
+
+When multiple `afterAll` hooks are added, they will run in the order of their registration.
+
+Note that worker process is restarted on test failures, and `afterAll` hook runs again in the new worker. Learn more about [workers and failures](../test-retries.mdx).
+
+Playwright will continue running all applicable hooks even if some of them have failed.
+* `test.afterAll(hookFunction)`
+* `test.afterAll(title, hookFunction)`
+
+---
+
+### test.afterEach {/* #test-after-each */}
+
+<font size="2" style={{position: "relative", top: "-20px"}}>Added in: v1.10</font><x-search>test.test.afterEach</x-search>
+
+Declares an `afterEach` hook that is executed after each test.
+
+When called in the scope of a test file, runs after each test in the file. When called inside a [test.describe()](/api/class-test.mdx#test-describe) group, runs after each test in the group.
+
+You can access all the same [Fixtures] as the test body itself, and also the [TestInfo] object that gives a lot of useful information. For example, you can check whether the test succeeded or failed.
+* `test.afterEach(hookFunction)`
+* `test.afterEach(title, hookFunction)`
+
+**Usage**
+
+```js title="example.spec.ts"
+import { test, expect } from '@playwright/test';
+
+test.afterEach(async ({ page }) => {
+  console.log(`Finished ${test.info().title} with status ${test.info().status}`);
+
+  if (test.info().status !== test.info().expectedStatus)
+    console.log(`Did not run as expected, ended up at ${page.url()}`);
+});
+
+test('my test', async ({ page }) => {
+  // ...
+});
+```
+
+Alternatively, you can declare a hook **with a title**.
+
+```js title="example.spec.ts"
+test.afterEach('Status check', async ({ page }) => {
+  if (test.info().status !== test.info().expectedStatus)
+    console.log(`Did not run as expected, ended up at ${page.url()}`);
+});
+```
+
+**Arguments**
+- `title` [string] *(optional)* <font size="2">Added in: v1.38</font><a aria-hidden="true" tabIndex="-1" class="list-anchor-link" id="test-after-each-option-title"/><a href="#test-after-each-option-title" class="list-anchor">#</a>
+  
+  Hook title.
+- `hookFunction` [function]\([Fixtures], [TestInfo]\)<a aria-hidden="true" tabIndex="-1" class="list-anchor-link" id="test-after-each-option-hook-function"/><a href="#test-after-each-option-hook-function" class="list-anchor">#</a>
+  
+  Hook function that takes one or two arguments: an object with fixtures and optional [TestInfo].
+
+**Details**
+
+When multiple `afterEach` hooks are added, they will run in the order of their registration.
+
+Playwright will continue running all applicable hooks even if some of them have failed.
+
+---
+
+### test.beforeAll {/* #test-before-all */}
+
+<font size="2" style={{position: "relative", top: "-20px"}}>Added in: v1.10</font><x-search>test.test.beforeAll</x-search>
+
+Declares a `beforeAll` hook that is executed once per worker process before all tests.
+
+When called in the scope of a test file, runs before all tests in the file. When called inside a [test.describe()](/api/class-test.mdx#test-describe) group, runs before all tests in the group.
+
+You can use [test.afterAll()](/api/class-test.mdx#test-after-all) to teardown any resources set up in `beforeAll`.
+* `test.beforeAll(hookFunction)`
+* `test.beforeAll(title, hookFunction)`
+
+**Usage**
+
+```js title="example.spec.ts"
+import { test, expect } from '@playwright/test';
+
+test.beforeAll(async () => {
+  console.log('Before tests');
+});
+
+test.afterAll(async () => {
+  console.log('After tests');
+});
+
+test('my test', async ({ page }) => {
+  // ...
+});
+```
+
+Alternatively, you can declare a hook **with a title**.
+
+```js title="example.spec.ts"
+test.beforeAll('Setup', async () => {
+  console.log('Before tests');
+});
+```
+
+**Arguments**
+- `title` [string] *(optional)* <font size="2">Added in: v1.38</font><a aria-hidden="true" tabIndex="-1" class="list-anchor-link" id="test-before-all-option-title"/><a href="#test-before-all-option-title" class="list-anchor">#</a>
+  
+  Hook title.
+- `hookFunction` [function]\([Fixtures], [TestInfo]\)<a aria-hidden="true" tabIndex="-1" class="list-anchor-link" id="test-before-all-option-hook-function"/><a href="#test-before-all-option-hook-function" class="list-anchor">#</a>
+  
+  Hook function that takes one or two arguments: an object with worker fixtures and optional [TestInfo].
+
+**Details**
+
+When multiple `beforeAll` hooks are added, they will run in the order of their registration.
+
+Note that worker process is restarted on test failures, and `beforeAll` hook runs again in the new worker. Learn more about [workers and failures](../test-retries.mdx).
+
+Playwright will continue running all applicable hooks even if some of them have failed.
+
+---
+
+### test.beforeEach {/* #test-before-each */}
+
+<font size="2" style={{position: "relative", top: "-20px"}}>Added in: v1.10</font><x-search>test.test.beforeEach</x-search>
+
+Declares a `beforeEach` hook that is executed before each test.
+
+When called in the scope of a test file, runs before each test in the file. When called inside a [test.describe()](/api/class-test.mdx#test-describe) group, runs before each test in the group.
+
+You can access all the same [Fixtures] as the test body itself, and also the [TestInfo] object that gives a lot of useful information. For example, you can navigate the page before starting the test.
+
+You can use [test.afterEach()](/api/class-test.mdx#test-after-each) to teardown any resources set up in `beforeEach`.
+* `test.beforeEach(hookFunction)`
+* `test.beforeEach(title, hookFunction)`
+
+**Usage**
+
+```js title="example.spec.ts"
+import { test, expect } from '@playwright/test';
+
+test.beforeEach(async ({ page }) => {
+  console.log(`Running ${test.info().title}`);
+  await page.goto('https://my.start.url/');
+});
+
+test('my test', async ({ page }) => {
+  expect(page.url()).toBe('https://my.start.url/');
+});
+```
+
+Alternatively, you can declare a hook **with a title**.
+
+```js title="example.spec.ts"
+test.beforeEach('Open start URL', async ({ page }) => {
+  console.log(`Running ${test.info().title}`);
+  await page.goto('https://my.start.url/');
+});
+```
+
+**Arguments**
+- `title` [string] *(optional)* <font size="2">Added in: v1.38</font><a aria-hidden="true" tabIndex="-1" class="list-anchor-link" id="test-before-each-option-title"/><a href="#test-before-each-option-title" class="list-anchor">#</a>
+  
+  Hook title.
+- `hookFunction` [function]\([Fixtures], [TestInfo]\)<a aria-hidden="true" tabIndex="-1" class="list-anchor-link" id="test-before-each-option-hook-function"/><a href="#test-before-each-option-hook-function" class="list-anchor">#</a>
+  
+  Hook function that takes one or two arguments: an object with fixtures and optional [TestInfo].
+
+**Details**
+
+When multiple `beforeEach` hooks are added, they will run in the order of their registration.
+
+Playwright will continue running all applicable hooks even if some of them have failed.
+
+---
+
+### test.describe {/* #test-describe */}
+
+<font size="2" style={{position: "relative", top: "-20px"}}>Added in: v1.10</font><x-search>test.test.describe</x-search>
+
+Declares a group of tests.
+* `test.describe(title, callback)`
+* `test.describe(callback)`
+* `test.describe(title, details, callback)`
+
+**Usage**
+
+You can declare a group of tests with a title. The title will be visible in the test report as a part of each test's title.
+
+```js
+test.describe('two tests', () => {
+  test('one', async ({ page }) => {
+    // ...
+  });
+
+  test('two', async ({ page }) => {
+    // ...
+  });
+});
+```
+
+**Anonymous group**
+
+You can also declare a test group without a title. This is convenient to give a group of tests a common option with [test.use()](/api/class-test.mdx#test-use).
+
+```js
+test.describe(() => {
+  test.use({ colorScheme: 'dark' });
+
+  test('one', async ({ page }) => {
+    // ...
+  });
+
+  test('two', async ({ page }) => {
+    // ...
+  });
+});
+```
+
+**Tags**
+
+You can tag all tests in a group by providing additional details. Note that each tag must start with `@` symbol.
+
+```js
+import { test, expect } from '@playwright/test';
+
+test.describe('two tagged tests', {
+  tag: '@smoke',
+}, () => {
+  test('one', async ({ page }) => {
+    // ...
+  });
+
+  test('two', async ({ page }) => {
+    // ...
+  });
+});
+```
+
+Learn more about [tagging](../test-annotations.mdx#tag-tests).
+
+**Annotations**
+
+You can annotate all tests in a group by providing additional details.
+
+```js
+import { test, expect } from '@playwright/test';
+
+test.describe('two annotated tests', {
+  annotation: {
+    type: 'issue',
+    description: 'https://github.com/microsoft/playwright/issues/23180',
+  },
+}, () => {
+  test('one', async ({ page }) => {
+    // ...
+  });
+
+  test('two', async ({ page }) => {
+    // ...
+  });
+});
+```
+
+Learn more about [test annotations](../test-annotations.mdx).
+
+**Arguments**
+- `title` [string] *(optional)*<a aria-hidden="true" tabIndex="-1" class="list-anchor-link" id="test-describe-option-title"/><a href="#test-describe-option-title" class="list-anchor">#</a>
+  
+  Group title.
+- `details` [Object] *(optional)* <font size="2">Added in: v1.42</font><a aria-hidden="true" tabIndex="-1" class="list-anchor-link" id="test-describe-option-details"/><a href="#test-describe-option-details" class="list-anchor">#</a>
+  - `tag` [string] | [Array]&lt;[string]&gt; *(optional)*
+    
+    
+  - `annotation` [Object] | [Array]&lt;[Object]&gt; *(optional)*
+    - `type` [string]
+      
+      
+    - `description` [string] *(optional)*
+      
+      
+    
+  Additional details for all tests in the group.
+- `callback` [function]<a aria-hidden="true" tabIndex="-1" class="list-anchor-link" id="test-describe-option-callback"/><a href="#test-describe-option-callback" class="list-anchor">#</a>
+  
+  A callback that is run immediately when calling [test.describe()](/api/class-test.mdx#test-describe). Any tests declared in this callback will belong to the group.
+
+---
+
+### test.describe.configure {/* #test-describe-configure */}
+
+<font size="2" style={{position: "relative", top: "-20px"}}>Added in: v1.10</font><x-search>test.test.describe.configure</x-search>
+
+Configures the enclosing scope. Can be executed either on the top level or inside a describe. Configuration applies to the entire scope, regardless of whether it run before or after the test declaration.
+
+Learn more about the execution modes [here](../test-parallel.mdx).
+
+**Usage**
+* Running tests in parallel.
+  
+  ```js
+  // Run all the tests in the file concurrently using parallel workers.
+  test.describe.configure({ mode: 'parallel' });
+  test('runs in parallel 1', async ({ page }) => {});
+  test('runs in parallel 2', async ({ page }) => {});
+  ```
+  
+* Running tests in order, retrying each failed test independently.
+  
+  This is the default mode. It can be useful to set it explicitly to override project configuration that uses `fullyParallel`.
+  
+  ```js
+  // Tests in this file run in order. Retries, if any, run independently.
+  test.describe.configure({ mode: 'default' });
+  test('runs first', async ({ page }) => {});
+  test('runs second', async ({ page }) => {});
+  ```
+  
+* Running tests serially, retrying from the start. If one of the serial tests fails, all subsequent tests are skipped.
+  
+  :::note
+  
+  Running serially is not recommended. It is usually better to make your tests isolated, so they can be run independently.
+  :::
+  
+  ```js
+  // Annotate tests as inter-dependent.
+  test.describe.configure({ mode: 'serial' });
+  test('runs first', async ({ page }) => {});
+  test('runs second', async ({ page }) => {});
+  ```
+  
+* Configuring retries and timeout for each test.
+  
+  ```js
+  // Each test in the file will be retried twice and have a timeout of 20 seconds.
+  test.describe.configure({ retries: 2, timeout: 20_000 });
+  test('runs first', async ({ page }) => {});
+  test('runs second', async ({ page }) => {});
+  ```
+  
+* Run multiple describes in parallel, but tests inside each describe in order.
+  
+  ```js
+  test.describe.configure({ mode: 'parallel' });
+  
+  test.describe('A, runs in parallel with B', () => {
+    test.describe.configure({ mode: 'default' });
+    test('in order A1', async ({ page }) => {});
+    test('in order A2', async ({ page }) => {});
+  });
+  
+  test.describe('B, runs in parallel with A', () => {
+    test.describe.configure({ mode: 'default' });
+    test('in order B1', async ({ page }) => {});
+    test('in order B2', async ({ page }) => {});
+  });
+  ```
+  
+**Arguments**
+- `options` [Object] *(optional)*
+  - `mode` "default" | "parallel" | "serial" *(optional)*<a aria-hidden="true" tabIndex="-1" class="list-anchor-link" id="test-describe-configure-option-mode"/><a href="#test-describe-configure-option-mode" class="list-anchor">#</a>
+    
+    Execution mode. Learn more about the execution modes [here](../test-parallel.mdx).
+  - `retries` [number] *(optional)* <font size="2">Added in: v1.28</font><a aria-hidden="true" tabIndex="-1" class="list-anchor-link" id="test-describe-configure-option-retries"/><a href="#test-describe-configure-option-retries" class="list-anchor">#</a>
+    
+    The number of retries for each test.
+  - `timeout` [number] *(optional)* <font size="2">Added in: v1.28</font><a aria-hidden="true" tabIndex="-1" class="list-anchor-link" id="test-describe-configure-option-timeout"/><a href="#test-describe-configure-option-timeout" class="list-anchor">#</a>
+    
+    Timeout for each test in milliseconds. Overrides [testProject.timeout](/api/class-testproject.mdx#test-project-timeout) and [testConfig.timeout](/api/class-testconfig.mdx#test-config-timeout).
+
+---
+
+### test.describe.fixme {/* #test-describe-fixme */}
+
+<font size="2" style={{position: "relative", top: "-20px"}}>Added in: v1.25</font><x-search>test.test.describe.fixme</x-search>
+
+Declares a test group similarly to [test.describe()](/api/class-test.mdx#test-describe). Tests in this group are marked as "fixme" and will not be executed.
+* `test.describe.fixme(title, callback)`
+* `test.describe.fixme(callback)`
+* `test.describe.fixme(title, details, callback)`
+
+**Usage**
+
+```js
+test.describe.fixme('broken tests that should be fixed', () => {
+  test('example', async ({ page }) => {
+    // This test will not run
+  });
+});
+```
+
+You can also omit the title.
+
+```js
+test.describe.fixme(() => {
+  // ...
+});
+```
+
+**Arguments**
+- `title` [string] *(optional)*<a aria-hidden="true" tabIndex="-1" class="list-anchor-link" id="test-describe-fixme-option-title"/><a href="#test-describe-fixme-option-title" class="list-anchor">#</a>
+  
+  Group title.
+- `details` [Object] *(optional)* <font size="2">Added in: v1.42</font><a aria-hidden="true" tabIndex="-1" class="list-anchor-link" id="test-describe-fixme-option-details"/><a href="#test-describe-fixme-option-details" class="list-anchor">#</a>
+  - `tag` [string] | [Array]&lt;[string]&gt; *(optional)*
+    
+    
+  - `annotation` [Object] | [Array]&lt;[Object]&gt; *(optional)*
+    - `type` [string]
+      
+      
+    - `description` [string] *(optional)*
+      
+      
+    
+  See [test.describe()](/api/class-test.mdx#test-describe) for details description.
+- `callback` [function]<a aria-hidden="true" tabIndex="-1" class="list-anchor-link" id="test-describe-fixme-option-callback"/><a href="#test-describe-fixme-option-callback" class="list-anchor">#</a>
+  
+  A callback that is run immediately when calling [test.describe.fixme()](/api/class-test.mdx#test-describe-fixme). Any tests added in this callback will belong to the group, and will not be run.
+
+---
+
+### test.describe.only {/* #test-describe-only */}
+
+<font size="2" style={{position: "relative", top: "-20px"}}>Added in: v1.10</font><x-search>test.test.describe.only</x-search>
+
+Declares a focused group of tests. If there are some focused tests or suites, all of them will be run but nothing else.
+* `test.describe.only(title, callback)`
+* `test.describe.only(callback)`
+* `test.describe.only(title, details, callback)`
+
+**Usage**
+
+```js
+test.describe.only('focused group', () => {
+  test('in the focused group', async ({ page }) => {
+    // This test will run
+  });
+});
+test('not in the focused group', async ({ page }) => {
+  // This test will not run
+});
+```
+
+You can also omit the title.
+
+```js
+test.describe.only(() => {
+  // ...
+});
+```
+
+**Arguments**
+- `title` [string] *(optional)*<a aria-hidden="true" tabIndex="-1" class="list-anchor-link" id="test-describe-only-option-title"/><a href="#test-describe-only-option-title" class="list-anchor">#</a>
+  
+  Group title.
+- `details` [Object] *(optional)* <font size="2">Added in: v1.42</font><a aria-hidden="true" tabIndex="-1" class="list-anchor-link" id="test-describe-only-option-details"/><a href="#test-describe-only-option-details" class="list-anchor">#</a>
+  - `tag` [string] | [Array]&lt;[string]&gt; *(optional)*
+    
+    
+  - `annotation` [Object] | [Array]&lt;[Object]&gt; *(optional)*
+    - `type` [string]
+      
+      
+    - `description` [string] *(optional)*
+      
+      
+    
+  See [test.describe()](/api/class-test.mdx#test-describe) for details description.
+- `callback` [function]<a aria-hidden="true" tabIndex="-1" class="list-anchor-link" id="test-describe-only-option-callback"/><a href="#test-describe-only-option-callback" class="list-anchor">#</a>
+  
+  A callback that is run immediately when calling [test.describe.only()](/api/class-test.mdx#test-describe-only). Any tests added in this callback will belong to the group.
+
+---
+
+### test.describe.skip {/* #test-describe-skip */}
+
+<font size="2" style={{position: "relative", top: "-20px"}}>Added in: v1.10</font><x-search>test.test.describe.skip</x-search>
+
+Declares a skipped test group, similarly to [test.describe()](/api/class-test.mdx#test-describe). Tests in the skipped group are never run.
+* `test.describe.skip(title, callback)`
+* `test.describe.skip(title)`
+* `test.describe.skip(title, details, callback)`
+
+**Usage**
+
+```js
+test.describe.skip('skipped group', () => {
+  test('example', async ({ page }) => {
+    // This test will not run
+  });
+});
+```
+
+You can also omit the title.
+
+```js
+test.describe.skip(() => {
+  // ...
+});
+```
+
+**Arguments**
+- `title` [string]<a aria-hidden="true" tabIndex="-1" class="list-anchor-link" id="test-describe-skip-option-title"/><a href="#test-describe-skip-option-title" class="list-anchor">#</a>
+  
+  Group title.
+- `details` [Object] *(optional)* <font size="2">Added in: v1.42</font><a aria-hidden="true" tabIndex="-1" class="list-anchor-link" id="test-describe-skip-option-details"/><a href="#test-describe-skip-option-details" class="list-anchor">#</a>
+  - `tag` [string] | [Array]&lt;[string]&gt; *(optional)*
+    
+    
+  - `annotation` [Object] | [Array]&lt;[Object]&gt; *(optional)*
+    - `type` [string]
+      
+      
+    - `description` [string] *(optional)*
+      
+      
+    
+  See [test.describe()](/api/class-test.mdx#test-describe) for details description.
+- `callback` [function]<a aria-hidden="true" tabIndex="-1" class="list-anchor-link" id="test-describe-skip-option-callback"/><a href="#test-describe-skip-option-callback" class="list-anchor">#</a>
+  
+  A callback that is run immediately when calling [test.describe.skip()](/api/class-test.mdx#test-describe-skip). Any tests added in this callback will belong to the group, and will not be run.
+
+---
+
+### test.extend {/* #test-extend */}
+
+<font size="2" style={{position: "relative", top: "-20px"}}>Added in: v1.10</font><x-search>test.test.extend</x-search>
+
+Extends the `test` object by defining fixtures and/or options that can be used in the tests.
+
+**Usage**
+
+First define a fixture and/or an option.
+
+<Tabs
+  groupId="js-flavor"
+  defaultValue="ts"
+  values={[
+    {label: 'TypeScript', value: 'ts'},
+    {label: 'JavaScript', value: 'js'}
+  ]
+}>
+<TabItem value="ts">
+
+```js
+import { test as base } from '@playwright/test';
+import { TodoPage } from './todo-page';
+
+export type Options = { defaultItem: string };
+
+// Extend basic test by providing a "defaultItem" option and a "todoPage" fixture.
+export const test = base.extend<Options & { todoPage: TodoPage }>({
+  // Define an option and provide a default value.
+  // We can later override it in the config.
+  defaultItem: ['Do stuff', { option: true }],
+
+  // Define a fixture. Note that it can use built-in fixture "page"
+  // and a new option "defaultItem".
+  todoPage: async ({ page, defaultItem }, use) => {
+    const todoPage = new TodoPage(page);
+    await todoPage.goto();
+    await todoPage.addToDo(defaultItem);
+    await use(todoPage);
+    await todoPage.removeAll();
+  },
+});
+```
+
+</TabItem>
+<TabItem value="js">
+
+```js title="my-test.js"
+const base = require('@playwright/test');
+const { TodoPage } = require('./todo-page');
+
+// Extend basic test by providing a "defaultItem" option and a "todoPage" fixture.
+exports.test = base.test.extend({
+  // Define an option and provide a default value.
+  // We can later override it in the config.
+  defaultItem: ['Do stuff', { option: true }],
+
+  // Define a fixture. Note that it can use built-in fixture "page"
+  // and a new option "defaultItem".
+  todoPage: async ({ page, defaultItem }, use) => {
+    const todoPage = new TodoPage(page);
+    await todoPage.goto();
+    await todoPage.addToDo(defaultItem);
+    await use(todoPage);
+    await todoPage.removeAll();
+  },
+});
+```
+
+</TabItem>
+</Tabs>
+
+Then use the fixture in the test.
+
+```js title="example.spec.ts"
+import { test } from './my-test';
+
+test('test 1', async ({ todoPage }) => {
+  await todoPage.addToDo('my todo');
+  // ...
+});
+```
+
+Configure the option in config file.
+
+<Tabs
+  groupId="js-flavor"
+  defaultValue="ts"
+  values={[
+    {label: 'TypeScript', value: 'ts'},
+    {label: 'JavaScript', value: 'js'}
+  ]
+}>
+<TabItem value="ts">
+
+```js title="playwright.config.ts"
+import { defineConfig } from '@playwright/test';
+import type { Options } from './my-test';
+
+export default defineConfig<Options>({
+  projects: [
+    {
+      name: 'shopping',
+      use: { defaultItem: 'Buy milk' },
+    },
+    {
+      name: 'wellbeing',
+      use: { defaultItem: 'Exercise!' },
+    },
+  ]
+});
+```
+
+</TabItem>
+<TabItem value="js">
+
+```js title="playwright.config.ts"
+// @ts-check
+
+module.exports = defineConfig({
+  projects: [
+    {
+      name: 'shopping',
+      use: { defaultItem: 'Buy milk' },
+    },
+    {
+      name: 'wellbeing',
+      use: { defaultItem: 'Exercise!' },
+    },
+  ]
+});
+```
+
+</TabItem>
+</Tabs>
+
+Learn more about [fixtures](../test-fixtures.mdx) and [parametrizing tests](../test-parameterize.mdx).
+
+**Arguments**
+- `fixtures` [Object]<a aria-hidden="true" tabIndex="-1" class="list-anchor-link" id="test-extend-option-fixtures"/><a href="#test-extend-option-fixtures" class="list-anchor">#</a>
+  
+  An object containing fixtures and/or options. Learn more about [fixtures format](../test-fixtures.mdx).
+
+**Returns**
+- [Test]<a aria-hidden="true" tabIndex="-1" class="list-anchor-link" id="test-extend-return"/><a href="#test-extend-return" class="list-anchor">#</a>
+
+---
+
+### test.fail {/* #test-fail */}
+
+<font size="2" style={{position: "relative", top: "-20px"}}>Added in: v1.10</font><x-search>test.test.fail</x-search>
+
+Marks a test as "should fail". Playwright runs this test and ensures that it is actually failing. This is useful for documentation purposes to acknowledge that some functionality is broken until it is fixed.
+
+To declare a "failing" test:
+* `test.fail(title, body)`
+* `test.fail(title, details, body)`
+
+To annotate test as "failing" at runtime:
+* `test.fail(condition, description)`
+* `test.fail(callback, description)`
+* `test.fail()`
+
+**Usage**
+
+You can declare a test as failing, so that Playwright ensures it actually fails.
+
+```js
+import { test, expect } from '@playwright/test';
+
+test.fail('not yet ready', async ({ page }) => {
+  // ...
+});
+```
+
+If your test fails in some configurations, but not all, you can mark the test as failing inside the test body based on some condition. We recommend passing a `description` argument in this case.
+
+```js
+import { test, expect } from '@playwright/test';
+
+test('fail in WebKit', async ({ page, browserName }) => {
+  test.fail(browserName === 'webkit', 'This feature is not implemented for Mac yet');
+  // ...
+});
+```
+
+You can mark all tests in a file or [test.describe()](/api/class-test.mdx#test-describe) group as "should fail" based on some condition with a single `test.fail(callback, description)` call.
+
+```js
+import { test, expect } from '@playwright/test';
+
+test.fail(({ browserName }) => browserName === 'webkit', 'not implemented yet');
+
+test('fail in WebKit 1', async ({ page }) => {
+  // ...
+});
+test('fail in WebKit 2', async ({ page }) => {
+  // ...
+});
+```
+
+You can also call `test.fail()` without arguments inside the test body to always mark the test as failed. We recommend declaring a failing test with `test.fail(title, body)` instead.
+
+```js
+import { test, expect } from '@playwright/test';
+
+test('less readable', async ({ page }) => {
+  test.fail();
+  // ...
+});
+```
+
+**Arguments**
+- `title` [string] *(optional)* <font size="2">Added in: v1.42</font><a aria-hidden="true" tabIndex="-1" class="list-anchor-link" id="test-fail-option-title"/><a href="#test-fail-option-title" class="list-anchor">#</a>
+  
+  Test title.
+- `details` [Object] *(optional)* <font size="2">Added in: v1.42</font><a aria-hidden="true" tabIndex="-1" class="list-anchor-link" id="test-fail-option-details"/><a href="#test-fail-option-details" class="list-anchor">#</a>
+  - `tag` [string] | [Array]&lt;[string]&gt; *(optional)*
+    
+    
+  - `annotation` [Object] | [Array]&lt;[Object]&gt; *(optional)*
+    - `type` [string]
+      
+      
+    - `description` [string] *(optional)*
+      
+      
+    
+  See [test()](/api/class-test.mdx#test-call) for test details description.
+- `body` [function]\([Fixtures], [TestInfo]\) *(optional)* <font size="2">Added in: v1.42</font><a aria-hidden="true" tabIndex="-1" class="list-anchor-link" id="test-fail-option-body"/><a href="#test-fail-option-body" class="list-anchor">#</a>
+  
+  Test body that takes one or two arguments: an object with fixtures and optional [TestInfo].
+- `condition` [boolean] *(optional)*<a aria-hidden="true" tabIndex="-1" class="list-anchor-link" id="test-fail-option-condition"/><a href="#test-fail-option-condition" class="list-anchor">#</a>
+  
+  Test is marked as "should fail" when the condition is `true`.
+- `callback` [function]\([Fixtures]\):[boolean] *(optional)*<a aria-hidden="true" tabIndex="-1" class="list-anchor-link" id="test-fail-option-callback"/><a href="#test-fail-option-callback" class="list-anchor">#</a>
+  
+  A function that returns whether to mark as "should fail", based on test fixtures. Test or tests are marked as "should fail" when the return value is `true`.
+- `description` [string] *(optional)*<a aria-hidden="true" tabIndex="-1" class="list-anchor-link" id="test-fail-option-description"/><a href="#test-fail-option-description" class="list-anchor">#</a>
+  
+  Optional description that will be reflected in a test report.
+
+---
+
+### test.fail.only {/* #test-fail-only */}
+
+<font size="2" style={{position: "relative", top: "-20px"}}>Added in: v1.49</font><x-search>test.test.fail.only</x-search>
+
+You can use `test.fail.only` to focus on a specific test that is expected to fail. This is particularly useful when debugging a failing test or working on a specific issue.
+
+To declare a focused "failing" test:
+* `test.fail.only(title, body)`
+* `test.fail.only(title, details, body)`
+
+**Usage**
+
+You can declare a focused failing test, so that Playwright runs only this test and ensures it actually fails.
+
+```js
+import { test, expect } from '@playwright/test';
+
+test.fail.only('focused failing test', async ({ page }) => {
+  // This test is expected to fail
+});
+test('not in the focused group', async ({ page }) => {
+  // This test will not run
+});
+```
+
+**Arguments**
+- `title` [string] *(optional)*<a aria-hidden="true" tabIndex="-1" class="list-anchor-link" id="test-fail-only-option-title"/><a href="#test-fail-only-option-title" class="list-anchor">#</a>
+  
+  Test title.
+- `details` [Object] *(optional)*<a aria-hidden="true" tabIndex="-1" class="list-anchor-link" id="test-fail-only-option-details"/><a href="#test-fail-only-option-details" class="list-anchor">#</a>
+  - `tag` [string] | [Array]&lt;[string]&gt; *(optional)*
+    
+    
+  - `annotation` [Object] | [Array]&lt;[Object]&gt; *(optional)*
+    - `type` [string]
+      
+      
+    - `description` [string] *(optional)*
+      
+      
+    
+  See [test.describe()](/api/class-test.mdx#test-describe) for test details description.
+- `body` [function]\([Fixtures], [TestInfo]\) *(optional)*<a aria-hidden="true" tabIndex="-1" class="list-anchor-link" id="test-fail-only-option-body"/><a href="#test-fail-only-option-body" class="list-anchor">#</a>
+  
+  Test body that takes one or two arguments: an object with fixtures and optional [TestInfo].
+
+---
+
+### test.fixme {/* #test-fixme */}
+
+<font size="2" style={{position: "relative", top: "-20px"}}>Added in: v1.10</font><x-search>test.test.fixme</x-search>
+
+Mark a test as "fixme", with the intention to fix it. Playwright will not run the test past the `test.fixme()` call.
+
+To declare a "fixme" test:
+* `test.fixme(title, body)`
+* `test.fixme(title, details, body)`
+
+To annotate test as "fixme" at runtime:
+* `test.fixme(condition, description)`
+* `test.fixme(callback, description)`
+* `test.fixme()`
+
+**Usage**
+
+You can declare a test as to be fixed, and Playwright will not run it.
+
+```js
+import { test, expect } from '@playwright/test';
+
+test.fixme('to be fixed', async ({ page }) => {
+  // ...
+});
+```
+
+If your test should be fixed in some configurations, but not all, you can mark the test as "fixme" inside the test body based on some condition. We recommend passing a `description` argument in this case. Playwright will run the test, but abort it immediately after the `test.fixme` call.
+
+```js
+import { test, expect } from '@playwright/test';
+
+test('to be fixed in Safari', async ({ page, browserName }) => {
+  test.fixme(browserName === 'webkit', 'This feature breaks in Safari for some reason');
+  // ...
+});
+```
+
+You can mark all tests in a file or [test.describe()](/api/class-test.mdx#test-describe) group as "fixme" based on some condition with a single `test.fixme(callback, description)` call.
+
+```js
+import { test, expect } from '@playwright/test';
+
+test.fixme(({ browserName }) => browserName === 'webkit', 'Should figure out the issue');
+
+test('to be fixed in Safari 1', async ({ page }) => {
+  // ...
+});
+test('to be fixed in Safari 2', async ({ page }) => {
+  // ...
+});
+```
+
+You can also call `test.fixme()` without arguments inside the test body to always mark the test as failed. We recommend using `test.fixme(title, body)` instead.
+
+```js
+import { test, expect } from '@playwright/test';
+
+test('less readable', async ({ page }) => {
+  test.fixme();
+  // ...
+});
+```
+
+**Arguments**
+- `title` [string] *(optional)*<a aria-hidden="true" tabIndex="-1" class="list-anchor-link" id="test-fixme-option-title"/><a href="#test-fixme-option-title" class="list-anchor">#</a>
+  
+  Test title.
+- `details` [Object] *(optional)* <font size="2">Added in: v1.42</font><a aria-hidden="true" tabIndex="-1" class="list-anchor-link" id="test-fixme-option-details"/><a href="#test-fixme-option-details" class="list-anchor">#</a>
+  - `tag` [string] | [Array]&lt;[string]&gt; *(optional)*
+    
+    
+  - `annotation` [Object] | [Array]&lt;[Object]&gt; *(optional)*
+    - `type` [string]
+      
+      
+    - `description` [string] *(optional)*
+      
+      
+    
+  See [test()](/api/class-test.mdx#test-call) for test details description.
+- `body` [function]\([Fixtures], [TestInfo]\) *(optional)*<a aria-hidden="true" tabIndex="-1" class="list-anchor-link" id="test-fixme-option-body"/><a href="#test-fixme-option-body" class="list-anchor">#</a>
+  
+  Test body that takes one or two arguments: an object with fixtures and optional [TestInfo].
+- `condition` [boolean] *(optional)*<a aria-hidden="true" tabIndex="-1" class="list-anchor-link" id="test-fixme-option-condition"/><a href="#test-fixme-option-condition" class="list-anchor">#</a>
+  
+  Test is marked as "fixme" when the condition is `true`.
+- `callback` [function]\([Fixtures]\):[boolean] *(optional)*<a aria-hidden="true" tabIndex="-1" class="list-anchor-link" id="test-fixme-option-callback"/><a href="#test-fixme-option-callback" class="list-anchor">#</a>
+  
+  A function that returns whether to mark as "fixme", based on test fixtures. Test or tests are marked as "fixme" when the return value is `true`.
+- `description` [string] *(optional)*<a aria-hidden="true" tabIndex="-1" class="list-anchor-link" id="test-fixme-option-description"/><a href="#test-fixme-option-description" class="list-anchor">#</a>
+  
+  Optional description that will be reflected in a test report.
+
+---
+
+### test.info {/* #test-info */}
+
+<font size="2" style={{position: "relative", top: "-20px"}}>Added in: v1.10</font><x-search>test.test.info</x-search>
+
+Returns information about the currently running test. This method can only be called during the test execution, otherwise it throws.
+
+**Usage**
+
+```js
+test('example test', async ({ page }) => {
+  // ...
+  await test.info().attach('screenshot', {
+    body: await page.screenshot(),
+    contentType: 'image/png',
+  });
+});
+```
+
+**Returns**
+- [TestInfo]<a aria-hidden="true" tabIndex="-1" class="list-anchor-link" id="test-info-return"/><a href="#test-info-return" class="list-anchor">#</a>
+
+---
+
+### test.only {/* #test-only */}
+
+<font size="2" style={{position: "relative", top: "-20px"}}>Added in: v1.10</font><x-search>test.test.only</x-search>
+
+Declares a focused test. If there are some focused tests or suites, all of them will be run but nothing else.
+* `test.only(title, body)`
+* `test.only(title, details, body)`
+
+**Usage**
+
+```js
+test.only('focus this test', async ({ page }) => {
+  // Run only focused tests in the entire project.
+});
+```
+
+**Arguments**
+- `title` [string]<a aria-hidden="true" tabIndex="-1" class="list-anchor-link" id="test-only-option-title"/><a href="#test-only-option-title" class="list-anchor">#</a>
+  
+  Test title.
+- `details` [Object] *(optional)* <font size="2">Added in: v1.42</font><a aria-hidden="true" tabIndex="-1" class="list-anchor-link" id="test-only-option-details"/><a href="#test-only-option-details" class="list-anchor">#</a>
+  - `tag` [string] | [Array]&lt;[string]&gt; *(optional)*
+    
+    
+  - `annotation` [Object] | [Array]&lt;[Object]&gt; *(optional)*
+    - `type` [string]
+      
+      
+    - `description` [string] *(optional)*
+      
+      
+    
+  See [test()](/api/class-test.mdx#test-call) for test details description.
+- `body` [function]\([Fixtures], [TestInfo]\)<a aria-hidden="true" tabIndex="-1" class="list-anchor-link" id="test-only-option-body"/><a href="#test-only-option-body" class="list-anchor">#</a>
+  
+  Test body that takes one or two arguments: an object with fixtures and optional [TestInfo].
+
+---
+
+### test.setTimeout {/* #test-set-timeout */}
+
+<font size="2" style={{position: "relative", top: "-20px"}}>Added in: v1.10</font><x-search>test.test.setTimeout</x-search>
+
+Changes the timeout for the test. Zero means no timeout. Learn more about [various timeouts](../test-timeouts.mdx).
+
+Timeout for the currently running test is available through [testInfo.timeout](/api/class-testinfo.mdx#test-info-timeout).
+
+**Usage**
+* Changing test timeout.
+  
+  ```js
+  test('very slow test', async ({ page }) => {
+    test.setTimeout(120000);
+    // ...
+  });
+  ```
+  
+* Changing timeout from a slow `beforeEach` hook. Note that this affects the test timeout that is shared with `beforeEach` hooks.
+  
+  ```js
+  test.beforeEach(async ({ page }, testInfo) => {
+    // Extend timeout for all tests running this hook by 30 seconds.
+    test.setTimeout(testInfo.timeout + 30000);
+  });
+  ```
+  
+* Changing timeout for a `beforeAll` or `afterAll` hook. Note this affects the hook's timeout, not the test timeout.
+  
+  ```js
+  test.beforeAll(async () => {
+    // Set timeout for this hook.
+    test.setTimeout(60000);
+  });
+  ```
+  
+* Changing timeout for all tests in a [test.describe()](/api/class-test.mdx#test-describe) group.
+  
+  ```js
+  test.describe('group', () => {
+    // Applies to all tests in this group.
+    test.describe.configure({ timeout: 60000 });
+  
+    test('test one', async () => { /* ... */ });
+    test('test two', async () => { /* ... */ });
+    test('test three', async () => { /* ... */ });
+  });
+  ```
+  
+**Arguments**
+- `timeout` [number]<a aria-hidden="true" tabIndex="-1" class="list-anchor-link" id="test-set-timeout-option-timeout"/><a href="#test-set-timeout-option-timeout" class="list-anchor">#</a>
+  
+  Timeout in milliseconds.
+
+---
+
+### test.skip {/* #test-skip */}
+
+<font size="2" style={{position: "relative", top: "-20px"}}>Added in: v1.10</font><x-search>test.test.skip</x-search>
+
+Skip a test. Playwright will not run the test past the `test.skip()` call.
+
+Skipped tests are not supposed to be ever run. If you intend to fix the test, use [test.fixme()](/api/class-test.mdx#test-fixme) instead.
+
+To declare a skipped test:
+* `test.skip(title, body)`
+* `test.skip(title, details, body)`
+
+To skip a test at runtime:
+* `test.skip(condition, description)`
+* `test.skip(callback, description)`
+* `test.skip()`
+
+**Usage**
+
+You can declare a skipped test, and Playwright will not run it.
+
+```js
+import { test, expect } from '@playwright/test';
+
+test.skip('never run', async ({ page }) => {
+  // ...
+});
+```
+
+If your test should be skipped in some configurations, but not all, you can skip the test inside the test body based on some condition. We recommend passing a `description` argument in this case. Playwright will run the test, but abort it immediately after the `test.skip` call.
+
+```js
+import { test, expect } from '@playwright/test';
+
+test('Safari-only test', async ({ page, browserName }) => {
+  test.skip(browserName !== 'webkit', 'This feature is Safari-only');
+  // ...
+});
+```
+
+You can skip all tests in a file or [test.describe()](/api/class-test.mdx#test-describe) group based on some condition with a single `test.skip(callback, description)` call.
+
+```js
+import { test, expect } from '@playwright/test';
+
+test.skip(({ browserName }) => browserName !== 'webkit', 'Safari-only');
+
+test('Safari-only test 1', async ({ page }) => {
+  // ...
+});
+test('Safari-only test 2', async ({ page }) => {
+  // ...
+});
+```
+
+You can also call `test.skip()` without arguments inside the test body to always skip the test. However, we recommend using `test.skip(title, body)` instead.
+
+```js
+import { test, expect } from '@playwright/test';
+
+test('less readable', async ({ page }) => {
+  test.skip();
+  // ...
+});
+```
+
+**Arguments**
+- `title` [string] *(optional)*<a aria-hidden="true" tabIndex="-1" class="list-anchor-link" id="test-skip-option-title"/><a href="#test-skip-option-title" class="list-anchor">#</a>
+  
+  Test title.
+- `details` [Object] *(optional)* <font size="2">Added in: v1.42</font><a aria-hidden="true" tabIndex="-1" class="list-anchor-link" id="test-skip-option-details"/><a href="#test-skip-option-details" class="list-anchor">#</a>
+  - `tag` [string] | [Array]&lt;[string]&gt; *(optional)*
+    
+    
+  - `annotation` [Object] | [Array]&lt;[Object]&gt; *(optional)*
+    - `type` [string]
+      
+      
+    - `description` [string] *(optional)*
+      
+      
+    
+  See [test()](/api/class-test.mdx#test-call) for test details description.
+- `body` [function]\([Fixtures], [TestInfo]\) *(optional)*<a aria-hidden="true" tabIndex="-1" class="list-anchor-link" id="test-skip-option-body"/><a href="#test-skip-option-body" class="list-anchor">#</a>
+  
+  Test body that takes one or two arguments: an object with fixtures and optional [TestInfo].
+- `condition` [boolean] *(optional)*<a aria-hidden="true" tabIndex="-1" class="list-anchor-link" id="test-skip-option-condition"/><a href="#test-skip-option-condition" class="list-anchor">#</a>
+  
+  Test is marked as "skipped" when the condition is `true`.
+- `callback` [function]\([Fixtures]\):[boolean] *(optional)*<a aria-hidden="true" tabIndex="-1" class="list-anchor-link" id="test-skip-option-callback"/><a href="#test-skip-option-callback" class="list-anchor">#</a>
+  
+  A function that returns whether to mark as "skipped", based on test fixtures. Test or tests are marked as "skipped" when the return value is `true`.
+- `description` [string] *(optional)*<a aria-hidden="true" tabIndex="-1" class="list-anchor-link" id="test-skip-option-description"/><a href="#test-skip-option-description" class="list-anchor">#</a>
+  
+  Optional description that will be reflected in a test report.
+
+---
+
+### test.slow {/* #test-slow */}
+
+<font size="2" style={{position: "relative", top: "-20px"}}>Added in: v1.10</font><x-search>test.test.slow</x-search>
+
+Marks a test as "slow". Slow test will be given triple the default timeout.
+
+Note that [test.slow()](/api/class-test.mdx#test-slow) cannot be used in a `beforeAll` or `afterAll` hook. Use [test.setTimeout()](/api/class-test.mdx#test-set-timeout) instead.
+* `test.slow()`
+* `test.slow(condition, description)`
+* `test.slow(callback, description)`
+
+**Usage**
+
+You can mark a test as slow by calling `test.slow()` inside the test body.
+
+```js
+import { test, expect } from '@playwright/test';
+
+test('slow test', async ({ page }) => {
+  test.slow();
+  // ...
+});
+```
+
+If your test is slow in some configurations, but not all, you can mark it as slow based on a condition. We recommend passing a `description` argument in this case.
+
+```js
+import { test, expect } from '@playwright/test';
+
+test('slow in Safari', async ({ page, browserName }) => {
+  test.slow(browserName === 'webkit', 'This feature is slow in Safari');
+  // ...
+});
+```
+
+You can mark all tests in a file or [test.describe()](/api/class-test.mdx#test-describe) group as "slow" based on some condition by passing a callback.
+
+```js
+import { test, expect } from '@playwright/test';
+
+test.slow(({ browserName }) => browserName === 'webkit', 'all tests are slow in Safari');
+
+test('slow in Safari 1', async ({ page }) => {
+  // ...
+});
+test('fail in Safari 2', async ({ page }) => {
+  // ...
+});
+```
+
+**Arguments**
+- `condition` [boolean] *(optional)*<a aria-hidden="true" tabIndex="-1" class="list-anchor-link" id="test-slow-option-condition"/><a href="#test-slow-option-condition" class="list-anchor">#</a>
+  
+  Test is marked as "slow" when the condition is `true`.
+- `callback` [function]\([Fixtures]\):[boolean] *(optional)*<a aria-hidden="true" tabIndex="-1" class="list-anchor-link" id="test-slow-option-callback"/><a href="#test-slow-option-callback" class="list-anchor">#</a>
+  
+  A function that returns whether to mark as "slow", based on test fixtures. Test or tests are marked as "slow" when the return value is `true`.
+- `description` [string] *(optional)*<a aria-hidden="true" tabIndex="-1" class="list-anchor-link" id="test-slow-option-description"/><a href="#test-slow-option-description" class="list-anchor">#</a>
+  
+  Optional description that will be reflected in a test report.
+
+---
+
+### test.step {/* #test-step */}
+
+<font size="2" style={{position: "relative", top: "-20px"}}>Added in: v1.10</font><x-search>test.test.step</x-search>
+
+Declares a test step that is shown in the report.
+
+**Usage**
+
+```js
+import { test, expect } from '@playwright/test';
+
+test('test', async ({ page }) => {
+  await test.step('Log in', async () => {
+    // ...
+  });
+
+  await test.step('Outer step', async () => {
+    // ...
+    // You can nest steps inside each other.
+    await test.step('Inner step', async () => {
+      // ...
+    });
+  });
+});
+```
+
+**Arguments**
+- `title` [string]<a aria-hidden="true" tabIndex="-1" class="list-anchor-link" id="test-step-option-title"/><a href="#test-step-option-title" class="list-anchor">#</a>
+  
+  Step name.
+- `body` [function]\([TestStepInfo]\):[Promise]&lt;[Object]&gt;<a aria-hidden="true" tabIndex="-1" class="list-anchor-link" id="test-step-option-body"/><a href="#test-step-option-body" class="list-anchor">#</a>
+  
+  Step body.
+- `options` [Object] *(optional)*
+  - `box` [boolean] *(optional)* <font size="2">Added in: v1.39</font><a aria-hidden="true" tabIndex="-1" class="list-anchor-link" id="test-step-option-box"/><a href="#test-step-option-box" class="list-anchor">#</a>
+    
+    Whether to box the step in the report. Defaults to `false`. When the step is boxed, errors thrown from the step internals point to the step call site. See below for more details.
+  - `location` [Location] *(optional)* <font size="2">Added in: v1.48</font><a aria-hidden="true" tabIndex="-1" class="list-anchor-link" id="test-step-option-location"/><a href="#test-step-option-location" class="list-anchor">#</a>
+    
+    Specifies a custom location for the step to be shown in test reports and trace viewer. By default, location of the [test.step()](/api/class-test.mdx#test-step) call is shown.
+  - `timeout` [number] *(optional)* <font size="2">Added in: v1.50</font><a aria-hidden="true" tabIndex="-1" class="list-anchor-link" id="test-step-option-timeout"/><a href="#test-step-option-timeout" class="list-anchor">#</a>
+    
+    The maximum time, in milliseconds, allowed for the step to complete. If the step does not complete within the specified timeout, the [test.step()](/api/class-test.mdx#test-step) method will throw a [TimeoutError]. Defaults to `0` (no timeout).
+
+**Returns**
+- [Promise]&lt;[Object]&gt;<a aria-hidden="true" tabIndex="-1" class="list-anchor-link" id="test-step-return"/><a href="#test-step-return" class="list-anchor">#</a>
+
+**Details**
+
+The method returns the value returned by the step callback.
+
+```js
+import { test, expect } from '@playwright/test';
+
+test('test', async ({ page }) => {
+  const user = await test.step('Log in', async () => {
+    // ...
+    return 'john';
+  });
+  expect(user).toBe('john');
+});
+```
+
+**Decorator**
+
+You can use TypeScript method decorators to turn a method into a step. Each call to the decorated method will show up as a step in the report.
+
+```js
+function step(target: Function, context: ClassMethodDecoratorContext) {
+  return function replacementMethod(...args: any) {
+    const name = this.constructor.name + '.' + (context.name as string);
+    return test.step(name, async () => {
+      return await target.call(this, ...args);
+    }, { box: true });
+  };
+}
+
+class LoginPage {
+  constructor(readonly page: Page) {}
+
+  @step
+  async login() {
+    const account = { username: 'Alice', password: 's3cr3t' };
+    await this.page.getByLabel('Username or email address').fill(account.username);
+    await this.page.getByLabel('Password').fill(account.password);
+    await this.page.getByRole('button', { name: 'Sign in' }).click();
+    await expect(this.page.getByRole('button', { name: 'View profile and more' })).toBeVisible();
+  }
+}
+
+test('example', async ({ page }) => {
+  const loginPage = new LoginPage(page);
+  await loginPage.login();
+});
+```
+
+**Boxing**
+
+When something inside a step fails, you would usually see the error pointing to the exact action that failed. For example, consider the following login step:
+
+```js
+async function login(page) {
+  await test.step('login', async () => {
+    const account = { username: 'Alice', password: 's3cr3t' };
+    await page.getByLabel('Username or email address').fill(account.username);
+    await page.getByLabel('Password').fill(account.password);
+    await page.getByRole('button', { name: 'Sign in' }).click();
+    await expect(page.getByRole('button', { name: 'View profile and more' })).toBeVisible();
+  });
+}
+
+test('example', async ({ page }) => {
+  await page.goto('https://github.com/login');
+  await login(page);
+});
+```
+
+```txt
+Error: Timed out 5000ms waiting for expect(locator).toBeVisible()
+  ... error details omitted ...
+
+   8 |     await page.getByRole('button', { name: 'Sign in' }).click();
+>  9 |     await expect(page.getByRole('button', { name: 'View profile and more' })).toBeVisible();
+     |                                                                               ^
+  10 |   });
+```
+
+As we see above, the test may fail with an error pointing inside the step. If you would like the error to highlight the "login" step instead of its internals, use the `box` option. An error inside a boxed step points to the step call site.
+
+```js
+async function login(page) {
+  await test.step('login', async () => {
+    // ...
+  }, { box: true });  // Note the "box" option here.
+}
+```
+
+```txt
+Error: Timed out 5000ms waiting for expect(locator).toBeVisible()
+  ... error details omitted ...
+
+  14 |   await page.goto('https://github.com/login');
+> 15 |   await login(page);
+     |         ^
+  16 | });
+```
+
+You can also create a TypeScript decorator for a boxed step, similar to a regular step decorator above:
+
+```js
+function boxedStep(target: Function, context: ClassMethodDecoratorContext) {
+  return function replacementMethod(...args: any) {
+    const name = this.constructor.name + '.' + (context.name as string);
+    return test.step(name, async () => {
+      return await target.call(this, ...args);
+    }, { box: true });  // Note the "box" option here.
+  };
+}
+
+class LoginPage {
+  constructor(readonly page: Page) {}
+
+  @boxedStep
+  async login() {
+    // ....
+  }
+}
+
+test('example', async ({ page }) => {
+  const loginPage = new LoginPage(page);
+  await loginPage.login();  // <-- Error will be reported on this line.
+});
+```
+
+---
+
+### test.step.skip {/* #test-step-skip */}
+
+<font size="2" style={{position: "relative", top: "-20px"}}>Added in: v1.50</font><x-search>test.test.step.skip</x-search>
+
+Mark a test step as "skip" to temporarily disable its execution, useful for steps that are currently failing and planned for a near-term fix. Playwright will not run the step. See also [testStepInfo.skip()](/api/class-teststepinfo.mdx#test-step-info-skip-2).
+
+We recommend [testStepInfo.skip()](/api/class-teststepinfo.mdx#test-step-info-skip-1) instead.
+
+**Usage**
+
+You can declare a skipped step, and Playwright will not run it.
+
+```js
+import { test, expect } from '@playwright/test';
+
+test('my test', async ({ page }) => {
+  // ...
+  await test.step.skip('not yet ready', async () => {
+    // ...
+  });
+});
+```
+
+**Arguments**
+- `title` [string]<a aria-hidden="true" tabIndex="-1" class="list-anchor-link" id="test-step-skip-option-title"/><a href="#test-step-skip-option-title" class="list-anchor">#</a>
+  
+  Step name.
+- `body` [function]\(\):[Promise]&lt;[Object]&gt;<a aria-hidden="true" tabIndex="-1" class="list-anchor-link" id="test-step-skip-option-body"/><a href="#test-step-skip-option-body" class="list-anchor">#</a>
+  
+  Step body.
+- `options` [Object] *(optional)*
+  - `box` [boolean] *(optional)*<a aria-hidden="true" tabIndex="-1" class="list-anchor-link" id="test-step-skip-option-box"/><a href="#test-step-skip-option-box" class="list-anchor">#</a>
+    
+    Whether to box the step in the report. Defaults to `false`. When the step is boxed, errors thrown from the step internals point to the step call site. See below for more details.
+  - `location` [Location] *(optional)*<a aria-hidden="true" tabIndex="-1" class="list-anchor-link" id="test-step-skip-option-location"/><a href="#test-step-skip-option-location" class="list-anchor">#</a>
+    
+    Specifies a custom location for the step to be shown in test reports and trace viewer. By default, location of the [test.step()](/api/class-test.mdx#test-step) call is shown.
+  - `timeout` [number] *(optional)*<a aria-hidden="true" tabIndex="-1" class="list-anchor-link" id="test-step-skip-option-timeout"/><a href="#test-step-skip-option-timeout" class="list-anchor">#</a>
+    
+    Maximum time in milliseconds for the step to finish. Defaults to `0` (no timeout).
+
+**Returns**
+- [Promise]&lt;[void]&gt;<a aria-hidden="true" tabIndex="-1" class="list-anchor-link" id="test-step-skip-return"/><a href="#test-step-skip-return" class="list-anchor">#</a>
+
+---
+
+### test.use {/* #test-use */}
+
+<font size="2" style={{position: "relative", top: "-20px"}}>Added in: v1.10</font><x-search>test.test.use</x-search>
+
+Specifies options or fixtures to use in a single test file or a [test.describe()](/api/class-test.mdx#test-describe) group. Most useful to set an option, for example set `locale` to configure `context` fixture.
+
+**Usage**
+
+```js
+import { test, expect } from '@playwright/test';
+
+test.use({ locale: 'en-US' });
+
+test('test with locale', async ({ page }) => {
+  // Default context and page have locale as specified
+});
+```
+
+**Arguments**
+- `options` [TestOptions]<a aria-hidden="true" tabIndex="-1" class="list-anchor-link" id="test-use-option-fixtures"/><a href="#test-use-option-fixtures" class="list-anchor">#</a>
+  
+  An object with local options.
+
+**Details**
+
+`test.use` can be called either in the global scope or inside `test.describe`. It is an error to call it within `beforeEach` or `beforeAll`.
+
+It is also possible to override a fixture by providing a function.
+
+```js
+import { test, expect } from '@playwright/test';
+
+test.use({
+  locale: async ({}, use) => {
+    // Read locale from some configuration file.
+    const locale = await fs.promises.readFile('test-locale', 'utf-8');
+    await use(locale);
+  },
+});
+
+test('test with locale', async ({ page }) => {
+  // Default context and page have locale as specified
+});
+```
+
+---
+
+## Properties
+
+### test.expect {/* #test-expect */}
+
+<font size="2" style={{position: "relative", top: "-20px"}}>Added in: v1.10</font><x-search>test.test.expect</x-search>
+
+`expect` function can be used to create test assertions. Read more about [test assertions](../test-assertions.mdx).
+
+**Usage**
+
+```js
+test('example', async ({ page }) => {
+  await test.expect(page).toHaveTitle('Title');
+});
+```
+
+**Type**
+- [Object]
+
+---
+
+## Deprecated
+
+### test.describe.parallel {/* #test-describe-parallel */}
+
+<font size="2" style={{position: "relative", top: "-20px"}}>Added in: v1.10</font><x-search>test.test.describe.parallel</x-search>
+
+:::warning[Discouraged]
+
+See [test.describe.configure()](/api/class-test.mdx#test-describe-configure) for the preferred way of configuring the execution mode.
+
+:::
+
+
+Declares a group of tests that could be run in parallel. By default, tests in a single test file run one after another, but using [test.describe.parallel()](/api/class-test.mdx#test-describe-parallel) allows them to run in parallel.
+* `test.describe.parallel(title, callback)`
+* `test.describe.parallel(callback)`
+* `test.describe.parallel(title, details, callback)`
+
+**Usage**
+
+```js
+test.describe.parallel('group', () => {
+  test('runs in parallel 1', async ({ page }) => {});
+  test('runs in parallel 2', async ({ page }) => {});
+});
+```
+
+Note that parallel tests are executed in separate processes and cannot share any state or global variables. Each of the parallel tests executes all relevant hooks.
+
+You can also omit the title.
+
+```js
+test.describe.parallel(() => {
+  // ...
+});
+```
+
+**Arguments**
+- `title` [string] *(optional)*<a aria-hidden="true" tabIndex="-1" class="list-anchor-link" id="test-describe-parallel-option-title"/><a href="#test-describe-parallel-option-title" class="list-anchor">#</a>
+  
+  Group title.
+- `details` [Object] *(optional)* <font size="2">Added in: v1.42</font><a aria-hidden="true" tabIndex="-1" class="list-anchor-link" id="test-describe-parallel-option-details"/><a href="#test-describe-parallel-option-details" class="list-anchor">#</a>
+  - `tag` [string] | [Array]&lt;[string]&gt; *(optional)*
+    
+    
+  - `annotation` [Object] | [Array]&lt;[Object]&gt; *(optional)*
+    - `type` [string]
+      
+      
+    - `description` [string] *(optional)*
+      
+      
+    
+  See [test.describe()](/api/class-test.mdx#test-describe) for details description.
+- `callback` [function]<a aria-hidden="true" tabIndex="-1" class="list-anchor-link" id="test-describe-parallel-option-callback"/><a href="#test-describe-parallel-option-callback" class="list-anchor">#</a>
+  
+  A callback that is run immediately when calling [test.describe.parallel()](/api/class-test.mdx#test-describe-parallel). Any tests added in this callback will belong to the group.
+
+---
+
+### test.describe.parallel.only {/* #test-describe-parallel-only */}
+
+<font size="2" style={{position: "relative", top: "-20px"}}>Added in: v1.10</font><x-search>test.test.describe.parallel.only</x-search>
+
+:::warning[Discouraged]
+
+See [test.describe.configure()](/api/class-test.mdx#test-describe-configure) for the preferred way of configuring the execution mode.
+
+:::
+
+
+Declares a focused group of tests that could be run in parallel. This is similar to [test.describe.parallel()](/api/class-test.mdx#test-describe-parallel), but focuses the group. If there are some focused tests or suites, all of them will be run but nothing else.
+* `test.describe.parallel.only(title, callback)`
+* `test.describe.parallel.only(callback)`
+* `test.describe.parallel.only(title, details, callback)`
+
+**Usage**
+
+```js
+test.describe.parallel.only('group', () => {
+  test('runs in parallel 1', async ({ page }) => {});
+  test('runs in parallel 2', async ({ page }) => {});
+});
+```
+
+You can also omit the title.
+
+```js
+test.describe.parallel.only(() => {
+  // ...
+});
+```
+
+**Arguments**
+- `title` [string] *(optional)*<a aria-hidden="true" tabIndex="-1" class="list-anchor-link" id="test-describe-parallel-only-option-title"/><a href="#test-describe-parallel-only-option-title" class="list-anchor">#</a>
+  
+  Group title.
+- `details` [Object] *(optional)* <font size="2">Added in: v1.42</font><a aria-hidden="true" tabIndex="-1" class="list-anchor-link" id="test-describe-parallel-only-option-details"/><a href="#test-describe-parallel-only-option-details" class="list-anchor">#</a>
+  - `tag` [string] | [Array]&lt;[string]&gt; *(optional)*
+    
+    
+  - `annotation` [Object] | [Array]&lt;[Object]&gt; *(optional)*
+    - `type` [string]
+      
+      
+    - `description` [string] *(optional)*
+      
+      
+    
+  See [test.describe()](/api/class-test.mdx#test-describe) for details description.
+- `callback` [function]<a aria-hidden="true" tabIndex="-1" class="list-anchor-link" id="test-describe-parallel-only-option-callback"/><a href="#test-describe-parallel-only-option-callback" class="list-anchor">#</a>
+  
+  A callback that is run immediately when calling [test.describe.parallel.only()](/api/class-test.mdx#test-describe-parallel-only). Any tests added in this callback will belong to the group.
+
+---
+
+### test.describe.serial {/* #test-describe-serial */}
+
+<font size="2" style={{position: "relative", top: "-20px"}}>Added in: v1.10</font><x-search>test.test.describe.serial</x-search>
+
+:::warning[Discouraged]
+
+See [test.describe.configure()](/api/class-test.mdx#test-describe-configure) for the preferred way of configuring the execution mode.
+
+:::
+
+
+Declares a group of tests that should always be run serially. If one of the tests fails, all subsequent tests are skipped. All tests in a group are retried together.
+
+:::note
+
+Using serial is not recommended. It is usually better to make your tests isolated, so they can be run independently.
+:::
+
+* `test.describe.serial(title, callback)`
+* `test.describe.serial(title)`
+* `test.describe.serial(title, details, callback)`
+
+**Usage**
+
+```js
+test.describe.serial('group', () => {
+  test('runs first', async ({ page }) => {});
+  test('runs second', async ({ page }) => {});
+});
+```
+
+You can also omit the title.
+
+```js
+test.describe.serial(() => {
+  // ...
+});
+```
+
+**Arguments**
+- `title` [string] *(optional)*<a aria-hidden="true" tabIndex="-1" class="list-anchor-link" id="test-describe-serial-option-title"/><a href="#test-describe-serial-option-title" class="list-anchor">#</a>
+  
+  Group title.
+- `details` [Object] *(optional)* <font size="2">Added in: v1.42</font><a aria-hidden="true" tabIndex="-1" class="list-anchor-link" id="test-describe-serial-option-details"/><a href="#test-describe-serial-option-details" class="list-anchor">#</a>
+  - `tag` [string] | [Array]&lt;[string]&gt; *(optional)*
+    
+    
+  - `annotation` [Object] | [Array]&lt;[Object]&gt; *(optional)*
+    - `type` [string]
+      
+      
+    - `description` [string] *(optional)*
+      
+      
+    
+  See [test.describe()](/api/class-test.mdx#test-describe) for details description.
+- `callback` [function]<a aria-hidden="true" tabIndex="-1" class="list-anchor-link" id="test-describe-serial-option-callback"/><a href="#test-describe-serial-option-callback" class="list-anchor">#</a>
+  
+  A callback that is run immediately when calling [test.describe.serial()](/api/class-test.mdx#test-describe-serial). Any tests added in this callback will belong to the group.
+
+---
+
+### test.describe.serial.only {/* #test-describe-serial-only */}
+
+<font size="2" style={{position: "relative", top: "-20px"}}>Added in: v1.10</font><x-search>test.test.describe.serial.only</x-search>
+
+:::warning[Discouraged]
+
+See [test.describe.configure()](/api/class-test.mdx#test-describe-configure) for the preferred way of configuring the execution mode.
+
+:::
+
+
+Declares a focused group of tests that should always be run serially. If one of the tests fails, all subsequent tests are skipped. All tests in a group are retried together. If there are some focused tests or suites, all of them will be run but nothing else.
+
+:::note
+
+Using serial is not recommended. It is usually better to make your tests isolated, so they can be run independently.
+:::
+
+* `test.describe.serial.only(title, callback)`
+* `test.describe.serial.only(title)`
+* `test.describe.serial.only(title, details, callback)`
+
+**Usage**
+
+```js
+test.describe.serial.only('group', () => {
+  test('runs first', async ({ page }) => {
+  });
+  test('runs second', async ({ page }) => {
+  });
+});
+```
+
+You can also omit the title.
+
+```js
+test.describe.serial.only(() => {
+  // ...
+});
+```
+
+**Arguments**
+- `title` [string]<a aria-hidden="true" tabIndex="-1" class="list-anchor-link" id="test-describe-serial-only-option-title"/><a href="#test-describe-serial-only-option-title" class="list-anchor">#</a>
+  
+  Group title.
+- `details` [Object] *(optional)* <font size="2">Added in: v1.42</font><a aria-hidden="true" tabIndex="-1" class="list-anchor-link" id="test-describe-serial-only-option-details"/><a href="#test-describe-serial-only-option-details" class="list-anchor">#</a>
+  - `tag` [string] | [Array]&lt;[string]&gt; *(optional)*
+    
+    
+  - `annotation` [Object] | [Array]&lt;[Object]&gt; *(optional)*
+    - `type` [string]
+      
+      
+    - `description` [string] *(optional)*
+      
+      
+    
+  See [test.describe()](/api/class-test.mdx#test-describe) for details description.
+- `callback` [function]<a aria-hidden="true" tabIndex="-1" class="list-anchor-link" id="test-describe-serial-only-option-callback"/><a href="#test-describe-serial-only-option-callback" class="list-anchor">#</a>
+  
+  A callback that is run immediately when calling [test.describe.serial.only()](/api/class-test.mdx#test-describe-serial-only). Any tests added in this callback will belong to the group.
+
+
+[APIRequest]: /api/class-apirequest.mdx "APIRequest"
+[APIRequestContext]: /api/class-apirequestcontext.mdx "APIRequestContext"
+[APIResponse]: /api/class-apiresponse.mdx "APIResponse"
+[APIResponseAssertions]: /api/class-apiresponseassertions.mdx "APIResponseAssertions"
+[Browser]: /api/class-browser.mdx "Browser"
+[BrowserContext]: /api/class-browsercontext.mdx "BrowserContext"
+[BrowserServer]: /api/class-browserserver.mdx "BrowserServer"
+[BrowserType]: /api/class-browsertype.mdx "BrowserType"
+[CDPSession]: /api/class-cdpsession.mdx "CDPSession"
+[Clock]: /api/class-clock.mdx "Clock"
+[ConsoleMessage]: /api/class-consolemessage.mdx "ConsoleMessage"
+[Coverage]: /api/class-coverage.mdx "Coverage"
+[Credentials]: /api/class-credentials.mdx "Credentials"
+[Debugger]: /api/class-debugger.mdx "Debugger"
+[Dialog]: /api/class-dialog.mdx "Dialog"
+[Disposable]: /api/class-disposable.mdx "Disposable"
+[Download]: /api/class-download.mdx "Download"
+[ElementHandle]: /api/class-elementhandle.mdx "ElementHandle"
+[FileChooser]: /api/class-filechooser.mdx "FileChooser"
+[Frame]: /api/class-frame.mdx "Frame"
+[FrameLocator]: /api/class-framelocator.mdx "FrameLocator"
+[GenericAssertions]: /api/class-genericassertions.mdx "GenericAssertions"
+[JSHandle]: /api/class-jshandle.mdx "JSHandle"
+[Keyboard]: /api/class-keyboard.mdx "Keyboard"
+[Locator]: /api/class-locator.mdx "Locator"
+[LocatorAssertions]: /api/class-locatorassertions.mdx "LocatorAssertions"
+[Logger]: /api/class-logger.mdx "Logger"
+[Mouse]: /api/class-mouse.mdx "Mouse"
+[Page]: /api/class-page.mdx "Page"
+[PageAssertions]: /api/class-pageassertions.mdx "PageAssertions"
+[Playwright]: /api/class-playwright.mdx "Playwright"
+[PlaywrightAssertions]: /api/class-playwrightassertions.mdx "PlaywrightAssertions"
+[Request]: /api/class-request.mdx "Request"
+[Response]: /api/class-response.mdx "Response"
+[Route]: /api/class-route.mdx "Route"
+[Screencast]: /api/class-screencast.mdx "Screencast"
+[Selectors]: /api/class-selectors.mdx "Selectors"
+[SnapshotAssertions]: /api/class-snapshotassertions.mdx "SnapshotAssertions"
+[TimeoutError]: /api/class-timeouterror.mdx "TimeoutError"
+[Touchscreen]: /api/class-touchscreen.mdx "Touchscreen"
+[Tracing]: /api/class-tracing.mdx "Tracing"
+[Video]: /api/class-video.mdx "Video"
+[WebError]: /api/class-weberror.mdx "WebError"
+[WebSocket]: /api/class-websocket.mdx "WebSocket"
+[WebSocketRoute]: /api/class-websocketroute.mdx "WebSocketRoute"
+[WebStorage]: /api/class-webstorage.mdx "WebStorage"
+[Worker]: /api/class-worker.mdx "Worker"
+[Electron]: /api/class-electron.mdx "Electron"
+[ElectronApplication]: /api/class-electronapplication.mdx "ElectronApplication"
+[Android]: /api/class-android.mdx "Android"
+[AndroidDevice]: /api/class-androiddevice.mdx "AndroidDevice"
+[AndroidInput]: /api/class-androidinput.mdx "AndroidInput"
+[AndroidSocket]: /api/class-androidsocket.mdx "AndroidSocket"
+[AndroidWebView]: /api/class-androidwebview.mdx "AndroidWebView"
+[Fixtures]: /api/class-fixtures.mdx "Fixtures"
+[FullConfig]: /api/class-fullconfig.mdx "FullConfig"
+[FullProject]: /api/class-fullproject.mdx "FullProject"
+[Location]: /api/class-location.mdx "Location"
+[Test]: /api/class-test.mdx "Test"
+[TestConfig]: /api/class-testconfig.mdx "TestConfig"
+[TestInfo]: /api/class-testinfo.mdx "TestInfo"
+[TestInfoError]: /api/class-testinfoerror.mdx "TestInfoError"
+[TestOptions]: /api/class-testoptions.mdx "TestOptions"
+[TestProject]: /api/class-testproject.mdx "TestProject"
+[TestStepInfo]: /api/class-teststepinfo.mdx "TestStepInfo"
+[WorkerInfo]: /api/class-workerinfo.mdx "WorkerInfo"
+[Reporter]: /api/class-reporter.mdx "Reporter"
+[Suite]: /api/class-suite.mdx "Suite"
+[TestCase]: /api/class-testcase.mdx "TestCase"
+[TestError]: /api/class-testerror.mdx "TestError"
+[TestResult]: /api/class-testresult.mdx "TestResult"
+[TestStep]: /api/class-teststep.mdx "TestStep"
+[Element]: https://developer.mozilla.org/en-US/docs/Web/API/element "Element"
+[EvaluationArgument]: /evaluating.mdx#evaluation-argument "EvaluationArgument"
+[Promise]: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Promise "Promise"
+[iterator]: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Iteration_protocols "Iterator"
+[origin]: https://developer.mozilla.org/en-US/docs/Glossary/Origin "Origin"
+[selector]: https://developer.mozilla.org/en-US/docs/Web/CSS/CSS_Selectors "selector"
+[Serializable]: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/JSON/stringify#Description "Serializable"
+[UIEvent.detail]: https://developer.mozilla.org/en-US/docs/Web/API/UIEvent/detail "UIEvent.detail"
+[UnixTime]: https://en.wikipedia.org/wiki/Unix_time "Unix Time"
+[xpath]: https://developer.mozilla.org/en-US/docs/Web/XPath "xpath"
+
+[Array]: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Array "Array"
+[boolean]: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Data_structures#Boolean_type "Boolean"
+[Buffer]: https://nodejs.org/api/buffer.html#buffer_class_buffer "Buffer"
+[ChildProcess]: https://nodejs.org/api/child_process.html "ChildProcess"
+[Date]: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Date "Date"
+[Error]: https://nodejs.org/api/errors.html#errors_class_error "Error"
+[EventEmitter]: https://nodejs.org/api/events.html#events_class_eventemitter "EventEmitter"
+[function]: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Function "Function"
+[FormData]: https://developer.mozilla.org/en-US/docs/Web/API/FormData "FormData"
+[Map]: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Map "Map"
+[Metadata]: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Object "Object&lt;string, any&gt;"
+[null]: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/null "null"
+[number]: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Data_structures#Number_type "Number"
+[Object]: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Object "Object"
+[Promise]: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Promise "Promise"
+[Readable]: https://nodejs.org/api/stream.html#stream_class_stream_readable "Readable"
+[ReadStream]: https://nodejs.org/api/fs.html#class-fsreadstream "ReadStream"
+[RegExp]: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/RegExp "RegExp"
+[string]: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Data_structures#String_type "string"
+[void]: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/undefined "void"
+[URL]: https://nodejs.org/api/url.html "URL"
+[URLPattern]: https://developer.mozilla.org/en-US/docs/Web/API/URLPattern "URLPattern"
+[URLSearchParams]: https://developer.mozilla.org/en-US/docs/Web/API/URLSearchParams "URLSearchParams"
+
+[all available image tags]: https://mcr.microsoft.com/en-us/product/playwright/about "all available image tags"
+[Microsoft Artifact Registry]: https://mcr.microsoft.com/en-us/product/playwright/about "Microsoft Artifact Registry"
+[Dockerfile.noble]: https://github.com/microsoft/playwright/blob/main/utils/docker/Dockerfile.noble "Dockerfile.noble"

@@ -1,0 +1,33 @@
+schemaVersion: 1
+updatedAt: '2026-07-10T13:35:00+08:00'
+activeTask: null
+tasks:
+  BANK-0001: {status: DONE, owner: A0}
+  BANK-0002: {status: DONE, owner: A0}
+  BANK-0003: {status: DONE, owner: A0}
+  BANK-0004: {status: DONE, owner: A8}
+  BANK-0101: {status: DONE, owner: A1}
+  BANK-0102: {status: DONE, owner: A2}
+  BANK-0103: {status: DONE, owner: A2}
+  BANK-0201: {status: DONE, owner: A3}
+  BANK-0202: {status: DONE, owner: A4}
+  BANK-0203: {status: DONE, owner: A5}
+  BANK-0301: {status: REVIEW, owner: A4}
+  BANK-0302: {status: DONE, owner: A6}
+  BANK-0303: {status: DONE, owner: A3}
+  BANK-0304: {status: REVIEW, owner: A8}
+  BANK-0401: {status: DONE, owner: A6}
+  BANK-0402: {status: DONE, owner: A6}
+  BANK-0403: {status: REVIEW, owner: A7}
+  BANK-0404: {status: REVIEW, owner: A8}
+  BANK-0601: {status: DONE, owner: A8}
+  BANK-0602: {status: DONE, owner: A8}
+  BANK-0603: {status: REVIEW, owner: A9}
+  BANK-0501: {status: DONE, owner: A4}
+  BANK-0502: {status: REVIEW, owner: A4}
+  BANK-0503: {status: REVIEW, owner: A6}
+  BANK-0504: {status: REVIEW, owner: A6}
+  BANK-0505: {status: REVIEW, owner: A8}
+  BANK-0506: {status: REVIEW, owner: A7}
+  BANK-0507: {status: REVIEW, owner: A3}
+  BANK-0604: {status: REVIEW, owner: A8}

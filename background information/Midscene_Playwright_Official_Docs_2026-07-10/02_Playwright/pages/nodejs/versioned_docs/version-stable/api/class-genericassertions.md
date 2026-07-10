@@ -1,0 +1,945 @@
+---
+id: class-genericassertions
+title: "GenericAssertions"
+---
+import Tabs from '@theme/Tabs';
+import TabItem from '@theme/TabItem';
+import HTMLCard from '@site/src/components/HTMLCard';
+
+
+The [GenericAssertions] class provides assertion methods that can be used to make assertions about any values in the tests. A new instance of [GenericAssertions] is created by calling [expect()](/api/class-playwrightassertions.mdx#playwright-assertions-expect-generic):
+
+```js
+import { test, expect } from '@playwright/test';
+
+test('assert a value', async ({ page }) => {
+  const value = 1;
+  expect(value).toBe(2);
+});
+```
+
+
+---
+
+## Methods
+
+### any {/* #generic-assertions-any */}
+
+<font size="2" style={{position: "relative", top: "-20px"}}>Added in: v1.9</font><x-search>genericAssertions.any</x-search>
+
+`expect.any()` matches any object instance created from the [constructor](/api/class-genericassertions.mdx#generic-assertions-any-option-constructor) or a corresponding primitive type. Use it inside [expect(value).toEqual()](/api/class-genericassertions.mdx#generic-assertions-to-equal) to perform pattern matching.
+
+**Usage**
+
+```js
+// Match instance of a class.
+class Example {}
+expect(new Example()).toEqual(expect.any(Example));
+
+// Match any number.
+expect({ prop: 1 }).toEqual({ prop: expect.any(Number) });
+
+// Match any string.
+expect('abc').toEqual(expect.any(String));
+```
+
+**Arguments**
+- `constructor` [Function]<a aria-hidden="true" tabIndex="-1" class="list-anchor-link" id="generic-assertions-any-option-constructor"/><a href="#generic-assertions-any-option-constructor" class="list-anchor">#</a>
+  
+  Constructor of the expected object like `ExampleClass`, or a primitive boxed type like `Number`.
+
+---
+
+### anything {/* #generic-assertions-anything */}
+
+<font size="2" style={{position: "relative", top: "-20px"}}>Added in: v1.9</font><x-search>genericAssertions.anything</x-search>
+
+`expect.anything()` matches everything except `null` and `undefined`. Use it inside [expect(value).toEqual()](/api/class-genericassertions.mdx#generic-assertions-to-equal) to perform pattern matching.
+
+**Usage**
+
+```js
+const value = { prop: 1 };
+expect(value).toEqual({ prop: expect.anything() });
+expect(value).not.toEqual({ otherProp: expect.anything() });
+```
+
+---
+
+### arrayContaining {/* #generic-assertions-array-containing */}
+
+<font size="2" style={{position: "relative", top: "-20px"}}>Added in: v1.9</font><x-search>genericAssertions.arrayContaining</x-search>
+
+`expect.arrayContaining()` matches an array that contains all of the elements in the expected array, in any order. Note that received array may be a superset of the expected array and contain some extra elements.
+
+Use this method inside [expect(value).toEqual()](/api/class-genericassertions.mdx#generic-assertions-to-equal) to perform pattern matching.
+
+**Usage**
+
+```js
+expect([1, 2, 3]).toEqual(expect.arrayContaining([3, 1]));
+expect([1, 2, 3]).not.toEqual(expect.arrayContaining([1, 4]));
+```
+
+**Arguments**
+- `expected` [Array]&lt;[Object]&gt;<a aria-hidden="true" tabIndex="-1" class="list-anchor-link" id="generic-assertions-array-containing-option-expected"/><a href="#generic-assertions-array-containing-option-expected" class="list-anchor">#</a>
+  
+  Expected array that is a subset of the received value.
+
+---
+
+### arrayOf {/* #generic-assertions-array-of */}
+
+<font size="2" style={{position: "relative", top: "-20px"}}>Added in: v1.57</font><x-search>genericAssertions.arrayOf</x-search>
+
+`expect.arrayOf()` matches array of objects created from the [constructor](/api/class-genericassertions.mdx#generic-assertions-array-of-option-constructor) or a corresponding primitive type. Use it inside [expect(value).toEqual()](/api/class-genericassertions.mdx#generic-assertions-to-equal) to perform pattern matching.
+
+**Usage**
+
+```js
+// Match instance of a class.
+class Example {}
+expect([new Example(), new Example()]).toEqual(expect.arrayOf(Example));
+
+// Match any string.
+expect(['a', 'b', 'c']).toEqual(expect.arrayOf(String));
+```
+
+**Arguments**
+- `constructor` [Function]<a aria-hidden="true" tabIndex="-1" class="list-anchor-link" id="generic-assertions-array-of-option-constructor"/><a href="#generic-assertions-array-of-option-constructor" class="list-anchor">#</a>
+  
+  Constructor of the expected object like `ExampleClass`, or a primitive boxed type like `Number`.
+
+---
+
+### closeTo {/* #generic-assertions-close-to */}
+
+<font size="2" style={{position: "relative", top: "-20px"}}>Added in: v1.9</font><x-search>genericAssertions.closeTo</x-search>
+
+Compares floating point numbers for approximate equality. Use this method inside [expect(value).toEqual()](/api/class-genericassertions.mdx#generic-assertions-to-equal) to perform pattern matching. When just comparing two numbers, prefer [expect(value).toBeCloseTo()](/api/class-genericassertions.mdx#generic-assertions-to-be-close-to).
+
+**Usage**
+
+```js
+expect({ prop: 0.1 + 0.2 }).not.toEqual({ prop: 0.3 });
+expect({ prop: 0.1 + 0.2 }).toEqual({ prop: expect.closeTo(0.3, 5) });
+```
+
+**Arguments**
+- `expected` [number]<a aria-hidden="true" tabIndex="-1" class="list-anchor-link" id="generic-assertions-close-to-option-expected"/><a href="#generic-assertions-close-to-option-expected" class="list-anchor">#</a>
+  
+  Expected value.
+- `numDigits` [number] *(optional)*<a aria-hidden="true" tabIndex="-1" class="list-anchor-link" id="generic-assertions-close-to-option-num-digits"/><a href="#generic-assertions-close-to-option-num-digits" class="list-anchor">#</a>
+  
+  The number of decimal digits after the decimal point that must be equal.
+
+---
+
+### objectContaining {/* #generic-assertions-object-containing */}
+
+<font size="2" style={{position: "relative", top: "-20px"}}>Added in: v1.9</font><x-search>genericAssertions.objectContaining</x-search>
+
+`expect.objectContaining()` matches an object that contains and matches all of the properties in the expected object. Note that received object may be a superset of the expected object and contain some extra properties.
+
+Use this method inside [expect(value).toEqual()](/api/class-genericassertions.mdx#generic-assertions-to-equal) to perform pattern matching. Object properties can be matchers to further relax the expectation. See examples.
+
+**Usage**
+
+```js
+// Assert some of the properties.
+expect({ foo: 1, bar: 2 }).toEqual(expect.objectContaining({ foo: 1 }));
+
+// Matchers can be used on the properties as well.
+expect({ foo: 1, bar: 2 }).toEqual(expect.objectContaining({ bar: expect.any(Number) }));
+
+// Complex matching of sub-properties.
+expect({
+  list: [1, 2, 3],
+  obj: { prop: 'Hello world!', another: 'some other value' },
+  extra: 'extra',
+}).toEqual(expect.objectContaining({
+  list: expect.arrayContaining([2, 3]),
+  obj: expect.objectContaining({ prop: expect.stringContaining('Hello') }),
+}));
+```
+
+**Arguments**
+- `expected` [Object]<a aria-hidden="true" tabIndex="-1" class="list-anchor-link" id="generic-assertions-object-containing-option-expected"/><a href="#generic-assertions-object-containing-option-expected" class="list-anchor">#</a>
+  
+  Expected object pattern that contains a subset of the properties.
+
+---
+
+### stringContaining {/* #generic-assertions-string-containing */}
+
+<font size="2" style={{position: "relative", top: "-20px"}}>Added in: v1.9</font><x-search>genericAssertions.stringContaining</x-search>
+
+`expect.stringContaining()` matches a string that contains the expected substring. Use this method inside [expect(value).toEqual()](/api/class-genericassertions.mdx#generic-assertions-to-equal) to perform pattern matching.
+
+**Usage**
+
+```js
+expect('Hello world!').toEqual(expect.stringContaining('Hello'));
+```
+
+**Arguments**
+- `expected` [string]<a aria-hidden="true" tabIndex="-1" class="list-anchor-link" id="generic-assertions-string-containing-option-expected"/><a href="#generic-assertions-string-containing-option-expected" class="list-anchor">#</a>
+  
+  Expected substring.
+
+---
+
+### stringMatching {/* #generic-assertions-string-matching */}
+
+<font size="2" style={{position: "relative", top: "-20px"}}>Added in: v1.9</font><x-search>genericAssertions.stringMatching</x-search>
+
+`expect.stringMatching()` matches a received string that in turn matches the expected pattern. Use this method inside [expect(value).toEqual()](/api/class-genericassertions.mdx#generic-assertions-to-equal) to perform pattern matching.
+
+**Usage**
+
+```js
+expect('123ms').toEqual(expect.stringMatching(/\d+m?s/));
+
+// Inside another matcher.
+expect({
+  status: 'passed',
+  time: '123ms',
+}).toEqual({
+  status: expect.stringMatching(/passed|failed/),
+  time: expect.stringMatching(/\d+m?s/),
+});
+```
+
+**Arguments**
+- `expected` [string] | [RegExp]<a aria-hidden="true" tabIndex="-1" class="list-anchor-link" id="generic-assertions-string-matching-option-expected"/><a href="#generic-assertions-string-matching-option-expected" class="list-anchor">#</a>
+  
+  Pattern that expected string should match.
+
+---
+
+### toBe {/* #generic-assertions-to-be */}
+
+<font size="2" style={{position: "relative", top: "-20px"}}>Added in: v1.9</font><x-search>genericAssertions.toBe</x-search>
+
+Compares value with [expected](/api/class-genericassertions.mdx#generic-assertions-to-be-option-expected) by calling `Object.is`. This method compares objects by reference instead of their contents, similarly to the strict equality operator `===`.
+
+**Usage**
+
+```js
+const value = { prop: 1 };
+expect(value).toBe(value);
+expect(value).not.toBe({});
+expect(value.prop).toBe(1);
+```
+
+**Arguments**
+- `expected` [Object]<a aria-hidden="true" tabIndex="-1" class="list-anchor-link" id="generic-assertions-to-be-option-expected"/><a href="#generic-assertions-to-be-option-expected" class="list-anchor">#</a>
+  
+  Expected value.
+
+---
+
+### toBeCloseTo {/* #generic-assertions-to-be-close-to */}
+
+<font size="2" style={{position: "relative", top: "-20px"}}>Added in: v1.9</font><x-search>genericAssertions.toBeCloseTo</x-search>
+
+Compares floating point numbers for approximate equality. Use this method instead of [expect(value).toBe()](/api/class-genericassertions.mdx#generic-assertions-to-be) when comparing floating point numbers.
+
+**Usage**
+
+```js
+expect(0.1 + 0.2).not.toBe(0.3);
+expect(0.1 + 0.2).toBeCloseTo(0.3, 5);
+```
+
+**Arguments**
+- `expected` [number]<a aria-hidden="true" tabIndex="-1" class="list-anchor-link" id="generic-assertions-to-be-close-to-option-expected"/><a href="#generic-assertions-to-be-close-to-option-expected" class="list-anchor">#</a>
+  
+  Expected value.
+- `numDigits` [number] *(optional)*<a aria-hidden="true" tabIndex="-1" class="list-anchor-link" id="generic-assertions-to-be-close-to-option-num-digits"/><a href="#generic-assertions-to-be-close-to-option-num-digits" class="list-anchor">#</a>
+  
+  The number of decimal digits after the decimal point that must be equal.
+
+---
+
+### toBeDefined {/* #generic-assertions-to-be-defined */}
+
+<font size="2" style={{position: "relative", top: "-20px"}}>Added in: v1.9</font><x-search>genericAssertions.toBeDefined</x-search>
+
+Ensures that value is not `undefined`.
+
+**Usage**
+
+```js
+const value = null;
+expect(value).toBeDefined();
+```
+
+---
+
+### toBeFalsy {/* #generic-assertions-to-be-falsy */}
+
+<font size="2" style={{position: "relative", top: "-20px"}}>Added in: v1.9</font><x-search>genericAssertions.toBeFalsy</x-search>
+
+Ensures that value is false in a boolean context, one of `false`, `0`, `''`, `null`, `undefined` or `NaN`. Use this method when you don't care about the specific value.
+
+**Usage**
+
+```js
+const value = null;
+expect(value).toBeFalsy();
+```
+
+---
+
+### toBeGreaterThan {/* #generic-assertions-to-be-greater-than */}
+
+<font size="2" style={{position: "relative", top: "-20px"}}>Added in: v1.9</font><x-search>genericAssertions.toBeGreaterThan</x-search>
+
+Ensures that `value > expected` for number or big integer values.
+
+**Usage**
+
+```js
+const value = 42;
+expect(value).toBeGreaterThan(1);
+```
+
+**Arguments**
+- `expected` [number] | [bigint]<a aria-hidden="true" tabIndex="-1" class="list-anchor-link" id="generic-assertions-to-be-greater-than-option-expected"/><a href="#generic-assertions-to-be-greater-than-option-expected" class="list-anchor">#</a>
+  
+  The value to compare to.
+
+---
+
+### toBeGreaterThanOrEqual {/* #generic-assertions-to-be-greater-than-or-equal */}
+
+<font size="2" style={{position: "relative", top: "-20px"}}>Added in: v1.9</font><x-search>genericAssertions.toBeGreaterThanOrEqual</x-search>
+
+Ensures that `value >= expected` for number or big integer values.
+
+**Usage**
+
+```js
+const value = 42;
+expect(value).toBeGreaterThanOrEqual(42);
+```
+
+**Arguments**
+- `expected` [number] | [bigint]<a aria-hidden="true" tabIndex="-1" class="list-anchor-link" id="generic-assertions-to-be-greater-than-or-equal-option-expected"/><a href="#generic-assertions-to-be-greater-than-or-equal-option-expected" class="list-anchor">#</a>
+  
+  The value to compare to.
+
+---
+
+### toBeInstanceOf {/* #generic-assertions-to-be-instance-of */}
+
+<font size="2" style={{position: "relative", top: "-20px"}}>Added in: v1.9</font><x-search>genericAssertions.toBeInstanceOf</x-search>
+
+Ensures that value is an instance of a class. Uses `instanceof` operator.
+
+**Usage**
+
+```js
+expect(page).toBeInstanceOf(Page);
+
+class Example {}
+expect(new Example()).toBeInstanceOf(Example);
+```
+
+**Arguments**
+- `expected` [Function]<a aria-hidden="true" tabIndex="-1" class="list-anchor-link" id="generic-assertions-to-be-instance-of-option-expected"/><a href="#generic-assertions-to-be-instance-of-option-expected" class="list-anchor">#</a>
+  
+  The class or constructor function.
+
+---
+
+### toBeLessThan {/* #generic-assertions-to-be-less-than */}
+
+<font size="2" style={{position: "relative", top: "-20px"}}>Added in: v1.9</font><x-search>genericAssertions.toBeLessThan</x-search>
+
+Ensures that `value < expected` for number or big integer values.
+
+**Usage**
+
+```js
+const value = 42;
+expect(value).toBeLessThan(100);
+```
+
+**Arguments**
+- `expected` [number] | [bigint]<a aria-hidden="true" tabIndex="-1" class="list-anchor-link" id="generic-assertions-to-be-less-than-option-expected"/><a href="#generic-assertions-to-be-less-than-option-expected" class="list-anchor">#</a>
+  
+  The value to compare to.
+
+---
+
+### toBeLessThanOrEqual {/* #generic-assertions-to-be-less-than-or-equal */}
+
+<font size="2" style={{position: "relative", top: "-20px"}}>Added in: v1.9</font><x-search>genericAssertions.toBeLessThanOrEqual</x-search>
+
+Ensures that `value <= expected` for number or big integer values.
+
+**Usage**
+
+```js
+const value = 42;
+expect(value).toBeLessThanOrEqual(42);
+```
+
+**Arguments**
+- `expected` [number] | [bigint]<a aria-hidden="true" tabIndex="-1" class="list-anchor-link" id="generic-assertions-to-be-less-than-or-equal-option-expected"/><a href="#generic-assertions-to-be-less-than-or-equal-option-expected" class="list-anchor">#</a>
+  
+  The value to compare to.
+
+---
+
+### toBeNaN {/* #generic-assertions-to-be-na-n */}
+
+<font size="2" style={{position: "relative", top: "-20px"}}>Added in: v1.9</font><x-search>genericAssertions.toBeNaN</x-search>
+
+Ensures that value is `NaN`.
+
+**Usage**
+
+```js
+const value = NaN;
+expect(value).toBeNaN();
+```
+
+---
+
+### toBeNull {/* #generic-assertions-to-be-null */}
+
+<font size="2" style={{position: "relative", top: "-20px"}}>Added in: v1.9</font><x-search>genericAssertions.toBeNull</x-search>
+
+Ensures that value is `null`.
+
+**Usage**
+
+```js
+const value = null;
+expect(value).toBeNull();
+```
+
+---
+
+### toBeTruthy {/* #generic-assertions-to-be-truthy */}
+
+<font size="2" style={{position: "relative", top: "-20px"}}>Added in: v1.9</font><x-search>genericAssertions.toBeTruthy</x-search>
+
+Ensures that value is true in a boolean context, **anything but** `false`, `0`, `''`, `null`, `undefined` or `NaN`. Use this method when you don't care about the specific value.
+
+**Usage**
+
+```js
+const value = { example: 'value' };
+expect(value).toBeTruthy();
+```
+
+---
+
+### toBeUndefined {/* #generic-assertions-to-be-undefined */}
+
+<font size="2" style={{position: "relative", top: "-20px"}}>Added in: v1.9</font><x-search>genericAssertions.toBeUndefined</x-search>
+
+Ensures that value is `undefined`.
+
+**Usage**
+
+```js
+const value = undefined;
+expect(value).toBeUndefined();
+```
+
+---
+
+### toContain(expected) {/* #generic-assertions-to-contain-1 */}
+
+<font size="2" style={{position: "relative", top: "-20px"}}>Added in: v1.9</font><x-search>genericAssertions.toContain(expected)</x-search>
+
+Ensures that string value contains an expected substring. Comparison is case-sensitive.
+
+**Usage**
+
+```js
+const value = 'Hello, World';
+expect(value).toContain('World');
+expect(value).toContain(',');
+```
+
+**Arguments**
+- `expected` [string]<a aria-hidden="true" tabIndex="-1" class="list-anchor-link" id="generic-assertions-to-contain-1-option-expected"/><a href="#generic-assertions-to-contain-1-option-expected" class="list-anchor">#</a>
+  
+  Expected substring.
+
+---
+
+### toContain(expected) {/* #generic-assertions-to-contain-2 */}
+
+<font size="2" style={{position: "relative", top: "-20px"}}>Added in: v1.9</font><x-search>genericAssertions.toContain(expected)</x-search>
+
+Ensures that value is an `Array` or `Set` and contains an expected item.
+
+**Usage**
+
+```js
+const value = [1, 2, 3];
+expect(value).toContain(2);
+expect(new Set(value)).toContain(2);
+```
+
+**Arguments**
+- `expected` [Object]<a aria-hidden="true" tabIndex="-1" class="list-anchor-link" id="generic-assertions-to-contain-2-option-expected"/><a href="#generic-assertions-to-contain-2-option-expected" class="list-anchor">#</a>
+  
+  Expected value in the collection.
+
+---
+
+### toContainEqual {/* #generic-assertions-to-contain-equal */}
+
+<font size="2" style={{position: "relative", top: "-20px"}}>Added in: v1.9</font><x-search>genericAssertions.toContainEqual</x-search>
+
+Ensures that value is an `Array` or `Set` and contains an item equal to the expected.
+
+For objects, this method recursively checks equality of all fields, rather than comparing objects by reference as performed by [expect(value).toContain()](/api/class-genericassertions.mdx#generic-assertions-to-contain-2).
+
+For primitive values, this method is equivalent to [expect(value).toContain()](/api/class-genericassertions.mdx#generic-assertions-to-contain-2).
+
+**Usage**
+
+```js
+const value = [
+  { example: 1 },
+  { another: 2 },
+  { more: 3 },
+];
+expect(value).toContainEqual({ another: 2 });
+expect(new Set(value)).toContainEqual({ another: 2 });
+```
+
+**Arguments**
+- `expected` [Object]<a aria-hidden="true" tabIndex="-1" class="list-anchor-link" id="generic-assertions-to-contain-equal-option-expected"/><a href="#generic-assertions-to-contain-equal-option-expected" class="list-anchor">#</a>
+  
+  Expected value in the collection.
+
+---
+
+### toEqual {/* #generic-assertions-to-equal */}
+
+<font size="2" style={{position: "relative", top: "-20px"}}>Added in: v1.9</font><x-search>genericAssertions.toEqual</x-search>
+
+Compares contents of the value with contents of [expected](/api/class-genericassertions.mdx#generic-assertions-to-equal-option-expected), performing "deep equality" check.
+
+For objects, this method recursively checks equality of all fields, rather than comparing objects by reference as performed by [expect(value).toBe()](/api/class-genericassertions.mdx#generic-assertions-to-be).
+
+For primitive values, this method is equivalent to [expect(value).toBe()](/api/class-genericassertions.mdx#generic-assertions-to-be).
+
+**Usage**
+
+```js
+const value = { prop: 1 };
+expect(value).toEqual({ prop: 1 });
+```
+
+**Non-strict equality**
+
+[expect(value).toEqual()](/api/class-genericassertions.mdx#generic-assertions-to-equal) performs deep equality check that compares contents of the received and expected values. To ensure two objects reference the same instance, use [expect(value).toBe()](/api/class-genericassertions.mdx#generic-assertions-to-be) instead.
+
+[expect(value).toEqual()](/api/class-genericassertions.mdx#generic-assertions-to-equal) ignores `undefined` properties and array items, and does not insist on object types being equal. For stricter matching, use [expect(value).toStrictEqual()](/api/class-genericassertions.mdx#generic-assertions-to-strict-equal).
+
+**Pattern matching**
+
+[expect(value).toEqual()](/api/class-genericassertions.mdx#generic-assertions-to-equal) can be also used to perform pattern matching on objects, arrays and primitive types, with the help of the following matchers:
+* [expect(value).any()](/api/class-genericassertions.mdx#generic-assertions-any)
+* [expect(value).anything()](/api/class-genericassertions.mdx#generic-assertions-anything)
+* [expect(value).arrayContaining()](/api/class-genericassertions.mdx#generic-assertions-array-containing)
+* [expect(value).arrayOf()](/api/class-genericassertions.mdx#generic-assertions-array-of)
+* [expect(value).closeTo()](/api/class-genericassertions.mdx#generic-assertions-close-to)
+* [expect(value).objectContaining()](/api/class-genericassertions.mdx#generic-assertions-object-containing)
+* [expect(value).stringContaining()](/api/class-genericassertions.mdx#generic-assertions-string-containing)
+* [expect(value).stringMatching()](/api/class-genericassertions.mdx#generic-assertions-string-matching)
+
+Here is an example that asserts some of the values inside a complex object:
+
+```js
+expect({
+  list: [1, 2, 3],
+  obj: { prop: 'Hello world!', another: 'some other value' },
+  extra: 'extra',
+}).toEqual(expect.objectContaining({
+  list: expect.arrayContaining([2, 3]),
+  obj: expect.objectContaining({ prop: expect.stringContaining('Hello') }),
+}));
+```
+
+**Arguments**
+- `expected` [Object]<a aria-hidden="true" tabIndex="-1" class="list-anchor-link" id="generic-assertions-to-equal-option-expected"/><a href="#generic-assertions-to-equal-option-expected" class="list-anchor">#</a>
+  
+  Expected value.
+
+---
+
+### toHaveLength {/* #generic-assertions-to-have-length */}
+
+<font size="2" style={{position: "relative", top: "-20px"}}>Added in: v1.9</font><x-search>genericAssertions.toHaveLength</x-search>
+
+Ensures that value has a `.length` property equal to [expected](/api/class-genericassertions.mdx#generic-assertions-to-have-length-option-expected). Useful for arrays and strings.
+
+**Usage**
+
+```js
+expect('Hello, World').toHaveLength(12);
+expect([1, 2, 3]).toHaveLength(3);
+```
+
+**Arguments**
+- `expected` [number]<a aria-hidden="true" tabIndex="-1" class="list-anchor-link" id="generic-assertions-to-have-length-option-expected"/><a href="#generic-assertions-to-have-length-option-expected" class="list-anchor">#</a>
+  
+  Expected length.
+
+---
+
+### toHaveProperty {/* #generic-assertions-to-have-property */}
+
+<font size="2" style={{position: "relative", top: "-20px"}}>Added in: v1.9</font><x-search>genericAssertions.toHaveProperty</x-search>
+
+Ensures that property at provided `keyPath` exists on the object and optionally checks that property is equal to the [expected](/api/class-genericassertions.mdx#generic-assertions-to-have-property-option-expected). Equality is checked recursively, similarly to [expect(value).toEqual()](/api/class-genericassertions.mdx#generic-assertions-to-equal).
+
+**Usage**
+
+```js
+const value = {
+  a: {
+    b: [42],
+  },
+  c: true,
+};
+expect(value).toHaveProperty('a.b');
+expect(value).toHaveProperty('a.b', [42]);
+expect(value).toHaveProperty('a.b[0]', 42);
+expect(value).toHaveProperty('c');
+expect(value).toHaveProperty('c', true);
+```
+
+**Arguments**
+- `keyPath` [string]<a aria-hidden="true" tabIndex="-1" class="list-anchor-link" id="generic-assertions-to-have-property-option-key-path"/><a href="#generic-assertions-to-have-property-option-key-path" class="list-anchor">#</a>
+  
+  Path to the property. Use dot notation `a.b` to check nested properties and indexed `a[2]` notation to check nested array items.
+- `expected` [Object] *(optional)*<a aria-hidden="true" tabIndex="-1" class="list-anchor-link" id="generic-assertions-to-have-property-option-expected"/><a href="#generic-assertions-to-have-property-option-expected" class="list-anchor">#</a>
+  
+  Optional expected value to compare the property to.
+
+---
+
+### toMatch {/* #generic-assertions-to-match */}
+
+<font size="2" style={{position: "relative", top: "-20px"}}>Added in: v1.9</font><x-search>genericAssertions.toMatch</x-search>
+
+Ensures that string value matches a regular expression.
+
+**Usage**
+
+```js
+const value = 'Is 42 enough?';
+expect(value).toMatch(/Is \d+ enough/);
+```
+
+**Arguments**
+- `expected` [RegExp] | [string]<a aria-hidden="true" tabIndex="-1" class="list-anchor-link" id="generic-assertions-to-match-option-expected"/><a href="#generic-assertions-to-match-option-expected" class="list-anchor">#</a>
+  
+  Regular expression to match against.
+
+---
+
+### toMatchObject {/* #generic-assertions-to-match-object */}
+
+<font size="2" style={{position: "relative", top: "-20px"}}>Added in: v1.9</font><x-search>genericAssertions.toMatchObject</x-search>
+
+Compares contents of the value with contents of [expected](/api/class-genericassertions.mdx#generic-assertions-to-match-object-option-expected), performing "deep equality" check. Allows extra properties to be present in the value, unlike [expect(value).toEqual()](/api/class-genericassertions.mdx#generic-assertions-to-equal), so you can check just a subset of object properties.
+
+When comparing arrays, the number of items must match, and each item is checked recursively.
+
+**Usage**
+
+```js
+const value = {
+  a: 1,
+  b: 2,
+  c: true,
+};
+expect(value).toMatchObject({ a: 1, c: true });
+expect(value).toMatchObject({ b: 2, c: true });
+
+expect([{ a: 1, b: 2 }]).toMatchObject([{ a: 1 }]);
+```
+
+**Arguments**
+- `expected` [Object] | [Array]<a aria-hidden="true" tabIndex="-1" class="list-anchor-link" id="generic-assertions-to-match-object-option-expected"/><a href="#generic-assertions-to-match-object-option-expected" class="list-anchor">#</a>
+  
+  The expected object value to match against.
+
+---
+
+### toStrictEqual {/* #generic-assertions-to-strict-equal */}
+
+<font size="2" style={{position: "relative", top: "-20px"}}>Added in: v1.9</font><x-search>genericAssertions.toStrictEqual</x-search>
+
+Compares contents of the value with contents of [expected](/api/class-genericassertions.mdx#generic-assertions-to-strict-equal-option-expected) **and** their types.
+
+Differences from [expect(value).toEqual()](/api/class-genericassertions.mdx#generic-assertions-to-equal):
+* Keys with undefined properties are checked. For example, `{ a: undefined, b: 2 }` does not match `{ b: 2 }`.
+* Array sparseness is checked. For example, `[, 1]` does not match `[undefined, 1]`.
+* Object types are checked to be equal. For example, a class instance with fields `a` and `b` will not equal a literal object with fields `a` and `b`.
+
+**Usage**
+
+```js
+const value = { prop: 1 };
+expect(value).toStrictEqual({ prop: 1 });
+```
+
+**Arguments**
+- `expected` [Object]<a aria-hidden="true" tabIndex="-1" class="list-anchor-link" id="generic-assertions-to-strict-equal-option-expected"/><a href="#generic-assertions-to-strict-equal-option-expected" class="list-anchor">#</a>
+  
+  Expected value.
+
+---
+
+### toThrow {/* #generic-assertions-to-throw */}
+
+<font size="2" style={{position: "relative", top: "-20px"}}>Added in: v1.9</font><x-search>genericAssertions.toThrow</x-search>
+
+Calls the function and ensures it throws an error.
+
+Optionally compares the error with [expected](/api/class-genericassertions.mdx#generic-assertions-to-throw-option-expected). Allowed expected values:
+* Regular expression - error message should **match** the pattern.
+* String - error message should **include** the substring.
+* Error object - error message should be **equal to** the message property of the object.
+* Error class - error object should be an **instance of** the class.
+
+**Usage**
+
+```js
+expect(() => {
+  throw new Error('Something bad');
+}).toThrow();
+
+expect(() => {
+  throw new Error('Something bad');
+}).toThrow(/something/);
+
+expect(() => {
+  throw new Error('Something bad');
+}).toThrow(Error);
+```
+
+**Arguments**
+- `expected` [Object] *(optional)*<a aria-hidden="true" tabIndex="-1" class="list-anchor-link" id="generic-assertions-to-throw-option-expected"/><a href="#generic-assertions-to-throw-option-expected" class="list-anchor">#</a>
+  
+  Expected error message or error object.
+
+---
+
+### toThrowError {/* #generic-assertions-to-throw-error */}
+
+<font size="2" style={{position: "relative", top: "-20px"}}>Added in: v1.9</font><x-search>genericAssertions.toThrowError</x-search>
+
+An alias for [expect(value).toThrow()](/api/class-genericassertions.mdx#generic-assertions-to-throw).
+
+**Usage**
+
+```js
+expect(() => {
+  throw new Error('Something bad');
+}).toThrowError();
+```
+
+**Arguments**
+- `expected` [Object] *(optional)*<a aria-hidden="true" tabIndex="-1" class="list-anchor-link" id="generic-assertions-to-throw-error-option-expected"/><a href="#generic-assertions-to-throw-error-option-expected" class="list-anchor">#</a>
+  
+  Expected error message or error object.
+
+---
+
+## Properties
+
+### not {/* #generic-assertions-not */}
+
+<font size="2" style={{position: "relative", top: "-20px"}}>Added in: v1.9</font><x-search>genericAssertions.not</x-search>
+
+Makes the assertion check for the opposite condition.
+
+**Usage**
+
+For example, the following code passes:
+
+```js
+const value = 1;
+expect(value).not.toBe(2);
+```
+
+**Type**
+- [GenericAssertions]
+
+---
+
+### rejects {/* #generic-assertions-rejects */}
+
+<font size="2" style={{position: "relative", top: "-20px"}}>Added in: v1.9</font><x-search>genericAssertions.rejects</x-search>
+
+Use `.rejects` to unwrap the reason of a rejected promise so any other matcher can be chained. If the promise is fulfilled the assertion fails.
+
+For example, this code tests that the promise rejects with reason `'octopus'`:
+
+```js
+test('rejects to octopus', async () => {
+  await expect(Promise.reject(new Error('octopus'))).rejects.toThrow('octopus');
+});
+```
+
+**Usage**
+
+```js
+expect(value).rejects
+```
+
+**Type**
+- [GenericAssertions]
+
+---
+
+### resolves {/* #generic-assertions-resolves */}
+
+<font size="2" style={{position: "relative", top: "-20px"}}>Added in: v1.9</font><x-search>genericAssertions.resolves</x-search>
+
+Use `resolves` to unwrap the value of a fulfilled promise so any other matcher can be chained. If the promise is rejected the assertion fails.
+
+For example, this code tests that the promise resolves and that the resulting value is `'lemon'`:
+
+```js
+test('resolves to lemon', async () => {
+  await expect(Promise.resolve('lemon')).resolves.toBe('lemon');
+});
+```
+
+**Usage**
+
+```js
+expect(value).resolves
+```
+
+**Type**
+- [GenericAssertions]
+
+
+[APIRequest]: /api/class-apirequest.mdx "APIRequest"
+[APIRequestContext]: /api/class-apirequestcontext.mdx "APIRequestContext"
+[APIResponse]: /api/class-apiresponse.mdx "APIResponse"
+[APIResponseAssertions]: /api/class-apiresponseassertions.mdx "APIResponseAssertions"
+[Browser]: /api/class-browser.mdx "Browser"
+[BrowserContext]: /api/class-browsercontext.mdx "BrowserContext"
+[BrowserServer]: /api/class-browserserver.mdx "BrowserServer"
+[BrowserType]: /api/class-browsertype.mdx "BrowserType"
+[CDPSession]: /api/class-cdpsession.mdx "CDPSession"
+[Clock]: /api/class-clock.mdx "Clock"
+[ConsoleMessage]: /api/class-consolemessage.mdx "ConsoleMessage"
+[Coverage]: /api/class-coverage.mdx "Coverage"
+[Credentials]: /api/class-credentials.mdx "Credentials"
+[Debugger]: /api/class-debugger.mdx "Debugger"
+[Dialog]: /api/class-dialog.mdx "Dialog"
+[Disposable]: /api/class-disposable.mdx "Disposable"
+[Download]: /api/class-download.mdx "Download"
+[ElementHandle]: /api/class-elementhandle.mdx "ElementHandle"
+[FileChooser]: /api/class-filechooser.mdx "FileChooser"
+[Frame]: /api/class-frame.mdx "Frame"
+[FrameLocator]: /api/class-framelocator.mdx "FrameLocator"
+[GenericAssertions]: /api/class-genericassertions.mdx "GenericAssertions"
+[JSHandle]: /api/class-jshandle.mdx "JSHandle"
+[Keyboard]: /api/class-keyboard.mdx "Keyboard"
+[Locator]: /api/class-locator.mdx "Locator"
+[LocatorAssertions]: /api/class-locatorassertions.mdx "LocatorAssertions"
+[Logger]: /api/class-logger.mdx "Logger"
+[Mouse]: /api/class-mouse.mdx "Mouse"
+[Page]: /api/class-page.mdx "Page"
+[PageAssertions]: /api/class-pageassertions.mdx "PageAssertions"
+[Playwright]: /api/class-playwright.mdx "Playwright"
+[PlaywrightAssertions]: /api/class-playwrightassertions.mdx "PlaywrightAssertions"
+[Request]: /api/class-request.mdx "Request"
+[Response]: /api/class-response.mdx "Response"
+[Route]: /api/class-route.mdx "Route"
+[Screencast]: /api/class-screencast.mdx "Screencast"
+[Selectors]: /api/class-selectors.mdx "Selectors"
+[SnapshotAssertions]: /api/class-snapshotassertions.mdx "SnapshotAssertions"
+[TimeoutError]: /api/class-timeouterror.mdx "TimeoutError"
+[Touchscreen]: /api/class-touchscreen.mdx "Touchscreen"
+[Tracing]: /api/class-tracing.mdx "Tracing"
+[Video]: /api/class-video.mdx "Video"
+[WebError]: /api/class-weberror.mdx "WebError"
+[WebSocket]: /api/class-websocket.mdx "WebSocket"
+[WebSocketRoute]: /api/class-websocketroute.mdx "WebSocketRoute"
+[WebStorage]: /api/class-webstorage.mdx "WebStorage"
+[Worker]: /api/class-worker.mdx "Worker"
+[Electron]: /api/class-electron.mdx "Electron"
+[ElectronApplication]: /api/class-electronapplication.mdx "ElectronApplication"
+[Android]: /api/class-android.mdx "Android"
+[AndroidDevice]: /api/class-androiddevice.mdx "AndroidDevice"
+[AndroidInput]: /api/class-androidinput.mdx "AndroidInput"
+[AndroidSocket]: /api/class-androidsocket.mdx "AndroidSocket"
+[AndroidWebView]: /api/class-androidwebview.mdx "AndroidWebView"
+[Fixtures]: /api/class-fixtures.mdx "Fixtures"
+[FullConfig]: /api/class-fullconfig.mdx "FullConfig"
+[FullProject]: /api/class-fullproject.mdx "FullProject"
+[Location]: /api/class-location.mdx "Location"
+[Test]: /api/class-test.mdx "Test"
+[TestConfig]: /api/class-testconfig.mdx "TestConfig"
+[TestInfo]: /api/class-testinfo.mdx "TestInfo"
+[TestInfoError]: /api/class-testinfoerror.mdx "TestInfoError"
+[TestOptions]: /api/class-testoptions.mdx "TestOptions"
+[TestProject]: /api/class-testproject.mdx "TestProject"
+[TestStepInfo]: /api/class-teststepinfo.mdx "TestStepInfo"
+[WorkerInfo]: /api/class-workerinfo.mdx "WorkerInfo"
+[Reporter]: /api/class-reporter.mdx "Reporter"
+[Suite]: /api/class-suite.mdx "Suite"
+[TestCase]: /api/class-testcase.mdx "TestCase"
+[TestError]: /api/class-testerror.mdx "TestError"
+[TestResult]: /api/class-testresult.mdx "TestResult"
+[TestStep]: /api/class-teststep.mdx "TestStep"
+[Element]: https://developer.mozilla.org/en-US/docs/Web/API/element "Element"
+[EvaluationArgument]: /evaluating.mdx#evaluation-argument "EvaluationArgument"
+[Promise]: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Promise "Promise"
+[iterator]: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Iteration_protocols "Iterator"
+[origin]: https://developer.mozilla.org/en-US/docs/Glossary/Origin "Origin"
+[selector]: https://developer.mozilla.org/en-US/docs/Web/CSS/CSS_Selectors "selector"
+[Serializable]: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/JSON/stringify#Description "Serializable"
+[UIEvent.detail]: https://developer.mozilla.org/en-US/docs/Web/API/UIEvent/detail "UIEvent.detail"
+[UnixTime]: https://en.wikipedia.org/wiki/Unix_time "Unix Time"
+[xpath]: https://developer.mozilla.org/en-US/docs/Web/XPath "xpath"
+
+[Array]: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Array "Array"
+[boolean]: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Data_structures#Boolean_type "Boolean"
+[Buffer]: https://nodejs.org/api/buffer.html#buffer_class_buffer "Buffer"
+[ChildProcess]: https://nodejs.org/api/child_process.html "ChildProcess"
+[Date]: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Date "Date"
+[Error]: https://nodejs.org/api/errors.html#errors_class_error "Error"
+[EventEmitter]: https://nodejs.org/api/events.html#events_class_eventemitter "EventEmitter"
+[function]: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Function "Function"
+[FormData]: https://developer.mozilla.org/en-US/docs/Web/API/FormData "FormData"
+[Map]: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Map "Map"
+[Metadata]: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Object "Object&lt;string, any&gt;"
+[null]: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/null "null"
+[number]: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Data_structures#Number_type "Number"
+[Object]: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Object "Object"
+[Promise]: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Promise "Promise"
+[Readable]: https://nodejs.org/api/stream.html#stream_class_stream_readable "Readable"
+[ReadStream]: https://nodejs.org/api/fs.html#class-fsreadstream "ReadStream"
+[RegExp]: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/RegExp "RegExp"
+[string]: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Data_structures#String_type "string"
+[void]: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/undefined "void"
+[URL]: https://nodejs.org/api/url.html "URL"
+[URLPattern]: https://developer.mozilla.org/en-US/docs/Web/API/URLPattern "URLPattern"
+[URLSearchParams]: https://developer.mozilla.org/en-US/docs/Web/API/URLSearchParams "URLSearchParams"
+
+[all available image tags]: https://mcr.microsoft.com/en-us/product/playwright/about "all available image tags"
+[Microsoft Artifact Registry]: https://mcr.microsoft.com/en-us/product/playwright/about "Microsoft Artifact Registry"
+[Dockerfile.noble]: https://github.com/microsoft/playwright/blob/main/utils/docker/Dockerfile.noble "Dockerfile.noble"

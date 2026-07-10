@@ -1,0 +1,357 @@
+---
+id: class-apiresponse
+title: "APIResponse"
+---
+import Tabs from '@theme/Tabs';
+import TabItem from '@theme/TabItem';
+import HTMLCard from '@site/src/components/HTMLCard';
+
+
+[APIResponse] class represents responses returned by [apiRequestContext.get()](/api/class-apirequestcontext.mdx#api-request-context-get) and similar methods.
+
+
+---
+
+## Methods
+
+### body {/* #api-response-body */}
+
+<font size="2" style={{position: "relative", top: "-20px"}}>Added in: v1.16</font><x-search>apiResponse.body</x-search>
+
+Returns the buffer with response body.
+
+**Usage**
+
+```js
+await apiResponse.body();
+```
+
+**Returns**
+- [Promise]&lt;[Buffer]&gt;<a aria-hidden="true" tabIndex="-1" class="list-anchor-link" id="api-response-body-return"/><a href="#api-response-body-return" class="list-anchor">#</a>
+
+---
+
+### dispose {/* #api-response-dispose */}
+
+<font size="2" style={{position: "relative", top: "-20px"}}>Added in: v1.16</font><x-search>apiResponse.dispose</x-search>
+
+Disposes the body of this response. If not called then the body will stay in memory until the context closes.
+
+**Usage**
+
+```js
+await apiResponse.dispose();
+```
+
+**Returns**
+- [Promise]&lt;[void]&gt;<a aria-hidden="true" tabIndex="-1" class="list-anchor-link" id="api-response-dispose-return"/><a href="#api-response-dispose-return" class="list-anchor">#</a>
+
+---
+
+### headers {/* #api-response-headers */}
+
+<font size="2" style={{position: "relative", top: "-20px"}}>Added in: v1.16</font><x-search>apiResponse.headers</x-search>
+
+An object with all the response HTTP headers associated with this response.
+
+**Usage**
+
+```js
+apiResponse.headers();
+```
+
+**Returns**
+- [Object]&lt;[string], [string]&gt;<a aria-hidden="true" tabIndex="-1" class="list-anchor-link" id="api-response-headers-return"/><a href="#api-response-headers-return" class="list-anchor">#</a>
+
+---
+
+### headersArray {/* #api-response-headers-array */}
+
+<font size="2" style={{position: "relative", top: "-20px"}}>Added in: v1.16</font><x-search>apiResponse.headersArray</x-search>
+
+An array with all the response HTTP headers associated with this response. Header names are not lower-cased. Headers with multiple entries, such as `Set-Cookie`, appear in the array multiple times.
+
+**Usage**
+
+```js
+apiResponse.headersArray();
+```
+
+**Returns**
+- [Array]&lt;[Object]&gt;<a aria-hidden="true" tabIndex="-1" class="list-anchor-link" id="api-response-headers-array-return"/><a href="#api-response-headers-array-return" class="list-anchor">#</a>
+  - `name` [string]
+    
+    Name of the header.
+  - `value` [string]
+    
+    Value of the header.
+
+---
+
+### json {/* #api-response-json */}
+
+<font size="2" style={{position: "relative", top: "-20px"}}>Added in: v1.16</font><x-search>apiResponse.json</x-search>
+
+Returns the JSON representation of response body.
+
+This method will throw if the response body is not parsable via `JSON.parse`.
+
+**Usage**
+
+```js
+await apiResponse.json();
+```
+
+**Returns**
+- [Promise]&lt;[Serializable]&gt;<a aria-hidden="true" tabIndex="-1" class="list-anchor-link" id="api-response-json-return"/><a href="#api-response-json-return" class="list-anchor">#</a>
+
+---
+
+### ok {/* #api-response-ok */}
+
+<font size="2" style={{position: "relative", top: "-20px"}}>Added in: v1.16</font><x-search>apiResponse.ok</x-search>
+
+Contains a boolean stating whether the response was successful (status in the range 200-299) or not.
+
+**Usage**
+
+```js
+apiResponse.ok();
+```
+
+**Returns**
+- [boolean]<a aria-hidden="true" tabIndex="-1" class="list-anchor-link" id="api-response-ok-return"/><a href="#api-response-ok-return" class="list-anchor">#</a>
+
+---
+
+### securityDetails {/* #api-response-security-details */}
+
+<font size="2" style={{position: "relative", top: "-20px"}}>Added in: v1.61</font><x-search>apiResponse.securityDetails</x-search>
+
+Returns SSL and other security information. Resolves to `null` for non-HTTPS responses. For redirected requests, returns the information for the last request in the redirect chain.
+
+**Usage**
+
+```js
+await apiResponse.securityDetails();
+```
+
+**Returns**
+- [Promise]&lt;[null] | [Object]&gt;<a aria-hidden="true" tabIndex="-1" class="list-anchor-link" id="api-response-security-details-return"/><a href="#api-response-security-details-return" class="list-anchor">#</a>
+  - `issuer` [string] *(optional)*
+    
+    Common Name component of the Issuer field. from the certificate. This should only be used for informational purposes. Optional.
+  - `protocol` [string] *(optional)*
+    
+    The specific TLS protocol used. (e.g. `TLS 1.3`). Optional.
+  - `subjectName` [string] *(optional)*
+    
+    Common Name component of the Subject field from the certificate. This should only be used for informational purposes. Optional.
+  - `validFrom` [number] *(optional)*
+    
+    Unix timestamp (in seconds) specifying when this cert becomes valid. Optional.
+  - `validTo` [number] *(optional)*
+    
+    Unix timestamp (in seconds) specifying when this cert becomes invalid. Optional.
+
+---
+
+### serverAddr {/* #api-response-server-addr */}
+
+<font size="2" style={{position: "relative", top: "-20px"}}>Added in: v1.61</font><x-search>apiResponse.serverAddr</x-search>
+
+Returns the IP address and port of the server. Resolves to `null` if the server address is not available. For redirected requests, returns the information for the last request in the redirect chain.
+
+**Usage**
+
+```js
+await apiResponse.serverAddr();
+```
+
+**Returns**
+- [Promise]&lt;[null] | [Object]&gt;<a aria-hidden="true" tabIndex="-1" class="list-anchor-link" id="api-response-server-addr-return"/><a href="#api-response-server-addr-return" class="list-anchor">#</a>
+  - `ipAddress` [string]
+    
+    IPv4 or IPV6 address of the server.
+  - `port` [number]
+    
+    
+---
+
+### status {/* #api-response-status */}
+
+<font size="2" style={{position: "relative", top: "-20px"}}>Added in: v1.16</font><x-search>apiResponse.status</x-search>
+
+Contains the status code of the response (e.g., 200 for a success).
+
+**Usage**
+
+```js
+apiResponse.status();
+```
+
+**Returns**
+- [number]<a aria-hidden="true" tabIndex="-1" class="list-anchor-link" id="api-response-status-return"/><a href="#api-response-status-return" class="list-anchor">#</a>
+
+---
+
+### statusText {/* #api-response-status-text */}
+
+<font size="2" style={{position: "relative", top: "-20px"}}>Added in: v1.16</font><x-search>apiResponse.statusText</x-search>
+
+Contains the status text of the response (e.g. usually an "OK" for a success).
+
+**Usage**
+
+```js
+apiResponse.statusText();
+```
+
+**Returns**
+- [string]<a aria-hidden="true" tabIndex="-1" class="list-anchor-link" id="api-response-status-text-return"/><a href="#api-response-status-text-return" class="list-anchor">#</a>
+
+---
+
+### text {/* #api-response-text */}
+
+<font size="2" style={{position: "relative", top: "-20px"}}>Added in: v1.16</font><x-search>apiResponse.text</x-search>
+
+Returns the text representation of response body.
+
+**Usage**
+
+```js
+await apiResponse.text();
+```
+
+**Returns**
+- [Promise]&lt;[string]&gt;<a aria-hidden="true" tabIndex="-1" class="list-anchor-link" id="api-response-text-return"/><a href="#api-response-text-return" class="list-anchor">#</a>
+
+---
+
+### url {/* #api-response-url */}
+
+<font size="2" style={{position: "relative", top: "-20px"}}>Added in: v1.16</font><x-search>apiResponse.url</x-search>
+
+Contains the URL of the response.
+
+**Usage**
+
+```js
+apiResponse.url();
+```
+
+**Returns**
+- [string]<a aria-hidden="true" tabIndex="-1" class="list-anchor-link" id="api-response-url-return"/><a href="#api-response-url-return" class="list-anchor">#</a>
+
+
+[APIRequest]: /api/class-apirequest.mdx "APIRequest"
+[APIRequestContext]: /api/class-apirequestcontext.mdx "APIRequestContext"
+[APIResponse]: /api/class-apiresponse.mdx "APIResponse"
+[APIResponseAssertions]: /api/class-apiresponseassertions.mdx "APIResponseAssertions"
+[Browser]: /api/class-browser.mdx "Browser"
+[BrowserContext]: /api/class-browsercontext.mdx "BrowserContext"
+[BrowserServer]: /api/class-browserserver.mdx "BrowserServer"
+[BrowserType]: /api/class-browsertype.mdx "BrowserType"
+[CDPSession]: /api/class-cdpsession.mdx "CDPSession"
+[Clock]: /api/class-clock.mdx "Clock"
+[ConsoleMessage]: /api/class-consolemessage.mdx "ConsoleMessage"
+[Coverage]: /api/class-coverage.mdx "Coverage"
+[Credentials]: /api/class-credentials.mdx "Credentials"
+[Debugger]: /api/class-debugger.mdx "Debugger"
+[Dialog]: /api/class-dialog.mdx "Dialog"
+[Disposable]: /api/class-disposable.mdx "Disposable"
+[Download]: /api/class-download.mdx "Download"
+[ElementHandle]: /api/class-elementhandle.mdx "ElementHandle"
+[FileChooser]: /api/class-filechooser.mdx "FileChooser"
+[Frame]: /api/class-frame.mdx "Frame"
+[FrameLocator]: /api/class-framelocator.mdx "FrameLocator"
+[GenericAssertions]: /api/class-genericassertions.mdx "GenericAssertions"
+[JSHandle]: /api/class-jshandle.mdx "JSHandle"
+[Keyboard]: /api/class-keyboard.mdx "Keyboard"
+[Locator]: /api/class-locator.mdx "Locator"
+[LocatorAssertions]: /api/class-locatorassertions.mdx "LocatorAssertions"
+[Logger]: /api/class-logger.mdx "Logger"
+[Mouse]: /api/class-mouse.mdx "Mouse"
+[Page]: /api/class-page.mdx "Page"
+[PageAssertions]: /api/class-pageassertions.mdx "PageAssertions"
+[Playwright]: /api/class-playwright.mdx "Playwright"
+[PlaywrightAssertions]: /api/class-playwrightassertions.mdx "PlaywrightAssertions"
+[Request]: /api/class-request.mdx "Request"
+[Response]: /api/class-response.mdx "Response"
+[Route]: /api/class-route.mdx "Route"
+[Screencast]: /api/class-screencast.mdx "Screencast"
+[Selectors]: /api/class-selectors.mdx "Selectors"
+[SnapshotAssertions]: /api/class-snapshotassertions.mdx "SnapshotAssertions"
+[TimeoutError]: /api/class-timeouterror.mdx "TimeoutError"
+[Touchscreen]: /api/class-touchscreen.mdx "Touchscreen"
+[Tracing]: /api/class-tracing.mdx "Tracing"
+[Video]: /api/class-video.mdx "Video"
+[WebError]: /api/class-weberror.mdx "WebError"
+[WebSocket]: /api/class-websocket.mdx "WebSocket"
+[WebSocketRoute]: /api/class-websocketroute.mdx "WebSocketRoute"
+[WebStorage]: /api/class-webstorage.mdx "WebStorage"
+[Worker]: /api/class-worker.mdx "Worker"
+[Electron]: /api/class-electron.mdx "Electron"
+[ElectronApplication]: /api/class-electronapplication.mdx "ElectronApplication"
+[Android]: /api/class-android.mdx "Android"
+[AndroidDevice]: /api/class-androiddevice.mdx "AndroidDevice"
+[AndroidInput]: /api/class-androidinput.mdx "AndroidInput"
+[AndroidSocket]: /api/class-androidsocket.mdx "AndroidSocket"
+[AndroidWebView]: /api/class-androidwebview.mdx "AndroidWebView"
+[Fixtures]: /api/class-fixtures.mdx "Fixtures"
+[FullConfig]: /api/class-fullconfig.mdx "FullConfig"
+[FullProject]: /api/class-fullproject.mdx "FullProject"
+[Location]: /api/class-location.mdx "Location"
+[Test]: /api/class-test.mdx "Test"
+[TestConfig]: /api/class-testconfig.mdx "TestConfig"
+[TestInfo]: /api/class-testinfo.mdx "TestInfo"
+[TestInfoError]: /api/class-testinfoerror.mdx "TestInfoError"
+[TestOptions]: /api/class-testoptions.mdx "TestOptions"
+[TestProject]: /api/class-testproject.mdx "TestProject"
+[TestStepInfo]: /api/class-teststepinfo.mdx "TestStepInfo"
+[WorkerInfo]: /api/class-workerinfo.mdx "WorkerInfo"
+[Reporter]: /api/class-reporter.mdx "Reporter"
+[Suite]: /api/class-suite.mdx "Suite"
+[TestCase]: /api/class-testcase.mdx "TestCase"
+[TestError]: /api/class-testerror.mdx "TestError"
+[TestResult]: /api/class-testresult.mdx "TestResult"
+[TestStep]: /api/class-teststep.mdx "TestStep"
+[Element]: https://developer.mozilla.org/en-US/docs/Web/API/element "Element"
+[EvaluationArgument]: /evaluating.mdx#evaluation-argument "EvaluationArgument"
+[Promise]: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Promise "Promise"
+[iterator]: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Iteration_protocols "Iterator"
+[origin]: https://developer.mozilla.org/en-US/docs/Glossary/Origin "Origin"
+[selector]: https://developer.mozilla.org/en-US/docs/Web/CSS/CSS_Selectors "selector"
+[Serializable]: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/JSON/stringify#Description "Serializable"
+[UIEvent.detail]: https://developer.mozilla.org/en-US/docs/Web/API/UIEvent/detail "UIEvent.detail"
+[UnixTime]: https://en.wikipedia.org/wiki/Unix_time "Unix Time"
+[xpath]: https://developer.mozilla.org/en-US/docs/Web/XPath "xpath"
+
+[Array]: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Array "Array"
+[boolean]: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Data_structures#Boolean_type "Boolean"
+[Buffer]: https://nodejs.org/api/buffer.html#buffer_class_buffer "Buffer"
+[ChildProcess]: https://nodejs.org/api/child_process.html "ChildProcess"
+[Date]: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Date "Date"
+[Error]: https://nodejs.org/api/errors.html#errors_class_error "Error"
+[EventEmitter]: https://nodejs.org/api/events.html#events_class_eventemitter "EventEmitter"
+[function]: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Function "Function"
+[FormData]: https://developer.mozilla.org/en-US/docs/Web/API/FormData "FormData"
+[Map]: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Map "Map"
+[Metadata]: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Object "Object&lt;string, any&gt;"
+[null]: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/null "null"
+[number]: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Data_structures#Number_type "Number"
+[Object]: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Object "Object"
+[Promise]: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Promise "Promise"
+[Readable]: https://nodejs.org/api/stream.html#stream_class_stream_readable "Readable"
+[ReadStream]: https://nodejs.org/api/fs.html#class-fsreadstream "ReadStream"
+[RegExp]: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/RegExp "RegExp"
+[string]: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Data_structures#String_type "string"
+[void]: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/undefined "void"
+[URL]: https://nodejs.org/api/url.html "URL"
+[URLPattern]: https://developer.mozilla.org/en-US/docs/Web/API/URLPattern "URLPattern"
+[URLSearchParams]: https://developer.mozilla.org/en-US/docs/Web/API/URLSearchParams "URLSearchParams"
+
+[all available image tags]: https://mcr.microsoft.com/en-us/product/playwright/about "all available image tags"
+[Microsoft Artifact Registry]: https://mcr.microsoft.com/en-us/product/playwright/about "Microsoft Artifact Registry"
+[Dockerfile.noble]: https://github.com/microsoft/playwright/blob/main/utils/docker/Dockerfile.noble "Dockerfile.noble"

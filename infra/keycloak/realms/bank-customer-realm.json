@@ -1,0 +1,23 @@
+{
+  "realm": "bank-customer",
+  "enabled": true,
+  "registrationAllowed": false,
+  "loginWithEmailAllowed": true,
+  "duplicateEmailsAllowed": false,
+  "roles": {"realm": [{"name":"CUSTOMER"},{"name":"CUSTOMER_MFA_VERIFIED"},{"name":"CUSTOMER_BLOCKED"}]},
+  "sslRequired": "external",
+  "clients": [
+    {
+      "clientId": "bank-customer-web",
+      "name": "Bank Customer Web",
+      "enabled": true,
+      "publicClient": true,
+      "protocol": "openid-connect",
+      "standardFlowEnabled": true,
+      "directAccessGrantsEnabled": false,
+      "redirectUris": ["http://127.0.0.1:18081/*"],
+      "webOrigins": ["http://127.0.0.1:18081"],
+      "attributes": {"pkce.code.challenge.method": "S256"}
+    }
+  ]
+}

@@ -1,0 +1,26 @@
+schemaVersion: 1
+capturedAt: '2026-07-10T00:00:00+08:00'
+core:
+  fineract:
+    reference: 'openmf/fineract:develop@sha256:666c666900eb62fc1f6c5faa971e19c34ef6ec5d7cb8224276a49e2ddba262e1'
+  mifosWeb:
+    reference: 'openmf/web-app:dev@sha256:d071bea02ba0b83b0a9958f8ea651b7cc50aa86dd18f71ab304955e76bbd4b03'
+  postgresql:
+    reference: 'postgres:18.3@sha256:7e32e9833a6fb1c92c32552794cb6ed569d51b445a54907d35fc112ef39684db'
+  activeMq:
+    reference: 'apache/activemq-classic:latest@sha256:75852a6d357991028e58e7c32a7dd190cb36802568236cf3cd189d2350033be1'
+notes:
+  - Immutable digests are observed runtime identities, not upgrade approval.
+  - The mutable develop, dev, and latest tags are a Phase 0 audit finding.
+channel:
+  postgresql:
+    reference: 'postgres:18.3@sha256:7e32e9833a6fb1c92c32552794cb6ed569d51b445a54907d35fc112ef39684db'
+  gateway:
+    reference: 'nginx:1.27-alpine@sha256:65645c7bb6a0661892a8b03b89d0743208a18dd2f3f17a54ef4b76fb8e2f2a10'
+  javaRuntime:
+    reference: 'eclipse-temurin:21-jre@sha256:d2b9f8f12212cadcfdf889461531784e8fd097feade954d65b31ee7a71c473ec'
+  keycloak:
+    reference: 'quay.io/keycloak/keycloak:26.3.3@sha256:6a7217a100bd3e5de4063a27a538ef999a3c5a88c4b4ec0ffc0a642aee7b2597'
+  channelService:
+    reference: 'local/bank-channel-service@sha256:4737bd84e72a0e4f2af9d2379c1e6a2224f7c7140601dfaef3db20d272ee6920'
+    builder: 'maven@sha256:3a4ab3276a087bf276f79cae96b1af04f53731bec53fb2e651aca79e4b10211e'

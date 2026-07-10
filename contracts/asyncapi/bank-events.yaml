@@ -1,0 +1,34 @@
+asyncapi: 3.1.0
+info:
+  title: Bank Channel Events
+  version: 0.1.0
+  description: Durable channel events; consumers must be inbox-idempotent.
+defaultContentType: application/json
+channels:
+  transferStatusChanged:
+    address: bank.transfer.status.changed
+    messages:
+      transferStatusChanged:
+        $ref: '#/components/messages/TransferStatusChanged'
+operations:
+  publishTransferStatusChanged:
+    action: send
+    channel: { $ref: '#/channels/transferStatusChanged' }
+    messages:
+      - $ref: '#/channels/transferStatusChanged/messages/transferStatusChanged'
+components:
+  messages:
+    TransferStatusChanged:
+      name: TransferStatusChanged
+      payload: { $ref: '#/components/schemas/TransferStatusChanged' }
+  schemas:
+    TransferStatusChanged:
+      type: object
+      required: [eventId, eventType, occurredAt, transferId, status]
+      properties:
+        eventId: { type: string, minLength: 1, maxLength: 128 }
+        eventType: { const: transfer.status.changed }
+        occurredAt: { type: string, format: date-time }
+        transferId: { type: string, minLength: 1, maxLength: 64 }
+        status: { type: string, enum: [RECEIVED, PENDING_REVIEW, PROCESSING, POSTED, FAILED, COMPENSATING, COMPENSATED] }
+        coreReference: { type: [string, 'null'] }
