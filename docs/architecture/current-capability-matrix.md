@@ -19,4 +19,4 @@
 | Loan core lifecycle/accounting | Partial | Authorized submit/approve/disburse/repayment/close path passed; Fineract reported Closed (obligations met) and zero outstanding; maturity/time-travel regression remains | PARTIALLY_VERIFIED |
 | EOD/reconciliation orchestration | Partial | Protected EOD endpoint plus three reconciliation runs; `CORE_TO_GENERAL_LEDGER` now verifies debit/credit equality, while full clearing settlement coverage remains | PARTIALLY_VERIFIED |
 | Cashier/freeze/close/maturity operations | Partial | Authorized cashier read, block/unblock, business-date move/restore, one-period maturity schedule, and post-maturity close passed; prematureClose remains | PARTIALLY_VERIFIED |
-| Final full regression | No | E2E-001 to E2E-014 not all executed | NOT_STARTED |
+| Final full regression | Partial | Repeatable smoke regression and backup drills pass; E2E-001 to E2E-014 are not all automated/executed | PARTIALLY_VERIFIED |
