@@ -47,6 +47,79 @@ paths:
               schema: { $ref: '#/components/schemas/AccountSummary' }
         '401': { $ref: '#/components/responses/Unauthorized' }
         '404': { $ref: '#/components/responses/NotFound' }
+  /loans/applications:
+    post:
+      operationId: createLoanApplication
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/LoanApplicationRequest' }
+      responses:
+        '200':
+          description: Draft loan application
+          content:
+            application/json: { schema: { $ref: '#/components/schemas/LoanApplication' } }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+  /loans/applications/{applicationId}/submit:
+    parameters: [{ $ref: '#/components/parameters/ApplicationId' }]
+    post:
+      operationId: submitLoanApplication
+      responses:
+        '200':
+          description: Submitted channel application
+          content:
+            application/json: { schema: { $ref: '#/components/schemas/LoanApplication' } }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+  /loans/applications/{applicationId}/core-submit:
+    parameters: [{ $ref: '#/components/parameters/ApplicationId' }]
+    post:
+      operationId: submitLoanToCore
+      parameters: [{ $ref: '#/components/parameters/IdempotencyKey' }]
+      responses:
+        '200':
+          description: Core loan reference
+          content:
+            application/json: { schema: { $ref: '#/components/schemas/CoreLoanReference' } }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '409': { description: Application state conflict }
+  /loans/applications/{applicationId}/core/{command}:
+    parameters:
+      - { $ref: '#/components/parameters/ApplicationId' }
+      - name: command
+        in: path
+        required: true
+        schema: { type: string, enum: [approve, disburse, reject, withdrawByApplicant, undoapproval, undodisbursal] }
+    post:
+      operationId: commandCoreLoan
+      parameters: [{ $ref: '#/components/parameters/IdempotencyKey' }]
+      requestBody:
+        required: false
+        content:
+          application/json: { schema: { type: object, additionalProperties: true } }
+      responses:
+        '200': { description: Core command result }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+  /loans/applications/{applicationId}/repayment:
+    parameters: [{ $ref: '#/components/parameters/ApplicationId' }]
+    post:
+      operationId: repayCoreLoan
+      parameters: [{ $ref: '#/components/parameters/IdempotencyKey' }]
+      requestBody:
+        required: true
+        content:
+          application/json: { schema: { $ref: '#/components/schemas/RepaymentRequest' } }
+      responses:
+        '200': { description: Repayment result }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+  /loans/applications/{applicationId}/close:
+    parameters: [{ $ref: '#/components/parameters/ApplicationId' }]
+    post:
+      operationId: closeCoreLoan
+      parameters: [{ $ref: '#/components/parameters/IdempotencyKey' }]
+      responses:
+        '200': { description: Closed loan result }
+        '401': { $ref: '#/components/responses/Unauthorized' }
 components:
   securitySchemes:
     bearerAuth: { type: http, scheme: bearer, bearerFormat: JWT }
@@ -56,6 +129,16 @@ components:
       in: path
       required: true
       schema: { type: string, minLength: 1, maxLength: 64 }
+    ApplicationId:
+      name: applicationId
+      in: path
+      required: true
+      schema: { type: string, format: uuid }
+    IdempotencyKey:
+      name: Idempotency-Key
+      in: header
+      required: true
+      schema: { type: string, minLength: 8, maxLength: 128 }
   responses:
     Unauthorized:
       description: Authentication required
@@ -83,8 +166,34 @@ components:
       properties:
         accountId: { type: string, minLength: 1, maxLength: 64 }
         maskedAccountNumber: { type: string, pattern: '^\*{4,}[0-9]{2,4}$' }
-        currency: { type: string, pattern: '^[A-Z]{3}$' }
+        currency: { type: string }
         balance: { $ref: '#/components/schemas/Money' }
+    LoanApplicationRequest:
+      type: object
+      required: [amount, termMonths, purpose]
+      properties:
+        amount: { $ref: '#/components/schemas/Money' }
+        termMonths: { type: integer, minimum: 1, maximum: 480 }
+        purpose: { type: string, minLength: 1, maxLength: 240 }
+    LoanApplication:
+      type: object
+      required: [applicationId, status]
+      properties:
+        applicationId: { type: string, format: uuid }
+        status: { type: string }
+        version: { type: integer, minimum: 1 }
+    CoreLoanReference:
+      type: object
+      required: [applicationId, coreLoanId, status]
+      properties:
+        applicationId: { type: string, format: uuid }
+        coreLoanId: { type: integer, format: int64 }
+        status: { type: string }
+    RepaymentRequest:
+      type: object
+      required: [transactionAmount]
+      properties:
+        transactionAmount: { $ref: '#/components/schemas/Money' }
     Problem:
       type: object
       required: [type, title, status, code]

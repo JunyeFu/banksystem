@@ -78,6 +78,8 @@ CREATE TABLE IF NOT EXISTS loan_application (
   version INTEGER NOT NULL DEFAULT 1,
   created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
+ALTER TABLE loan_application ADD COLUMN IF NOT EXISTS core_loan_id BIGINT;
+ALTER TABLE loan_application ADD COLUMN IF NOT EXISTS core_idempotency_key VARCHAR(128);
 CREATE TABLE IF NOT EXISTS loan_document (
   document_id UUID PRIMARY KEY,
   application_id UUID NOT NULL REFERENCES loan_application(application_id),

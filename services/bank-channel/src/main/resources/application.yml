@@ -12,7 +12,8 @@ spring:
     oauth2:
       resourceserver:
         jwt:
-          issuer-uri: ${BANK_CUSTOMER_ISSUER_URI:http://keycloak:8080/realms/bank-customer}
+          issuer-uri: ${BANK_CUSTOMER_ISSUER_URI:http://127.0.0.1:18082/realms/bank-customer}
+          jwk-set-uri: ${BANK_CUSTOMER_JWK_SET_URI:http://keycloak:8080/realms/bank-customer/protocol/openid-connect/certs}
 fineract:
   base-url: ${FINERACT_BASE_URL:http://mifos-isolated-fineract-server-1:8080/fineract-provider}
   tenant: ${FINERACT_TENANT:default}

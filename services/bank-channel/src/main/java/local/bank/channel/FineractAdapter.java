@@ -91,4 +91,20 @@ public class FineractAdapter {
 
   @SuppressWarnings("unchecked")
   public Map<String,Object> savingsCommand(long accountId,String command,Map<String,Object> body){if(!java.util.Set.of("block","unblock","close","prematureClose").contains(command))throw new IllegalArgumentException("Unsupported savings command");return client.post().uri(uri->uri.path("/api/v1/savingsaccounts/{id}").queryParam("command",command).build(accountId)).body(body==null?Map.of():body).retrieve().body(Map.class);}
+
+  public Map<String,Object> submitLoan(Map<String,Object> body, String idempotencyKey){
+    return client.post().uri("/api/v1/loans").header("Idempotency-Key", idempotencyKey).header("X-Idempotency-Key", idempotencyKey).body(body).retrieve().body(Map.class);
+  }
+
+  public Map<String,Object> loanCommand(long loanId, String command, Map<String,Object> body, String idempotencyKey){
+    if(!java.util.Set.of("approve","reject","withdrawnByApplicant","disburse","undodisbursal","undoapproval").contains(command)) throw new IllegalArgumentException("Unsupported loan command");
+    return client.post().uri(uri->uri.path("/api/v1/loans/{id}").queryParam("command",command).build(loanId)).header("Idempotency-Key", idempotencyKey).header("X-Idempotency-Key", idempotencyKey).body(body==null?Map.of():body).retrieve().body(Map.class);
+  }
+
+  public Map<String,Object> loanDetails(long loanId){return client.get().uri(uri->uri.path("/api/v1/loans/{id}").queryParam("associations","all").build(loanId)).retrieve().body(Map.class);}
+
+  public Map<String,Object> loanTransaction(long loanId, String command, Map<String,Object> body, String idempotencyKey){
+    if(!java.util.Set.of("repayment","foreclosure","close","writeoff","undowriteoff").contains(command)) throw new IllegalArgumentException("Unsupported loan transaction");
+    return client.post().uri(uri->uri.path("/api/v1/loans/{id}/transactions").queryParam("command",command).build(loanId)).header("Idempotency-Key", idempotencyKey).header("X-Idempotency-Key", idempotencyKey).body(body==null?Map.of():body).retrieve().body(Map.class);
+  }
 }
