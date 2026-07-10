@@ -66,6 +66,29 @@ paths:
           content:
             application/json: { schema: { $ref: '#/components/schemas/LoanApplication' } }
         '401': { $ref: '#/components/responses/Unauthorized' }
+  /beneficiaries:
+    get:
+      operationId: listBeneficiaries
+      summary: List customer beneficiaries
+      responses:
+        '200': { description: Masked beneficiary list }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+    post:
+      operationId: createBeneficiary
+      summary: Create beneficiary
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [accountNumber, displayName]
+              properties:
+                accountNumber: { type: string, minLength: 6, maxLength: 64, writeOnly: true }
+                displayName: { type: string, minLength: 1, maxLength: 160 }
+      responses:
+        '200': { description: Masked beneficiary resource }
+        '401': { $ref: '#/components/responses/Unauthorized' }
   /loans/applications/{applicationId}/submit:
     parameters: [{ $ref: '#/components/parameters/ApplicationId' }]
     post:
