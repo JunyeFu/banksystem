@@ -122,6 +122,28 @@ paths:
       responses:
         '200': { description: Masked beneficiary resource }
         '401': { $ref: '#/components/responses/Unauthorized' }
+  /transfers:
+    post:
+      operationId: createCustomerTransfer
+      summary: Create an internal customer transfer
+      parameters: [{ $ref: '#/components/parameters/IdempotencyKey' }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [sourceAccountId, destinationAccountId, amount, currency]
+              properties:
+                sourceAccountId: { type: string, minLength: 1, maxLength: 64 }
+                destinationAccountId: { type: string, minLength: 1, maxLength: 64 }
+                amount: { $ref: '#/components/schemas/Money' }
+                currency: { type: string, minLength: 3, maxLength: 3 }
+                reference: { type: string, maxLength: 240 }
+      responses:
+        '202': { description: Transfer accepted for asynchronous core posting }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { description: Source account is not owned by the customer }
   /loans/applications/{applicationId}/submit:
     parameters: [{ $ref: '#/components/parameters/ApplicationId' }]
     post:

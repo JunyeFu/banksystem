@@ -84,6 +84,9 @@ CREATE TABLE IF NOT EXISTS risk_decision (
   version INTEGER NOT NULL DEFAULT 1,
   created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
+ALTER TABLE risk_decision ADD COLUMN IF NOT EXISTS checker_subject VARCHAR(128);
+ALTER TABLE risk_decision ADD COLUMN IF NOT EXISTS approval_reason VARCHAR(240);
+ALTER TABLE risk_decision ADD COLUMN IF NOT EXISTS version INTEGER NOT NULL DEFAULT 1;
 CREATE TABLE IF NOT EXISTS loan_application (
   application_id UUID PRIMARY KEY,
   subject VARCHAR(128) NOT NULL,
@@ -97,6 +100,8 @@ CREATE TABLE IF NOT EXISTS loan_application (
 );
 ALTER TABLE loan_application ADD COLUMN IF NOT EXISTS core_loan_id BIGINT;
 ALTER TABLE loan_application ADD COLUMN IF NOT EXISTS core_idempotency_key VARCHAR(128);
+ALTER TABLE loan_application ADD COLUMN IF NOT EXISTS score INTEGER;
+ALTER TABLE loan_application ADD COLUMN IF NOT EXISTS scoring_reason VARCHAR(240);
 CREATE TABLE IF NOT EXISTS loan_document (
   document_id UUID PRIMARY KEY,
   application_id UUID NOT NULL REFERENCES loan_application(application_id),
@@ -129,5 +134,12 @@ CREATE TABLE IF NOT EXISTS reconciliation_run (
   status VARCHAR(24) NOT NULL,
   difference_count INTEGER NOT NULL,
   details TEXT NOT NULL,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+CREATE TABLE IF NOT EXISTS dead_letter_event (
+  event_id UUID PRIMARY KEY,
+  consumer_name VARCHAR(96) NOT NULL,
+  reason VARCHAR(240) NOT NULL,
+  payload TEXT NOT NULL,
   created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP
 );

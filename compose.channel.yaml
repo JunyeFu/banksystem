@@ -30,7 +30,7 @@ services:
     volumes: ['./apps/operations-web:/usr/share/nginx/html:ro']
     networks: [channel_front]
   channel-service:
-    image: local/bank-channel-service@sha256:4737bd84e72a0e4f2af9d2379c1e6a2224f7c7140601dfaef3db20d272ee6920
+    image: local/bank-channel-service@sha256:43d574d146d061047a22d9609c22d4125b60d554585b5836de566f9cb08b80e5
     environment:
       CHANNEL_DB_PASSWORD: ${CHANNEL_DB_PASSWORD:?CHANNEL_DB_PASSWORD is required}
       FINERACT_USERNAME: ${FINERACT_USERNAME:?FINERACT_USERNAME is required}

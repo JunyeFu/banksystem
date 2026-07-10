@@ -12,6 +12,7 @@ import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.server.ResponseStatusException;
 import org.springframework.http.HttpStatus;
+import org.springframework.web.client.HttpClientErrorException;
 
 @RestController
 public class LoanCoreController {
@@ -71,7 +72,11 @@ public class LoanCoreController {
       return Map.of("applicationId",id.toString(),"coreLoanId",loanId,"status","CLOSED","core",current);
     }
     Map<String,Object> payload=new HashMap<>(); payload.put("transactionDate",LocalDate.now().toString()); payload.put("dateFormat","yyyy-MM-dd"); payload.put("locale","en");
-    Map<String,Object> result=fineract.loanTransaction(loanId,"close",payload,key);
+    Map<String,Object> result;
+    try { result=fineract.loanTransaction(loanId,"close",payload,key); }
+    catch (HttpClientErrorException ex) {
+      throw new ResponseStatusException(HttpStatus.CONFLICT,"Core loan cannot close before obligations are met");
+    }
     jdbc.update("UPDATE loan_application SET status='CLOSED',version=version+1 WHERE application_id=?",id);
     return Map.of("applicationId",id.toString(),"coreLoanId",loanId,"status","CLOSED","core",result);
   }

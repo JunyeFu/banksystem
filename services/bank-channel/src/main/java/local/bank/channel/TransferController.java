@@ -19,9 +19,10 @@ import org.springframework.web.server.ResponseStatusException;
 public class TransferController {
   private final JdbcTemplate jdbc;
   private final ObjectMapper mapper;
-  public TransferController(JdbcTemplate jdbc, ObjectMapper mapper) { this.jdbc = jdbc; this.mapper = mapper; }
+  private final FineractAdapter fineract;
+  public TransferController(JdbcTemplate jdbc, ObjectMapper mapper, FineractAdapter fineract) { this.jdbc = jdbc; this.mapper = mapper; this.fineract = fineract; }
 
-  @PostMapping("/api/operations/v1/transfers")
+  @PostMapping({"/api/operations/v1/transfers", "/api/customer/v1/transfers"})
   @Transactional
   public ResponseEntity<Map<String, Object>> create(
       @AuthenticationPrincipal Jwt jwt,
@@ -29,6 +30,12 @@ public class TransferController {
       @RequestBody TransferRequest request) throws Exception {
     if (key == null || key.length() < 16 || key.length() > 128) throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Idempotency-Key is required");
     if (request.amount() == null || request.amount().signum() <= 0 || request.sourceAccountId().equals(request.destinationAccountId())) throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Invalid transfer");
+    if (jwt.getIssuer() != null && jwt.getIssuer().toString().contains("bank-customer")) {
+      var clientRows = jdbc.query("SELECT fineract_client_id FROM customer_identity WHERE subject=?", (rs,n)->rs.getLong(1), jwt.getSubject());
+      if (clientRows.isEmpty() || fineract.clientAccounts(clientRows.get(0)).stream().noneMatch(a -> String.valueOf(a.get("id")).equals(request.sourceAccountId()))) {
+        throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Source account is not owned by customer");
+      }
+    }
     String hash = sha256(mapper.writeValueAsString(request));
     var existing = jdbc.query("SELECT request_hash, response_body, status_code FROM idempotency_record WHERE idempotency_key = ?", (rs, n) -> Map.<String, Object>of("hash", rs.getString(1), "body", rs.getString(2), "status", rs.getInt(3)), key);
     if (!existing.isEmpty()) {

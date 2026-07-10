@@ -66,7 +66,7 @@ phases:
       - {id: BANK-0301, owner: A4, title: Implement beneficiary and idempotency modules, status: DONE, dependsOn: [BANK-0202]}
       - {id: BANK-0302, owner: A6, title: Implement transfer state machine and outbox, status: DONE, dependsOn: [BANK-0101, BANK-0301]}
       - {id: BANK-0303, owner: A3, title: Integrate Fineract account transfer, status: DONE, dependsOn: [BANK-0201, BANK-0302]}
-      - {id: BANK-0304, owner: A8, title: Verify internal transfer end to end, status: REVIEW, dependsOn: [BANK-0303]}
+      - {id: BANK-0304, owner: A8, title: Verify internal transfer end to end, status: DONE, dependsOn: [BANK-0303]}
   - id: P4
     name: mock-clearing-risk-operations
     tasks:
@@ -86,8 +86,8 @@ phases:
     tasks:
       - {id: BANK-0501, owner: A4, title: Implement loan application draft and submit, status: DONE, dependsOn: [BANK-0202]}
       - {id: BANK-0502, owner: A4, title: Implement loan documents and checklist, status: DONE, dependsOn: [BANK-0501]}
-      - {id: BANK-0503, owner: A6, title: Implement deterministic loan scoring, status: REVIEW, dependsOn: [BANK-0501]}
-      - {id: BANK-0504, owner: A6, title: Implement loan Maker-Checker, status: REVIEW, dependsOn: [BANK-0503]}
+      - {id: BANK-0503, owner: A6, title: Implement deterministic loan scoring, status: DONE, dependsOn: [BANK-0501]}
+      - {id: BANK-0504, owner: A6, title: Implement loan Maker-Checker, status: DONE, dependsOn: [BANK-0503]}
       - {id: BANK-0505, owner: A8, title: Verify loan lifecycle and accounting, status: REVIEW, dependsOn: [BANK-0504]}
       - {id: BANK-0506, owner: A7, title: Verify cashier operations, status: REVIEW, dependsOn: [BANK-0505]}
-      - {id: BANK-0507, owner: A3, title: Verify freeze close and maturity operations, status: REVIEW, dependsOn: [BANK-0505]}
+      - {id: BANK-0507, owner: A3, title: Verify freeze close and maturity operations, status: DONE, dependsOn: [BANK-0505]}
