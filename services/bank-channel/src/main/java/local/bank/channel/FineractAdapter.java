@@ -92,6 +92,12 @@ public class FineractAdapter {
   @SuppressWarnings("unchecked")
   public Map<String,Object> savingsCommand(long accountId,String command,Map<String,Object> body){if(!java.util.Set.of("block","unblock","close","prematureClose").contains(command))throw new IllegalArgumentException("Unsupported savings command");Map<String,Object> payload=body==null?new java.util.HashMap<>():new java.util.HashMap<>(body);if(command.equals("block")){Object reason=payload.getOrDefault("reasonForBlock",payload.getOrDefault("note","Channel operations block"));payload.put("reasonForBlock",reason);}if(command.equals("close")||command.equals("prematureClose")){payload.putIfAbsent("closedOnDate",LocalDate.now().toString());payload.putIfAbsent("dateFormat","yyyy-MM-dd");payload.putIfAbsent("locale","en");}return client.post().uri(uri->uri.path("/api/v1/savingsaccounts/{id}").queryParam("command",command).build(accountId)).body(payload).retrieve().body(Map.class);}
 
+  @SuppressWarnings("unchecked")
+  public List<Map<String,Object>> savingsTransactions(long accountId,String fromDate,String toDate){
+    Map<String,Object> body=client.get().uri(uri->{var b=uri.path("/api/v1/savingsaccounts/{id}/transactions/search").queryParam("limit",1000);if(fromDate!=null&&!fromDate.isBlank())b.queryParam("fromDate",fromDate);if(toDate!=null&&!toDate.isBlank())b.queryParam("toDate",toDate);return b.build(accountId);}).retrieve().body(Map.class);
+    if(body==null||!(body.get("content") instanceof List<?> list))return List.of();return list.stream().filter(x->x instanceof Map<?,?>).map(x->(Map<String,Object>)x).toList();
+  }
+
   public Map<String,Object> submitLoan(Map<String,Object> body, String idempotencyKey){
     return client.post().uri("/api/v1/loans").header("Idempotency-Key", idempotencyKey).header("X-Idempotency-Key", idempotencyKey).body(body).retrieve().body(Map.class);
   }

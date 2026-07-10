@@ -80,6 +80,19 @@ paths:
       responses:
         '200': { description: Customer-scoped notifications }
         '401': { $ref: '#/components/responses/Unauthorized' }
+  /statements:
+    get:
+      operationId: downloadStatement
+      summary: Download a customer statement
+      parameters:
+        - { name: accountId, in: query, required: true, schema: { type: string } }
+        - { name: fromDate, in: query, schema: { type: string, format: date } }
+        - { name: toDate, in: query, schema: { type: string, format: date } }
+        - { name: format, in: query, schema: { type: string, enum: [csv, pdf], default: csv } }
+      responses:
+        '200': { description: CSV or PDF statement }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '404': { $ref: '#/components/responses/NotFound' }
   /transfers/{transferId}/receipt:
     parameters:
       - name: transferId

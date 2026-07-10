@@ -35,6 +35,7 @@ public class CustomerController {
     if (ids.isEmpty()) throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Customer identity is not linked");
     return ids.get(0);
   }
+  public long linkedClientForStatement(String subject) { return linkedClient(subject); }
 
   private Map<String, Object> summary(Map<String, Object> source) {
     String raw = String.valueOf(source.getOrDefault("accountNo", source.getOrDefault("accountNumber", "")));
