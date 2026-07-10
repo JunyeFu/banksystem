@@ -19,8 +19,14 @@ public class StatementController {
     var accounts=fineract.clientAccounts(customer.linkedClientForStatement(jwt.getSubject()));
     if(accounts.stream().noneMatch(a->String.valueOf(a.getOrDefault("id",a.get("accountId"))).equals(accountId)))throw new ResponseStatusException(HttpStatus.NOT_FOUND,"Account is not linked");
     List<Map<String,Object>> rows=fineract.savingsTransactions(id,fromDate,toDate);String csv="date,type,amount,runningBalance,reversed\n"+rows.stream().map(this::csvRow).reduce("",String::concat);
-    if(format.equalsIgnoreCase("pdf")){String pdf="%PDF-1.4\n1 0 obj<</Type/Catalog/Pages 2 0 R>>endobj\n2 0 obj<</Type/Pages/Count 0>>endobj\n%%EOF\n"+csv;return ResponseEntity.ok().contentType(MediaType.APPLICATION_PDF).body(pdf.getBytes(StandardCharsets.UTF_8));}
+    if(format.equalsIgnoreCase("pdf")){return ResponseEntity.ok().contentType(MediaType.APPLICATION_PDF).body(buildPdf(csv));}
     return ResponseEntity.ok().contentType(MediaType.parseMediaType("text/csv")).body(csv.getBytes(StandardCharsets.UTF_8));
   }
   private String csvRow(Map<String,Object> row){var type=(Map<?,?>)row.get("transactionType");return String.join(",",String.valueOf(row.get("date")),String.valueOf(type==null?"":type.get("value")),String.valueOf(row.get("amount")),String.valueOf(row.get("runningBalance")),String.valueOf(row.get("reversed")))+"\n";}
+  private byte[] buildPdf(String text){
+    String safe=text.replace("\\","\\\\").replace("(","\\(").replace(")","\\)").replace("\n", ") Tj T* (");
+    String stream="BT /F1 8 Tf 40 760 Td ("+safe+") Tj ET";
+    String[] objects={"<</Type/Catalog/Pages 2 0 R>>","<</Type/Pages/Kids [3 0 R]/Count 1>>","<</Type/Page/Parent 2 0 R/MediaBox [0 0 612 792]/Resources <</Font <</F1 4 0 R>>>>/Contents 5 0 R>>","<</Type/Font/Subtype/Type1/BaseFont/Courier>>","<</Length "+stream.getBytes(StandardCharsets.US_ASCII).length+">>stream\n"+stream+"\nendstream"};
+    var out=new java.io.ByteArrayOutputStream();try{out.write("%PDF-1.4\n".getBytes(StandardCharsets.US_ASCII));int[] offsets=new int[objects.length];for(int i=0;i<objects.length;i++){offsets[i]=out.size();out.write(((i+1)+" 0 obj\n").getBytes(StandardCharsets.US_ASCII));out.write(objects[i].getBytes(StandardCharsets.US_ASCII));out.write("\nendobj\n".getBytes(StandardCharsets.US_ASCII));}int xref=out.size();out.write(("xref\n0 "+(objects.length+1)+"\n0000000000 65535 f \n").getBytes(StandardCharsets.US_ASCII));for(int o:offsets)out.write(String.format(java.util.Locale.ROOT,"%010d 00000 n \n",o).getBytes(StandardCharsets.US_ASCII));out.write(("trailer\n<</Size "+(objects.length+1)+"/Root 1 0 R>>\nstartxref\n"+xref+"\n%%EOF\n").getBytes(StandardCharsets.US_ASCII));return out.toByteArray();}catch(Exception e){throw new IllegalStateException(e);}
+  }
 }
