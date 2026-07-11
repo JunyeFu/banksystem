@@ -1,6 +1,6 @@
 param(
   [Parameter(Mandatory=$true)][string]$AdminToken,
-  [string]$KeycloakBaseUrl = 'http://127.0.0.1:18082',
+  [string]$KeycloakBaseUrl = 'http://127.0.0.1:19000',
   [string]$Realm = 'bank-internal'
 )
 $ErrorActionPreference='Stop'

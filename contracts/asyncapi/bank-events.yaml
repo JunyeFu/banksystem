@@ -1,7 +1,7 @@
 asyncapi: 3.1.0
 info:
   title: Bank Channel Events
-  version: 0.1.0
+  version: 0.2.0
   description: Durable channel events; consumers must be inbox-idempotent.
 defaultContentType: application/json
 channels:
@@ -10,17 +10,69 @@ channels:
     messages:
       transferStatusChanged:
         $ref: '#/components/messages/TransferStatusChanged'
+  transferReversed:
+    address: bank.transfer.reversed
+    messages:
+      transferReversed:
+        $ref: '#/components/messages/TransferReversed'
+  loanStatusChanged:
+    address: bank.loan.status.changed
+    messages:
+      loanStatusChanged:
+        $ref: '#/components/messages/LoanStatusChanged'
+  clearingCallbackReceived:
+    address: bank.clearing.callback.received
+    messages:
+      clearingCallbackReceived:
+        $ref: '#/components/messages/ClearingCallbackReceived'
+  eodCompleted:
+    address: bank.eod.completed
+    messages:
+      eodCompleted:
+        $ref: '#/components/messages/EodCompleted'
 operations:
   publishTransferStatusChanged:
     action: send
     channel: { $ref: '#/channels/transferStatusChanged' }
     messages:
       - $ref: '#/channels/transferStatusChanged/messages/transferStatusChanged'
+  publishTransferReversed:
+    action: send
+    channel: { $ref: '#/channels/transferReversed' }
+    messages:
+      - $ref: '#/channels/transferReversed/messages/transferReversed'
+  publishLoanStatusChanged:
+    action: send
+    channel: { $ref: '#/channels/loanStatusChanged' }
+    messages:
+      - $ref: '#/channels/loanStatusChanged/messages/loanStatusChanged'
+  publishClearingCallbackReceived:
+    action: send
+    channel: { $ref: '#/channels/clearingCallbackReceived' }
+    messages:
+      - $ref: '#/channels/clearingCallbackReceived/messages/clearingCallbackReceived'
+  publishEodCompleted:
+    action: send
+    channel: { $ref: '#/channels/eodCompleted' }
+    messages:
+      - $ref: '#/channels/eodCompleted/messages/eodCompleted'
 components:
   messages:
     TransferStatusChanged:
       name: TransferStatusChanged
       payload: { $ref: '#/components/schemas/TransferStatusChanged' }
+    TransferReversed:
+      name: TransferReversed
+      payload: { $ref: '#/components/schemas/TransferReversed' }
+    LoanStatusChanged:
+      name: LoanStatusChanged
+      payload: { $ref: '#/components/schemas/LoanStatusChanged' }
+    ClearingCallbackReceived:
+      name: ClearingCallbackReceived
+      payload: { $ref: '#/components/schemas/ClearingCallbackReceived' }
+    EodCompleted:
+      name: EodCompleted
+      payload: { $ref: '#/components/schemas/EodCompleted' }
   schemas:
     TransferStatusChanged:
       type: object
@@ -30,5 +82,46 @@ components:
         eventType: { const: transfer.status.changed }
         occurredAt: { type: string, format: date-time }
         transferId: { type: string, minLength: 1, maxLength: 64 }
-        status: { type: string, enum: [RECEIVED, PENDING_REVIEW, PROCESSING, POSTED, FAILED, COMPENSATING, COMPENSATED] }
+        status: { type: string, enum: [CREATED, VALIDATING, RISK_REVIEW, PENDING_APPROVAL, PENDING_CORE_POSTING, PENDING_CLEARING, SETTLED, FAILED, TIMED_OUT, RETURNED, REVERSAL_PENDING, REVERSED] }
         coreReference: { type: [string, 'null'] }
+        correlationId: { type: [string, 'null'] }
+    TransferReversed:
+      type: object
+      required: [eventId, eventType, occurredAt, transferId, status]
+      properties:
+        eventId: { type: string }
+        eventType: { const: transfer.reversed }
+        occurredAt: { type: string, format: date-time }
+        transferId: { type: string }
+        status: { const: REVERSED }
+        coreReference: { type: string }
+    LoanStatusChanged:
+      type: object
+      required: [eventId, eventType, occurredAt, applicationId, status]
+      properties:
+        eventId: { type: string }
+        eventType: { const: loan.status.changed }
+        occurredAt: { type: string, format: date-time }
+        applicationId: { type: string, format: uuid }
+        status: { type: string, enum: [DRAFT, SUBMITTED, SCORED, APPROVED, DISBURSED, CLOSED, REJECTED] }
+        coreLoanId: { type: [integer, 'null'] }
+    ClearingCallbackReceived:
+      type: object
+      required: [eventId, eventType, occurredAt, clearingId, status]
+      properties:
+        eventId: { type: string }
+        eventType: { const: clearing.callback.received }
+        occurredAt: { type: string, format: date-time }
+        clearingId: { type: string, format: uuid }
+        status: { type: string, enum: [SETTLED, TIMED_OUT, RETURNED, DUPLICATE_IGNORED] }
+        sequence: { type: integer }
+    EodCompleted:
+      type: object
+      required: [eventId, eventType, occurredAt, businessDate, status]
+      properties:
+        eventId: { type: string }
+        eventType: { const: eod.completed }
+        occurredAt: { type: string, format: date-time }
+        businessDate: { type: string, format: date }
+        status: { type: string, enum: [COMPLETED, FAILED] }
+        reconciliationStatus: { type: string, enum: [MATCHED, DIFFERENCE, BLOCKED] }

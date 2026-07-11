@@ -2,7 +2,7 @@ param(
   [Parameter(Mandatory=$true)][string]$MakerToken,
   [Parameter(Mandatory=$true)][string]$CheckerToken,
   [Parameter(Mandatory=$true)][string]$TransferId,
-  [string]$GatewayBaseUrl = 'http://127.0.0.1:18081'
+  [string]$GatewayBaseUrl = 'http://127.0.0.1:18443'
 )
 $ErrorActionPreference = 'Stop'
 $maker = @{ Authorization = "Bearer $MakerToken"; 'Content-Type' = 'application/json' }
@@ -20,5 +20,5 @@ try {
   Write-Output "RISK=PASS decision=REVIEW selfCheck=409 checker=ALLOW decisionId=$($decision.decisionId)"
 }
 finally {
-  if ($null -ne $decision) { docker exec mifos-channel-channel-db-1 psql -U bank_channel -d bank_channel -c "delete from risk_decision where decision_id='$($decision.decisionId)';" | Out-Null }
+  if ($null -ne $decision) { docker exec mifos-channel-bank-channel-postgres-1 psql -U bank_channel -d bank_channel -c "delete from risk_decision where decision_id='$($decision.decisionId)';" | Out-Null }
 }

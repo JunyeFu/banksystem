@@ -4,19 +4,25 @@
   "registrationAllowed": false,
   "loginWithEmailAllowed": true,
   "duplicateEmailsAllowed": false,
-  "roles": {"realm": [{"name":"CUSTOMER"},{"name":"CUSTOMER_MFA_VERIFIED"},{"name":"CUSTOMER_BLOCKED"}]},
+  "roles": {
+    "realm": [
+      {"name": "CUSTOMER"},
+      {"name": "CUSTOMER_MFA_VERIFIED"},
+      {"name": "CUSTOMER_BLOCKED"}
+    ]
+  },
   "sslRequired": "external",
   "clients": [
     {
-      "clientId": "bank-customer-web",
-      "name": "Bank Customer Web",
+      "clientId": "customer-portal",
+      "name": "Bank Customer Portal",
       "enabled": true,
       "publicClient": true,
       "protocol": "openid-connect",
       "standardFlowEnabled": true,
       "directAccessGrantsEnabled": false,
-      "redirectUris": ["http://127.0.0.1:18081/*"],
-      "webOrigins": ["http://127.0.0.1:18081"],
+      "redirectUris": ["http://127.0.0.1:18443/*", "http://127.0.0.1:18082/*"],
+      "webOrigins": ["http://127.0.0.1:18443", "http://127.0.0.1:18082"],
       "attributes": {"pkce.code.challenge.method": "S256"}
     }
   ]

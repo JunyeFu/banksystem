@@ -12,6 +12,27 @@ try {
   docker exec $name createuser -U postgres bank_channel | Out-Null
   docker cp $Dump "${name}:/tmp/channel.dump"
   docker exec $name pg_restore --exit-on-error -U postgres -d bank_channel /tmp/channel.dump | Out-Null
+
   $tables=docker exec $name psql -U postgres -d bank_channel -Atc "SELECT count(*) FROM information_schema.tables WHERE table_schema='public';"
-  "restore=PASS public_tables=$($tables.Trim())"
+
+  $invalidStatus=docker exec $name psql -U postgres -d bank_channel -Atc "SELECT count(*) FROM transfer WHERE status NOT IN ('CREATED','VALIDATING','RISK_REVIEW','PENDING_APPROVAL','PENDING_CORE_POSTING','PENDING_CLEARING','SETTLED','FAILED','TIMED_OUT','RETURNED','REVERSAL_PENDING','REVERSED');"
+
+  $auditHashMissing=docker exec $name psql -U postgres -d bank_channel -Atc "SELECT count(*) FROM security_audit_event WHERE record_hash IS NULL OR record_hash='';"
+
+  $orphanHistory=docker exec $name psql -U postgres -d bank_channel -Atc "SELECT count(*) FROM transfer_state_history h LEFT JOIN transfer t ON t.transfer_id=h.transfer_id WHERE t.transfer_id IS NULL;"
+
+  $dupIdempotency=docker exec $name psql -U postgres -d bank_channel -Atc "SELECT count(*) - count(DISTINCT idempotency_key) FROM idempotency_record;"
+
+  $unpublishedOutbox=docker exec $name psql -U postgres -d bank_channel -Atc "SELECT count(*) FROM transfer_outbox WHERE published_at IS NULL;"
+
+  Write-Output "restore=PASS public_tables=$($tables.Trim())"
+  Write-Output "invariant_invalid_transfer_status=$($invalidStatus.Trim())"
+  Write-Output "invariant_audit_hash_missing=$($auditHashMissing.Trim())"
+  Write-Output "invariant_orphan_state_history=$($orphanHistory.Trim())"
+  Write-Output "invariant_duplicate_idempotency=$($dupIdempotency.Trim())"
+  Write-Output "invariant_unpublished_outbox=$($unpublishedOutbox.Trim())"
+
+  if([int]$invalidStatus.Trim() -gt 0){throw "Invariant failed: invalid transfer status found"}
+  if([int]$auditHashMissing.Trim() -gt 0){throw "Invariant failed: audit record hash missing"}
+  if([int]$orphanHistory.Trim() -gt 0){throw "Invariant failed: orphan state history records"}
 } finally { docker rm -f $name | Out-Null }

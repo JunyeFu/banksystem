@@ -1,7 +1,7 @@
 param(
   [Parameter(Mandatory=$true)][string]$AdminToken,
-  [string]$KeycloakBaseUrl='http://127.0.0.1:18082',
-  [string]$GatewayBaseUrl='http://127.0.0.1:18081'
+[string]$KeycloakBaseUrl='http://127.0.0.1:19000',
+[string]$GatewayBaseUrl='http://127.0.0.1:18443'
 )
 $ErrorActionPreference='Stop'
 $adminHeaders=@{Authorization="Bearer $AdminToken";'Content-Type'='application/json'}
@@ -15,7 +15,7 @@ try {
   Invoke-RestMethod -Method Post -Uri "$KeycloakBaseUrl/admin/realms/$realm/clients" -Headers $adminHeaders -Body (@{clientId=$clientName;enabled=$true;publicClient=$true;directAccessGrantsEnabled=$true;protocol='openid-connect'}|ConvertTo-Json)|Out-Null
   $token=(Invoke-RestMethod -Method Post -Uri "$KeycloakBaseUrl/realms/$realm/protocol/openid-connect/token" -ContentType 'application/x-www-form-urlencoded' -Body @{client_id=$clientName;grant_type='password';username=$username;password=$password}).access_token
   $headers=@{Authorization="Bearer $token";'Content-Type'='application/json'}
-  docker exec mifos-channel-channel-db-1 psql -U bank_channel -d bank_channel -c "insert into customer_identity(subject,fineract_client_id) values('$userId',1);"|Out-Null
+  docker exec mifos-channel-bank-channel-postgres-1 psql -U bank_channel -d bank_channel -c "insert into customer_identity(subject,fineract_client_id) values('$userId',1);"|Out-Null
   $foreignStatus=0;try{Invoke-RestMethod -Uri "$GatewayBaseUrl/api/customer/v1/accounts/2" -Headers $headers|Out-Null}catch{$foreignStatus=$_.Exception.Response.StatusCode.value__}
   $body=@{sourceAccountId='1';destinationAccountId='2';amount='1.00';currency='CNY';reference='idempotency e2e'}|ConvertTo-Json
   $first=Invoke-RestMethod -Method Post -Uri "$GatewayBaseUrl/api/customer/v1/transfers" -Headers ($headers+@{'Idempotency-Key'=$key}) -Body $body
@@ -25,7 +25,7 @@ try {
   if($foreignStatus -ne 404 -or $first.transferId -ne $replay.transferId -or $conflictStatus -ne 409){throw "Security assertions failed: foreign=$foreignStatus replay=$($replay.transferId) conflict=$conflictStatus"}
   Write-Output "CUSTOMER_ISOLATION=PASS foreignAccount=404 IDEMPOTENCY_REPLAY=PASS IDEMPOTENCY_CONFLICT=PASS"
 } finally {
-  if($transferId){docker exec mifos-channel-channel-db-1 psql -U bank_channel -d bank_channel -c "delete from transfer_outbox where transfer_id='$transferId';delete from transfer where transfer_id='$transferId';delete from idempotency_record where idempotency_key='$key';"|Out-Null}
-  if($userId){docker exec mifos-channel-channel-db-1 psql -U bank_channel -d bank_channel -c "delete from customer_identity where subject='$userId';"|Out-Null;Invoke-RestMethod -Method Delete -Uri "$KeycloakBaseUrl/admin/realms/$realm/users/$userId" -Headers $adminHeaders|Out-Null}
+  if($transferId){docker exec mifos-channel-bank-channel-postgres-1 psql -U bank_channel -d bank_channel -c "delete from transfer_outbox where transfer_id='$transferId';delete from ledger_entry where transfer_id='$transferId';delete from transfer_state_history where transfer_id='$transferId';delete from transfer where transfer_id='$transferId';delete from idempotency_record where idempotency_key='$key';"|Out-Null}
+  if($userId){docker exec mifos-channel-bank-channel-postgres-1 psql -U bank_channel -d bank_channel -c "delete from customer_identity where subject='$userId';"|Out-Null;Invoke-RestMethod -Method Delete -Uri "$KeycloakBaseUrl/admin/realms/$realm/users/$userId" -Headers $adminHeaders|Out-Null}
   if($clientName){$clients=Invoke-RestMethod -Uri "$KeycloakBaseUrl/admin/realms/$realm/clients?clientId=$clientName" -Headers $adminHeaders;foreach($client in $clients){Invoke-RestMethod -Method Delete -Uri "$KeycloakBaseUrl/admin/realms/$realm/clients/$($client.id)" -Headers $adminHeaders|Out-Null}}
 }

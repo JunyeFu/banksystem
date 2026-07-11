@@ -1,0 +1,186 @@
+pages:
+  - pageId: customer.login
+    routePattern: /login
+    readyMarker:
+      testId: login-form
+    elements:
+      username:
+        testId: login-username
+        role: textbox
+        label: 用户名
+      password:
+        testId: login-password
+        role: textbox
+        label: 密码
+        sensitive: true
+      submit:
+        testId: login-submit
+        role: button
+        name: 登录
+
+  - pageId: customer.dashboard
+    routePattern: /dashboard
+    readyMarker:
+      testId: dashboard-container
+    elements:
+      accountList:
+        testId: account-list
+        role: list
+
+  - pageId: customer.accounts
+    routePattern: /accounts
+    readyMarker:
+      testId: account-list
+    elements:
+      accountCard:
+        testId: account-card
+        role: article
+
+  - pageId: customer.account.detail
+    routePattern: /accounts/:accountId
+    readyMarker:
+      testId: account-detail
+    elements:
+      balance:
+        testId: account-balance
+      transactionList:
+        testId: transaction-list
+
+  - pageId: customer.transfer.create
+    routePattern: /transfers/new
+    readyMarker:
+      testId: transfer-form
+    elements:
+      sourceAccount:
+        testId: transfer-source-account
+        role: combobox
+      beneficiary:
+        testId: transfer-beneficiary
+        role: combobox
+      amount:
+        testId: transfer-amount
+        role: textbox
+        label: 转账金额
+      confirm:
+        testId: transfer-confirm
+        role: button
+        name: 确认转账
+
+  - pageId: customer.transfer.result
+    routePattern: /transfers/:paymentId
+    readyMarker:
+      testId: transfer-result
+    elements:
+      status:
+        testId: transfer-status
+      amount:
+        testId: transfer-amount-display
+      coreReference:
+        testId: transfer-core-reference
+
+  - pageId: customer.beneficiaries
+    routePattern: /beneficiaries
+    readyMarker:
+      testId: beneficiary-list
+    elements:
+      beneficiaryItem:
+        testId: beneficiary-item
+        role: listitem
+
+  - pageId: customer.loans.apply
+    routePattern: /loans/apply
+    readyMarker:
+      testId: loan-apply-form
+    elements:
+      amount:
+        testId: loan-amount
+        role: spinbutton
+      term:
+        testId: loan-term
+        role: combobox
+      purpose:
+        testId: loan-purpose
+        role: textbox
+      submit:
+        testId: loan-submit
+        role: button
+        name: 提交申请
+
+  - pageId: operations.dashboard
+    routePattern: /dashboard
+    readyMarker:
+      testId: ops-dashboard
+    elements:
+      pendingApprovals:
+        testId: pending-approvals
+      clearingStatus:
+        testId: clearing-status
+      reconStatus:
+        testId: recon-status
+
+  - pageId: operations.payments
+    routePattern: /payments
+    readyMarker:
+      testId: payment-list
+    elements:
+      paymentTable:
+        testId: payment-table
+      statusFilter:
+        testId: status-filter
+
+  - pageId: operations.payments.detail
+    routePattern: /payments/:paymentId
+    readyMarker:
+      testId: payment-detail
+    elements:
+      transferStatus:
+        testId: payment-status
+      stateHistory:
+        testId: state-history
+      outboxEvents:
+        testId: outbox-events
+
+  - pageId: operations.approvals
+    routePattern: /approvals
+    readyMarker:
+      testId: approvals-table
+    elements:
+      approveButton:
+        testId: approve-button
+        role: button
+      rejectButton:
+        testId: reject-button
+        role: button
+      reviewReason:
+        testId: review-reason
+        role: textbox
+
+  - pageId: operations.reconciliation
+    routePattern: /reconciliation
+    readyMarker:
+      testId: reconciliation-panel
+    elements:
+      triggerButton:
+        testId: reconciliation-trigger
+        role: button
+      resultCard:
+        testId: reconciliation-result
+
+  - pageId: operations.eod
+    routePattern: /eod
+    readyMarker:
+      testId: eod-panel
+    elements:
+      triggerButton:
+        testId: eod-trigger
+        role: button
+      resultCard:
+        testId: eod-result
+
+  - pageId: operations.risk.cases
+    routePattern: /risk/cases
+    readyMarker:
+      testId: risk-cases
+    elements:
+      casesTable:
+        testId: risk-cases-table

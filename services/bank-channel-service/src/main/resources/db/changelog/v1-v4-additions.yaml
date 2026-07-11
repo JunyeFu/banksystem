@@ -1,0 +1,81 @@
+databaseChangeLog:
+  - changeSet:
+      id: v4-security-audit-event
+      author: S2-T3
+      preConditions:
+        - onFail: MARK_RAN
+        - not:
+            - tableExists:
+                tableName: security_audit_event
+      changes:
+        - createTable:
+            tableName: security_audit_event
+            columns:
+              - column:
+                  name: id
+                  type: uuid
+                  constraints:
+                    primaryKey: true
+                    nullable: false
+              - column:
+                  name: event_type
+                  type: varchar(128)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: actor_type
+                  type: varchar(32)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: actor_id
+                  type: varchar(128)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: tenant_id
+                  type: varchar(64)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: resource_type
+                  type: varchar(64)
+              - column:
+                  name: resource_id
+                  type: varchar(128)
+              - column:
+                  name: action
+                  type: varchar(64)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: outcome
+                  type: varchar(32)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: request_id
+                  type: varchar(128)
+              - column:
+                  name: correlation_id
+                  type: varchar(128)
+              - column:
+                  name: before_json
+                  type: jsonb
+              - column:
+                  name: after_json
+                  type: jsonb
+              - column:
+                  name: previous_hash
+                  type: char(64)
+              - column:
+                  name: record_hash
+                  type: char(64)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: created_at
+                  type: timestamptz
+                  defaultValueComputed: now()
+                  constraints:
+                    nullable: false

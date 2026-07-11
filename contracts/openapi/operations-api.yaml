@@ -110,10 +110,11 @@ components:
       required: [transferId, status, amount, currency]
       properties:
         transferId: { type: string }
-        status: { type: string, enum: [RECEIVED, PENDING_REVIEW, PROCESSING, POSTED, FAILED, COMPENSATING, COMPENSATED] }
+        status: { type: string, enum: [CREATED, VALIDATING, RISK_REVIEW, PENDING_APPROVAL, PENDING_CORE_POSTING, PENDING_CLEARING, SETTLED, FAILED, TIMED_OUT, RETURNED, REVERSAL_PENDING, REVERSED] }
         amount: { $ref: '#/components/schemas/Money' }
         currency: { type: string, pattern: '^[A-Z]{3}$' }
         coreReference: { type: [string, 'null'] }
+        correlationId: { type: [string, 'null'] }
     Problem:
       type: object
       required: [type, title, status, code]
