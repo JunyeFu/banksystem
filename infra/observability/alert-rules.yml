@@ -1,0 +1,46 @@
+groups:
+  - name: bank-channel-alerts
+    rules:
+      - alert: OutboxBacklog
+        expr: bank_outbox_pending_total > 10
+        for: 5m
+        labels:
+          severity: P2
+        annotations:
+          summary: "Outbox backlog growing"
+          description: "{{ $value }} unpublished outbox events"
+
+      - alert: DLQNonEmpty
+        expr: bank_dlq_messages_total > 0
+        for: 1m
+        labels:
+          severity: P1
+        annotations:
+          summary: "Dead letter queue is not empty"
+          description: "{{ $value }} dead letter events"
+
+      - alert: ReconciliationDifference
+        expr: bank_reconciliation_differences_total > 0
+        for: 1m
+        labels:
+          severity: P1
+        annotations:
+          summary: "Reconciliation differences detected"
+          description: "{{ $value }} reconciliation differences"
+
+      - alert: CoreDependencyDown
+        expr: up{job="bank-channel-service"} == 0
+        for: 1m
+        labels:
+          severity: P1
+        annotations:
+          summary: "Bank channel service is down"
+
+      - alert: EODFailure
+        expr: bank_eod_status == 0
+        for: 1m
+        labels:
+          severity: P1
+        annotations:
+          summary: "EOD run failed"
+          description: "End of day processing reported failure"

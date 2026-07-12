@@ -1,0 +1,309 @@
+import TroubleshootingLLMConnectivity from './common/troubleshooting-llm-connectivity.mdx';
+import QuickModelConfig from './common/quick-model-config.mdx';
+
+# Configure Your Model
+
+## A quick default
+
+If you just want something that works, use the configuration below. For all supported providers and the different ways to set environment variables, read on.
+
+<QuickModelConfig />
+
+## Ways to set environment variables
+
+Midscene reads all model configuration from environment variables. Below are common approaches, but feel free to adopt any method used in your project.
+
+### Method 1: Set variables in the system
+
+> The Midscene Chrome extension also accepts this `export KEY="value"` format.
+
+```bash
+# Replace with your own API key
+export MIDSCENE_MODEL_BASE_URL="https://.../compatible-mode/v1"
+export MIDSCENE_MODEL_API_KEY="sk-abcde..."
+export MIDSCENE_MODEL_NAME="qwen3.7-plus"
+export MIDSCENE_MODEL_FAMILY="qwen3"
+```
+
+### Method 2: Create a `.env` file (for CLI tools)
+
+Create a `.env` file in the directory where you run the project. Midscene CLI tools load this file automatically.
+
+```bash
+MIDSCENE_MODEL_BASE_URL="https://.../compatible-mode/v1"
+MIDSCENE_MODEL_API_KEY="sk-abcdefghijklmnopqrstuvwxyz"
+MIDSCENE_MODEL_NAME="qwen3.7-plus"
+MIDSCENE_MODEL_FAMILY="qwen3"
+```
+
+Keep in mind:
+1. You do **not** need to prefix each line with `export`.
+2. Only the Midscene CLI automatically reads this file. For the JavaScript SDK, load it manually as shown below.
+
+### Method 3: Load variables via dotenv
+
+[Dotenv](https://www.npmjs.com/package/dotenv) is a zero-dependency npm package that loads variables from `.env` into Node.js `process.env`.
+
+Our [demo project](https://github.com/web-infra-dev/midscene-example) uses this method.
+
+```bash
+# install dotenv
+npm install dotenv --save
+```
+
+Create a `.env` file in the project root and add (no `export` prefix):
+
+```bash
+MIDSCENE_MODEL_API_KEY="sk-abcdefghijklmnopqrstuvwxyz"
+```
+
+Import dotenv in your script; it will read `.env` automatically:
+
+```typescript
+import 'dotenv/config';
+```
+
+## Common model configurations
+
+This section lists common model configurations. For details on model differences and selection strategies, see [Recommended multimodal models](./model-strategy#recommended-vision-models).
+
+### Doubao Seed Model {#doubao-seed-model}
+
+Doubao-Seed-2.1-turbo is the recommended model. In our current evaluation, it has the fastest localization speed while still delivering strong localization results. Doubao-Seed-2.0-Lite, Doubao-Seed-1.6-Vision, and Doubao-Seed-1.8 are also supported.
+
+Obtain an API key from [Volcano Engine](https://volcengine.com) and set:
+
+```bash
+MIDSCENE_MODEL_BASE_URL="https://ark.cn-beijing.volces.com/api/v3"
+MIDSCENE_MODEL_API_KEY="...."
+MIDSCENE_MODEL_NAME="ep-..." # Inference endpoint ID or model name from Volcano Engine
+MIDSCENE_MODEL_FAMILY="doubao-seed" # "doubao-vision" is also supported
+```
+
+If your Volcano Engine account has fast tier quota enabled, add the extra request body below to use it. This usually improves model response speed by about 30%-50%.
+
+```bash
+MIDSCENE_MODEL_EXTRA_BODY_JSON={"service_tier":"fast"}
+```
+
+### Qwen3.x Series {#qwen3x}
+
+Qwen3.5, Qwen3.6, and Qwen3.7 are currently supported in the Qwen3.x series. Recommended order: Qwen3.7 > Qwen3.5 > Qwen3.6.
+
+Using Alibaba Cloud's `qwen3.7-plus` as an example:
+
+```bash
+MIDSCENE_MODEL_BASE_URL="https://dashscope.aliyuncs.com/compatible-mode/v1"
+MIDSCENE_MODEL_API_KEY="......"
+MIDSCENE_MODEL_NAME="qwen3.7-plus" # For Qwen3.5 and Qwen3.6, use "qwen3.5-plus" and "qwen3.6-plus"
+MIDSCENE_MODEL_FAMILY="qwen3" # For Qwen3.5 and Qwen3.6, the previous families `qwen3.5` and `qwen3.6` remain compatible.
+```
+
+### Moonshot Kimi Model {#kimi}
+
+Midscene currently supports Moonshot AI's `kimi-k2.5` and `kimi-k2.6` models.
+
+After obtaining an API key from the [Moonshot AI platform](https://platform.moonshot.cn/), configure:
+
+```bash
+MIDSCENE_MODEL_BASE_URL="https://api.moonshot.cn/v1"
+MIDSCENE_MODEL_API_KEY="......"
+MIDSCENE_MODEL_NAME="kimi-k2.6" # Or "kimi-k2.5"
+MIDSCENE_MODEL_FAMILY="kimi"
+```
+
+### Xiaomi MiMo Model {#xiaomi-mimo}
+
+Midscene currently supports Xiaomi's `mimo-v2.5` model.
+
+After obtaining an API key from the [Xiaomi MiMo API Open Platform](https://platform.xiaomimimo.com/), configure:
+
+```bash
+MIDSCENE_MODEL_BASE_URL="https://api.xiaomimimo.com/v1"
+MIDSCENE_MODEL_API_KEY="......"
+MIDSCENE_MODEL_NAME="mimo-v2.5"
+MIDSCENE_MODEL_FAMILY="xiaomi-mimo"
+```
+
+Note: Midscene's visual automation relies on multimodal image understanding. In Xiaomi MiMo, only the Omni series currently supports multimodal input; the Pro series is a text model and cannot be used for Midscene visual tasks.
+
+### Zhipu GLM-V Series {#glm-v}
+
+Zhipu GLM-V is a vision understanding model from Zhipu AI. The latest versions include `GLM-4.6V` (open-source) and `GLM-5V-Turbo`.
+
+Using `GLM-4.6V` as an example:
+
+Obtain an API key from [Z.AI (Global)](https://z.ai/manage-apikey/apikey-list) or [BigModel (CN)](https://bigmodel.cn/usercenter/proj-mgmt/apikeys), and set:
+
+```bash
+MIDSCENE_MODEL_BASE_URL="https://open.bigmodel.cn/api/paas/v4" # Or https://api.z.ai/api/paas/v4
+MIDSCENE_MODEL_API_KEY="......"
+MIDSCENE_MODEL_NAME="glm-4.6v" # For GLM-5V-Turbo, use "glm-5v-turbo"
+MIDSCENE_MODEL_FAMILY="glm-v"
+```
+
+**Learn more about the open-source Zhipu GLM-V model**
+
+- Github: [https://github.com/zai-org/GLM-V](https://github.com/zai-org/GLM-V)
+- Hugging Face: [https://huggingface.co/zai-org/GLM-4.6V](https://huggingface.co/zai-org/GLM-4.6V)
+
+### Zhipu AutoGLM {#auto-glm}
+
+Zhipu AutoGLM is an open-source mobile UI automation model (9B parameters) from Zhipu AI.
+
+After obtaining an API key from [Z.AI (Global)](https://z.ai/manage-apikey/apikey-list) or [BigModel (CN)](https://bigmodel.cn/usercenter/proj-mgmt/apikeys), configure:
+
+```bash
+MIDSCENE_MODEL_BASE_URL="https://api.z.ai/api/paas/v4" # Or https://open.bigmodel.cn/api/paas/v4
+MIDSCENE_MODEL_API_KEY="......"
+MIDSCENE_MODEL_NAME="autoglm-phone"
+MIDSCENE_MODEL_FAMILY="auto-glm" # Or "auto-glm-multilingual"
+```
+
+**About `MIDSCENE_MODEL_FAMILY` Configuration**
+
+AutoGLM provides two model versions, distinguished by `MIDSCENE_MODEL_FAMILY`:
+
+- `auto-glm` - Corresponds to AutoGLM-Phone-9B, optimized for **Chinese mobile applications**
+- `auto-glm-multilingual` - Corresponds to AutoGLM-Phone-9B-Multilingual, supports **English and other languages**
+
+Choose the appropriate version based on your application language.
+
+:::note
+AutoGLM is best suited for mobile interactions and operations. If you need to use `aiAssert`, `aiQuery`, or other APIs requiring page understanding/assertions, you should configure separate `MIDSCENE_INSIGHT_MODEL_...` environment variables to let an independent Insight model handle page comprehension. See [Model Strategy](./model-strategy) for more information about multi-model configuration.
+:::
+
+**Learn more about Zhipu AutoGLM**
+
+- Github: [https://github.com/zai-org/Open-AutoGLM](https://github.com/zai-org/Open-AutoGLM)
+- Hugging Face: [https://huggingface.co/zai-org/AutoGLM-Phone-9B](https://huggingface.co/zai-org/AutoGLM-Phone-9B)
+
+### Gemini 3.x Series {#gemini-3x}
+
+Among Gemini 3.x models, `gemini-3.5-flash` currently has the best localization performance in our private evaluation set. After requesting an API key from [Google Gemini](https://gemini.google.com/), use this configuration.
+
+Set `MIDSCENE_MODEL_NAME` to the specific Gemini 3.x model name you use:
+
+```bash
+MIDSCENE_MODEL_BASE_URL="https://generativelanguage.googleapis.com/v1beta/openai/"
+MIDSCENE_MODEL_API_KEY="......"
+MIDSCENE_MODEL_NAME="gemini-3.5-flash" # Or a specific Gemini 3.x model name
+MIDSCENE_MODEL_FAMILY="gemini"
+```
+
+### GPT-5 Series {#gpt-5-4}
+
+When using GPT-5 series models on OpenAI or an OpenAI-compatible provider, use this configuration:
+
+```bash
+MIDSCENE_MODEL_BASE_URL="https://api.openai.com/v1" # Or your compatible endpoint
+MIDSCENE_MODEL_API_KEY="sk-..."
+MIDSCENE_MODEL_NAME="gpt-5.5" # Recommended: gpt-5.5 or gpt-5.4
+MIDSCENE_MODEL_FAMILY="gpt-5"
+```
+
+:::warning GPT-5 notes
+
+- For UI localization with GPT, Midscene currently supports `gpt-5.4` and `gpt-5.5`. To get the best localization quality, image requests need `"detail": "original"`. According to OpenAI, this option is available on `gpt-5.4` and future models, while smaller GPT-5 variants such as `gpt-5.4-mini` and `gpt-5.4-nano`, as well as older models, do not support `original` and will fail if you send it. See the [Images and Vision guide](https://developers.openai.com/api/docs/guides/images-vision) and the [Computer use guide](https://developers.openai.com/api/docs/guides/tools-computer-use).
+- According to OpenAI, GPT-5 may still struggle with non-Latin text and with text that is too small in the image. See the [Images and Vision guide](https://developers.openai.com/api/docs/guides/images-vision).
+- In the computer use guide, OpenAI says they observe good performance around `1440x900` and `1600x900`. We recommend adjusting screenshot sizes accordingly. In Midscene, you can control screenshot compression with `screenshotShrinkFactor` in the agent options. For browser automation, you can also control the page size and scale through the browser `viewport`.
+- If you use an older GPT-5 model, we recommend using it only as the planning model and pairing it with another multimodal model for localization. See the [multi-model example](#gpt54-planning-insight-qwen35).
+
+:::
+
+:::note Model-native thinking
+Midscene disables model-native thinking by default for the best execution speed and stability. To turn it on for any of the models above, set `MIDSCENE_MODEL_REASONING_ENABLED="true"`. Some families accept extra controls such as `MIDSCENE_MODEL_REASONING_BUDGET` and `MIDSCENE_MODEL_REASONING_EFFORT`. See [Model-Native Thinking Mode](./model-strategy#model-native-thinking-mode).
+:::
+
+## Other Models
+
+### Qwen3-VL {#qwen3-vl}
+
+Using Alibaba Cloud's `qwen3-vl-plus` as an example:
+
+```bash
+MIDSCENE_MODEL_BASE_URL="https://dashscope.aliyuncs.com/compatible-mode/v1"
+MIDSCENE_MODEL_API_KEY="......"
+MIDSCENE_MODEL_NAME="qwen3-vl-plus"
+MIDSCENE_MODEL_FAMILY="qwen3-vl"
+```
+
+You can also use Qwen3-VL from [OpenRouter](https://openrouter.ai/qwen).
+
+### Qwen2.5-VL (Not recommended) {#qwen25-vl}
+
+- We recommend the newer Qwen3-series models instead. In general, newer models are usually better than older ones in both speed and quality.
+- Using Alibaba Cloud's `qwen-vl-max-latest` as an example, the environment variable configuration is as follows.
+
+```bash
+MIDSCENE_MODEL_BASE_URL="https://dashscope.aliyuncs.com/compatible-mode/v1"
+MIDSCENE_MODEL_API_KEY="......"
+MIDSCENE_MODEL_NAME="qwen-vl-max-latest"
+MIDSCENE_MODEL_FAMILY="qwen2.5-vl"
+```
+
+### UI-TARS {#ui-tars}
+
+Use the deployed `doubao-1.5-ui-tars` on [Volcano Engine](https://volcengine.com):
+
+```bash
+MIDSCENE_MODEL_BASE_URL="https://ark.cn-beijing.volces.com/api/v3"
+MIDSCENE_MODEL_API_KEY="...."
+MIDSCENE_MODEL_NAME="ep-2025..." # Inference endpoint ID or model name from Volcano Engine
+MIDSCENE_MODEL_FAMILY="vlm-ui-tars-doubao-1.5"
+```
+
+**About `MIDSCENE_MODEL_FAMILY`**
+
+This variable selects the UI-TARS version. Supported values:
+- `vlm-ui-tars` – for the 1.0 release
+- `vlm-ui-tars-doubao` – for the 1.5 release deployed on Volcano Engine (equivalent to `vlm-ui-tars-doubao-1.5`)
+- `vlm-ui-tars-doubao-1.5` – for the 1.5 release deployed on Volcano Engine
+
+:::tip
+
+The legacy configurations `MIDSCENE_USE_VLM_UI_TARS=DOUBAO` or `MIDSCENE_USE_VLM_UI_TARS=1.5` are still supported but deprecated. Please migrate to `MIDSCENE_MODEL_FAMILY`.
+
+Migration mapping:
+- `MIDSCENE_USE_VLM_UI_TARS=1.0` → `MIDSCENE_MODEL_FAMILY="vlm-ui-tars"`
+- `MIDSCENE_USE_VLM_UI_TARS=1.5` → `MIDSCENE_MODEL_FAMILY="vlm-ui-tars-doubao-1.5"`
+- `MIDSCENE_USE_VLM_UI_TARS=DOUBAO` → `MIDSCENE_MODEL_FAMILY="vlm-ui-tars-doubao"`
+
+:::
+
+### ~~GPT-4o~~
+
+Starting with version 1.0, Midscene no longer supports GPT-4o as the planning model for UI operations. See [Model strategy](./model-strategy) for details.
+
+## Multi-model example: GPT-5.4 for planning/insight + Qwen 3.5 for visual grounding {#gpt54-planning-insight-qwen35}
+
+For more information on combining multiple models, see [Advanced: Combining Multiple Models](./model-strategy#advanced-combining-multiple-models).
+
+Below is an example using GPT-5.4 for Planning/Insight and Qwen 3.5 for vision. Use GPT-5.4 for Planning and/or Insight to handle heavy reasoning, while Qwen 3.5 focuses on visual grounding. You can enable either role or both—toggle them based on your workload.
+
+```bash
+# Default multimodal model: Qwen 3.5
+export MIDSCENE_MODEL_BASE_URL="https://..."       # Qwen 3.5 endpoint
+export MIDSCENE_MODEL_API_KEY="..."                # Your Qwen 3.5 API key
+export MIDSCENE_MODEL_NAME="qwen3.5-plus"
+export MIDSCENE_MODEL_FAMILY="qwen3.5"
+
+# Planning model: GPT-5.4
+export MIDSCENE_PLANNING_MODEL_API_KEY="sk-..."    # Your GPT-5.4 API key
+export MIDSCENE_PLANNING_MODEL_BASE_URL="https://..." 
+export MIDSCENE_PLANNING_MODEL_NAME="gpt-5.4"
+export MIDSCENE_PLANNING_MODEL_FAMILY="gpt-5"
+
+# Insight model: GPT-5.4
+export MIDSCENE_INSIGHT_MODEL_API_KEY="sk-..."     # Your GPT-5.4 API key
+export MIDSCENE_INSIGHT_MODEL_BASE_URL="https://..."
+export MIDSCENE_INSIGHT_MODEL_NAME="gpt-5.4"
+export MIDSCENE_INSIGHT_MODEL_FAMILY="gpt-5"
+```
+
+## More
+
+For additional, advanced model settings, see [All configuration options](./model-config).
+
+
+<TroubleshootingLLMConnectivity />

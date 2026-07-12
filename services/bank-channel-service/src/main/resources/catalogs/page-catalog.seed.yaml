@@ -1,0 +1,510 @@
+pages:
+  # ===== Customer Portal (15 pages) =====
+  - pageId: customer.login
+    routePattern: /login
+    readyMarker:
+      testId: login-title
+    elements:
+      username:
+        testId: login-username
+        role: textbox
+        label: 用户名
+      password:
+        testId: login-password
+        role: textbox
+        label: 密码
+        sensitive: true
+      submit:
+        testId: login-submit
+        role: button
+        name: 登录
+      sso:
+        testId: login-sso
+        role: button
+      error:
+        testId: login-error
+
+  - pageId: customer.dashboard
+    routePattern: /dashboard
+    readyMarker:
+      testId: dashboard-welcome
+    elements:
+      refresh:
+        testId: dashboard-refresh
+        role: button
+      logout:
+        testId: dashboard-logout
+        role: button
+      accountCount:
+        testId: dashboard-account-count
+      totalBalance:
+        testId: dashboard-total-balance
+      activeAccounts:
+        testId: dashboard-active-accounts
+      error:
+        testId: dashboard-error
+
+  - pageId: customer.accounts
+    routePattern: /accounts
+    readyMarker:
+      testId: account-list
+    elements:
+      transfer:
+        testId: account-list-transfer
+        role: button
+      empty:
+        testId: account-list-empty
+      error:
+        testId: account-list-error
+
+  - pageId: customer.account.detail
+    routePattern: /accounts/:accountId
+    readyMarker:
+      testId: account-detail
+    elements:
+      back:
+        testId: account-detail-back
+        role: button
+      balance:
+        testId: account-detail-balance
+      type:
+        testId: account-detail-type
+      status:
+        testId: account-detail-status
+      id:
+        testId: account-detail-id
+      maskedNumber:
+        testId: account-detail-masked-number
+      transactions:
+        testId: account-detail-transactions
+      noTransactions:
+        testId: account-detail-no-transactions
+
+  - pageId: customer.transfers
+    routePattern: /transfers
+    readyMarker:
+      testId: transfer-list
+    elements:
+      new:
+        testId: transfer-list-new
+        role: button
+      empty:
+        testId: transfer-list-empty
+      error:
+        testId: transfer-list-error
+      table:
+        testId: transfer-list-table
+
+  - pageId: customer.transfer.create
+    routePattern: /transfers/new
+    readyMarker:
+      testId: transfer-form
+    elements:
+      sourceAccount:
+        testId: transfer-source-account
+        role: combobox
+      beneficiary:
+        testId: transfer-beneficiary
+        role: combobox
+      amount:
+        testId: transfer-amount
+        role: textbox
+        label: 转账金额
+      description:
+        testId: transfer-description
+        role: textbox
+      confirm:
+        testId: transfer-confirm
+        role: button
+        name: 确认转账
+      cancel:
+        testId: transfer-cancel
+        role: button
+      error:
+        testId: transfer-error
+
+  - pageId: customer.transfer.result
+    routePattern: /transfers/:paymentId
+    readyMarker:
+      testId: transfer-result
+    elements:
+      back:
+        testId: transfer-result-back
+        role: button
+      paymentId:
+        testId: transfer-result-payment-id
+      status:
+        testId: transfer-result-status
+      amount:
+        testId: transfer-result-amount
+      fromAccount:
+        testId: transfer-result-from-account
+      toAccount:
+        testId: transfer-result-to-account
+      coreReference:
+        testId: transfer-result-core-reference
+      notFound:
+        testId: transfer-result-not-found
+      newTransfer:
+        testId: transfer-result-new-transfer
+        role: button
+      dashboard:
+        testId: transfer-result-dashboard
+        role: button
+
+  - pageId: customer.beneficiaries
+    routePattern: /beneficiaries
+    readyMarker:
+      testId: beneficiary-list
+    elements:
+      newTransfer:
+        testId: beneficiary-new-transfer
+        role: button
+      empty:
+        testId: beneficiary-empty
+
+  - pageId: customer.loans
+    routePattern: /loans
+    readyMarker:
+      testId: loan-list
+    elements:
+      apply:
+        testId: loan-list-apply
+        role: button
+      empty:
+        testId: loan-list-empty
+      error:
+        testId: loan-list-error
+      table:
+        testId: loan-list-table
+
+  - pageId: customer.loans.apply
+    routePattern: /loans/apply
+    readyMarker:
+      testId: loan-apply-form
+    elements:
+      amount:
+        testId: loan-apply-amount
+        role: spinbutton
+      term:
+        testId: loan-apply-term
+        role: combobox
+      purpose:
+        testId: loan-apply-purpose
+        role: textbox
+      submit:
+        testId: loan-apply-submit
+        role: button
+        name: 提交申请
+      cancel:
+        testId: loan-apply-cancel
+        role: button
+      error:
+        testId: loan-apply-error
+
+  - pageId: customer.loan.detail
+    routePattern: /loans/:loanId
+    readyMarker:
+      testId: loan-detail
+    elements:
+      back:
+        testId: loan-detail-back
+        role: button
+      principal:
+        testId: loan-detail-principal
+      outstanding:
+        testId: loan-detail-outstanding
+      term:
+        testId: loan-detail-term
+      rate:
+        testId: loan-detail-rate
+      id:
+        testId: loan-detail-id
+      product:
+        testId: loan-detail-product
+      status:
+        testId: loan-detail-status
+      error:
+        testId: loan-detail-error
+
+  - pageId: customer.documents
+    routePattern: /documents
+    readyMarker:
+      testId: document-list
+    elements:
+      table:
+        testId: document-list-table
+      empty:
+        testId: document-list-empty
+      error:
+        testId: document-list-error
+
+  - pageId: customer.messages
+    routePattern: /messages
+    readyMarker:
+      testId: message-list
+    elements:
+      empty:
+        testId: message-list-empty
+      error:
+        testId: message-list-error
+      items:
+        testId: message-list-items
+
+  - pageId: customer.profile
+    routePattern: /profile
+    readyMarker:
+      testId: profile-detail
+    elements:
+      customerId:
+        testId: profile-customer-id
+      displayName:
+        testId: profile-name
+      email:
+        testId: profile-email
+      phone:
+        testId: profile-phone
+      error:
+        testId: profile-error
+      empty:
+        testId: profile-empty
+
+  - pageId: customer.security
+    routePattern: /security
+    readyMarker:
+      testId: security-settings
+    elements:
+      mfaEnabled:
+        testId: security-mfa-enabled
+      mfaDisabled:
+        testId: security-mfa-disabled
+      mfaMethod:
+        testId: security-mfa-method
+      passwordChange:
+        testId: security-password-change
+      loginNotifyOn:
+        testId: security-login-notify-on
+      loginNotifyOff:
+        testId: security-login-notify-off
+      lastLogin:
+        testId: security-last-login
+      error:
+        testId: security-settings-error
+      empty:
+        testId: security-settings-empty
+
+  # ===== Operations Console (12 pages) =====
+  - pageId: operations.dashboard
+    routePattern: /dashboard
+    readyMarker:
+      testId: dashboard-metrics
+    elements:
+      sidebar:
+        testId: ops-sidebar
+      navMenu:
+        testId: ops-nav-menu
+      pendingApprovals:
+        testId: dashboard-pending-approvals
+      clearingStatus:
+        testId: dashboard-clearing-status
+      reconStatus:
+        testId: dashboard-recon-status
+      systemHealth:
+        testId: dashboard-system-health
+      activePayments:
+        testId: dashboard-active-payments
+      failedPayments:
+        testId: dashboard-failed-payments
+      constraints:
+        testId: dashboard-card-constraints
+
+  - pageId: operations.payments
+    routePattern: /payments
+    readyMarker:
+      testId: payment-table
+    elements:
+      search:
+        testId: payment-search
+        role: textbox
+      statusTag:
+        testId: payment-status-tag
+      amount:
+        testId: payment-amount
+      table:
+        testId: payment-table
+
+  - pageId: operations.payments.detail
+    routePattern: /payments/:paymentId
+    readyMarker:
+      testId: state-history-timeline
+    elements:
+      back:
+        testId: payment-detail-back-btn
+        role: button
+      summary:
+        testId: payment-detail-summary
+      status:
+        testId: payment-detail-status
+      amount:
+        testId: payment-detail-amount
+      stateHistory:
+        testId: state-history-timeline
+      outboxEvents:
+        testId: outbox-event-type
+
+  - pageId: operations.approvals
+    routePattern: /approvals
+    readyMarker:
+      testId: approval-audit-trail
+    elements:
+      auditActor:
+        testId: approval-audit-actor
+      auditAction:
+        testId: approval-audit-action
+      auditResource:
+        testId: approval-audit-resource
+      creator:
+        testId: approval-creator
+      detailModal:
+        testId: approval-detail-modal
+      table:
+        testId: approvals-table
+
+  - pageId: operations.clearing
+    routePattern: /clearing
+    readyMarker:
+      testId: clearing-panel
+    elements:
+      triggerBtn:
+        testId: clearing-trigger-btn
+        role: button
+      batchId:
+        testId: clearing-row-batch-id
+      status:
+        testId: clearing-row-status
+      amount:
+        testId: clearing-row-amount
+      latestResult:
+        testId: clearing-latest-result
+
+  - pageId: operations.reconciliation
+    routePattern: /reconciliation
+    readyMarker:
+      testId: reconciliation-panel
+    elements:
+      batchType:
+        testId: recon-row-batch-type
+      status:
+        testId: recon-row-status
+      differenceCount:
+        testId: recon-row-difference-count
+      differenceAmount:
+        testId: recon-row-difference-amount
+      latestResult:
+        testId: recon-latest-result
+
+  - pageId: operations.eod
+    routePattern: /eod
+    readyMarker:
+      testId: eod-panel
+    elements:
+      triggerBtn:
+        testId: eod-trigger-btn
+        role: button
+      latestResult:
+        testId: eod-latest-result
+      latestStatus:
+        testId: eod-latest-status
+      businessDate:
+        testId: eod-latest-business-date
+
+  - pageId: operations.risk.alerts
+    routePattern: /risk/alerts
+    readyMarker:
+      testId: risk-alerts-summary
+    elements:
+      alertId:
+        testId: risk-alert-row-id
+      severity:
+        testId: risk-alert-row-severity
+      status:
+        testId: risk-alert-row-status
+      rule:
+        testId: risk-alert-row-rule
+      total:
+        testId: risk-alerts-total
+
+  - pageId: operations.risk.cases
+    routePattern: /risk/cases
+    readyMarker:
+      testId: risk-cases
+    elements:
+      caseId:
+        testId: risk-row-id
+      transferId:
+        testId: risk-row-transfer-id
+      decision:
+        testId: risk-row-decision
+      status:
+        testId: risk-row-status
+      score:
+        testId: risk-row-score
+      maker:
+        testId: risk-row-maker
+      checker:
+        testId: risk-row-checker
+
+  - pageId: operations.documents
+    routePattern: /documents
+    readyMarker:
+      testId: ops-documents
+    elements:
+      search:
+        testId: doc-search
+        role: textbox
+      docId:
+        testId: doc-row-id
+      title:
+        testId: doc-row-title
+      category:
+        testId: doc-row-category
+      status:
+        testId: doc-row-status
+
+  - pageId: operations.audit
+    routePattern: /audit
+    readyMarker:
+      testId: audit-row-timestamp
+    elements:
+      timestamp:
+        testId: audit-row-timestamp
+      eventType:
+        testId: audit-row-event-type
+      actorId:
+        testId: audit-row-actor-id
+      action:
+        testId: audit-row-action
+      resourceId:
+        testId: audit-row-resource-id
+      outcome:
+        testId: audit-row-outcome
+      recordHash:
+        testId: audit-row-record-hash
+      correlationId:
+        testId: audit-row-correlation-id
+
+  - pageId: operations.system-health
+    routePattern: /system-health
+    readyMarker:
+      testId: system-health-metrics
+    elements:
+      alertId:
+        testId: health-row-alert-id
+      severity:
+        testId: health-row-severity
+      status:
+        testId: health-row-status
+      service:
+        testId: health-row-service
+      firingCount:
+        testId: health-firing-count
