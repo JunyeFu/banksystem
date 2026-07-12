@@ -5,6 +5,11 @@ import { PageContainer } from '@/components/PageContainer';
 import { apiClient, ApiError } from '@/api/client';
 import type { AlertSeverity, AlertStatus, MonitoringAlert } from '@/types/models';
 
+type MonitoringAlertResponse = {
+  alerts: Array<{ code: string; severity: string; status: AlertStatus }>;
+  count: number;
+};
+
 const { Text } = Typography;
 
 const severityColorMap: Record<AlertSeverity, string> = {
@@ -22,7 +27,20 @@ const alertStatusColorMap: Record<AlertStatus, string> = {
 function useMonitoringAlerts() {
   return useQuery<MonitoringAlert[], ApiError>({
     queryKey: ['monitoring-alerts'],
-    queryFn: () => apiClient.get<MonitoringAlert[]>('/internal/monitoring/alerts'),
+    queryFn: async () => {
+      const response = await apiClient.get<MonitoringAlertResponse>('/internal/monitoring/alerts');
+      return response.alerts.map((alert) => ({
+        alertId: alert.code,
+        severity: alert.severity as AlertSeverity,
+        status: alert.status,
+        serviceName: 'bank-channel-service',
+        message: alert.code,
+        triggeredAt: '',
+        resolvedAt: null,
+        labels: {},
+        code: alert.code,
+      }));
+    },
   });
 }
 
@@ -125,6 +143,8 @@ export function SystemHealth(): JSX.Element {
     data?.filter((a) => a.severity === 'ERROR' && a.status === 'FIRING').length ?? 0;
   const resolvedCount =
     data?.filter((a) => a.status === 'RESOLVED').length ?? 0;
+  const eodFailedCount =
+    data?.filter((a) => a.code === 'EOD_FAILED' && a.status === 'FIRING').length ?? 0;
 
   return (
     <PageContainer pageId="operations.system-health" state={pageState} title="系统健康">
@@ -174,6 +194,21 @@ export function SystemHealth(): JSX.Element {
           </Card>
         </Col>
       </Row>
+
+      {eodFailedCount > 0 && (
+        <Card
+          style={{ marginTop: 16, borderColor: '#cf1322' }}
+          data-testid="health-card-eod-failed"
+        >
+          <Statistic
+            title="日终失败"
+            value={eodFailedCount}
+            valueStyle={{ color: '#cf1322' }}
+            data-testid="health-eod-failed-count"
+          />
+          <Text type="danger">过去24小时内有日终处理失败，请检查 EOD 日志</Text>
+        </Card>
+      )}
 
       <Card
         title="监控告警列表"

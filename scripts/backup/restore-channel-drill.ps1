@@ -15,15 +15,15 @@ try {
 
   $tables=docker exec $name psql -U postgres -d bank_channel -Atc "SELECT count(*) FROM information_schema.tables WHERE table_schema='public';"
 
-  $invalidStatus=docker exec $name psql -U postgres -d bank_channel -Atc "SELECT count(*) FROM transfer WHERE status NOT IN ('CREATED','VALIDATING','RISK_REVIEW','PENDING_APPROVAL','PENDING_CORE_POSTING','PENDING_CLEARING','SETTLED','FAILED','TIMED_OUT','RETURNED','REVERSAL_PENDING','REVERSED');"
+  $invalidStatus=docker exec $name psql -U postgres -d bank_channel -Atc "SELECT count(*) FROM transfer WHERE status NOT IN ('CREATED','RISK_PENDING','REVIEW_REQUIRED','APPROVED','RESERVED','SUBMITTED','SETTLED','FAILED','TIMED_OUT','RETURNED','REVERSAL_PENDING','REVERSED');"
 
   $auditHashMissing=docker exec $name psql -U postgres -d bank_channel -Atc "SELECT count(*) FROM security_audit_event WHERE record_hash IS NULL OR record_hash='';"
 
   $orphanHistory=docker exec $name psql -U postgres -d bank_channel -Atc "SELECT count(*) FROM transfer_state_history h LEFT JOIN transfer t ON t.transfer_id=h.transfer_id WHERE t.transfer_id IS NULL;"
 
-  $dupIdempotency=docker exec $name psql -U postgres -d bank_channel -Atc "SELECT count(*) - count(DISTINCT idempotency_key) FROM idempotency_record;"
+  $dupIdempotency=docker exec $name psql -U postgres -d bank_channel -Atc "SELECT count(*) - count(DISTINCT scope_key) FROM idempotency_record;"
 
-  $unpublishedOutbox=docker exec $name psql -U postgres -d bank_channel -Atc "SELECT count(*) FROM transfer_outbox WHERE published_at IS NULL;"
+  $unpublishedOutbox=docker exec $name psql -U postgres -d bank_channel -Atc "SELECT count(*) FROM outbox_event WHERE status = 'PENDING';"
 
   Write-Output "restore=PASS public_tables=$($tables.Trim())"
   Write-Output "invariant_invalid_transfer_status=$($invalidStatus.Trim())"

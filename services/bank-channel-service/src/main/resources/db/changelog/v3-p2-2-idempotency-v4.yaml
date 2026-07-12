@@ -1,0 +1,66 @@
+databaseChangeLog:
+  - changeSet:
+      id: v3-p2-2-idempotency-add-v4-columns
+      author: P2-2
+      changes:
+        - addColumn:
+            tableName: idempotency_record
+            columns:
+              - column:
+                  name: id
+                  type: uuid
+              - column:
+                  name: scope_key
+                  type: varchar(128)
+              - column:
+                  name: status
+                  type: varchar(16)
+              - column:
+                  name: resource_id
+                  type: uuid
+              - column:
+                  name: expires_at
+                  type: timestamptz
+
+  - changeSet:
+      id: v3-p2-2-idempotency-data-migration
+      author: P2-2
+      changes:
+        - sql:
+            "UPDATE idempotency_record SET id = gen_random_uuid(), scope_key = idempotency_key, status = 'OK' WHERE scope_key IS NULL"
+
+  - changeSet:
+      id: v3-p2-2-idempotency-set-not-null
+      author: P2-2
+      changes:
+        - addNotNullConstraint:
+            tableName: idempotency_record
+            columnName: id
+            columnDataType: uuid
+        - addNotNullConstraint:
+            tableName: idempotency_record
+            columnName: scope_key
+            columnDataType: varchar(128)
+
+  - changeSet:
+      id: v3-p2-2-idempotency-change-pk
+      author: P2-2
+      changes:
+        - sql:
+            sql: ALTER TABLE transfer DROP CONSTRAINT IF EXISTS fk_transfer_idempotency
+        - addUniqueConstraint:
+            tableName: idempotency_record
+            columnNames: idempotency_key
+            constraintName: uq_idempotency_legacy_key
+        - dropPrimaryKey:
+            tableName: idempotency_record
+        - addPrimaryKey:
+            tableName: idempotency_record
+            columnNames: id
+            constraintName: pk_idempotency_record
+        - addUniqueConstraint:
+            tableName: idempotency_record
+            columnNames: scope_key
+            constraintName: uq_idempotency_scope_key
+        - sql:
+            sql: ALTER TABLE transfer ADD CONSTRAINT fk_transfer_idempotency FOREIGN KEY (idempotency_key) REFERENCES idempotency_record(scope_key)

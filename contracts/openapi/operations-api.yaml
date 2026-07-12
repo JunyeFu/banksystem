@@ -53,6 +53,23 @@ paths:
       responses:
         '200': { description: Pending reversal }
         '409': { $ref: '#/components/responses/Problem' }
+  /internal/monitoring/alerts:
+    get:
+      operationId: getMonitoringAlerts
+      summary: Get active operational alerts
+      responses:
+        '200':
+          description: No service-blocking alert is active
+          content:
+            application/json: { schema: { $ref: '#/components/schemas/MonitoringAlertResponse' } }
+        '503':
+          description: A service-blocking alert is active
+          headers:
+            X-Alert:
+              required: true
+              schema: { type: string, example: EOD_FAILED }
+          content:
+            application/json: { schema: { $ref: '#/components/schemas/MonitoringAlertResponse' } }
   /transfers/reversals/{reversalId}/approve:
     parameters:
       - name: reversalId
@@ -115,6 +132,20 @@ components:
         currency: { type: string, pattern: '^[A-Z]{3}$' }
         coreReference: { type: [string, 'null'] }
         correlationId: { type: [string, 'null'] }
+    MonitoringAlertResponse:
+      type: object
+      required: [alerts, count]
+      properties:
+        count: { type: integer, minimum: 0 }
+        alerts:
+          type: array
+          items:
+            type: object
+            required: [code, severity, status]
+            properties:
+              code: { type: string, example: EOD_FAILED }
+              severity: { type: string, enum: [P0, P1, P2] }
+              status: { type: string, enum: [FIRING, RESOLVED] }
     Problem:
       type: object
       required: [type, title, status, code]

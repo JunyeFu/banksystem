@@ -3,3 +3,9 @@ databaseChangeLog:
       file: db/changelog/v1-initial-schema.yaml
   - include:
       file: db/changelog/v2-p1-transfer-status.yaml
+  - include:
+      file: db/changelog/v3-p2-2-idempotency-v4.yaml
+  - include:
+      file: db/changelog/v3-p2-2-idempotency-v4-completion.yaml
+  - include:
+      file: db/changelog/v3-p2-3-outbox-event-rename.yaml

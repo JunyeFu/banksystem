@@ -1,8 +1,8 @@
 package local.bank.channel;
 
 import org.junit.jupiter.api.Test;
-import local.bank.channel.statemachine.TransferStateMachine;
-import local.bank.channel.statemachine.TransferStateMachine.Status;
+import local.bank.channel.payments.statemachine.TransferStateMachine;
+import local.bank.channel.payments.statemachine.TransferStateMachine.Status;
 import static org.junit.jupiter.api.Assertions.*;
 
 class TransferStateMachineTest {
