@@ -245,6 +245,7 @@ export type AlertSeverity = 'INFO' | 'WARNING' | 'ERROR' | 'CRITICAL';
 export type AlertStatus = 'FIRING' | 'RESOLVED';
 
 export interface MonitoringAlert {
+  code: string;
   alertId: string;
   severity: AlertSeverity;
   status: AlertStatus;

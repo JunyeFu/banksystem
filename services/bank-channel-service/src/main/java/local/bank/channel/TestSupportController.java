@@ -51,7 +51,7 @@ public class TestSupportController {
     jdbc.update("DELETE FROM transfer_receipt");
     jdbc.update("DELETE FROM notification");
     jdbc.update("DELETE FROM ledger_entry");
-    jdbc.update("DELETE FROM transfer_outbox");
+    jdbc.update("DELETE FROM outbox_event");
     jdbc.update("DELETE FROM transfer_reversal");
     jdbc.update("DELETE FROM transfer");
     jdbc.update("DELETE FROM idempotency_record");
@@ -159,7 +159,7 @@ public class TestSupportController {
         paymentId);
 
     var outboxRows = jdbc.query(
-        "SELECT event_id, event_type, published_at FROM transfer_outbox WHERE transfer_id = ?",
+        "SELECT id, event_type, published_at FROM outbox_event WHERE aggregate_id = ?",
         (rs, n) -> Map.<String, Object>of("eventId", rs.getString(1), "eventType", rs.getString(2),
             "publishedAt", rs.getString(3)),
         paymentId);
@@ -169,7 +169,7 @@ public class TestSupportController {
         Integer.class, paymentId.toString());
 
     Integer idempotencyCount = jdbc.queryForObject(
-        "SELECT count(*) FROM idempotency_record WHERE idempotency_key IN (SELECT idempotency_key FROM transfer WHERE transfer_id = ?)",
+        "SELECT count(*) FROM idempotency_record WHERE scope_key IN (SELECT idempotency_key FROM transfer WHERE transfer_id = ?)",
         Integer.class, paymentId);
 
     Map<String, Object> transfer = transferRows.get(0);
@@ -254,10 +254,34 @@ public class TestSupportController {
   @GetMapping("/assertions/reconciliation/{correlationId}")
   public ResponseEntity<Map<String, Object>> assertReconciliation(@PathVariable String correlationId) {
     var reconRows = jdbc.query(
-        "SELECT reconciliation_type, status, difference_count FROM reconciliation_run ORDER BY created_at DESC LIMIT 5",
-        (rs, n) -> Map.<String, Object>of("type", rs.getString(1), "status", rs.getString(2),
-            "differences", rs.getInt(3)));
-    return ResponseEntity.ok(Map.of("runs", reconRows));
+        "SELECT reconciliation_type, status, difference_count, details FROM reconciliation_run " +
+        "WHERE details::jsonb ->> 'correlationId' = ? ORDER BY created_at DESC LIMIT 5",
+        (rs, n) -> {
+          var m = new java.util.LinkedHashMap<String, Object>();
+          m.put("type", rs.getString(1));
+          m.put("status", rs.getString(2));
+          m.put("differences", rs.getInt(3));
+          m.put("details", rs.getString(4));
+          return m;
+        },
+        correlationId);
+    String filter = "matched";
+    int matchedCount = reconRows.size();
+    if (reconRows.isEmpty()) {
+      reconRows = jdbc.query(
+          "SELECT reconciliation_type, status, difference_count, details FROM reconciliation_run ORDER BY created_at DESC LIMIT 5",
+          (rs, n) -> {
+            var m = new java.util.LinkedHashMap<String, Object>();
+            m.put("type", rs.getString(1));
+            m.put("status", rs.getString(2));
+            m.put("differences", rs.getInt(3));
+            m.put("details", rs.getString(4));
+            return m;
+          });
+      filter = "fallback";
+    }
+    return ResponseEntity.ok(Map.of("runs", reconRows, "correlationIdFilter", filter,
+        "matchedCount", matchedCount));
   }
 
   @PostMapping("/business-date:advance")
