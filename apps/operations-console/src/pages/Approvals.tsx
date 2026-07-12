@@ -388,7 +388,7 @@ export function Approvals(): JSX.Element {
   ];
 
   return (
-    <PageContainer pageId="ops.approvals" state={pageState} title="审批队列">
+    <PageContainer pageId="operations.approvals" state={pageState} title="审批队列">
       <Table<ApprovalRecord>
         columns={columns}
         dataSource={data ?? []}

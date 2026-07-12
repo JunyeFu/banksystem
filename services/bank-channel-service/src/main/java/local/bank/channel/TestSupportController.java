@@ -1,15 +1,20 @@
 package local.bank.channel;
 
+import java.io.InputStream;
 import java.time.LocalDate;
+import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import org.springframework.context.annotation.Profile;
+import org.springframework.core.io.ClassPathResource;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.http.ResponseEntity;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
 
 @Profile({"local", "test"})
 @RestController
@@ -45,6 +50,7 @@ public class TestSupportController {
     jdbc.update("DELETE FROM security_audit_event");
     jdbc.update("DELETE FROM transfer_receipt");
     jdbc.update("DELETE FROM notification");
+    jdbc.update("DELETE FROM ledger_entry");
     jdbc.update("DELETE FROM transfer_outbox");
     jdbc.update("DELETE FROM transfer_reversal");
     jdbc.update("DELETE FROM transfer");
@@ -81,22 +87,59 @@ public class TestSupportController {
     return ResponseEntity.notFound().build();
   }
 
+  @SuppressWarnings("unchecked")
   @GetMapping("/pages")
   public ResponseEntity<List<Map<String, Object>>> pages() {
-    return ResponseEntity.ok(List.of(
+    List<Map<String, Object>> fallback = List.of(
         Map.of("pageId", "customer.login", "routePattern", "/login"),
         Map.of("pageId", "customer.dashboard", "routePattern", "/dashboard"),
         Map.of("pageId", "customer.accounts", "routePattern", "/accounts"),
+        Map.of("pageId", "customer.account.detail", "routePattern", "/accounts/:accountId"),
+        Map.of("pageId", "customer.transfers", "routePattern", "/transfers"),
         Map.of("pageId", "customer.transfer.create", "routePattern", "/transfers/new"),
         Map.of("pageId", "customer.transfer.result", "routePattern", "/transfers/:paymentId"),
         Map.of("pageId", "customer.beneficiaries", "routePattern", "/beneficiaries"),
+        Map.of("pageId", "customer.loans", "routePattern", "/loans"),
         Map.of("pageId", "customer.loans.apply", "routePattern", "/loans/apply"),
+        Map.of("pageId", "customer.loan.detail", "routePattern", "/loans/:loanId"),
+        Map.of("pageId", "customer.documents", "routePattern", "/documents"),
+        Map.of("pageId", "customer.messages", "routePattern", "/messages"),
+        Map.of("pageId", "customer.profile", "routePattern", "/profile"),
+        Map.of("pageId", "customer.security", "routePattern", "/security"),
         Map.of("pageId", "operations.dashboard", "routePattern", "/dashboard"),
         Map.of("pageId", "operations.payments", "routePattern", "/payments"),
         Map.of("pageId", "operations.payments.detail", "routePattern", "/payments/:paymentId"),
         Map.of("pageId", "operations.approvals", "routePattern", "/approvals"),
+        Map.of("pageId", "operations.clearing", "routePattern", "/clearing"),
         Map.of("pageId", "operations.reconciliation", "routePattern", "/reconciliation"),
-        Map.of("pageId", "operations.eod", "routePattern", "/eod")));
+        Map.of("pageId", "operations.eod", "routePattern", "/eod"),
+        Map.of("pageId", "operations.risk.alerts", "routePattern", "/risk/alerts"),
+        Map.of("pageId", "operations.risk.cases", "routePattern", "/risk/cases"),
+        Map.of("pageId", "operations.documents", "routePattern", "/documents"),
+        Map.of("pageId", "operations.audit", "routePattern", "/audit"),
+        Map.of("pageId", "operations.system-health", "routePattern", "/system-health"));
+    try (InputStream in = new ClassPathResource("catalogs/page-catalog.seed.yaml").getInputStream()) {
+      ObjectMapper yamlMapper = new ObjectMapper(new YAMLFactory());
+      Map<String, Object> root = yamlMapper.readValue(in, Map.class);
+      Object pagesList = root.get("pages");
+      if (!(pagesList instanceof List<?> rawList)) return ResponseEntity.ok(fallback);
+      List<Map<String, Object>> result = new ArrayList<>();
+      for (Object item : rawList) {
+        if (!(item instanceof Map<?, ?> p)) continue;
+        String pageId = String.valueOf(p.get("pageId"));
+        String routePattern = String.valueOf(p.get("routePattern"));
+        Map<String, Object> row = new LinkedHashMap<>();
+        row.put("pageId", pageId);
+        row.put("routePattern", routePattern);
+        Object ready = p.get("readyMarker");
+        if (ready instanceof Map<?, ?> rm && rm.get("testId") != null)
+          row.put("readyMarker", String.valueOf(rm.get("testId")));
+        result.add(row);
+      }
+      return ResponseEntity.ok(result);
+    } catch (Exception e) {
+      return ResponseEntity.ok(fallback);
+    }
   }
 
   @GetMapping("/assertions/payments/{paymentId}")
@@ -129,12 +172,38 @@ public class TestSupportController {
         "SELECT count(*) FROM idempotency_record WHERE idempotency_key IN (SELECT idempotency_key FROM transfer WHERE transfer_id = ?)",
         Integer.class, paymentId);
 
+    Map<String, Object> transfer = transferRows.get(0);
+    String coreReference = (String) transfer.get("coreReference");
+    boolean coreTransactionVerified = false;
+    boolean coreAmountMatched = false;
+    int coreEntryCount = 0;
+    if (coreReference != null && !coreReference.isEmpty()) {
+      try {
+        var journal = fineract.journalEntries();
+        var matchingEntries = journal.stream().filter(e -> {
+          Object id = e.get("id");
+          if (id == null) id = e.get("transactionId");
+          return id != null && coreReference.equals(String.valueOf(id));
+        }).toList();
+        coreTransactionVerified = !matchingEntries.isEmpty();
+        coreEntryCount = matchingEntries.size();
+        coreAmountMatched = matchingEntries.stream().anyMatch(e ->
+            transfer.get("amount").equals(String.valueOf(e.get("amount"))));
+      } catch (Exception e) {
+        coreTransactionVerified = false;
+      }
+    }
+
     return ResponseEntity.ok(Map.of(
-        "transfer", transferRows.get(0),
+        "transfer", transfer,
         "stateHistory", historyRows,
         "outbox", outboxRows,
         "auditCount", auditCount != null ? auditCount : 0,
-        "idempotencyRecordExists", idempotencyCount != null && idempotencyCount > 0));
+        "idempotencyRecordExists", idempotencyCount != null && idempotencyCount > 0,
+        "coreTransactionVerified", coreTransactionVerified,
+        "coreTransactionFound", coreTransactionVerified,
+        "coreAmountMatched", coreAmountMatched,
+        "coreEntryCount", coreEntryCount));
   }
 
   @GetMapping("/assertions/ledger/{correlationId}")
@@ -211,8 +280,10 @@ public class TestSupportController {
         return ResponseEntity.ok(Map.of("status", "BLOCKED", "reason", "Ledger not balanced",
             "debits", debits.toPlainString(), "credits", credits.toPlainString()));
       }
+      LocalDate nextDate = fineract.businessDate().plusDays(1);
+      fineract.advanceBusinessDate(nextDate);
       return ResponseEntity.ok(Map.of("status", "ADVANCED",
-          "newDate", LocalDate.now().plusDays(1).toString(),
+          "newDate", nextDate.toString(),
           "ledgerBalanced", true,
           "journalEntries", entries.size()));
     } catch (Exception e) {

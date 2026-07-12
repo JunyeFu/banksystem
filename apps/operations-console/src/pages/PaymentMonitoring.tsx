@@ -11,11 +11,11 @@ const { Text } = Typography;
 
 const statusColorMap: Record<TransferStatus, string> = {
   CREATED: 'default',
-  VALIDATING: 'processing',
-  RISK_REVIEW: 'warning',
-  PENDING_APPROVAL: 'warning',
-  PENDING_CORE_POSTING: 'processing',
-  PENDING_CLEARING: 'processing',
+  RISK_PENDING: 'processing',
+  REVIEW_REQUIRED: 'warning',
+  APPROVED: 'processing',
+  RESERVED: 'processing',
+  SUBMITTED: 'processing',
   SETTLED: 'success',
   FAILED: 'error',
   TIMED_OUT: 'error',
@@ -98,10 +98,10 @@ export function PaymentMonitoring(): JSX.Element {
   const pageState = isLoading ? 'LOADING' : isError ? 'ERROR' : 'READY';
 
   return (
-    <PageContainer pageId="ops.payments" state={pageState} title="支付监控">
+    <PageContainer pageId="operations.payments" state={pageState} title="支付监控">
       <Space style={{ marginBottom: 16, width: '100%', justifyContent: 'space-between' }}>
         <Search
-          placeholder="按状态筛选（如 PENDING_APPROVAL）"
+          placeholder="按状态筛选（如 REVIEW_REQUIRED）"
           allowClear
           enterButton
           style={{ width: 400 }}

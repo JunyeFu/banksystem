@@ -144,7 +144,7 @@ export function TransferCreate(): JSX.Element {
           />
         )}
 
-        <form onSubmit={handleSubmit(onSubmit)}>
+        <form onSubmit={handleSubmit(onSubmit)} data-testid="transfer-form">
           <Form layout="vertical" component={false}>
             <Controller
               control={control}

@@ -82,7 +82,7 @@ components:
         eventType: { const: transfer.status.changed }
         occurredAt: { type: string, format: date-time }
         transferId: { type: string, minLength: 1, maxLength: 64 }
-        status: { type: string, enum: [CREATED, VALIDATING, RISK_REVIEW, PENDING_APPROVAL, PENDING_CORE_POSTING, PENDING_CLEARING, SETTLED, FAILED, TIMED_OUT, RETURNED, REVERSAL_PENDING, REVERSED] }
+        status: { type: string, enum: [CREATED, RISK_PENDING, REVIEW_REQUIRED, APPROVED, RESERVED, SUBMITTED, SETTLED, FAILED, TIMED_OUT, RETURNED, REVERSAL_PENDING, REVERSED] }
         coreReference: { type: [string, 'null'] }
         correlationId: { type: [string, 'null'] }
     TransferReversed:

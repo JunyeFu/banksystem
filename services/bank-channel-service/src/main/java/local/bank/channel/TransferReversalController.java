@@ -10,16 +10,22 @@ import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.server.ResponseStatusException;
 
+import local.bank.channel.statemachine.TransferStateMachine;
+import local.bank.channel.statemachine.TransferStateMachine.Status;
+
 @RestController
 public class TransferReversalController {
   private final JdbcTemplate jdbc;
   private final FineractAdapter fineract;
   private final AuditService audit;
+  private final TransferStateMachine stateMachine;
 
-  public TransferReversalController(JdbcTemplate jdbc, FineractAdapter fineract, AuditService audit) {
+  public TransferReversalController(JdbcTemplate jdbc, FineractAdapter fineract,
+                                   AuditService audit, TransferStateMachine stateMachine) {
     this.jdbc = jdbc;
     this.fineract = fineract;
     this.audit = audit;
+    this.stateMachine = stateMachine;
   }
 
   @PostMapping("/api/operations/v1/transfers/{transferId}/reversal")
@@ -28,16 +34,17 @@ public class TransferReversalController {
       throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Reason is required");
     var rows = jdbc.query("SELECT status FROM transfer WHERE transfer_id=?", (rs, n) -> rs.getString(1), transferId);
     if (rows.isEmpty()) throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Transfer not found");
-    if (!"SETTLED".equals(rows.get(0)))
+    Status current = Status.of(rows.get(0));
+    if (current != Status.SETTLED)
       throw new ResponseStatusException(HttpStatus.CONFLICT, "Only settled transfers can be reversed");
 
     UUID id = UUID.randomUUID();
     jdbc.update("INSERT INTO transfer_reversal(reversal_id,transfer_id,maker_subject,status,reason) VALUES(?,?,?,?,?)",
         id, transferId, jwt.getSubject(), "PENDING", reason.reason());
-    jdbc.update("UPDATE transfer SET status='REVERSAL_PENDING' WHERE transfer_id=?", transferId);
-    jdbc.update("INSERT INTO transfer_state_history(transfer_id,from_status,to_status,reason_code,actor_type,actor_id,metadata) VALUES (?,?,?,?,?,?,?::jsonb)",
-        transferId, "SETTLED", "REVERSAL_PENDING", reason.reason(), "USER", jwt.getSubject(), "{}");
-    audit.record("TRANSFER_REVERSAL_REQUESTED", "USER", jwt.getSubject(), "Transfer", transferId.toString(), "REVERSE", "SUCCESS", null, Map.of("reason", reason.reason()));
+    stateMachine.transitionState(transferId, Status.SETTLED, Status.REVERSAL_PENDING,
+        "USER", jwt.getSubject(), reason.reason(), null);
+    audit.record("TRANSFER_REVERSAL_REQUESTED", "USER", jwt.getSubject(), "Transfer",
+        transferId.toString(), "REVERSE", "SUCCESS", null, Map.of("reason", reason.reason()));
     return Map.of("reversalId", id.toString(), "status", "PENDING", "version", 1);
   }
 
@@ -65,7 +72,8 @@ public class TransferReversalController {
             "amount", rs.getBigDecimal(3), "currency", rs.getString(4), "status", rs.getString(5)), transferId);
     if (rows.isEmpty()) throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Transfer not found");
     var t = rows.get(0);
-    if (!"REVERSAL_PENDING".equals(t.get("status")))
+    Status current = Status.of((String) t.get("status"));
+    if (current != Status.REVERSAL_PENDING)
       throw new ResponseStatusException(HttpStatus.CONFLICT, "Transfer is not pending reversal");
 
     Map<String, Object> core = fineract.accountTransfer(
@@ -78,13 +86,10 @@ public class TransferReversalController {
 
     jdbc.update("UPDATE transfer_reversal SET checker_subject=?,status='APPROVED',version=version+1,core_reference=? WHERE reversal_id=?",
         jwt.getSubject(), ref, reversalId);
-    jdbc.update("UPDATE transfer SET status='REVERSED' WHERE transfer_id=?", transferId);
-    jdbc.update("INSERT INTO transfer_state_history(transfer_id,from_status,to_status,reason_code,actor_type,actor_id,metadata) VALUES (?,?,?,?,?,?,?::jsonb)",
-        transferId, "REVERSAL_PENDING", "REVERSED", reason.reason(), "USER", jwt.getSubject(), "{}");
-    jdbc.update("INSERT INTO transfer_outbox(event_id,transfer_id,event_type,payload) VALUES (?,?,?,?)",
-        UUID.randomUUID(), transferId, "transfer.reversed",
-        "{\"transferId\":\"" + transferId + "\",\"status\":\"REVERSED\",\"coreReference\":\"" + ref + "\"}");
-    audit.record("TRANSFER_REVERSED", "USER", jwt.getSubject(), "Transfer", transferId.toString(), "REVERSE", "SUCCESS", null, Map.of("coreReference", ref));
+    stateMachine.transitionState(transferId, Status.REVERSAL_PENDING, Status.REVERSED,
+        "USER", jwt.getSubject(), reason.reason(), Map.of("coreReference", ref));
+    audit.record("TRANSFER_REVERSED", "USER", jwt.getSubject(), "Transfer",
+        transferId.toString(), "REVERSE", "SUCCESS", null, Map.of("coreReference", ref));
     return Map.of("reversalId", reversalId.toString(), "transferId", transferId.toString(),
         "status", "APPROVED", "coreReference", ref, "version", version + 1);
   }

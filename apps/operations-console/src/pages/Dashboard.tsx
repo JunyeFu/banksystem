@@ -19,7 +19,7 @@ export function Dashboard(): JSX.Element {
   const pageState = isLoading ? 'LOADING' : isError ? 'ERROR' : 'READY';
 
   return (
-    <PageContainer pageId="ops.dashboard" state={pageState} title="运营仪表盘">
+    <PageContainer pageId="operations.dashboard" state={pageState} title="运营仪表盘">
       <Row gutter={[16, 16]} data-testid="dashboard-metrics">
         <Col xs={24} sm={12} lg={6}>
           <Card data-testid="dashboard-card-approvals">

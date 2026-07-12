@@ -17,18 +17,23 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.server.ResponseStatusException;
 
+import local.bank.channel.statemachine.TransferStateMachine;
+
 @RestController
 public class TransferController {
   private final JdbcTemplate jdbc;
   private final ObjectMapper mapper;
   private final FineractAdapter fineract;
   private final AuditService audit;
+  private final TransferStateMachine stateMachine;
 
-  public TransferController(JdbcTemplate jdbc, ObjectMapper mapper, FineractAdapter fineract, AuditService audit) {
+  public TransferController(JdbcTemplate jdbc, ObjectMapper mapper, FineractAdapter fineract,
+                            AuditService audit, TransferStateMachine stateMachine) {
     this.jdbc = jdbc;
     this.mapper = mapper;
     this.fineract = fineract;
     this.audit = audit;
+    this.stateMachine = stateMachine;
   }
 
   @PostMapping({"/api/operations/v1/transfers", "/api/customer/v1/transfers"})
@@ -40,7 +45,8 @@ public class TransferController {
       @RequestBody TransferRequest request) throws Exception {
     if (key == null || key.length() < 16 || key.length() > 128)
       throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Idempotency-Key is required");
-    if (request.amount() == null || request.amount().signum() <= 0 || request.sourceAccountId().equals(request.destinationAccountId()))
+    if (request.amount() == null || request.amount().signum() <= 0 || request.amount().scale() > 2
+        || request.sourceAccountId().equals(request.destinationAccountId()))
       throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Invalid transfer");
 
     if (corrId == null || corrId.isBlank()) corrId = MDC.get("correlationId");
@@ -74,8 +80,10 @@ public class TransferController {
     jdbc.update("INSERT INTO transfer(transfer_id,idempotency_key,source_account_id,destination_account_id,amount,currency,status,subject,correlation_id,request_hash) VALUES (?,?,?,?,?,?,?,?,?,?)",
         UUID.fromString(id), key, request.sourceAccountId(), request.destinationAccountId(),
         request.amount(), request.currency(), "CREATED", jwt.getSubject(), corrId, hash);
-    jdbc.update("INSERT INTO transfer_state_history(transfer_id,from_status,to_status,actor_type,actor_id,metadata) VALUES (?,?,?,?,?,?::jsonb)",
-        UUID.fromString(id), null, "CREATED", "USER", jwt.getSubject(),
+    // 写 CREATED 初始 state_history(无 from),保持审计链完整
+    stateMachine.recordTransitionHistory(UUID.fromString(id), null,
+        local.bank.channel.statemachine.TransferStateMachine.Status.CREATED,
+        "USER", jwt.getSubject(), null,
         "{\"idempotencyKey\":\"" + key + "\"}");
     jdbc.update("INSERT INTO transfer_outbox(event_id,transfer_id,event_type,payload) VALUES (?,?,?,?)",
         UUID.randomUUID(), UUID.fromString(id), "transfer.status.changed", body);
@@ -89,10 +97,18 @@ public class TransferController {
   public Map<String, Object> get(@PathVariable UUID transferId) {
     var rows = jdbc.query(
         "SELECT transfer_id,status,amount,currency,core_reference,correlation_id FROM transfer WHERE transfer_id = ?",
-        (rs, n) -> Map.<String, Object>of("transferId", rs.getString(1), "status", rs.getString(2),
-            "amount", rs.getBigDecimal(3).toPlainString(), "currency", rs.getString(4),
-            "coreReference", rs.getString(5), "correlationId", rs.getString(6) != null ? rs.getString(6) : ""),
-        transferId);
+        (rs, n) -> {
+          Map<String, Object> m = new java.util.LinkedHashMap<>();
+          m.put("transferId", rs.getString(1));
+          m.put("status", rs.getString(2));
+          m.put("amount", rs.getBigDecimal(3).toPlainString());
+          m.put("currency", rs.getString(4));
+          String coreRef = rs.getString(5);
+          m.put("coreReference", coreRef != null ? coreRef : "");
+          String corr = rs.getString(6);
+          m.put("correlationId", corr != null ? corr : "");
+          return m;
+        }, transferId);
     if (rows.isEmpty()) throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Transfer not found");
     return rows.get(0);
   }

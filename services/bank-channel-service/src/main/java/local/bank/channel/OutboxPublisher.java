@@ -24,7 +24,6 @@ public class OutboxPublisher {
 
   @Scheduled(fixedDelay = 5000)
   public void publishPending() {
-    ensureColumns();
     var pending = jdbc.query(
         "SELECT event_id, transfer_id, event_type, payload, attempt_count FROM transfer_outbox " +
         "WHERE published_at IS NULL AND (next_attempt_at IS NULL OR next_attempt_at <= now()) " +
@@ -75,15 +74,6 @@ public class OutboxPublisher {
     } catch (Exception e) {
       log.warn("JMS delivery failed for queue={}, falling back to log delivery: {}", queueName, e.getMessage());
       throw e;
-    }
-  }
-
-  private void ensureColumns() {
-    try {
-      jdbc.execute("ALTER TABLE transfer_outbox ADD COLUMN IF NOT EXISTS attempt_count INTEGER NOT NULL DEFAULT 0");
-      jdbc.execute("ALTER TABLE transfer_outbox ADD COLUMN IF NOT EXISTS next_attempt_at TIMESTAMPTZ");
-    } catch (Exception e) {
-      log.debug("Column check skipped: {}", e.getMessage());
     }
   }
 }

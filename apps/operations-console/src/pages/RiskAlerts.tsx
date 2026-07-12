@@ -144,7 +144,7 @@ export function RiskAlerts(): JSX.Element {
   const activeCount = data?.filter((a) => a.status === 'ACTIVE').length ?? 0;
 
   return (
-    <PageContainer pageId="ops.risk.alerts" state={pageState} title="风险告警">
+    <PageContainer pageId="operations.risk.alerts" state={pageState} title="风险告警">
       <div style={{ marginBottom: 16 }} data-testid="risk-alerts-summary">
         <Space>
           <Text>实时告警总数: </Text>

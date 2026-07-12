@@ -1,0 +1,25 @@
+databaseChangeLog:
+  - changeSet:
+      id: v2-p1-transfer-status-contract
+      author: BankingDomainAgent
+      comment: Replace pre-v4 transfer states without changing monetary records.
+      changes:
+        - sql:
+            splitStatements: false
+            sql: |
+              UPDATE transfer SET status = CASE status
+                WHEN 'VALIDATING' THEN 'RISK_PENDING'
+                WHEN 'RISK_REVIEW' THEN 'REVIEW_REQUIRED'
+                WHEN 'PENDING_APPROVAL' THEN 'APPROVED'
+                WHEN 'PENDING_CORE_POSTING' THEN 'RESERVED'
+                WHEN 'PENDING_CLEARING' THEN 'SUBMITTED'
+                ELSE status END
+              WHERE status IN ('VALIDATING','RISK_REVIEW','PENDING_APPROVAL','PENDING_CORE_POSTING','PENDING_CLEARING');
+              UPDATE transfer_state_history SET from_status = CASE from_status
+                WHEN 'VALIDATING' THEN 'RISK_PENDING' WHEN 'RISK_REVIEW' THEN 'REVIEW_REQUIRED'
+                WHEN 'PENDING_APPROVAL' THEN 'APPROVED' WHEN 'PENDING_CORE_POSTING' THEN 'RESERVED'
+                WHEN 'PENDING_CLEARING' THEN 'SUBMITTED' ELSE from_status END;
+              UPDATE transfer_state_history SET to_status = CASE to_status
+                WHEN 'VALIDATING' THEN 'RISK_PENDING' WHEN 'RISK_REVIEW' THEN 'REVIEW_REQUIRED'
+                WHEN 'PENDING_APPROVAL' THEN 'APPROVED' WHEN 'PENDING_CORE_POSTING' THEN 'RESERVED'
+                WHEN 'PENDING_CLEARING' THEN 'SUBMITTED' ELSE to_status END;

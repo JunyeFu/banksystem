@@ -160,7 +160,7 @@ export function OpsDocuments(): JSX.Element {
   const pageState = isLoading ? 'LOADING' : isError ? 'ERROR' : 'READY';
 
   return (
-    <PageContainer pageId="ops.documents" state={pageState} title="文档管理">
+    <PageContainer pageId="operations.documents" state={pageState} title="文档管理">
       <Space style={{ marginBottom: 16, width: '100%', justifyContent: 'space-between' }}>
         <Search
           placeholder="按分类筛选（如 POLICY, PROCEDURE, REPORT, COMPLIANCE）"

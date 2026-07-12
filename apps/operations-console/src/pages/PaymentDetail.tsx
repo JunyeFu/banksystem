@@ -24,11 +24,11 @@ const { Text } = Typography;
 
 const statusColorMap: Record<TransferStatus, string> = {
   CREATED: 'default',
-  VALIDATING: 'processing',
-  RISK_REVIEW: 'warning',
-  PENDING_APPROVAL: 'warning',
-  PENDING_CORE_POSTING: 'processing',
-  PENDING_CLEARING: 'processing',
+  RISK_PENDING: 'processing',
+  REVIEW_REQUIRED: 'warning',
+  APPROVED: 'processing',
+  RESERVED: 'processing',
+  SUBMITTED: 'processing',
   SETTLED: 'success',
   FAILED: 'error',
   TIMED_OUT: 'error',

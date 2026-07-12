@@ -67,7 +67,7 @@ export function Login(): JSX.Element {
   }
 
   return (
-    <PageContainer pageId="login" state={loading ? 'LOADING' : 'READY'}>
+    <PageContainer pageId="customer.login" state={loading ? 'LOADING' : 'READY'}>
       <div style={{ maxWidth: 420, margin: '0 auto', paddingTop: 64 }}>
         <Title level={2} data-testid="login-title">
           安全登录

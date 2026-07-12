@@ -141,7 +141,7 @@ export function Clearing(): JSX.Element {
   const latestBatch = data && data.length > 0 ? data[0] : null;
 
   return (
-    <PageContainer pageId="ops.clearing" state={pageState} title="清算">
+    <PageContainer pageId="operations.clearing" state={pageState} title="清算">
       <Card style={{ marginBottom: 16 }} data-testid="clearing-panel">
         <Space direction="vertical" style={{ width: '100%' }}>
           <h3>触发清算批次</h3>

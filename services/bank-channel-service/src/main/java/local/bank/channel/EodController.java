@@ -26,80 +26,105 @@ public class EodController {
 
   @PostMapping("/internal/eod/run")
   public Map<String, Object> run(@RequestParam(required = false) LocalDate businessDate) {
-    LocalDate date = businessDate == null ? LocalDate.now() : businessDate;
+    LocalDate date = businessDate == null ? fineract.businessDate() : businessDate;
     List<String> steps = new ArrayList<>();
     String status = "COMPLETED";
     String recon = "MATCHED";
     String reason = "EOD completed successfully";
+    LocalDate newDate = null;
 
-    // Step 1: Lock business date (record intent)
-    steps.add("LOCK_DATE");
+    step(steps, "LOCK_DATE");
 
-    // Step 2: Check core health
-    if (!fineract.checkHealth()) {
-      status = "FAILED"; recon = "BLOCKED"; reason = "Core health unavailable";
-      return recordEod(date, status, recon, reason, steps);
-    }
-    steps.add("CORE_HEALTH_CHECK");
-
-    // Step 3: Check pending transfers
-    Integer pending = jdbc.queryForObject(
-        "SELECT count(*) FROM transfer WHERE status IN ('CREATED','VALIDATING','RISK_REVIEW','PENDING_APPROVAL','PENDING_CORE_POSTING','PENDING_CLEARING')",
-        Integer.class);
-    if (pending != null && pending > 0) {
-      status = "FAILED"; recon = "DIFFERENCE"; reason = "Pending transfer exists: " + pending;
-      return recordEod(date, status, recon, reason, steps);
-    }
-    steps.add("PENDING_CHECK");
-
-    // Step 4: Channel-to-clearing reconciliation
     try {
-      var result = reconciliationService.run("CHANNEL_TO_CLEARING");
-      if (!"MATCHED".equals(result.get("status"))) {
-        status = "FAILED"; recon = "DIFFERENCE"; reason = "Channel-to-clearing reconciliation failed";
-        return recordEod(date, status, recon, reason, steps);
-      }
-    } catch (Exception e) {
-      status = "FAILED"; recon = "BLOCKED"; reason = "Channel-to-clearing reconciliation error: " + e.getMessage();
-      return recordEod(date, status, recon, reason, steps);
-    }
-    steps.add("CHANNEL_TO_CLEARING");
+      if (!fineract.checkHealth())
+        return failEod(date, "BLOCKED", "Core health unavailable", steps,
+            "EOD_HEALTH_CHECK_FAILED", Map.of("afterStep", "LOCK_DATE"));
+      step(steps, "CORE_HEALTH_CHECK");
 
-    // Step 5: Channel-to-core reconciliation
+      Integer pending = jdbc.queryForObject(
+          "SELECT count(*) FROM transfer WHERE status IN ('CREATED','RISK_PENDING','REVIEW_REQUIRED','APPROVED','RESERVED','SUBMITTED')",
+          Integer.class);
+      if (pending != null && pending > 0)
+        return failEod(date, "DIFFERENCE", "Pending transfer exists: " + pending, steps,
+            "EOD_PENDING_TRANSFER_FAILED", Map.of("pendingCount", pending, "afterStep", "CORE_HEALTH_CHECK"));
+      step(steps, "PENDING_CHECK");
+
+      runRecon(steps, "CHANNEL_TO_CLEARING");
+      runRecon(steps, "CHANNEL_TO_CORE");
+      runRecon(steps, "CORE_TO_GENERAL_LEDGER");
+
+      safeRunJob(steps, "FINERACT_COB_BATCH", () -> fineract.runCobBatch());
+      safeRunJob(steps, "FIX_APPLY_ANNUAL_FEE", () -> fineract.applyAnnualFeeForSavings());
+      safeRunJob(steps, "FIX_POST_INTEREST_SAVINGS", () -> fineract.postInterestOnSavings());
+      safeRunJob(steps, "FIX_PAY_DUE_SAVINGS_CHARGES", () -> fineract.payDueSavingsCharges());
+      safeRunJob(steps, "FIX_LOAN_ARREARS_AGEING", () -> fineract.updateLoanArrearsAgeing());
+      safeRunJob(steps, "FIX_PENALTY_OVERDUE_LOANS", () -> fineract.applyPenaltyToOverdueLoans());
+      safeRunJob(steps, "FIX_TRANSFERS_INTEREST_TO_SAVINGS", () -> fineract.transferInterestToSavings());
+      safeRunJob(steps, "FIX_ACCOUNTING_RUNNING_BALANCES", () -> fineract.updateAccountingRunningBalances());
+      steps.add("INTEREST_FEES_OVERDUE");
+
+      runRecon(steps, "CORE_TO_GENERAL_LEDGER"); // post-jobs accounting balance check
+      auditService.record("EOD_CHECKPOINT", "SYSTEM", "eod-controller", "EodRun",
+          date.toString(), "CHECKPOINT", "SUCCESS", null, Map.of("steps", steps));
+      step(steps, "AUDIT_CHECKPOINT");
+
+      newDate = date.plusDays(1);
+      try {
+        fineract.advanceBusinessDate(newDate);
+        step(steps, "ADVANCE_DATE");
+      } catch (Exception e) {
+        return failEod(date, "BLOCKED", "Business date advance failed: " + e.getMessage(), steps,
+            "EOD_DATE_ADVANCE_FAILED", Map.of("targetDate", newDate.toString(), "afterStep", "AUDIT_CHECKPOINT"));
+      }
+      step(steps, "UNLOCK_NEXT_BUSINESS_DAY");
+    } catch (EodReconciliationFailed e) {
+      return failEod(date, e.recon, e.getMessage(), steps, "EOD_RECONCILIATION_FAILED",
+          Map.of("reconciliationType", e.type, "afterStep", e.lastStep));
+    }
+
+    Map<String, Object> result = recordEod(date, status, recon, reason, steps);
+    result.put("newDate", newDate != null ? newDate.toString() : null);
+    return result;
+  }
+
+  private void runRecon(List<String> steps, String type) {
     try {
-      var result = reconciliationService.run("CHANNEL_TO_CORE");
-      if (!"MATCHED".equals(result.get("status"))) {
-        status = "FAILED"; recon = "DIFFERENCE"; reason = "Channel-to-core reconciliation failed";
-        return recordEod(date, status, recon, reason, steps);
-      }
-    } catch (Exception e) {
-      status = "FAILED"; recon = "BLOCKED"; reason = "Channel-to-core reconciliation error: " + e.getMessage();
-      return recordEod(date, status, recon, reason, steps);
+      var result = reconciliationService.run(type);
+      String reconResult = String.valueOf(result == null ? "" : result.get("status"));
+      if (!"MATCHED".equals(reconResult))
+        throw new EodReconciliationFailed(type, "DIFFERENCE",
+            type + " reconciliation failed: " + reconResult, lastStep(steps));
+      step(steps, type);
+    } catch (EodReconciliationFailed e) { throw e; }
+    catch (Exception e) {
+      throw new EodReconciliationFailed(type, "BLOCKED",
+          type + " reconciliation error: " + e.getMessage(), lastStep(steps));
     }
-    steps.add("CHANNEL_TO_CORE");
+  }
 
-    // Step 6: Core-to-general-ledger reconciliation (accounting balance)
+  private void safeRunJob(List<String> steps, String stepName, Runnable job) {
     try {
-      var result = reconciliationService.run("CORE_TO_GENERAL_LEDGER");
-      if (!"MATCHED".equals(result.get("status"))) {
-        status = "FAILED"; recon = "DIFFERENCE"; reason = "Core-to-general-ledger reconciliation failed";
-        return recordEod(date, status, recon, reason, steps);
-      }
+      job.run();
+      step(steps, stepName);
     } catch (Exception e) {
-      status = "FAILED"; recon = "BLOCKED"; reason = "Core-to-general-ledger reconciliation error: " + e.getMessage();
-      return recordEod(date, status, recon, reason, steps);
+      throw new EodReconciliationFailed(stepName, "BLOCKED",
+          stepName + " failed: " + e.getMessage(), lastStep(steps));
     }
-    steps.add("CORE_TO_GENERAL_LEDGER");
+  }
 
-    // Step 7: Audit checkpoint
-    auditService.record("EOD_CHECKPOINT", "SYSTEM", "eod-controller", "EodRun",
-        date.toString(), "CHECKPOINT", "SUCCESS", null, Map.of("steps", steps));
-    steps.add("AUDIT_CHECKPOINT");
+  private static void step(List<String> steps, String name) { steps.add(name); }
 
-    // Step 8: All steps passed - date can be advanced
-    steps.add("READY_TO_ADVANCE");
+  private static String lastStep(List<String> steps) {
+    return steps.isEmpty() ? "(none)" : steps.get(steps.size() - 1);
+  }
 
-    return recordEod(date, status, recon, reason, steps);
+  private Map<String, Object> failEod(LocalDate date, String recon, String reason, List<String> steps,
+      String auditEventType, Map<String, Object> auditMetadata) {
+    Map<String, Object> meta = new LinkedHashMap<>(auditMetadata);
+    meta.put("stepsCompleted", steps);
+    auditService.record(auditEventType, "SYSTEM", "eod-controller", "EodRun",
+        date.toString(), "EOD", "FAILED", null, meta);
+    return recordEod(date, "FAILED", recon, reason, steps);
   }
 
   private Map<String, Object> recordEod(LocalDate date, String status, String recon, String reason, List<String> steps) {
@@ -123,5 +148,17 @@ public class EodController {
         (rs, n) -> Map.<String, Object>of("runId", rs.getString(1), "businessDate", rs.getDate(2).toString(),
             "status", rs.getString(3), "reconciliationStatus", rs.getString(4), "reason", rs.getString(5)));
     return rows.isEmpty() ? Map.of("status", "NOT_STARTED") : rows.get(0);
+  }
+
+  private static final class EodReconciliationFailed extends RuntimeException {
+    final String type;
+    final String recon;
+    final String lastStep;
+    EodReconciliationFailed(String type, String recon, String message, String lastStep) {
+      super(message);
+      this.type = type;
+      this.recon = recon;
+      this.lastStep = lastStep;
+    }
   }
 }

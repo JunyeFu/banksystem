@@ -30,7 +30,7 @@ export function Dashboard(): JSX.Element {
 
   return (
     <PageContainer
-      pageId="dashboard"
+      pageId="customer.dashboard"
       state={isLoading ? 'LOADING' : isError ? 'ERROR' : 'READY'}
       title="账户概览"
     >

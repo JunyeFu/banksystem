@@ -1,0 +1,1209 @@
+databaseChangeLog:
+  - changeSet:
+      id: v1-idempotency-record
+      author: P1-10
+      preConditions:
+        - onFail: MARK_RAN
+        - not:
+            - tableExists:
+                tableName: idempotency_record
+      changes:
+        - createTable:
+            tableName: idempotency_record
+            columns:
+              - column:
+                  name: idempotency_key
+                  type: varchar(128)
+                  constraints:
+                    primaryKey: true
+                    nullable: false
+              - column:
+                  name: request_hash
+                  type: char(64)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: response_body
+                  type: text
+                  constraints:
+                    nullable: false
+              - column:
+                  name: status_code
+                  type: integer
+                  constraints:
+                    nullable: false
+              - column:
+                  name: created_at
+                  type: timestamptz
+                  defaultValueComputed: now()
+                  constraints:
+                    nullable: false
+              - column:
+                  name: updated_at
+                  type: timestamptz
+                  defaultValueComputed: now()
+                  constraints:
+                    nullable: false
+              - column:
+                  name: version
+                  type: bigint
+                  defaultValueNumeric: 0
+                  constraints:
+                    nullable: false
+
+  - changeSet:
+      id: v1-customer-identity
+      author: P1-10
+      preConditions:
+        - onFail: MARK_RAN
+        - not:
+            - tableExists:
+                tableName: customer_identity
+      changes:
+        - createTable:
+            tableName: customer_identity
+            columns:
+              - column:
+                  name: subject
+                  type: varchar(128)
+                  constraints:
+                    primaryKey: true
+                    nullable: false
+              - column:
+                  name: fineract_client_id
+                  type: bigint
+                  constraints:
+                    nullable: false
+                    unique: true
+              - column:
+                  name: created_at
+                  type: timestamptz
+                  defaultValueComputed: now()
+                  constraints:
+                    nullable: false
+              - column:
+                  name: updated_at
+                  type: timestamptz
+                  defaultValueComputed: now()
+                  constraints:
+                    nullable: false
+              - column:
+                  name: version
+                  type: bigint
+                  defaultValueNumeric: 0
+                  constraints:
+                    nullable: false
+
+  - changeSet:
+      id: v1-transfer
+      author: P1-10
+      preConditions:
+        - onFail: MARK_RAN
+        - not:
+            - tableExists:
+                tableName: transfer
+      changes:
+        - createTable:
+            tableName: transfer
+            columns:
+              - column:
+                  name: transfer_id
+                  type: uuid
+                  constraints:
+                    primaryKey: true
+                    nullable: false
+              - column:
+                  name: idempotency_key
+                  type: varchar(128)
+                  constraints:
+                    nullable: false
+                    unique: true
+                    references: idempotency_record(idempotency_key)
+                    foreignKeyName: fk_transfer_idempotency
+              - column:
+                  name: source_account_id
+                  type: varchar(64)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: destination_account_id
+                  type: varchar(64)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: amount
+                  type: numeric(19,2)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: currency
+                  type: char(3)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: status
+                  type: varchar(32)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: subject
+                  type: varchar(128)
+              - column:
+                  name: score
+                  type: integer
+              - column:
+                  name: scoring_reason
+                  type: varchar(240)
+              - column:
+                  name: core_reference
+                  type: varchar(128)
+              - column:
+                  name: failure_reason
+                  type: varchar(240)
+              - column:
+                  name: correlation_id
+                  type: varchar(128)
+              - column:
+                  name: request_hash
+                  type: char(64)
+              - column:
+                  name: business_date
+                  type: date
+              - column:
+                  name: created_at
+                  type: timestamptz
+                  defaultValueComputed: now()
+                  constraints:
+                    nullable: false
+              - column:
+                  name: updated_at
+                  type: timestamptz
+                  defaultValueComputed: now()
+                  constraints:
+                    nullable: false
+              - column:
+                  name: version
+                  type: bigint
+                  defaultValueNumeric: 0
+                  constraints:
+                    nullable: false
+        - sql:
+            "ALTER TABLE transfer ADD CONSTRAINT chk_transfer_amount CHECK (amount > 0)"
+
+  - changeSet:
+      id: v1-notification
+      author: P1-10
+      preConditions:
+        - onFail: MARK_RAN
+        - not:
+            - tableExists:
+                tableName: notification
+      changes:
+        - createTable:
+            tableName: notification
+            columns:
+              - column:
+                  name: notification_id
+                  type: uuid
+                  constraints:
+                    primaryKey: true
+                    nullable: false
+              - column:
+                  name: subject
+                  type: varchar(128)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: notification_type
+                  type: varchar(64)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: payload
+                  type: text
+                  constraints:
+                    nullable: false
+              - column:
+                  name: read_at
+                  type: timestamptz
+              - column:
+                  name: created_at
+                  type: timestamptz
+                  defaultValueComputed: now()
+                  constraints:
+                    nullable: false
+              - column:
+                  name: updated_at
+                  type: timestamptz
+                  defaultValueComputed: now()
+                  constraints:
+                    nullable: false
+              - column:
+                  name: version
+                  type: bigint
+                  defaultValueNumeric: 0
+                  constraints:
+                    nullable: false
+
+  - changeSet:
+      id: v1-transfer-receipt
+      author: P1-10
+      preConditions:
+        - onFail: MARK_RAN
+        - not:
+            - tableExists:
+                tableName: transfer_receipt
+      changes:
+        - createTable:
+            tableName: transfer_receipt
+            columns:
+              - column:
+                  name: receipt_id
+                  type: uuid
+                  constraints:
+                    primaryKey: true
+                    nullable: false
+              - column:
+                  name: transfer_id
+                  type: uuid
+                  constraints:
+                    nullable: false
+                    unique: true
+                    references: transfer(transfer_id)
+                    foreignKeyName: fk_transfer_receipt_transfer
+                  type: char(64)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: created_at
+                  type: timestamptz
+                  defaultValueComputed: now()
+                  constraints:
+                    nullable: false
+              - column:
+                  name: updated_at
+                  type: timestamptz
+                  defaultValueComputed: now()
+                  constraints:
+                    nullable: false
+
+  - changeSet:
+      id: v1-beneficiary
+      author: P1-10
+      preConditions:
+        - onFail: MARK_RAN
+        - not:
+            - tableExists:
+                tableName: beneficiary
+      changes:
+        - createTable:
+            tableName: beneficiary
+            columns:
+              - column:
+                  name: beneficiary_id
+                  type: uuid
+                  constraints:
+                    primaryKey: true
+                    nullable: false
+              - column:
+                  name: subject
+                  type: varchar(128)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: account_token
+                  type: char(64)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: account_last4
+                  type: varchar(4)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: display_name
+                  type: varchar(160)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: created_at
+                  type: timestamptz
+                  defaultValueComputed: now()
+                  constraints:
+                    nullable: false
+              - column:
+                  name: updated_at
+                  type: timestamptz
+                  defaultValueComputed: now()
+                  constraints:
+                    nullable: false
+              - column:
+                  name: version
+                  type: bigint
+                  defaultValueNumeric: 0
+                  constraints:
+                    nullable: false
+        - sql:
+            "ALTER TABLE beneficiary ADD CONSTRAINT uq_beneficiary_subject_token UNIQUE (subject, account_token)"
+
+  - changeSet:
+      id: v1-transfer-outbox
+      author: P1-10
+      preConditions:
+        - onFail: MARK_RAN
+        - not:
+            - tableExists:
+                tableName: transfer_outbox
+      changes:
+        - createTable:
+            tableName: transfer_outbox
+            columns:
+              - column:
+                  name: event_id
+                  type: uuid
+                  constraints:
+                    primaryKey: true
+                    nullable: false
+              - column:
+                  name: transfer_id
+                  type: uuid
+                  constraints:
+                    nullable: false
+                    references: transfer(transfer_id)
+                    foreignKeyName: fk_40569_transfer
+              - column:
+                  name: event_type
+                  type: varchar(96)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: payload
+                  type: text
+                  constraints:
+                    nullable: false
+              - column:
+                  name: occurred_at
+                  type: timestamptz
+                  defaultValueComputed: now()
+                  constraints:
+                    nullable: false
+              - column:
+                  name: published_at
+                  type: timestamptz
+              - column:
+                  name: attempt_count
+                  type: integer
+                  defaultValueNumeric: 0
+                  constraints:
+                    nullable: false
+              - column:
+                  name: next_attempt_at
+                  type: timestamptz
+              - column:
+                  name: updated_at
+                  type: timestamptz
+                  defaultValueComputed: now()
+                  constraints:
+                    nullable: false
+
+  - changeSet:
+      id: v1-inbox-event
+      author: P1-10
+      preConditions:
+        - onFail: MARK_RAN
+        - not:
+            - tableExists:
+                tableName: inbox_event
+      changes:
+        - createTable:
+            tableName: inbox_event
+            columns:
+              - column:
+                  name: consumer_name
+                  type: varchar(96)
+                  constraints:
+                    primaryKey: true
+                    nullable: false
+              - column:
+                  name: event_id
+                  type: uuid
+                  constraints:
+                    primaryKey: true
+                    nullable: false
+              - column:
+                  name: processed_at
+                  type: timestamptz
+                  defaultValueComputed: now()
+                  constraints:
+                    nullable: false
+              - column:
+                  name: updated_at
+                  type: timestamptz
+                  defaultValueComputed: now()
+                  constraints:
+                    nullable: false
+
+  - changeSet:
+      id: v1-clearing-payment
+      author: P1-10
+      preConditions:
+        - onFail: MARK_RAN
+        - not:
+            - tableExists:
+                tableName: clearing_payment
+      changes:
+        - createTable:
+            tableName: clearing_payment
+            columns:
+              - column:
+                  name: clearing_id
+                  type: uuid
+                  constraints:
+                    primaryKey: true
+                    nullable: false
+              - column:
+                  name: idempotency_key
+                  type: varchar(128)
+                  constraints:
+                    nullable: false
+                    unique: true
+              - column:
+                  name: transfer_id
+                  type: uuid
+                  constraints:
+                    nullable: false
+              - column:
+                  name: scenario
+                  type: varchar(32)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: status
+                  type: varchar(32)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: delivery_count
+                  type: integer
+                  defaultValueNumeric: 0
+                  constraints:
+                    nullable: false
+              - column:
+                  name: last_sequence
+                  type: integer
+              - column:
+                  name: created_at
+                  type: timestamptz
+                  defaultValueComputed: now()
+                  constraints:
+                    nullable: false
+              - column:
+                  name: updated_at
+                  type: timestamptz
+                  defaultValueComputed: now()
+                  constraints:
+                    nullable: false
+              - column:
+                  name: version
+                  type: bigint
+                  defaultValueNumeric: 0
+                  constraints:
+                    nullable: false
+
+  - changeSet:
+      id: v1-risk-decision
+      author: P1-10
+      preConditions:
+        - onFail: MARK_RAN
+        - not:
+            - tableExists:
+                tableName: risk_decision
+      changes:
+        - createTable:
+            tableName: risk_decision
+            columns:
+              - column:
+                  name: decision_id
+                  type: uuid
+                  constraints:
+                    primaryKey: true
+                    nullable: false
+              - column:
+                  name: transfer_id
+                  type: uuid
+                  constraints:
+                    nullable: false
+              - column:
+                  name: decision
+                  type: varchar(16)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: reason
+                  type: varchar(240)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: maker_subject
+                  type: varchar(128)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: checker_subject
+                  type: varchar(128)
+              - column:
+                  name: approval_reason
+                  type: varchar(240)
+              - column:
+                  name: version
+                  type: bigint
+                  defaultValueNumeric: 1
+                  constraints:
+                    nullable: false
+              - column:
+                  name: created_at
+                  type: timestamptz
+                  defaultValueComputed: now()
+                  constraints:
+                    nullable: false
+              - column:
+                  name: updated_at
+                  type: timestamptz
+                  defaultValueComputed: now()
+                  constraints:
+                    nullable: false
+
+  - changeSet:
+      id: v1-loan-application
+      author: P1-10
+      preConditions:
+        - onFail: MARK_RAN
+        - not:
+            - tableExists:
+                tableName: loan_application
+      changes:
+        - createTable:
+            tableName: loan_application
+            columns:
+              - column:
+                  name: application_id
+                  type: uuid
+                  constraints:
+                    primaryKey: true
+                    nullable: false
+              - column:
+                  name: subject
+                  type: varchar(128)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: fineract_client_id
+                  type: bigint
+              - column:
+                  name: requested_amount
+                  type: numeric(19,2)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: term_months
+                  type: integer
+                  constraints:
+                    nullable: false
+              - column:
+                  name: purpose
+                  type: varchar(240)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: status
+                  type: varchar(32)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: core_loan_id
+                  type: bigint
+              - column:
+                  name: core_idempotency_key
+                  type: varchar(128)
+              - column:
+                  name: score
+                  type: integer
+              - column:
+                  name: scoring_reason
+                  type: varchar(240)
+              - column:
+                  name: version
+                  type: bigint
+                  defaultValueNumeric: 1
+                  constraints:
+                    nullable: false
+              - column:
+                  name: created_at
+                  type: timestamptz
+                  defaultValueComputed: now()
+                  constraints:
+                    nullable: false
+              - column:
+                  name: updated_at
+                  type: timestamptz
+                  defaultValueComputed: now()
+                  constraints:
+                    nullable: false
+        - sql:
+            "ALTER TABLE loan_application ADD CONSTRAINT chk_loan_amount CHECK (requested_amount > 0)"
+        - sql:
+            "ALTER TABLE loan_application ADD CONSTRAINT chk_loan_term CHECK (term_months BETWEEN 1 AND 480)"
+
+  - changeSet:
+      id: v1-loan-document
+      author: P1-10
+      preConditions:
+        - onFail: MARK_RAN
+        - not:
+            - tableExists:
+                tableName: loan_document
+      changes:
+        - createTable:
+            tableName: loan_document
+            columns:
+              - column:
+                  name: document_id
+                  type: uuid
+                  constraints:
+                    primaryKey: true
+                    nullable: false
+              - column:
+                  name: application_id
+                  type: uuid
+                  constraints:
+                    nullable: false
+                    references: loan_application(application_id)
+                    foreignKeyName: fk_45796_loan_application
+              - column:
+                  name: subject
+                  type: varchar(128)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: document_type
+                  type: varchar(64)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: storage_ref
+                  type: varchar(240)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: status
+                  type: varchar(32)
+                  defaultValue: RECEIVED
+                  constraints:
+                    nullable: false
+              - column:
+                  name: created_at
+                  type: timestamptz
+                  defaultValueComputed: now()
+                  constraints:
+                    nullable: false
+              - column:
+                  name: updated_at
+                  type: timestamptz
+                  defaultValueComputed: now()
+                  constraints:
+                    nullable: false
+              - column:
+                  name: version
+                  type: bigint
+                  defaultValueNumeric: 0
+                  constraints:
+                    nullable: false
+
+  - changeSet:
+      id: v1-loan-approval
+      author: P1-10
+      preConditions:
+        - onFail: MARK_RAN
+        - not:
+            - tableExists:
+                tableName: loan_approval
+      changes:
+        - createTable:
+            tableName: loan_approval
+            columns:
+              - column:
+                  name: approval_id
+                  type: uuid
+                  constraints:
+                    primaryKey: true
+                    nullable: false
+              - column:
+                  name: application_id
+                  type: uuid
+                  constraints:
+                    nullable: false
+                    references: loan_application(application_id)
+                    foreignKeyName: fk_30402_loan_application
+              - column:
+                  name: maker_subject
+                  type: varchar(128)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: checker_subject
+                  type: varchar(128)
+              - column:
+                  name: status
+                  type: varchar(24)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: reason
+                  type: varchar(240)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: version
+                  type: bigint
+                  defaultValueNumeric: 1
+                  constraints:
+                    nullable: false
+              - column:
+                  name: created_at
+                  type: timestamptz
+                  defaultValueComputed: now()
+                  constraints:
+                    nullable: false
+              - column:
+                  name: updated_at
+                  type: timestamptz
+                  defaultValueComputed: now()
+                  constraints:
+                    nullable: false
+
+  - changeSet:
+      id: v1-eod-run
+      author: P1-10
+      preConditions:
+        - onFail: MARK_RAN
+        - not:
+            - tableExists:
+                tableName: eod_run
+      changes:
+        - createTable:
+            tableName: eod_run
+            columns:
+              - column:
+                  name: run_id
+                  type: uuid
+                  constraints:
+                    primaryKey: true
+                    nullable: false
+              - column:
+                  name: business_date
+                  type: date
+                  constraints:
+                    nullable: false
+              - column:
+                  name: status
+                  type: varchar(24)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: reconciliation_status
+                  type: varchar(24)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: reason
+                  type: varchar(240)
+              - column:
+                  name: created_at
+                  type: timestamptz
+                  defaultValueComputed: now()
+                  constraints:
+                    nullable: false
+              - column:
+                  name: updated_at
+                  type: timestamptz
+                  defaultValueComputed: now()
+                  constraints:
+                    nullable: false
+              - column:
+                  name: version
+                  type: bigint
+                  defaultValueNumeric: 0
+                  constraints:
+                    nullable: false
+
+  - changeSet:
+      id: v1-reconciliation-run
+      author: P1-10
+      preConditions:
+        - onFail: MARK_RAN
+        - not:
+            - tableExists:
+                tableName: reconciliation_run
+      changes:
+        - createTable:
+            tableName: reconciliation_run
+            columns:
+              - column:
+                  name: run_id
+                  type: uuid
+                  constraints:
+                    primaryKey: true
+                    nullable: false
+              - column:
+                  name: reconciliation_type
+                  type: varchar(32)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: status
+                  type: varchar(24)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: difference_count
+                  type: integer
+                  constraints:
+                    nullable: false
+              - column:
+                  name: details
+                  type: text
+                  constraints:
+                    nullable: false
+              - column:
+                  name: created_at
+                  type: timestamptz
+                  defaultValueComputed: now()
+                  constraints:
+                    nullable: false
+              - column:
+                  name: updated_at
+                  type: timestamptz
+                  defaultValueComputed: now()
+                  constraints:
+                    nullable: false
+              - column:
+                  name: version
+                  type: bigint
+                  defaultValueNumeric: 0
+                  constraints:
+                    nullable: false
+
+  - changeSet:
+      id: v1-dead-letter-event
+      author: P1-10
+      preConditions:
+        - onFail: MARK_RAN
+        - not:
+            - tableExists:
+                tableName: dead_letter_event
+      changes:
+        - createTable:
+            tableName: dead_letter_event
+            columns:
+              - column:
+                  name: event_id
+                  type: uuid
+                  constraints:
+                    primaryKey: true
+                    nullable: false
+              - column:
+                  name: consumer_name
+                  type: varchar(96)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: reason
+                  type: varchar(240)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: payload
+                  type: text
+                  constraints:
+                    nullable: false
+              - column:
+                  name: created_at
+                  type: timestamptz
+                  defaultValueComputed: now()
+                  constraints:
+                    nullable: false
+              - column:
+                  name: updated_at
+                  type: timestamptz
+                  defaultValueComputed: now()
+                  constraints:
+                    nullable: false
+
+  - changeSet:
+      id: v1-transfer-reversal
+      author: P1-10
+      preConditions:
+        - onFail: MARK_RAN
+        - not:
+            - tableExists:
+                tableName: transfer_reversal
+      changes:
+        - createTable:
+            tableName: transfer_reversal
+            columns:
+              - column:
+                  name: reversal_id
+                  type: uuid
+                  constraints:
+                    primaryKey: true
+                    nullable: false
+              - column:
+                  name: transfer_id
+                  type: uuid
+                  constraints:
+                    nullable: false
+                    unique: true
+                    references: transfer(transfer_id)
+                    foreignKeyName: fk_91386_transfer
+              - column:
+                  name: maker_subject
+                  type: varchar(128)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: checker_subject
+                  type: varchar(128)
+              - column:
+                  name: status
+                  type: varchar(24)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: reason
+                  type: varchar(240)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: version
+                  type: bigint
+                  defaultValueNumeric: 1
+                  constraints:
+                    nullable: false
+              - column:
+                  name: core_reference
+                  type: varchar(128)
+              - column:
+                  name: created_at
+                  type: timestamptz
+                  defaultValueComputed: now()
+                  constraints:
+                    nullable: false
+              - column:
+                  name: updated_at
+                  type: timestamptz
+                  defaultValueComputed: now()
+                  constraints:
+                    nullable: false
+
+  - changeSet:
+      id: v1-security-audit-event
+      author: P1-10
+      preConditions:
+        - onFail: MARK_RAN
+        - not:
+            - tableExists:
+                tableName: security_audit_event
+      changes:
+        - createTable:
+            tableName: security_audit_event
+            columns:
+              - column:
+                  name: id
+                  type: uuid
+                  constraints:
+                    primaryKey: true
+                    nullable: false
+              - column:
+                  name: event_type
+                  type: varchar(128)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: actor_type
+                  type: varchar(32)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: actor_id
+                  type: varchar(128)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: tenant_id
+                  type: varchar(64)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: resource_type
+                  type: varchar(64)
+              - column:
+                  name: resource_id
+                  type: varchar(128)
+              - column:
+                  name: action
+                  type: varchar(64)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: outcome
+                  type: varchar(32)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: request_id
+                  type: varchar(128)
+              - column:
+                  name: correlation_id
+                  type: varchar(128)
+              - column:
+                  name: before_json
+                  type: jsonb
+              - column:
+                  name: after_json
+                  type: jsonb
+              - column:
+                  name: previous_hash
+                  type: char(64)
+              - column:
+                  name: record_hash
+                  type: char(64)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: created_at
+                  type: timestamptz
+                  defaultValueComputed: now()
+                  constraints:
+                    nullable: false
+
+  - changeSet:
+      id: v1-transfer-state-history
+      author: P1-10
+      preConditions:
+        - onFail: MARK_RAN
+        - not:
+            - tableExists:
+                tableName: transfer_state_history
+      changes:
+        - createTable:
+            tableName: transfer_state_history
+            columns:
+              - column:
+                  name: id
+                  type: bigserial
+                  constraints:
+                    primaryKey: true
+                    nullable: false
+              - column:
+                  name: transfer_id
+                  type: uuid
+                  constraints:
+                    nullable: false
+                    references: transfer(transfer_id)
+                    foreignKeyName: fk_state_history_transfer
+              - column:
+                  name: from_status
+                  type: varchar(32)
+              - column:
+                  name: to_status
+                  type: varchar(32)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: reason_code
+                  type: varchar(64)
+              - column:
+                  name: actor_type
+                  type: varchar(32)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: actor_id
+                  type: varchar(128)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: metadata
+                  type: jsonb
+                  defaultValueComputed: "'{}'::jsonb"
+                  constraints:
+                    nullable: false
+              - column:
+                  name: created_at
+                  type: timestamptz
+                  defaultValueComputed: now()
+                  constraints:
+                    nullable: false
+
+  - changeSet:
+      id: v1-ledger-entry
+      author: P1-10
+      preConditions:
+        - onFail: MARK_RAN
+        - not:
+            - tableExists:
+                tableName: ledger_entry
+      changes:
+        - createTable:
+            tableName: ledger_entry
+            columns:
+              - column:
+                  name: entry_id
+                  type: uuid
+                  constraints:
+                    primaryKey: true
+                    nullable: false
+              - column:
+                  name: account_id
+                  type: bigint
+                  constraints:
+                    nullable: false
+              - column:
+                  name: debit
+                  type: numeric(19,2)
+                  defaultValueNumeric: 0
+                  constraints:
+                    nullable: false
+              - column:
+                  name: credit
+                  type: numeric(19,2)
+                  defaultValueNumeric: 0
+                  constraints:
+                    nullable: false
+              - column:
+                  name: correlation_id
+                  type: varchar(128)
+              - column:
+                  name: transfer_id
+                  type: uuid
+                  constraints:
+                    references: transfer(transfer_id)
+                    foreignKeyName: fk_87522_transfer
+              - column:
+                  name: created_at
+                  type: timestamptz
+                  defaultValueComputed: now()
+                  constraints:
+                    nullable: false
+        - createIndex:
+            tableName: ledger_entry
+            indexName: idx_ledger_correlation
+            columns:
+              - column:
+                  name: correlation_id
+        - createIndex:
+            tableName: ledger_entry
+            indexName: idx_ledger_transfer
+            columns:
+              - column:
+                  name: transfer_id

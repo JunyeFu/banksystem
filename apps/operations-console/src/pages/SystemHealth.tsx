@@ -127,7 +127,7 @@ export function SystemHealth(): JSX.Element {
     data?.filter((a) => a.status === 'RESOLVED').length ?? 0;
 
   return (
-    <PageContainer pageId="ops.system-health" state={pageState} title="系统健康">
+    <PageContainer pageId="operations.system-health" state={pageState} title="系统健康">
       <Row gutter={[16, 16]} data-testid="system-health-metrics">
         <Col xs={24} sm={12} lg={6}>
           <Card data-testid="health-card-firing">

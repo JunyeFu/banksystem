@@ -54,6 +54,56 @@ public class FineractAdapter {
     }
   }
 
+  public LocalDate businessDate() {
+    return readBusinessDate("BUSINESS_DATE");
+  }
+
+  public LocalDate cobDate() {
+    return readBusinessDate("COB_DATE");
+  }
+
+  @SuppressWarnings("unchecked")
+  private LocalDate readBusinessDate(String type) {
+    Map<String, Object> body = client.get().uri("/api/v1/businessdate/{type}", type).retrieve().body(Map.class);
+    Object rawDate = body == null ? null : body.get("date");
+    if (rawDate instanceof List<?> date && date.size() == 3) {
+      return LocalDate.of(((Number) date.get(0)).intValue(), ((Number) date.get(1)).intValue(), ((Number) date.get(2)).intValue());
+    }
+    throw new IllegalStateException("Fineract " + type + " is unavailable");
+  }
+
+  @SuppressWarnings("unchecked")
+  public Map<String, Object> advanceBusinessDate(LocalDate nextDate) {
+    Map<String, Object> body = Map.of(
+        "date", nextDate.toString(),
+        "dateFormat", "yyyy-MM-dd",
+        "locale", "en",
+        "type", "BUSINESS_DATE");
+    return client.post().uri("/api/v1/businessdate").body(body).retrieve().body(Map.class);
+  }
+
+  @SuppressWarnings("unchecked")
+  public Map<String, Object> runJob(int jobId) {
+    return client.post().uri(uri -> uri.path("/api/v1/jobs/{jobId}").queryParam("command", "executeJob").build(jobId))
+        .body(Map.of()).retrieve().body(Map.class);
+  }
+
+  public Map<String, Object> runCobBatch() { return runJob(31); }
+
+  public Map<String, Object> postInterestOnSavings() { return runJob(6); }
+
+  public Map<String, Object> applyAnnualFeeForSavings() { return runJob(4); }
+
+  public Map<String, Object> payDueSavingsCharges() { return runJob(8); }
+
+  public Map<String, Object> updateLoanArrearsAgeing() { return runJob(2); }
+
+  public Map<String, Object> applyPenaltyToOverdueLoans() { return runJob(12); }
+
+  public Map<String, Object> transferInterestToSavings() { return runJob(14); }
+
+  public Map<String, Object> updateAccountingRunningBalances() { return runJob(9); }
+
   @SuppressWarnings("unchecked")
   public List<Map<String, Object>> clientAccounts(long clientId) {
     Map<String, Object> body = client.get().uri("/api/v1/clients/{id}/accounts", clientId)
@@ -107,16 +157,6 @@ public class FineractAdapter {
       byte[] digest = java.security.MessageDigest.getInstance("SHA-256").digest(key.getBytes(java.nio.charset.StandardCharsets.UTF_8));
       return "ch-" + java.util.HexFormat.of().formatHex(digest).substring(0, 45);
     } catch (java.security.GeneralSecurityException ex) { throw new IllegalStateException(ex); }
-  }
-
-  @SuppressWarnings("unchecked")
-  private LocalDate businessDate() {
-    Map<String, Object> body = client.get().uri("/api/v1/businessdate/BUSINESS_DATE").retrieve().body(Map.class);
-    Object rawDate = body == null ? null : body.get("date");
-    if (rawDate instanceof List<?> date && date.size() == 3) {
-      return LocalDate.of(((Number) date.get(0)).intValue(), ((Number) date.get(1)).intValue(), ((Number) date.get(2)).intValue());
-    }
-    throw new IllegalStateException("Fineract business date is unavailable");
   }
 
   private record AccountTransferRequest(long fromAccountId, long toAccountId, java.math.BigDecimal transferAmount, String transferDate, int fromAccountType, int toAccountType, int fromOfficeId, long fromClientId, int toOfficeId, long toClientId, String transferDescription, String locale, String dateFormat, String currencyCode) {}

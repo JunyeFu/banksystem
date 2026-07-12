@@ -96,7 +96,7 @@ services:
     ports:
       - "127.0.0.1:18082:80"
     volumes:
-      - ./apps/customer-portal:/usr/share/nginx/html:ro
+      - ./apps/customer-portal/dist:/usr/share/nginx/html:ro
     networks:
       - bank-channel-front
     healthcheck:
@@ -110,7 +110,7 @@ services:
     ports:
       - "127.0.0.1:18083:80"
     volumes:
-      - ./apps/operations-console:/usr/share/nginx/html:ro
+      - ./apps/operations-console/dist:/usr/share/nginx/html:ro
     networks:
       - bank-channel-front
     healthcheck:

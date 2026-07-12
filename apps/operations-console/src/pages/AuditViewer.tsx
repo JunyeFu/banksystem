@@ -164,7 +164,7 @@ export function AuditViewer(): JSX.Element {
   const brokenAt = verification?.brokenAtEventId ?? null;
 
   return (
-    <PageContainer pageId="ops.audit" state={pageState} title="审计追踪">
+    <PageContainer pageId="operations.audit" state={pageState} title="审计追踪">
       <Card style={{ marginBottom: 16 }} data-testid="audit-hash-chain-card">
         <Alert
           type={chainVerified ? 'success' : 'error'}
