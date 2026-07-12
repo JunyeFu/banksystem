@@ -1,0 +1,313 @@
+import TroubleshootingLLMConnectivity from './common/troubleshooting-llm-connectivity.mdx';
+import QuickModelConfig from './common/quick-model-config.mdx';
+
+# 配置你的模型
+
+## 一个快速默认配置
+
+如果你只想先跑起来，直接使用下面的配置即可。想了解全部受支持的服务商以及不同的环境变量设置方式，请继续往下阅读。
+
+<QuickModelConfig />
+
+## 配置环境变量的方式
+
+请将所有模型配置项放置在系统环境变量中，Midscene 会自动读取这些环境变量。
+
+以下介绍一些常见方法，你也可以使用自己项目中的其他配置方案。
+
+### 方法一：在系统中设置环境变量
+
+> 在 Midscene Chrome 插件中，你也可以使用这种 `export KEY="value"` 配置格式
+
+```bash
+# 替换为你自己的 API Key
+export MIDSCENE_MODEL_BASE_URL="https://.../compatible-mode/v1"
+export MIDSCENE_MODEL_API_KEY="sk-abcde..."
+export MIDSCENE_MODEL_NAME="qwen3.7-plus"
+export MIDSCENE_MODEL_FAMILY="qwen3"
+```
+
+### 方法二：编写 `.env` 文件（适用于命令行工具）
+
+在项目的运行路径下创建一个 `.env` 文件，并添加以下内容，Midscene 的命令行工具默认会读取这个文件。
+
+```bash
+MIDSCENE_MODEL_BASE_URL="https://.../compatible-mode/v1"
+MIDSCENE_MODEL_API_KEY="sk-abcdefghijklmnopqrstuvwxyz"
+MIDSCENE_MODEL_NAME="qwen3.7-plus"
+MIDSCENE_MODEL_FAMILY="qwen3"
+```
+
+请注意：
+
+1. 这里不需要在每一行前添加 `export`。
+2. 只有 Midscene 命令行工具会默认读取这个文件。如果使用 JavaScript SDK，请参考下一条手动加载。
+
+### 方法三：引用 dotenv 库配置环境变量
+
+[dotenv](https://www.npmjs.com/package/dotenv) 是一个零依赖的 npm 包，用于将 `.env` 文件加载到 Node.js 的环境变量 `process.env` 中。
+
+我们的 [demo 项目](https://github.com/web-infra-dev/midscene-example) 使用了这种方式。
+
+```bash
+# 安装 dotenv
+npm install dotenv --save
+```
+
+在项目根目录下创建一个 `.env` 文件，并添加以下内容。注意这里不需要在每一行前添加 `export`。
+
+```bash
+MIDSCENE_MODEL_API_KEY="sk-abcdefghijklmnopqrstuvwxyz"
+```
+
+在脚本中导入 dotenv 模块，导入后它会自动读取 `.env` 文件中的环境变量。
+
+```typescript
+import 'dotenv/config';
+```
+
+
+## 常用模型配置
+
+这里列出常用模型的配置，如需了解模型区别和选型，可查阅 [推荐的多模态模型](./model-strategy#recommended-vision-models)。
+
+### 豆包 Seed 模型 {#doubao-seed-model}
+
+推荐使用 Doubao-Seed-2.1-turbo，是目前我们测评下来定位速度最快的模型，且定位效果也很好。同时也支持 Doubao-Seed-2.0-Lite、Doubao-Seed-1.6-Vision 和 Doubao-Seed-1.8 模型。
+
+从 [火山引擎](https://volcengine.com) 获取 API Key，然后补充以下环境变量：
+
+```bash
+MIDSCENE_MODEL_BASE_URL="https://ark.cn-beijing.volces.com/api/v3"
+MIDSCENE_MODEL_API_KEY="...."
+MIDSCENE_MODEL_NAME="ep-..." # 来自火山引擎的推理接入点 ID 或模型名称
+MIDSCENE_MODEL_FAMILY="doubao-seed" # 也兼容 "doubao-vision"
+```
+
+如果你的火山引擎账号已开通低延迟模式（Fast），可以追加以下请求体参数来使用该能力。通常可将模型响应速度提升约 30% 至 50%。
+
+```bash
+MIDSCENE_MODEL_EXTRA_BODY_JSON={"service_tier":"fast"}
+```
+
+### 千问 Qwen3.x 系列 {#qwen3x}
+
+目前已支持 Qwen3.x 系列中的 Qwen3.5、Qwen3.6、Qwen3.7。推荐顺序为 Qwen3.7、Qwen3.5、Qwen3.6。
+
+以 [阿里云](https://www.aliyun.com/) 的 `qwen3.7-plus` 模型为例，环境变量配置如下：
+
+```bash
+MIDSCENE_MODEL_BASE_URL="https://dashscope.aliyuncs.com/compatible-mode/v1"
+MIDSCENE_MODEL_API_KEY="......"
+MIDSCENE_MODEL_NAME="qwen3.7-plus" # Qwen3.5 和 Qwen3.6 系列的 plus 模型分别为 "qwen3.5-plus"、"qwen3.6-plus"
+MIDSCENE_MODEL_FAMILY="qwen3" # Qwen3.5 和 Qwen3.6 曾使用 `qwen3.5`、`qwen3.6`，目前仍然兼容
+```
+
+### 月之暗面 Kimi 模型 {#kimi}
+
+目前已支持月之暗面的 `kimi-k2.5` 和 `kimi-k2.6` 模型。
+
+从 [Moonshot AI 开放平台](https://platform.moonshot.cn/) 获取 API Key 后，可以使用以下配置：
+
+```bash
+MIDSCENE_MODEL_BASE_URL="https://api.moonshot.cn/v1"
+MIDSCENE_MODEL_API_KEY="......"
+MIDSCENE_MODEL_NAME="kimi-k2.6" # 或 "kimi-k2.5"
+MIDSCENE_MODEL_FAMILY="kimi"
+```
+
+### 小米 MiMo 模型 {#xiaomi-mimo}
+
+目前已支持小米的 `mimo-v2.5` 模型。
+
+从 [小米 MiMo API 开放平台](https://platform.xiaomimimo.com/) 获取 API Key 后，可以使用以下配置：
+
+```bash
+MIDSCENE_MODEL_BASE_URL="https://api.xiaomimimo.com/v1"
+MIDSCENE_MODEL_API_KEY="......"
+MIDSCENE_MODEL_NAME="mimo-v2.5"
+MIDSCENE_MODEL_FAMILY="xiaomi-mimo"
+```
+
+注意：Midscene 的视觉自动化依赖多模态图片理解能力。在小米 MiMo 中，目前只有 Omni 系列支持多模态输入；Pro 系列是文本模型，不能用于 Midscene 视觉任务。
+
+### 智谱 GLM-V 系列 {#glm-v}
+
+智谱 GLM-V 是智谱 AI 推出的视觉理解模型。最新版本有 `GLM-4.6V`（开源）、`GLM-5V-Turbo`。
+
+以 `GLM-4.6V` 为例：
+
+从 [Z.AI（国际）](https://z.ai/manage-apikey/apikey-list) 或 [BigModel（国内）](https://bigmodel.cn/usercenter/proj-mgmt/apikeys) 获取 API Key，然后设置：
+
+```bash
+MIDSCENE_MODEL_BASE_URL="https://open.bigmodel.cn/api/paas/v4" # 或 https://api.z.ai/api/paas/v4
+MIDSCENE_MODEL_API_KEY="......"
+MIDSCENE_MODEL_NAME="glm-4.6v" # GLM-5V-Turbo 的对应模型名为 "glm-5v-turbo"
+MIDSCENE_MODEL_FAMILY="glm-v"
+```
+
+**了解更多关于智谱 GLM-V 开源模型**
+
+- GitHub: [https://github.com/zai-org/GLM-V](https://github.com/zai-org/GLM-V)
+- Hugging Face: [https://huggingface.co/zai-org/GLM-4.6V](https://huggingface.co/zai-org/GLM-4.6V)
+
+
+### 智谱 AutoGLM {#auto-glm}
+
+智谱 AutoGLM 是智谱 AI 推出的开源移动端 UI 自动化模型，模型尺寸为 9B。
+
+从 [Z.AI（国际）](https://z.ai/manage-apikey/apikey-list) 或 [BigModel（国内）](https://bigmodel.cn/usercenter/proj-mgmt/apikeys) 获取 API Key 后，可以使用以下配置：
+
+```bash
+MIDSCENE_MODEL_BASE_URL="https://open.bigmodel.cn/api/paas/v4" # 或 https://api.z.ai/api/paas/v4
+MIDSCENE_MODEL_API_KEY="......"
+MIDSCENE_MODEL_NAME="autoglm-phone" # 模型名以平台实际模型名为准
+MIDSCENE_MODEL_FAMILY="auto-glm" # 或 "auto-glm-multilingual"
+```
+
+**关于 `MIDSCENE_MODEL_FAMILY` 配置**
+
+AutoGLM 提供了两个版本的模型，通过 `MIDSCENE_MODEL_FAMILY` 区分：
+
+- `auto-glm` - 对应 AutoGLM-Phone-9B，针对**中文环境**优化
+- `auto-glm-multilingual` - 对应 AutoGLM-Phone-9B-Multilingual，支持**英语等其他语言**场景
+
+请根据你的应用语言选择合适的版本。
+
+:::note
+AutoGLM 更适合移动端的交互与操作流程。如果要使用 `aiAssert`、`aiQuery` 等需要页面理解或断言的 API，请额外配置一组 `MIDSCENE_INSIGHT_MODEL_...` 环境变量，让独立的 Insight 模型负责页面理解。具体可参考[模型策略](./model-strategy)中关于多模型配合的介绍。
+:::
+
+**了解更多关于智谱 AutoGLM**
+
+- GitHub: [https://github.com/zai-org/Open-AutoGLM](https://github.com/zai-org/Open-AutoGLM)
+- Hugging Face: [https://huggingface.co/zai-org/AutoGLM-Phone-9B](https://huggingface.co/zai-org/AutoGLM-Phone-9B)
+
+### Gemini 3.x 系列 {#gemini-3x}
+
+Gemini 3.x 系列中的 `gemini-3.5-flash` 是目前我们私有测评集中定位表现最好的模型。在 [Google Gemini](https://gemini.google.com/) 上申请 API Key 后，可以使用以下配置。
+
+`MIDSCENE_MODEL_NAME` 请填写你使用的 Gemini 3.x 系列具体模型名：
+
+```bash
+MIDSCENE_MODEL_BASE_URL="https://generativelanguage.googleapis.com/v1beta/openai/"
+MIDSCENE_MODEL_API_KEY="......"
+MIDSCENE_MODEL_NAME="gemini-3.5-flash" # 或具体的 Gemini 3.x 模型名
+MIDSCENE_MODEL_FAMILY="gemini"
+```
+
+### GPT-5 系列 {#gpt-5-4}
+
+在 OpenAI 或兼容 OpenAI 接口的平台上使用 GPT-5 系列模型时，可以参考如下配置：
+
+```bash
+MIDSCENE_MODEL_BASE_URL="https://api.openai.com/v1" # 或你的兼容服务地址
+MIDSCENE_MODEL_API_KEY="sk-..."
+MIDSCENE_MODEL_NAME="gpt-5.5" # 推荐 gpt-5.5 或 gpt-5.4
+MIDSCENE_MODEL_FAMILY="gpt-5"
+```
+
+:::warning GPT-5 使用注意事项
+
+- 使用 GPT 做 UI 定位时，目前只支持使用 `gpt-5.4`、`gpt-5.5`。因为为了获得最佳的定位效果，需要在发送图片时指定 `"detail": "original"` 参数，这一参数仅在 `gpt-5.4` 及后续模型上可用，`gpt-5.4-mini`、`gpt-5.4-nano` 等更小的 GPT-5 变体以及前代模型不支持 `original` 参数，会导致报错。详情请参考 [Images and Vision guide](https://developers.openai.com/api/docs/guides/images-vision) 和 [Computer use guide](https://developers.openai.com/api/docs/guides/tools-computer-use)。
+- 按照 OpenAI 的文档，GPT-5 在处理非拉丁字母文本、字号太小的文本时效果可能不理想，参见 [Images and Vision guide](https://developers.openai.com/api/docs/guides/images-vision)。
+- OpenAI 在 computer use 文档中提到，他们观察到 `1440x900` 和 `1600x900` 这两种截图尺寸上通常能获得比较好的效果，详见 [Computer use guide](https://developers.openai.com/api/docs/guides/tools-computer-use)。因此，建议按照 OpenAI 的推荐对截图尺寸进行调整。在 Midscene 中，你可以通过 Agent 参数里的 `screenshotShrinkFactor` 控制截图压缩倍率。如果是浏览器自动化，还可以通过浏览器 `viewport` 指定页面的尺寸和比例。
+- 如果你使用的是更老版本的 GPT-5，建议只将其用作规划模型，并搭配其他多模态模型完成定位，参考[多模型示例](#gpt54-planning-insight-qwen35)。
+
+:::
+
+:::note 模型原生思考
+Midscene 默认关闭模型原生思考，以获得最佳的执行速度和稳定性。如需为上面任意模型开启，设置 `MIDSCENE_MODEL_REASONING_ENABLED="true"` 即可。部分模型系列还支持 `MIDSCENE_MODEL_REASONING_BUDGET` 和 `MIDSCENE_MODEL_REASONING_EFFORT` 等额外控制项。详见[模型原生的思考模式](./model-strategy#模型原生的思考模式)。
+:::
+
+## 其他模型
+
+### 千问 Qwen3-VL {#qwen3-vl}
+
+以 [阿里云](https://www.aliyun.com/) 的 `qwen3-vl-plus` 模型为例，环境变量配置如下：
+
+```bash
+MIDSCENE_MODEL_BASE_URL="https://dashscope.aliyuncs.com/compatible-mode/v1"
+MIDSCENE_MODEL_API_KEY="......"
+MIDSCENE_MODEL_NAME="qwen3-vl-plus"
+MIDSCENE_MODEL_FAMILY="qwen3-vl"
+```
+
+### 千问 Qwen2.5-VL（不推荐） {#qwen25-vl}
+
+- 更推荐 Qwen3 系列的新模型。通常来说，新模型的速度和效果都会优于老模型。
+- 以 [阿里云](https://www.aliyun.com/) `qwen-vl-max-latest` 模型为例，环境变量配置如下。
+
+```bash
+MIDSCENE_MODEL_BASE_URL="https://dashscope.aliyuncs.com/compatible-mode/v1"
+MIDSCENE_MODEL_API_KEY="......"
+MIDSCENE_MODEL_NAME="qwen-vl-max-latest"
+MIDSCENE_MODEL_FAMILY="qwen2.5-vl"
+```
+
+### UI-TARS {#ui-tars}
+
+你可以在 [火山引擎](https://volcengine.com) 上使用已部署的 `doubao-1.5-ui-tars`。
+
+```bash
+MIDSCENE_MODEL_BASE_URL="https://ark.cn-beijing.volces.com/api/v3"
+MIDSCENE_MODEL_API_KEY="...."
+MIDSCENE_MODEL_NAME="ep-2025..." # 来自火山引擎的推理接入点 ID 或模型名称
+MIDSCENE_MODEL_FAMILY="vlm-ui-tars-doubao-1.5"
+```
+
+**关于 `MIDSCENE_MODEL_FAMILY` 配置**
+
+`MIDSCENE_MODEL_FAMILY` 用于指定 UI-TARS 版本，使用以下值之一：
+
+- `vlm-ui-tars`：用于模型版本 `1.0`
+- `vlm-ui-tars-doubao`：用于在火山引擎上部署的模型版本 `1.5`（与 `vlm-ui-tars-doubao-1.5` 等效）
+- `vlm-ui-tars-doubao-1.5`：用于在火山引擎上部署的模型版本 `1.5`
+
+:::tip
+
+旧版本使用 `MIDSCENE_USE_VLM_UI_TARS=DOUBAO` 或 `MIDSCENE_USE_VLM_UI_TARS=1.5` 配置，该配置仍然兼容但已废弃，建议迁移到 `MIDSCENE_MODEL_FAMILY`。
+
+迁移对应关系：
+
+- `MIDSCENE_USE_VLM_UI_TARS=1.0` → `MIDSCENE_MODEL_FAMILY="vlm-ui-tars"`
+- `MIDSCENE_USE_VLM_UI_TARS=1.5` → `MIDSCENE_MODEL_FAMILY="vlm-ui-tars-doubao-1.5"`
+- `MIDSCENE_USE_VLM_UI_TARS=DOUBAO` → `MIDSCENE_MODEL_FAMILY="vlm-ui-tars-doubao"`
+
+:::
+
+### ~~GPT-4o~~
+
+从 1.0 版本开始，Midscene 不再支持使用 GPT-4o 作为 UI 操作的规划模型。详见：[模型策略](./model-strategy)。
+
+## 多模型示例：GPT-5.4 规划/理解 + Qwen 3.5 视觉定位 {#gpt54-planning-insight-qwen35}
+
+关于组合多个模型的更多信息，可查阅 [进阶：组合多个模型](./model-strategy#advanced-combining-multiple-models)。
+
+下面以 GPT-5.4 用于 Planning/Insight、Qwen 3.5 负责视觉为例。GPT-5.4 处理重度推理（Planning 和/或 Insight），Qwen 3.5 专注视觉定位。独立的 Planning 和 Insight 模型可按需启用，不需要同时开启。
+
+```bash
+# 默认多模态模型：Qwen 3.5
+export MIDSCENE_MODEL_BASE_URL="https://..."       # Qwen 3.5 接口地址
+export MIDSCENE_MODEL_API_KEY="..."                # 你的 Qwen 3.5 API Key
+export MIDSCENE_MODEL_NAME="qwen3.5-plus"
+export MIDSCENE_MODEL_FAMILY="qwen3.5"
+
+# Planning 模型：GPT-5.4
+export MIDSCENE_PLANNING_MODEL_API_KEY="sk-..."    # 你的 GPT-5.4 API Key
+export MIDSCENE_PLANNING_MODEL_BASE_URL="https://..."
+export MIDSCENE_PLANNING_MODEL_NAME="gpt-5.4"
+export MIDSCENE_PLANNING_MODEL_FAMILY="gpt-5"
+
+# Insight 模型：GPT-5.4
+export MIDSCENE_INSIGHT_MODEL_API_KEY="sk-..."     # 你的 GPT-5.4 API Key
+export MIDSCENE_INSIGHT_MODEL_BASE_URL="https://..."
+export MIDSCENE_INSIGHT_MODEL_NAME="gpt-5.4"
+export MIDSCENE_INSIGHT_MODEL_FAMILY="gpt-5"
+```
+
+## 更多
+
+更多高阶配置请查看 [全部配置项](./model-config) 文档。
+
+<TroubleshootingLLMConnectivity />

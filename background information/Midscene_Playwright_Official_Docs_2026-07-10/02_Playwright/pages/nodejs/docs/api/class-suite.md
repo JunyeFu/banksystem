@@ -1,0 +1,390 @@
+---
+id: class-suite
+title: "Suite"
+---
+import Tabs from '@theme/Tabs';
+import TabItem from '@theme/TabItem';
+import HTMLCard from '@site/src/components/HTMLCard';
+
+
+`Suite` is a group of tests. All tests in Playwright Test form the following hierarchy:
+* Root suite has a child suite for each [FullProject].
+  * Project suite #1. Has a child suite for each test file in the project.
+    * File suite #1
+      * [TestCase] #1
+      * [TestCase] #2
+      * Suite corresponding to a [test.describe()](/api/class-test.mdx#test-describe) group
+        * [TestCase] #1 in a group
+        * [TestCase] #2 in a group
+      * < more test cases ... >
+    * File suite #2
+    * < more file suites ... >
+  * Project suite #2
+  * < more project suites ... >
+
+Reporter is given a root suite in the [reporter.onBegin()](/api/class-reporter.mdx#reporter-on-begin) method.
+
+
+---
+
+## Methods
+
+### allTests {/* #suite-all-tests */}
+
+<font size="2" style={{position: "relative", top: "-20px"}}>Added in: v1.10</font><x-search>suite.allTests</x-search>
+
+Returns the list of all test cases in this suite and its descendants, as opposite to [suite.tests](/api/class-suite.mdx#suite-tests).
+
+**Usage**
+
+```js
+suite.allTests();
+```
+
+**Returns**
+- [Array]&lt;[TestCase]&gt;<a aria-hidden="true" tabIndex="-1" class="list-anchor-link" id="suite-all-tests-return"/><a href="#suite-all-tests-return" class="list-anchor">#</a>
+
+---
+
+### entries {/* #suite-entries */}
+
+<font size="2" style={{position: "relative", top: "-20px"}}>Added in: v1.44</font><x-search>suite.entries</x-search>
+
+Test cases and suites defined directly in this suite. The elements are returned in their declaration order. You can differentiate between various entry types by using [testCase.type](/api/class-testcase.mdx#test-case-type) and [suite.type](/api/class-suite.mdx#suite-type).
+
+**Usage**
+
+```js
+suite.entries();
+```
+
+**Returns**
+- [Array]&lt;[TestCase] | [Suite]&gt;<a aria-hidden="true" tabIndex="-1" class="list-anchor-link" id="suite-entries-return"/><a href="#suite-entries-return" class="list-anchor">#</a>
+
+---
+
+### exclude {/* #suite-exclude */}
+
+<font size="2" style={{position: "relative", top: "-20px"}}>Added in: v1.61</font><x-search>suite.exclude</x-search>
+
+Must be called from inside [reporter.preprocessSuite()](/api/class-reporter.mdx#reporter-preprocess-suite), exclude this suite from the run. Excluded tests do not appear in the report and their body is not executed.
+
+**Usage**
+
+```js
+suite.exclude();
+```
+
+---
+
+### fail {/* #suite-fail */}
+
+<font size="2" style={{position: "relative", top: "-20px"}}>Added in: v1.61</font><x-search>suite.fail</x-search>
+
+Must be called from inside [reporter.preprocessSuite()](/api/class-reporter.mdx#reporter-preprocess-suite). Mark every [TestCase] of this suite as expected-to-fail, see [testCase.fail()](/api/class-testcase.mdx#test-case-fail).
+
+**Usage**
+
+```js
+suite.fail();
+suite.fail(reason);
+```
+
+**Arguments**
+- `reason` [string] *(optional)*<a aria-hidden="true" tabIndex="-1" class="list-anchor-link" id="suite-fail-option-reason"/><a href="#suite-fail-option-reason" class="list-anchor">#</a>
+  
+  Optional explanation surfaced as the annotation description.
+
+---
+
+### fixme {/* #suite-fixme */}
+
+<font size="2" style={{position: "relative", top: "-20px"}}>Added in: v1.61</font><x-search>suite.fixme</x-search>
+
+Must be called from inside [reporter.preprocessSuite()](/api/class-reporter.mdx#reporter-preprocess-suite). Mark every [TestCase] of this suite as fixme, see [testCase.fixme()](/api/class-testcase.mdx#test-case-fixme).
+
+**Usage**
+
+```js
+suite.fixme();
+suite.fixme(reason);
+```
+
+**Arguments**
+- `reason` [string] *(optional)*<a aria-hidden="true" tabIndex="-1" class="list-anchor-link" id="suite-fixme-option-reason"/><a href="#suite-fixme-option-reason" class="list-anchor">#</a>
+  
+  Optional explanation surfaced as the annotation description.
+
+---
+
+### project {/* #suite-project */}
+
+<font size="2" style={{position: "relative", top: "-20px"}}>Added in: v1.10</font><x-search>suite.project</x-search>
+
+Configuration of the project this suite belongs to, or [void] for the root suite.
+
+**Usage**
+
+```js
+suite.project();
+```
+
+**Returns**
+- [FullProject] | [undefined]<a aria-hidden="true" tabIndex="-1" class="list-anchor-link" id="suite-project-return"/><a href="#suite-project-return" class="list-anchor">#</a>
+
+---
+
+### skip {/* #suite-skip */}
+
+<font size="2" style={{position: "relative", top: "-20px"}}>Added in: v1.61</font><x-search>suite.skip</x-search>
+
+Must be called from inside [reporter.preprocessSuite()](/api/class-reporter.mdx#reporter-preprocess-suite). Mark every [TestCase] of this suite as skipped, see [testCase.skip()](/api/class-testcase.mdx#test-case-skip).
+
+**Usage**
+
+```js
+suite.skip();
+suite.skip(reason);
+```
+
+**Arguments**
+- `reason` [string] *(optional)*<a aria-hidden="true" tabIndex="-1" class="list-anchor-link" id="suite-skip-option-reason"/><a href="#suite-skip-option-reason" class="list-anchor">#</a>
+  
+  Optional explanation surfaced as the annotation description.
+
+---
+
+### titlePath {/* #suite-title-path */}
+
+<font size="2" style={{position: "relative", top: "-20px"}}>Added in: v1.10</font><x-search>suite.titlePath</x-search>
+
+Returns a list of titles from the root down to this suite.
+
+**Usage**
+
+```js
+suite.titlePath();
+```
+
+**Returns**
+- [Array]&lt;[string]&gt;<a aria-hidden="true" tabIndex="-1" class="list-anchor-link" id="suite-title-path-return"/><a href="#suite-title-path-return" class="list-anchor">#</a>
+
+---
+
+## Properties
+
+### location {/* #suite-location */}
+
+<font size="2" style={{position: "relative", top: "-20px"}}>Added in: v1.10</font><x-search>suite.location</x-search>
+
+Location in the source where the suite is defined. Missing for root and project suites.
+
+**Usage**
+
+```js
+suite.location
+```
+
+**Type**
+- [Location]
+
+---
+
+### parent {/* #suite-parent */}
+
+<font size="2" style={{position: "relative", top: "-20px"}}>Added in: v1.10</font><x-search>suite.parent</x-search>
+
+Parent suite, missing for the root suite.
+
+**Usage**
+
+```js
+suite.parent
+```
+
+**Type**
+- [Suite]
+
+---
+
+### suites {/* #suite-suites */}
+
+<font size="2" style={{position: "relative", top: "-20px"}}>Added in: v1.10</font><x-search>suite.suites</x-search>
+
+Child suites. See [Suite] for the hierarchy of suites.
+
+**Usage**
+
+```js
+suite.suites
+```
+
+**Type**
+- [Array]&lt;[Suite]&gt;
+
+---
+
+### tests {/* #suite-tests */}
+
+<font size="2" style={{position: "relative", top: "-20px"}}>Added in: v1.10</font><x-search>suite.tests</x-search>
+
+Test cases in the suite. Note that only test cases defined directly in this suite are in the list. Any test cases defined in nested [test.describe()](/api/class-test.mdx#test-describe) groups are listed in the child [suite.suites](/api/class-suite.mdx#suite-suites).
+
+**Usage**
+
+```js
+suite.tests
+```
+
+**Type**
+- [Array]&lt;[TestCase]&gt;
+
+---
+
+### title {/* #suite-title */}
+
+<font size="2" style={{position: "relative", top: "-20px"}}>Added in: v1.10</font><x-search>suite.title</x-search>
+
+Suite title.
+* Empty for root suite.
+* Project name for project suite.
+* File path for file suite.
+* Title passed to [test.describe()](/api/class-test.mdx#test-describe) for a group suite.
+
+**Usage**
+
+```js
+suite.title
+```
+
+**Type**
+- [string]
+
+---
+
+### type {/* #suite-type */}
+
+<font size="2" style={{position: "relative", top: "-20px"}}>Added in: v1.44</font><x-search>suite.type</x-search>
+
+Returns the type of the suite. The Suites form the following hierarchy: `root` -> `project` -> `file` -> `describe` -> ...`describe` -> `test`.
+
+**Usage**
+
+```js
+suite.type
+```
+
+**Type**
+- "root" | "project" | "file" | "describe"
+
+
+[APIRequest]: /api/class-apirequest.mdx "APIRequest"
+[APIRequestContext]: /api/class-apirequestcontext.mdx "APIRequestContext"
+[APIResponse]: /api/class-apiresponse.mdx "APIResponse"
+[APIResponseAssertions]: /api/class-apiresponseassertions.mdx "APIResponseAssertions"
+[Browser]: /api/class-browser.mdx "Browser"
+[BrowserContext]: /api/class-browsercontext.mdx "BrowserContext"
+[BrowserServer]: /api/class-browserserver.mdx "BrowserServer"
+[BrowserType]: /api/class-browsertype.mdx "BrowserType"
+[CDPSession]: /api/class-cdpsession.mdx "CDPSession"
+[Clock]: /api/class-clock.mdx "Clock"
+[ConsoleMessage]: /api/class-consolemessage.mdx "ConsoleMessage"
+[Coverage]: /api/class-coverage.mdx "Coverage"
+[Credentials]: /api/class-credentials.mdx "Credentials"
+[Debugger]: /api/class-debugger.mdx "Debugger"
+[Dialog]: /api/class-dialog.mdx "Dialog"
+[Disposable]: /api/class-disposable.mdx "Disposable"
+[Download]: /api/class-download.mdx "Download"
+[ElementHandle]: /api/class-elementhandle.mdx "ElementHandle"
+[FileChooser]: /api/class-filechooser.mdx "FileChooser"
+[Frame]: /api/class-frame.mdx "Frame"
+[FrameLocator]: /api/class-framelocator.mdx "FrameLocator"
+[GenericAssertions]: /api/class-genericassertions.mdx "GenericAssertions"
+[JSHandle]: /api/class-jshandle.mdx "JSHandle"
+[Keyboard]: /api/class-keyboard.mdx "Keyboard"
+[Locator]: /api/class-locator.mdx "Locator"
+[LocatorAssertions]: /api/class-locatorassertions.mdx "LocatorAssertions"
+[Logger]: /api/class-logger.mdx "Logger"
+[Mouse]: /api/class-mouse.mdx "Mouse"
+[Page]: /api/class-page.mdx "Page"
+[PageAssertions]: /api/class-pageassertions.mdx "PageAssertions"
+[Playwright]: /api/class-playwright.mdx "Playwright"
+[PlaywrightAssertions]: /api/class-playwrightassertions.mdx "PlaywrightAssertions"
+[Request]: /api/class-request.mdx "Request"
+[Response]: /api/class-response.mdx "Response"
+[Route]: /api/class-route.mdx "Route"
+[Screencast]: /api/class-screencast.mdx "Screencast"
+[Selectors]: /api/class-selectors.mdx "Selectors"
+[SnapshotAssertions]: /api/class-snapshotassertions.mdx "SnapshotAssertions"
+[TimeoutError]: /api/class-timeouterror.mdx "TimeoutError"
+[Touchscreen]: /api/class-touchscreen.mdx "Touchscreen"
+[Tracing]: /api/class-tracing.mdx "Tracing"
+[Video]: /api/class-video.mdx "Video"
+[WebError]: /api/class-weberror.mdx "WebError"
+[WebSocket]: /api/class-websocket.mdx "WebSocket"
+[WebSocketRoute]: /api/class-websocketroute.mdx "WebSocketRoute"
+[WebStorage]: /api/class-webstorage.mdx "WebStorage"
+[Worker]: /api/class-worker.mdx "Worker"
+[Electron]: /api/class-electron.mdx "Electron"
+[ElectronApplication]: /api/class-electronapplication.mdx "ElectronApplication"
+[Android]: /api/class-android.mdx "Android"
+[AndroidDevice]: /api/class-androiddevice.mdx "AndroidDevice"
+[AndroidInput]: /api/class-androidinput.mdx "AndroidInput"
+[AndroidSocket]: /api/class-androidsocket.mdx "AndroidSocket"
+[AndroidWebView]: /api/class-androidwebview.mdx "AndroidWebView"
+[Fixtures]: /api/class-fixtures.mdx "Fixtures"
+[FullConfig]: /api/class-fullconfig.mdx "FullConfig"
+[FullProject]: /api/class-fullproject.mdx "FullProject"
+[Location]: /api/class-location.mdx "Location"
+[Test]: /api/class-test.mdx "Test"
+[TestConfig]: /api/class-testconfig.mdx "TestConfig"
+[TestInfo]: /api/class-testinfo.mdx "TestInfo"
+[TestInfoError]: /api/class-testinfoerror.mdx "TestInfoError"
+[TestOptions]: /api/class-testoptions.mdx "TestOptions"
+[TestProject]: /api/class-testproject.mdx "TestProject"
+[TestStepInfo]: /api/class-teststepinfo.mdx "TestStepInfo"
+[WorkerInfo]: /api/class-workerinfo.mdx "WorkerInfo"
+[Reporter]: /api/class-reporter.mdx "Reporter"
+[Suite]: /api/class-suite.mdx "Suite"
+[TestCase]: /api/class-testcase.mdx "TestCase"
+[TestError]: /api/class-testerror.mdx "TestError"
+[TestResult]: /api/class-testresult.mdx "TestResult"
+[TestStep]: /api/class-teststep.mdx "TestStep"
+[Element]: https://developer.mozilla.org/en-US/docs/Web/API/element "Element"
+[EvaluationArgument]: /evaluating.mdx#evaluation-argument "EvaluationArgument"
+[Promise]: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Promise "Promise"
+[iterator]: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Iteration_protocols "Iterator"
+[origin]: https://developer.mozilla.org/en-US/docs/Glossary/Origin "Origin"
+[selector]: https://developer.mozilla.org/en-US/docs/Web/CSS/CSS_Selectors "selector"
+[Serializable]: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/JSON/stringify#Description "Serializable"
+[UIEvent.detail]: https://developer.mozilla.org/en-US/docs/Web/API/UIEvent/detail "UIEvent.detail"
+[UnixTime]: https://en.wikipedia.org/wiki/Unix_time "Unix Time"
+[xpath]: https://developer.mozilla.org/en-US/docs/Web/XPath "xpath"
+
+[Array]: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Array "Array"
+[boolean]: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Data_structures#Boolean_type "Boolean"
+[Buffer]: https://nodejs.org/api/buffer.html#buffer_class_buffer "Buffer"
+[ChildProcess]: https://nodejs.org/api/child_process.html "ChildProcess"
+[Date]: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Date "Date"
+[Error]: https://nodejs.org/api/errors.html#errors_class_error "Error"
+[EventEmitter]: https://nodejs.org/api/events.html#events_class_eventemitter "EventEmitter"
+[function]: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Function "Function"
+[FormData]: https://developer.mozilla.org/en-US/docs/Web/API/FormData "FormData"
+[Map]: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Map "Map"
+[Metadata]: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Object "Object&lt;string, any&gt;"
+[null]: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/null "null"
+[number]: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Data_structures#Number_type "Number"
+[Object]: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Object "Object"
+[Promise]: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Promise "Promise"
+[Readable]: https://nodejs.org/api/stream.html#stream_class_stream_readable "Readable"
+[ReadStream]: https://nodejs.org/api/fs.html#class-fsreadstream "ReadStream"
+[RegExp]: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/RegExp "RegExp"
+[string]: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Data_structures#String_type "string"
+[void]: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/undefined "void"
+[URL]: https://nodejs.org/api/url.html "URL"
+[URLPattern]: https://developer.mozilla.org/en-US/docs/Web/API/URLPattern "URLPattern"
+[URLSearchParams]: https://developer.mozilla.org/en-US/docs/Web/API/URLSearchParams "URLSearchParams"
+
+[all available image tags]: https://mcr.microsoft.com/en-us/product/playwright/about "all available image tags"
+[Microsoft Artifact Registry]: https://mcr.microsoft.com/en-us/product/playwright/about "Microsoft Artifact Registry"
+[Dockerfile.noble]: https://github.com/microsoft/playwright/blob/main/utils/docker/Dockerfile.noble "Dockerfile.noble"

@@ -1,0 +1,679 @@
+---
+id: trace-viewer
+title: "Trace viewer"
+---
+import Tabs from '@theme/Tabs';
+import TabItem from '@theme/TabItem';
+import HTMLCard from '@site/src/components/HTMLCard';
+
+import LiteYouTube from '@site/src/components/LiteYouTube';
+
+## Introduction
+
+Playwright Trace Viewer is a GUI tool that helps you explore recorded Playwright traces after the script has run. Traces are a great way for debugging your tests when they fail on CI. You can open traces [locally](#opening-trace-viewer) or in your browser on [trace.playwright.dev](https://trace.playwright.dev).
+
+## Opening Trace Viewer
+
+You can open a saved trace using either the Playwright CLI or in the browser at [trace.playwright.dev](https://trace.playwright.dev). Make sure to add the full path to where your `trace.zip` file is located.
+
+```bash
+pwsh bin/Debug/netX/playwright.ps1 show-trace trace.zip
+```
+
+### Using [trace.playwright.dev](https://trace.playwright.dev)
+
+[trace.playwright.dev](https://trace.playwright.dev) is a statically hosted variant of the Trace Viewer. You can upload a trace file using drag and drop or via the `Select file` button.
+
+Trace Viewer loads the trace entirely in your browser and does not transmit any data externally.
+
+<img height="1684" width="2238" alt="Drop Playwright Trace to load" src="https://user-images.githubusercontent.com/13063165/194577918-b4d45726-2692-4093-8a28-9e73552617ef.png" />
+
+### Viewing remote traces
+
+You can open remote traces directly using its URL. This makes it easy to view the remote trace without having to manually download the file from CI runs, for example.
+
+```bash
+pwsh bin/Debug/netX/playwright.ps1 show-trace https://example.com/trace.zip
+```
+
+When using [trace.playwright.dev](https://trace.playwright.dev), you can also pass the URL of your uploaded trace at some accessible storage (e.g. inside your CI) as a query parameter. CORS (Cross-Origin Resource Sharing) rules might apply.
+
+```txt
+https://trace.playwright.dev/?trace=https://demo.playwright.dev/reports/todomvc/data/e6099cadf79aa753d5500aa9508f9d1dbd87b5ee.zip
+```
+
+## Recording a trace
+
+Traces can be recorded using the [BrowserContext.Tracing](/api/class-browsercontext.mdx#browser-context-tracing) API as follows:
+
+<Tabs groupId="test-runners" defaultValue="mstest" values={[ {label: 'MSTest', value: 'mstest'}, {label: 'NUnit', value: 'nunit'}, {label: 'xUnit', value: 'xunit'}, {label: 'xUnit v3', value: 'xunit-v3'}, ] }>
+
+<TabItem value="nunit">
+
+```csharp
+namespace PlaywrightTests;
+
+[Parallelizable(ParallelScope.Self)]
+[TestFixture]
+public class Tests : PageTest
+{
+    [SetUp]
+    public async Task Setup()
+    {
+        await Context.Tracing.StartAsync(new()
+        {
+            Title = TestContext.CurrentContext.Test.ClassName + "." + TestContext.CurrentContext.Test.Name,
+            Screenshots = true,
+            Snapshots = true,
+            Sources = true
+        });
+    }
+
+    [TearDown]
+    public async Task TearDown()
+    {
+        // This will produce e.g.:
+        // bin/Debug/net8.0/playwright-traces/PlaywrightTests.Tests.Test1.zip
+        await Context.Tracing.StopAsync(new()
+        {
+            Path = Path.Combine(
+                TestContext.CurrentContext.WorkDirectory,
+                "playwright-traces",
+                $"{TestContext.CurrentContext.Test.ClassName}.{TestContext.CurrentContext.Test.Name}.zip"
+            )
+        });
+    }
+
+    [Test]
+    public async Task TestYourOnlineShop()
+    {
+        // ..
+    }
+}
+```
+
+</TabItem>
+
+<TabItem value="mstest">
+
+```csharp
+using System.Text.RegularExpressions;
+using Microsoft.Playwright;
+using Microsoft.Playwright.MSTest;
+
+namespace PlaywrightTestsMSTest;
+
+[TestClass]
+public class UnitTest1 : PageTest
+{
+    [TestInitialize]
+    public async Task TestInitialize()
+    {
+         await Context.Tracing.StartAsync(new()
+        {
+            Title = TestContext.TestName,
+            Screenshots = true,
+            Snapshots = true,
+            Sources = true
+        });
+    }
+
+    [TestCleanup]
+    public async Task TestCleanup()
+    {
+        // This will produce e.g.:
+        // bin/Debug/net8.0/playwright-traces/PlaywrightTests.UnitTest1.zip
+        await Context.Tracing.StopAsync(new()
+        {
+            Path = Path.Combine(
+                Environment.CurrentDirectory,
+                "playwright-traces",
+                $"{TestContext.FullyQualifiedTestClassName}.zip"
+            )
+        });
+    }
+
+    [TestMethod]
+    public async Task TestYourOnlineShop()
+    {
+        // ...
+    }
+}
+```
+
+</TabItem>
+
+<TabItem value="xunit">
+
+```csharp
+using System.Reflection;
+using Microsoft.Playwright;
+using Microsoft.Playwright.Xunit;
+using Xunit.Sdk;
+
+namespace PlaywrightTests;
+
+[WithTestName]
+public class UnitTest1 : PageTest
+{
+    public override async Task InitializeAsync()
+    {
+        await base.InitializeAsync().ConfigureAwait(false);
+        await Context.Tracing.StartAsync(new()
+        {
+            Title = $"{WithTestNameAttribute.CurrentClassName}.{WithTestNameAttribute.CurrentTestName}",
+            Screenshots = true,
+            Snapshots = true,
+            Sources = true
+        });
+    }
+
+    public override async Task DisposeAsync()
+    {
+        await Context.Tracing.StopAsync(new()
+        {
+            Path = Path.Combine(
+                Environment.CurrentDirectory,
+                "playwright-traces",
+               $"{WithTestNameAttribute.CurrentClassName}.{WithTestNameAttribute.CurrentTestName}.zip"
+            )
+        });
+        await base.DisposeAsync().ConfigureAwait(false);
+    }
+
+    [Fact]
+    public async Task GetStartedLink()
+    {
+        // ...
+        await Page.GotoAsync("https://playwright.dev/dotnet/docs/intro");
+    }
+}
+
+public class WithTestNameAttribute : BeforeAfterTestAttribute
+{
+    public static string CurrentTestName = string.Empty;
+    public static string CurrentClassName = string.Empty;
+
+    public override void Before(MethodInfo methodInfo)
+    {
+        CurrentTestName = methodInfo.Name;
+        CurrentClassName = methodInfo.DeclaringType!.Name;
+    }
+
+    public override void After(MethodInfo methodInfo)
+    {
+    }
+}
+```
+
+</TabItem>
+
+<TabItem value="xunit-v3">
+
+```csharp
+using System.Reflection;
+using Microsoft.Playwright;
+using Microsoft.Playwright.Xunit.v3;
+using Xunit.Sdk;
+
+namespace PlaywrightTests;
+
+[WithTestName]
+public class UnitTest1 : PageTest
+{
+    public override async Task InitializeAsync()
+    {
+        await base.InitializeAsync().ConfigureAwait(false);
+        await Context.Tracing.StartAsync(new()
+        {
+            Title = $"{WithTestNameAttribute.CurrentClassName}.{WithTestNameAttribute.CurrentTestName}",
+            Screenshots = true,
+            Snapshots = true,
+            Sources = true
+        });
+    }
+
+    public override async Task DisposeAsync()
+    {
+        await Context.Tracing.StopAsync(new()
+        {
+            Path = Path.Combine(
+                Environment.CurrentDirectory,
+                "playwright-traces",
+               $"{WithTestNameAttribute.CurrentClassName}.{WithTestNameAttribute.CurrentTestName}.zip"
+            )
+        });
+        await base.DisposeAsync().ConfigureAwait(false);
+    }
+
+    [Fact]
+    public async Task GetStartedLink()
+    {
+        // ...
+        await Page.GotoAsync("https://playwright.dev/dotnet/docs/intro");
+    }
+}
+
+public class WithTestNameAttribute : BeforeAfterTestAttribute
+{
+    public static string CurrentTestName = string.Empty;
+    public static string CurrentClassName = string.Empty;
+
+    public override void Before(MethodInfo methodInfo)
+    {
+        CurrentTestName = methodInfo.Name;
+        CurrentClassName = methodInfo.DeclaringType!.Name;
+    }
+
+    public override void After(MethodInfo methodInfo)
+    {
+    }
+}
+```
+
+</TabItem>
+
+</Tabs>
+
+This will record the trace and place it into the `bin/Debug/net8.0/playwright-traces/` directory.
+
+## Run trace only on failure
+
+Setup your tests to record a trace only when the test fails:
+
+<Tabs groupId="test-runners" defaultValue="mstest" values={[ {label: 'MSTest', value: 'mstest'}, {label: 'NUnit', value: 'nunit'}, {label: 'xUnit', value: 'xunit'}, {label: 'xUnit v3', value: 'xunit-v3'}, ] }>
+
+<TabItem value="nunit">
+
+```csharp
+namespace PlaywrightTests;
+
+[Parallelizable(ParallelScope.Self)]
+[TestFixture]
+public class ExampleTest : PageTest
+{
+    [SetUp]
+    public async Task Setup()
+    {
+        await Context.Tracing.StartAsync(new()
+        {
+            Title = $"{TestContext.CurrentContext.Test.ClassName}.{TestContext.CurrentContext.Test.Name}",
+            Screenshots = true,
+            Snapshots = true,
+            Sources = true
+        });
+    }
+
+    [TearDown]
+    public async Task TearDown()
+    {
+        var failed = TestContext.CurrentContext.Result.Outcome == NUnit.Framework.Interfaces.ResultState.Error
+            || TestContext.CurrentContext.Result.Outcome == NUnit.Framework.Interfaces.ResultState.Failure;
+
+        await Context.Tracing.StopAsync(new()
+        {
+            Path = failed ? Path.Combine(
+                TestContext.CurrentContext.WorkDirectory,
+                "playwright-traces",
+                $"{TestContext.CurrentContext.Test.ClassName}.{TestContext.CurrentContext.Test.Name}.zip"
+            ) : null,
+        });
+    }
+
+    [Test]
+    public async Task GetStartedLink()
+    {
+        // ..
+    }
+}
+```
+
+</TabItem>
+
+<TabItem value="mstest">
+
+```csharp
+using System.Text.RegularExpressions;
+using Microsoft.Playwright;
+using Microsoft.Playwright.MSTest;
+
+namespace PlaywrightTests;
+
+[TestClass]
+public class ExampleTest : PageTest
+{
+    [TestInitialize]
+    public async Task TestInitialize()
+    {
+         await Context.Tracing.StartAsync(new()
+        {
+            Title = $"{TestContext.FullyQualifiedTestClassName}.{TestContext.TestName}",
+            Screenshots = true,
+            Snapshots = true,
+            Sources = true
+        });
+    }
+
+    [TestCleanup]
+    public async Task TestCleanup()
+    {
+        var failed = new[] { UnitTestOutcome.Failed, UnitTestOutcome.Error, UnitTestOutcome.Timeout, UnitTestOutcome.Aborted }.Contains(TestContext.CurrentTestOutcome);
+
+        await Context.Tracing.StopAsync(new()
+        {
+            Path = failed ? Path.Combine(
+                Environment.CurrentDirectory,
+                "playwright-traces",
+                $"{TestContext.FullyQualifiedTestClassName}.{TestContext.TestName}.zip"
+            ) : null,
+        });
+    }
+
+    [TestMethod]
+    public async Task GetStartedLink()
+    {
+        // ...
+    }
+}
+```
+
+</TabItem>
+
+<TabItem value="xunit">
+
+```csharp
+using System.Reflection;
+using Microsoft.Playwright;
+using Microsoft.Playwright.Xunit;
+using Xunit.Sdk;
+
+namespace PlaywrightTests;
+
+[WithTestName]
+public class UnitTest1 : PageTest
+{
+    public override async Task InitializeAsync()
+    {
+        await base.InitializeAsync().ConfigureAwait(false);
+        await Context.Tracing.StartAsync(new()
+        {
+            Title = $"{WithTestNameAttribute.CurrentClassName}.{WithTestNameAttribute.CurrentTestName}",
+            Screenshots = true,
+            Snapshots = true,
+            Sources = true
+        });
+    }
+
+    public override async Task DisposeAsync()
+    {
+        await Context.Tracing.StopAsync(new()
+        {
+            Path = !TestOk ? Path.Combine(
+                Environment.CurrentDirectory,
+                "playwright-traces",
+               $"{WithTestNameAttribute.CurrentClassName}.{WithTestNameAttribute.CurrentTestName}.zip"
+            ) : null
+        });
+        await base.DisposeAsync().ConfigureAwait(false);
+    }
+
+    [Fact]
+    public async Task GetStartedLink()
+    {
+        // ...
+        await Page.GotoAsync("https://playwright.dev/dotnet/docs/intro");
+    }
+}
+
+public class WithTestNameAttribute : BeforeAfterTestAttribute
+{
+    public static string CurrentTestName = string.Empty;
+    public static string CurrentClassName = string.Empty;
+
+    public override void Before(MethodInfo methodInfo)
+    {
+        CurrentTestName = methodInfo.Name;
+        CurrentClassName = methodInfo.DeclaringType!.Name;
+    }
+
+    public override void After(MethodInfo methodInfo)
+    {
+    }
+}
+```
+
+</TabItem>
+
+<TabItem value="xunit-v3">
+
+```csharp
+using System.Reflection;
+using Microsoft.Playwright;
+using Microsoft.Playwright.Xunit.v3;
+using Xunit.Sdk;
+
+namespace PlaywrightTests;
+
+[WithTestName]
+public class UnitTest1 : PageTest
+{
+    public override async Task InitializeAsync()
+    {
+        await base.InitializeAsync().ConfigureAwait(false);
+        await Context.Tracing.StartAsync(new()
+        {
+            Title = $"{WithTestNameAttribute.CurrentClassName}.{WithTestNameAttribute.CurrentTestName}",
+            Screenshots = true,
+            Snapshots = true,
+            Sources = true
+        });
+    }
+
+    public override async Task DisposeAsync()
+    {
+        await Context.Tracing.StopAsync(new()
+        {
+            Path = !TestOk ? Path.Combine(
+                Environment.CurrentDirectory,
+                "playwright-traces",
+               $"{WithTestNameAttribute.CurrentClassName}.{WithTestNameAttribute.CurrentTestName}.zip"
+            ) : null
+        });
+        await base.DisposeAsync().ConfigureAwait(false);
+    }
+
+    [Fact]
+    public async Task GetStartedLink()
+    {
+        // ...
+        await Page.GotoAsync("https://playwright.dev/dotnet/docs/intro");
+    }
+}
+
+public class WithTestNameAttribute : BeforeAfterTestAttribute
+{
+    public static string CurrentTestName = string.Empty;
+    public static string CurrentClassName = string.Empty;
+
+    public override void Before(MethodInfo methodInfo)
+    {
+        CurrentTestName = methodInfo.Name;
+        CurrentClassName = methodInfo.DeclaringType!.Name;
+    }
+
+    public override void After(MethodInfo methodInfo)
+    {
+    }
+}
+```
+
+</TabItem>
+
+</Tabs>
+
+## Trace Viewer features
+
+### Actions
+
+In the Actions tab you can see what locator was used for every action and how long each one took to run. Hover over each action of your test and visually see the change in the DOM snapshot. Go back and forward in time and click an action to inspect and debug. Use the Before and After tabs to visually see what happened before and after the action.
+
+<img src="https://github.com/microsoft/playwright/assets/13063165/948b65cd-f0fd-4c7f-8e53-2c632b5a07f1" alt="actions tab in trace viewer" width="3598" height="2218" />
+
+**Selecting each action reveals:**
+- Action snapshots
+- Action log
+- Source code location
+
+### Screenshots
+
+When tracing with the [Screenshots](/api/class-tracing.mdx#tracing-start-option-screenshots) option turned on (default), each trace records a screencast and renders it as a film strip. You can hover over the film strip to see a magnified image of for each action and state which helps you easily find the action you want to inspect.
+
+Double click on an action to see the time range for that action. You can use the slider in the timeline to increase the actions selected and these will be shown in the Actions tab and all console logs and network logs will be filtered to only show the logs for the actions selected.
+
+<img src="https://github.com/microsoft/playwright/assets/13063165/b04a7d75-54bb-4ab2-9e30-e76f6f74a2c8" alt="timeline view in trace viewer" width="3598" height="2218" />
+
+### Snapshots
+
+When tracing with the [Snapshots](/api/class-tracing.mdx#tracing-start-option-snapshots) option turned on (default), Playwright captures a set of complete DOM snapshots for each action. Depending on the type of the action, it will capture:
+
+| Type | Description |
+|------|-------------|
+|Before|A snapshot at the time action is called.|
+|Action|A snapshot at the moment of the performed input. This type of snapshot is especially useful when exploring where exactly Playwright clicked.|
+|After|A snapshot after the action.|
+
+Here is what the typical Action snapshot looks like:
+
+<img src="https://github.com/microsoft/playwright/assets/13063165/7168d549-eb0a-4964-9c93-483f03711fa9" alt="action tab in trace viewer" width="3598" height="2218" />
+
+Notice how it highlights both, the DOM Node as well as the exact click position.
+
+### Source
+
+When you click on an action in the sidebar, the line of code for that action is highlighted in the source panel.
+
+<img src="https://github.com/microsoft/playwright/assets/13063165/daa8845d-c250-4923-aa7a-5d040da9adc5" alt="showing source code tab in trace viewer" width="3598" height="2218" />
+
+### Call
+
+The call tab shows you information about the action such as the time it took, what locator was used, if in strict mode and what key was used.
+
+<img src="https://github.com/microsoft/playwright/assets/13063165/95498580-f9dd-4932-a123-c37fe7cfc3c2" alt="showing call tab in trace viewer" width="3598" height="2218" />
+
+### Log
+
+See a full log of your test to better understand what Playwright is doing behind the scenes such as scrolling into view, waiting for element to be visible, enabled and stable and performing actions such as click, fill, press etc.
+
+<img src="https://github.com/microsoft/playwright/assets/13063165/de621461-3bab-4140-b39d-9f02d6672dbf" alt="showing log of tests in trace viewer" width="3598" height="2218" />
+
+### Errors
+
+If your test fails you will see the error messages for each test in the Errors tab. The timeline will also show a red line highlighting where the error occurred. You can also click on the source tab to see on which line of the source code the error is.
+
+<img src="https://github.com/microsoft/playwright/assets/13063165/e9ef77b3-05d1-4df2-852c-981023723d34" alt="showing errors in trace viewer" width="3598" height="2218" />
+
+### Console
+
+See console logs from the browser as well as from your test. Different icons are displayed to show you if the console log came from the browser or from the test file.
+
+<img src="https://github.com/microsoft/playwright/assets/13063165/4107c08d-1eaf-421c-bdd4-9dd2aa641d4a" alt="showing log of tests in trace viewer" width="3598" height="2218" />
+
+Double click on an action from your test in the actions sidebar. This will filter the console to only show the logs that were made during that action. Click the *Show all* button to see all console logs again.
+
+Use the timeline to filter actions, by clicking a start point and dragging to an ending point. The console tab will also be filtered to only show the logs that were made during the actions selected.
+
+### Network
+
+The Network tab shows you all the network requests that were made during your test. You can sort by different types of requests, status code, method, request, content type, duration and size. Click on a request to see more information about it such as the request headers, response headers, request body and response body.
+
+<img src="https://github.com/microsoft/playwright/assets/13063165/0a3d1671-8ccd-4f7a-a844-35f5eb37f236" alt="network requests tab in trace viewer" width="3598" height="2218" />
+
+Double click on an action from your test in the actions sidebar. This will filter the network requests to only show the requests that were made during that action. Click the *Show all* button to see all network requests again.
+
+Use the timeline to filter actions, by clicking a start point and dragging to an ending point. The network tab will also be filtered to only show the network requests that were made during the actions selected.
+
+### Metadata
+
+Next to the Actions tab you will find the Metadata tab which will show you more information on your test such as the Browser, viewport size, test duration and more.
+
+<img src="https://github.com/microsoft/playwright/assets/13063165/82ab3d33-1ec9-4b8a-9cf2-30a6e2d59091" alt="meta data in trace viewer" width="3598" height="2218" />
+
+
+[APIRequest]: /api/class-apirequest.mdx "APIRequest"
+[APIRequestContext]: /api/class-apirequestcontext.mdx "APIRequestContext"
+[APIResponse]: /api/class-apiresponse.mdx "APIResponse"
+[APIResponseAssertions]: /api/class-apiresponseassertions.mdx "APIResponseAssertions"
+[Browser]: /api/class-browser.mdx "Browser"
+[BrowserContext]: /api/class-browsercontext.mdx "BrowserContext"
+[BrowserType]: /api/class-browsertype.mdx "BrowserType"
+[CDPSession]: /api/class-cdpsession.mdx "CDPSession"
+[CDPSessionEvent]: /api/class-cdpsessionevent.mdx "CDPSessionEvent"
+[Clock]: /api/class-clock.mdx "Clock"
+[ConsoleMessage]: /api/class-consolemessage.mdx "ConsoleMessage"
+[Credentials]: /api/class-credentials.mdx "Credentials"
+[Debugger]: /api/class-debugger.mdx "Debugger"
+[Dialog]: /api/class-dialog.mdx "Dialog"
+[Download]: /api/class-download.mdx "Download"
+[ElementHandle]: /api/class-elementhandle.mdx "ElementHandle"
+[FileChooser]: /api/class-filechooser.mdx "FileChooser"
+[FormData]: /api/class-formdata.mdx "FormData"
+[Frame]: /api/class-frame.mdx "Frame"
+[FrameLocator]: /api/class-framelocator.mdx "FrameLocator"
+[JSHandle]: /api/class-jshandle.mdx "JSHandle"
+[Keyboard]: /api/class-keyboard.mdx "Keyboard"
+[Locator]: /api/class-locator.mdx "Locator"
+[LocatorAssertions]: /api/class-locatorassertions.mdx "LocatorAssertions"
+[Mouse]: /api/class-mouse.mdx "Mouse"
+[Page]: /api/class-page.mdx "Page"
+[PageAssertions]: /api/class-pageassertions.mdx "PageAssertions"
+[Playwright]: /api/class-playwright.mdx "Playwright"
+[PlaywrightAssertions]: /api/class-playwrightassertions.mdx "PlaywrightAssertions"
+[Request]: /api/class-request.mdx "Request"
+[Response]: /api/class-response.mdx "Response"
+[Route]: /api/class-route.mdx "Route"
+[Screencast]: /api/class-screencast.mdx "Screencast"
+[Selectors]: /api/class-selectors.mdx "Selectors"
+[TimeoutError]: /api/class-timeouterror.mdx "TimeoutError"
+[Touchscreen]: /api/class-touchscreen.mdx "Touchscreen"
+[Tracing]: /api/class-tracing.mdx "Tracing"
+[Video]: /api/class-video.mdx "Video"
+[WebError]: /api/class-weberror.mdx "WebError"
+[WebSocket]: /api/class-websocket.mdx "WebSocket"
+[WebSocketFrame]: /api/class-websocketframe.mdx "WebSocketFrame"
+[WebSocketRoute]: /api/class-websocketroute.mdx "WebSocketRoute"
+[WebStorage]: /api/class-webstorage.mdx "WebStorage"
+[Worker]: /api/class-worker.mdx "Worker"
+[Element]: https://developer.mozilla.org/en-US/docs/Web/API/element "Element"
+[EvaluationArgument]: /evaluating.mdx#evaluation-argument "EvaluationArgument"
+[Promise]: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Promise "Promise"
+[iterator]: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Iteration_protocols "Iterator"
+[origin]: https://developer.mozilla.org/en-US/docs/Glossary/Origin "Origin"
+[selector]: https://developer.mozilla.org/en-US/docs/Web/CSS/CSS_Selectors "selector"
+[Serializable]: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/JSON/stringify#Description "Serializable"
+[UIEvent.detail]: https://developer.mozilla.org/en-US/docs/Web/API/UIEvent/detail "UIEvent.detail"
+[UnixTime]: https://en.wikipedia.org/wiki/Unix_time "Unix Time"
+[xpath]: https://developer.mozilla.org/en-US/docs/Web/XPath "xpath"
+
+[bool]: https://docs.microsoft.com/en-us/dotnet/api/system.boolean "bool"
+[Date]: https://learn.microsoft.com/en-us/dotnet/api/system.datetime "DateTime"
+[double]: https://docs.microsoft.com/en-us/dotnet/api/system.double "double"
+[byte]: https://docs.microsoft.com/en-us/dotnet/api/system.byte "byte"
+[int]: https://docs.microsoft.com/en-us/dotnet/api/system.int32 "int"
+[long]: https://docs.microsoft.com/en-us/dotnet/api/system.int64 "long"
+[void]: https://docs.microsoft.com/en-us/dotnet/csharp/language-reference/builtin-types/void "void"
+[string]: https://docs.microsoft.com/en-us/dotnet/api/system.string "string"
+[URL]: https://nodejs.org/api/url.html "URL"
+[Regex]: https://docs.microsoft.com/en-us/dotnet/api/system.text.regularexpressions.regex "Regex"
+
+[Action]: https://docs.microsoft.com/en-us/dotnet/api/system.action-1 "Action"
+[Func]: https://docs.microsoft.com/en-us/dotnet/api/system.func-2 "Func"
+[IEnumerable]: https://docs.microsoft.com/en-us/dotnet/api/system.collections.ienumerable "IEnumerable"
+[IReadOnlyList]: https://learn.microsoft.com/en-us/dotnet/api/system.collections.generic.ireadonlylist-1?view=net-9.0 "IReadOnlyList"
+[IDictionary]: https://docs.microsoft.com/en-us/dotnet/api/system.collections.idictionary "IDictionary"
+[Task]: https://docs.microsoft.com/en-us/dotnet/api/system.threading.tasks.task?view=net-5.0 "Task"
+[IReadOnlyDictionary]: https://docs.microsoft.com/en-us/dotnet/api/system.collections.generic.ireadonlydictionary-2 "IReadOnlyDictionary"
+[JsonElement]: https://docs.microsoft.com/en-us/dotnet/api/system.text.json.jsonelement "JsonElement"
+
+[all available image tags]: https://mcr.microsoft.com/en-us/product/playwright/dotnet/about "all available image tags"
+[Microsoft Artifact Registry]: https://mcr.microsoft.com/en-us/product/playwright/dotnet/about "Microsoft Artifact Registry"
+[Dockerfile.noble]: https://github.com/microsoft/playwright-dotnet/blob/main/utils/docker/Dockerfile.noble "Dockerfile.noble"

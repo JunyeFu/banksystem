@@ -1,0 +1,304 @@
+---
+id: class-download
+title: "Download"
+---
+import Tabs from '@theme/Tabs';
+import TabItem from '@theme/TabItem';
+import HTMLCard from '@site/src/components/HTMLCard';
+
+
+[Download] objects are dispatched by page via the [page.on('download')](/api/class-page.mdx#page-event-download) event.
+
+All the downloaded files belonging to the browser context are deleted when the browser context is closed.
+
+Download event is emitted once the download starts. Download path becomes available once download completes.
+
+```js
+// Start waiting for download before clicking. Note no await.
+const downloadPromise = page.waitForEvent('download');
+await page.getByText('Download file').click();
+const download = await downloadPromise;
+
+// Wait for the download process to complete and save the downloaded file somewhere.
+await download.saveAs('/path/to/save/at/' + download.suggestedFilename());
+```
+
+
+---
+
+## Methods
+
+### cancel {/* #download-cancel */}
+
+<font size="2" style={{position: "relative", top: "-20px"}}>Added in: v1.13</font><x-search>download.cancel</x-search>
+
+Cancels a download. Will not fail if the download is already finished or canceled. Upon successful cancellations, `download.failure()` would resolve to `'canceled'`.
+
+**Usage**
+
+```js
+await download.cancel();
+```
+
+**Returns**
+- [Promise]&lt;[void]&gt;<a aria-hidden="true" tabIndex="-1" class="list-anchor-link" id="download-cancel-return"/><a href="#download-cancel-return" class="list-anchor">#</a>
+
+---
+
+### createReadStream {/* #download-create-read-stream */}
+
+<font size="2" style={{position: "relative", top: "-20px"}}>Added before v1.9</font><x-search>download.createReadStream</x-search>
+
+Returns a readable stream for a successful download, or throws for a failed/canceled download.
+
+:::note
+
+If you don't need a readable stream, it's usually simpler to read the file from disk after the download completed. See [download.path()](/api/class-download.mdx#download-path).
+:::
+
+**Usage**
+
+```js
+await download.createReadStream();
+```
+
+**Returns**
+- [Promise]&lt;[Readable]&gt;<a aria-hidden="true" tabIndex="-1" class="list-anchor-link" id="download-create-read-stream-return"/><a href="#download-create-read-stream-return" class="list-anchor">#</a>
+
+---
+
+### delete {/* #download-delete */}
+
+<font size="2" style={{position: "relative", top: "-20px"}}>Added before v1.9</font><x-search>download.delete</x-search>
+
+Deletes the downloaded file. Will wait for the download to finish if necessary.
+
+**Usage**
+
+```js
+await download.delete();
+```
+
+**Returns**
+- [Promise]&lt;[void]&gt;<a aria-hidden="true" tabIndex="-1" class="list-anchor-link" id="download-delete-return"/><a href="#download-delete-return" class="list-anchor">#</a>
+
+---
+
+### failure {/* #download-failure */}
+
+<font size="2" style={{position: "relative", top: "-20px"}}>Added before v1.9</font><x-search>download.failure</x-search>
+
+Returns download error if any. Will wait for the download to finish if necessary.
+
+**Usage**
+
+```js
+await download.failure();
+```
+
+**Returns**
+- [Promise]&lt;[null] | [string]&gt;<a aria-hidden="true" tabIndex="-1" class="list-anchor-link" id="download-failure-return"/><a href="#download-failure-return" class="list-anchor">#</a>
+
+---
+
+### page {/* #download-page */}
+
+<font size="2" style={{position: "relative", top: "-20px"}}>Added in: v1.12</font><x-search>download.page</x-search>
+
+Get the page that the download belongs to.
+
+**Usage**
+
+```js
+download.page();
+```
+
+**Returns**
+- [Page]<a aria-hidden="true" tabIndex="-1" class="list-anchor-link" id="download-page-return"/><a href="#download-page-return" class="list-anchor">#</a>
+
+---
+
+### path {/* #download-path */}
+
+<font size="2" style={{position: "relative", top: "-20px"}}>Added before v1.9</font><x-search>download.path</x-search>
+
+Returns path to the downloaded file for a successful download, or throws for a failed/canceled download. The method will wait for the download to finish if necessary. The method throws when connected remotely.
+
+Note that the download's file name is a random GUID, use [download.suggestedFilename()](/api/class-download.mdx#download-suggested-filename) to get suggested file name.
+
+**Usage**
+
+```js
+await download.path();
+```
+
+**Returns**
+- [Promise]&lt;[string]&gt;<a aria-hidden="true" tabIndex="-1" class="list-anchor-link" id="download-path-return"/><a href="#download-path-return" class="list-anchor">#</a>
+
+---
+
+### saveAs {/* #download-save-as */}
+
+<font size="2" style={{position: "relative", top: "-20px"}}>Added before v1.9</font><x-search>download.saveAs</x-search>
+
+Copy the download to a user-specified path. It is safe to call this method while the download is still in progress. Will wait for the download to finish if necessary.
+
+**Usage**
+
+```js
+await download.saveAs('/path/to/save/at/' + download.suggestedFilename());
+```
+
+**Arguments**
+- `path` [string]<a aria-hidden="true" tabIndex="-1" class="list-anchor-link" id="download-save-as-option-path"/><a href="#download-save-as-option-path" class="list-anchor">#</a>
+  
+  Path where the download should be copied.
+
+**Returns**
+- [Promise]&lt;[void]&gt;<a aria-hidden="true" tabIndex="-1" class="list-anchor-link" id="download-save-as-return"/><a href="#download-save-as-return" class="list-anchor">#</a>
+
+---
+
+### suggestedFilename {/* #download-suggested-filename */}
+
+<font size="2" style={{position: "relative", top: "-20px"}}>Added before v1.9</font><x-search>download.suggestedFilename</x-search>
+
+Returns suggested filename for this download. It is typically computed by the browser from the [`Content-Disposition`](https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Content-Disposition) response header or the `download` attribute. See the spec on [whatwg](https://html.spec.whatwg.org/#downloading-resources). Different browsers can use different logic for computing it.
+
+**Usage**
+
+```js
+download.suggestedFilename();
+```
+
+**Returns**
+- [string]<a aria-hidden="true" tabIndex="-1" class="list-anchor-link" id="download-suggested-filename-return"/><a href="#download-suggested-filename-return" class="list-anchor">#</a>
+
+---
+
+### url {/* #download-url */}
+
+<font size="2" style={{position: "relative", top: "-20px"}}>Added before v1.9</font><x-search>download.url</x-search>
+
+Returns downloaded url.
+
+**Usage**
+
+```js
+download.url();
+```
+
+**Returns**
+- [string]<a aria-hidden="true" tabIndex="-1" class="list-anchor-link" id="download-url-return"/><a href="#download-url-return" class="list-anchor">#</a>
+
+
+[APIRequest]: /api/class-apirequest.mdx "APIRequest"
+[APIRequestContext]: /api/class-apirequestcontext.mdx "APIRequestContext"
+[APIResponse]: /api/class-apiresponse.mdx "APIResponse"
+[APIResponseAssertions]: /api/class-apiresponseassertions.mdx "APIResponseAssertions"
+[Browser]: /api/class-browser.mdx "Browser"
+[BrowserContext]: /api/class-browsercontext.mdx "BrowserContext"
+[BrowserServer]: /api/class-browserserver.mdx "BrowserServer"
+[BrowserType]: /api/class-browsertype.mdx "BrowserType"
+[CDPSession]: /api/class-cdpsession.mdx "CDPSession"
+[Clock]: /api/class-clock.mdx "Clock"
+[ConsoleMessage]: /api/class-consolemessage.mdx "ConsoleMessage"
+[Coverage]: /api/class-coverage.mdx "Coverage"
+[Credentials]: /api/class-credentials.mdx "Credentials"
+[Debugger]: /api/class-debugger.mdx "Debugger"
+[Dialog]: /api/class-dialog.mdx "Dialog"
+[Disposable]: /api/class-disposable.mdx "Disposable"
+[Download]: /api/class-download.mdx "Download"
+[ElementHandle]: /api/class-elementhandle.mdx "ElementHandle"
+[FileChooser]: /api/class-filechooser.mdx "FileChooser"
+[Frame]: /api/class-frame.mdx "Frame"
+[FrameLocator]: /api/class-framelocator.mdx "FrameLocator"
+[GenericAssertions]: /api/class-genericassertions.mdx "GenericAssertions"
+[JSHandle]: /api/class-jshandle.mdx "JSHandle"
+[Keyboard]: /api/class-keyboard.mdx "Keyboard"
+[Locator]: /api/class-locator.mdx "Locator"
+[LocatorAssertions]: /api/class-locatorassertions.mdx "LocatorAssertions"
+[Logger]: /api/class-logger.mdx "Logger"
+[Mouse]: /api/class-mouse.mdx "Mouse"
+[Page]: /api/class-page.mdx "Page"
+[PageAssertions]: /api/class-pageassertions.mdx "PageAssertions"
+[Playwright]: /api/class-playwright.mdx "Playwright"
+[PlaywrightAssertions]: /api/class-playwrightassertions.mdx "PlaywrightAssertions"
+[Request]: /api/class-request.mdx "Request"
+[Response]: /api/class-response.mdx "Response"
+[Route]: /api/class-route.mdx "Route"
+[Screencast]: /api/class-screencast.mdx "Screencast"
+[Selectors]: /api/class-selectors.mdx "Selectors"
+[SnapshotAssertions]: /api/class-snapshotassertions.mdx "SnapshotAssertions"
+[TimeoutError]: /api/class-timeouterror.mdx "TimeoutError"
+[Touchscreen]: /api/class-touchscreen.mdx "Touchscreen"
+[Tracing]: /api/class-tracing.mdx "Tracing"
+[Video]: /api/class-video.mdx "Video"
+[WebError]: /api/class-weberror.mdx "WebError"
+[WebSocket]: /api/class-websocket.mdx "WebSocket"
+[WebSocketRoute]: /api/class-websocketroute.mdx "WebSocketRoute"
+[WebStorage]: /api/class-webstorage.mdx "WebStorage"
+[Worker]: /api/class-worker.mdx "Worker"
+[Electron]: /api/class-electron.mdx "Electron"
+[ElectronApplication]: /api/class-electronapplication.mdx "ElectronApplication"
+[Android]: /api/class-android.mdx "Android"
+[AndroidDevice]: /api/class-androiddevice.mdx "AndroidDevice"
+[AndroidInput]: /api/class-androidinput.mdx "AndroidInput"
+[AndroidSocket]: /api/class-androidsocket.mdx "AndroidSocket"
+[AndroidWebView]: /api/class-androidwebview.mdx "AndroidWebView"
+[Fixtures]: /api/class-fixtures.mdx "Fixtures"
+[FullConfig]: /api/class-fullconfig.mdx "FullConfig"
+[FullProject]: /api/class-fullproject.mdx "FullProject"
+[Location]: /api/class-location.mdx "Location"
+[Test]: /api/class-test.mdx "Test"
+[TestConfig]: /api/class-testconfig.mdx "TestConfig"
+[TestInfo]: /api/class-testinfo.mdx "TestInfo"
+[TestInfoError]: /api/class-testinfoerror.mdx "TestInfoError"
+[TestOptions]: /api/class-testoptions.mdx "TestOptions"
+[TestProject]: /api/class-testproject.mdx "TestProject"
+[TestStepInfo]: /api/class-teststepinfo.mdx "TestStepInfo"
+[WorkerInfo]: /api/class-workerinfo.mdx "WorkerInfo"
+[Reporter]: /api/class-reporter.mdx "Reporter"
+[Suite]: /api/class-suite.mdx "Suite"
+[TestCase]: /api/class-testcase.mdx "TestCase"
+[TestError]: /api/class-testerror.mdx "TestError"
+[TestResult]: /api/class-testresult.mdx "TestResult"
+[TestStep]: /api/class-teststep.mdx "TestStep"
+[Element]: https://developer.mozilla.org/en-US/docs/Web/API/element "Element"
+[EvaluationArgument]: /evaluating.mdx#evaluation-argument "EvaluationArgument"
+[Promise]: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Promise "Promise"
+[iterator]: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Iteration_protocols "Iterator"
+[origin]: https://developer.mozilla.org/en-US/docs/Glossary/Origin "Origin"
+[selector]: https://developer.mozilla.org/en-US/docs/Web/CSS/CSS_Selectors "selector"
+[Serializable]: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/JSON/stringify#Description "Serializable"
+[UIEvent.detail]: https://developer.mozilla.org/en-US/docs/Web/API/UIEvent/detail "UIEvent.detail"
+[UnixTime]: https://en.wikipedia.org/wiki/Unix_time "Unix Time"
+[xpath]: https://developer.mozilla.org/en-US/docs/Web/XPath "xpath"
+
+[Array]: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Array "Array"
+[boolean]: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Data_structures#Boolean_type "Boolean"
+[Buffer]: https://nodejs.org/api/buffer.html#buffer_class_buffer "Buffer"
+[ChildProcess]: https://nodejs.org/api/child_process.html "ChildProcess"
+[Date]: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Date "Date"
+[Error]: https://nodejs.org/api/errors.html#errors_class_error "Error"
+[EventEmitter]: https://nodejs.org/api/events.html#events_class_eventemitter "EventEmitter"
+[function]: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Function "Function"
+[FormData]: https://developer.mozilla.org/en-US/docs/Web/API/FormData "FormData"
+[Map]: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Map "Map"
+[Metadata]: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Object "Object&lt;string, any&gt;"
+[null]: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/null "null"
+[number]: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Data_structures#Number_type "Number"
+[Object]: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Object "Object"
+[Promise]: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Promise "Promise"
+[Readable]: https://nodejs.org/api/stream.html#stream_class_stream_readable "Readable"
+[ReadStream]: https://nodejs.org/api/fs.html#class-fsreadstream "ReadStream"
+[RegExp]: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/RegExp "RegExp"
+[string]: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Data_structures#String_type "string"
+[void]: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/undefined "void"
+[URL]: https://nodejs.org/api/url.html "URL"
+[URLPattern]: https://developer.mozilla.org/en-US/docs/Web/API/URLPattern "URLPattern"
+[URLSearchParams]: https://developer.mozilla.org/en-US/docs/Web/API/URLSearchParams "URLSearchParams"
+
+[all available image tags]: https://mcr.microsoft.com/en-us/product/playwright/about "all available image tags"
+[Microsoft Artifact Registry]: https://mcr.microsoft.com/en-us/product/playwright/about "Microsoft Artifact Registry"
+[Dockerfile.noble]: https://github.com/microsoft/playwright/blob/main/utils/docker/Dockerfile.noble "Dockerfile.noble"

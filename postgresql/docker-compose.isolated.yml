@@ -1,0 +1,86 @@
+name: mifos-isolated
+
+services:
+  web-app:
+    image: openmf/web-app:dev@sha256:d071bea02ba0b83b0a9958f8ea651b7cc50aa86dd18f71ab304955e76bbd4b03
+    restart: unless-stopped
+    environment:
+      FINERACT_API_URLS: http://localhost:13000
+      FINERACT_API_URL: http://localhost:13000
+      FINERACT_API_PROVIDER: /fineract-provider/api
+      FINERACT_API_VERSION: /v1
+      FINERACT_PLATFORM_TENANT_IDENTIFIER: default
+      MIFOS_DEFAULT_LANGUAGE: en-US
+      MIFOS_SUPPORTED_LANGUAGES: en-US
+      MIFOS_PRELOAD_CLIENTS: "true"
+    ports:
+      - "127.0.0.1:18080:80"
+    networks: [bank_front]
+
+  postgresql:
+    image: postgres:18.3@sha256:7e32e9833a6fb1c92c32552794cb6ed569d51b445a54907d35fc112ef39684db
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is required}
+      POSTGRES_DB: postgres
+      FINERACT_DB_USER: fineract
+      FINERACT_DB_PASS: ${FINERACT_DB_PASS:?FINERACT_DB_PASS is required}
+      FINERACT_TENANTS_DB_NAME: fineract_tenants
+      FINERACT_TENANT_DEFAULT_DB_NAME: fineract_default
+    volumes:
+      - "D:/Agent/banksystem/data/postgres:/var/lib/postgresql"
+      - ./01-init-unix.sh:/docker-entrypoint-initdb.d/01-init.sh:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -q -U postgres -d postgres"]
+      interval: 5s
+      timeout: 10s
+      retries: 20
+    networks: [bank_internal]
+
+  activemq:
+    image: apache/activemq-classic:latest@sha256:75852a6d357991028e58e7c32a7dd190cb36802568236cf3cd189d2350033be1
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "code=$$(curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:8161/); test \"$$code\" = 200 -o \"$$code\" = 401"]
+      interval: 5s
+      timeout: 10s
+      retries: 20
+    networks: [bank_internal]
+
+  fineract-server:
+    image: openmf/fineract:develop@sha256:666c666900eb62fc1f6c5faa971e19c34ef6ec5d7cb8224276a49e2ddba262e1
+    restart: unless-stopped
+    depends_on:
+      postgresql:
+        condition: service_healthy
+      activemq:
+        condition: service_healthy
+    environment:
+      FINERACT_NODE_ID: "1"
+      FINERACT_HIKARI_DRIVER_SOURCE_CLASS_NAME: org.postgresql.Driver
+      FINERACT_HIKARI_JDBC_URL: jdbc:postgresql://postgresql:5432/fineract_tenants
+      FINERACT_HIKARI_USERNAME: fineract
+      FINERACT_HIKARI_PASSWORD: ${FINERACT_DB_PASS:?FINERACT_DB_PASS is required}
+      FINERACT_DEFAULT_TENANTDB_HOSTNAME: postgresql
+      FINERACT_DEFAULT_TENANTDB_PORT: "5432"
+      FINERACT_DEFAULT_TENANTDB_UID: fineract
+      FINERACT_DEFAULT_TENANTDB_PWD: ${FINERACT_DB_PASS:?FINERACT_DB_PASS is required}
+      FINERACT_DEFAULT_TENANTDB_IDENTIFIER: default
+      FINERACT_DEFAULT_TENANTDB_NAME: fineract_default
+      FINERACT_DEFAULT_TENANTDB_DESCRIPTION: Isolated Local Demo Tenant
+      FINERACT_SERVER_SSL_ENABLED: "false"
+      FINERACT_SERVER_PORT: "8080"
+      FINERACT_LOGGING_LEVEL: INFO
+      FINERACT_MODE: WRITE
+      FINERACT_MESSAGING_ACTIVEMQ_BROKER_URL: tcp://activemq:61616
+    ports:
+      - "127.0.0.1:13000:8080"
+    networks: [bank_internal, bank_front]
+
+networks:
+  bank_internal:
+    name: mifos_isolated_internal
+    internal: true
+  bank_front:
+    name: mifos_isolated_front

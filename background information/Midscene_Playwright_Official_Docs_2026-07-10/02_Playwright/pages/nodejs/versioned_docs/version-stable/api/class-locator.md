@@ -1,0 +1,2780 @@
+---
+id: class-locator
+title: "Locator"
+---
+import Tabs from '@theme/Tabs';
+import TabItem from '@theme/TabItem';
+import HTMLCard from '@site/src/components/HTMLCard';
+
+
+Locators are the central piece of Playwright's auto-waiting and retry-ability. In a nutshell, locators represent a way to find element(s) on the page at any moment. A locator can be created with the [page.locator()](/api/class-page.mdx#page-locator) method.
+
+[Learn more about locators](../locators.mdx).
+
+
+---
+
+## Methods
+
+### all {/* #locator-all */}
+
+<font size="2" style={{position: "relative", top: "-20px"}}>Added in: v1.29</font><x-search>locator.all</x-search>
+
+When the locator points to a list of elements, this returns an array of locators, pointing to their respective elements.
+
+:::note
+
+[locator.all()](/api/class-locator.mdx#locator-all) does not wait for elements to match the locator, and instead immediately returns whatever is present in the page.
+
+When the list of elements changes dynamically, [locator.all()](/api/class-locator.mdx#locator-all) will produce unpredictable and flaky results.
+
+When the list of elements is stable, but loaded dynamically, wait for the full list to finish loading before calling [locator.all()](/api/class-locator.mdx#locator-all).
+:::
+
+**Usage**
+
+```js
+for (const li of await page.getByRole('listitem').all())
+  await li.click();
+```
+
+**Returns**
+- [Promise]&lt;[Array]&lt;[Locator]&gt;&gt;<a aria-hidden="true" tabIndex="-1" class="list-anchor-link" id="locator-all-return"/><a href="#locator-all-return" class="list-anchor">#</a>
+
+---
+
+### allInnerTexts {/* #locator-all-inner-texts */}
+
+<font size="2" style={{position: "relative", top: "-20px"}}>Added in: v1.14</font><x-search>locator.allInnerTexts</x-search>
+
+Returns an array of `node.innerText` values for all matching nodes.
+
+:::warning[Asserting text]
+
+If you need to assert text on the page, prefer [expect(locator).toHaveText()](/api/class-locatorassertions.mdx#locator-assertions-to-have-text) with [useInnerText](/api/class-locatorassertions.mdx#locator-assertions-to-have-text-option-use-inner-text) option to avoid flakiness. See [assertions guide](../test-assertions.mdx) for more details.
+:::
+
+**Usage**
+
+```js
+const texts = await page.getByRole('link').allInnerTexts();
+```
+
+**Returns**
+- [Promise]&lt;[Array]&lt;[string]&gt;&gt;<a aria-hidden="true" tabIndex="-1" class="list-anchor-link" id="locator-all-inner-texts-return"/><a href="#locator-all-inner-texts-return" class="list-anchor">#</a>
+
+---
+
+### allTextContents {/* #locator-all-text-contents */}
+
+<font size="2" style={{position: "relative", top: "-20px"}}>Added in: v1.14</font><x-search>locator.allTextContents</x-search>
+
+Returns an array of `node.textContent` values for all matching nodes.
+
+:::warning[Asserting text]
+
+If you need to assert text on the page, prefer [expect(locator).toHaveText()](/api/class-locatorassertions.mdx#locator-assertions-to-have-text) to avoid flakiness. See [assertions guide](../test-assertions.mdx) for more details.
+:::
+
+**Usage**
+
+```js
+const texts = await page.getByRole('link').allTextContents();
+```
+
+**Returns**
+- [Promise]&lt;[Array]&lt;[string]&gt;&gt;<a aria-hidden="true" tabIndex="-1" class="list-anchor-link" id="locator-all-text-contents-return"/><a href="#locator-all-text-contents-return" class="list-anchor">#</a>
+
+---
+
+### and {/* #locator-and */}
+
+<font size="2" style={{position: "relative", top: "-20px"}}>Added in: v1.34</font><x-search>locator.and</x-search>
+
+Creates a locator that matches both this locator and the argument locator.
+
+**Usage**
+
+The following example finds a button with a specific title.
+
+```js
+const button = page.getByRole('button').and(page.getByTitle('Subscribe'));
+```
+
+**Arguments**
+- `locator` [Locator]<a aria-hidden="true" tabIndex="-1" class="list-anchor-link" id="locator-and-option-locator"/><a href="#locator-and-option-locator" class="list-anchor">#</a>
+  
+  Additional locator to match.
+
+**Returns**
+- [Locator]<a aria-hidden="true" tabIndex="-1" class="list-anchor-link" id="locator-and-return"/><a href="#locator-and-return" class="list-anchor">#</a>
+
+---
+
+### ariaSnapshot {/* #locator-aria-snapshot */}
+
+<font size="2" style={{position: "relative", top: "-20px"}}>Added in: v1.49</font><x-search>locator.ariaSnapshot</x-search>
+
+Captures the aria snapshot of the given element. Read more about [aria snapshots](../aria-snapshots.mdx) and [expect(locator).toMatchAriaSnapshot()](/api/class-locatorassertions.mdx#locator-assertions-to-match-aria-snapshot) for the corresponding assertion.
+
+**Usage**
+
+```js
+await page.getByRole('link').ariaSnapshot();
+```
+
+**Arguments**
+- `options` [Object] *(optional)*
+  - `boxes` [boolean] *(optional)* <font size="2">Added in: v1.60</font><a aria-hidden="true" tabIndex="-1" class="list-anchor-link" id="locator-aria-snapshot-option-boxes"/><a href="#locator-aria-snapshot-option-boxes" class="list-anchor">#</a>
+    
+    When `true`, appends each element's bounding box as `[box=x,y,width,height]` to the snapshot. Coordinates are relative to the viewport, in CSS pixels, as returned by [`Element.getBoundingClientRect()`](https://developer.mozilla.org/en-US/docs/Web/API/Element/getBoundingClientRect). Defaults to `false`.
+  - `depth` [number] *(optional)* <font size="2">Added in: v1.59</font><a aria-hidden="true" tabIndex="-1" class="list-anchor-link" id="locator-aria-snapshot-option-depth"/><a href="#locator-aria-snapshot-option-depth" class="list-anchor">#</a>
+    
+    When specified, limits the depth of the snapshot.
+  - `mode` "ai" | "default" *(optional)* <font size="2">Added in: v1.59</font><a aria-hidden="true" tabIndex="-1" class="list-anchor-link" id="locator-aria-snapshot-option-mode"/><a href="#locator-aria-snapshot-option-mode" class="list-anchor">#</a>
+    
+    When set to `"ai"`, returns a snapshot optimized for AI consumption. Defaults to `"default"`. See details for more information.
+  - `timeout` [number] *(optional)*<a aria-hidden="true" tabIndex="-1" class="list-anchor-link" id="locator-aria-snapshot-option-timeout"/><a href="#locator-aria-snapshot-option-timeout" class="list-anchor">#</a>
+    
+    Maximum time in milliseconds. Defaults to `0` - no timeout. The default value can be changed via `actionTimeout` option in the config, or by using the [browserContext.setDefaultTimeout()](/api/class-browsercontext.mdx#browser-context-set-default-timeout) or [page.setDefaultTimeout()](/api/class-page.mdx#page-set-default-timeout) methods.
+
+**Returns**
+- [Promise]&lt;[string]&gt;<a aria-hidden="true" tabIndex="-1" class="list-anchor-link" id="locator-aria-snapshot-return"/><a href="#locator-aria-snapshot-return" class="list-anchor">#</a>
+
+**Details**
+
+This method captures the aria snapshot of the given element. The snapshot is a string that represents the state of the element and its children. The snapshot can be used to assert the state of the element in the test, or to compare it to state in the future.
+
+The ARIA snapshot is represented using [YAML](https://yaml.org/spec/1.2.2/) markup language:
+* The keys of the objects are the roles and optional accessible names of the elements.
+* The values are either text content or an array of child elements.
+* Generic static text can be represented with the `text` key.
+
+Below is the HTML markup and the respective ARIA snapshot:
+
+```html
+<ul aria-label="Links">
+  <li><a href="/">Home</a></li>
+  <li><a href="/about">About</a></li>
+<ul>
+```
+
+```yml
+- list "Links":
+  - listitem:
+    - link "Home"
+  - listitem:
+    - link "About"
+```
+
+An AI-optimized snapshot, controlled by [mode](/api/class-locator.mdx#locator-aria-snapshot-option-mode), is different from a default snapshot:
+1. Includes element references `[ref=e2]`. 2. Does not wait for an element matching the locator, and throws when no elements match. 3. Includes snapshots of `<iframe>`s inside the target.
+
+---
+
+### blur {/* #locator-blur */}
+
+<font size="2" style={{position: "relative", top: "-20px"}}>Added in: v1.28</font><x-search>locator.blur</x-search>
+
+Calls [blur](https://developer.mozilla.org/en-US/docs/Web/API/HTMLElement/blur) on the element.
+
+**Usage**
+
+```js
+await locator.blur();
+await locator.blur(options);
+```
+
+**Arguments**
+- `options` [Object] *(optional)*
+  - `timeout` [number] *(optional)*<a aria-hidden="true" tabIndex="-1" class="list-anchor-link" id="locator-blur-option-timeout"/><a href="#locator-blur-option-timeout" class="list-anchor">#</a>
+    
+    Maximum time in milliseconds. Defaults to `0` - no timeout. The default value can be changed via `actionTimeout` option in the config, or by using the [browserContext.setDefaultTimeout()](/api/class-browsercontext.mdx#browser-context-set-default-timeout) or [page.setDefaultTimeout()](/api/class-page.mdx#page-set-default-timeout) methods.
+
+**Returns**
+- [Promise]&lt;[void]&gt;<a aria-hidden="true" tabIndex="-1" class="list-anchor-link" id="locator-blur-return"/><a href="#locator-blur-return" class="list-anchor">#</a>
+
+---
+
+### boundingBox {/* #locator-bounding-box */}
+
+<font size="2" style={{position: "relative", top: "-20px"}}>Added in: v1.14</font><x-search>locator.boundingBox</x-search>
+
+This method returns the bounding box of the element matching the locator, or `null` if the element is not visible. The bounding box is calculated relative to the main frame viewport - which is usually the same as the browser window.
+
+**Usage**
+
+```js
+const box = await page.getByRole('button').boundingBox();
+await page.mouse.click(box.x + box.width / 2, box.y + box.height / 2);
+```
+
+**Arguments**
+- `options` [Object] *(optional)*
+  - `timeout` [number] *(optional)*<a aria-hidden="true" tabIndex="-1" class="list-anchor-link" id="locator-bounding-box-option-timeout"/><a href="#locator-bounding-box-option-timeout" class="list-anchor">#</a>
+    
+    Maximum time in milliseconds. Defaults to `0` - no timeout. The default value can be changed via `actionTimeout` option in the config, or by using the [browserContext.setDefaultTimeout()](/api/class-browsercontext.mdx#browser-context-set-default-timeout) or [page.setDefaultTimeout()](/api/class-page.mdx#page-set-default-timeout) methods.
+
+**Returns**
+- [Promise]&lt;[null] | [Object]&gt;<a aria-hidden="true" tabIndex="-1" class="list-anchor-link" id="locator-bounding-box-return"/><a href="#locator-bounding-box-return" class="list-anchor">#</a>
+  - `x` [number]
+    
+    the x coordinate of the element in pixels.
+  - `y` [number]
+    
+    the y coordinate of the element in pixels.
+  - `width` [number]
+    
+    the width of the element in pixels.
+  - `height` [number]
+    
+    the height of the element in pixels.
+
+**Details**
+
+Scrolling affects the returned bounding box, similarly to [Element.getBoundingClientRect](https://developer.mozilla.org/en-US/docs/Web/API/Element/getBoundingClientRect). That means `x` and/or `y` may be negative.
+
+Elements from child frames return the bounding box relative to the main frame, unlike the [Element.getBoundingClientRect](https://developer.mozilla.org/en-US/docs/Web/API/Element/getBoundingClientRect).
+
+Assuming the page is static, it is safe to use bounding box coordinates to perform input. For example, the following snippet should click the center of the element.
+
+---
+
+### check {/* #locator-check */}
+
+<font size="2" style={{position: "relative", top: "-20px"}}>Added in: v1.14</font><x-search>locator.check</x-search>
+
+Ensure that checkbox or radio element is checked.
+
+**Usage**
+
+```js
+await page.getByRole('checkbox').check();
+```
+
+**Arguments**
+- `options` [Object] *(optional)*
+  - `force` [boolean] *(optional)*<a aria-hidden="true" tabIndex="-1" class="list-anchor-link" id="locator-check-option-force"/><a href="#locator-check-option-force" class="list-anchor">#</a>
+    
+    Whether to bypass the [actionability](../actionability.mdx) checks. Defaults to `false`.
+  - `noWaitAfter` [boolean] *(optional)*<a aria-hidden="true" tabIndex="-1" class="list-anchor-link" id="locator-check-option-no-wait-after"/><a href="#locator-check-option-no-wait-after" class="list-anchor">#</a>
+    
+    :::warning[Deprecated]
+    This option has no effect.
+    :::
+    
+    
+    This option has no effect.
+  - `position` [Object] *(optional)*<a aria-hidden="true" tabIndex="-1" class="list-anchor-link" id="locator-check-option-position"/><a href="#locator-check-option-position" class="list-anchor">#</a>
+    - `x` [number]
+      
+      
+    - `y` [number]
+      
+      
+    A point to use relative to the top-left corner of element padding box. If not specified, uses some visible point of the element.
+  - `timeout` [number] *(optional)*<a aria-hidden="true" tabIndex="-1" class="list-anchor-link" id="locator-check-option-timeout"/><a href="#locator-check-option-timeout" class="list-anchor">#</a>
+    
+    Maximum time in milliseconds. Defaults to `0` - no timeout. The default value can be changed via `actionTimeout` option in the config, or by using the [browserContext.setDefaultTimeout()](/api/class-browsercontext.mdx#browser-context-set-default-timeout) or [page.setDefaultTimeout()](/api/class-page.mdx#page-set-default-timeout) methods.
+  - `trial` [boolean] *(optional)*<a aria-hidden="true" tabIndex="-1" class="list-anchor-link" id="locator-check-option-trial"/><a href="#locator-check-option-trial" class="list-anchor">#</a>
+    
+    When set, this method only performs the [actionability](../actionability.mdx) checks and skips the action. Defaults to `false`. Useful to wait until the element is ready for the action without performing it.
+
+**Returns**
+- [Promise]&lt;[void]&gt;<a aria-hidden="true" tabIndex="-1" class="list-anchor-link" id="locator-check-return"/><a href="#locator-check-return" class="list-anchor">#</a>
+
+**Details**
+
+Performs the following steps:
+1. Ensure that element is a checkbox or a radio input. If not, this method throws. If the element is already checked, this method returns immediately.
+1. Wait for [actionability](../actionability.mdx) checks on the element, unless [force](/api/class-locator.mdx#locator-check-option-force) option is set.
+1. Scroll the element into view if needed.
+1. Use [page.mouse](/api/class-page.mdx#page-mouse) to click in the center of the element.
+1. Ensure that the element is now checked. If not, this method throws.
+
+If the element is detached from the DOM at any moment during the action, this method throws.
+
+When all steps combined have not finished during the specified [timeout](/api/class-locator.mdx#locator-check-option-timeout), this method throws a [TimeoutError]. Passing zero timeout disables this.
+
+---
+
+### clear {/* #locator-clear */}
+
+<font size="2" style={{position: "relative", top: "-20px"}}>Added in: v1.28</font><x-search>locator.clear</x-search>
+
+Clear the input field.
+
+**Usage**
+
+```js
+await page.getByRole('textbox').clear();
+```
+
+**Arguments**
+- `options` [Object] *(optional)*
+  - `force` [boolean] *(optional)*<a aria-hidden="true" tabIndex="-1" class="list-anchor-link" id="locator-clear-option-force"/><a href="#locator-clear-option-force" class="list-anchor">#</a>
+    
+    Whether to bypass the [actionability](../actionability.mdx) checks. Defaults to `false`.
+  - `noWaitAfter` [boolean] *(optional)*<a aria-hidden="true" tabIndex="-1" class="list-anchor-link" id="locator-clear-option-no-wait-after"/><a href="#locator-clear-option-no-wait-after" class="list-anchor">#</a>
+    
+    :::warning[Deprecated]
+    This option has no effect.
+    :::
+    
+    
+    This option has no effect.
+  - `timeout` [number] *(optional)*<a aria-hidden="true" tabIndex="-1" class="list-anchor-link" id="locator-clear-option-timeout"/><a href="#locator-clear-option-timeout" class="list-anchor">#</a>
+    
+    Maximum time in milliseconds. Defaults to `0` - no timeout. The default value can be changed via `actionTimeout` option in the config, or by using the [browserContext.setDefaultTimeout()](/api/class-browsercontext.mdx#browser-context-set-default-timeout) or [page.setDefaultTimeout()](/api/class-page.mdx#page-set-default-timeout) methods.
+
+**Returns**
+- [Promise]&lt;[void]&gt;<a aria-hidden="true" tabIndex="-1" class="list-anchor-link" id="locator-clear-return"/><a href="#locator-clear-return" class="list-anchor">#</a>
+
+**Details**
+
+This method waits for [actionability](../actionability.mdx) checks, focuses the element, clears it and triggers an `input` event after clearing.
+
+If the target element is not an `<input>`, `<textarea>` or `[contenteditable]` element, this method throws an error. However, if the element is inside the `<label>` element that has an associated [control](https://developer.mozilla.org/en-US/docs/Web/API/HTMLLabelElement/control), the control will be cleared instead.
+
+---
+
+### click {/* #locator-click */}
+
+<font size="2" style={{position: "relative", top: "-20px"}}>Added in: v1.14</font><x-search>locator.click</x-search>
+
+Click an element.
+
+**Usage**
+
+Click a button:
+
+```js
+await page.getByRole('button').click();
+```
+
+Shift-right-click at a specific position on a canvas:
+
+```js
+await page.locator('canvas').click({
+  button: 'right',
+  modifiers: ['Shift'],
+  position: { x: 23, y: 32 },
+});
+```
+
+**Arguments**
+- `options` [Object] *(optional)*
+  - `button` "left" | "right" | "middle" *(optional)*<a aria-hidden="true" tabIndex="-1" class="list-anchor-link" id="locator-click-option-button"/><a href="#locator-click-option-button" class="list-anchor">#</a>
+    
+    Defaults to `left`.
+  - `clickCount` [number] *(optional)*<a aria-hidden="true" tabIndex="-1" class="list-anchor-link" id="locator-click-option-click-count"/><a href="#locator-click-option-click-count" class="list-anchor">#</a>
+    
+    defaults to 1. See [UIEvent.detail].
+  - `delay` [number] *(optional)*<a aria-hidden="true" tabIndex="-1" class="list-anchor-link" id="locator-click-option-delay"/><a href="#locator-click-option-delay" class="list-anchor">#</a>
+    
+    Time to wait between `mousedown` and `mouseup` in milliseconds. Defaults to 0.
+  - `force` [boolean] *(optional)*<a aria-hidden="true" tabIndex="-1" class="list-anchor-link" id="locator-click-option-force"/><a href="#locator-click-option-force" class="list-anchor">#</a>
+    
+    Whether to bypass the [actionability](../actionability.mdx) checks. Defaults to `false`.
+  - `modifiers` [Array]&lt;"Alt" | "Control" | "ControlOrMeta" | "Meta" | "Shift"&gt; *(optional)*<a aria-hidden="true" tabIndex="-1" class="list-anchor-link" id="locator-click-option-modifiers"/><a href="#locator-click-option-modifiers" class="list-anchor">#</a>
+    
+    Modifier keys to press. Ensures that only these modifiers are pressed during the operation, and then restores current modifiers back. If not specified, currently pressed modifiers are used. "ControlOrMeta" resolves to "Control" on Windows and Linux and to "Meta" on macOS.
+  - `noWaitAfter` [boolean] *(optional)*<a aria-hidden="true" tabIndex="-1" class="list-anchor-link" id="locator-click-option-no-wait-after"/><a href="#locator-click-option-no-wait-after" class="list-anchor">#</a>
+    
+    :::warning[Deprecated]
+    This option will default to `true` in the future.
+    :::
+    
+    
+    Actions that initiate navigations are waiting for these navigations to happen and for pages to start loading. You can opt out of waiting via setting this flag. You would only need this option in the exceptional cases such as navigating to inaccessible pages. Defaults to `false`.
+  - `position` [Object] *(optional)*<a aria-hidden="true" tabIndex="-1" class="list-anchor-link" id="locator-click-option-position"/><a href="#locator-click-option-position" class="list-anchor">#</a>
+    - `x` [number]
+      
+      
+    - `y` [number]
+      
+      
+    A point to use relative to the top-left corner of element padding box. If not specified, uses some visible point of the element.
+  - `steps` [number] *(optional)* <font size="2">Added in: v1.57</font><a aria-hidden="true" tabIndex="-1" class="list-anchor-link" id="locator-click-option-steps"/><a href="#locator-click-option-steps" class="list-anchor">#</a>
+    
+    Defaults to 1. Sends `n` interpolated `mousemove` events to represent travel between Playwright's current cursor position and the provided destination. When set to 1, emits a single `mousemove` event at the destination location.
+  - `timeout` [number] *(optional)*<a aria-hidden="true" tabIndex="-1" class="list-anchor-link" id="locator-click-option-timeout"/><a href="#locator-click-option-timeout" class="list-anchor">#</a>
+    
+    Maximum time in milliseconds. Defaults to `0` - no timeout. The default value can be changed via `actionTimeout` option in the config, or by using the [browserContext.setDefaultTimeout()](/api/class-browsercontext.mdx#browser-context-set-default-timeout) or [page.setDefaultTimeout()](/api/class-page.mdx#page-set-default-timeout) methods.
+  - `trial` [boolean] *(optional)*<a aria-hidden="true" tabIndex="-1" class="list-anchor-link" id="locator-click-option-trial"/><a href="#locator-click-option-trial" class="list-anchor">#</a>
+    
+    When set, this method only performs the [actionability](../actionability.mdx) checks and skips the action. Defaults to `false`. Useful to wait until the element is ready for the action without performing it. Note that keyboard `modifiers` will be pressed regardless of `trial` to allow testing elements which are only visible when those keys are pressed.
+
+**Returns**
+- [Promise]&lt;[void]&gt;<a aria-hidden="true" tabIndex="-1" class="list-anchor-link" id="locator-click-return"/><a href="#locator-click-return" class="list-anchor">#</a>
+
+**Details**
+
+This method clicks the element by performing the following steps:
+1. Wait for [actionability](../actionability.mdx) checks on the element, unless [force](/api/class-locator.mdx#locator-click-option-force) option is set.
+1. Scroll the element into view if needed.
+1. Use [page.mouse](/api/class-page.mdx#page-mouse) to click in the center of the element, or the specified [position](/api/class-locator.mdx#locator-click-option-position).
+1. Wait for initiated navigations to either succeed or fail, unless [noWaitAfter](/api/class-locator.mdx#locator-click-option-no-wait-after) option is set.
+
+If the element is detached from the DOM at any moment during the action, this method throws.
+
+When all steps combined have not finished during the specified [timeout](/api/class-locator.mdx#locator-click-option-timeout), this method throws a [TimeoutError]. Passing zero timeout disables this.
+
+---
+
+### contentFrame {/* #locator-content-frame */}
+
+<font size="2" style={{position: "relative", top: "-20px"}}>Added in: v1.43</font><x-search>locator.contentFrame</x-search>
+
+Returns a [FrameLocator] object pointing to the same `iframe` as this locator.
+
+Useful when you have a [Locator] object obtained somewhere, and later on would like to interact with the content inside the frame.
+
+For a reverse operation, use [frameLocator.owner()](/api/class-framelocator.mdx#frame-locator-owner).
+
+**Usage**
+
+```js
+const locator = page.locator('iframe[name="embedded"]');
+// ...
+const frameLocator = locator.contentFrame();
+await frameLocator.getByRole('button').click();
+```
+
+**Returns**
+- [FrameLocator]<a aria-hidden="true" tabIndex="-1" class="list-anchor-link" id="locator-content-frame-return"/><a href="#locator-content-frame-return" class="list-anchor">#</a>
+
+---
+
+### count {/* #locator-count */}
+
+<font size="2" style={{position: "relative", top: "-20px"}}>Added in: v1.14</font><x-search>locator.count</x-search>
+
+Returns the number of elements matching the locator.
+
+:::warning[Asserting count]
+
+If you need to assert the number of elements on the page, prefer [expect(locator).toHaveCount()](/api/class-locatorassertions.mdx#locator-assertions-to-have-count) to avoid flakiness. See [assertions guide](../test-assertions.mdx) for more details.
+:::
+
+**Usage**
+
+```js
+const count = await page.getByRole('listitem').count();
+```
+
+**Returns**
+- [Promise]&lt;[number]&gt;<a aria-hidden="true" tabIndex="-1" class="list-anchor-link" id="locator-count-return"/><a href="#locator-count-return" class="list-anchor">#</a>
+
+---
+
+### dblclick {/* #locator-dblclick */}
+
+<font size="2" style={{position: "relative", top: "-20px"}}>Added in: v1.14</font><x-search>locator.dblclick</x-search>
+
+Double-click an element.
+
+**Usage**
+
+```js
+await locator.dblclick();
+await locator.dblclick(options);
+```
+
+**Arguments**
+- `options` [Object] *(optional)*
+  - `button` "left" | "right" | "middle" *(optional)*<a aria-hidden="true" tabIndex="-1" class="list-anchor-link" id="locator-dblclick-option-button"/><a href="#locator-dblclick-option-button" class="list-anchor">#</a>
+    
+    Defaults to `left`.
+  - `delay` [number] *(optional)*<a aria-hidden="true" tabIndex="-1" class="list-anchor-link" id="locator-dblclick-option-delay"/><a href="#locator-dblclick-option-delay" class="list-anchor">#</a>
+    
+    Time to wait between `mousedown` and `mouseup` in milliseconds. Defaults to 0.
+  - `force` [boolean] *(optional)*<a aria-hidden="true" tabIndex="-1" class="list-anchor-link" id="locator-dblclick-option-force"/><a href="#locator-dblclick-option-force" class="list-anchor">#</a>
+    
+    Whether to bypass the [actionability](../actionability.mdx) checks. Defaults to `false`.
+  - `modifiers` [Array]&lt;"Alt" | "Control" | "ControlOrMeta" | "Meta" | "Shift"&gt; *(optional)*<a aria-hidden="true" tabIndex="-1" class="list-anchor-link" id="locator-dblclick-option-modifiers"/><a href="#locator-dblclick-option-modifiers" class="list-anchor">#</a>
+    
+    Modifier keys to press. Ensures that only these modifiers are pressed during the operation, and then restores current modifiers back. If not specified, currently pressed modifiers are used. "ControlOrMeta" resolves to "Control" on Windows and Linux and to "Meta" on macOS.
+  - `noWaitAfter` [boolean] *(optional)*<a aria-hidden="true" tabIndex="-1" class="list-anchor-link" id="locator-dblclick-option-no-wait-after"/><a href="#locator-dblclick-option-no-wait-after" class="list-anchor">#</a>
+    
+    :::warning[Deprecated]
+    This option has no effect.
+    :::
+    
+    
+    This option has no effect.
+  - `position` [Object] *(optional)*<a aria-hidden="true" tabIndex="-1" class="list-anchor-link" id="locator-dblclick-option-position"/><a href="#locator-dblclick-option-position" class="list-anchor">#</a>
+    - `x` [number]
+      
+      
+    - `y` [number]
+      
+      
+    A point to use relative to the top-left corner of element padding box. If not specified, uses some visible point of the element.
+  - `steps` [number] *(optional)* <font size="2">Added in: v1.57</font><a aria-hidden="true" tabIndex="-1" class="list-anchor-link" id="locator-dblclick-option-steps"/><a href="#locator-dblclick-option-steps" class="list-anchor">#</a>
+    
+    Defaults to 1. Sends `n` interpolated `mousemove` events to represent travel between Playwright's current cursor position and the provided destination. When set to 1, emits a single `mousemove` event at the destination location.
+  - `timeout` [number] *(optional)*<a aria-hidden="true" tabIndex="-1" class="list-anchor-link" id="locator-dblclick-option-timeout"/><a href="#locator-dblclick-option-timeout" class="list-anchor">#</a>
+    
+    Maximum time in milliseconds. Defaults to `0` - no timeout. The default value can be changed via `actionTimeout` option in the config, or by using the [browserContext.setDefaultTimeout()](/api/class-browsercontext.mdx#browser-context-set-default-timeout) or [page.setDefaultTimeout()](/api/class-page.mdx#page-set-default-timeout) methods.
+  - `trial` [boolean] *(optional)*<a aria-hidden="true" tabIndex="-1" class="list-anchor-link" id="locator-dblclick-option-trial"/><a href="#locator-dblclick-option-trial" class="list-anchor">#</a>
+    
+    When set, this method only performs the [actionability](../actionability.mdx) checks and skips the action. Defaults to `false`. Useful to wait until the element is ready for the action without performing it. Note that keyboard `modifiers` will be pressed regardless of `trial` to allow testing elements which are only visible when those keys are pressed.
+
+**Returns**
+- [Promise]&lt;[void]&gt;<a aria-hidden="true" tabIndex="-1" class="list-anchor-link" id="locator-dblclick-return"/><a href="#locator-dblclick-return" class="list-anchor">#</a>
+
+**Details**
+
+This method double clicks the element by performing the following steps:
+1. Wait for [actionability](../actionability.mdx) checks on the element, unless [force](/api/class-locator.mdx#locator-dblclick-option-force) option is set.
+1. Scroll the element into view if needed.
+1. Use [page.mouse](/api/class-page.mdx#page-mouse) to double click in the center of the element, or the specified [position](/api/class-locator.mdx#locator-dblclick-option-position).
+
+If the element is detached from the DOM at any moment during the action, this method throws.
+
+When all steps combined have not finished during the specified [timeout](/api/class-locator.mdx#locator-dblclick-option-timeout), this method throws a [TimeoutError]. Passing zero timeout disables this.
+
+:::note
+
+`element.dblclick()` dispatches two `click` events and a single `dblclick` event.
+:::
+
+---
+
+### describe {/* #locator-describe */}
+
+<font size="2" style={{position: "relative", top: "-20px"}}>Added in: v1.53</font><x-search>locator.describe</x-search>
+
+Describes the locator, description is used in the trace viewer and reports. Returns the locator pointing to the same element.
+
+**Usage**
+
+```js
+const button = page.getByTestId('btn-sub').describe('Subscribe button');
+await button.click();
+```
+
+**Arguments**
+- `description` [string]<a aria-hidden="true" tabIndex="-1" class="list-anchor-link" id="locator-describe-option-description"/><a href="#locator-describe-option-description" class="list-anchor">#</a>
+  
+  Locator description.
+
+**Returns**
+- [Locator]<a aria-hidden="true" tabIndex="-1" class="list-anchor-link" id="locator-describe-return"/><a href="#locator-describe-return" class="list-anchor">#</a>
+
+---
+
+### description {/* #locator-description */}
+
+<font size="2" style={{position: "relative", top: "-20px"}}>Added in: v1.57</font><x-search>locator.description</x-search>
+
+Returns locator description previously set with [locator.describe()](/api/class-locator.mdx#locator-describe). Returns `null` if no custom description has been set. Prefer [locator.toString()](/api/class-locator.mdx#locator-to-string) for a human-readable representation, as it uses the description when available.
+
+**Usage**
+
+```js
+const button = page.getByRole('button').describe('Subscribe button');
+console.log(button.description()); // "Subscribe button"
+
+const input = page.getByRole('textbox');
+console.log(input.description()); // null
+```
+
+**Returns**
+- [null] | [string]<a aria-hidden="true" tabIndex="-1" class="list-anchor-link" id="locator-description-return"/><a href="#locator-description-return" class="list-anchor">#</a>
+
+---
+
+### dispatchEvent {/* #locator-dispatch-event */}
+
+<font size="2" style={{position: "relative", top: "-20px"}}>Added in: v1.14</font><x-search>locator.dispatchEvent</x-search>
+
+Programmatically dispatch an event on the matching element.
+
+**Usage**
+
+```js
+await locator.dispatchEvent('click');
+```
+
+**Arguments**
+- `type` [string]<a aria-hidden="true" tabIndex="-1" class="list-anchor-link" id="locator-dispatch-event-option-type"/><a href="#locator-dispatch-event-option-type" class="list-anchor">#</a>
+  
+  DOM event type: `"click"`, `"dragstart"`, etc.
+- `eventInit` [EvaluationArgument] *(optional)*<a aria-hidden="true" tabIndex="-1" class="list-anchor-link" id="locator-dispatch-event-option-event-init"/><a href="#locator-dispatch-event-option-event-init" class="list-anchor">#</a>
+  
+  Optional event-specific initialization properties.
+- `options` [Object] *(optional)*
+  - `timeout` [number] *(optional)*<a aria-hidden="true" tabIndex="-1" class="list-anchor-link" id="locator-dispatch-event-option-timeout"/><a href="#locator-dispatch-event-option-timeout" class="list-anchor">#</a>
+    
+    Maximum time in milliseconds. Defaults to `0` - no timeout. The default value can be changed via `actionTimeout` option in the config, or by using the [browserContext.setDefaultTimeout()](/api/class-browsercontext.mdx#browser-context-set-default-timeout) or [page.setDefaultTimeout()](/api/class-page.mdx#page-set-default-timeout) methods.
+
+**Returns**
+- [Promise]&lt;[void]&gt;<a aria-hidden="true" tabIndex="-1" class="list-anchor-link" id="locator-dispatch-event-return"/><a href="#locator-dispatch-event-return" class="list-anchor">#</a>
+
+**Details**
+
+The snippet above dispatches the `click` event on the element. Regardless of the visibility state of the element, `click` is dispatched. This is equivalent to calling [element.click()](https://developer.mozilla.org/en-US/docs/Web/API/HTMLElement/click).
+
+Under the hood, it creates an instance of an event based on the given [type](/api/class-locator.mdx#locator-dispatch-event-option-type), initializes it with [eventInit](/api/class-locator.mdx#locator-dispatch-event-option-event-init) properties and dispatches it on the element. Events are `composed`, `cancelable` and bubble by default.
+
+Since [eventInit](/api/class-locator.mdx#locator-dispatch-event-option-event-init) is event-specific, please refer to the events documentation for the lists of initial properties:
+* [DeviceMotionEvent](https://developer.mozilla.org/en-US/docs/Web/API/DeviceMotionEvent/DeviceMotionEvent)
+* [DeviceOrientationEvent](https://developer.mozilla.org/en-US/docs/Web/API/DeviceOrientationEvent/DeviceOrientationEvent)
+* [DragEvent](https://developer.mozilla.org/en-US/docs/Web/API/DragEvent/DragEvent)
+* [Event](https://developer.mozilla.org/en-US/docs/Web/API/Event/Event)
+* [FocusEvent](https://developer.mozilla.org/en-US/docs/Web/API/FocusEvent/FocusEvent)
+* [KeyboardEvent](https://developer.mozilla.org/en-US/docs/Web/API/KeyboardEvent/KeyboardEvent)
+* [MouseEvent](https://developer.mozilla.org/en-US/docs/Web/API/MouseEvent/MouseEvent)
+* [PointerEvent](https://developer.mozilla.org/en-US/docs/Web/API/PointerEvent/PointerEvent)
+* [TouchEvent](https://developer.mozilla.org/en-US/docs/Web/API/TouchEvent/TouchEvent)
+* [WheelEvent](https://developer.mozilla.org/en-US/docs/Web/API/WheelEvent/WheelEvent)
+
+You can also specify [JSHandle] as the property value if you want live objects to be passed into the event:
+
+```js
+const dataTransfer = await page.evaluateHandle(() => new DataTransfer());
+await locator.dispatchEvent('dragstart', { dataTransfer });
+```
+
+---
+
+### dragTo {/* #locator-drag-to */}
+
+<font size="2" style={{position: "relative", top: "-20px"}}>Added in: v1.18</font><x-search>locator.dragTo</x-search>
+
+Drag the source element towards the target element and drop it.
+
+**Usage**
+
+```js
+const source = page.locator('#source');
+const target = page.locator('#target');
+
+await source.dragTo(target);
+// or specify exact positions relative to the top-left corners of the elements:
+await source.dragTo(target, {
+  sourcePosition: { x: 34, y: 7 },
+  targetPosition: { x: 10, y: 20 },
+});
+```
+
+**Arguments**
+- `target` [Locator]<a aria-hidden="true" tabIndex="-1" class="list-anchor-link" id="locator-drag-to-option-target"/><a href="#locator-drag-to-option-target" class="list-anchor">#</a>
+  
+  Locator of the element to drag to.
+- `options` [Object] *(optional)*
+  - `force` [boolean] *(optional)*<a aria-hidden="true" tabIndex="-1" class="list-anchor-link" id="locator-drag-to-option-force"/><a href="#locator-drag-to-option-force" class="list-anchor">#</a>
+    
+    Whether to bypass the [actionability](../actionability.mdx) checks. Defaults to `false`.
+  - `noWaitAfter` [boolean] *(optional)*<a aria-hidden="true" tabIndex="-1" class="list-anchor-link" id="locator-drag-to-option-no-wait-after"/><a href="#locator-drag-to-option-no-wait-after" class="list-anchor">#</a>
+    
+    :::warning[Deprecated]
+    This option has no effect.
+    :::
+    
+    
+    This option has no effect.
+  - `sourcePosition` [Object] *(optional)*<a aria-hidden="true" tabIndex="-1" class="list-anchor-link" id="locator-drag-to-option-source-position"/><a href="#locator-drag-to-option-source-position" class="list-anchor">#</a>
+    - `x` [number]
+      
+      
+    - `y` [number]
+      
+      
+    Clicks on the source element at this point relative to the top-left corner of the element's padding box. If not specified, some visible point of the element is used.
+  - `steps` [number] *(optional)* <font size="2">Added in: v1.57</font><a aria-hidden="true" tabIndex="-1" class="list-anchor-link" id="locator-drag-to-option-steps"/><a href="#locator-drag-to-option-steps" class="list-anchor">#</a>
+    
+    Defaults to 1. Sends `n` interpolated `mousemove` events to represent travel between the `mousedown` and `mouseup` of the drag. When set to 1, emits a single `mousemove` event at the destination location.
+  - `targetPosition` [Object] *(optional)*<a aria-hidden="true" tabIndex="-1" class="list-anchor-link" id="locator-drag-to-option-target-position"/><a href="#locator-drag-to-option-target-position" class="list-anchor">#</a>
+    - `x` [number]
+      
+      
+    - `y` [number]
+      
+      
+    Drops on the target element at this point relative to the top-left corner of the element's padding box. If not specified, some visible point of the element is used.
+  - `timeout` [number] *(optional)*<a aria-hidden="true" tabIndex="-1" class="list-anchor-link" id="locator-drag-to-option-timeout"/><a href="#locator-drag-to-option-timeout" class="list-anchor">#</a>
+    
+    Maximum time in milliseconds. Defaults to `0` - no timeout. The default value can be changed via `actionTimeout` option in the config, or by using the [browserContext.setDefaultTimeout()](/api/class-browsercontext.mdx#browser-context-set-default-timeout) or [page.setDefaultTimeout()](/api/class-page.mdx#page-set-default-timeout) methods.
+  - `trial` [boolean] *(optional)*<a aria-hidden="true" tabIndex="-1" class="list-anchor-link" id="locator-drag-to-option-trial"/><a href="#locator-drag-to-option-trial" class="list-anchor">#</a>
+    
+    When set, this method only performs the [actionability](../actionability.mdx) checks and skips the action. Defaults to `false`. Useful to wait until the element is ready for the action without performing it.
+
+**Returns**
+- [Promise]&lt;[void]&gt;<a aria-hidden="true" tabIndex="-1" class="list-anchor-link" id="locator-drag-to-return"/><a href="#locator-drag-to-return" class="list-anchor">#</a>
+
+**Details**
+
+This method drags the locator to another target locator or target position. It will first move to the source element, perform a `mousedown`, then move to the target element or position and perform a `mouseup`.
+
+---
+
+### drop {/* #locator-drop */}
+
+<font size="2" style={{position: "relative", top: "-20px"}}>Added in: v1.60</font><x-search>locator.drop</x-search>
+
+Simulate an external drag-and-drop of files or clipboard-like data onto this locator.
+
+**Usage**
+
+Drop a file buffer onto an upload area:
+
+```js
+await page.locator('#dropzone').drop({
+  files: { name: 'note.txt', mimeType: 'text/plain', buffer: Buffer.from('hello') },
+});
+```
+
+Drop plain text and a URL together:
+
+```js
+await page.locator('#dropzone').drop({
+  data: {
+    'text/plain': 'hello world',
+    'text/uri-list': 'https://example.com',
+  },
+});
+```
+
+**Arguments**
+- `payload` [Object]<a aria-hidden="true" tabIndex="-1" class="list-anchor-link" id="locator-drop-option-payload"/><a href="#locator-drop-option-payload" class="list-anchor">#</a>
+  - `files` [string] | [Array]&lt;[string]&gt; | [Object] | [Array]&lt;[Object]&gt; *(optional)*
+    - `name` [string]
+      
+      File name
+    - `mimeType` [string]
+      
+      File type
+    - `buffer` [Buffer]
+      
+      File content
+    
+    
+  - `data` [Object]&lt;[string], [string]&gt; *(optional)*
+    
+    
+  Data to drop onto the target. Provide `files` (file paths or in-memory buffers), `data` (a mime-type → string map for clipboard-like content such as `text/plain`, `text/html`, `text/uri-list`), or both.
+- `options` [Object] *(optional)*
+  - `position` [Object] *(optional)*<a aria-hidden="true" tabIndex="-1" class="list-anchor-link" id="locator-drop-option-position"/><a href="#locator-drop-option-position" class="list-anchor">#</a>
+    - `x` [number]
+      
+      
+    - `y` [number]
+      
+      
+    A point to use relative to the top-left corner of element padding box. If not specified, uses some visible point of the element.
+  - `timeout` [number] *(optional)*<a aria-hidden="true" tabIndex="-1" class="list-anchor-link" id="locator-drop-option-timeout"/><a href="#locator-drop-option-timeout" class="list-anchor">#</a>
+    
+    Maximum time in milliseconds. Defaults to `0` - no timeout. The default value can be changed via `actionTimeout` option in the config, or by using the [browserContext.setDefaultTimeout()](/api/class-browsercontext.mdx#browser-context-set-default-timeout) or [page.setDefaultTimeout()](/api/class-page.mdx#page-set-default-timeout) methods.
+
+**Returns**
+- [Promise]&lt;[void]&gt;<a aria-hidden="true" tabIndex="-1" class="list-anchor-link" id="locator-drop-return"/><a href="#locator-drop-return" class="list-anchor">#</a>
+
+**Details**
+
+Dispatches the native `dragenter`, `dragover`, and `drop` events at the center of the target element with a synthetic [DataTransfer] carrying the provided files and/or data entries. Works cross-browser by constructing the [DataTransfer] in the page context.
+
+If the target element's `dragover` listener does not call `preventDefault()`, the target is considered to have rejected the drop: Playwright dispatches `dragleave` and this method throws.
+
+---
+
+### evaluate {/* #locator-evaluate */}
+
+<font size="2" style={{position: "relative", top: "-20px"}}>Added in: v1.14</font><x-search>locator.evaluate</x-search>
+
+Execute JavaScript code in the page, taking the matching element as an argument.
+
+**Usage**
+
+Passing argument to [pageFunction](/api/class-locator.mdx#locator-evaluate-option-expression):
+
+```js
+const result = await page.getByTestId('myId').evaluate((element, [x, y]) => {
+  return element.textContent + ' ' + x * y;
+}, [7, 8]);
+console.log(result); // prints "myId text 56"
+```
+
+**Arguments**
+- `pageFunction` [function] | [string]<a aria-hidden="true" tabIndex="-1" class="list-anchor-link" id="locator-evaluate-option-expression"/><a href="#locator-evaluate-option-expression" class="list-anchor">#</a>
+  
+  Function to be evaluated in the page context.
+- `arg` [EvaluationArgument] *(optional)*<a aria-hidden="true" tabIndex="-1" class="list-anchor-link" id="locator-evaluate-option-arg"/><a href="#locator-evaluate-option-arg" class="list-anchor">#</a>
+  
+  Optional argument to pass to [pageFunction](/api/class-locator.mdx#locator-evaluate-option-expression).
+- `options` [Object] *(optional)*
+  - `timeout` [number] *(optional)*<a aria-hidden="true" tabIndex="-1" class="list-anchor-link" id="locator-evaluate-option-timeout"/><a href="#locator-evaluate-option-timeout" class="list-anchor">#</a>
+    
+    Maximum time in milliseconds to wait for the locator before evaluating. Note that after locator is resolved, evaluation itself is not limited by the timeout. Defaults to `0` - no timeout.
+
+**Returns**
+- [Promise]&lt;[Serializable]&gt;<a aria-hidden="true" tabIndex="-1" class="list-anchor-link" id="locator-evaluate-return"/><a href="#locator-evaluate-return" class="list-anchor">#</a>
+
+**Details**
+
+Returns the return value of [pageFunction](/api/class-locator.mdx#locator-evaluate-option-expression), called with the matching element as a first argument, and [arg](/api/class-locator.mdx#locator-evaluate-option-arg) as a second argument.
+
+If [pageFunction](/api/class-locator.mdx#locator-evaluate-option-expression) returns a [Promise], this method will wait for the promise to resolve and return its value.
+
+If [pageFunction](/api/class-locator.mdx#locator-evaluate-option-expression) throws or rejects, this method throws.
+
+---
+
+### evaluateAll {/* #locator-evaluate-all */}
+
+<font size="2" style={{position: "relative", top: "-20px"}}>Added in: v1.14</font><x-search>locator.evaluateAll</x-search>
+
+Execute JavaScript code in the page, taking all matching elements as an argument.
+
+**Usage**
+
+```js
+const locator = page.locator('div');
+const moreThanTen = await locator.evaluateAll((divs, min) => divs.length > min, 10);
+```
+
+**Arguments**
+- `pageFunction` [function] | [string]<a aria-hidden="true" tabIndex="-1" class="list-anchor-link" id="locator-evaluate-all-option-expression"/><a href="#locator-evaluate-all-option-expression" class="list-anchor">#</a>
+  
+  Function to be evaluated in the page context.
+- `arg` [EvaluationArgument] *(optional)*<a aria-hidden="true" tabIndex="-1" class="list-anchor-link" id="locator-evaluate-all-option-arg"/><a href="#locator-evaluate-all-option-arg" class="list-anchor">#</a>
+  
+  Optional argument to pass to [pageFunction](/api/class-locator.mdx#locator-evaluate-all-option-expression).
+
+**Returns**
+- [Promise]&lt;[Serializable]&gt;<a aria-hidden="true" tabIndex="-1" class="list-anchor-link" id="locator-evaluate-all-return"/><a href="#locator-evaluate-all-return" class="list-anchor">#</a>
+
+**Details**
+
+Returns the return value of [pageFunction](/api/class-locator.mdx#locator-evaluate-all-option-expression), called with an array of all matching elements as a first argument, and [arg](/api/class-locator.mdx#locator-evaluate-all-option-arg) as a second argument.
+
+If [pageFunction](/api/class-locator.mdx#locator-evaluate-all-option-expression) returns a [Promise], this method will wait for the promise to resolve and return its value.
+
+If [pageFunction](/api/class-locator.mdx#locator-evaluate-all-option-expression) throws or rejects, this method throws.
+
+---
+
+### evaluateHandle {/* #locator-evaluate-handle */}
+
+<font size="2" style={{position: "relative", top: "-20px"}}>Added in: v1.14</font><x-search>locator.evaluateHandle</x-search>
+
+Execute JavaScript code in the page, taking the matching element as an argument, and return a [JSHandle] with the result.
+
+**Usage**
+
+```js
+await locator.evaluateHandle(pageFunction);
+await locator.evaluateHandle(pageFunction, arg, options);
+```
+
+**Arguments**
+- `pageFunction` [function] | [string]<a aria-hidden="true" tabIndex="-1" class="list-anchor-link" id="locator-evaluate-handle-option-expression"/><a href="#locator-evaluate-handle-option-expression" class="list-anchor">#</a>
+  
+  Function to be evaluated in the page context.
+- `arg` [EvaluationArgument] *(optional)*<a aria-hidden="true" tabIndex="-1" class="list-anchor-link" id="locator-evaluate-handle-option-arg"/><a href="#locator-evaluate-handle-option-arg" class="list-anchor">#</a>
+  
+  Optional argument to pass to [pageFunction](/api/class-locator.mdx#locator-evaluate-handle-option-expression).
+- `options` [Object] *(optional)*
+  - `timeout` [number] *(optional)*<a aria-hidden="true" tabIndex="-1" class="list-anchor-link" id="locator-evaluate-handle-option-timeout"/><a href="#locator-evaluate-handle-option-timeout" class="list-anchor">#</a>
+    
+    Maximum time in milliseconds to wait for the locator before evaluating. Note that after locator is resolved, evaluation itself is not limited by the timeout. Defaults to `0` - no timeout.
+
+**Returns**
+- [Promise]&lt;[JSHandle]&gt;<a aria-hidden="true" tabIndex="-1" class="list-anchor-link" id="locator-evaluate-handle-return"/><a href="#locator-evaluate-handle-return" class="list-anchor">#</a>
+
+**Details**
+
+Returns the return value of [pageFunction](/api/class-locator.mdx#locator-evaluate-handle-option-expression) as a[JSHandle], called with the matching element as a first argument, and [arg](/api/class-locator.mdx#locator-evaluate-handle-option-arg) as a second argument.
+
+The only difference between [locator.evaluate()](/api/class-locator.mdx#locator-evaluate) and [locator.evaluateHandle()](/api/class-locator.mdx#locator-evaluate-handle) is that [locator.evaluateHandle()](/api/class-locator.mdx#locator-evaluate-handle) returns [JSHandle].
+
+If [pageFunction](/api/class-locator.mdx#locator-evaluate-handle-option-expression) returns a [Promise], this method will wait for the promise to resolve and return its value.
+
+If [pageFunction](/api/class-locator.mdx#locator-evaluate-handle-option-expression) throws or rejects, this method throws.
+
+See [page.evaluateHandle()](/api/class-page.mdx#page-evaluate-handle) for more details.
+
+---
+
+### fill {/* #locator-fill */}
+
+<font size="2" style={{position: "relative", top: "-20px"}}>Added in: v1.14</font><x-search>locator.fill</x-search>
+
+Set a value to the input field.
+
+**Usage**
+
+```js
+await page.getByRole('textbox').fill('example value');
+```
+
+**Arguments**
+- `value` [string]<a aria-hidden="true" tabIndex="-1" class="list-anchor-link" id="locator-fill-option-value"/><a href="#locator-fill-option-value" class="list-anchor">#</a>
+  
+  Value to set for the `<input>`, `<textarea>` or `[contenteditable]` element.
+- `options` [Object] *(optional)*
+  - `force` [boolean] *(optional)*<a aria-hidden="true" tabIndex="-1" class="list-anchor-link" id="locator-fill-option-force"/><a href="#locator-fill-option-force" class="list-anchor">#</a>
+    
+    Whether to bypass the [actionability](../actionability.mdx) checks. Defaults to `false`.
+  - `noWaitAfter` [boolean] *(optional)*<a aria-hidden="true" tabIndex="-1" class="list-anchor-link" id="locator-fill-option-no-wait-after"/><a href="#locator-fill-option-no-wait-after" class="list-anchor">#</a>
+    
+    :::warning[Deprecated]
+    This option has no effect.
+    :::
+    
+    
+    This option has no effect.
+  - `timeout` [number] *(optional)*<a aria-hidden="true" tabIndex="-1" class="list-anchor-link" id="locator-fill-option-timeout"/><a href="#locator-fill-option-timeout" class="list-anchor">#</a>
+    
+    Maximum time in milliseconds. Defaults to `0` - no timeout. The default value can be changed via `actionTimeout` option in the config, or by using the [browserContext.setDefaultTimeout()](/api/class-browsercontext.mdx#browser-context-set-default-timeout) or [page.setDefaultTimeout()](/api/class-page.mdx#page-set-default-timeout) methods.
+
+**Returns**
+- [Promise]&lt;[void]&gt;<a aria-hidden="true" tabIndex="-1" class="list-anchor-link" id="locator-fill-return"/><a href="#locator-fill-return" class="list-anchor">#</a>
+
+**Details**
+
+This method waits for [actionability](../actionability.mdx) checks, focuses the element, fills it and triggers an `input` event after filling. Note that you can pass an empty string to clear the input field.
+
+If the target element is not an `<input>`, `<textarea>` or `[contenteditable]` element, this method throws an error. However, if the element is inside the `<label>` element that has an associated [control](https://developer.mozilla.org/en-US/docs/Web/API/HTMLLabelElement/control), the control will be filled instead.
+
+To send fine-grained keyboard events, use [locator.pressSequentially()](/api/class-locator.mdx#locator-press-sequentially).
+
+---
+
+### filter {/* #locator-filter */}
+
+<font size="2" style={{position: "relative", top: "-20px"}}>Added in: v1.22</font><x-search>locator.filter</x-search>
+
+This method narrows existing locator according to the options, for example filters by text. It can be chained to filter multiple times.
+
+**Usage**
+
+```js
+const rowLocator = page.locator('tr');
+// ...
+await rowLocator
+    .filter({ hasText: 'text in column 1' })
+    .filter({ has: page.getByRole('button', { name: 'column 2 button' }) })
+    .screenshot();
+```
+
+**Arguments**
+- `options` [Object] *(optional)*
+  - `has` [Locator] *(optional)*<a aria-hidden="true" tabIndex="-1" class="list-anchor-link" id="locator-filter-option-has"/><a href="#locator-filter-option-has" class="list-anchor">#</a>
+    
+    Narrows down the results of the method to those which contain elements matching this relative locator. For example, `article` that has `text=Playwright` matches `<article><div>Playwright</div></article>`.
+    
+    Inner locator **must be relative** to the outer locator and is queried starting with the outer locator match, not the document root. For example, you can find `content` that has `div` in `<article><content><div>Playwright</div></content></article>`. However, looking for `content` that has `article div` will fail, because the inner locator must be relative and should not use any elements outside the `content`.
+    
+    Note that outer and inner locators must belong to the same frame. Inner locator must not contain [FrameLocator]s.
+  - `hasNot` [Locator] *(optional)* <font size="2">Added in: v1.33</font><a aria-hidden="true" tabIndex="-1" class="list-anchor-link" id="locator-filter-option-has-not"/><a href="#locator-filter-option-has-not" class="list-anchor">#</a>
+    
+    Matches elements that do not contain an element that matches an inner locator. Inner locator is queried against the outer one. For example, `article` that does not have `div` matches `<article><span>Playwright</span></article>`.
+    
+    Note that outer and inner locators must belong to the same frame. Inner locator must not contain [FrameLocator]s.
+  - `hasNotText` [string] | [RegExp] *(optional)* <font size="2">Added in: v1.33</font><a aria-hidden="true" tabIndex="-1" class="list-anchor-link" id="locator-filter-option-has-not-text"/><a href="#locator-filter-option-has-not-text" class="list-anchor">#</a>
+    
+    Matches elements that do not contain specified text somewhere inside, possibly in a child or a descendant element. When passed a [string], matching is case-insensitive and searches for a substring.
+  - `hasText` [string] | [RegExp] *(optional)*<a aria-hidden="true" tabIndex="-1" class="list-anchor-link" id="locator-filter-option-has-text"/><a href="#locator-filter-option-has-text" class="list-anchor">#</a>
+    
+    Matches elements containing specified text somewhere inside, possibly in a child or a descendant element. When passed a [string], matching is case-insensitive and searches for a substring. For example, `"Playwright"` matches `<article><div>Playwright</div></article>`.
+  - `visible` [boolean] *(optional)* <font size="2">Added in: v1.51</font><a aria-hidden="true" tabIndex="-1" class="list-anchor-link" id="locator-filter-option-visible"/><a href="#locator-filter-option-visible" class="list-anchor">#</a>
+    
+    Only matches visible or invisible elements.
+
+**Returns**
+- [Locator]<a aria-hidden="true" tabIndex="-1" class="list-anchor-link" id="locator-filter-return"/><a href="#locator-filter-return" class="list-anchor">#</a>
+
+---
+
+### first {/* #locator-first */}
+
+<font size="2" style={{position: "relative", top: "-20px"}}>Added in: v1.14</font><x-search>locator.first</x-search>
+
+Returns locator to the first matching element.
+
+**Usage**
+
+```js
+locator.first();
+```
+
+**Returns**
+- [Locator]<a aria-hidden="true" tabIndex="-1" class="list-anchor-link" id="locator-first-return"/><a href="#locator-first-return" class="list-anchor">#</a>
+
+---
+
+### focus {/* #locator-focus */}
+
+<font size="2" style={{position: "relative", top: "-20px"}}>Added in: v1.14</font><x-search>locator.focus</x-search>
+
+Calls [focus](https://developer.mozilla.org/en-US/docs/Web/API/HTMLElement/focus) on the matching element.
+
+**Usage**
+
+```js
+await locator.focus();
+await locator.focus(options);
+```
+
+**Arguments**
+- `options` [Object] *(optional)*
+  - `timeout` [number] *(optional)*<a aria-hidden="true" tabIndex="-1" class="list-anchor-link" id="locator-focus-option-timeout"/><a href="#locator-focus-option-timeout" class="list-anchor">#</a>
+    
+    Maximum time in milliseconds. Defaults to `0` - no timeout. The default value can be changed via `actionTimeout` option in the config, or by using the [browserContext.setDefaultTimeout()](/api/class-browsercontext.mdx#browser-context-set-default-timeout) or [page.setDefaultTimeout()](/api/class-page.mdx#page-set-default-timeout) methods.
+
+**Returns**
+- [Promise]&lt;[void]&gt;<a aria-hidden="true" tabIndex="-1" class="list-anchor-link" id="locator-focus-return"/><a href="#locator-focus-return" class="list-anchor">#</a>
+
+---
+
+### frameLocator {/* #locator-frame-locator */}
+
+<font size="2" style={{position: "relative", top: "-20px"}}>Added in: v1.17</font><x-search>locator.frameLocator</x-search>
+
+When working with iframes, you can create a frame locator that will enter the iframe and allow locating elements in that iframe:
+
+**Usage**
+
+```js
+const locator = page.frameLocator('iframe').getByText('Submit');
+await locator.click();
+```
+
+**Arguments**
+- `selector` [string]<a aria-hidden="true" tabIndex="-1" class="list-anchor-link" id="locator-frame-locator-option-selector"/><a href="#locator-frame-locator-option-selector" class="list-anchor">#</a>
+  
+  A selector to use when resolving DOM element.
+
+**Returns**
+- [FrameLocator]<a aria-hidden="true" tabIndex="-1" class="list-anchor-link" id="locator-frame-locator-return"/><a href="#locator-frame-locator-return" class="list-anchor">#</a>
+
+---
+
+### getAttribute {/* #locator-get-attribute */}
+
+<font size="2" style={{position: "relative", top: "-20px"}}>Added in: v1.14</font><x-search>locator.getAttribute</x-search>
+
+Returns the matching element's attribute value.
+
+:::warning[Asserting attributes]
+
+If you need to assert an element's attribute, prefer [expect(locator).toHaveAttribute()](/api/class-locatorassertions.mdx#locator-assertions-to-have-attribute) to avoid flakiness. See [assertions guide](../test-assertions.mdx) for more details.
+:::
+
+**Usage**
+
+```js
+await locator.getAttribute(name);
+await locator.getAttribute(name, options);
+```
+
+**Arguments**
+- `name` [string]<a aria-hidden="true" tabIndex="-1" class="list-anchor-link" id="locator-get-attribute-option-name"/><a href="#locator-get-attribute-option-name" class="list-anchor">#</a>
+  
+  Attribute name to get the value for.
+- `options` [Object] *(optional)*
+  - `timeout` [number] *(optional)*<a aria-hidden="true" tabIndex="-1" class="list-anchor-link" id="locator-get-attribute-option-timeout"/><a href="#locator-get-attribute-option-timeout" class="list-anchor">#</a>
+    
+    Maximum time in milliseconds. Defaults to `0` - no timeout. The default value can be changed via `actionTimeout` option in the config, or by using the [browserContext.setDefaultTimeout()](/api/class-browsercontext.mdx#browser-context-set-default-timeout) or [page.setDefaultTimeout()](/api/class-page.mdx#page-set-default-timeout) methods.
+
+**Returns**
+- [Promise]&lt;[null] | [string]&gt;<a aria-hidden="true" tabIndex="-1" class="list-anchor-link" id="locator-get-attribute-return"/><a href="#locator-get-attribute-return" class="list-anchor">#</a>
+
+---
+
+### getByAltText {/* #locator-get-by-alt-text */}
+
+<font size="2" style={{position: "relative", top: "-20px"}}>Added in: v1.27</font><x-search>locator.getByAltText</x-search>
+
+Allows locating elements by their alt text.
+
+**Usage**
+
+For example, this method will find the image by alt text "Playwright logo":
+
+```html
+<img alt='Playwright logo'>
+```
+
+```js
+await page.getByAltText('Playwright logo').click();
+```
+
+**Arguments**
+- `text` [string] | [RegExp]<a aria-hidden="true" tabIndex="-1" class="list-anchor-link" id="locator-get-by-alt-text-option-text"/><a href="#locator-get-by-alt-text-option-text" class="list-anchor">#</a>
+  
+  Text to locate the element for.
+- `options` [Object] *(optional)*
+  - `exact` [boolean] *(optional)*<a aria-hidden="true" tabIndex="-1" class="list-anchor-link" id="locator-get-by-alt-text-option-exact"/><a href="#locator-get-by-alt-text-option-exact" class="list-anchor">#</a>
+    
+    Whether to find an exact match: case-sensitive and whole-string. Default to false. Ignored when locating by a regular expression. Note that exact match still trims whitespace.
+
+**Returns**
+- [Locator]<a aria-hidden="true" tabIndex="-1" class="list-anchor-link" id="locator-get-by-alt-text-return"/><a href="#locator-get-by-alt-text-return" class="list-anchor">#</a>
+
+---
+
+### getByLabel {/* #locator-get-by-label */}
+
+<font size="2" style={{position: "relative", top: "-20px"}}>Added in: v1.27</font><x-search>locator.getByLabel</x-search>
+
+Allows locating input elements by the text of the associated `<label>` or `aria-labelledby` element, or by the `aria-label` attribute.
+
+**Usage**
+
+For example, this method will find inputs by label "Username" and "Password" in the following DOM:
+
+```html
+<input aria-label="Username">
+<label for="password-input">Password:</label>
+<input id="password-input">
+```
+
+```js
+await page.getByLabel('Username').fill('john');
+await page.getByLabel('Password').fill('secret');
+```
+
+**Arguments**
+- `text` [string] | [RegExp]<a aria-hidden="true" tabIndex="-1" class="list-anchor-link" id="locator-get-by-label-option-text"/><a href="#locator-get-by-label-option-text" class="list-anchor">#</a>
+  
+  Text to locate the element for.
+- `options` [Object] *(optional)*
+  - `exact` [boolean] *(optional)*<a aria-hidden="true" tabIndex="-1" class="list-anchor-link" id="locator-get-by-label-option-exact"/><a href="#locator-get-by-label-option-exact" class="list-anchor">#</a>
+    
+    Whether to find an exact match: case-sensitive and whole-string. Default to false. Ignored when locating by a regular expression. Note that exact match still trims whitespace.
+
+**Returns**
+- [Locator]<a aria-hidden="true" tabIndex="-1" class="list-anchor-link" id="locator-get-by-label-return"/><a href="#locator-get-by-label-return" class="list-anchor">#</a>
+
+---
+
+### getByPlaceholder {/* #locator-get-by-placeholder */}
+
+<font size="2" style={{position: "relative", top: "-20px"}}>Added in: v1.27</font><x-search>locator.getByPlaceholder</x-search>
+
+Allows locating input elements by the placeholder text.
+
+**Usage**
+
+For example, consider the following DOM structure.
+
+```html
+<input type="email" placeholder="name@example.com" />
+```
+
+You can fill the input after locating it by the placeholder text:
+
+```js
+await page
+    .getByPlaceholder('name@example.com')
+    .fill('playwright@microsoft.com');
+```
+
+**Arguments**
+- `text` [string] | [RegExp]<a aria-hidden="true" tabIndex="-1" class="list-anchor-link" id="locator-get-by-placeholder-option-text"/><a href="#locator-get-by-placeholder-option-text" class="list-anchor">#</a>
+  
+  Text to locate the element for.
+- `options` [Object] *(optional)*
+  - `exact` [boolean] *(optional)*<a aria-hidden="true" tabIndex="-1" class="list-anchor-link" id="locator-get-by-placeholder-option-exact"/><a href="#locator-get-by-placeholder-option-exact" class="list-anchor">#</a>
+    
+    Whether to find an exact match: case-sensitive and whole-string. Default to false. Ignored when locating by a regular expression. Note that exact match still trims whitespace.
+
+**Returns**
+- [Locator]<a aria-hidden="true" tabIndex="-1" class="list-anchor-link" id="locator-get-by-placeholder-return"/><a href="#locator-get-by-placeholder-return" class="list-anchor">#</a>
+
+---
+
+### getByRole {/* #locator-get-by-role */}
+
+<font size="2" style={{position: "relative", top: "-20px"}}>Added in: v1.27</font><x-search>locator.getByRole</x-search>
+
+Allows locating elements by their [ARIA role](https://www.w3.org/TR/wai-aria-1.2/#roles), [ARIA attributes](https://www.w3.org/TR/wai-aria-1.2/#aria-attributes) and [accessible name](https://w3c.github.io/accname/#dfn-accessible-name).
+
+**Usage**
+
+Consider the following DOM structure.
+
+```html
+<h3>Sign up</h3>
+<label>
+  <input type="checkbox" /> Subscribe
+</label>
+<br/>
+<button>Submit</button>
+```
+
+You can locate each element by its implicit role:
+
+```js
+await expect(page.getByRole('heading', { name: 'Sign up' })).toBeVisible();
+
+await page.getByRole('checkbox', { name: 'Subscribe' }).check();
+
+await page.getByRole('button', { name: /submit/i }).click();
+```
+
+**Arguments**
+- `role` "alert" | "alertdialog" | "application" | "article" | "banner" | "blockquote" | "button" | "caption" | "cell" | "checkbox" | "code" | "columnheader" | "combobox" | "complementary" | "contentinfo" | "definition" | "deletion" | "dialog" | "directory" | "document" | "emphasis" | "feed" | "figure" | "form" | "generic" | "grid" | "gridcell" | "group" | "heading" | "img" | "insertion" | "link" | "list" | "listbox" | "listitem" | "log" | "main" | "marquee" | "math" | "meter" | "menu" | "menubar" | "menuitem" | "menuitemcheckbox" | "menuitemradio" | "navigation" | "none" | "note" | "option" | "paragraph" | "presentation" | "progressbar" | "radio" | "radiogroup" | "region" | "row" | "rowgroup" | "rowheader" | "scrollbar" | "search" | "searchbox" | "separator" | "slider" | "spinbutton" | "status" | "strong" | "subscript" | "superscript" | "switch" | "tab" | "table" | "tablist" | "tabpanel" | "term" | "textbox" | "time" | "timer" | "toolbar" | "tooltip" | "tree" | "treegrid" | "treeitem"<a aria-hidden="true" tabIndex="-1" class="list-anchor-link" id="locator-get-by-role-option-role"/><a href="#locator-get-by-role-option-role" class="list-anchor">#</a>
+  
+  Required aria role.
+- `options` [Object] *(optional)*
+  - `checked` [boolean] *(optional)*<a aria-hidden="true" tabIndex="-1" class="list-anchor-link" id="locator-get-by-role-option-checked"/><a href="#locator-get-by-role-option-checked" class="list-anchor">#</a>
+    
+    An attribute that is usually set by `aria-checked` or native `<input type=checkbox>` controls.
+    
+    Learn more about [`aria-checked`](https://www.w3.org/TR/wai-aria-1.2/#aria-checked).
+  - `description` [string] | [RegExp] *(optional)* <font size="2">Added in: v1.60</font><a aria-hidden="true" tabIndex="-1" class="list-anchor-link" id="locator-get-by-role-option-description"/><a href="#locator-get-by-role-option-description" class="list-anchor">#</a>
+    
+    Option to match the [accessible description](https://w3c.github.io/accname/#dfn-accessible-description). By default, matching is case-insensitive and searches for a substring, use [exact](/api/class-locator.mdx#locator-get-by-role-option-exact) to control this behavior.
+    
+    Learn more about [accessible description](https://w3c.github.io/accname/#dfn-accessible-description).
+  - `disabled` [boolean] *(optional)*<a aria-hidden="true" tabIndex="-1" class="list-anchor-link" id="locator-get-by-role-option-disabled"/><a href="#locator-get-by-role-option-disabled" class="list-anchor">#</a>
+    
+    An attribute that is usually set by `aria-disabled` or `disabled`.
+    
+    :::note
+    
+    Unlike most other attributes, `disabled` is inherited through the DOM hierarchy. Learn more about [`aria-disabled`](https://www.w3.org/TR/wai-aria-1.2/#aria-disabled).
+    :::
+    
+  - `exact` [boolean] *(optional)* <font size="2">Added in: v1.28</font><a aria-hidden="true" tabIndex="-1" class="list-anchor-link" id="locator-get-by-role-option-exact"/><a href="#locator-get-by-role-option-exact" class="list-anchor">#</a>
+    
+    Whether [name](/api/class-locator.mdx#locator-get-by-role-option-name) and [description](/api/class-locator.mdx#locator-get-by-role-option-description) are matched exactly: case-sensitive and whole-string. Defaults to false. Ignored when the value is a regular expression. Note that exact match still trims whitespace.
+  - `expanded` [boolean] *(optional)*<a aria-hidden="true" tabIndex="-1" class="list-anchor-link" id="locator-get-by-role-option-expanded"/><a href="#locator-get-by-role-option-expanded" class="list-anchor">#</a>
+    
+    An attribute that is usually set by `aria-expanded`.
+    
+    Learn more about [`aria-expanded`](https://www.w3.org/TR/wai-aria-1.2/#aria-expanded).
+  - `includeHidden` [boolean] *(optional)*<a aria-hidden="true" tabIndex="-1" class="list-anchor-link" id="locator-get-by-role-option-include-hidden"/><a href="#locator-get-by-role-option-include-hidden" class="list-anchor">#</a>
+    
+    Option that controls whether hidden elements are matched. By default, only non-hidden elements, as [defined by ARIA](https://www.w3.org/TR/wai-aria-1.2/#tree_exclusion), are matched by role selector.
+    
+    Learn more about [`aria-hidden`](https://www.w3.org/TR/wai-aria-1.2/#aria-hidden).
+  - `level` [number] *(optional)*<a aria-hidden="true" tabIndex="-1" class="list-anchor-link" id="locator-get-by-role-option-level"/><a href="#locator-get-by-role-option-level" class="list-anchor">#</a>
+    
+    A number attribute that is usually present for roles `heading`, `listitem`, `row`, `treeitem`, with default values for `<h1>-<h6>` elements.
+    
+    Learn more about [`aria-level`](https://www.w3.org/TR/wai-aria-1.2/#aria-level).
+  - `name` [string] | [RegExp] *(optional)*<a aria-hidden="true" tabIndex="-1" class="list-anchor-link" id="locator-get-by-role-option-name"/><a href="#locator-get-by-role-option-name" class="list-anchor">#</a>
+    
+    Option to match the [accessible name](https://w3c.github.io/accname/#dfn-accessible-name). By default, matching is case-insensitive and searches for a substring, use [exact](/api/class-locator.mdx#locator-get-by-role-option-exact) to control this behavior.
+    
+    Learn more about [accessible name](https://w3c.github.io/accname/#dfn-accessible-name).
+  - `pressed` [boolean] *(optional)*<a aria-hidden="true" tabIndex="-1" class="list-anchor-link" id="locator-get-by-role-option-pressed"/><a href="#locator-get-by-role-option-pressed" class="list-anchor">#</a>
+    
+    An attribute that is usually set by `aria-pressed`.
+    
+    Learn more about [`aria-pressed`](https://www.w3.org/TR/wai-aria-1.2/#aria-pressed).
+  - `selected` [boolean] *(optional)*<a aria-hidden="true" tabIndex="-1" class="list-anchor-link" id="locator-get-by-role-option-selected"/><a href="#locator-get-by-role-option-selected" class="list-anchor">#</a>
+    
+    An attribute that is usually set by `aria-selected`.
+    
+    Learn more about [`aria-selected`](https://www.w3.org/TR/wai-aria-1.2/#aria-selected).
+
+**Returns**
+- [Locator]<a aria-hidden="true" tabIndex="-1" class="list-anchor-link" id="locator-get-by-role-return"/><a href="#locator-get-by-role-return" class="list-anchor">#</a>
+
+**Details**
+
+Role selector **does not replace** accessibility audits and conformance tests, but rather gives early feedback about the ARIA guidelines.
+
+Many html elements have an implicitly [defined role](https://w3c.github.io/html-aam/#html-element-role-mappings) that is recognized by the role selector. You can find all the [supported roles here](https://www.w3.org/TR/wai-aria-1.2/#role_definitions). ARIA guidelines **do not recommend** duplicating implicit roles and attributes by setting `role` and/or `aria-*` attributes to default values.
+
+---
+
+### getByTestId {/* #locator-get-by-test-id */}
+
+<font size="2" style={{position: "relative", top: "-20px"}}>Added in: v1.27</font><x-search>locator.getByTestId</x-search>
+
+Locate element by the test id.
+
+**Usage**
+
+Consider the following DOM structure.
+
+```html
+<button data-testid="directions">Itinéraire</button>
+```
+
+You can locate the element by its test id:
+
+```js
+await page.getByTestId('directions').click();
+```
+
+**Arguments**
+- `testId` [string] | [RegExp]<a aria-hidden="true" tabIndex="-1" class="list-anchor-link" id="locator-get-by-test-id-option-test-id"/><a href="#locator-get-by-test-id-option-test-id" class="list-anchor">#</a>
+  
+  Id to locate the element by.
+
+**Returns**
+- [Locator]<a aria-hidden="true" tabIndex="-1" class="list-anchor-link" id="locator-get-by-test-id-return"/><a href="#locator-get-by-test-id-return" class="list-anchor">#</a>
+
+**Details**
+
+By default, the `data-testid` attribute is used as a test id. Use [selectors.setTestIdAttribute()](/api/class-selectors.mdx#selectors-set-test-id-attribute) to configure a different test id attribute if necessary.
+
+```js
+// Set custom test id attribute from @playwright/test config:
+import { defineConfig } from '@playwright/test';
+
+export default defineConfig({
+  use: {
+    testIdAttribute: 'data-pw'
+  },
+});
+```
+
+---
+
+### getByText {/* #locator-get-by-text */}
+
+<font size="2" style={{position: "relative", top: "-20px"}}>Added in: v1.27</font><x-search>locator.getByText</x-search>
+
+Allows locating elements that contain given text.
+
+See also [locator.filter()](/api/class-locator.mdx#locator-filter) that allows to match by another criteria, like an accessible role, and then filter by the text content.
+
+**Usage**
+
+Consider the following DOM structure:
+
+```html
+<div>Hello <span>world</span></div>
+<div>Hello</div>
+```
+
+You can locate by text substring, exact string, or a regular expression:
+
+```js
+// Matches <span>
+page.getByText('world');
+
+// Matches first <div>
+page.getByText('Hello world');
+
+// Matches second <div>
+page.getByText('Hello', { exact: true });
+
+// Matches both <div>s
+page.getByText(/Hello/);
+
+// Matches second <div>
+page.getByText(/^hello$/i);
+```
+
+**Arguments**
+- `text` [string] | [RegExp]<a aria-hidden="true" tabIndex="-1" class="list-anchor-link" id="locator-get-by-text-option-text"/><a href="#locator-get-by-text-option-text" class="list-anchor">#</a>
+  
+  Text to locate the element for.
+- `options` [Object] *(optional)*
+  - `exact` [boolean] *(optional)*<a aria-hidden="true" tabIndex="-1" class="list-anchor-link" id="locator-get-by-text-option-exact"/><a href="#locator-get-by-text-option-exact" class="list-anchor">#</a>
+    
+    Whether to find an exact match: case-sensitive and whole-string. Default to false. Ignored when locating by a regular expression. Note that exact match still trims whitespace.
+
+**Returns**
+- [Locator]<a aria-hidden="true" tabIndex="-1" class="list-anchor-link" id="locator-get-by-text-return"/><a href="#locator-get-by-text-return" class="list-anchor">#</a>
+
+**Details**
+
+Matching by text always normalizes whitespace, even with exact match. For example, it turns multiple spaces into one, turns line breaks into spaces and ignores leading and trailing whitespace.
+
+Input elements of the type `button` and `submit` are matched by their `value` instead of the text content. For example, locating by text `"Log in"` matches `<input type=button value="Log in">`.
+
+---
+
+### getByTitle {/* #locator-get-by-title */}
+
+<font size="2" style={{position: "relative", top: "-20px"}}>Added in: v1.27</font><x-search>locator.getByTitle</x-search>
+
+Allows locating elements by their title attribute.
+
+**Usage**
+
+Consider the following DOM structure.
+
+```html
+<span title='Issues count'>25 issues</span>
+```
+
+You can check the issues count after locating it by the title text:
+
+```js
+await expect(page.getByTitle('Issues count')).toHaveText('25 issues');
+```
+
+**Arguments**
+- `text` [string] | [RegExp]<a aria-hidden="true" tabIndex="-1" class="list-anchor-link" id="locator-get-by-title-option-text"/><a href="#locator-get-by-title-option-text" class="list-anchor">#</a>
+  
+  Text to locate the element for.
+- `options` [Object] *(optional)*
+  - `exact` [boolean] *(optional)*<a aria-hidden="true" tabIndex="-1" class="list-anchor-link" id="locator-get-by-title-option-exact"/><a href="#locator-get-by-title-option-exact" class="list-anchor">#</a>
+    
+    Whether to find an exact match: case-sensitive and whole-string. Default to false. Ignored when locating by a regular expression. Note that exact match still trims whitespace.
+
+**Returns**
+- [Locator]<a aria-hidden="true" tabIndex="-1" class="list-anchor-link" id="locator-get-by-title-return"/><a href="#locator-get-by-title-return" class="list-anchor">#</a>
+
+---
+
+### hideHighlight {/* #locator-hide-highlight */}
+
+<font size="2" style={{position: "relative", top: "-20px"}}>Added in: v1.60</font><x-search>locator.hideHighlight</x-search>
+
+Hides the element highlight previously added by [locator.highlight()](/api/class-locator.mdx#locator-highlight).
+
+**Usage**
+
+```js
+await locator.hideHighlight();
+```
+
+**Returns**
+- [Promise]&lt;[void]&gt;<a aria-hidden="true" tabIndex="-1" class="list-anchor-link" id="locator-hide-highlight-return"/><a href="#locator-hide-highlight-return" class="list-anchor">#</a>
+
+---
+
+### highlight {/* #locator-highlight */}
+
+<font size="2" style={{position: "relative", top: "-20px"}}>Added in: v1.20</font><x-search>locator.highlight</x-search>
+
+Highlight the corresponding element(s) on the screen. Useful for debugging, don't commit the code that uses [locator.highlight()](/api/class-locator.mdx#locator-highlight).
+
+**Usage**
+
+```js
+await locator.highlight();
+await locator.highlight(options);
+```
+
+**Arguments**
+- `options` [Object] *(optional)*
+  - `style` [string] | [Object]&lt;[string], [string] | [number]&gt; *(optional)* <font size="2">Added in: v1.60</font><a aria-hidden="true" tabIndex="-1" class="list-anchor-link" id="locator-highlight-option-style"/><a href="#locator-highlight-option-style" class="list-anchor">#</a>
+    
+    Inline CSS applied to the highlight overlay, e.g.
+    
+    ```js
+    await locator.highlight({ style: 'outline: 2px dashed red' });
+    await locator.highlight({ style: { color: 'red' } });
+    ```
+    
+**Returns**
+- [Promise]&lt;[Disposable]&gt;<a aria-hidden="true" tabIndex="-1" class="list-anchor-link" id="locator-highlight-return"/><a href="#locator-highlight-return" class="list-anchor">#</a>
+
+---
+
+### hover {/* #locator-hover */}
+
+<font size="2" style={{position: "relative", top: "-20px"}}>Added in: v1.14</font><x-search>locator.hover</x-search>
+
+Hover over the matching element.
+
+**Usage**
+
+```js
+await page.getByRole('link').hover();
+```
+
+**Arguments**
+- `options` [Object] *(optional)*
+  - `force` [boolean] *(optional)*<a aria-hidden="true" tabIndex="-1" class="list-anchor-link" id="locator-hover-option-force"/><a href="#locator-hover-option-force" class="list-anchor">#</a>
+    
+    Whether to bypass the [actionability](../actionability.mdx) checks. Defaults to `false`.
+  - `modifiers` [Array]&lt;"Alt" | "Control" | "ControlOrMeta" | "Meta" | "Shift"&gt; *(optional)*<a aria-hidden="true" tabIndex="-1" class="list-anchor-link" id="locator-hover-option-modifiers"/><a href="#locator-hover-option-modifiers" class="list-anchor">#</a>
+    
+    Modifier keys to press. Ensures that only these modifiers are pressed during the operation, and then restores current modifiers back. If not specified, currently pressed modifiers are used. "ControlOrMeta" resolves to "Control" on Windows and Linux and to "Meta" on macOS.
+  - `noWaitAfter` [boolean] *(optional)* <font size="2">Added in: v1.28</font><a aria-hidden="true" tabIndex="-1" class="list-anchor-link" id="locator-hover-option-no-wait-after"/><a href="#locator-hover-option-no-wait-after" class="list-anchor">#</a>
+    
+    :::warning[Deprecated]
+    This option has no effect.
+    :::
+    
+    
+    This option has no effect.
+  - `position` [Object] *(optional)*<a aria-hidden="true" tabIndex="-1" class="list-anchor-link" id="locator-hover-option-position"/><a href="#locator-hover-option-position" class="list-anchor">#</a>
+    - `x` [number]
+      
+      
+    - `y` [number]
+      
+      
+    A point to use relative to the top-left corner of element padding box. If not specified, uses some visible point of the element.
+  - `timeout` [number] *(optional)*<a aria-hidden="true" tabIndex="-1" class="list-anchor-link" id="locator-hover-option-timeout"/><a href="#locator-hover-option-timeout" class="list-anchor">#</a>
+    
+    Maximum time in milliseconds. Defaults to `0` - no timeout. The default value can be changed via `actionTimeout` option in the config, or by using the [browserContext.setDefaultTimeout()](/api/class-browsercontext.mdx#browser-context-set-default-timeout) or [page.setDefaultTimeout()](/api/class-page.mdx#page-set-default-timeout) methods.
+  - `trial` [boolean] *(optional)*<a aria-hidden="true" tabIndex="-1" class="list-anchor-link" id="locator-hover-option-trial"/><a href="#locator-hover-option-trial" class="list-anchor">#</a>
+    
+    When set, this method only performs the [actionability](../actionability.mdx) checks and skips the action. Defaults to `false`. Useful to wait until the element is ready for the action without performing it. Note that keyboard `modifiers` will be pressed regardless of `trial` to allow testing elements which are only visible when those keys are pressed.
+
+**Returns**
+- [Promise]&lt;[void]&gt;<a aria-hidden="true" tabIndex="-1" class="list-anchor-link" id="locator-hover-return"/><a href="#locator-hover-return" class="list-anchor">#</a>
+
+**Details**
+
+This method hovers over the element by performing the following steps:
+1. Wait for [actionability](../actionability.mdx) checks on the element, unless [force](/api/class-locator.mdx#locator-hover-option-force) option is set.
+1. Scroll the element into view if needed.
+1. Use [page.mouse](/api/class-page.mdx#page-mouse) to hover over the center of the element, or the specified [position](/api/class-locator.mdx#locator-hover-option-position).
+
+If the element is detached from the DOM at any moment during the action, this method throws.
+
+When all steps combined have not finished during the specified [timeout](/api/class-locator.mdx#locator-hover-option-timeout), this method throws a [TimeoutError]. Passing zero timeout disables this.
+
+---
+
+### innerHTML {/* #locator-inner-html */}
+
+<font size="2" style={{position: "relative", top: "-20px"}}>Added in: v1.14</font><x-search>locator.innerHTML</x-search>
+
+Returns the [`element.innerHTML`](https://developer.mozilla.org/en-US/docs/Web/API/Element/innerHTML).
+
+**Usage**
+
+```js
+await locator.innerHTML();
+await locator.innerHTML(options);
+```
+
+**Arguments**
+- `options` [Object] *(optional)*
+  - `timeout` [number] *(optional)*<a aria-hidden="true" tabIndex="-1" class="list-anchor-link" id="locator-inner-html-option-timeout"/><a href="#locator-inner-html-option-timeout" class="list-anchor">#</a>
+    
+    Maximum time in milliseconds. Defaults to `0` - no timeout. The default value can be changed via `actionTimeout` option in the config, or by using the [browserContext.setDefaultTimeout()](/api/class-browsercontext.mdx#browser-context-set-default-timeout) or [page.setDefaultTimeout()](/api/class-page.mdx#page-set-default-timeout) methods.
+
+**Returns**
+- [Promise]&lt;[string]&gt;<a aria-hidden="true" tabIndex="-1" class="list-anchor-link" id="locator-inner-html-return"/><a href="#locator-inner-html-return" class="list-anchor">#</a>
+
+---
+
+### innerText {/* #locator-inner-text */}
+
+<font size="2" style={{position: "relative", top: "-20px"}}>Added in: v1.14</font><x-search>locator.innerText</x-search>
+
+Returns the [`element.innerText`](https://developer.mozilla.org/en-US/docs/Web/API/HTMLElement/innerText).
+
+:::warning[Asserting text]
+
+If you need to assert text on the page, prefer [expect(locator).toHaveText()](/api/class-locatorassertions.mdx#locator-assertions-to-have-text) with [useInnerText](/api/class-locatorassertions.mdx#locator-assertions-to-have-text-option-use-inner-text) option to avoid flakiness. See [assertions guide](../test-assertions.mdx) for more details.
+:::
+
+**Usage**
+
+```js
+await locator.innerText();
+await locator.innerText(options);
+```
+
+**Arguments**
+- `options` [Object] *(optional)*
+  - `timeout` [number] *(optional)*<a aria-hidden="true" tabIndex="-1" class="list-anchor-link" id="locator-inner-text-option-timeout"/><a href="#locator-inner-text-option-timeout" class="list-anchor">#</a>
+    
+    Maximum time in milliseconds. Defaults to `0` - no timeout. The default value can be changed via `actionTimeout` option in the config, or by using the [browserContext.setDefaultTimeout()](/api/class-browsercontext.mdx#browser-context-set-default-timeout) or [page.setDefaultTimeout()](/api/class-page.mdx#page-set-default-timeout) methods.
+
+**Returns**
+- [Promise]&lt;[string]&gt;<a aria-hidden="true" tabIndex="-1" class="list-anchor-link" id="locator-inner-text-return"/><a href="#locator-inner-text-return" class="list-anchor">#</a>
+
+---
+
+### inputValue {/* #locator-input-value */}
+
+<font size="2" style={{position: "relative", top: "-20px"}}>Added in: v1.14</font><x-search>locator.inputValue</x-search>
+
+Returns the value for the matching `<input>` or `<textarea>` or `<select>` element.
+
+:::warning[Asserting value]
+
+If you need to assert input value, prefer [expect(locator).toHaveValue()](/api/class-locatorassertions.mdx#locator-assertions-to-have-value) to avoid flakiness. See [assertions guide](../test-assertions.mdx) for more details.
+:::
+
+**Usage**
+
+```js
+const value = await page.getByRole('textbox').inputValue();
+```
+
+**Arguments**
+- `options` [Object] *(optional)*
+  - `timeout` [number] *(optional)*<a aria-hidden="true" tabIndex="-1" class="list-anchor-link" id="locator-input-value-option-timeout"/><a href="#locator-input-value-option-timeout" class="list-anchor">#</a>
+    
+    Maximum time in milliseconds. Defaults to `0` - no timeout. The default value can be changed via `actionTimeout` option in the config, or by using the [browserContext.setDefaultTimeout()](/api/class-browsercontext.mdx#browser-context-set-default-timeout) or [page.setDefaultTimeout()](/api/class-page.mdx#page-set-default-timeout) methods.
+
+**Returns**
+- [Promise]&lt;[string]&gt;<a aria-hidden="true" tabIndex="-1" class="list-anchor-link" id="locator-input-value-return"/><a href="#locator-input-value-return" class="list-anchor">#</a>
+
+**Details**
+
+Throws elements that are not an input, textarea or a select. However, if the element is inside the `<label>` element that has an associated [control](https://developer.mozilla.org/en-US/docs/Web/API/HTMLLabelElement/control), returns the value of the control.
+
+---
+
+### isChecked {/* #locator-is-checked */}
+
+<font size="2" style={{position: "relative", top: "-20px"}}>Added in: v1.14</font><x-search>locator.isChecked</x-search>
+
+Returns whether the element is checked. Throws if the element is not a checkbox or radio input.
+
+:::warning[Asserting checked state]
+
+If you need to assert that checkbox is checked, prefer [expect(locator).toBeChecked()](/api/class-locatorassertions.mdx#locator-assertions-to-be-checked) to avoid flakiness. See [assertions guide](../test-assertions.mdx) for more details.
+:::
+
+**Usage**
+
+```js
+const checked = await page.getByRole('checkbox').isChecked();
+```
+
+**Arguments**
+- `options` [Object] *(optional)*
+  - `timeout` [number] *(optional)*<a aria-hidden="true" tabIndex="-1" class="list-anchor-link" id="locator-is-checked-option-timeout"/><a href="#locator-is-checked-option-timeout" class="list-anchor">#</a>
+    
+    Maximum time in milliseconds. Defaults to `0` - no timeout. The default value can be changed via `actionTimeout` option in the config, or by using the [browserContext.setDefaultTimeout()](/api/class-browsercontext.mdx#browser-context-set-default-timeout) or [page.setDefaultTimeout()](/api/class-page.mdx#page-set-default-timeout) methods.
+
+**Returns**
+- [Promise]&lt;[boolean]&gt;<a aria-hidden="true" tabIndex="-1" class="list-anchor-link" id="locator-is-checked-return"/><a href="#locator-is-checked-return" class="list-anchor">#</a>
+
+---
+
+### isDisabled {/* #locator-is-disabled */}
+
+<font size="2" style={{position: "relative", top: "-20px"}}>Added in: v1.14</font><x-search>locator.isDisabled</x-search>
+
+Returns whether the element is disabled, the opposite of [enabled](../actionability.mdx#enabled).
+
+:::warning[Asserting disabled state]
+
+If you need to assert that an element is disabled, prefer [expect(locator).toBeDisabled()](/api/class-locatorassertions.mdx#locator-assertions-to-be-disabled) to avoid flakiness. See [assertions guide](../test-assertions.mdx) for more details.
+:::
+
+**Usage**
+
+```js
+const disabled = await page.getByRole('button').isDisabled();
+```
+
+**Arguments**
+- `options` [Object] *(optional)*
+  - `timeout` [number] *(optional)*<a aria-hidden="true" tabIndex="-1" class="list-anchor-link" id="locator-is-disabled-option-timeout"/><a href="#locator-is-disabled-option-timeout" class="list-anchor">#</a>
+    
+    Maximum time in milliseconds. Defaults to `0` - no timeout. The default value can be changed via `actionTimeout` option in the config, or by using the [browserContext.setDefaultTimeout()](/api/class-browsercontext.mdx#browser-context-set-default-timeout) or [page.setDefaultTimeout()](/api/class-page.mdx#page-set-default-timeout) methods.
+
+**Returns**
+- [Promise]&lt;[boolean]&gt;<a aria-hidden="true" tabIndex="-1" class="list-anchor-link" id="locator-is-disabled-return"/><a href="#locator-is-disabled-return" class="list-anchor">#</a>
+
+---
+
+### isEditable {/* #locator-is-editable */}
+
+<font size="2" style={{position: "relative", top: "-20px"}}>Added in: v1.14</font><x-search>locator.isEditable</x-search>
+
+Returns whether the element is [editable](../actionability.mdx#editable). If the target element is not an `<input>`, `<textarea>`, `<select>`, `[contenteditable]` and does not have a role allowing `[aria-readonly]`, this method throws an error.
+
+:::warning[Asserting editable state]
+
+If you need to assert that an element is editable, prefer [expect(locator).toBeEditable()](/api/class-locatorassertions.mdx#locator-assertions-to-be-editable) to avoid flakiness. See [assertions guide](../test-assertions.mdx) for more details.
+:::
+
+**Usage**
+
+```js
+const editable = await page.getByRole('textbox').isEditable();
+```
+
+**Arguments**
+- `options` [Object] *(optional)*
+  - `timeout` [number] *(optional)*<a aria-hidden="true" tabIndex="-1" class="list-anchor-link" id="locator-is-editable-option-timeout"/><a href="#locator-is-editable-option-timeout" class="list-anchor">#</a>
+    
+    Maximum time in milliseconds. Defaults to `0` - no timeout. The default value can be changed via `actionTimeout` option in the config, or by using the [browserContext.setDefaultTimeout()](/api/class-browsercontext.mdx#browser-context-set-default-timeout) or [page.setDefaultTimeout()](/api/class-page.mdx#page-set-default-timeout) methods.
+
+**Returns**
+- [Promise]&lt;[boolean]&gt;<a aria-hidden="true" tabIndex="-1" class="list-anchor-link" id="locator-is-editable-return"/><a href="#locator-is-editable-return" class="list-anchor">#</a>
+
+---
+
+### isEnabled {/* #locator-is-enabled */}
+
+<font size="2" style={{position: "relative", top: "-20px"}}>Added in: v1.14</font><x-search>locator.isEnabled</x-search>
+
+Returns whether the element is [enabled](../actionability.mdx#enabled).
+
+:::warning[Asserting enabled state]
+
+If you need to assert that an element is enabled, prefer [expect(locator).toBeEnabled()](/api/class-locatorassertions.mdx#locator-assertions-to-be-enabled) to avoid flakiness. See [assertions guide](../test-assertions.mdx) for more details.
+:::
+
+**Usage**
+
+```js
+const enabled = await page.getByRole('button').isEnabled();
+```
+
+**Arguments**
+- `options` [Object] *(optional)*
+  - `timeout` [number] *(optional)*<a aria-hidden="true" tabIndex="-1" class="list-anchor-link" id="locator-is-enabled-option-timeout"/><a href="#locator-is-enabled-option-timeout" class="list-anchor">#</a>
+    
+    Maximum time in milliseconds. Defaults to `0` - no timeout. The default value can be changed via `actionTimeout` option in the config, or by using the [browserContext.setDefaultTimeout()](/api/class-browsercontext.mdx#browser-context-set-default-timeout) or [page.setDefaultTimeout()](/api/class-page.mdx#page-set-default-timeout) methods.
+
+**Returns**
+- [Promise]&lt;[boolean]&gt;<a aria-hidden="true" tabIndex="-1" class="list-anchor-link" id="locator-is-enabled-return"/><a href="#locator-is-enabled-return" class="list-anchor">#</a>
+
+---
+
+### isHidden {/* #locator-is-hidden */}
+
+<font size="2" style={{position: "relative", top: "-20px"}}>Added in: v1.14</font><x-search>locator.isHidden</x-search>
+
+Returns whether the element is hidden, the opposite of [visible](../actionability.mdx#visible).
+
+:::warning[Asserting visibility]
+
+If you need to assert that element is hidden, prefer [expect(locator).toBeHidden()](/api/class-locatorassertions.mdx#locator-assertions-to-be-hidden) to avoid flakiness. See [assertions guide](../test-assertions.mdx) for more details.
+:::
+
+**Usage**
+
+```js
+const hidden = await page.getByRole('button').isHidden();
+```
+
+**Arguments**
+- `options` [Object] *(optional)*
+  - `timeout` [number] *(optional)*<a aria-hidden="true" tabIndex="-1" class="list-anchor-link" id="locator-is-hidden-option-timeout"/><a href="#locator-is-hidden-option-timeout" class="list-anchor">#</a>
+    
+    :::warning[Deprecated]
+    This option is ignored. [locator.isHidden()](/api/class-locator.mdx#locator-is-hidden) does not wait for the element to become hidden and returns immediately.
+    :::
+    
+
+**Returns**
+- [Promise]&lt;[boolean]&gt;<a aria-hidden="true" tabIndex="-1" class="list-anchor-link" id="locator-is-hidden-return"/><a href="#locator-is-hidden-return" class="list-anchor">#</a>
+
+---
+
+### isVisible {/* #locator-is-visible */}
+
+<font size="2" style={{position: "relative", top: "-20px"}}>Added in: v1.14</font><x-search>locator.isVisible</x-search>
+
+Returns whether the element is [visible](../actionability.mdx#visible).
+
+:::warning[Asserting visibility]
+
+If you need to assert that element is visible, prefer [expect(locator).toBeVisible()](/api/class-locatorassertions.mdx#locator-assertions-to-be-visible) to avoid flakiness. See [assertions guide](../test-assertions.mdx) for more details.
+:::
+
+**Usage**
+
+```js
+const visible = await page.getByRole('button').isVisible();
+```
+
+**Arguments**
+- `options` [Object] *(optional)*
+  - `timeout` [number] *(optional)*<a aria-hidden="true" tabIndex="-1" class="list-anchor-link" id="locator-is-visible-option-timeout"/><a href="#locator-is-visible-option-timeout" class="list-anchor">#</a>
+    
+    :::warning[Deprecated]
+    This option is ignored. [locator.isVisible()](/api/class-locator.mdx#locator-is-visible) does not wait for the element to become visible and returns immediately.
+    :::
+    
+
+**Returns**
+- [Promise]&lt;[boolean]&gt;<a aria-hidden="true" tabIndex="-1" class="list-anchor-link" id="locator-is-visible-return"/><a href="#locator-is-visible-return" class="list-anchor">#</a>
+
+---
+
+### last {/* #locator-last */}
+
+<font size="2" style={{position: "relative", top: "-20px"}}>Added in: v1.14</font><x-search>locator.last</x-search>
+
+Returns locator to the last matching element.
+
+**Usage**
+
+```js
+const banana = await page.getByRole('listitem').last();
+```
+
+**Returns**
+- [Locator]<a aria-hidden="true" tabIndex="-1" class="list-anchor-link" id="locator-last-return"/><a href="#locator-last-return" class="list-anchor">#</a>
+
+---
+
+### locator {/* #locator-locator */}
+
+<font size="2" style={{position: "relative", top: "-20px"}}>Added in: v1.14</font><x-search>locator.locator</x-search>
+
+The method finds an element matching the specified selector in the locator's subtree. It also accepts filter options, similar to [locator.filter()](/api/class-locator.mdx#locator-filter) method.
+
+[Learn more about locators](../locators.mdx).
+
+**Usage**
+
+```js
+locator.locator(selectorOrLocator);
+locator.locator(selectorOrLocator, options);
+```
+
+**Arguments**
+- `selectorOrLocator` [string] | [Locator]<a aria-hidden="true" tabIndex="-1" class="list-anchor-link" id="locator-locator-option-selector-or-locator"/><a href="#locator-locator-option-selector-or-locator" class="list-anchor">#</a>
+  
+  A selector or locator to use when resolving DOM element.
+- `options` [Object] *(optional)*
+  - `has` [Locator] *(optional)*<a aria-hidden="true" tabIndex="-1" class="list-anchor-link" id="locator-locator-option-has"/><a href="#locator-locator-option-has" class="list-anchor">#</a>
+    
+    Narrows down the results of the method to those which contain elements matching this relative locator. For example, `article` that has `text=Playwright` matches `<article><div>Playwright</div></article>`.
+    
+    Inner locator **must be relative** to the outer locator and is queried starting with the outer locator match, not the document root. For example, you can find `content` that has `div` in `<article><content><div>Playwright</div></content></article>`. However, looking for `content` that has `article div` will fail, because the inner locator must be relative and should not use any elements outside the `content`.
+    
+    Note that outer and inner locators must belong to the same frame. Inner locator must not contain [FrameLocator]s.
+  - `hasNot` [Locator] *(optional)* <font size="2">Added in: v1.33</font><a aria-hidden="true" tabIndex="-1" class="list-anchor-link" id="locator-locator-option-has-not"/><a href="#locator-locator-option-has-not" class="list-anchor">#</a>
+    
+    Matches elements that do not contain an element that matches an inner locator. Inner locator is queried against the outer one. For example, `article` that does not have `div` matches `<article><span>Playwright</span></article>`.
+    
+    Note that outer and inner locators must belong to the same frame. Inner locator must not contain [FrameLocator]s.
+  - `hasNotText` [string] | [RegExp] *(optional)* <font size="2">Added in: v1.33</font><a aria-hidden="true" tabIndex="-1" class="list-anchor-link" id="locator-locator-option-has-not-text"/><a href="#locator-locator-option-has-not-text" class="list-anchor">#</a>
+    
+    Matches elements that do not contain specified text somewhere inside, possibly in a child or a descendant element. When passed a [string], matching is case-insensitive and searches for a substring.
+  - `hasText` [string] | [RegExp] *(optional)*<a aria-hidden="true" tabIndex="-1" class="list-anchor-link" id="locator-locator-option-has-text"/><a href="#locator-locator-option-has-text" class="list-anchor">#</a>
+    
+    Matches elements containing specified text somewhere inside, possibly in a child or a descendant element. When passed a [string], matching is case-insensitive and searches for a substring. For example, `"Playwright"` matches `<article><div>Playwright</div></article>`.
+
+**Returns**
+- [Locator]<a aria-hidden="true" tabIndex="-1" class="list-anchor-link" id="locator-locator-return"/><a href="#locator-locator-return" class="list-anchor">#</a>
+
+---
+
+### normalize {/* #locator-normalize */}
+
+<font size="2" style={{position: "relative", top: "-20px"}}>Added in: v1.59</font><x-search>locator.normalize</x-search>
+
+Returns a new locator that uses best practices for referencing the matched element, prioritizing test ids, aria roles, and other user-facing attributes over CSS selectors. This is useful for converting implementation-detail selectors into more resilient, human-readable locators.
+
+**Usage**
+
+```js
+await locator.normalize();
+```
+
+**Returns**
+- [Promise]&lt;[Locator]&gt;<a aria-hidden="true" tabIndex="-1" class="list-anchor-link" id="locator-normalize-return"/><a href="#locator-normalize-return" class="list-anchor">#</a>
+
+---
+
+### nth {/* #locator-nth */}
+
+<font size="2" style={{position: "relative", top: "-20px"}}>Added in: v1.14</font><x-search>locator.nth</x-search>
+
+Returns locator to the n-th matching element. It's zero based, `nth(0)` selects the first element.
+
+**Usage**
+
+```js
+const banana = await page.getByRole('listitem').nth(2);
+```
+
+**Arguments**
+- `index` [number]<a aria-hidden="true" tabIndex="-1" class="list-anchor-link" id="locator-nth-option-index"/><a href="#locator-nth-option-index" class="list-anchor">#</a>
+
+**Returns**
+- [Locator]<a aria-hidden="true" tabIndex="-1" class="list-anchor-link" id="locator-nth-return"/><a href="#locator-nth-return" class="list-anchor">#</a>
+
+---
+
+### or {/* #locator-or */}
+
+<font size="2" style={{position: "relative", top: "-20px"}}>Added in: v1.33</font><x-search>locator.or</x-search>
+
+Creates a locator matching all elements that match one or both of the two locators.
+
+Note that when both locators match something, the resulting locator will have multiple matches, potentially causing a [locator strictness](../locators.mdx#strictness) violation.
+
+**Usage**
+
+Consider a scenario where you'd like to click on a "New email" button, but sometimes a security settings dialog shows up instead. In this case, you can wait for either a "New email" button, or a dialog and act accordingly.
+
+:::note
+
+If both "New email" button and security dialog appear on screen, the "or" locator will match both of them, possibly throwing the ["strict mode violation" error](../locators.mdx#strictness). In this case, you can use [locator.first()](/api/class-locator.mdx#locator-first) to only match one of them.
+:::
+
+```js
+const newEmail = page.getByRole('button', { name: 'New' });
+const dialog = page.getByText('Confirm security settings');
+await expect(newEmail.or(dialog).first()).toBeVisible();
+if (await dialog.isVisible())
+  await page.getByRole('button', { name: 'Dismiss' }).click();
+await newEmail.click();
+```
+
+**Arguments**
+- `locator` [Locator]<a aria-hidden="true" tabIndex="-1" class="list-anchor-link" id="locator-or-option-locator"/><a href="#locator-or-option-locator" class="list-anchor">#</a>
+  
+  Alternative locator to match.
+
+**Returns**
+- [Locator]<a aria-hidden="true" tabIndex="-1" class="list-anchor-link" id="locator-or-return"/><a href="#locator-or-return" class="list-anchor">#</a>
+
+---
+
+### page {/* #locator-page */}
+
+<font size="2" style={{position: "relative", top: "-20px"}}>Added in: v1.19</font><x-search>locator.page</x-search>
+
+A page this locator belongs to.
+
+**Usage**
+
+```js
+locator.page();
+```
+
+**Returns**
+- [Page]<a aria-hidden="true" tabIndex="-1" class="list-anchor-link" id="locator-page-return"/><a href="#locator-page-return" class="list-anchor">#</a>
+
+---
+
+### press {/* #locator-press */}
+
+<font size="2" style={{position: "relative", top: "-20px"}}>Added in: v1.14</font><x-search>locator.press</x-search>
+
+Focuses the matching element and presses a combination of the keys.
+
+**Usage**
+
+```js
+await page.getByRole('textbox').press('Backspace');
+```
+
+**Arguments**
+- `key` [string]<a aria-hidden="true" tabIndex="-1" class="list-anchor-link" id="locator-press-option-key"/><a href="#locator-press-option-key" class="list-anchor">#</a>
+  
+  Name of the key to press or a character to generate, such as `ArrowLeft` or `a`.
+- `options` [Object] *(optional)*
+  - `delay` [number] *(optional)*<a aria-hidden="true" tabIndex="-1" class="list-anchor-link" id="locator-press-option-delay"/><a href="#locator-press-option-delay" class="list-anchor">#</a>
+    
+    Time to wait between `keydown` and `keyup` in milliseconds. Defaults to 0.
+  - `noWaitAfter` [boolean] *(optional)*<a aria-hidden="true" tabIndex="-1" class="list-anchor-link" id="locator-press-option-no-wait-after"/><a href="#locator-press-option-no-wait-after" class="list-anchor">#</a>
+    
+    :::warning[Deprecated]
+    This option will default to `true` in the future.
+    :::
+    
+    
+    Actions that initiate navigations are waiting for these navigations to happen and for pages to start loading. You can opt out of waiting via setting this flag. You would only need this option in the exceptional cases such as navigating to inaccessible pages. Defaults to `false`.
+  - `timeout` [number] *(optional)*<a aria-hidden="true" tabIndex="-1" class="list-anchor-link" id="locator-press-option-timeout"/><a href="#locator-press-option-timeout" class="list-anchor">#</a>
+    
+    Maximum time in milliseconds. Defaults to `0` - no timeout. The default value can be changed via `actionTimeout` option in the config, or by using the [browserContext.setDefaultTimeout()](/api/class-browsercontext.mdx#browser-context-set-default-timeout) or [page.setDefaultTimeout()](/api/class-page.mdx#page-set-default-timeout) methods.
+
+**Returns**
+- [Promise]&lt;[void]&gt;<a aria-hidden="true" tabIndex="-1" class="list-anchor-link" id="locator-press-return"/><a href="#locator-press-return" class="list-anchor">#</a>
+
+**Details**
+
+Focuses the element, and then uses [keyboard.down()](/api/class-keyboard.mdx#keyboard-down) and [keyboard.up()](/api/class-keyboard.mdx#keyboard-up).
+
+[key](/api/class-locator.mdx#locator-press-option-key) can specify the intended [keyboardEvent.key](https://developer.mozilla.org/en-US/docs/Web/API/KeyboardEvent/key) value or a single character to generate the text for. A superset of the [key](/api/class-locator.mdx#locator-press-option-key) values can be found [here](https://developer.mozilla.org/en-US/docs/Web/API/KeyboardEvent/key/Key_Values). Examples of the keys are:
+
+`F1` - `F12`, `Digit0`- `Digit9`, `KeyA`- `KeyZ`, `Backquote`, `Minus`, `Equal`, `Backslash`, `Backspace`, `Tab`, `Delete`, `Escape`, `ArrowDown`, `End`, `Enter`, `Home`, `Insert`, `PageDown`, `PageUp`, `ArrowRight`, `ArrowUp`, etc.
+
+Following modification shortcuts are also supported: `Shift`, `Control`, `Alt`, `Meta`, `ShiftLeft`, `ControlOrMeta`. `ControlOrMeta` resolves to `Control` on Windows and Linux and to `Meta` on macOS.
+
+Holding down `Shift` will type the text that corresponds to the [key](/api/class-locator.mdx#locator-press-option-key) in the upper case.
+
+If [key](/api/class-locator.mdx#locator-press-option-key) is a single character, it is case-sensitive, so the values `a` and `A` will generate different respective texts.
+
+Shortcuts such as `key: "Control+o"`, `key: "Control++` or `key: "Control+Shift+T"` are supported as well. When specified with the modifier, modifier is pressed and being held while the subsequent key is being pressed.
+
+---
+
+### pressSequentially {/* #locator-press-sequentially */}
+
+<font size="2" style={{position: "relative", top: "-20px"}}>Added in: v1.38</font><x-search>locator.pressSequentially</x-search>
+
+:::tip
+
+In most cases, you should use [locator.fill()](/api/class-locator.mdx#locator-fill) instead. You only need to press keys one by one if there is special keyboard handling on the page.
+:::
+
+Focuses the element, and then sends a `keydown`, `keypress`/`input`, and `keyup` event for each character in the text.
+
+To press a special key, like `Control` or `ArrowDown`, use [locator.press()](/api/class-locator.mdx#locator-press).
+
+**Usage**
+
+```js
+await locator.pressSequentially('Hello'); // Types instantly
+await locator.pressSequentially('World', { delay: 100 }); // Types slower, like a user
+```
+
+An example of typing into a text field and then submitting the form:
+
+```js
+const locator = page.getByLabel('Password');
+await locator.pressSequentially('my password');
+await locator.press('Enter');
+```
+
+**Arguments**
+- `text` [string]<a aria-hidden="true" tabIndex="-1" class="list-anchor-link" id="locator-press-sequentially-option-text"/><a href="#locator-press-sequentially-option-text" class="list-anchor">#</a>
+  
+  String of characters to sequentially press into a focused element.
+- `options` [Object] *(optional)*
+  - `delay` [number] *(optional)*<a aria-hidden="true" tabIndex="-1" class="list-anchor-link" id="locator-press-sequentially-option-delay"/><a href="#locator-press-sequentially-option-delay" class="list-anchor">#</a>
+    
+    Time to wait between key presses in milliseconds. Defaults to 0.
+  - `noWaitAfter` [boolean] *(optional)*<a aria-hidden="true" tabIndex="-1" class="list-anchor-link" id="locator-press-sequentially-option-no-wait-after"/><a href="#locator-press-sequentially-option-no-wait-after" class="list-anchor">#</a>
+    
+    :::warning[Deprecated]
+    This option has no effect.
+    :::
+    
+    
+    This option has no effect.
+  - `timeout` [number] *(optional)*<a aria-hidden="true" tabIndex="-1" class="list-anchor-link" id="locator-press-sequentially-option-timeout"/><a href="#locator-press-sequentially-option-timeout" class="list-anchor">#</a>
+    
+    Maximum time in milliseconds. Defaults to `0` - no timeout. The default value can be changed via `actionTimeout` option in the config, or by using the [browserContext.setDefaultTimeout()](/api/class-browsercontext.mdx#browser-context-set-default-timeout) or [page.setDefaultTimeout()](/api/class-page.mdx#page-set-default-timeout) methods.
+
+**Returns**
+- [Promise]&lt;[void]&gt;<a aria-hidden="true" tabIndex="-1" class="list-anchor-link" id="locator-press-sequentially-return"/><a href="#locator-press-sequentially-return" class="list-anchor">#</a>
+
+---
+
+### screenshot {/* #locator-screenshot */}
+
+<font size="2" style={{position: "relative", top: "-20px"}}>Added in: v1.14</font><x-search>locator.screenshot</x-search>
+
+Take a screenshot of the element matching the locator.
+
+**Usage**
+
+```js
+await page.getByRole('link').screenshot();
+```
+
+Disable animations and save screenshot to a file:
+
+```js
+await page.getByRole('link').screenshot({ animations: 'disabled', path: 'link.png' });
+```
+
+**Arguments**
+- `options` [Object] *(optional)*
+  - `animations` "disabled" | "allow" *(optional)*<a aria-hidden="true" tabIndex="-1" class="list-anchor-link" id="locator-screenshot-option-animations"/><a href="#locator-screenshot-option-animations" class="list-anchor">#</a>
+    
+    When set to `"disabled"`, stops CSS animations, CSS transitions and Web Animations. Animations get different treatment depending on their duration:
+    * finite animations are fast-forwarded to completion, so they'll fire `transitionend` event.
+    * infinite animations are canceled to initial state, and then played over after the screenshot.
+    
+    Defaults to `"allow"` that leaves animations untouched.
+  - `caret` "hide" | "initial" *(optional)*<a aria-hidden="true" tabIndex="-1" class="list-anchor-link" id="locator-screenshot-option-caret"/><a href="#locator-screenshot-option-caret" class="list-anchor">#</a>
+    
+    When set to `"hide"`, screenshot will hide text caret. When set to `"initial"`, text caret behavior will not be changed.  Defaults to `"hide"`.
+  - `mask` [Array]&lt;[Locator]&gt; *(optional)*<a aria-hidden="true" tabIndex="-1" class="list-anchor-link" id="locator-screenshot-option-mask"/><a href="#locator-screenshot-option-mask" class="list-anchor">#</a>
+    
+    Specify locators that should be masked when the screenshot is taken. Masked elements will be overlaid with a pink box `#FF00FF` (customized by [maskColor](/api/class-locator.mdx#locator-screenshot-option-mask-color)) that completely covers its bounding box. The mask is also applied to invisible elements, see [Matching only visible elements](../locators.mdx#matching-only-visible-elements) to disable that.
+  - `maskColor` [string] *(optional)* <font size="2">Added in: v1.35</font><a aria-hidden="true" tabIndex="-1" class="list-anchor-link" id="locator-screenshot-option-mask-color"/><a href="#locator-screenshot-option-mask-color" class="list-anchor">#</a>
+    
+    Specify the color of the overlay box for masked elements, in [CSS color format](https://developer.mozilla.org/en-US/docs/Web/CSS/color_value). Default color is pink `#FF00FF`.
+  - `omitBackground` [boolean] *(optional)*<a aria-hidden="true" tabIndex="-1" class="list-anchor-link" id="locator-screenshot-option-omit-background"/><a href="#locator-screenshot-option-omit-background" class="list-anchor">#</a>
+    
+    Hides default white background and allows capturing screenshots with transparency. Not applicable to `jpeg` images. Defaults to `false`.
+  - `path` [string] *(optional)*<a aria-hidden="true" tabIndex="-1" class="list-anchor-link" id="locator-screenshot-option-path"/><a href="#locator-screenshot-option-path" class="list-anchor">#</a>
+    
+    The file path to save the image to. The screenshot type will be inferred from file extension. If [path](/api/class-locator.mdx#locator-screenshot-option-path) is a relative path, then it is resolved relative to the current working directory. If no path is provided, the image won't be saved to the disk.
+  - `quality` [number] *(optional)*<a aria-hidden="true" tabIndex="-1" class="list-anchor-link" id="locator-screenshot-option-quality"/><a href="#locator-screenshot-option-quality" class="list-anchor">#</a>
+    
+    The quality of the image, between 0-100. Not applicable to `png` images.
+  - `scale` "css" | "device" *(optional)*<a aria-hidden="true" tabIndex="-1" class="list-anchor-link" id="locator-screenshot-option-scale"/><a href="#locator-screenshot-option-scale" class="list-anchor">#</a>
+    
+    When set to `"css"`, screenshot will have a single pixel per each css pixel on the page. For high-dpi devices, this will keep screenshots small. Using `"device"` option will produce a single pixel per each device pixel, so screenshots of high-dpi devices will be twice as large or even larger.
+    
+    Defaults to `"device"`.
+  - `style` [string] *(optional)* <font size="2">Added in: v1.41</font><a aria-hidden="true" tabIndex="-1" class="list-anchor-link" id="locator-screenshot-option-style"/><a href="#locator-screenshot-option-style" class="list-anchor">#</a>
+    
+    Text of the stylesheet to apply while making the screenshot. This is where you can hide dynamic elements, make elements invisible or change their properties to help you creating repeatable screenshots. This stylesheet pierces the Shadow DOM and applies to the inner frames.
+  - `timeout` [number] *(optional)*<a aria-hidden="true" tabIndex="-1" class="list-anchor-link" id="locator-screenshot-option-timeout"/><a href="#locator-screenshot-option-timeout" class="list-anchor">#</a>
+    
+    Maximum time in milliseconds. Defaults to `0` - no timeout. The default value can be changed via `actionTimeout` option in the config, or by using the [browserContext.setDefaultTimeout()](/api/class-browsercontext.mdx#browser-context-set-default-timeout) or [page.setDefaultTimeout()](/api/class-page.mdx#page-set-default-timeout) methods.
+  - `type` "png" | "jpeg" *(optional)*<a aria-hidden="true" tabIndex="-1" class="list-anchor-link" id="locator-screenshot-option-type"/><a href="#locator-screenshot-option-type" class="list-anchor">#</a>
+    
+    Specify screenshot type, defaults to `png`.
+
+**Returns**
+- [Promise]&lt;[Buffer]&gt;<a aria-hidden="true" tabIndex="-1" class="list-anchor-link" id="locator-screenshot-return"/><a href="#locator-screenshot-return" class="list-anchor">#</a>
+
+**Details**
+
+This method captures a screenshot of the page, clipped to the size and position of a particular element matching the locator. If the element is covered by other elements, it will not be actually visible on the screenshot. If the element is a scrollable container, only the currently scrolled content will be visible on the screenshot.
+
+This method waits for the [actionability](../actionability.mdx) checks, then scrolls element into view before taking a screenshot. If the element is detached from DOM, the method throws an error.
+
+Returns the buffer with the captured screenshot.
+
+---
+
+### scrollIntoViewIfNeeded {/* #locator-scroll-into-view-if-needed */}
+
+<font size="2" style={{position: "relative", top: "-20px"}}>Added in: v1.14</font><x-search>locator.scrollIntoViewIfNeeded</x-search>
+
+This method waits for [actionability](../actionability.mdx) checks, then tries to scroll element into view, unless it is completely visible as defined by [IntersectionObserver](https://developer.mozilla.org/en-US/docs/Web/API/Intersection_Observer_API)'s `ratio`.
+
+See [scrolling](../input.mdx#scrolling) for alternative ways to scroll.
+
+**Usage**
+
+```js
+await locator.scrollIntoViewIfNeeded();
+await locator.scrollIntoViewIfNeeded(options);
+```
+
+**Arguments**
+- `options` [Object] *(optional)*
+  - `timeout` [number] *(optional)*<a aria-hidden="true" tabIndex="-1" class="list-anchor-link" id="locator-scroll-into-view-if-needed-option-timeout"/><a href="#locator-scroll-into-view-if-needed-option-timeout" class="list-anchor">#</a>
+    
+    Maximum time in milliseconds. Defaults to `0` - no timeout. The default value can be changed via `actionTimeout` option in the config, or by using the [browserContext.setDefaultTimeout()](/api/class-browsercontext.mdx#browser-context-set-default-timeout) or [page.setDefaultTimeout()](/api/class-page.mdx#page-set-default-timeout) methods.
+
+**Returns**
+- [Promise]&lt;[void]&gt;<a aria-hidden="true" tabIndex="-1" class="list-anchor-link" id="locator-scroll-into-view-if-needed-return"/><a href="#locator-scroll-into-view-if-needed-return" class="list-anchor">#</a>
+
+---
+
+### selectOption {/* #locator-select-option */}
+
+<font size="2" style={{position: "relative", top: "-20px"}}>Added in: v1.14</font><x-search>locator.selectOption</x-search>
+
+Selects option or options in `<select>`.
+
+**Usage**
+
+```html
+<select multiple>
+  <option value="red">Red</option>
+  <option value="green">Green</option>
+  <option value="blue">Blue</option>
+</select>
+```
+
+```js
+// single selection matching the value or label
+element.selectOption('blue');
+
+// single selection matching the label
+element.selectOption({ label: 'Blue' });
+
+// multiple selection for red, green and blue options
+element.selectOption(['red', 'green', 'blue']);
+```
+
+**Arguments**
+- `values` [null] | [string] | [ElementHandle] | [Array]&lt;[string]&gt; | [Object] | [Array]&lt;[ElementHandle]&gt; | [Array]&lt;[Object]&gt;<a aria-hidden="true" tabIndex="-1" class="list-anchor-link" id="locator-select-option-option-values"/><a href="#locator-select-option-option-values" class="list-anchor">#</a>
+  - `value` [string] *(optional)*
+    
+    Matches by `option.value`. Optional.
+  - `label` [string] *(optional)*
+    
+    Matches by `option.label`. Optional.
+  - `index` [number] *(optional)*
+    
+    Matches by the index. Optional.
+  
+  Options to select. If the `<select>` has the `multiple` attribute, all matching options are selected, otherwise only the first option matching one of the passed options is selected. String values are matching both values and labels. Option is considered matching if all specified properties match.
+- `options` [Object] *(optional)*
+  - `force` [boolean] *(optional)*<a aria-hidden="true" tabIndex="-1" class="list-anchor-link" id="locator-select-option-option-force"/><a href="#locator-select-option-option-force" class="list-anchor">#</a>
+    
+    Whether to bypass the [actionability](../actionability.mdx) checks. Defaults to `false`.
+  - `noWaitAfter` [boolean] *(optional)*<a aria-hidden="true" tabIndex="-1" class="list-anchor-link" id="locator-select-option-option-no-wait-after"/><a href="#locator-select-option-option-no-wait-after" class="list-anchor">#</a>
+    
+    :::warning[Deprecated]
+    This option has no effect.
+    :::
+    
+    
+    This option has no effect.
+  - `timeout` [number] *(optional)*<a aria-hidden="true" tabIndex="-1" class="list-anchor-link" id="locator-select-option-option-timeout"/><a href="#locator-select-option-option-timeout" class="list-anchor">#</a>
+    
+    Maximum time in milliseconds. Defaults to `0` - no timeout. The default value can be changed via `actionTimeout` option in the config, or by using the [browserContext.setDefaultTimeout()](/api/class-browsercontext.mdx#browser-context-set-default-timeout) or [page.setDefaultTimeout()](/api/class-page.mdx#page-set-default-timeout) methods.
+
+**Returns**
+- [Promise]&lt;[Array]&lt;[string]&gt;&gt;<a aria-hidden="true" tabIndex="-1" class="list-anchor-link" id="locator-select-option-return"/><a href="#locator-select-option-return" class="list-anchor">#</a>
+
+**Details**
+
+This method waits for [actionability](../actionability.mdx) checks, waits until all specified options are present in the `<select>` element and selects these options.
+
+If the target element is not a `<select>` element, this method throws an error. However, if the element is inside the `<label>` element that has an associated [control](https://developer.mozilla.org/en-US/docs/Web/API/HTMLLabelElement/control), the control will be used instead.
+
+Returns the array of option values that have been successfully selected.
+
+Triggers a `change` and `input` event once all the provided options have been selected.
+
+---
+
+### selectText {/* #locator-select-text */}
+
+<font size="2" style={{position: "relative", top: "-20px"}}>Added in: v1.14</font><x-search>locator.selectText</x-search>
+
+This method waits for [actionability](../actionability.mdx) checks, then focuses the element and selects all its text content.
+
+If the element is inside the `<label>` element that has an associated [control](https://developer.mozilla.org/en-US/docs/Web/API/HTMLLabelElement/control), focuses and selects text in the control instead.
+
+**Usage**
+
+```js
+await locator.selectText();
+await locator.selectText(options);
+```
+
+**Arguments**
+- `options` [Object] *(optional)*
+  - `force` [boolean] *(optional)*<a aria-hidden="true" tabIndex="-1" class="list-anchor-link" id="locator-select-text-option-force"/><a href="#locator-select-text-option-force" class="list-anchor">#</a>
+    
+    Whether to bypass the [actionability](../actionability.mdx) checks. Defaults to `false`.
+  - `timeout` [number] *(optional)*<a aria-hidden="true" tabIndex="-1" class="list-anchor-link" id="locator-select-text-option-timeout"/><a href="#locator-select-text-option-timeout" class="list-anchor">#</a>
+    
+    Maximum time in milliseconds. Defaults to `0` - no timeout. The default value can be changed via `actionTimeout` option in the config, or by using the [browserContext.setDefaultTimeout()](/api/class-browsercontext.mdx#browser-context-set-default-timeout) or [page.setDefaultTimeout()](/api/class-page.mdx#page-set-default-timeout) methods.
+
+**Returns**
+- [Promise]&lt;[void]&gt;<a aria-hidden="true" tabIndex="-1" class="list-anchor-link" id="locator-select-text-return"/><a href="#locator-select-text-return" class="list-anchor">#</a>
+
+---
+
+### setChecked {/* #locator-set-checked */}
+
+<font size="2" style={{position: "relative", top: "-20px"}}>Added in: v1.15</font><x-search>locator.setChecked</x-search>
+
+Set the state of a checkbox or a radio element.
+
+**Usage**
+
+```js
+await page.getByRole('checkbox').setChecked(true);
+```
+
+**Arguments**
+- `checked` [boolean]<a aria-hidden="true" tabIndex="-1" class="list-anchor-link" id="locator-set-checked-option-checked"/><a href="#locator-set-checked-option-checked" class="list-anchor">#</a>
+  
+  Whether to check or uncheck the checkbox.
+- `options` [Object] *(optional)*
+  - `force` [boolean] *(optional)*<a aria-hidden="true" tabIndex="-1" class="list-anchor-link" id="locator-set-checked-option-force"/><a href="#locator-set-checked-option-force" class="list-anchor">#</a>
+    
+    Whether to bypass the [actionability](../actionability.mdx) checks. Defaults to `false`.
+  - `noWaitAfter` [boolean] *(optional)*<a aria-hidden="true" tabIndex="-1" class="list-anchor-link" id="locator-set-checked-option-no-wait-after"/><a href="#locator-set-checked-option-no-wait-after" class="list-anchor">#</a>
+    
+    :::warning[Deprecated]
+    This option has no effect.
+    :::
+    
+    
+    This option has no effect.
+  - `position` [Object] *(optional)*<a aria-hidden="true" tabIndex="-1" class="list-anchor-link" id="locator-set-checked-option-position"/><a href="#locator-set-checked-option-position" class="list-anchor">#</a>
+    - `x` [number]
+      
+      
+    - `y` [number]
+      
+      
+    A point to use relative to the top-left corner of element padding box. If not specified, uses some visible point of the element.
+  - `timeout` [number] *(optional)*<a aria-hidden="true" tabIndex="-1" class="list-anchor-link" id="locator-set-checked-option-timeout"/><a href="#locator-set-checked-option-timeout" class="list-anchor">#</a>
+    
+    Maximum time in milliseconds. Defaults to `0` - no timeout. The default value can be changed via `actionTimeout` option in the config, or by using the [browserContext.setDefaultTimeout()](/api/class-browsercontext.mdx#browser-context-set-default-timeout) or [page.setDefaultTimeout()](/api/class-page.mdx#page-set-default-timeout) methods.
+  - `trial` [boolean] *(optional)*<a aria-hidden="true" tabIndex="-1" class="list-anchor-link" id="locator-set-checked-option-trial"/><a href="#locator-set-checked-option-trial" class="list-anchor">#</a>
+    
+    When set, this method only performs the [actionability](../actionability.mdx) checks and skips the action. Defaults to `false`. Useful to wait until the element is ready for the action without performing it.
+
+**Returns**
+- [Promise]&lt;[void]&gt;<a aria-hidden="true" tabIndex="-1" class="list-anchor-link" id="locator-set-checked-return"/><a href="#locator-set-checked-return" class="list-anchor">#</a>
+
+**Details**
+
+This method checks or unchecks an element by performing the following steps:
+1. Ensure that matched element is a checkbox or a radio input. If not, this method throws.
+1. If the element already has the right checked state, this method returns immediately.
+1. Wait for [actionability](../actionability.mdx) checks on the matched element, unless [force](/api/class-locator.mdx#locator-set-checked-option-force) option is set. If the element is detached during the checks, the whole action is retried.
+1. Scroll the element into view if needed.
+1. Use [page.mouse](/api/class-page.mdx#page-mouse) to click in the center of the element.
+1. Ensure that the element is now checked or unchecked. If not, this method throws.
+
+When all steps combined have not finished during the specified [timeout](/api/class-locator.mdx#locator-set-checked-option-timeout), this method throws a [TimeoutError]. Passing zero timeout disables this.
+
+---
+
+### setInputFiles {/* #locator-set-input-files */}
+
+<font size="2" style={{position: "relative", top: "-20px"}}>Added in: v1.14</font><x-search>locator.setInputFiles</x-search>
+
+Upload file or multiple files into `<input type=file>`. For inputs with a `[webkitdirectory]` attribute, only a single directory path is supported.
+
+**Usage**
+
+```js
+// Select one file
+await page.getByLabel('Upload file').setInputFiles(path.join(__dirname, 'myfile.pdf'));
+
+// Select multiple files
+await page.getByLabel('Upload files').setInputFiles([
+  path.join(__dirname, 'file1.txt'),
+  path.join(__dirname, 'file2.txt'),
+]);
+
+// Select a directory
+await page.getByLabel('Upload directory').setInputFiles(path.join(__dirname, 'mydir'));
+
+// Remove all the selected files
+await page.getByLabel('Upload file').setInputFiles([]);
+
+// Upload buffer from memory
+await page.getByLabel('Upload file').setInputFiles({
+  name: 'file.txt',
+  mimeType: 'text/plain',
+  buffer: Buffer.from('this is test')
+});
+```
+
+**Arguments**
+- `files` [string] | [Array]&lt;[string]&gt; | [Object] | [Array]&lt;[Object]&gt;<a aria-hidden="true" tabIndex="-1" class="list-anchor-link" id="locator-set-input-files-option-files"/><a href="#locator-set-input-files-option-files" class="list-anchor">#</a>
+  - `name` [string]
+    
+    File name
+  - `mimeType` [string]
+    
+    File type
+  - `buffer` [Buffer]
+    
+    File content
+- `options` [Object] *(optional)*
+  - `noWaitAfter` [boolean] *(optional)*<a aria-hidden="true" tabIndex="-1" class="list-anchor-link" id="locator-set-input-files-option-no-wait-after"/><a href="#locator-set-input-files-option-no-wait-after" class="list-anchor">#</a>
+    
+    :::warning[Deprecated]
+    This option has no effect.
+    :::
+    
+    
+    This option has no effect.
+  - `timeout` [number] *(optional)*<a aria-hidden="true" tabIndex="-1" class="list-anchor-link" id="locator-set-input-files-option-timeout"/><a href="#locator-set-input-files-option-timeout" class="list-anchor">#</a>
+    
+    Maximum time in milliseconds. Defaults to `0` - no timeout. The default value can be changed via `actionTimeout` option in the config, or by using the [browserContext.setDefaultTimeout()](/api/class-browsercontext.mdx#browser-context-set-default-timeout) or [page.setDefaultTimeout()](/api/class-page.mdx#page-set-default-timeout) methods.
+
+**Returns**
+- [Promise]&lt;[void]&gt;<a aria-hidden="true" tabIndex="-1" class="list-anchor-link" id="locator-set-input-files-return"/><a href="#locator-set-input-files-return" class="list-anchor">#</a>
+
+**Details**
+
+Sets the value of the file input to these file paths or files. If some of the `filePaths` are relative paths, then they are resolved relative to the current working directory. For empty array, clears the selected files.
+
+This method expects [Locator] to point to an [input element](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/input). However, if the element is inside the `<label>` element that has an associated [control](https://developer.mozilla.org/en-US/docs/Web/API/HTMLLabelElement/control), targets the control instead.
+
+---
+
+### tap {/* #locator-tap */}
+
+<font size="2" style={{position: "relative", top: "-20px"}}>Added in: v1.14</font><x-search>locator.tap</x-search>
+
+Perform a tap gesture on the element matching the locator. For examples of emulating other gestures by manually dispatching touch events, see the [emulating legacy touch events](../touch-events.mdx) page.
+
+**Usage**
+
+```js
+await locator.tap();
+await locator.tap(options);
+```
+
+**Arguments**
+- `options` [Object] *(optional)*
+  - `force` [boolean] *(optional)*<a aria-hidden="true" tabIndex="-1" class="list-anchor-link" id="locator-tap-option-force"/><a href="#locator-tap-option-force" class="list-anchor">#</a>
+    
+    Whether to bypass the [actionability](../actionability.mdx) checks. Defaults to `false`.
+  - `modifiers` [Array]&lt;"Alt" | "Control" | "ControlOrMeta" | "Meta" | "Shift"&gt; *(optional)*<a aria-hidden="true" tabIndex="-1" class="list-anchor-link" id="locator-tap-option-modifiers"/><a href="#locator-tap-option-modifiers" class="list-anchor">#</a>
+    
+    Modifier keys to press. Ensures that only these modifiers are pressed during the operation, and then restores current modifiers back. If not specified, currently pressed modifiers are used. "ControlOrMeta" resolves to "Control" on Windows and Linux and to "Meta" on macOS.
+  - `noWaitAfter` [boolean] *(optional)*<a aria-hidden="true" tabIndex="-1" class="list-anchor-link" id="locator-tap-option-no-wait-after"/><a href="#locator-tap-option-no-wait-after" class="list-anchor">#</a>
+    
+    :::warning[Deprecated]
+    This option has no effect.
+    :::
+    
+    
+    This option has no effect.
+  - `position` [Object] *(optional)*<a aria-hidden="true" tabIndex="-1" class="list-anchor-link" id="locator-tap-option-position"/><a href="#locator-tap-option-position" class="list-anchor">#</a>
+    - `x` [number]
+      
+      
+    - `y` [number]
+      
+      
+    A point to use relative to the top-left corner of element padding box. If not specified, uses some visible point of the element.
+  - `timeout` [number] *(optional)*<a aria-hidden="true" tabIndex="-1" class="list-anchor-link" id="locator-tap-option-timeout"/><a href="#locator-tap-option-timeout" class="list-anchor">#</a>
+    
+    Maximum time in milliseconds. Defaults to `0` - no timeout. The default value can be changed via `actionTimeout` option in the config, or by using the [browserContext.setDefaultTimeout()](/api/class-browsercontext.mdx#browser-context-set-default-timeout) or [page.setDefaultTimeout()](/api/class-page.mdx#page-set-default-timeout) methods.
+  - `trial` [boolean] *(optional)*<a aria-hidden="true" tabIndex="-1" class="list-anchor-link" id="locator-tap-option-trial"/><a href="#locator-tap-option-trial" class="list-anchor">#</a>
+    
+    When set, this method only performs the [actionability](../actionability.mdx) checks and skips the action. Defaults to `false`. Useful to wait until the element is ready for the action without performing it. Note that keyboard `modifiers` will be pressed regardless of `trial` to allow testing elements which are only visible when those keys are pressed.
+
+**Returns**
+- [Promise]&lt;[void]&gt;<a aria-hidden="true" tabIndex="-1" class="list-anchor-link" id="locator-tap-return"/><a href="#locator-tap-return" class="list-anchor">#</a>
+
+**Details**
+
+This method taps the element by performing the following steps:
+1. Wait for [actionability](../actionability.mdx) checks on the element, unless [force](/api/class-locator.mdx#locator-tap-option-force) option is set.
+1. Scroll the element into view if needed.
+1. Use [page.touchscreen](/api/class-page.mdx#page-touchscreen) to tap the center of the element, or the specified [position](/api/class-locator.mdx#locator-tap-option-position).
+
+If the element is detached from the DOM at any moment during the action, this method throws.
+
+When all steps combined have not finished during the specified [timeout](/api/class-locator.mdx#locator-tap-option-timeout), this method throws a [TimeoutError]. Passing zero timeout disables this.
+
+:::note
+
+`element.tap()` requires that the `hasTouch` option of the browser context be set to true.
+:::
+
+---
+
+### textContent {/* #locator-text-content */}
+
+<font size="2" style={{position: "relative", top: "-20px"}}>Added in: v1.14</font><x-search>locator.textContent</x-search>
+
+Returns the [`node.textContent`](https://developer.mozilla.org/en-US/docs/Web/API/Node/textContent).
+
+:::warning[Asserting text]
+
+If you need to assert text on the page, prefer [expect(locator).toHaveText()](/api/class-locatorassertions.mdx#locator-assertions-to-have-text) to avoid flakiness. See [assertions guide](../test-assertions.mdx) for more details.
+:::
+
+**Usage**
+
+```js
+await locator.textContent();
+await locator.textContent(options);
+```
+
+**Arguments**
+- `options` [Object] *(optional)*
+  - `timeout` [number] *(optional)*<a aria-hidden="true" tabIndex="-1" class="list-anchor-link" id="locator-text-content-option-timeout"/><a href="#locator-text-content-option-timeout" class="list-anchor">#</a>
+    
+    Maximum time in milliseconds. Defaults to `0` - no timeout. The default value can be changed via `actionTimeout` option in the config, or by using the [browserContext.setDefaultTimeout()](/api/class-browsercontext.mdx#browser-context-set-default-timeout) or [page.setDefaultTimeout()](/api/class-page.mdx#page-set-default-timeout) methods.
+
+**Returns**
+- [Promise]&lt;[null] | [string]&gt;<a aria-hidden="true" tabIndex="-1" class="list-anchor-link" id="locator-text-content-return"/><a href="#locator-text-content-return" class="list-anchor">#</a>
+
+---
+
+### toString {/* #locator-to-string */}
+
+<font size="2" style={{position: "relative", top: "-20px"}}>Added in: v1.57</font><x-search>locator.toString</x-search>
+
+Returns a human-readable representation of the locator, using the [locator.description()](/api/class-locator.mdx#locator-description) if one exists; otherwise, it generates a string based on the locator's selector.
+
+**Usage**
+
+```js
+locator.toString();
+```
+
+**Returns**
+- [string]<a aria-hidden="true" tabIndex="-1" class="list-anchor-link" id="locator-to-string-return"/><a href="#locator-to-string-return" class="list-anchor">#</a>
+
+---
+
+### uncheck {/* #locator-uncheck */}
+
+<font size="2" style={{position: "relative", top: "-20px"}}>Added in: v1.14</font><x-search>locator.uncheck</x-search>
+
+Ensure that checkbox or radio element is unchecked.
+
+**Usage**
+
+```js
+await page.getByRole('checkbox').uncheck();
+```
+
+**Arguments**
+- `options` [Object] *(optional)*
+  - `force` [boolean] *(optional)*<a aria-hidden="true" tabIndex="-1" class="list-anchor-link" id="locator-uncheck-option-force"/><a href="#locator-uncheck-option-force" class="list-anchor">#</a>
+    
+    Whether to bypass the [actionability](../actionability.mdx) checks. Defaults to `false`.
+  - `noWaitAfter` [boolean] *(optional)*<a aria-hidden="true" tabIndex="-1" class="list-anchor-link" id="locator-uncheck-option-no-wait-after"/><a href="#locator-uncheck-option-no-wait-after" class="list-anchor">#</a>
+    
+    :::warning[Deprecated]
+    This option has no effect.
+    :::
+    
+    
+    This option has no effect.
+  - `position` [Object] *(optional)*<a aria-hidden="true" tabIndex="-1" class="list-anchor-link" id="locator-uncheck-option-position"/><a href="#locator-uncheck-option-position" class="list-anchor">#</a>
+    - `x` [number]
+      
+      
+    - `y` [number]
+      
+      
+    A point to use relative to the top-left corner of element padding box. If not specified, uses some visible point of the element.
+  - `timeout` [number] *(optional)*<a aria-hidden="true" tabIndex="-1" class="list-anchor-link" id="locator-uncheck-option-timeout"/><a href="#locator-uncheck-option-timeout" class="list-anchor">#</a>
+    
+    Maximum time in milliseconds. Defaults to `0` - no timeout. The default value can be changed via `actionTimeout` option in the config, or by using the [browserContext.setDefaultTimeout()](/api/class-browsercontext.mdx#browser-context-set-default-timeout) or [page.setDefaultTimeout()](/api/class-page.mdx#page-set-default-timeout) methods.
+  - `trial` [boolean] *(optional)*<a aria-hidden="true" tabIndex="-1" class="list-anchor-link" id="locator-uncheck-option-trial"/><a href="#locator-uncheck-option-trial" class="list-anchor">#</a>
+    
+    When set, this method only performs the [actionability](../actionability.mdx) checks and skips the action. Defaults to `false`. Useful to wait until the element is ready for the action without performing it.
+
+**Returns**
+- [Promise]&lt;[void]&gt;<a aria-hidden="true" tabIndex="-1" class="list-anchor-link" id="locator-uncheck-return"/><a href="#locator-uncheck-return" class="list-anchor">#</a>
+
+**Details**
+
+This method unchecks the element by performing the following steps:
+1. Ensure that element is a checkbox or a radio input. If not, this method throws. If the element is already unchecked, this method returns immediately.
+1. Wait for [actionability](../actionability.mdx) checks on the element, unless [force](/api/class-locator.mdx#locator-uncheck-option-force) option is set.
+1. Scroll the element into view if needed.
+1. Use [page.mouse](/api/class-page.mdx#page-mouse) to click in the center of the element.
+1. Ensure that the element is now unchecked. If not, this method throws.
+
+If the element is detached from the DOM at any moment during the action, this method throws.
+
+When all steps combined have not finished during the specified [timeout](/api/class-locator.mdx#locator-uncheck-option-timeout), this method throws a [TimeoutError]. Passing zero timeout disables this.
+
+---
+
+### waitFor {/* #locator-wait-for */}
+
+<font size="2" style={{position: "relative", top: "-20px"}}>Added in: v1.16</font><x-search>locator.waitFor</x-search>
+
+Returns when element specified by locator satisfies the [state](/api/class-locator.mdx#locator-wait-for-option-state) option.
+
+If target element already satisfies the condition, the method returns immediately. Otherwise, waits for up to [timeout](/api/class-locator.mdx#locator-wait-for-option-timeout) milliseconds until the condition is met.
+
+**Usage**
+
+```js
+const orderSent = page.locator('#order-sent');
+await orderSent.waitFor();
+```
+
+**Arguments**
+- `options` [Object] *(optional)*
+  - `state` "attached" | "detached" | "visible" | "hidden" *(optional)*<a aria-hidden="true" tabIndex="-1" class="list-anchor-link" id="locator-wait-for-option-state"/><a href="#locator-wait-for-option-state" class="list-anchor">#</a>
+    
+    Defaults to `'visible'`. Can be either:
+    * `'attached'` - wait for element to be present in DOM.
+    * `'detached'` - wait for element to not be present in DOM.
+    * `'visible'` - wait for element to have non-empty bounding box and no `visibility:hidden`. Note that element without any content or with `display:none` has an empty bounding box and is not considered visible.
+    * `'hidden'` - wait for element to be either detached from DOM, or have an empty bounding box or `visibility:hidden`. This is opposite to the `'visible'` option.
+  - `timeout` [number] *(optional)*<a aria-hidden="true" tabIndex="-1" class="list-anchor-link" id="locator-wait-for-option-timeout"/><a href="#locator-wait-for-option-timeout" class="list-anchor">#</a>
+    
+    Maximum time in milliseconds. Defaults to `0` - no timeout. The default value can be changed via `actionTimeout` option in the config, or by using the [browserContext.setDefaultTimeout()](/api/class-browsercontext.mdx#browser-context-set-default-timeout) or [page.setDefaultTimeout()](/api/class-page.mdx#page-set-default-timeout) methods.
+
+**Returns**
+- [Promise]&lt;[void]&gt;<a aria-hidden="true" tabIndex="-1" class="list-anchor-link" id="locator-wait-for-return"/><a href="#locator-wait-for-return" class="list-anchor">#</a>
+
+---
+
+## Deprecated
+
+### elementHandle {/* #locator-element-handle */}
+
+<font size="2" style={{position: "relative", top: "-20px"}}>Added in: v1.14</font><x-search>locator.elementHandle</x-search>
+
+:::warning[Discouraged]
+
+Always prefer using [Locator]s and web assertions over [ElementHandle]s because latter are inherently racy.
+
+:::
+
+
+Resolves given locator to the first matching DOM element. If there are no matching elements, waits for one. If multiple elements match the locator, throws.
+
+**Usage**
+
+```js
+await locator.elementHandle();
+await locator.elementHandle(options);
+```
+
+**Arguments**
+- `options` [Object] *(optional)*
+  - `timeout` [number] *(optional)*<a aria-hidden="true" tabIndex="-1" class="list-anchor-link" id="locator-element-handle-option-timeout"/><a href="#locator-element-handle-option-timeout" class="list-anchor">#</a>
+    
+    Maximum time in milliseconds. Defaults to `0` - no timeout. The default value can be changed via `actionTimeout` option in the config, or by using the [browserContext.setDefaultTimeout()](/api/class-browsercontext.mdx#browser-context-set-default-timeout) or [page.setDefaultTimeout()](/api/class-page.mdx#page-set-default-timeout) methods.
+
+**Returns**
+- [Promise]&lt;[ElementHandle]&gt;<a aria-hidden="true" tabIndex="-1" class="list-anchor-link" id="locator-element-handle-return"/><a href="#locator-element-handle-return" class="list-anchor">#</a>
+
+---
+
+### elementHandles {/* #locator-element-handles */}
+
+<font size="2" style={{position: "relative", top: "-20px"}}>Added in: v1.14</font><x-search>locator.elementHandles</x-search>
+
+:::warning[Discouraged]
+
+Always prefer using [Locator]s and web assertions over [ElementHandle]s because latter are inherently racy.
+
+:::
+
+
+Resolves given locator to all matching DOM elements. If there are no matching elements, returns an empty list.
+
+**Usage**
+
+```js
+await locator.elementHandles();
+```
+
+**Returns**
+- [Promise]&lt;[Array]&lt;[ElementHandle]&gt;&gt;<a aria-hidden="true" tabIndex="-1" class="list-anchor-link" id="locator-element-handles-return"/><a href="#locator-element-handles-return" class="list-anchor">#</a>
+
+---
+
+### type {/* #locator-type */}
+
+<font size="2" style={{position: "relative", top: "-20px"}}>Added in: v1.14</font><x-search>locator.type</x-search>
+
+:::warning[Deprecated]
+
+In most cases, you should use [locator.fill()](/api/class-locator.mdx#locator-fill) instead. You only need to press keys one by one if there is special keyboard handling on the page - in this case use [locator.pressSequentially()](/api/class-locator.mdx#locator-press-sequentially).
+
+:::
+
+
+Focuses the element, and then sends a `keydown`, `keypress`/`input`, and `keyup` event for each character in the text.
+
+To press a special key, like `Control` or `ArrowDown`, use [locator.press()](/api/class-locator.mdx#locator-press).
+
+**Usage**
+
+**Arguments**
+- `text` [string]<a aria-hidden="true" tabIndex="-1" class="list-anchor-link" id="locator-type-option-text"/><a href="#locator-type-option-text" class="list-anchor">#</a>
+  
+  A text to type into a focused element.
+- `options` [Object] *(optional)*
+  - `delay` [number] *(optional)*<a aria-hidden="true" tabIndex="-1" class="list-anchor-link" id="locator-type-option-delay"/><a href="#locator-type-option-delay" class="list-anchor">#</a>
+    
+    Time to wait between key presses in milliseconds. Defaults to 0.
+  - `noWaitAfter` [boolean] *(optional)*<a aria-hidden="true" tabIndex="-1" class="list-anchor-link" id="locator-type-option-no-wait-after"/><a href="#locator-type-option-no-wait-after" class="list-anchor">#</a>
+    
+    :::warning[Deprecated]
+    This option has no effect.
+    :::
+    
+    
+    This option has no effect.
+  - `timeout` [number] *(optional)*<a aria-hidden="true" tabIndex="-1" class="list-anchor-link" id="locator-type-option-timeout"/><a href="#locator-type-option-timeout" class="list-anchor">#</a>
+    
+    Maximum time in milliseconds. Defaults to `0` - no timeout. The default value can be changed via `actionTimeout` option in the config, or by using the [browserContext.setDefaultTimeout()](/api/class-browsercontext.mdx#browser-context-set-default-timeout) or [page.setDefaultTimeout()](/api/class-page.mdx#page-set-default-timeout) methods.
+
+**Returns**
+- [Promise]&lt;[void]&gt;<a aria-hidden="true" tabIndex="-1" class="list-anchor-link" id="locator-type-return"/><a href="#locator-type-return" class="list-anchor">#</a>
+
+
+[APIRequest]: /api/class-apirequest.mdx "APIRequest"
+[APIRequestContext]: /api/class-apirequestcontext.mdx "APIRequestContext"
+[APIResponse]: /api/class-apiresponse.mdx "APIResponse"
+[APIResponseAssertions]: /api/class-apiresponseassertions.mdx "APIResponseAssertions"
+[Browser]: /api/class-browser.mdx "Browser"
+[BrowserContext]: /api/class-browsercontext.mdx "BrowserContext"
+[BrowserServer]: /api/class-browserserver.mdx "BrowserServer"
+[BrowserType]: /api/class-browsertype.mdx "BrowserType"
+[CDPSession]: /api/class-cdpsession.mdx "CDPSession"
+[Clock]: /api/class-clock.mdx "Clock"
+[ConsoleMessage]: /api/class-consolemessage.mdx "ConsoleMessage"
+[Coverage]: /api/class-coverage.mdx "Coverage"
+[Credentials]: /api/class-credentials.mdx "Credentials"
+[Debugger]: /api/class-debugger.mdx "Debugger"
+[Dialog]: /api/class-dialog.mdx "Dialog"
+[Disposable]: /api/class-disposable.mdx "Disposable"
+[Download]: /api/class-download.mdx "Download"
+[ElementHandle]: /api/class-elementhandle.mdx "ElementHandle"
+[FileChooser]: /api/class-filechooser.mdx "FileChooser"
+[Frame]: /api/class-frame.mdx "Frame"
+[FrameLocator]: /api/class-framelocator.mdx "FrameLocator"
+[GenericAssertions]: /api/class-genericassertions.mdx "GenericAssertions"
+[JSHandle]: /api/class-jshandle.mdx "JSHandle"
+[Keyboard]: /api/class-keyboard.mdx "Keyboard"
+[Locator]: /api/class-locator.mdx "Locator"
+[LocatorAssertions]: /api/class-locatorassertions.mdx "LocatorAssertions"
+[Logger]: /api/class-logger.mdx "Logger"
+[Mouse]: /api/class-mouse.mdx "Mouse"
+[Page]: /api/class-page.mdx "Page"
+[PageAssertions]: /api/class-pageassertions.mdx "PageAssertions"
+[Playwright]: /api/class-playwright.mdx "Playwright"
+[PlaywrightAssertions]: /api/class-playwrightassertions.mdx "PlaywrightAssertions"
+[Request]: /api/class-request.mdx "Request"
+[Response]: /api/class-response.mdx "Response"
+[Route]: /api/class-route.mdx "Route"
+[Screencast]: /api/class-screencast.mdx "Screencast"
+[Selectors]: /api/class-selectors.mdx "Selectors"
+[SnapshotAssertions]: /api/class-snapshotassertions.mdx "SnapshotAssertions"
+[TimeoutError]: /api/class-timeouterror.mdx "TimeoutError"
+[Touchscreen]: /api/class-touchscreen.mdx "Touchscreen"
+[Tracing]: /api/class-tracing.mdx "Tracing"
+[Video]: /api/class-video.mdx "Video"
+[WebError]: /api/class-weberror.mdx "WebError"
+[WebSocket]: /api/class-websocket.mdx "WebSocket"
+[WebSocketRoute]: /api/class-websocketroute.mdx "WebSocketRoute"
+[WebStorage]: /api/class-webstorage.mdx "WebStorage"
+[Worker]: /api/class-worker.mdx "Worker"
+[Electron]: /api/class-electron.mdx "Electron"
+[ElectronApplication]: /api/class-electronapplication.mdx "ElectronApplication"
+[Android]: /api/class-android.mdx "Android"
+[AndroidDevice]: /api/class-androiddevice.mdx "AndroidDevice"
+[AndroidInput]: /api/class-androidinput.mdx "AndroidInput"
+[AndroidSocket]: /api/class-androidsocket.mdx "AndroidSocket"
+[AndroidWebView]: /api/class-androidwebview.mdx "AndroidWebView"
+[Fixtures]: /api/class-fixtures.mdx "Fixtures"
+[FullConfig]: /api/class-fullconfig.mdx "FullConfig"
+[FullProject]: /api/class-fullproject.mdx "FullProject"
+[Location]: /api/class-location.mdx "Location"
+[Test]: /api/class-test.mdx "Test"
+[TestConfig]: /api/class-testconfig.mdx "TestConfig"
+[TestInfo]: /api/class-testinfo.mdx "TestInfo"
+[TestInfoError]: /api/class-testinfoerror.mdx "TestInfoError"
+[TestOptions]: /api/class-testoptions.mdx "TestOptions"
+[TestProject]: /api/class-testproject.mdx "TestProject"
+[TestStepInfo]: /api/class-teststepinfo.mdx "TestStepInfo"
+[WorkerInfo]: /api/class-workerinfo.mdx "WorkerInfo"
+[Reporter]: /api/class-reporter.mdx "Reporter"
+[Suite]: /api/class-suite.mdx "Suite"
+[TestCase]: /api/class-testcase.mdx "TestCase"
+[TestError]: /api/class-testerror.mdx "TestError"
+[TestResult]: /api/class-testresult.mdx "TestResult"
+[TestStep]: /api/class-teststep.mdx "TestStep"
+[Element]: https://developer.mozilla.org/en-US/docs/Web/API/element "Element"
+[EvaluationArgument]: /evaluating.mdx#evaluation-argument "EvaluationArgument"
+[Promise]: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Promise "Promise"
+[iterator]: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Iteration_protocols "Iterator"
+[origin]: https://developer.mozilla.org/en-US/docs/Glossary/Origin "Origin"
+[selector]: https://developer.mozilla.org/en-US/docs/Web/CSS/CSS_Selectors "selector"
+[Serializable]: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/JSON/stringify#Description "Serializable"
+[UIEvent.detail]: https://developer.mozilla.org/en-US/docs/Web/API/UIEvent/detail "UIEvent.detail"
+[UnixTime]: https://en.wikipedia.org/wiki/Unix_time "Unix Time"
+[xpath]: https://developer.mozilla.org/en-US/docs/Web/XPath "xpath"
+
+[Array]: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Array "Array"
+[boolean]: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Data_structures#Boolean_type "Boolean"
+[Buffer]: https://nodejs.org/api/buffer.html#buffer_class_buffer "Buffer"
+[ChildProcess]: https://nodejs.org/api/child_process.html "ChildProcess"
+[Date]: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Date "Date"
+[Error]: https://nodejs.org/api/errors.html#errors_class_error "Error"
+[EventEmitter]: https://nodejs.org/api/events.html#events_class_eventemitter "EventEmitter"
+[function]: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Function "Function"
+[FormData]: https://developer.mozilla.org/en-US/docs/Web/API/FormData "FormData"
+[Map]: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Map "Map"
+[Metadata]: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Object "Object&lt;string, any&gt;"
+[null]: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/null "null"
+[number]: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Data_structures#Number_type "Number"
+[Object]: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Object "Object"
+[Promise]: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Promise "Promise"
+[Readable]: https://nodejs.org/api/stream.html#stream_class_stream_readable "Readable"
+[ReadStream]: https://nodejs.org/api/fs.html#class-fsreadstream "ReadStream"
+[RegExp]: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/RegExp "RegExp"
+[string]: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Data_structures#String_type "string"
+[void]: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/undefined "void"
+[URL]: https://nodejs.org/api/url.html "URL"
+[URLPattern]: https://developer.mozilla.org/en-US/docs/Web/API/URLPattern "URLPattern"
+[URLSearchParams]: https://developer.mozilla.org/en-US/docs/Web/API/URLSearchParams "URLSearchParams"
+
+[all available image tags]: https://mcr.microsoft.com/en-us/product/playwright/about "all available image tags"
+[Microsoft Artifact Registry]: https://mcr.microsoft.com/en-us/product/playwright/about "Microsoft Artifact Registry"
+[Dockerfile.noble]: https://github.com/microsoft/playwright/blob/main/utils/docker/Dockerfile.noble "Dockerfile.noble"
