@@ -1,0 +1,104 @@
+schemaVersion: 2
+capturedAt: '2026-07-11T12:00:00+08:00'
+project: banksystem
+spec: v4-stage1
+
+core:
+  fineract:
+    reference: 'openmf/fineract:develop@sha256:666c666900eb62fc1f6c5faa971e19c34ef6ec5d7cb8224276a49e2ddba262e1'
+    tag: develop
+    digest: 'sha256:666c666900eb62fc1f6c5faa971e19c34ef6ec5d7cb8224276a49e2ddba262e1'
+    hostPort: '127.0.0.1:13000'
+    note: 'Development tag pinned with immutable digest; upgrade requires ADR and full regression.'
+  mifosWeb:
+    reference: 'openmf/web-app:dev@sha256:d071bea02ba0b83b0a9958f8ea651b7cc50aa86dd18f71ab304955e76bbd4b03'
+    tag: dev
+    digest: 'sha256:d071bea02ba0b83b0a9958f8ea651b7cc50aa86dd18f71ab304955e76bbd4b03'
+    hostPort: '127.0.0.1:18080'
+    note: 'Development tag pinned with immutable digest; upgrade requires ADR and full regression.'
+  postgresql:
+    reference: 'postgres:18.3@sha256:7e32e9833a6fb1c92c32552794cb6ed569d51b445a54907d35fc112ef39684db'
+    tag: '18.3'
+    digest: 'sha256:7e32e9833a6fb1c92c32552794cb6ed569d51b445a54907d35fc112ef39684db'
+    hostPort: null
+    note: 'Core PostgreSQL has no host port mapping.'
+  activeMq:
+    reference: 'apache/activemq-classic:6.1.2@sha256:75852a6d357991028e58e7c32a7dd190cb36802568236cf3cd189d2350033be1'
+    tag: '6.1.2'
+    digest: 'sha256:75852a6d357991028e58e7c32a7dd190cb36802568236cf3cd189d2350033be1'
+    hostPort: null
+    note: 'Pinned version tag replacing previous latest tag. Digest verified against runtime.'
+
+channel:
+  postgresql:
+    reference: 'postgres:18.3@sha256:7e32e9833a6fb1c92c32552794cb6ed569d51b445a54907d35fc112ef39684db'
+    tag: '18.3'
+    digest: 'sha256:7e32e9833a6fb1c92c32552794cb6ed569d51b445a54907d35fc112ef39684db'
+    hostPort: null
+    note: 'Channel database has no host port mapping.'
+  gateway:
+    reference: 'nginx:1.27-alpine@sha256:65645c7bb6a0661892a8b03b89d0743208a18dd2f3f17a54ef4b76fb8e2f2a10'
+    tag: '1.27-alpine'
+    digest: 'sha256:65645c7bb6a0661892a8b03b89d0743208a18dd2f3f17a54ef4b76fb8e2f2a10'
+    hostPort: '127.0.0.1:18443'
+    note: 'v4 target port; current runtime uses 18081 until S1 migration.'
+  javaRuntime:
+    reference: 'eclipse-temurin:21-jre@sha256:d2b9f8f12212cadcfdf889461531784e8fd097feade954d65b31ee7a71c473ec'
+    tag: '21-jre'
+    digest: 'sha256:d2b9f8f12212cadcfdf889461531784e8fd097feade954d65b31ee7a71c473ec'
+    note: 'Bank Channel Service runtime.'
+  keycloak:
+    reference: 'quay.io/keycloak/keycloak:26.3.3@sha256:6a7217a100bd3e5de4063a27a538ef999a3c5a88c4b4ec0ffc0a642aee7b2597'
+    tag: '26.3.3'
+    digest: 'sha256:6a7217a100bd3e5de4063a27a538ef999a3c5a88c4b4ec0ffc0a642aee7b2597'
+    hostPort: '127.0.0.1:19000'
+    note: 'v4 target port; current runtime uses 18082 until S1 migration.'
+  channelService:
+    reference: 'local/bank-channel-service:0.1.0'
+    builder: 'maven@sha256:3a4ab3276a087bf276f79cae96b1af04f53731bec53fb2e651aca79e4b10211e'
+    hostPort: '127.0.0.1:18100'
+    note: 'S1: v4 port 18100 assigned.'
+  mockClearing:
+    reference: 'local/mock-clearing-service:0.1.0'
+    builder: 'python:3.12-slim'
+    hostPort: null
+    note: 'S1: Mock clearing skeleton. Digest pending first build.'
+  staticWeb:
+    reference: 'nginx:1.27-alpine@sha256:65645c7bb6a0661892a8b03b89d0743208a18dd2f3f17a54ef4b76fb8e2f2a10'
+    tag: '1.27-alpine'
+    digest: 'sha256:65645c7bb6a0661892a8b03b89d0743208a18dd2f3f17a54ef4b76fb8e2f2a10'
+    hostPort: '127.0.0.1:18082, 127.0.0.1:18083'
+    note: 'S1: Customer Portal 18082, Operations Console 18083.'
+
+observability:
+  prometheus:
+    reference: 'prom/prometheus:v3.4.2'
+    tag: 'v3.4.2'
+    digest: null
+    hostPort: null
+    note: 'S1: Digest pending first pull and verification.'
+  grafana:
+    reference: 'grafana/grafana:12.1.0'
+    tag: '12.1.0'
+    digest: null
+    hostPort: '127.0.0.1:19001'
+    note: 'S1: Digest pending first pull and verification.'
+  loki:
+    reference: 'grafana/loki:3.5.1'
+    tag: '3.5.1'
+    digest: null
+    hostPort: null
+    note: 'S1: Digest pending first pull and verification.'
+  otelCollector:
+    reference: 'otel/opentelemetry-collector-contrib:0.130.0'
+    tag: '0.130.0'
+    digest: null
+    hostPort: null
+    note: 'S1: Digest pending first pull and verification.'
+
+rules:
+  - 'MUST: All images MUST have an immutable digest (sha256).'
+  - 'MUST NOT: No image reference may use the `latest` tag.'
+  - 'MUST: Any version upgrade requires an ADR, backup, and full regression test.'
+  - 'MUST: Observed digests are baseline frozen; automatic image pulls without digest verification are prohibited.'
+  - 'SHOULD: Development tags (develop, dev) should be replaced with release tags when available, under an approved core-change procedure.'

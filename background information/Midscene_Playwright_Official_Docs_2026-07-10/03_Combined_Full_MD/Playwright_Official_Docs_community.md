@@ -1,0 +1,101 @@
+# Playwright Official Documentation — Community
+
+<!--
+Source repository: microsoft/playwright.dev
+Commit: a26d4b06417a23bf50adff1795730fa2ef62e3c8
+Generated: 2026-07-10
+License: CC BY 4.0
+Format: All official Markdown/MDX pages concatenated in deterministic path order.
+The original page content is retained; MDX/JSX directives may remain for fidelity.
+-->
+
+## Document index
+
+1. `0-welcome.mdx`
+2. `ambassadors.mdx`
+
+---
+
+<!-- BEGIN OFFICIAL PAGE 1: 0-welcome.mdx -->
+
+## Source page: `0-welcome.mdx`
+
+# Welcome
+
+Welcome to the Playwright Community. We are so glad to have you here. In our community section take a look at our videos section to see videos on [conference talks](./conference-videos), [live streams](./live-streams), [feature videos](./feature-videos) and [release videos](./release-videos).
+
+## Ambassadors
+
+Check out our [Ambassador page](./ambassadors) to the see the awesome people creating Playwright content and sharing it with the community.
+
+## GitHub
+
+We love stars so make sure you [star us on GitHub](https://github.com/microsoft/playwright).
+
+Please create an issue for the following:
+
+- [Bug Reports](https://github.com/microsoft/playwright/issues/new?template=bug.yml)
+- [Documentation Issues](https://github.com/microsoft/playwright/issues/new?template=documentation.yml)
+- [Feature Requests](https://github.com/microsoft/playwright/issues/new?template=feature.yml)
+- [Report Regression](https://github.com/microsoft/playwright/issues/new?template=regression.yml)
+- [Report a security vulnerability](https://github.com/microsoft/playwright/security/policy)
+
+## Contributing
+
+Check out our [contributing guide](https://github.com/microsoft/playwright/blob/main/CONTRIBUTING.md) if you would like to contribute to Playwright.
+
+## Community Discord
+
+Join our community [Discord Server](https://aka.ms/playwright/discord) to connect with other developers using Playwright, ask questions in our ['help-playwright'](https://discord.com/channels/807756831384403968/1054804523652231198) forum, share your articles and videos and join live events on the Playwright stage.
+
+## Community LinkedIn
+
+Join our community on [LinkedIn](https://www.linkedin.com/company/playwrightweb/) to connect with other developers and hear the latest news about Playwright.
+
+## Stack Overflow {/* #stack-overflow */}
+
+Read through the [existing questions](https://stackoverflow.com/tags/playwright) tagged with **playwright** or [ask your own](https://stackoverflow.com/questions/ask?tags=playwright)!
+
+## YouTube
+
+Check out our [YouTube channel](https://www.youtube.com/channel/UC46Zj8pDH5tDosqm1gd7WTg) for getting started series, feature videos and new releases.
+
+## Blog
+
+Follow our [Blog](https://dev.to/playwright) on dev.to for official posts on Playwright.
+
+## News {/* #news */}
+
+For the latest news about Playwright, [follow **@playwrightweb** on X](https://x.com/playwrightweb).
+
+## Playwright Training {/* #training */}
+
+Learn how to [Build Your first end-to-end test with Playwright](https://learn.microsoft.com/en-us/training/modules/build-with-playwright/) on Microsoft Learn.
+
+<!-- END OFFICIAL PAGE 1: 0-welcome.mdx -->
+
+---
+
+<!-- BEGIN OFFICIAL PAGE 2: ambassadors.mdx -->
+
+## Source page: `ambassadors.mdx`
+
+# Ambassadors
+
+import { ProfileCards } from '@site/src/components/ProfileCard';
+
+import ambassadors from '@site/src/data/ambassadors';
+import team from '@site/src/data/team';
+
+Our Mission is to build an amazing Playwright community with the help of our ambassadors who are sharing their knowledge and passion for Playwright though live streams, video courses, conference talks and more.
+
+## Meet the Ambassadors
+
+We are more than excited to introduce to you our awesome Playwright Ambassadors and hope you enjoy the incredible content they are creating.
+
+<ProfileCards people={ambassadors} />
+
+<!-- END OFFICIAL PAGE 2: ambassadors.mdx -->
+
+---
+

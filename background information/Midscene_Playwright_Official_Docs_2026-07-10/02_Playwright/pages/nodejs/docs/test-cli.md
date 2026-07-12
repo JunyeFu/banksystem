@@ -1,0 +1,443 @@
+---
+id: test-cli
+title: "Command line"
+---
+import Tabs from '@theme/Tabs';
+import TabItem from '@theme/TabItem';
+import HTMLCard from '@site/src/components/HTMLCard';
+
+Playwright provides a powerful command line interface for running tests, generating code, debugging, and more. The most up to date list of commands and arguments available on the CLI can always be retrieved via `npx playwright --help`.
+
+## Essential Commands
+
+### Run Tests
+
+Run your Playwright tests. [Read more about running tests](./running-tests.mdx).
+
+#### Syntax
+
+```bash
+npx playwright test [options] [test-filter...]
+```
+
+#### Examples
+
+```bash
+# Run all tests
+npx playwright test
+
+# Run a single test file
+npx playwright test tests/todo-page.spec.ts
+
+# Run a set of test files
+npx playwright test tests/todo-page/ tests/landing-page/
+
+# Run tests at a specific line
+npx playwright test my-spec.ts:42
+
+# Run tests by title
+npx playwright test -g "add a todo item"
+
+# Run tests in headed browsers
+npx playwright test --headed
+
+# Run tests for a specific project
+npx playwright test --project=chromium
+
+# Get help
+npx playwright test --help
+```
+
+**Disable [parallelization](./test-parallel.mdx)**
+
+```bash
+npx playwright test --workers=1
+```
+
+**Run in debug mode with [Playwright Inspector](./debug.mdx)**
+
+```bash
+npx playwright test --debug
+```
+
+**Run tests in interactive [UI mode](./test-ui-mode.mdx)**
+
+```bash
+npx playwright test --ui
+```
+
+#### Common Options
+
+| Option | Description |
+| :--- | :--- |
+| `--debug` | Run tests with Playwright Inspector. Shortcut for `PWDEBUG=1` environment variable and `--timeout=0 --max-failures=1 --headed --workers=1` options. |
+| `--headed` | Run tests in headed browsers (default: headless). |
+| `-g <grep>` or `--grep <grep>` | Only run tests matching this regular expression (default: ".*"). |
+| `--project <project-name...>` | Only run tests from the specified list of projects, supports '*' wildcard (default: run all projects). |
+| `--ui` | Run tests in interactive UI mode. |
+| `-j <workers>` or `--workers <workers>` | Number of concurrent workers or percentage of logical CPU cores, use 1 to run in a single worker (default: 50%). |
+
+#### All Options
+
+| Option | Description |
+| :--- | :--- |
+| Non-option arguments | Each argument is treated as a regular expression matched against the full test file path. Only tests from files matching the pattern will be executed. Special symbols like `$` or `*` should be escaped with `\`. In many shells/terminals you may need to quote the arguments. |
+| `-c <file>` or `--config <file>` | Configuration file, or a test directory with optional "playwright.config.&#123;m,c&#125;?&#123;js,ts&#125;". Defaults to `playwright.config.ts` or `playwright.config.js` in the current directory. |
+| `--debug` | Run tests with Playwright Inspector. Shortcut for `PWDEBUG=1` environment variable and `--timeout=0 --max-failures=1 --headed --workers=1` options. |
+| `--fail-on-flaky-tests` | Fail if any test is flagged as flaky (default: false). |
+| `--forbid-only` | Fail if `test.only` is called (default: false). Useful on CI. |
+| `--fully-parallel` | Run all tests in parallel (default: false). |
+| `--global-timeout <timeout>` | Maximum time this test suite can run in milliseconds (default: unlimited). |
+| `-g <grep>` or `--grep <grep>` | Only run tests matching this regular expression (default: ".*"). |
+| `-G <grep>` or `--grep-invert <grep>` | Only run tests that do not match this regular expression. |
+| `--headed` | Run tests in headed browsers (default: headless). |
+| `--ignore-snapshots` | Ignore screenshot and snapshot expectations. |
+| `-j <workers>` or `--workers <workers>` | Number of concurrent workers or percentage of logical CPU cores, use 1 to run in a single worker (default: 50%). |
+| `--last-failed` | Only re-run the failures. |
+| `--last-failed-file <file>` | Override the default last-run JSON path for `--last-failed` (default: `<outputDir>/.last-run.json`). Same as `PLAYWRIGHT_LAST_RUN_OUTPUT_FILE` environment variable. |
+| `--list` | Collect all the tests and report them, but do not run. |
+| `--max-failures <N>` or `-x` | Stop after the first `N` failures. Passing `-x` stops after the first failure. |
+| `--no-deps` | Do not run project dependencies. |
+| `--output <dir>` | Folder for output artifacts (default: "test-results"). |
+| `--only-changed [ref]` | Only run test files that have been changed between 'HEAD' and 'ref'. Defaults to running all uncommitted changes. Only supports Git. |
+| `--pass-with-no-tests` | Makes test run succeed even if no tests were found. |
+| `--project <project-name...>` | Only run tests from the specified list of projects, supports '*' wildcard (default: run all projects). |
+| `--quiet` | Suppress stdio. |
+| `--repeat-each <N>` | Run each test `N` times (default: 1). |
+| `--reporter <reporter>` | Reporter to use, comma-separated, can be "dot", "line", "list", or others (default: "list"). You can also pass a path to a custom reporter file. |
+| `--retries <retries>` | Maximum retry count for flaky tests, zero for no retries (default: no retries). |
+| `--shard <shard>` | Shard tests and execute only the selected shard, specified in the form "current/all", 1-based, e.g., "3/5". |
+| `--test-list <file>` | Path to a file containing a list of tests to run. See [test list](#test-list) for details. |
+| `--test-list-invert <file>` | Path to a file containing a list of tests to skip. See [test list](#test-list) for details.  |
+| `--timeout <timeout>` | Specify test timeout threshold in milliseconds, zero for unlimited (default: 30 seconds). |
+| `--trace <mode>` | Force tracing mode, can be `on`, `off`, `on-first-retry`, `on-all-retries`, `retain-on-failure`, `retain-on-first-failure`, `retain-on-failure-and-retries`. |
+| `--tsconfig <path>` | Path to a single tsconfig applicable to all imported files (default: look up tsconfig for each imported file separately). |
+| `--ui` | Run tests in interactive UI mode. |
+| `--ui-host <host>` | Host to serve UI on; specifying this option opens UI in a browser tab. |
+| `--ui-port <port>` | Port to serve UI on, 0 for any free port; specifying this option opens UI in a browser tab. |
+| `-u` or `--update-snapshots [mode]` | Update snapshots with actual results. Possible values are "all", "changed", "missing", and "none". Running tests without the flag defaults to "missing"; running tests with the flag but without a value defaults to "changed". |
+| `--update-source-method [mode]` | Update snapshots with actual results. Possible values are "patch" (default), "3way" and "overwrite". "Patch" creates a unified diff file that can be used to update the source code later. "3way" generates merge conflict markers in source code. "Overwrite" overwrites the source code with the new snapshot values.|
+| `-x` | Stop after the first failure. |
+
+#### Test list
+
+Options `--test-list` and `--test-list-invert` accept a path to a test list file. This file should list tests in the format similar to the output produced in `--list` mode.
+
+```txt
+# This is a test list file.
+# It can include comments and empty lines.
+
+# Run ALL tests in a file:
+path/to/example.spec.ts
+
+# Run all tests in a file for a specific project:
+[chromium] › path/to/example.spec.ts
+
+# Run all tests in a specific group/suite:
+path/to/example.spec.ts › suite name
+
+# Run all tests in a nested group:
+path/to/example.spec.ts › outer suite › inner suite
+
+# Fully qualified test with a project:
+[chromium] › path/to/example.spec.ts:3:9 › suite › nested suite › example test
+
+# This test is included for all projects:
+path/to/example.spec.ts:3:9 › example test
+
+# Use "›" or ">" as a separator:
+[firefox] > example.spec.ts > suite > nested suite > example test
+
+# Line/column numbers are completely ignored, you can omit them.
+# Three entries below refer to the same test:
+example.spec.ts › example test
+example.spec.ts:15 › example test
+example.spec.ts:42:42 › example test
+```
+
+### Show Report
+
+Display HTML report from previous test run. [Read more about the HTML reporter](./test-reporters#html-reporter).
+
+#### Syntax
+
+```bash
+npx playwright show-report [report] [options]
+```
+
+#### Examples
+
+```bash
+# Show latest test report
+npx playwright show-report
+
+# Show a specific report
+npx playwright show-report playwright-report/
+
+# Show report on custom port
+npx playwright show-report --port 8080
+```
+
+#### Options
+
+| Option | Description |
+| :--- | :--- |
+| `--host <host>` | Host to serve report on (default: localhost) |
+| `--port <port>` | Port to serve report on (default: 9323) |
+
+### Install Browsers
+
+Install browsers required by Playwright. [Read more about Playwright's browser support](./browsers.mdx).
+
+#### Syntax
+
+```bash
+npx playwright install [options] [browser...]
+npx playwright install-deps [options] [browser...]
+npx playwright uninstall
+```
+
+#### Examples
+
+```bash
+# Install all browsers
+npx playwright install
+
+# Install only Chromium
+npx playwright install chromium
+
+# Install specific browsers
+npx playwright install chromium webkit
+
+# Install browsers with dependencies
+npx playwright install --with-deps
+```
+
+#### Install Options
+
+| Option | Description |
+| :--- | :--- |
+| `--force` | Force reinstall of stable browser channels |
+| `--with-deps` | Install browser system dependencies |
+| `--dry-run` | Don't perform installation, just print information |
+| `--only-shell` | Only install chromium-headless-shell instead of full Chromium |
+| `--no-shell` | Don't install chromium-headless-shell |
+
+#### Install Deps Options
+
+| Option | Description |
+| :--- | :--- |
+| `--dry-run` | Don't modify the system. On Linux, simulates the install via apt-get and exits with a non-zero code if any required packages are missing — useful for non-interactive verification scripts. On Windows, prints the install command. |
+
+## Generation & Debugging Tools
+
+### Code Generation
+
+Record actions and generate tests for multiple languages. [Read more about Codegen](./codegen-intro.mdx).
+
+#### Syntax
+
+```bash
+npx playwright codegen [options] [url]
+```
+
+#### Examples
+
+```bash
+# Start recording with interactive UI
+npx playwright codegen
+
+# Record on specific site
+npx playwright codegen https://playwright.dev
+
+# Generate Python code
+npx playwright codegen --target=python
+```
+
+#### Options
+
+| Option | Description |
+| :--- | :--- |
+| `-b, --browser <name>` | Browser to use: chromium, firefox, or webkit (default: chromium) |
+| `-o, --output <file>` | Output file for the generated script |
+| `--target <language>` | Language to use: javascript, playwright-test, python, etc. |
+| `--test-id-attribute <attr>` | Attribute to use for test IDs |
+
+### Trace Viewer
+
+Analyze and view test traces for debugging. [Read more about Trace Viewer](./trace-viewer.mdx).
+
+#### Syntax
+
+```bash
+npx playwright show-trace [options] [trace]
+```
+
+#### Examples
+
+```bash
+# Open trace viewer without a specific trace (can load traces via UI)
+npx playwright show-trace
+
+# View a trace file
+npx playwright show-trace trace.zip
+
+# View trace from directory
+npx playwright show-trace trace/
+```
+
+#### Options
+
+| Option | Description |
+| :--- | :--- |
+| `-b, --browser <name>` | Browser to use: chromium, firefox, or webkit (default: chromium) |
+| `-h, --host <host>` | Host to serve trace on |
+| `-p, --port <port>` | Port to serve trace on |
+
+## Specialized Commands
+
+### Merge Reports
+
+Read [blob](./test-reporters#blob-reporter) reports and combine them. [Read more about merge-reports](./test-sharding.mdx).
+
+#### Syntax
+
+```bash
+npx playwright merge-reports [options] <blob dir>
+```
+
+#### Examples
+
+```bash
+# Combine test reports
+npx playwright merge-reports ./reports
+```
+
+#### Options
+
+| Option | Description |
+| :--- | :--- |
+| `-c, --config <file>` | Configuration file. Can be used to specify additional configuration for the output report |
+| `--reporter <reporter>` | Reporter to use, comma-separated, can be "list", "line", "dot", "json", "junit", "null", "github", "html", "blob" (default: "list") |
+
+### Clear Cache
+
+Clear all Playwright caches.
+
+#### Syntax
+
+```bash
+npx playwright clear-cache
+```
+
+
+[APIRequest]: /api/class-apirequest.mdx "APIRequest"
+[APIRequestContext]: /api/class-apirequestcontext.mdx "APIRequestContext"
+[APIResponse]: /api/class-apiresponse.mdx "APIResponse"
+[APIResponseAssertions]: /api/class-apiresponseassertions.mdx "APIResponseAssertions"
+[Browser]: /api/class-browser.mdx "Browser"
+[BrowserContext]: /api/class-browsercontext.mdx "BrowserContext"
+[BrowserServer]: /api/class-browserserver.mdx "BrowserServer"
+[BrowserType]: /api/class-browsertype.mdx "BrowserType"
+[CDPSession]: /api/class-cdpsession.mdx "CDPSession"
+[Clock]: /api/class-clock.mdx "Clock"
+[ConsoleMessage]: /api/class-consolemessage.mdx "ConsoleMessage"
+[Coverage]: /api/class-coverage.mdx "Coverage"
+[Credentials]: /api/class-credentials.mdx "Credentials"
+[Debugger]: /api/class-debugger.mdx "Debugger"
+[Dialog]: /api/class-dialog.mdx "Dialog"
+[Disposable]: /api/class-disposable.mdx "Disposable"
+[Download]: /api/class-download.mdx "Download"
+[ElementHandle]: /api/class-elementhandle.mdx "ElementHandle"
+[FileChooser]: /api/class-filechooser.mdx "FileChooser"
+[Frame]: /api/class-frame.mdx "Frame"
+[FrameLocator]: /api/class-framelocator.mdx "FrameLocator"
+[GenericAssertions]: /api/class-genericassertions.mdx "GenericAssertions"
+[JSHandle]: /api/class-jshandle.mdx "JSHandle"
+[Keyboard]: /api/class-keyboard.mdx "Keyboard"
+[Locator]: /api/class-locator.mdx "Locator"
+[LocatorAssertions]: /api/class-locatorassertions.mdx "LocatorAssertions"
+[Logger]: /api/class-logger.mdx "Logger"
+[Mouse]: /api/class-mouse.mdx "Mouse"
+[Page]: /api/class-page.mdx "Page"
+[PageAssertions]: /api/class-pageassertions.mdx "PageAssertions"
+[Playwright]: /api/class-playwright.mdx "Playwright"
+[PlaywrightAssertions]: /api/class-playwrightassertions.mdx "PlaywrightAssertions"
+[Request]: /api/class-request.mdx "Request"
+[Response]: /api/class-response.mdx "Response"
+[Route]: /api/class-route.mdx "Route"
+[Screencast]: /api/class-screencast.mdx "Screencast"
+[Selectors]: /api/class-selectors.mdx "Selectors"
+[SnapshotAssertions]: /api/class-snapshotassertions.mdx "SnapshotAssertions"
+[TimeoutError]: /api/class-timeouterror.mdx "TimeoutError"
+[Touchscreen]: /api/class-touchscreen.mdx "Touchscreen"
+[Tracing]: /api/class-tracing.mdx "Tracing"
+[Video]: /api/class-video.mdx "Video"
+[WebError]: /api/class-weberror.mdx "WebError"
+[WebSocket]: /api/class-websocket.mdx "WebSocket"
+[WebSocketRoute]: /api/class-websocketroute.mdx "WebSocketRoute"
+[WebStorage]: /api/class-webstorage.mdx "WebStorage"
+[Worker]: /api/class-worker.mdx "Worker"
+[Electron]: /api/class-electron.mdx "Electron"
+[ElectronApplication]: /api/class-electronapplication.mdx "ElectronApplication"
+[Android]: /api/class-android.mdx "Android"
+[AndroidDevice]: /api/class-androiddevice.mdx "AndroidDevice"
+[AndroidInput]: /api/class-androidinput.mdx "AndroidInput"
+[AndroidSocket]: /api/class-androidsocket.mdx "AndroidSocket"
+[AndroidWebView]: /api/class-androidwebview.mdx "AndroidWebView"
+[Fixtures]: /api/class-fixtures.mdx "Fixtures"
+[FullConfig]: /api/class-fullconfig.mdx "FullConfig"
+[FullProject]: /api/class-fullproject.mdx "FullProject"
+[Location]: /api/class-location.mdx "Location"
+[Test]: /api/class-test.mdx "Test"
+[TestConfig]: /api/class-testconfig.mdx "TestConfig"
+[TestInfo]: /api/class-testinfo.mdx "TestInfo"
+[TestInfoError]: /api/class-testinfoerror.mdx "TestInfoError"
+[TestOptions]: /api/class-testoptions.mdx "TestOptions"
+[TestProject]: /api/class-testproject.mdx "TestProject"
+[TestStepInfo]: /api/class-teststepinfo.mdx "TestStepInfo"
+[WorkerInfo]: /api/class-workerinfo.mdx "WorkerInfo"
+[Reporter]: /api/class-reporter.mdx "Reporter"
+[Suite]: /api/class-suite.mdx "Suite"
+[TestCase]: /api/class-testcase.mdx "TestCase"
+[TestError]: /api/class-testerror.mdx "TestError"
+[TestResult]: /api/class-testresult.mdx "TestResult"
+[TestStep]: /api/class-teststep.mdx "TestStep"
+[Element]: https://developer.mozilla.org/en-US/docs/Web/API/element "Element"
+[EvaluationArgument]: /evaluating.mdx#evaluation-argument "EvaluationArgument"
+[Promise]: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Promise "Promise"
+[iterator]: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Iteration_protocols "Iterator"
+[origin]: https://developer.mozilla.org/en-US/docs/Glossary/Origin "Origin"
+[selector]: https://developer.mozilla.org/en-US/docs/Web/CSS/CSS_Selectors "selector"
+[Serializable]: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/JSON/stringify#Description "Serializable"
+[UIEvent.detail]: https://developer.mozilla.org/en-US/docs/Web/API/UIEvent/detail "UIEvent.detail"
+[UnixTime]: https://en.wikipedia.org/wiki/Unix_time "Unix Time"
+[xpath]: https://developer.mozilla.org/en-US/docs/Web/XPath "xpath"
+
+[Array]: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Array "Array"
+[boolean]: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Data_structures#Boolean_type "Boolean"
+[Buffer]: https://nodejs.org/api/buffer.html#buffer_class_buffer "Buffer"
+[ChildProcess]: https://nodejs.org/api/child_process.html "ChildProcess"
+[Date]: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Date "Date"
+[Error]: https://nodejs.org/api/errors.html#errors_class_error "Error"
+[EventEmitter]: https://nodejs.org/api/events.html#events_class_eventemitter "EventEmitter"
+[function]: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Function "Function"
+[FormData]: https://developer.mozilla.org/en-US/docs/Web/API/FormData "FormData"
+[Map]: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Map "Map"
+[Metadata]: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Object "Object&lt;string, any&gt;"
+[null]: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/null "null"
+[number]: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Data_structures#Number_type "Number"
+[Object]: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Object "Object"
+[Promise]: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Promise "Promise"
+[Readable]: https://nodejs.org/api/stream.html#stream_class_stream_readable "Readable"
+[ReadStream]: https://nodejs.org/api/fs.html#class-fsreadstream "ReadStream"
+[RegExp]: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/RegExp "RegExp"
+[string]: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Data_structures#String_type "string"
+[void]: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/undefined "void"
+[URL]: https://nodejs.org/api/url.html "URL"
+[URLPattern]: https://developer.mozilla.org/en-US/docs/Web/API/URLPattern "URLPattern"
+[URLSearchParams]: https://developer.mozilla.org/en-US/docs/Web/API/URLSearchParams "URLSearchParams"
+
+[all available image tags]: https://mcr.microsoft.com/en-us/product/playwright/about "all available image tags"
+[Microsoft Artifact Registry]: https://mcr.microsoft.com/en-us/product/playwright/about "Microsoft Artifact Registry"
+[Dockerfile.noble]: https://github.com/microsoft/playwright/blob/main/utils/docker/Dockerfile.noble "Dockerfile.noble"

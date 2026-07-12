@@ -1,0 +1,233 @@
+---
+id: touch-events
+title: "Touch events (legacy)"
+---
+import Tabs from '@theme/Tabs';
+import TabItem from '@theme/TabItem';
+import HTMLCard from '@site/src/components/HTMLCard';
+
+## Introduction
+
+Web applications that handle legacy [touch events](https://developer.mozilla.org/en-US/docs/Web/API/Touch_events) to respond to gestures like swipe, pinch, and tap can be tested by manually dispatching [TouchEvent](https://developer.mozilla.org/en-US/docs/Web/API/TouchEvent/TouchEvent)s to the page. The examples below demonstrate how to use [Locator.dispatchEvent()](/api/class-locator.mdx#locator-dispatch-event) and pass [Touch](https://developer.mozilla.org/en-US/docs/Web/API/Touch) points as arguments.
+
+Note that [Locator.dispatchEvent()](/api/class-locator.mdx#locator-dispatch-event) does not set [`Event.isTrusted`](https://developer.mozilla.org/en-US/docs/Web/API/Event/isTrusted) property. If your web page relies on it, make sure to disable `isTrusted` check during the test.
+
+### Emulating pan gesture
+
+In the example below, we emulate pan gesture that is expected to move the map. The app under test only uses `clientX/clientY` coordinates of the touch point, so we initialize just that. In a more complex scenario you may need to also set `pageX/pageY/screenX/screenY`, if your app needs them.
+
+```java
+import com.microsoft.playwright.*;
+import com.microsoft.playwright.options.*;
+
+public class TouchEvents {
+  public static void main(String[] args) {
+    try (Playwright playwright = Playwright.create()) {
+      Browser browser = playwright.chromium().launch();
+      BrowserContext context = browser.newContext(new Browser.NewContextOptions()
+        .setViewportSize(412, 839)
+        .setDeviceScaleFactor(2.625)
+        .setUserAgent("Mozilla/5.0 (Linux; Android 12; Pixel 7 Build/SP1A.210812.015) AppleWebKit/537.36" +
+          " (KHTML, like Gecko) Chrome/94.0.4606.71 Mobile Safari/537.36")
+        .setHasTouch(true)
+        .setIsMobile(true)
+      );
+      Page page = context.newPage();
+
+      page.navigate("https://www.google.com/maps/place/@37.4117722,-122.0713234,15z", new Page.NavigateOptions().setWaitUntil(WaitUntilState.COMMIT));
+      page.getByRole(AriaRole.BUTTON, new Page.GetByRoleOptions().setName("Keep using web")).click();
+      page.getByRole(AriaRole.BUTTON, new Page.GetByRoleOptions().setName("Keep using web")).waitFor(
+        new Locator.WaitForOptions().setState(WaitForSelectorState.HIDDEN));
+
+      Locator met = page.locator("[data-test-id='met']");
+      for (int i = 0; i < 5; i++) {
+        pan(met, 200, 100);
+      }
+      page.screenshot(new Page.ScreenshotOptions().setPath(Paths.get("screenshot.png")));
+    }
+  }
+
+  public static void pan(Locator locator, int deltaX, int deltaY) {
+    pan(locator, deltaX, deltaY, 5);
+  }
+
+  public static void pan(Locator locator, int deltaX, int deltaY, int steps) {
+    BoundingBox bounds = locator.boundingBox();
+    double centerX = bounds.x + bounds.width / 2;
+    double centerY = bounds.y + bounds.height / 2;
+
+    List<Map<String, Object>> touches = List.of(Map.of(
+      "identifier", 0,
+      "clientX", centerX,
+      "clientY", centerY
+    ));
+    locator.dispatchEvent("touchstart", Map.of(
+      "touches", touches,
+      "changedTouches", touches,
+      "targetTouches", touches
+    ));
+
+    for (int i = 1; i <= steps; i++) {
+      touches = List.of(Map.of(
+        "identifier", 0,
+        "clientX", centerX + deltaX * i / steps,
+        "clientY", centerY + deltaY * i / steps
+      ));
+      locator.dispatchEvent("touchmove", Map.of(
+        "touches", touches,
+        "changedTouches", touches,
+        "targetTouches", touches
+      ));
+    }
+
+    locator.dispatchEvent("touchend");
+  }
+}
+```
+
+### Emulating pinch gesture
+
+In the example below, we emulate pinch gesture, i.e. two touch points moving closer to each other. It is expected to zoom out the map. The app under test only uses `clientX/clientY` coordinates of touch points, so we initialize just that. In a more complex scenario you may need to also set `pageX/pageY/screenX/screenY`, if your app needs them.
+
+```java
+import com.microsoft.playwright.*;
+import com.microsoft.playwright.options.*;
+
+public class TouchEvents {
+  public static void main(String[] args) {
+    try (Playwright playwright = Playwright.create()) {
+      Browser browser = playwright.chromium().launch();
+      BrowserContext context = browser.newContext(new Browser.NewContextOptions()
+        .setViewportSize(412, 839)
+        .setDeviceScaleFactor(2.625)
+        .setUserAgent("Mozilla/5.0 (Linux; Android 12; Pixel 7 Build/SP1A.210812.015) AppleWebKit/537.36" +
+          " (KHTML, like Gecko) Chrome/94.0.4606.71 Mobile Safari/537.36")
+        .setHasTouch(true)
+        .setIsMobile(true)
+      );
+      Page page = context.newPage();
+
+      page.navigate("https://www.google.com/maps/place/@37.4117722,-122.0713234,15z", new Page.NavigateOptions().setWaitUntil(WaitUntilState.COMMIT));
+      page.getByRole(AriaRole.BUTTON, new Page.GetByRoleOptions().setName("Keep using web")).click();
+      page.getByRole(AriaRole.BUTTON, new Page.GetByRoleOptions().setName("Keep using web")).waitFor(
+        new Locator.WaitForOptions().setState(WaitForSelectorState.HIDDEN));
+
+      Locator met = page.locator("[data-test-id='met']");
+      for (int i = 0; i < 5; i++) {
+        pinch(met, 40, "in");
+      }
+      page.screenshot(new Page.ScreenshotOptions().setPath(Paths.get("screenshot.png")));
+    }
+  }
+
+  public static void pinch(Locator locator, int deltaX, String direction) {
+    pinch(locator, deltaX, direction, 5);
+  }
+
+  public static void pinch(Locator locator, int deltaX, String direction, int steps) {
+    BoundingBox bounds = locator.boundingBox();
+    double centerX = bounds.x + bounds.width / 2;
+    double centerY = bounds.y + bounds.height / 2;
+    double stepDeltaX = deltaX / (steps + 1.0);
+
+    List<Map<String, Object>> touches = List.of(
+      Map.of("identifier", 0, "clientX", centerX - (direction.equals("in") ? deltaX : stepDeltaX), "clientY", centerY),
+      Map.of("identifier", 1, "clientX", centerX + (direction.equals("in") ? deltaX : stepDeltaX), "clientY", centerY)
+    );
+    locator.dispatchEvent("touchstart", Map.of("touches", touches, "changedTouches", touches, "targetTouches", touches));
+
+    for (int i = 1; i <= steps; i++) {
+      double offset = direction.equals("in") ? (deltaX - i * stepDeltaX) : (stepDeltaX * (i + 1));
+      touches = List.of(
+        Map.of("identifier", 0, "clientX", centerX - offset, "clientY", centerY),
+        Map.of("identifier", 1, "clientX", centerX + offset, "clientY", centerY)
+      );
+      locator.dispatchEvent("touchmove", Map.of("touches", touches, "changedTouches", touches, "targetTouches", touches));
+    }
+
+    locator.dispatchEvent("touchend", Map.of("touches", List.of(), "changedTouches", List.of(), "targetTouches", List.of()));
+  }
+}
+```
+
+
+[APIRequest]: /api/class-apirequest.mdx "APIRequest"
+[APIRequestContext]: /api/class-apirequestcontext.mdx "APIRequestContext"
+[APIResponse]: /api/class-apiresponse.mdx "APIResponse"
+[APIResponseAssertions]: /api/class-apiresponseassertions.mdx "APIResponseAssertions"
+[Browser]: /api/class-browser.mdx "Browser"
+[BrowserContext]: /api/class-browsercontext.mdx "BrowserContext"
+[BrowserType]: /api/class-browsertype.mdx "BrowserType"
+[CDPSession]: /api/class-cdpsession.mdx "CDPSession"
+[Clock]: /api/class-clock.mdx "Clock"
+[ConsoleMessage]: /api/class-consolemessage.mdx "ConsoleMessage"
+[Credentials]: /api/class-credentials.mdx "Credentials"
+[Debugger]: /api/class-debugger.mdx "Debugger"
+[Dialog]: /api/class-dialog.mdx "Dialog"
+[Download]: /api/class-download.mdx "Download"
+[ElementHandle]: /api/class-elementhandle.mdx "ElementHandle"
+[FileChooser]: /api/class-filechooser.mdx "FileChooser"
+[FormData]: /api/class-formdata.mdx "FormData"
+[Frame]: /api/class-frame.mdx "Frame"
+[FrameLocator]: /api/class-framelocator.mdx "FrameLocator"
+[JSHandle]: /api/class-jshandle.mdx "JSHandle"
+[Keyboard]: /api/class-keyboard.mdx "Keyboard"
+[Locator]: /api/class-locator.mdx "Locator"
+[LocatorAssertions]: /api/class-locatorassertions.mdx "LocatorAssertions"
+[Mouse]: /api/class-mouse.mdx "Mouse"
+[Page]: /api/class-page.mdx "Page"
+[PageAssertions]: /api/class-pageassertions.mdx "PageAssertions"
+[Playwright]: /api/class-playwright.mdx "Playwright"
+[PlaywrightAssertions]: /api/class-playwrightassertions.mdx "PlaywrightAssertions"
+[PlaywrightException]: /api/class-playwrightexception.mdx "PlaywrightException"
+[Request]: /api/class-request.mdx "Request"
+[RequestOptions]: /api/class-requestoptions.mdx "RequestOptions"
+[Response]: /api/class-response.mdx "Response"
+[Route]: /api/class-route.mdx "Route"
+[Screencast]: /api/class-screencast.mdx "Screencast"
+[Selectors]: /api/class-selectors.mdx "Selectors"
+[TimeoutError]: /api/class-timeouterror.mdx "TimeoutError"
+[Touchscreen]: /api/class-touchscreen.mdx "Touchscreen"
+[Tracing]: /api/class-tracing.mdx "Tracing"
+[Video]: /api/class-video.mdx "Video"
+[WebError]: /api/class-weberror.mdx "WebError"
+[WebSocket]: /api/class-websocket.mdx "WebSocket"
+[WebSocketFrame]: /api/class-websocketframe.mdx "WebSocketFrame"
+[WebSocketRoute]: /api/class-websocketroute.mdx "WebSocketRoute"
+[WebStorage]: /api/class-webstorage.mdx "WebStorage"
+[Worker]: /api/class-worker.mdx "Worker"
+[Element]: https://developer.mozilla.org/en-US/docs/Web/API/element "Element"
+[EvaluationArgument]: /evaluating.mdx#evaluation-argument "EvaluationArgument"
+[Promise]: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Promise "Promise"
+[iterator]: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Iteration_protocols "Iterator"
+[origin]: https://developer.mozilla.org/en-US/docs/Glossary/Origin "Origin"
+[selector]: https://developer.mozilla.org/en-US/docs/Web/CSS/CSS_Selectors "selector"
+[Serializable]: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/JSON/stringify#Description "Serializable"
+[UIEvent.detail]: https://developer.mozilla.org/en-US/docs/Web/API/UIEvent/detail "UIEvent.detail"
+[UnixTime]: https://en.wikipedia.org/wiki/Unix_time "Unix Time"
+[xpath]: https://developer.mozilla.org/en-US/docs/Web/XPath "xpath"
+
+[boolean]: https://docs.oracle.com/javase/tutorial/java/nutsandbolts/datatypes.html "boolean"
+[byte&#91;&#93;]: https://docs.oracle.com/javase/tutorial/java/nutsandbolts/datatypes.html "byte[]"
+[Consumer]: https://docs.oracle.com/javase/8/docs/api/java/util/function/Consumer.html "Consumer"
+[Date]: https://docs.oracle.com/javase/8/docs/api/java/util/Date.html "Date"
+[double]: https://docs.oracle.com/javase/tutorial/java/nutsandbolts/datatypes.html "double"
+[InputStream]: https://docs.oracle.com/javase/8/docs/api/java/io/InputStream.html "InputStream"
+[int]: https://docs.oracle.com/javase/tutorial/java/nutsandbolts/datatypes.html "int"
+[long]: https://docs.oracle.com/javase/tutorial/java/nutsandbolts/datatypes.html "long"
+[JsonObject]: https://www.javadoc.io/doc/com.google.code.gson/gson/latest/com.google.gson/com/google/gson/JsonObject.html "JsonObject"
+[List]: https://docs.oracle.com/javase/8/docs/api/java/util/List.html "List"
+[Map]: https://docs.oracle.com/javase/8/docs/api/java/util/Map.html "Map"
+[null]: https://docs.oracle.com/javase/specs/jls/se8/html/jls-3.html#jls-3.10.7 "null"
+[Object]: https://docs.oracle.com/javase/8/docs/api/java/lang/Object.html "Object"
+[Path]: https://docs.oracle.com/javase/8/docs/api/java/nio/file/Path.html "Path"
+[Pattern]: https://docs.oracle.com/javase/8/docs/api/java/util/regex/Pattern.html "Pattern"
+[Predicate]: https://docs.oracle.com/javase/8/docs/api/java/util/function/Predicate.html "Predicate"
+[void]: https://docs.oracle.com/javase/tutorial/java/javaOO/methods.html "void"
+[Runnable]: https://docs.oracle.com/javase/8/docs/api/java/lang/Runnable.html "Runnable"
+[RuntimeException]: https://docs.oracle.com/javase/8/docs/api/java/lang/RuntimeException.html "RuntimeException"
+[String]: https://docs.oracle.com/javase/8/docs/api/java/lang/String.html "String"
+
+[all available image tags]: https://mcr.microsoft.com/en-us/product/playwright/java/about "all available image tags"
+[Microsoft Artifact Registry]: https://mcr.microsoft.com/en-us/product/playwright/java/about "Microsoft Artifact Registry"
+[Dockerfile.noble]: https://github.com/microsoft/playwright-java/blob/main/utils/docker/Dockerfile.noble "Dockerfile.noble"

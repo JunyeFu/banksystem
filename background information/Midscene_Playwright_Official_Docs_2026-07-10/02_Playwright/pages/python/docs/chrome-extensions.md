@@ -1,0 +1,278 @@
+---
+id: chrome-extensions
+title: "Chrome extensions"
+---
+import Tabs from '@theme/Tabs';
+import TabItem from '@theme/TabItem';
+import HTMLCard from '@site/src/components/HTMLCard';
+
+## Introduction
+
+:::note
+
+Extensions only work in Chromium when launched with a persistent context. Use custom browser args at your own risk, as some of them may break Playwright functionality.
+
+Google Chrome and Microsoft Edge [removed the command-line flags needed to side-load extensions](https://groups.google.com/a/chromium.org/g/chromium-extensions/c/FxMU1TvxWWg/m/daZVTYNlBQAJ), so use Chromium that comes bundled with Playwright.
+:::
+
+The snippet below retrieves the [service worker](https://developer.chrome.com/docs/extensions/develop/concepts/service-workers) of a [Manifest v3](https://developer.chrome.com/docs/extensions/develop/migrate) extension whose source is located in `./my-extension`.
+
+Note the use of the `chromium` channel that allows to run extensions in headless mode. Alternatively, you can launch the browser in headed mode.
+
+<Tabs
+  groupId="python-flavor"
+  defaultValue="sync"
+  values={[
+    {label: 'Sync', value: 'sync'},
+    {label: 'Async', value: 'async'}
+  ]
+}>
+<TabItem value="sync">
+
+```py
+from playwright.sync_api import sync_playwright, Playwright
+
+path_to_extension = "./my-extension"
+user_data_dir = "/tmp/test-user-data-dir"
+
+
+def run(playwright: Playwright):
+    context = playwright.chromium.launch_persistent_context(
+        user_data_dir,
+        channel="chromium",
+        args=[
+            f"--disable-extensions-except={path_to_extension}",
+            f"--load-extension={path_to_extension}",
+        ],
+    )
+    if len(context.service_workers) == 0:
+        service_worker = context.wait_for_event('serviceworker')
+    else:
+        service_worker = context.service_workers[0]
+
+    # Test the service worker as you would any other worker.
+    context.close()
+
+
+with sync_playwright() as playwright:
+    run(playwright)
+```
+
+</TabItem>
+<TabItem value="async">
+
+```py
+import asyncio
+from playwright.async_api import async_playwright, Playwright
+
+path_to_extension = "./my-extension"
+user_data_dir = "/tmp/test-user-data-dir"
+
+
+async def run(playwright: Playwright):
+    context = await playwright.chromium.launch_persistent_context(
+        user_data_dir,
+        channel="chromium",
+        args=[
+            f"--disable-extensions-except={path_to_extension}",
+            f"--load-extension={path_to_extension}",
+        ],
+    )
+
+    if len(context.service_workers) == 0:
+        service_worker = await context.wait_for_event('serviceworker')
+    else:
+        service_worker = context.service_workers[0]
+
+    # Test the service worker as you would any other worker.
+    await context.close()
+
+
+async def main():
+    async with async_playwright() as playwright:
+        await run(playwright)
+
+
+asyncio.run(main())
+```
+
+</TabItem>
+</Tabs>
+
+## Service worker idle suspension (MV3)
+
+Chrome MV3 service workers are automatically suspended after ~30 seconds of inactivity and restarted on demand. When this happens, Playwright keeps the **same [Worker] object alive** — no new `'serviceworker'` event is emitted. New `evaluate()` calls issued during the restart window are stalled until the new context is ready and then resume automatically:
+
+<Tabs
+  groupId="python-flavor"
+  defaultValue="sync"
+  values={[
+    {label: 'Sync', value: 'sync'},
+    {label: 'Async', value: 'async'}
+  ]
+}>
+<TabItem value="sync">
+
+```py
+sw = context.wait_for_event('serviceworker')
+
+# ... SW suspends after 30 s of inactivity and is restarted by the browser ...
+
+# The existing handle is transparent across the restart.
+sw.evaluate("sendMessage({ type: 'ping' })")  # just works
+```
+
+</TabItem>
+<TabItem value="async">
+
+```py
+sw = await context.wait_for_event('serviceworker')
+
+# ... SW suspends after 30 s of inactivity and is restarted by the browser ...
+
+# The existing handle is transparent across the restart.
+await sw.evaluate("sendMessage({ type: 'ping' })")  # just works
+```
+
+</TabItem>
+</Tabs>
+
+:::note
+
+`evaluate()` calls that were already in-flight at the exact moment of suspension will throw with `"Service worker restarted"`, matching the behaviour of page navigations mid-flight.
+:::
+
+## Testing
+
+To have the extension loaded when running tests you can use a test fixture to set the context. You can also dynamically retrieve the extension id and use it to load and test the popup page for example.
+
+Note the use of the `chromium` channel that allows to run extensions in headless mode. Alternatively, you can launch the browser in headed mode.
+
+First, add fixtures that will load the extension:
+
+```python title="conftest.py"
+from typing import Generator
+from pathlib import Path
+from playwright.sync_api import Playwright, BrowserContext
+import pytest
+
+
+@pytest.fixture()
+def context(playwright: Playwright) -> Generator[BrowserContext, None, None]:
+    path_to_extension = Path(__file__).parent.joinpath("my-extension")
+    context = playwright.chromium.launch_persistent_context(
+        "",
+        channel="chromium",
+        args=[
+            f"--disable-extensions-except={path_to_extension}",
+            f"--load-extension={path_to_extension}",
+        ],
+    )
+    yield context
+    context.close()
+
+
+@pytest.fixture()
+def extension_id(context) -> Generator[str, None, None]:
+    # for manifest v3:
+    service_worker = context.service_workers[0]
+    if not service_worker:
+        service_worker = context.wait_for_event("serviceworker")
+
+    extension_id = service_worker.url.split("/")[2]
+    yield extension_id
+
+```
+
+Then use these fixtures in a test:
+
+```python title="test_foo.py"
+from playwright.sync_api import expect, Page
+
+
+def test_example_test(page: Page) -> None:
+    page.goto("https://example.com")
+    expect(page.locator("body")).to_contain_text("Changed by my-extension")
+
+
+def test_popup_page(page: Page, extension_id: str) -> None:
+    page.goto(f"chrome-extension://{extension_id}/popup.html")
+    expect(page.locator("body")).to_have_text("my-extension popup")
+```
+
+
+[APIRequest]: /api/class-apirequest.mdx "APIRequest"
+[APIRequestContext]: /api/class-apirequestcontext.mdx "APIRequestContext"
+[APIResponse]: /api/class-apiresponse.mdx "APIResponse"
+[APIResponseAssertions]: /api/class-apiresponseassertions.mdx "APIResponseAssertions"
+[Browser]: /api/class-browser.mdx "Browser"
+[BrowserContext]: /api/class-browsercontext.mdx "BrowserContext"
+[BrowserType]: /api/class-browsertype.mdx "BrowserType"
+[CDPSession]: /api/class-cdpsession.mdx "CDPSession"
+[Clock]: /api/class-clock.mdx "Clock"
+[ConsoleMessage]: /api/class-consolemessage.mdx "ConsoleMessage"
+[Credentials]: /api/class-credentials.mdx "Credentials"
+[Debugger]: /api/class-debugger.mdx "Debugger"
+[Dialog]: /api/class-dialog.mdx "Dialog"
+[Download]: /api/class-download.mdx "Download"
+[ElementHandle]: /api/class-elementhandle.mdx "ElementHandle"
+[Error]: /api/class-error.mdx "Error"
+[FileChooser]: /api/class-filechooser.mdx "FileChooser"
+[FormData]: /api/class-formdata.mdx "FormData"
+[Frame]: /api/class-frame.mdx "Frame"
+[FrameLocator]: /api/class-framelocator.mdx "FrameLocator"
+[JSHandle]: /api/class-jshandle.mdx "JSHandle"
+[Keyboard]: /api/class-keyboard.mdx "Keyboard"
+[Locator]: /api/class-locator.mdx "Locator"
+[LocatorAssertions]: /api/class-locatorassertions.mdx "LocatorAssertions"
+[Mouse]: /api/class-mouse.mdx "Mouse"
+[Page]: /api/class-page.mdx "Page"
+[PageAssertions]: /api/class-pageassertions.mdx "PageAssertions"
+[Playwright]: /api/class-playwright.mdx "Playwright"
+[Request]: /api/class-request.mdx "Request"
+[Response]: /api/class-response.mdx "Response"
+[Route]: /api/class-route.mdx "Route"
+[Screencast]: /api/class-screencast.mdx "Screencast"
+[Selectors]: /api/class-selectors.mdx "Selectors"
+[TimeoutError]: /api/class-timeouterror.mdx "TimeoutError"
+[Touchscreen]: /api/class-touchscreen.mdx "Touchscreen"
+[Tracing]: /api/class-tracing.mdx "Tracing"
+[Video]: /api/class-video.mdx "Video"
+[WebError]: /api/class-weberror.mdx "WebError"
+[WebSocket]: /api/class-websocket.mdx "WebSocket"
+[WebSocketRoute]: /api/class-websocketroute.mdx "WebSocketRoute"
+[WebStorage]: /api/class-webstorage.mdx "WebStorage"
+[Worker]: /api/class-worker.mdx "Worker"
+[Element]: https://developer.mozilla.org/en-US/docs/Web/API/element "Element"
+[EvaluationArgument]: /evaluating.mdx#evaluation-argument "EvaluationArgument"
+[Promise]: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Promise "Promise"
+[iterator]: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Iteration_protocols "Iterator"
+[origin]: https://developer.mozilla.org/en-US/docs/Glossary/Origin "Origin"
+[selector]: https://developer.mozilla.org/en-US/docs/Web/CSS/CSS_Selectors "selector"
+[Serializable]: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/JSON/stringify#Description "Serializable"
+[UIEvent.detail]: https://developer.mozilla.org/en-US/docs/Web/API/UIEvent/detail "UIEvent.detail"
+[UnixTime]: https://en.wikipedia.org/wiki/Unix_time "Unix Time"
+[xpath]: https://developer.mozilla.org/en-US/docs/Web/XPath "xpath"
+
+[Any]: https://docs.python.org/3/library/typing.html#typing.Any "Any"
+[bool]: https://docs.python.org/3/library/stdtypes.html "bool"
+[bytes]: https://docs.python.org/3/library/stdtypes.html#bytes "bytes"
+[Callable]: https://docs.python.org/3/library/typing.html#typing.Callable "Callable"
+[EventContextManager]: https://docs.python.org/3/reference/datamodel.html#context-managers "Event context manager"
+[EventEmitter]: https://pyee.readthedocs.io/en/latest/#pyee.BaseEventEmitter "EventEmitter"
+[Exception]: https://docs.python.org/3/library/exceptions.html#Exception "Exception"
+[Dict]: https://docs.python.org/3/library/typing.html#typing.Dict "Dict"
+[float]: https://docs.python.org/3/library/stdtypes.html#numeric-types-int-float-complex "float"
+[int]: https://docs.python.org/3/library/stdtypes.html#numeric-types-int-float-complex "int"
+[List]: https://docs.python.org/3/library/typing.html#typing.List "List"
+[NoneType]: https://docs.python.org/3/library/constants.html#None "None"
+[Pattern]: https://docs.python.org/3/library/re.html "Pattern"
+[URL]: https://en.wikipedia.org/wiki/URL "URL"
+[pathlib.Path]: https://realpython.com/python-pathlib/ "pathlib.Path"
+[str]: https://docs.python.org/3/library/stdtypes.html#text-sequence-type-str "str"
+[Union]: https://docs.python.org/3/library/typing.html#typing.Union "Union"
+[datetime]: https://docs.python.org/3/library/datetime.html#datetime.datetime "datetime"
+
+[all available image tags]: https://mcr.microsoft.com/en-us/product/playwright/python/about "all available image tags"
+[Microsoft Artifact Registry]: https://mcr.microsoft.com/en-us/product/playwright/python/about "Microsoft Artifact Registry"
+[Dockerfile.noble]: https://github.com/microsoft/playwright-python/blob/main/utils/docker/Dockerfile.noble "Dockerfile.noble"

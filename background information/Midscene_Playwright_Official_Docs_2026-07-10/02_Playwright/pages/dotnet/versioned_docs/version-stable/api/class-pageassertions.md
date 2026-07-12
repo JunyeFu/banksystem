@@ -1,0 +1,216 @@
+---
+id: class-pageassertions
+title: "PageAssertions"
+---
+import Tabs from '@theme/Tabs';
+import TabItem from '@theme/TabItem';
+import HTMLCard from '@site/src/components/HTMLCard';
+
+
+The [PageAssertions] class provides assertion methods that can be used to make assertions about the [Page] state in the tests.
+
+```csharp
+using System.Text.RegularExpressions;
+using Microsoft.Playwright;
+using Microsoft.Playwright.MSTest;
+
+namespace PlaywrightTests;
+
+[TestClass]
+public class ExampleTests : PageTest
+{
+    [TestMethod]
+    public async Task NavigateToLoginPage()
+    {
+        await Page.GetByRole(AriaRole.Button, new() { Name = "Sign In" }).ClickAsync();
+        await Expect(Page).ToHaveURLAsync(new Regex(".*/login"));
+    }
+}
+```
+
+
+---
+
+## Methods
+
+### ToHaveTitleAsync {/* #page-assertions-to-have-title */}
+
+<font size="2" style={{position: "relative", top: "-20px"}}>Added in: v1.20</font><x-search>pageAssertions.ToHaveTitleAsync</x-search>
+
+Ensures the page has the given title.
+
+**Usage**
+
+```csharp
+await Expect(Page).ToHaveTitleAsync("Playwright");
+```
+
+**Arguments**
+- `titleOrRegExp` [string] | [Regex] <font size="2">Added in: v1.18</font><a aria-hidden="true" tabIndex="-1" class="list-anchor-link" id="page-assertions-to-have-title-option-title-or-reg-exp"/><a href="#page-assertions-to-have-title-option-title-or-reg-exp" class="list-anchor">#</a>
+  
+  Expected title or RegExp.
+- `options` `PageAssertionsToHaveTitleOptions?` *(optional)*
+  - `Timeout` [float]? *(optional)* <font size="2">Added in: v1.18</font><a aria-hidden="true" tabIndex="-1" class="list-anchor-link" id="page-assertions-to-have-title-option-timeout"/><a href="#page-assertions-to-have-title-option-timeout" class="list-anchor">#</a>
+    
+    Time to retry the assertion for in milliseconds. Defaults to `5000`.
+
+**Returns**
+- [void]<a aria-hidden="true" tabIndex="-1" class="list-anchor-link" id="page-assertions-to-have-title-return"/><a href="#page-assertions-to-have-title-return" class="list-anchor">#</a>
+
+---
+
+### ToHaveURLAsync {/* #page-assertions-to-have-url */}
+
+<font size="2" style={{position: "relative", top: "-20px"}}>Added in: v1.20</font><x-search>pageAssertions.ToHaveURLAsync</x-search>
+
+Ensures the page is navigated to the given URL.
+
+**Usage**
+
+```csharp
+await Expect(Page).ToHaveURLAsync(new Regex(".*checkout"));
+```
+
+**Arguments**
+- `urlOrRegExp` [string] | [Regex] <font size="2">Added in: v1.18</font><a aria-hidden="true" tabIndex="-1" class="list-anchor-link" id="page-assertions-to-have-url-option-url-or-reg-exp"/><a href="#page-assertions-to-have-url-option-url-or-reg-exp" class="list-anchor">#</a>
+  
+  Expected URL string or RegExp.
+- `options` `PageAssertionsToHaveURLOptions?` *(optional)*
+  - `IgnoreCase` [bool]? *(optional)* <font size="2">Added in: v1.44</font><a aria-hidden="true" tabIndex="-1" class="list-anchor-link" id="page-assertions-to-have-url-option-ignore-case"/><a href="#page-assertions-to-have-url-option-ignore-case" class="list-anchor">#</a>
+    
+    Whether to perform case-insensitive match. [IgnoreCase](/api/class-pageassertions.mdx#page-assertions-to-have-url-option-ignore-case) option takes precedence over the corresponding regular expression parameter if specified. A provided predicate ignores this flag.
+  - `Timeout` [float]? *(optional)* <font size="2">Added in: v1.18</font><a aria-hidden="true" tabIndex="-1" class="list-anchor-link" id="page-assertions-to-have-url-option-timeout"/><a href="#page-assertions-to-have-url-option-timeout" class="list-anchor">#</a>
+    
+    Time to retry the assertion for in milliseconds. Defaults to `5000`.
+
+**Returns**
+- [void]<a aria-hidden="true" tabIndex="-1" class="list-anchor-link" id="page-assertions-to-have-url-return"/><a href="#page-assertions-to-have-url-return" class="list-anchor">#</a>
+
+---
+
+### ToMatchAriaSnapshotAsync {/* #page-assertions-to-match-aria-snapshot */}
+
+<font size="2" style={{position: "relative", top: "-20px"}}>Added in: v1.60</font><x-search>pageAssertions.ToMatchAriaSnapshotAsync</x-search>
+
+Asserts that the page body matches the given [accessibility snapshot](../aria-snapshots.mdx).
+
+**Usage**
+
+```csharp
+await page.GotoAsync("https://demo.playwright.dev/todomvc/");
+await Expect(page).ToMatchAriaSnapshotAsync(@"
+  - heading ""todos""
+  - textbox ""What needs to be done?""
+");
+```
+
+**Arguments**
+- `expected` [string]<a aria-hidden="true" tabIndex="-1" class="list-anchor-link" id="page-assertions-to-match-aria-snapshot-option-expected"/><a href="#page-assertions-to-match-aria-snapshot-option-expected" class="list-anchor">#</a>
+- `options` `PageAssertionsToMatchAriaSnapshotOptions?` *(optional)*
+  - `Timeout` [float]? *(optional)*<a aria-hidden="true" tabIndex="-1" class="list-anchor-link" id="page-assertions-to-match-aria-snapshot-option-timeout"/><a href="#page-assertions-to-match-aria-snapshot-option-timeout" class="list-anchor">#</a>
+    
+    Time to retry the assertion for in milliseconds. Defaults to `5000`.
+
+**Returns**
+- [void]<a aria-hidden="true" tabIndex="-1" class="list-anchor-link" id="page-assertions-to-match-aria-snapshot-return"/><a href="#page-assertions-to-match-aria-snapshot-return" class="list-anchor">#</a>
+
+---
+
+## Properties
+
+### Not {/* #page-assertions-not */}
+
+<font size="2" style={{position: "relative", top: "-20px"}}>Added in: v1.20</font><x-search>pageAssertions.Not</x-search>
+
+Makes the assertion check for the opposite condition.
+
+**Usage**
+
+For example, this code tests that the page URL doesn't contain `"error"`:
+
+```csharp
+await Expect(Page).Not.ToHaveURLAsync("error");
+```
+
+**Type**
+- [PageAssertions]
+
+
+[APIRequest]: /api/class-apirequest.mdx "APIRequest"
+[APIRequestContext]: /api/class-apirequestcontext.mdx "APIRequestContext"
+[APIResponse]: /api/class-apiresponse.mdx "APIResponse"
+[APIResponseAssertions]: /api/class-apiresponseassertions.mdx "APIResponseAssertions"
+[Browser]: /api/class-browser.mdx "Browser"
+[BrowserContext]: /api/class-browsercontext.mdx "BrowserContext"
+[BrowserType]: /api/class-browsertype.mdx "BrowserType"
+[CDPSession]: /api/class-cdpsession.mdx "CDPSession"
+[CDPSessionEvent]: /api/class-cdpsessionevent.mdx "CDPSessionEvent"
+[Clock]: /api/class-clock.mdx "Clock"
+[ConsoleMessage]: /api/class-consolemessage.mdx "ConsoleMessage"
+[Credentials]: /api/class-credentials.mdx "Credentials"
+[Debugger]: /api/class-debugger.mdx "Debugger"
+[Dialog]: /api/class-dialog.mdx "Dialog"
+[Download]: /api/class-download.mdx "Download"
+[ElementHandle]: /api/class-elementhandle.mdx "ElementHandle"
+[FileChooser]: /api/class-filechooser.mdx "FileChooser"
+[FormData]: /api/class-formdata.mdx "FormData"
+[Frame]: /api/class-frame.mdx "Frame"
+[FrameLocator]: /api/class-framelocator.mdx "FrameLocator"
+[JSHandle]: /api/class-jshandle.mdx "JSHandle"
+[Keyboard]: /api/class-keyboard.mdx "Keyboard"
+[Locator]: /api/class-locator.mdx "Locator"
+[LocatorAssertions]: /api/class-locatorassertions.mdx "LocatorAssertions"
+[Mouse]: /api/class-mouse.mdx "Mouse"
+[Page]: /api/class-page.mdx "Page"
+[PageAssertions]: /api/class-pageassertions.mdx "PageAssertions"
+[Playwright]: /api/class-playwright.mdx "Playwright"
+[PlaywrightAssertions]: /api/class-playwrightassertions.mdx "PlaywrightAssertions"
+[Request]: /api/class-request.mdx "Request"
+[Response]: /api/class-response.mdx "Response"
+[Route]: /api/class-route.mdx "Route"
+[Screencast]: /api/class-screencast.mdx "Screencast"
+[Selectors]: /api/class-selectors.mdx "Selectors"
+[TimeoutError]: /api/class-timeouterror.mdx "TimeoutError"
+[Touchscreen]: /api/class-touchscreen.mdx "Touchscreen"
+[Tracing]: /api/class-tracing.mdx "Tracing"
+[Video]: /api/class-video.mdx "Video"
+[WebError]: /api/class-weberror.mdx "WebError"
+[WebSocket]: /api/class-websocket.mdx "WebSocket"
+[WebSocketFrame]: /api/class-websocketframe.mdx "WebSocketFrame"
+[WebSocketRoute]: /api/class-websocketroute.mdx "WebSocketRoute"
+[WebStorage]: /api/class-webstorage.mdx "WebStorage"
+[Worker]: /api/class-worker.mdx "Worker"
+[Element]: https://developer.mozilla.org/en-US/docs/Web/API/element "Element"
+[EvaluationArgument]: /evaluating.mdx#evaluation-argument "EvaluationArgument"
+[Promise]: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Promise "Promise"
+[iterator]: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Iteration_protocols "Iterator"
+[origin]: https://developer.mozilla.org/en-US/docs/Glossary/Origin "Origin"
+[selector]: https://developer.mozilla.org/en-US/docs/Web/CSS/CSS_Selectors "selector"
+[Serializable]: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/JSON/stringify#Description "Serializable"
+[UIEvent.detail]: https://developer.mozilla.org/en-US/docs/Web/API/UIEvent/detail "UIEvent.detail"
+[UnixTime]: https://en.wikipedia.org/wiki/Unix_time "Unix Time"
+[xpath]: https://developer.mozilla.org/en-US/docs/Web/XPath "xpath"
+
+[bool]: https://docs.microsoft.com/en-us/dotnet/api/system.boolean "bool"
+[Date]: https://learn.microsoft.com/en-us/dotnet/api/system.datetime "DateTime"
+[double]: https://docs.microsoft.com/en-us/dotnet/api/system.double "double"
+[byte]: https://docs.microsoft.com/en-us/dotnet/api/system.byte "byte"
+[int]: https://docs.microsoft.com/en-us/dotnet/api/system.int32 "int"
+[long]: https://docs.microsoft.com/en-us/dotnet/api/system.int64 "long"
+[void]: https://docs.microsoft.com/en-us/dotnet/csharp/language-reference/builtin-types/void "void"
+[string]: https://docs.microsoft.com/en-us/dotnet/api/system.string "string"
+[URL]: https://nodejs.org/api/url.html "URL"
+[Regex]: https://docs.microsoft.com/en-us/dotnet/api/system.text.regularexpressions.regex "Regex"
+
+[Action]: https://docs.microsoft.com/en-us/dotnet/api/system.action-1 "Action"
+[Func]: https://docs.microsoft.com/en-us/dotnet/api/system.func-2 "Func"
+[IEnumerable]: https://docs.microsoft.com/en-us/dotnet/api/system.collections.ienumerable "IEnumerable"
+[IReadOnlyList]: https://learn.microsoft.com/en-us/dotnet/api/system.collections.generic.ireadonlylist-1?view=net-9.0 "IReadOnlyList"
+[IDictionary]: https://docs.microsoft.com/en-us/dotnet/api/system.collections.idictionary "IDictionary"
+[Task]: https://docs.microsoft.com/en-us/dotnet/api/system.threading.tasks.task?view=net-5.0 "Task"
+[IReadOnlyDictionary]: https://docs.microsoft.com/en-us/dotnet/api/system.collections.generic.ireadonlydictionary-2 "IReadOnlyDictionary"
+[JsonElement]: https://docs.microsoft.com/en-us/dotnet/api/system.text.json.jsonelement "JsonElement"
+
+[all available image tags]: https://mcr.microsoft.com/en-us/product/playwright/dotnet/about "all available image tags"
+[Microsoft Artifact Registry]: https://mcr.microsoft.com/en-us/product/playwright/dotnet/about "Microsoft Artifact Registry"
+[Dockerfile.noble]: https://github.com/microsoft/playwright-dotnet/blob/main/utils/docker/Dockerfile.noble "Dockerfile.noble"

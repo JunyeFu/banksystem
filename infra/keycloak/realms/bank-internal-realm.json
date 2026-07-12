@@ -1,0 +1,45 @@
+{
+  "realm": "bank-internal",
+  "enabled": true,
+  "registrationAllowed": false,
+  "loginWithEmailAllowed": false,
+  "roles": {
+    "realm": [
+      {"name": "TELLER"},
+      {"name": "CUSTOMER_SERVICE"},
+      {"name": "LOAN_OFFICER"},
+      {"name": "LOAN_APPROVER"},
+      {"name": "PAYMENT_OPERATOR"},
+      {"name": "PAYMENT_APPROVER"},
+      {"name": "RISK_ANALYST"},
+      {"name": "ACCOUNTANT"},
+      {"name": "AUDITOR"},
+      {"name": "SYSTEM_ADMIN"},
+      {"name": "TEST_SUPPORT"}
+    ]
+  },
+  "clients": [
+    {
+      "clientId": "operations-console",
+      "name": "Bank Operations Console",
+      "enabled": true,
+      "publicClient": true,
+      "protocol": "openid-connect",
+      "standardFlowEnabled": true,
+      "directAccessGrantsEnabled": false,
+      "redirectUris": ["http://127.0.0.1:18443/*", "http://127.0.0.1:18083/*"],
+      "webOrigins": ["http://127.0.0.1:18443", "http://127.0.0.1:18083"],
+      "attributes": {"pkce.code.challenge.method": "S256"}
+    },
+    {
+      "clientId": "bank-channel-service",
+      "name": "Bank Channel Service",
+      "enabled": true,
+      "publicClient": false,
+      "protocol": "openid-connect",
+      "standardFlowEnabled": false,
+      "directAccessGrantsEnabled": false,
+      "serviceAccountsEnabled": true
+    }
+  ]
+}
