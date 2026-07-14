@@ -1,0 +1,295 @@
+openapi: 3.1.1
+info:
+  title: Bank Customer API
+  version: 0.1.0
+  description: Customer-facing BFF contract. Browsers never call Fineract directly.
+  license: { name: Apache-2.0, identifier: Apache-2.0 }
+servers:
+  - url: /api/customer/v1
+security:
+  - bearerAuth: []
+paths:
+  /customers/me:
+    get:
+      operationId: getCurrentCustomer
+      summary: Get current customer
+      responses:
+        '200':
+          description: Current linked customer
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Customer' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+  /accounts:
+    get:
+      operationId: listAccounts
+      summary: List customer accounts
+      responses:
+        '200':
+          description: Accounts linked to the authenticated customer
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [items]
+                properties:
+                  items:
+                    type: array
+                    items: { $ref: '#/components/schemas/AccountSummary' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+  /accounts/{accountId}:
+    parameters:
+      - $ref: '#/components/parameters/AccountId'
+    get:
+      operationId: getAccount
+      summary: Get customer account
+      responses:
+        '200':
+          description: Account summary
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/AccountSummary' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '404': { $ref: '#/components/responses/NotFound' }
+  /loans/applications:
+    post:
+      operationId: createLoanApplication
+      summary: Create loan application draft
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/LoanApplicationRequest' }
+      responses:
+        '200':
+          description: Draft loan application
+          content:
+            application/json: { schema: { $ref: '#/components/schemas/LoanApplication' } }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+  /beneficiaries:
+    get:
+      operationId: listBeneficiaries
+      summary: List customer beneficiaries
+      responses:
+        '200': { description: Masked beneficiary list }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+  /notifications:
+    get:
+      operationId: listNotifications
+      summary: List customer notifications
+      responses:
+        '200': { description: Customer-scoped notifications }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+  /statements:
+    get:
+      operationId: downloadStatement
+      summary: Download a customer statement
+      parameters:
+        - { name: accountId, in: query, required: true, schema: { type: string } }
+        - { name: fromDate, in: query, schema: { type: string, format: date } }
+        - { name: toDate, in: query, schema: { type: string, format: date } }
+        - { name: format, in: query, schema: { type: string, enum: [csv, pdf], default: csv } }
+      responses:
+        '200': { description: CSV or PDF statement }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '404': { $ref: '#/components/responses/NotFound' }
+  /transfers/{transferId}/receipt:
+    parameters:
+      - name: transferId
+        in: path
+        required: true
+        schema: { type: string, format: uuid }
+    get:
+      operationId: getTransferReceipt
+      summary: Get a transfer receipt
+      parameters:
+        - { name: format, in: query, schema: { type: string, enum: [json, pdf], default: json } }
+      responses:
+        '200': { description: Receipt payload and SHA-256 checksum }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '404': { $ref: '#/components/responses/NotFound' }
+    post:
+      operationId: createBeneficiary
+      summary: Create beneficiary
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [accountNumber, displayName]
+              properties:
+                accountNumber: { type: string, minLength: 6, maxLength: 64, writeOnly: true }
+                displayName: { type: string, minLength: 1, maxLength: 160 }
+      responses:
+        '200': { description: Masked beneficiary resource }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+  /transfers:
+    post:
+      operationId: createCustomerTransfer
+      summary: Create an internal customer transfer
+      parameters: [{ $ref: '#/components/parameters/IdempotencyKey' }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [sourceAccountId, destinationAccountId, amount, currency]
+              properties:
+                sourceAccountId: { type: string, minLength: 1, maxLength: 64 }
+                destinationAccountId: { type: string, minLength: 1, maxLength: 64 }
+                amount: { $ref: '#/components/schemas/Money' }
+                currency: { type: string, minLength: 3, maxLength: 3 }
+                reference: { type: string, maxLength: 240 }
+      responses:
+        '202': { description: Transfer accepted for asynchronous core posting }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { description: Source account is not owned by the customer }
+  /loans/applications/{applicationId}/submit:
+    parameters: [{ $ref: '#/components/parameters/ApplicationId' }]
+    post:
+      operationId: submitLoanApplication
+      summary: Submit loan application
+      responses:
+        '200':
+          description: Submitted channel application
+          content:
+            application/json: { schema: { $ref: '#/components/schemas/LoanApplication' } }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+  /loans/applications/{applicationId}/core-submit:
+    parameters: [{ $ref: '#/components/parameters/ApplicationId' }]
+    post:
+      operationId: submitLoanToCore
+      summary: Submit loan application to Fineract
+      parameters: [{ $ref: '#/components/parameters/IdempotencyKey' }]
+      responses:
+        '200':
+          description: Core loan reference
+          content:
+            application/json: { schema: { $ref: '#/components/schemas/CoreLoanReference' } }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '409': { description: Application state conflict }
+  /loans/applications/{applicationId}/core/{command}:
+    parameters:
+      - { $ref: '#/components/parameters/ApplicationId' }
+      - name: command
+        in: path
+        required: true
+        schema: { type: string, enum: [approve, disburse, reject, withdrawByApplicant, undoapproval, undodisbursal] }
+    post:
+      operationId: commandCoreLoan
+      summary: Execute core loan command
+      parameters: [{ $ref: '#/components/parameters/IdempotencyKey' }]
+      requestBody:
+        required: false
+        content:
+          application/json: { schema: { type: object, additionalProperties: true } }
+      responses:
+        '200': { description: Core command result }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+  /loans/applications/{applicationId}/repayment:
+    parameters: [{ $ref: '#/components/parameters/ApplicationId' }]
+    post:
+      operationId: repayCoreLoan
+      summary: Repay core loan
+      parameters: [{ $ref: '#/components/parameters/IdempotencyKey' }]
+      requestBody:
+        required: true
+        content:
+          application/json: { schema: { $ref: '#/components/schemas/RepaymentRequest' } }
+      responses:
+        '200': { description: Repayment result }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+  /loans/applications/{applicationId}/close:
+    parameters: [{ $ref: '#/components/parameters/ApplicationId' }]
+    post:
+      operationId: closeCoreLoan
+      summary: Close core loan
+      parameters: [{ $ref: '#/components/parameters/IdempotencyKey' }]
+      responses:
+        '200': { description: Closed loan result }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+components:
+  securitySchemes:
+    bearerAuth: { type: http, scheme: bearer, bearerFormat: JWT }
+  parameters:
+    AccountId:
+      name: accountId
+      in: path
+      required: true
+      schema: { type: string, minLength: 1, maxLength: 64 }
+    ApplicationId:
+      name: applicationId
+      in: path
+      required: true
+      schema: { type: string, format: uuid }
+    IdempotencyKey:
+      name: Idempotency-Key
+      in: header
+      required: true
+      schema: { type: string, minLength: 8, maxLength: 128 }
+  responses:
+    Unauthorized:
+      description: Authentication required
+      content:
+        application/problem+json: { schema: { $ref: '#/components/schemas/Problem' } }
+    NotFound:
+      description: Resource is not linked to the current customer
+      content:
+        application/problem+json: { schema: { $ref: '#/components/schemas/Problem' } }
+  schemas:
+    Money:
+      type: string
+      pattern: '^-?(0|[1-9][0-9]*)(\.[0-9]{1,4})?$'
+      description: Decimal money value serialized as a string; never a JSON number.
+      examples: ['1250.00']
+    Customer:
+      type: object
+      required: [customerId, displayName]
+      properties:
+        customerId: { type: string, minLength: 1, maxLength: 64 }
+        displayName: { type: string, minLength: 1, maxLength: 160 }
+    AccountSummary:
+      type: object
+      required: [accountId, maskedAccountNumber, currency, balance]
+      properties:
+        accountId: { type: string, minLength: 1, maxLength: 64 }
+        maskedAccountNumber: { type: string, pattern: '^\*{4,}[0-9]{2,4}$' }
+        currency: { type: string }
+        balance: { $ref: '#/components/schemas/Money' }
+    LoanApplicationRequest:
+      type: object
+      required: [amount, termMonths, purpose]
+      properties:
+        amount: { $ref: '#/components/schemas/Money' }
+        termMonths: { type: integer, minimum: 1, maximum: 480 }
+        purpose: { type: string, minLength: 1, maxLength: 240 }
+    LoanApplication:
+      type: object
+      required: [applicationId, status]
+      properties:
+        applicationId: { type: string, format: uuid }
+        status: { type: string }
+        version: { type: integer, minimum: 1 }
+    CoreLoanReference:
+      type: object
+      required: [applicationId, coreLoanId, status]
+      properties:
+        applicationId: { type: string, format: uuid }
+        coreLoanId: { type: integer, format: int64 }
+        status: { type: string }
+    RepaymentRequest:
+      type: object
+      required: [transactionAmount]
+      properties:
+        transactionAmount: { $ref: '#/components/schemas/Money' }
+    Problem:
+      type: object
+      required: [type, title, status, code]
+      properties:
+        type: { type: string, format: uri-reference }
+        title: { type: string }
+        status: { type: integer, minimum: 400, maximum: 599 }
+        code: { type: string }
+        detail: { type: string }

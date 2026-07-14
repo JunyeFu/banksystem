@@ -1,0 +1,45 @@
+assertions:
+  - assertionId: assert.transfer.settled
+    description: Verify transfer is SETTLED with full evidence chain
+    endpoint: /internal/test-support/v1/assertions/payments/{paymentId}
+    checks:
+      - path: transfer.status
+        equals: SETTLED
+      - path: stateHistory
+        minItems: 3
+      - path: outbox
+        minItems: 1
+      - path: auditCount
+        gte: 1
+
+  - assertionId: assert.transfer.failed
+    description: Verify transfer is FAILED with failure reason
+    endpoint: /internal/test-support/v1/assertions/payments/{paymentId}
+    checks:
+      - path: transfer.status
+        equals: FAILED
+
+  - assertionId: assert.transfer.reversed
+    description: Verify transfer is REVERSED after reversal approval
+    endpoint: /internal/test-support/v1/assertions/payments/{paymentId}
+    checks:
+      - path: transfer.status
+        equals: REVERSED
+      - path: stateHistory
+        minItems: 5
+
+  - assertionId: assert.ledger.balanced
+    description: Verify ledger debit equals credit
+    endpoint: /internal/test-support/v1/assertions/ledger/{correlationId}
+    checks:
+      - path: entries
+        minItems: 2
+
+  - assertionId: assert.reconciliation.matched
+    description: Verify reconciliation has zero differences
+    endpoint: /internal/test-support/v1/assertions/reconciliation/{correlationId}
+    checks:
+      - path: runs[0].status
+        equals: MATCHED
+      - path: runs[0].differences
+        equals: 0

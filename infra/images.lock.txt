@@ -1,0 +1,17 @@
+# Image lock — frozen at 2026-07-11 per v4 S0 baseline.
+# Format: image@digest  # tag (notes)
+# Rule: No `latest` tags. All references must include sha256 digest.
+
+# Core sandbox
+openmf/fineract:develop@sha256:666c666900eb62fc1f6c5faa971e19c34ef6ec5d7cb8224276a49e2ddba262e1  # develop tag, digest-frozen
+openmf/web-app:dev@sha256:d071bea02ba0b83b0a9958f8ea651b7cc50aa86dd18f71ab304955e76bbd4b03  # dev tag, digest-frozen
+postgres:18.3@sha256:7e32e9833a6fb1c92c32552794cb6ed569d51b445a54907d35fc112ef39684db  # core + channel
+apache/activemq-classic:6.1.2@sha256:75852a6d357991028e58e7c32a7dd190cb36802568236cf3cd189d2350033be1  # pinned version
+
+# Channel infrastructure
+nginx:1.27-alpine@sha256:65645c7bb6a0661892a8b03b89d0743208a18dd2f3f17a54ef4b76fb8e2f2a10  # gateway + static hosting
+quay.io/keycloak/keycloak:26.3.3@sha256:6a7217a100bd3e5de4063a27a538ef999a3c5a88c4b4ec0ffc0a642aee7b2597  # OIDC provider
+eclipse-temurin:21-jre@sha256:d2b9f8f12212cadcfdf889461531784e8fd097feade954d65b31ee7a71c473ec  # Java 21 runtime
+
+# Build tools
+maven@sha256:3a4ab3276a087bf276f79cae96b1af04f53731bec53fb2e651aca79e4b10211e  # channel-service builder

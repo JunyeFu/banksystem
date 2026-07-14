@@ -1,0 +1,106 @@
+openapi: 3.1.1
+info:
+  title: Bank Test Support API
+  version: 0.1.0
+  description: |
+    Test Support API for fixture management, page facts, assertions, and business date control.
+    Only available under local/test profiles. Protected by TEST_SUPPORT authority.
+    MUST NOT: be enabled in production, return secrets, write to Fineract DB, or bypass state machines.
+servers:
+  - url: /internal/test-support/v1
+security:
+  - bearerAuth: []
+paths:
+  /fixtures:seed:
+    post:
+      operationId: seedFixtures
+      summary: Seed baseline test fixtures
+      responses:
+        '200': { description: Fixtures seeded }
+        '403': { $ref: '#/components/responses/Problem' }
+  /fixtures:reset:
+    post:
+      operationId: resetFixtures
+      summary: Reset all test data to baseline
+      responses:
+        '200': { description: Fixtures reset }
+  /fixtures/{logicalRef}:
+    parameters:
+      - name: logicalRef
+        in: path
+        required: true
+        schema: { type: string }
+    get:
+      operationId: getFixture
+      summary: Get fixture by logical reference (e.g., customer.alice)
+      responses:
+        '200': { description: Fixture detail with runtime IDs }
+        '404': { $ref: '#/components/responses/Problem' }
+  /pages:
+    get:
+      operationId: listPages
+      summary: List all registered pages with stable locators
+      responses:
+        '200':
+          description: Page catalog
+          content:
+            application/json:
+              schema: { type: array, items: { type: object } }
+  /assertions/payments/{paymentId}:
+    parameters:
+      - name: paymentId
+        in: path
+        required: true
+        schema: { type: string }
+    get:
+      operationId: assertPayment
+      summary: Get payment assertion data (status, history, idempotency, core transaction, outbox, audit)
+      responses:
+        '200': { description: Payment assertion data }
+        '404': { $ref: '#/components/responses/Problem' }
+  /assertions/ledger/{correlationId}:
+    parameters:
+      - name: correlationId
+        in: path
+        required: true
+        schema: { type: string }
+    get:
+      operationId: assertLedger
+      summary: Get ledger assertion data (debit/credit balance, journal entries)
+      responses:
+        '200': { description: Ledger assertion data }
+  /assertions/reconciliation/{correlationId}:
+    parameters:
+      - name: correlationId
+        in: path
+        required: true
+        schema: { type: string }
+    get:
+      operationId: assertReconciliation
+      summary: Get reconciliation assertion data
+      responses:
+        '200': { description: Reconciliation assertion data }
+  /business-date:advance:
+    post:
+      operationId: advanceBusinessDate
+      summary: Advance business date by one day
+      responses:
+        '200': { description: Business date advanced }
+        '409': { $ref: '#/components/responses/Problem' }
+components:
+  securitySchemes:
+    bearerAuth: { type: http, scheme: bearer, bearerFormat: JWT }
+  responses:
+    Problem:
+      description: RFC 9457 problem details
+      content:
+        application/problem+json:
+          schema:
+            type: object
+            required: [type, title, status, code]
+            properties:
+              type: { type: string }
+              title: { type: string }
+              status: { type: integer }
+              code: { type: string }
+              detail: { type: string }

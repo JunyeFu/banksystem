@@ -1,0 +1,12 @@
+{
+  "capturedAt": "2026-07-10T00:00:00+08:00",
+  "docker": { "clientVersion": "29.5.3", "serverVersion": "29.5.3" },
+  "containers": [
+    { "name": "mifos-isolated-fineract-server-1", "scope": "core", "image": "openmf/fineract:develop@sha256:666c666900eb62fc1f6c5faa971e19c34ef6ec5d7cb8224276a49e2ddba262e1", "state": "running", "health": "not-configured", "hostPorts": ["127.0.0.1:13000->8080/tcp"], "networks": ["mifos_isolated_front", "mifos_isolated_internal"], "mounts": [] },
+    { "name": "mifos-isolated-postgresql-1", "scope": "core", "image": "postgres:18.3@sha256:7e32e9833a6fb1c92c32552794cb6ed569d51b445a54907d35fc112ef39684db", "state": "running", "health": "healthy", "hostPorts": [], "networks": ["mifos_isolated_internal"], "mounts": [{"type":"bind","destination":"/var/lib/postgresql","source":"D:/Agent/banksystem/data/postgres"},{"type":"bind","destination":"/docker-entrypoint-initdb.d/01-init.sh","source":"D:/Agent/banksystem/postgresql/01-init-unix.sh"}] },
+    { "name": "mifos-isolated-web-app-1", "scope": "core", "image": "openmf/web-app:dev@sha256:d071bea02ba0b83b0a9958f8ea651b7cc50aa86dd18f71ab304955e76bbd4b03", "state": "running", "health": "not-configured", "hostPorts": ["127.0.0.1:18080->80/tcp"], "networks": ["mifos_isolated_front"], "mounts": [] },
+    { "name": "mifos-isolated-activemq-1", "scope": "core", "image": "apache/activemq-classic:latest@sha256:75852a6d357991028e58e7c32a7dd190cb36802568236cf3cd189d2350033be1", "state": "running", "health": "healthy", "hostPorts": [], "networks": ["mifos_isolated_internal"], "mounts": [] },
+    { "name": "shopping-pg", "scope": "unrelated-observed", "image": "postgres:16@sha256:287eced1f33b59ed265ed13a60d3680dd7646d70c4dc0e785f59a470ebc03eeb", "state": "running", "health": "healthy", "hostPorts": ["0.0.0.0:5433->5432/tcp", "[::]:5433->5432/tcp"] },
+    { "name": "shopping-qdrant", "scope": "unrelated-observed", "image": "qdrant/qdrant:latest@sha256:75eab8c4ba42096724fdcfde8b4de0b5713d529dde32f285a1f86fdcb2c9e50c", "state": "running", "health": "healthy", "hostPorts": ["0.0.0.0:6333->6333/tcp", "[::]:6333->6333/tcp", "0.0.0.0:6334->6334/tcp", "[::]:6334->6334/tcp"] }
+  ]
+}

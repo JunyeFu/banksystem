@@ -1,0 +1,387 @@
+{
+  "schema_version": 2,
+  "generated_at": "2026-07-14T06:27:51.455570+00:00",
+  "root": "D:\\Agent\\banksystem",
+  "source_of_truth": "project docs, contracts, current source evidence, and migrated background snapshots",
+  "source_count": 531,
+  "chunk_count": 3459,
+  "migrated_snapshot_chunk_count": 237,
+  "source_kinds": {
+    "background-knowledge": 83,
+    "official-source-index": 154,
+    "project-contract": 31,
+    "project-document": 1165,
+    "project-source": 2026
+  },
+  "shard_count": 71,
+  "shards": [
+    {
+      "path": "shards/background-knowledge/0.jsonl",
+      "source_kind": "background-knowledge",
+      "chunks": 4
+    },
+    {
+      "path": "shards/background-knowledge/1.jsonl",
+      "source_kind": "background-knowledge",
+      "chunks": 3
+    },
+    {
+      "path": "shards/background-knowledge/2.jsonl",
+      "source_kind": "background-knowledge",
+      "chunks": 4
+    },
+    {
+      "path": "shards/background-knowledge/4.jsonl",
+      "source_kind": "background-knowledge",
+      "chunks": 3
+    },
+    {
+      "path": "shards/background-knowledge/5.jsonl",
+      "source_kind": "background-knowledge",
+      "chunks": 5
+    },
+    {
+      "path": "shards/background-knowledge/6.jsonl",
+      "source_kind": "background-knowledge",
+      "chunks": 6
+    },
+    {
+      "path": "shards/background-knowledge/7.jsonl",
+      "source_kind": "background-knowledge",
+      "chunks": 3
+    },
+    {
+      "path": "shards/background-knowledge/8.jsonl",
+      "source_kind": "background-knowledge",
+      "chunks": 9
+    },
+    {
+      "path": "shards/background-knowledge/9.jsonl",
+      "source_kind": "background-knowledge",
+      "chunks": 2
+    },
+    {
+      "path": "shards/background-knowledge/a.jsonl",
+      "source_kind": "background-knowledge",
+      "chunks": 9
+    },
+    {
+      "path": "shards/background-knowledge/b.jsonl",
+      "source_kind": "background-knowledge",
+      "chunks": 5
+    },
+    {
+      "path": "shards/background-knowledge/c.jsonl",
+      "source_kind": "background-knowledge",
+      "chunks": 3
+    },
+    {
+      "path": "shards/background-knowledge/e.jsonl",
+      "source_kind": "background-knowledge",
+      "chunks": 25
+    },
+    {
+      "path": "shards/background-knowledge/f.jsonl",
+      "source_kind": "background-knowledge",
+      "chunks": 2
+    },
+    {
+      "path": "shards/official-source-index/0.jsonl",
+      "source_kind": "official-source-index",
+      "chunks": 7
+    },
+    {
+      "path": "shards/official-source-index/1.jsonl",
+      "source_kind": "official-source-index",
+      "chunks": 9
+    },
+    {
+      "path": "shards/official-source-index/2.jsonl",
+      "source_kind": "official-source-index",
+      "chunks": 8
+    },
+    {
+      "path": "shards/official-source-index/3.jsonl",
+      "source_kind": "official-source-index",
+      "chunks": 19
+    },
+    {
+      "path": "shards/official-source-index/4.jsonl",
+      "source_kind": "official-source-index",
+      "chunks": 5
+    },
+    {
+      "path": "shards/official-source-index/5.jsonl",
+      "source_kind": "official-source-index",
+      "chunks": 8
+    },
+    {
+      "path": "shards/official-source-index/6.jsonl",
+      "source_kind": "official-source-index",
+      "chunks": 8
+    },
+    {
+      "path": "shards/official-source-index/7.jsonl",
+      "source_kind": "official-source-index",
+      "chunks": 10
+    },
+    {
+      "path": "shards/official-source-index/8.jsonl",
+      "source_kind": "official-source-index",
+      "chunks": 23
+    },
+    {
+      "path": "shards/official-source-index/9.jsonl",
+      "source_kind": "official-source-index",
+      "chunks": 4
+    },
+    {
+      "path": "shards/official-source-index/a.jsonl",
+      "source_kind": "official-source-index",
+      "chunks": 11
+    },
+    {
+      "path": "shards/official-source-index/b.jsonl",
+      "source_kind": "official-source-index",
+      "chunks": 7
+    },
+    {
+      "path": "shards/official-source-index/c.jsonl",
+      "source_kind": "official-source-index",
+      "chunks": 11
+    },
+    {
+      "path": "shards/official-source-index/d.jsonl",
+      "source_kind": "official-source-index",
+      "chunks": 5
+    },
+    {
+      "path": "shards/official-source-index/e.jsonl",
+      "source_kind": "official-source-index",
+      "chunks": 11
+    },
+    {
+      "path": "shards/official-source-index/f.jsonl",
+      "source_kind": "official-source-index",
+      "chunks": 8
+    },
+    {
+      "path": "shards/project-contract/0.jsonl",
+      "source_kind": "project-contract",
+      "chunks": 6
+    },
+    {
+      "path": "shards/project-contract/3.jsonl",
+      "source_kind": "project-contract",
+      "chunks": 10
+    },
+    {
+      "path": "shards/project-contract/4.jsonl",
+      "source_kind": "project-contract",
+      "chunks": 1
+    },
+    {
+      "path": "shards/project-contract/7.jsonl",
+      "source_kind": "project-contract",
+      "chunks": 1
+    },
+    {
+      "path": "shards/project-contract/a.jsonl",
+      "source_kind": "project-contract",
+      "chunks": 1
+    },
+    {
+      "path": "shards/project-contract/b.jsonl",
+      "source_kind": "project-contract",
+      "chunks": 5
+    },
+    {
+      "path": "shards/project-contract/c.jsonl",
+      "source_kind": "project-contract",
+      "chunks": 1
+    },
+    {
+      "path": "shards/project-contract/d.jsonl",
+      "source_kind": "project-contract",
+      "chunks": 2
+    },
+    {
+      "path": "shards/project-contract/e.jsonl",
+      "source_kind": "project-contract",
+      "chunks": 4
+    },
+    {
+      "path": "shards/project-document/0.jsonl",
+      "source_kind": "project-document",
+      "chunks": 33
+    },
+    {
+      "path": "shards/project-document/1.jsonl",
+      "source_kind": "project-document",
+      "chunks": 23
+    },
+    {
+      "path": "shards/project-document/2.jsonl",
+      "source_kind": "project-document",
+      "chunks": 3
+    },
+    {
+      "path": "shards/project-document/3.jsonl",
+      "source_kind": "project-document",
+      "chunks": 47
+    },
+    {
+      "path": "shards/project-document/4.jsonl",
+      "source_kind": "project-document",
+      "chunks": 43
+    },
+    {
+      "path": "shards/project-document/5.jsonl",
+      "source_kind": "project-document",
+      "chunks": 6
+    },
+    {
+      "path": "shards/project-document/6.jsonl",
+      "source_kind": "project-document",
+      "chunks": 11
+    },
+    {
+      "path": "shards/project-document/7.jsonl",
+      "source_kind": "project-document",
+      "chunks": 2
+    },
+    {
+      "path": "shards/project-document/8.jsonl",
+      "source_kind": "project-document",
+      "chunks": 809
+    },
+    {
+      "path": "shards/project-document/9.jsonl",
+      "source_kind": "project-document",
+      "chunks": 2
+    },
+    {
+      "path": "shards/project-document/a.jsonl",
+      "source_kind": "project-document",
+      "chunks": 27
+    },
+    {
+      "path": "shards/project-document/b.jsonl",
+      "source_kind": "project-document",
+      "chunks": 4
+    },
+    {
+      "path": "shards/project-document/c.jsonl",
+      "source_kind": "project-document",
+      "chunks": 23
+    },
+    {
+      "path": "shards/project-document/d.jsonl",
+      "source_kind": "project-document",
+      "chunks": 6
+    },
+    {
+      "path": "shards/project-document/e.jsonl",
+      "source_kind": "project-document",
+      "chunks": 64
+    },
+    {
+      "path": "shards/project-document/f.jsonl",
+      "source_kind": "project-document",
+      "chunks": 62
+    },
+    {
+      "path": "shards/project-source/0.jsonl",
+      "source_kind": "project-source",
+      "chunks": 79
+    },
+    {
+      "path": "shards/project-source/1.jsonl",
+      "source_kind": "project-source",
+      "chunks": 44
+    },
+    {
+      "path": "shards/project-source/2.jsonl",
+      "source_kind": "project-source",
+      "chunks": 22
+    },
+    {
+      "path": "shards/project-source/3.jsonl",
+      "source_kind": "project-source",
+      "chunks": 53
+    },
+    {
+      "path": "shards/project-source/4.jsonl",
+      "source_kind": "project-source",
+      "chunks": 42
+    },
+    {
+      "path": "shards/project-source/5.jsonl",
+      "source_kind": "project-source",
+      "chunks": 46
+    },
+    {
+      "path": "shards/project-source/6.jsonl",
+      "source_kind": "project-source",
+      "chunks": 26
+    },
+    {
+      "path": "shards/project-source/7.jsonl",
+      "source_kind": "project-source",
+      "chunks": 1367
+    },
+    {
+      "path": "shards/project-source/8.jsonl",
+      "source_kind": "project-source",
+      "chunks": 14
+    },
+    {
+      "path": "shards/project-source/9.jsonl",
+      "source_kind": "project-source",
+      "chunks": 38
+    },
+    {
+      "path": "shards/project-source/a.jsonl",
+      "source_kind": "project-source",
+      "chunks": 99
+    },
+    {
+      "path": "shards/project-source/b.jsonl",
+      "source_kind": "project-source",
+      "chunks": 28
+    },
+    {
+      "path": "shards/project-source/c.jsonl",
+      "source_kind": "project-source",
+      "chunks": 32
+    },
+    {
+      "path": "shards/project-source/d.jsonl",
+      "source_kind": "project-source",
+      "chunks": 23
+    },
+    {
+      "path": "shards/project-source/e.jsonl",
+      "source_kind": "project-source",
+      "chunks": 49
+    },
+    {
+      "path": "shards/project-source/f.jsonl",
+      "source_kind": "project-source",
+      "chunks": 64
+    }
+  ],
+  "excluded": [
+    ".env",
+    ".env.local",
+    ".env.production",
+    ".git",
+    "backups",
+    "data",
+    "downloaded_official_docs",
+    "node_modules",
+    "secrets"
+  ],
+  "official正文状态": "已吸收当前 background information 中的文本快照；外部官方在线正文仍需按来源 URL 单独核验",
+  "background_information_migrated": true
+}

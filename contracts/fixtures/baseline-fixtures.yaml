@@ -1,0 +1,47 @@
+fixtures:
+  customer.alice:
+    type: CUSTOMER
+    customerNumber: TEST-C0001
+    displayName: 测试客户甲
+    kycStatus: APPROVED
+    logicalAccounts:
+      primarySavings: account.alice.primarySavings
+
+  customer.bob:
+    type: CUSTOMER
+    customerNumber: TEST-C0002
+    displayName: 测试客户乙
+    kycStatus: APPROVED
+    logicalAccounts:
+      primarySavings: account.bob.primarySavings
+
+  account.alice.primarySavings:
+    type: SAVINGS_ACCOUNT
+    currency: CNY
+    initialBalance: "100000.00"
+    fineractProductId: 1
+
+  account.bob.primarySavings:
+    type: SAVINGS_ACCOUNT
+    currency: CNY
+    initialBalance: "50000.00"
+    fineractProductId: 1
+
+  transfer.internal.small:
+    type: TRANSFER
+    sourceRef: account.alice.primarySavings
+    destinationRef: account.bob.primarySavings
+    amount:
+      currency: CNY
+      value: "100.00"
+    expectedStatus: SETTLED
+
+  loan.application.basic:
+    type: LOAN_APPLICATION
+    customerRef: customer.alice
+    amount:
+      currency: CNY
+      value: "5000.00"
+    termMonths: 12
+    purpose: 测试贷款
+    expectedScore: 94

@@ -1,0 +1,157 @@
+openapi: 3.1.1
+info:
+  title: Bank Operations API
+  version: 0.1.0
+  license: { name: Apache-2.0, identifier: Apache-2.0 }
+  description: Internal operations and money-changing contract.
+servers:
+  - url: /api/operations/v1
+security:
+  - bearerAuth: []
+paths:
+  /transfers:
+    post:
+      operationId: createTransfer
+      summary: Submit an idempotent transfer request
+      parameters:
+        - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/TransferRequest' }
+      responses:
+        '202':
+          description: Accepted for state-machine processing
+          content:
+            application/json: { schema: { $ref: '#/components/schemas/Transfer' } }
+        '400': { $ref: '#/components/responses/Problem' }
+        '401': { $ref: '#/components/responses/Problem' }
+        '409': { $ref: '#/components/responses/Problem' }
+  /transfers/{transferId}:
+    parameters:
+      - $ref: '#/components/parameters/TransferId'
+    get:
+      operationId: getTransfer
+      summary: Get transfer status
+      responses:
+        '200':
+          description: Transfer state
+          content:
+            application/json: { schema: { $ref: '#/components/schemas/Transfer' } }
+        '404': { $ref: '#/components/responses/Problem' }
+  /transfers/{transferId}/reversal:
+    parameters: [{ $ref: '#/components/parameters/TransferId' }]
+    post:
+      operationId: requestTransferReversal
+      summary: Request a maker-checker transfer reversal
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { type: object, required: [reason], properties: { reason: { type: string, minLength: 1, maxLength: 240 } } }
+      responses:
+        '200': { description: Pending reversal }
+        '409': { $ref: '#/components/responses/Problem' }
+  /internal/monitoring/alerts:
+    get:
+      operationId: getMonitoringAlerts
+      summary: Get active operational alerts
+      responses:
+        '200':
+          description: No service-blocking alert is active
+          content:
+            application/json: { schema: { $ref: '#/components/schemas/MonitoringAlertResponse' } }
+        '503':
+          description: A service-blocking alert is active
+          headers:
+            X-Alert:
+              required: true
+              schema: { type: string, example: EOD_FAILED }
+          content:
+            application/json: { schema: { $ref: '#/components/schemas/MonitoringAlertResponse' } }
+  /transfers/reversals/{reversalId}/approve:
+    parameters:
+      - name: reversalId
+        in: path
+        required: true
+        schema: { type: string, format: uuid }
+      - $ref: '#/components/parameters/IdempotencyKey'
+    post:
+      operationId: approveTransferReversal
+      summary: Approve and post a compensating transfer
+      parameters:
+        - { name: version, in: query, required: true, schema: { type: integer, minimum: 1 } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { type: object, required: [reason], properties: { reason: { type: string, minLength: 1, maxLength: 240 } } }
+      responses:
+        '200': { description: Compensating transfer posted }
+        '409': { $ref: '#/components/responses/Problem' }
+components:
+  securitySchemes:
+    bearerAuth: { type: http, scheme: bearer, bearerFormat: JWT }
+  parameters:
+    IdempotencyKey:
+      name: Idempotency-Key
+      in: header
+      required: true
+      schema: { type: string, minLength: 16, maxLength: 128 }
+    TransferId:
+      name: transferId
+      in: path
+      required: true
+      schema: { type: string, minLength: 1, maxLength: 64 }
+  responses:
+    Problem:
+      description: RFC 9457 problem details
+      content:
+        application/problem+json: { schema: { $ref: '#/components/schemas/Problem' } }
+  schemas:
+    Money:
+      type: string
+      pattern: '^(0|[1-9][0-9]*)(\.[0-9]{1,4})?$'
+    TransferRequest:
+      type: object
+      required: [sourceAccountId, destinationAccountId, amount, currency]
+      properties:
+        sourceAccountId: { type: string, minLength: 1, maxLength: 64 }
+        destinationAccountId: { type: string, minLength: 1, maxLength: 64 }
+        amount: { $ref: '#/components/schemas/Money' }
+        currency: { type: string, pattern: '^[A-Z]{3}$' }
+        reference: { type: string, maxLength: 140 }
+    Transfer:
+      type: object
+      required: [transferId, status, amount, currency]
+      properties:
+        transferId: { type: string }
+        status: { type: string, enum: [CREATED, VALIDATING, RISK_REVIEW, PENDING_APPROVAL, PENDING_CORE_POSTING, PENDING_CLEARING, SETTLED, FAILED, TIMED_OUT, RETURNED, REVERSAL_PENDING, REVERSED] }
+        amount: { $ref: '#/components/schemas/Money' }
+        currency: { type: string, pattern: '^[A-Z]{3}$' }
+        coreReference: { type: [string, 'null'] }
+        correlationId: { type: [string, 'null'] }
+    MonitoringAlertResponse:
+      type: object
+      required: [alerts, count]
+      properties:
+        count: { type: integer, minimum: 0 }
+        alerts:
+          type: array
+          items:
+            type: object
+            required: [code, severity, status]
+            properties:
+              code: { type: string, example: EOD_FAILED }
+              severity: { type: string, enum: [P0, P1, P2] }
+              status: { type: string, enum: [FIRING, RESOLVED] }
+    Problem:
+      type: object
+      required: [type, title, status, code]
+      properties:
+        type: { type: string, format: uri-reference }
+        title: { type: string }
+        status: { type: integer, minimum: 400, maximum: 599 }
+        code: { type: string }
+        detail: { type: string }
