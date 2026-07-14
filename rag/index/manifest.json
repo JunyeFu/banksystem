@@ -1,6 +1,6 @@
 {
   "schema_version": 2,
-  "generated_at": "2026-07-14T06:25:14.787718+00:00",
+  "generated_at": "2026-07-14T06:27:51.455570+00:00",
   "root": "D:\\Agent\\banksystem",
   "source_of_truth": "project docs, contracts, current source evidence, and migrated background snapshots",
   "source_count": 531,
@@ -218,7 +218,7 @@
     {
       "path": "shards/project-document/1.jsonl",
       "source_kind": "project-document",
-      "chunks": 14
+      "chunks": 23
     },
     {
       "path": "shards/project-document/2.jsonl",
@@ -278,7 +278,7 @@
     {
       "path": "shards/project-document/d.jsonl",
       "source_kind": "project-document",
-      "chunks": 15
+      "chunks": 6
     },
     {
       "path": "shards/project-document/e.jsonl",
@@ -303,7 +303,7 @@
     {
       "path": "shards/project-source/2.jsonl",
       "source_kind": "project-source",
-      "chunks": 23
+      "chunks": 22
     },
     {
       "path": "shards/project-source/3.jsonl",
@@ -323,12 +323,12 @@
     {
       "path": "shards/project-source/6.jsonl",
       "source_kind": "project-source",
-      "chunks": 689
+      "chunks": 26
     },
     {
       "path": "shards/project-source/7.jsonl",
       "source_kind": "project-source",
-      "chunks": 704
+      "chunks": 1367
     },
     {
       "path": "shards/project-source/8.jsonl",
@@ -343,7 +343,7 @@
     {
       "path": "shards/project-source/a.jsonl",
       "source_kind": "project-source",
-      "chunks": 98
+      "chunks": 99
     },
     {
       "path": "shards/project-source/b.jsonl",

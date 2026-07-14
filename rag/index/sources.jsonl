@@ -85,9 +85,9 @@
 {"source": "apps/customer-portal/tsconfig.json", "source_kind": "project-source", "sha256": "b8e0c5a8dc5b0bc9496b41aeb5b2d974d65e0016ccb4dcb3fb87abf55bf89578"}
 {"source": "apps/customer-portal/tsconfig.tsbuildinfo", "source_kind": "project-source", "sha256": "a0668ab546d16c9c1064d58a6b1dee6585c9202a86ed9f600246b1cef8b76d10"}
 {"source": "apps/customer-portal/vite.config.ts", "source_kind": "project-source", "sha256": "5b6157f3442c72ccd08799af5773fe9881ce1bc7f4651c35119eb9230bf4bb88"}
-{"source": "apps/operations-console/dist/assets/index-BDFb-fcK.js", "source_kind": "project-source", "sha256": "6e5b740f23f098dd2f397b2799333d9624b5a9797abe5d382a651a99d056ad83"}
+{"source": "apps/operations-console/dist/assets/index-DKYInCje.js", "source_kind": "project-source", "sha256": "7688aee816f411f130c58b8ab9966e3d040288cab6b1bc0b3e865487cd287e82"}
 {"source": "apps/operations-console/dist/favicon.svg", "source_kind": "project-source", "sha256": "fb72cbde2b8d59035cf61653eab477f43a9d785a56ca77004c1fb7af8df229ec"}
-{"source": "apps/operations-console/dist/index.html", "source_kind": "project-source", "sha256": "297a1f6ec874c8d3db2178633acdb3a97c33c80feffb36f6d514ba71adf1d0c3"}
+{"source": "apps/operations-console/dist/index.html", "source_kind": "project-source", "sha256": "a6c3252829663c4963a6f3f8985e9a91c8dcb360d4673e039bd34ee949418536"}
 {"source": "apps/operations-console/index.html", "source_kind": "project-source", "sha256": "a033bb08e6d192fdf1193e9c8c60f3d31b18b6bcdc549df850f3937e31456858"}
 {"source": "apps/operations-console/legacy/app.js", "source_kind": "project-source", "sha256": "9a844fd07552831a4b5cabb31dd78eac3882fb448159c17bc6c29635085b7347"}
 {"source": "apps/operations-console/legacy/favicon.svg", "source_kind": "project-source", "sha256": "fb72cbde2b8d59035cf61653eab477f43a9d785a56ca77004c1fb7af8df229ec"}
@@ -340,7 +340,7 @@
 {"source": "docs/baseline/security-config.md", "source_kind": "project-document", "sha256": "c37ae6cb7b29a29cb186aad652c6084d69da131a5f6e714f3124adcb85f44e40"}
 {"source": "docs/baseline/swagger-original.json", "source_kind": "project-document", "sha256": "815d71558b58cf202a07b07f85e4049d564ed8bbe6112b207b24c8b2d6e099e1"}
 {"source": "docs/database/.gitkeep", "source_kind": "project-document", "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"}
-{"source": "docs/design/frontend-preview-input-package.md", "source_kind": "project-document", "sha256": "decb595ee4b447c9492f93267db745b4361efddf4ec881100abc035165e43ca9"}
+{"source": "docs/design/frontend-preview-input-package.md", "source_kind": "project-document", "sha256": "12fb0357b26d704aa4cb4cc5c273426d482ec3f18e4b33781662194264360a36"}
 {"source": "docs/evidence/v51-audit/audit-report.md", "source_kind": "project-document", "sha256": "00d082a638700ed43d1a99274214535342674814e8f9b6019a3e55f28d03411b"}
 {"source": "docs/rag-governance.md", "source_kind": "project-document", "sha256": "497ea0c9c5b4a1ce26989c52011b1a8f8d38fb02652aa68e0a83fd67e056300f"}
 {"source": "docs/runbooks/.gitkeep", "source_kind": "project-document", "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"}
