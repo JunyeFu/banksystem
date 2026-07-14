@@ -33,7 +33,7 @@ public class ReconciliationService {
 
     if (type.equals("CHANNEL_TO_CORE")) {
       differences = jdbc.queryForObject(
-          "SELECT count(*) FROM transfer WHERE status='SETTLED' AND (core_reference IS NULL OR core_reference='')",
+          "SELECT count(*) FROM transfer_order WHERE status='SETTLED' AND (core_reference IS NULL OR core_reference='')",
           Integer.class);
       message = differences == 0
           ? "Every settled channel transfer has a Fineract reference"
@@ -41,7 +41,7 @@ public class ReconciliationService {
 
     } else if (type.equals("CHANNEL_TO_CLEARING")) {
       differences = jdbc.queryForObject(
-          "SELECT count(*) FROM clearing_payment c LEFT JOIN transfer t ON t.transfer_id=c.transfer_id " +
+          "SELECT count(*) FROM clearing_payment c LEFT JOIN transfer_order t ON t.transfer_id=c.transfer_id " +
           "WHERE c.status='SETTLED' AND (t.transfer_id IS NULL OR t.status NOT IN ('SETTLED','REVERSED') " +
           "OR t.core_reference IS NULL OR t.core_reference='')",
           Integer.class);
@@ -51,7 +51,7 @@ public class ReconciliationService {
 
     } else {
       int missingRef = jdbc.queryForObject(
-          "SELECT count(*) FROM transfer WHERE status IN ('SETTLED','REVERSED') AND (core_reference IS NULL OR core_reference='')",
+          "SELECT count(*) FROM transfer_order WHERE status IN ('SETTLED','REVERSED') AND (core_reference IS NULL OR core_reference='')",
           Integer.class);
       var entries = fineract.journalEntries();
       BigDecimal debits = BigDecimal.ZERO;

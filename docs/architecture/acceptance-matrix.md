@@ -1,6 +1,8 @@
 # Stage acceptance matrix
 
-Spec: v4 stage 1.
+> Banking-core acceptance remains S0-S7 and is not replaced by v5.4. The combined external-demo product adds a separate v5.4 platform acceptance track; target capabilities must be marked planned, PoC, or `PENDING_ENTERPRISE_VALIDATION` until evidence exists.
+
+Scope: v4 banking-core S0-S7; v5.4 platform acceptance is tracked separately.
 Each stage has exit conditions and evidence requirements. A stage is not complete until all exit conditions are met and evidence is archived.
 
 ## S0: Baseline freeze and governance

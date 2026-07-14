@@ -1,0 +1,135 @@
+databaseChangeLog:
+  - changeSet:
+      id: v4-v51-create-regression-case
+      author: v51-batch1
+      preConditions:
+        - onFail: MARK_RAN
+        - not:
+            - tableExists:
+                tableName: regression_case
+      changes:
+        - createTable:
+            tableName: regression_case
+            columns:
+              - column:
+                  name: id
+                  type: uuid
+                  constraints:
+                    primaryKey: true
+                    nullable: false
+              - column:
+                  name: case_code
+                  type: varchar(128)
+                  constraints:
+                    nullable: false
+                    unique: true
+              - column:
+                  name: case_json
+                  type: jsonb
+                  constraints:
+                    nullable: false
+              - column:
+                  name: case_sha256
+                  type: char(64)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: active
+                  type: boolean
+                  defaultValueBoolean: true
+                  constraints:
+                    nullable: false
+              - column:
+                  name: created_at
+                  type: timestamptz
+                  defaultValueComputed: now()
+                  constraints:
+                    nullable: false
+        - createIndex:
+            indexName: idx_regression_case_code
+            tableName: regression_case
+            columns:
+              - column:
+                  name: case_code
+        - createIndex:
+            indexName: idx_regression_case_active
+            tableName: regression_case
+            columns:
+              - column:
+                  name: active
+              - column:
+                  name: created_at
+      rollback:
+        - dropTable:
+            tableName: regression_case
+
+  - changeSet:
+      id: v4-v51-create-baseline-definition
+      author: v51-batch1
+      preConditions:
+        - onFail: MARK_RAN
+        - not:
+            - tableExists:
+                tableName: baseline_definition
+      changes:
+        - createTable:
+            tableName: baseline_definition
+            columns:
+              - column:
+                  name: id
+                  type: uuid
+                  constraints:
+                    primaryKey: true
+                    nullable: false
+              - column:
+                  name: case_id
+                  type: uuid
+                  constraints:
+                    nullable: false
+                    foreignKeyName: fk_baseline_case
+                    references: regression_case(id)
+              - column:
+                  name: version
+                  type: varchar(32)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: baseline_json
+                  type: jsonb
+                  constraints:
+                    nullable: false
+              - column:
+                  name: sha256
+                  type: char(64)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: status
+                  type: varchar(32)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: created_at
+                  type: timestamptz
+                  defaultValueComputed: now()
+                  constraints:
+                    nullable: false
+        - createIndex:
+            indexName: idx_baseline_case_id
+            tableName: baseline_definition
+            columns:
+              - column:
+                  name: case_id
+              - column:
+                  name: version
+        - createIndex:
+            indexName: idx_baseline_status
+            tableName: baseline_definition
+            columns:
+              - column:
+                  name: status
+              - column:
+                  name: created_at
+      rollback:
+        - dropTable:
+            tableName: baseline_definition

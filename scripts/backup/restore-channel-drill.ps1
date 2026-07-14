@@ -15,7 +15,7 @@ try {
 
   $tables=docker exec $name psql -U postgres -d bank_channel -Atc "SELECT count(*) FROM information_schema.tables WHERE table_schema='public';"
 
-  $invalidStatus=docker exec $name psql -U postgres -d bank_channel -Atc "SELECT count(*) FROM transfer WHERE status NOT IN ('CREATED','RISK_PENDING','REVIEW_REQUIRED','APPROVED','RESERVED','SUBMITTED','SETTLED','FAILED','TIMED_OUT','RETURNED','REVERSAL_PENDING','REVERSED');"
+  $invalidStatus=docker exec $name psql -U postgres -d bank_channel -Atc "SELECT count(*) FROM transfer_order WHERE status NOT IN ('CREATED','VALIDATING','RISK_REVIEW','PENDING_APPROVAL','PENDING_CORE_POSTING','PENDING_CLEARING','SETTLED','FAILED','TIMED_OUT','RETURNED','REVERSAL_PENDING','REVERSED');"
 
   $auditHashMissing=docker exec $name psql -U postgres -d bank_channel -Atc "SELECT count(*) FROM security_audit_event WHERE record_hash IS NULL OR record_hash='';"
 

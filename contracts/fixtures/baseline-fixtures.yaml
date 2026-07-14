@@ -19,11 +19,13 @@ fixtures:
     type: SAVINGS_ACCOUNT
     currency: CNY
     initialBalance: "100000.00"
+    fineractProductId: 1
 
   account.bob.primarySavings:
     type: SAVINGS_ACCOUNT
     currency: CNY
     initialBalance: "50000.00"
+    fineractProductId: 1
 
   transfer.internal.small:
     type: TRANSFER

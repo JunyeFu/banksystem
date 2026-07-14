@@ -27,6 +27,7 @@ fineract:
   tenant: ${FINERACT_TENANT:default}
   username: ${FINERACT_USERNAME}
   password: ${FINERACT_PASSWORD}
+  savings-product-id: ${FINERACT_SAVINGS_PRODUCT_ID:1}
 clearing:
   callback-secret: ${CLEARING_CALLBACK_SECRET}
 bank:

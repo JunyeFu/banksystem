@@ -78,10 +78,10 @@ public class TransferController {
         "correlationId", corrId != null ? corrId : "");
     String body = mapper.writeValueAsString(response);
     jdbc.update(
-        "INSERT INTO idempotency_record(id,idempotency_key,scope_key,request_hash,status,http_status,response_headers,response_body,expires_at) "
-            + "VALUES (?,?,?,?,'OK',202,'{}'::jsonb,?::jsonb,now() + interval '24 hours')",
+        "INSERT INTO idempotency_record(id,idempotency_key,scope_key,request_hash,status,http_status,status_code,response_headers,response_body,expires_at) "
+            + "VALUES (?,?,?,?,'OK',202,202,'{}'::jsonb,?::jsonb,now() + interval '24 hours')",
         UUID.randomUUID(), key, key, hash, body);
-    jdbc.update("INSERT INTO transfer(transfer_id,idempotency_key,source_account_id,destination_account_id,amount,currency,status,subject,correlation_id,request_hash) VALUES (?,?,?,?,?,?,?,?,?,?)",
+    jdbc.update("INSERT INTO transfer_order(transfer_id,idempotency_key,source_account_id,destination_account_id,amount,currency,status,subject,correlation_id,request_hash) VALUES (?,?,?,?,?,?,?,?,?,?)",
         UUID.fromString(id), key, request.sourceAccountId(), request.destinationAccountId(),
         request.amount(), request.currency(), "CREATED", jwt.getSubject(), corrId, hash);
     // 写 CREATED 初始 state_history(无 from),保持审计链完整
@@ -89,7 +89,7 @@ public class TransferController {
         local.bank.channel.payments.statemachine.TransferStateMachine.Status.CREATED,
         "USER", jwt.getSubject(), null,
         "{\"idempotencyKey\":\"" + key + "\"}");
-    jdbc.update("INSERT INTO outbox_event(id,aggregate_type,aggregate_id,event_type,event_version,payload,headers,status) VALUES (?,?,?,?,?,?,?::jsonb,?)",
+    jdbc.update("INSERT INTO outbox_event(id,aggregate_type,aggregate_id,event_type,event_version,payload,headers,status) VALUES (?,?,?,?,?,?::jsonb,?::jsonb,?)",
         UUID.randomUUID(), "Transfer", UUID.fromString(id), "transfer.status.changed", 1, body, "{}", "PENDING");
 
     audit.record("TRANSFER_CREATED", "USER", jwt.getSubject(), "Transfer", id, "CREATE", "SUCCESS", null, response);
@@ -100,7 +100,7 @@ public class TransferController {
   @GetMapping("/api/operations/v1/transfers/{transferId}")
   public Map<String, Object> get(@PathVariable UUID transferId) {
     var rows = jdbc.query(
-        "SELECT transfer_id,status,amount,currency,core_reference,correlation_id FROM transfer WHERE transfer_id = ?",
+        "SELECT transfer_id,status,amount,currency,core_reference,correlation_id FROM transfer_order WHERE transfer_id = ?",
         (rs, n) -> {
           Map<String, Object> m = new java.util.LinkedHashMap<>();
           m.put("transferId", rs.getString(1));

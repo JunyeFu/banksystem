@@ -32,7 +32,7 @@ public class MonitoringController {
     }
 
     Integer pending = jdbc.queryForObject(
-        "SELECT count(*) FROM transfer WHERE status IN ('CREATED','RISK_PENDING','REVIEW_REQUIRED','APPROVED','RESERVED','SUBMITTED')",
+        "SELECT count(*) FROM transfer_order WHERE status IN ('CREATED','VALIDATING','RISK_REVIEW','PENDING_APPROVAL','PENDING_CORE_POSTING','PENDING_CLEARING')",
         Integer.class);
     if (pending != null && pending > 0)
       result.add(alert("TRANSFER_PENDING", "P2"));

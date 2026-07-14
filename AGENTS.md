@@ -2,10 +2,10 @@
 
 ## Project context
 
-- **Project**: Local digital banking system on Fineract + Mifos X
-- **Spec**: v4 Phase 1 (sole source of truth)
+- **Project**: External-demo complete open-source banking system plus full regression testing platform, designed for later intranet migration
+- **Spec**: v5.4 external-demo baseline for the combined product; v4 remains the banking-core safety baseline
 - **Tech stack**: Java 21 / Spring Boot 3.4.5 / React TypeScript Vite / PostgreSQL / Keycloak / ActiveMQ / Docker
-- **Current state**: Phase 1 audit completed with 3 P0 + 11 P1 blockers. See `docs/architecture/acceptance-matrix.md` and the audit report for details.
+- **Current state**: Banking core has a completed Phase 1 audit with 3 P0 + 11 P1 blockers; v5.4 AI authoring/regression capabilities remain partly planned/PoC and enterprise-platform integration is pending. See `docs/architecture/v5.4-external-demo-baseline.md`, the acceptance matrix, and the audit report.
 - **Stage status**: S0-S6 DONE (with gaps), S7 NOT PASSED
 
 ## Critical rules (MUST follow)
@@ -20,6 +20,10 @@
 8. **Secrets must not appear in logs, responses, or committed files.** Use `.env` (gitignored) and Docker secrets for sensitive values.
 9. **Cross-ownership modifications MUST be documented** in `agent/reports/`. See `agent/file-ownership.yaml` for owner assignments.
 10. **Every task MUST pass quality gates** before moving to DONE: contract lint, build, unit tests, integration tests, accessibility review, financial E2E, and security review.
+
+11. **The external demo MUST NOT be a degraded path.** Use synthetic/redacted data and isolated credentials, but retain banking invariants, independent script validation, Baseline comparison, evidence, audit, failure explanation, and recovery gates.
+12. **AI authoring MUST remain separate from formal regression execution.** Scheduled regression runs execute only validated scripts and do not call LLM, Midscene, or vision models.
+13. **HiAgentPattern, CozePlatformAdapter, and EnterpriseAgentPlatformAdapter are distinct concepts.** Do not claim enterprise tenant capabilities until validated in the target environment.
 
 ## Stage progression
 
@@ -68,5 +72,5 @@ Key rules (see `docs/architecture/rollback-principles.md` for full details):
 
 ## Scheduler
 
-`agent/backlog.yaml` is the authoritative scheduler for stages S0-S7.
+`agent/backlog.yaml` is the authoritative scheduler for banking-core stages S0-S7. v5.4 platform work must be tracked as a separate documentation/planning track until its implementation backlog is explicitly created.
 Claim exactly one READY task, honour all dependencies and allowed paths, and move completed work only to REVIEW.

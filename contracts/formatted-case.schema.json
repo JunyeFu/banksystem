@@ -1,0 +1,76 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "formatted-case.schema.json",
+  "title": "FormattedCase",
+  "description": "格式化步骤案例输入契约，对应 V5.1 S3 sourceTypes=FORMATTED",
+  "type": "object",
+  "required": ["schemaVersion", "caseId", "formattedSteps"],
+  "properties": {
+    "schemaVersion": {
+      "type": "string",
+      "const": "1.0"
+    },
+    "caseId": {
+      "type": "string",
+      "pattern": "^REG-[A-Z]+-\\d{3}$"
+    },
+    "formattedSteps": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["sequence", "action", "target"],
+        "properties": {
+          "sequence": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "action": {
+            "enum": ["CLICK", "FILL", "CLEAR", "KEY", "SCROLL", "HOVER", "LOCATE", "WAIT"]
+          },
+          "target": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 256,
+            "description": "目标元素的 data-testid 或 locator 描述"
+          },
+          "valueRef": {
+            "type": "string",
+            "description": "输入值引用，如 fixture.account 或字面量"
+          },
+          "expectedLocator": {
+            "type": "object",
+            "properties": {
+              "type": {
+                "enum": ["TEST_ID", "ROLE", "LABEL", "PLACEHOLDER", "TEXT", "CSS", "XPATH"]
+              },
+              "value": {
+                "type": "string"
+              }
+            },
+            "additionalProperties": false
+          },
+          "expectedNetwork": {
+            "type": "object",
+            "properties": {
+              "method": {
+                "enum": ["GET", "POST", "PUT", "PATCH", "DELETE"]
+              },
+              "pathPattern": {
+                "type": "string"
+              },
+              "status": {
+                "type": "integer",
+                "minimum": 100,
+                "maximum": 599
+              }
+            },
+            "additionalProperties": false
+          }
+        },
+        "additionalProperties": false
+      },
+      "minItems": 1
+    }
+  },
+  "additionalProperties": false
+}

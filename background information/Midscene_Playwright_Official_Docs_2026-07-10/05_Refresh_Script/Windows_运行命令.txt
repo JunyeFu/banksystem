@@ -1,1 +1,0 @@
-py refresh_official_docs.py --output official_docs_output

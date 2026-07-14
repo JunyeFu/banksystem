@@ -1,5 +1,7 @@
 # Current capability matrix
 
+> This matrix describes the current banking-core evidence. It is not a completion claim for the v5.4 regression platform. The combined external-demo target and migration boundary are defined in `v5.4-external-demo-baseline.md`.
+
 | Capability | Implemented | Runtime evidence | Status |
 |---|---:|---|---|
 | Phase 0 baseline and backup | Yes | Hash, OpenAPI parse, restore drill | VERIFIED |
@@ -20,3 +22,15 @@
 | EOD/reconciliation orchestration | Yes | Authorized EOD plus all three reconciliation types returned MATCHED with zero differences and balanced debit/credit totals | VERIFIED |
 | Cashier/freeze/close/maturity operations | Partial | Authorized cashier read, block/unblock, business-date move/restore, one-period maturity schedule, post-maturity close, and premature-close HTTP 409 passed | PARTIALLY_VERIFIED |
 | Final full regression | Partial | Repeatable smoke regression and backup drills pass; E2E-001 to E2E-014 are not all automated/executed | PARTIALLY_VERIFIED |
+
+## v5.4 regression-platform target status
+
+| Capability | Current status | Evidence/qualification |
+|---|---|---|
+| RegressionCase, Fixture, Baseline and human-success evidence | PARTIAL / PLANNED | Existing contracts and test assets exist; v5.4 full workflow is not yet implemented end to end |
+| RAG template/rule retrieval | PARTIAL | Project RAG exists with sharded index; v5.4 ActionListTemplateCatalog governance is a target |
+| HiAgentPattern and Coze/enterprise adapter | PENDING_ENTERPRISE_VALIDATION | Platform distinction and required interfaces are documented; enterprise tenant/API not validated |
+| Midscene atomic action plus Playwright fact collection | POC / PARTIAL | Local v5.4 references and PoC evidence exist; full integration with this repo is not complete |
+| Independent Playwright script validation | PLANNED | Required by v5.4; current final regression is not equivalent |
+| Scheduled regression and automatic failure pause | PLANNED | Banking EOD/recovery exists; v5.4 script Schedule/FailureIncident loop is separate |
+| Reverse recovery with exactly two options | PLANNED | v5.4 target; not claimed as implemented in the current banking services |
