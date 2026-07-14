@@ -1,17 +1,17 @@
 export type TransferStatus =
-  | 'CREATED' | 'RISK_PENDING' | 'REVIEW_REQUIRED'
-  | 'APPROVED' | 'RESERVED' | 'SUBMITTED' | 'SETTLED'
+  | 'CREATED' | 'VALIDATING' | 'RISK_REVIEW'
+  | 'PENDING_APPROVAL' | 'PENDING_CORE_POSTING' | 'PENDING_CLEARING' | 'SETTLED'
   | 'FAILED' | 'TIMED_OUT' | 'RETURNED'
   | 'REVERSAL_PENDING' | 'REVERSED';
 
 /** 12 态中文化映射(Q2 决策:前端展示中文化) */
 export const TRANSFER_STATUS_LABELS: Record<TransferStatus, string> = {
   CREATED:           '已创建',
-  RISK_PENDING:      '风控审核中',
-  REVIEW_REQUIRED:   '待人工复核',
-  APPROVED:          '已批准',
-  RESERVED:          '已预留',
-  SUBMITTED:         '已提交',
+  VALIDATING:        '校验中',
+  RISK_REVIEW:       '风控审核中',
+  PENDING_APPROVAL:  '待批准',
+  PENDING_CORE_POSTING: '待核心记账',
+  PENDING_CLEARING:  '待清算',
   SETTLED:           '已结算',
   FAILED:            '失败',
   TIMED_OUT:         '已超时',

@@ -48,7 +48,7 @@ public class EodController {
       step(steps, "CORE_HEALTH_CHECK");
 
       Integer pending = jdbc.queryForObject(
-          "SELECT count(*) FROM transfer WHERE status IN ('CREATED','RISK_PENDING','REVIEW_REQUIRED','APPROVED','RESERVED','SUBMITTED')",
+          "SELECT count(*) FROM transfer_order WHERE status IN ('CREATED','VALIDATING','RISK_REVIEW','PENDING_APPROVAL','PENDING_CORE_POSTING','PENDING_CLEARING')",
           Integer.class);
       if (pending != null && pending > 0)
         return failEod(date, "DIFFERENCE", "Pending transfer exists: " + pending, steps,

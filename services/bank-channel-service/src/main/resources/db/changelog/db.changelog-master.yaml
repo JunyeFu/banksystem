@@ -9,3 +9,9 @@ databaseChangeLog:
       file: db/changelog/v3-p2-2-idempotency-v4-completion.yaml
   - include:
       file: db/changelog/v3-p2-3-outbox-event-rename.yaml
+  - include:
+      file: db/changelog/v3-p1-2-state-name-v4.yaml
+  - include:
+      file: db/changelog/v3-p3-transfer-order-v4.yaml
+  - include:
+      file: db/changelog/v4-v51-case-baseline.yaml

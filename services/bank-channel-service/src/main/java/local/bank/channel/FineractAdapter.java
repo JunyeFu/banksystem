@@ -170,7 +170,55 @@ public class FineractAdapter {
   public List<Map<String,Object>> cashiers(){var body=client.get().uri("/api/v1/cashiers").retrieve().body(List.class);return body==null?List.of():body;}
 
   @SuppressWarnings("unchecked")
-  public Map<String,Object> savingsCommand(long accountId,String command,Map<String,Object> body){if(!java.util.Set.of("block","unblock","close","prematureClose").contains(command))throw new IllegalArgumentException("Unsupported savings command");Map<String,Object> payload=body==null?new java.util.HashMap<>():new java.util.HashMap<>(body);if(command.equals("block")){Object reason=payload.getOrDefault("reasonForBlock",payload.getOrDefault("note","Channel operations block"));payload.put("reasonForBlock",reason);}if(command.equals("close")||command.equals("prematureClose")){payload.putIfAbsent("closedOnDate",LocalDate.now().toString());payload.putIfAbsent("dateFormat","yyyy-MM-dd");payload.putIfAbsent("locale","en");}return client.post().uri(uri->uri.path("/api/v1/savingsaccounts/{id}").queryParam("command",command).build(accountId)).body(payload).retrieve().body(Map.class);}
+  public Map<String, Object> createClient(String displayName, String mobileNo) {
+    String[] parts = displayName.split(" ", 2);
+    String firstname = parts.length >= 1 ? parts[0] : displayName;
+    String lastname = parts.length >= 2 ? parts[1] : "";
+    Map<String, Object> body = new java.util.LinkedHashMap<>();
+    body.put("officeId", 1);
+    body.put("firstname", firstname);
+    body.put("lastname", lastname);
+    body.put("externalId", "fixture-" + java.util.UUID.randomUUID().toString().substring(0, 8));
+    body.put("active", true);
+    body.put("activationDate", LocalDate.now().toString());
+    body.put("dateFormat", "yyyy-MM-dd");
+    body.put("locale", "en");
+    if (mobileNo != null && !mobileNo.isBlank()) body.put("mobileNo", mobileNo);
+    body.put("clientTypeId", 1);
+    body.put("clientClassificationId", 1);
+    body.put("legalFormId", 1);
+    return client.post().uri("/api/v1/clients").body(body).retrieve().body(Map.class);
+  }
+
+  @SuppressWarnings("unchecked")
+  public Map<String, Object> createSavingsAccount(long clientId, int productId, String currency) {
+    Map<String, Object> body = new java.util.LinkedHashMap<>();
+    body.put("clientId", clientId);
+    body.put("productId", productId);
+    body.put("fieldOfficerId", 1);
+    body.put("accountId", "fixture-" + java.util.UUID.randomUUID().toString().substring(0, 8));
+    body.put("nominalAnnualInterestRate", java.math.BigDecimal.ZERO);
+    body.put("interestCompoundingPeriodType", 1);
+    body.put("interestPostingPeriodType", 4);
+    body.put("interestCalculationType", 1);
+    body.put("interestCalculationDaysInYearType", 365);
+    body.put("lockinPeriodFrequency", 0);
+    body.put("lockinPeriodFrequencyType", 0);
+    body.put("submittedOnDate", LocalDate.now().toString());
+    body.put("dateFormat", "yyyy-MM-dd");
+    body.put("locale", "en");
+    return client.post().uri("/api/v1/savingsaccounts").body(body).retrieve().body(Map.class);
+  }
+
+  @SuppressWarnings("unchecked")
+  public Map<String, Object> savingsCommand(long accountId, String command, Map<String, Object> body) {
+    if (!java.util.Set.of("block", "unblock", "close", "prematureClose", "activate", "deposit", "withdrawal").contains(command)) throw new IllegalArgumentException("Unsupported savings command");
+    Map<String, Object> payload = body == null ? new java.util.HashMap<>() : new java.util.HashMap<>(body);
+    if (command.equals("block")) { Object reason = payload.getOrDefault("reasonForBlock", payload.getOrDefault("note", "Channel operations block")); payload.put("reasonForBlock", reason); }
+    if (command.equals("close") || command.equals("prematureClose")) { payload.putIfAbsent("closedOnDate", LocalDate.now().toString()); payload.putIfAbsent("dateFormat", "yyyy-MM-dd"); payload.putIfAbsent("locale", "en"); }
+    if (command.equals("activate")) { payload.putIfAbsent("activatedOnDate", LocalDate.now().toString()); payload.putIfAbsent("dateFormat", "yyyy-MM-dd"); payload.putIfAbsent("locale", "en"); }
+    return client.post().uri(uri -> uri.path("/api/v1/savingsaccounts/{id}").queryParam("command", command).build(accountId)).body(payload).retrieve().body(Map.class);
+  }
 
   @SuppressWarnings("unchecked")
   public List<Map<String,Object>> savingsTransactions(long accountId,String fromDate,String toDate){

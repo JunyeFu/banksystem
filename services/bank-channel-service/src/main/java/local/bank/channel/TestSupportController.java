@@ -7,6 +7,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Profile;
 import org.springframework.core.io.ClassPathResource;
 import org.springframework.jdbc.core.JdbcTemplate;
@@ -15,6 +16,7 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.http.ResponseEntity;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
+import local.bank.channel.audit.AuditService;
 
 @Profile({"local", "test"})
 @RestController
@@ -23,25 +25,101 @@ import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
 public class TestSupportController {
   private final JdbcTemplate jdbc;
   private final FineractAdapter fineract;
+  private final AuditService audit;
+  private final int savingsProductId;
 
-  public TestSupportController(JdbcTemplate jdbc, FineractAdapter fineract) {
+  public TestSupportController(JdbcTemplate jdbc, FineractAdapter fineract, AuditService audit,
+      @Value("${fineract.savings-product-id:1}") int savingsProductId) {
     this.jdbc = jdbc;
     this.fineract = fineract;
+    this.audit = audit;
+    this.savingsProductId = savingsProductId;
   }
 
   @PostMapping("/fixtures:seed")
   public ResponseEntity<Map<String, Object>> seed() {
     Map<String, Object> result = new LinkedHashMap<>();
+    Map<String, Map<String, Object>> fixtures = loadBaselineFixtures();
+    if (fixtures == null) {
+      return ResponseEntity.ok(Map.of("status", "FAILED", "reason", "Cannot load baseline-fixtures.yaml"));
+    }
+    Map<String, Object> aliceFixture = fixtures.get("customer.alice");
+    Map<String, Object> bobFixture = fixtures.get("customer.bob");
+    if (aliceFixture == null || bobFixture == null) {
+      return ResponseEntity.ok(Map.of("status", "FAILED", "reason", "customer.alice or customer.bob missing from YAML"));
+    }
+    Map<String, Object> aliceAccountFixture = fixtures.get("account.alice.primarySavings");
+    Map<String, Object> bobAccountFixture = fixtures.get("account.bob.primarySavings");
+    if (aliceAccountFixture == null || bobAccountFixture == null) {
+      return ResponseEntity.ok(Map.of("status", "FAILED", "reason", "account fixtures missing from YAML"));
+    }
     String aliceSubject = "fixture-alice-" + UUID.randomUUID().toString().substring(0, 8);
     String bobSubject = "fixture-bob-" + UUID.randomUUID().toString().substring(0, 8);
-    jdbc.update("INSERT INTO customer_identity(subject, fineract_client_id) VALUES (?, 1) ON CONFLICT DO NOTHING", aliceSubject);
-    jdbc.update("INSERT INTO customer_identity(subject, fineract_client_id) VALUES (?, 2) ON CONFLICT DO NOTHING", bobSubject);
-    result.put("customer.alice", Map.of("subject", aliceSubject, "fineractClientId", 1));
-    result.put("customer.bob", Map.of("subject", bobSubject, "fineractClientId", 2));
-    result.put("account.alice.primarySavings", Map.of("accountId", "1", "currency", "CNY"));
-    result.put("account.bob.primarySavings", Map.of("accountId", "2", "currency", "CNY"));
+    long aliceClientId = createClientAndIdentity(aliceFixture, aliceSubject);
+    long bobClientId = createClientAndIdentity(bobFixture, bobSubject);
+    long aliceAccountId = createSavingsAccountAndReturnId(aliceClientId, aliceAccountFixture);
+    long bobAccountId = createSavingsAccountAndReturnId(bobClientId, bobAccountFixture);
+    result.put("customer.alice", Map.of("subject", aliceSubject, "fineractClientId", aliceClientId));
+    result.put("customer.bob", Map.of("subject", bobSubject, "fineractClientId", bobClientId));
+    result.put("account.alice.primarySavings", Map.of("accountId", aliceAccountId, "currency", aliceAccountFixture.getOrDefault("currency", "CNY")));
+    result.put("account.bob.primarySavings", Map.of("accountId", bobAccountId, "currency", bobAccountFixture.getOrDefault("currency", "CNY")));
     result.put("status", "SEEDED");
+    audit.record(AuditService.EVENT_FIXTURE_SEEDED, "SYSTEM", "test-support", "Fixture", "all", "SEED", "SUCCESS", null, Map.of("aliceClientId", aliceClientId, "bobClientId", bobClientId));
     return ResponseEntity.ok(result);
+  }
+
+  @SuppressWarnings("unchecked")
+  private Map<String, Map<String, Object>> loadBaselineFixtures() {
+    try (InputStream in = new ClassPathResource("fixtures/baseline-fixtures.yaml").getInputStream()) {
+      ObjectMapper yamlMapper = new ObjectMapper(new YAMLFactory());
+      Map<String, Object> root = yamlMapper.readValue(in, Map.class);
+      Object fixturesObj = root.get("fixtures");
+      if (!(fixturesObj instanceof Map<?, ?> rawMap)) return null;
+      Map<String, Map<String, Object>> result = new LinkedHashMap<>();
+      for (var entry : rawMap.entrySet()) {
+        if (entry.getValue() instanceof Map<?, ?> m) {
+          result.put(String.valueOf(entry.getKey()), (Map<String, Object>) m);
+        }
+      }
+      return result;
+    } catch (Exception e) {
+      try (InputStream in = new ClassPathResource("../../../../contracts/fixtures/baseline-fixtures.yaml").getInputStream()) {
+        ObjectMapper yamlMapper = new ObjectMapper(new YAMLFactory());
+        Map<String, Object> root = yamlMapper.readValue(in, Map.class);
+        Object fixturesObj = root.get("fixtures");
+        if (!(fixturesObj instanceof Map<?, ?> rawMap)) return null;
+        Map<String, Map<String, Object>> result = new LinkedHashMap<>();
+        for (var entry : rawMap.entrySet()) {
+          if (entry.getValue() instanceof Map<?, ?> m) {
+            result.put(String.valueOf(entry.getKey()), (Map<String, Object>) m);
+          }
+        }
+        return result;
+      } catch (Exception ex) {
+        return null;
+      }
+    }
+  }
+
+  private long createClientAndIdentity(Map<String, Object> customerFixture, String subject) {
+    String displayName = String.valueOf(customerFixture.getOrDefault("displayName", "Test Customer"));
+    Map<String, Object> clientResult = fineract.createClient(displayName, null);
+    long clientId = ((Number) clientResult.get("clientId")).longValue();
+    jdbc.update("INSERT INTO customer_identity(subject, fineract_client_id) VALUES (?, ?) ON CONFLICT DO NOTHING", subject, clientId);
+    return clientId;
+  }
+
+  private long createSavingsAccountAndReturnId(long clientId, Map<String, Object> accountFixture) {
+    String currency = String.valueOf(accountFixture.getOrDefault("currency", "CNY"));
+    int productId = accountFixture.containsKey("fineractProductId")
+        ? ((Number) accountFixture.get("fineractProductId")).intValue()
+        : savingsProductId;
+    Map<String, Object> accountResult = fineract.createSavingsAccount(clientId, productId, currency);
+    long accountId = ((Number) accountResult.get("savingsId")).longValue();
+    try {
+      fineract.savingsCommand(accountId, "activate", Map.of());
+    } catch (Exception ignored) { }
+    return accountId;
   }
 
   @PostMapping("/fixtures:reset")
@@ -53,7 +131,7 @@ public class TestSupportController {
     jdbc.update("DELETE FROM ledger_entry");
     jdbc.update("DELETE FROM outbox_event");
     jdbc.update("DELETE FROM transfer_reversal");
-    jdbc.update("DELETE FROM transfer");
+    jdbc.update("DELETE FROM transfer_order");
     jdbc.update("DELETE FROM idempotency_record");
     jdbc.update("DELETE FROM clearing_payment");
     jdbc.update("DELETE FROM risk_decision");
@@ -64,6 +142,7 @@ public class TestSupportController {
     jdbc.update("DELETE FROM reconciliation_run");
     jdbc.update("DELETE FROM eod_run");
     jdbc.update("DELETE FROM customer_identity WHERE subject LIKE 'fixture-%'");
+    audit.record(AuditService.EVENT_FIXTURE_RESET, "SYSTEM", "test-support", "Fixture", "all", "RESET", "SUCCESS", null, null);
     return ResponseEntity.ok(Map.of("status", "RESET"));
   }
 
@@ -80,9 +159,23 @@ public class TestSupportController {
     }
     if (logicalRef.startsWith("account.")) {
       String[] parts = logicalRef.split("\\.");
-      String accountRef = parts.length >= 3 ? parts[2] : "primarySavings";
-      return ResponseEntity.ok(Map.of("logicalRef", logicalRef, "accountId",
-          accountRef.equals("primarySavings") ? "1" : "2", "currency", "CNY"));
+      String customerPrefix = parts.length >= 2 ? "fixture-" + parts[1] : "fixture-";
+      var customerRows = jdbc.query(
+          "SELECT subject, fineract_client_id FROM customer_identity WHERE subject LIKE ? ORDER BY created_at DESC LIMIT 1",
+          (rs, n) -> Map.<String, Object>of("subject", rs.getString(1), "fineractClientId", rs.getLong(2)),
+          customerPrefix + "%");
+      if (customerRows.isEmpty()) return ResponseEntity.notFound().build();
+      long clientId = (Long) customerRows.get(0).get("fineractClientId");
+      try {
+        var accounts = fineract.clientAccounts(clientId);
+        if (accounts.isEmpty()) return ResponseEntity.notFound().build();
+        var firstAccount = accounts.get(0);
+        Object accountId = firstAccount.getOrDefault("id", firstAccount.getOrDefault("accountId", 0));
+        Object currency = firstAccount.getOrDefault("currencyCode", firstAccount.getOrDefault("currency", "CNY"));
+        return ResponseEntity.ok(Map.of("logicalRef", logicalRef, "accountId", accountId, "currency", currency, "clientId", clientId));
+      } catch (Exception e) {
+        return ResponseEntity.ok(Map.of("logicalRef", logicalRef, "accountId", 0, "currency", "CNY", "error", e.getMessage()));
+      }
     }
     return ResponseEntity.notFound().build();
   }
@@ -145,7 +238,7 @@ public class TestSupportController {
   @GetMapping("/assertions/payments/{paymentId}")
   public ResponseEntity<Map<String, Object>> assertPayment(@PathVariable UUID paymentId) {
     var transferRows = jdbc.query(
-        "SELECT transfer_id, status, amount, currency, core_reference, correlation_id FROM transfer WHERE transfer_id = ?",
+        "SELECT transfer_id, status, amount, currency, core_reference, correlation_id FROM transfer_order WHERE transfer_id = ?",
         (rs, n) -> Map.<String, Object>of("transferId", rs.getString(1), "status", rs.getString(2),
             "amount", rs.getBigDecimal(3).toPlainString(), "currency", rs.getString(4),
             "coreReference", rs.getString(5), "correlationId", rs.getString(6)),
@@ -169,7 +262,7 @@ public class TestSupportController {
         Integer.class, paymentId.toString());
 
     Integer idempotencyCount = jdbc.queryForObject(
-        "SELECT count(*) FROM idempotency_record WHERE scope_key IN (SELECT idempotency_key FROM transfer WHERE transfer_id = ?)",
+        "SELECT count(*) FROM idempotency_record WHERE scope_key IN (SELECT idempotency_key FROM transfer_order WHERE transfer_id = ?)",
         Integer.class, paymentId);
 
     Map<String, Object> transfer = transferRows.get(0);

@@ -1,0 +1,96 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "regression-case.schema.json",
+  "title": "RegressionCase",
+  "description": "人工成功案例输入契约，对应 V5.1 S3",
+  "type": "object",
+  "required": [
+    "schemaVersion",
+    "caseId",
+    "caseName",
+    "businessGoal",
+    "entryUrl",
+    "actorProfile",
+    "sourceTypes",
+    "steps",
+    "fixtureProfile",
+    "baselineRef"
+  ],
+  "properties": {
+    "schemaVersion": {
+      "type": "string",
+      "const": "1.0"
+    },
+    "caseId": {
+      "type": "string",
+      "pattern": "^REG-[A-Z]+-\\d{3}$",
+      "minLength": 8,
+      "maxLength": 32
+    },
+    "caseName": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 128
+    },
+    "businessGoal": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 500
+    },
+    "entryUrl": {
+      "type": "string",
+      "format": "uri"
+    },
+    "actorProfile": {
+      "type": "string",
+      "pattern": "^(customer|operations)\\.",
+      "minLength": 1,
+      "maxLength": 128
+    },
+    "sourceTypes": {
+      "type": "array",
+      "items": {
+        "enum": ["NATURAL_LANGUAGE", "FORMATTED", "VIDEO"]
+      },
+      "minItems": 1,
+      "uniqueItems": true
+    },
+    "steps": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["sequence", "description"],
+        "properties": {
+          "sequence": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "description": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 500
+          }
+        },
+        "additionalProperties": false
+      },
+      "minItems": 1
+    },
+    "fixtureProfile": {
+      "type": "string",
+      "enum": [
+        "PAYMENT_STANDARD",
+        "LOAN_BASIC",
+        "RISK_STANDARD",
+        "CLEARING_STANDARD",
+        "EOD_STANDARD"
+      ]
+    },
+    "baselineRef": {
+      "type": "string",
+      "pattern": "^BASE-[A-Z]+-\\d{3}$",
+      "minLength": 8,
+      "maxLength": 32
+    }
+  },
+  "additionalProperties": false
+}

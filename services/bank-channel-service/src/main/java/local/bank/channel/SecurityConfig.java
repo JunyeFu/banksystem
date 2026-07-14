@@ -45,8 +45,8 @@ public class SecurityConfig {
         .authorizeHttpRequests(auth -> auth
             .requestMatchers("/internal/health", "/actuator/health", "/actuator/info", "/error").permitAll()
             .requestMatchers("/internal/test-support/**").hasAuthority("ROLE_TEST_SUPPORT")
-            .requestMatchers("/api/operations/v1/cashiers").hasAnyAuthority("ROLE_TELLER", "ROLE_AUDITOR", "ROLE_SYSTEM_ADMIN")
-            .requestMatchers("/api/operations/v1/savings/**").hasAnyAuthority("ROLE_TELLER", "ROLE_SYSTEM_ADMIN")
+            .requestMatchers("/api/operations/v1/cashiers").hasAnyAuthority("ROLE_TELLER", "ROLE_CUSTOMER_SERVICE", "ROLE_AUDITOR", "ROLE_SYSTEM_ADMIN")
+            .requestMatchers("/api/operations/v1/savings/**").hasAnyAuthority("ROLE_TELLER", "ROLE_CUSTOMER_SERVICE", "ROLE_SYSTEM_ADMIN")
             .requestMatchers(HttpMethod.POST, "/api/operations/v1/transfers/reversals/*/approve").hasAnyAuthority("ROLE_PAYMENT_APPROVER", "ROLE_SYSTEM_ADMIN")
             .requestMatchers(HttpMethod.POST, "/api/operations/v1/transfers/*/reversal").hasAnyAuthority("ROLE_PAYMENT_OPERATOR", "ROLE_SYSTEM_ADMIN")
             .requestMatchers("/api/operations/v1/transfers/**").hasAnyAuthority("ROLE_PAYMENT_OPERATOR", "ROLE_PAYMENT_APPROVER", "ROLE_SYSTEM_ADMIN")

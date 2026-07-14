@@ -8,29 +8,29 @@ import static org.junit.jupiter.api.Assertions.*;
 class TransferStateMachineTest {
 
   @Test
-  void createdCanTransitionToRiskPending() {
-    assertTrue(isAllowed("CREATED", "RISK_PENDING"));
+  void createdCanTransitionToValidating() {
+    assertTrue(isAllowed("CREATED", "VALIDATING"));
   }
 
   @Test
-  void riskPendingCanTransitionToApproved() {
-    assertTrue(isAllowed("RISK_PENDING", "APPROVED"));
+  void validatingCanTransitionToPendingApproval() {
+    assertTrue(isAllowed("VALIDATING", "PENDING_APPROVAL"));
   }
 
   @Test
-  void riskPendingCanTransitionToReviewRequiredOrFailed() {
-    assertTrue(isAllowed("RISK_PENDING", "REVIEW_REQUIRED"));
-    assertTrue(isAllowed("RISK_PENDING", "FAILED"));
+  void validatingCanTransitionToRiskReviewOrFailed() {
+    assertTrue(isAllowed("VALIDATING", "RISK_REVIEW"));
+    assertTrue(isAllowed("VALIDATING", "FAILED"));
   }
 
   @Test
-  void submittedCanTransitionToSettled() {
-    assertTrue(isAllowed("SUBMITTED", "SETTLED"));
+  void pendingClearingCanTransitionToSettled() {
+    assertTrue(isAllowed("PENDING_CLEARING", "SETTLED"));
   }
 
   @Test
-  void reservedCanTransitionToFailed() {
-    assertTrue(isAllowed("RESERVED", "FAILED"));
+  void pendingCorePostingCanTransitionToFailed() {
+    assertTrue(isAllowed("PENDING_CORE_POSTING", "FAILED"));
   }
 
   @Test
@@ -39,8 +39,8 @@ class TransferStateMachineTest {
   }
 
   @Test
-  void settledCanTransitionToReturned() {
-    assertTrue(isAllowed("SETTLED", "RETURNED"));
+  void settledCannotTransitionToReturned() {
+    assertFalse(isAllowed("SETTLED", "RETURNED"));
   }
 
   @Test
@@ -56,6 +56,16 @@ class TransferStateMachineTest {
   @Test
   void cannotReverseFromCreated() {
     assertFalse(isAllowed("CREATED", "REVERSED"));
+  }
+
+  @Test
+  void timedOutIsTerminal() {
+    assertTrue(isAllowed("TIMED_OUT", "SETTLED") == false);
+  }
+
+  @Test
+  void returnedIsTerminal() {
+    assertTrue(isAllowed("RETURNED", "REVERSAL_PENDING") == false);
   }
 
   private boolean isAllowed(String from, String to) {

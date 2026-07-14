@@ -34,7 +34,7 @@ public class TransferReversalController {
   public Map<String, Object> request(@AuthenticationPrincipal Jwt jwt, @PathVariable UUID transferId, @RequestBody Reason reason) {
     if (reason.reason() == null || reason.reason().isBlank())
       throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Reason is required");
-    var rows = jdbc.query("SELECT status FROM transfer WHERE transfer_id=?", (rs, n) -> rs.getString(1), transferId);
+    var rows = jdbc.query("SELECT status FROM transfer_order WHERE transfer_id=?", (rs, n) -> rs.getString(1), transferId);
     if (rows.isEmpty()) throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Transfer not found");
     Status current = Status.of(rows.get(0));
     if (current != Status.SETTLED)
@@ -69,7 +69,7 @@ public class TransferReversalController {
       throw new ResponseStatusException(HttpStatus.CONFLICT, "Reversal version/state changed");
 
     UUID transferId = (UUID) r.get("transfer");
-    var rows = jdbc.query("SELECT source_account_id,destination_account_id,amount,currency,status FROM transfer WHERE transfer_id=?",
+    var rows = jdbc.query("SELECT source_account_id,destination_account_id,amount,currency,status FROM transfer_order WHERE transfer_id=?",
         (rs, n) -> Map.<String, Object>of("source", rs.getString(1), "destination", rs.getString(2),
             "amount", rs.getBigDecimal(3), "currency", rs.getString(4), "status", rs.getString(5)), transferId);
     if (rows.isEmpty()) throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Transfer not found");

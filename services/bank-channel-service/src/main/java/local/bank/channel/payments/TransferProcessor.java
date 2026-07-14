@@ -33,7 +33,7 @@ public class TransferProcessor {
   public Map<String, Object> process(UUID transferId) {
     var rows = jdbc.query(
         "SELECT source_account_id,destination_account_id,amount,currency,status,idempotency_key,subject "
-            + "FROM transfer WHERE transfer_id = ? FOR UPDATE",
+            + "FROM transfer_order WHERE transfer_id = ? FOR UPDATE",
         (rs, n) -> {
           var m = new java.util.HashMap<String, Object>();
           m.put("source", rs.getString(1));
@@ -53,35 +53,32 @@ public class TransferProcessor {
     Status fromStatus;
     switch (current) {
       case CREATED:
-        stateMachine.transitionState(transferId, Status.CREATED, Status.RISK_PENDING,
+        stateMachine.transitionState(transferId, Status.CREATED, Status.VALIDATING,
             "SYSTEM", "transfer-processor");
-        stateMachine.transitionState(transferId, Status.RISK_PENDING, Status.APPROVED,
+        stateMachine.transitionState(transferId, Status.VALIDATING, Status.PENDING_APPROVAL,
             "SYSTEM", "transfer-processor");
-        stateMachine.transitionState(transferId, Status.APPROVED, Status.RESERVED,
+        stateMachine.transitionState(transferId, Status.PENDING_APPROVAL, Status.PENDING_CORE_POSTING,
             "SYSTEM", "transfer-processor");
-        stateMachine.transitionState(transferId, Status.RESERVED, Status.SUBMITTED,
+        stateMachine.transitionState(transferId, Status.PENDING_CORE_POSTING, Status.PENDING_CLEARING,
             "SYSTEM", "transfer-processor");
-        fromStatus = Status.SUBMITTED;
+        fromStatus = Status.PENDING_CLEARING;
         break;
-      case RISK_PENDING:
-        stateMachine.transitionState(transferId, Status.RISK_PENDING, Status.APPROVED,
+      case VALIDATING:
+        stateMachine.transitionState(transferId, Status.VALIDATING, Status.PENDING_APPROVAL,
             "SYSTEM", "transfer-processor");
-        stateMachine.transitionState(transferId, Status.APPROVED, Status.RESERVED,
+        stateMachine.transitionState(transferId, Status.PENDING_APPROVAL, Status.PENDING_CORE_POSTING,
             "SYSTEM", "transfer-processor");
-        stateMachine.transitionState(transferId, Status.RESERVED, Status.SUBMITTED,
+        stateMachine.transitionState(transferId, Status.PENDING_CORE_POSTING, Status.PENDING_CLEARING,
             "SYSTEM", "transfer-processor");
-        fromStatus = Status.SUBMITTED;
+        fromStatus = Status.PENDING_CLEARING;
         break;
-      case RESERVED:
-        stateMachine.transitionState(transferId, Status.RESERVED, Status.SUBMITTED,
+      case PENDING_CORE_POSTING:
+        stateMachine.transitionState(transferId, Status.PENDING_CORE_POSTING, Status.PENDING_CLEARING,
             "SYSTEM", "transfer-processor");
-        fromStatus = Status.SUBMITTED;
+        fromStatus = Status.PENDING_CLEARING;
         break;
-      case SUBMITTED:
-        fromStatus = Status.SUBMITTED;
-        break;
-      case TIMED_OUT:
-        fromStatus = Status.TIMED_OUT;
+      case PENDING_CLEARING:
+        fromStatus = Status.PENDING_CLEARING;
         break;
       default:
         return Map.of("transferId", transferId.toString(), "status", current.name());
@@ -111,7 +108,7 @@ public class TransferProcessor {
 
     String reference = String.valueOf(core == null ? ""
         : core.getOrDefault("resourceId", core.getOrDefault("id", "")));
-    jdbc.update("UPDATE transfer SET core_reference=? WHERE transfer_id=?", reference, transferId);
+    jdbc.update("UPDATE transfer_order SET core_reference=? WHERE transfer_id=?", reference, transferId);
     stateMachine.transitionState(transferId, fromStatus, Status.SETTLED,
         "SYSTEM", "transfer-processor");
 
