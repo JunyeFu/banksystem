@@ -1,10 +1,19 @@
-# Mifos X Platform Develop (LATEST) version on Docker Compose
+# 外网演示版完整银行系统与回归测试平台
 
-This setup is not for production environments!
+本仓库用于建设可在外网演示、评审后可迁移到公司内网的完整系统：
+
+- Fineract/Mifos X 开源银行核心与渠道业务系统；
+- 面向银行目标网页的回归测试平台，包括案例、Baseline、RAG、AI 编排、Midscene、Playwright、独立验证、定时回归、失败恢复和证据交付。
+
+外网演示使用虚构或脱敏数据，不接入真实生产资金、监管系统或公司内网。完整边界见 [`docs/architecture/v5.4-external-demo-baseline.md`](docs/architecture/v5.4-external-demo-baseline.md)。
+
+本仓库不是生产银行系统，外网部署前必须完成安全评审、凭据隔离、网络限制和演示数据审计。
 
 This has been tested on Linux Ubuntu 24.04 LTS. Make sure you have Docker and Docker Compose plugin installed
 
 ## Quick Start
+
+当前 Docker Compose 启动说明仍针对银行目标系统；回归平台的 v5.4 目标和待验证项见 `docs/architecture/v5.4-reference/`，不应把文档目标状态当作已经实现。
 
 ### Automated Installation (Recommended)
 ```console
@@ -30,6 +39,8 @@ docker compose pull && docker compose down && docker compose up -d && docker com
 After the services are up and running (it could take some minutes for the first time), open a Web Browser and go to:
 
 **https://localhost**
+
+这里是本地目标系统的快速入口；外网演示版应通过独立 TLS 边缘入口访问，内部核心、数据库、消息与认证端口不得直接暴露。
 
 ### Default Credentials:
 - **User**: `mifos`

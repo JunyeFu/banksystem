@@ -1,0 +1,63 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "evidence.schema.json",
+  "title": "Evidence",
+  "description": "证据包契约，对应 V5.1 S9 视频规范和 S12 证据全部有 Hash",
+  "type": "object",
+  "required": ["evidenceId", "caseId", "runId", "type", "sha256", "createdAt"],
+  "properties": {
+    "evidenceId": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "caseId": {
+      "type": "string",
+      "pattern": "^REG-[A-Z]+-\\d{3}$"
+    },
+    "runId": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 64
+    },
+    "type": {
+      "enum": ["VIDEO", "TRACE", "NETWORK", "SCREENSHOT", "DOM_SNAPSHOT", "LOG"]
+    },
+    "sha256": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$"
+    },
+    "fileName": {
+      "type": "string"
+    },
+    "downloadUrl": {
+      "type": "string",
+      "format": "uri"
+    },
+    "metadata": {
+      "type": "object",
+      "properties": {
+        "resolution": {
+          "type": "object",
+          "properties": {
+            "width": { "type": "integer", "minimum": 1 },
+            "height": { "type": "integer", "minimum": 1 }
+          },
+          "additionalProperties": false
+        },
+        "dpi": { "type": "integer", "minimum": 1 },
+        "language": { "type": "string", "default": "zh-CN" },
+        "timezone": { "type": "string", "default": "Asia/Shanghai" },
+        "appVersion": { "type": "string" },
+        "recordedAt": { "type": "string", "format": "date-time" },
+        "durationMs": { "type": "integer", "minimum": 0 },
+        "piiMasked": { "type": "boolean", "default": true }
+      },
+      "additionalProperties": true
+    },
+    "createdAt": {
+      "type": "string",
+      "format": "date-time"
+    }
+  },
+  "additionalProperties": false
+}

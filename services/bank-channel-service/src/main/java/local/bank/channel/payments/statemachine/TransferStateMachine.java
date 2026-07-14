@@ -13,7 +13,7 @@ import org.springframework.web.server.ResponseStatusException;
  * v4 §10 强制状态机守卫类。
  *
  * <p>12 态:
- * CREATED, RISK_PENDING, REVIEW_REQUIRED, APPROVED, RESERVED, SUBMITTED,
+ * CREATED, VALIDATING, RISK_REVIEW, PENDING_APPROVAL, PENDING_CORE_POSTING, PENDING_CLEARING,
  * SETTLED, FAILED, TIMED_OUT, RETURNED, REVERSAL_PENDING, REVERSED
  *
  * <p>转换矩阵严格依据 v4 §10,任何非法 from->to 抛 409。
@@ -22,7 +22,7 @@ import org.springframework.web.server.ResponseStatusException;
 public class TransferStateMachine {
 
   public enum Status {
-    CREATED, RISK_PENDING, REVIEW_REQUIRED, APPROVED, RESERVED, SUBMITTED,
+    CREATED, VALIDATING, RISK_REVIEW, PENDING_APPROVAL, PENDING_CORE_POSTING, PENDING_CLEARING,
     SETTLED, FAILED, TIMED_OUT, RETURNED, REVERSAL_PENDING, REVERSED;
 
     public static Status of(String raw) {
@@ -38,17 +38,17 @@ public class TransferStateMachine {
 
   private static final Map<Status, Set<Status>> ALLOWED = new HashMap<>();
   static {
-    ALLOWED.put(Status.CREATED, Set.of(Status.RISK_PENDING));
-    ALLOWED.put(Status.RISK_PENDING, Set.of(Status.APPROVED, Status.REVIEW_REQUIRED, Status.FAILED));
-    ALLOWED.put(Status.REVIEW_REQUIRED, Set.of(Status.APPROVED, Status.FAILED));
-    ALLOWED.put(Status.APPROVED, Set.of(Status.RESERVED, Status.FAILED));
-    ALLOWED.put(Status.RESERVED, Set.of(Status.SUBMITTED, Status.FAILED));
-    ALLOWED.put(Status.SUBMITTED, Set.of(Status.SETTLED, Status.TIMED_OUT, Status.FAILED));
-    ALLOWED.put(Status.TIMED_OUT, Set.of(Status.SETTLED, Status.FAILED, Status.RETURNED));
-    ALLOWED.put(Status.SETTLED, Set.of(Status.RETURNED, Status.REVERSAL_PENDING));
-    ALLOWED.put(Status.RETURNED, Set.of(Status.REVERSAL_PENDING));
+    ALLOWED.put(Status.CREATED, Set.of(Status.VALIDATING));
+    ALLOWED.put(Status.VALIDATING, Set.of(Status.PENDING_APPROVAL, Status.RISK_REVIEW, Status.FAILED));
+    ALLOWED.put(Status.RISK_REVIEW, Set.of(Status.PENDING_APPROVAL, Status.PENDING_CORE_POSTING, Status.FAILED));
+    ALLOWED.put(Status.PENDING_APPROVAL, Set.of(Status.PENDING_CORE_POSTING, Status.FAILED));
+    ALLOWED.put(Status.PENDING_CORE_POSTING, Set.of(Status.PENDING_CLEARING, Status.FAILED));
+    ALLOWED.put(Status.PENDING_CLEARING, Set.of(Status.SETTLED, Status.FAILED));
+    ALLOWED.put(Status.SETTLED, Set.of(Status.REVERSAL_PENDING));
     ALLOWED.put(Status.REVERSAL_PENDING, Set.of(Status.REVERSED));
     ALLOWED.put(Status.FAILED, Set.of());
+    ALLOWED.put(Status.TIMED_OUT, Set.of());
+    ALLOWED.put(Status.RETURNED, Set.of());
     ALLOWED.put(Status.REVERSED, Set.of());
   }
 
@@ -91,12 +91,12 @@ public class TransferStateMachine {
     int updated;
     if (from == null) {
       updated = jdbc.update(
-          "UPDATE transfer SET status=?, version=version+1, updated_at=now() "
+          "UPDATE transfer_order SET status=?, version=version+1, updated_at=now() "
               + "WHERE transfer_id=? AND status IS NULL",
           to.name(), transferId);
     } else {
       updated = jdbc.update(
-          "UPDATE transfer SET status=?, version=version+1, updated_at=now() "
+          "UPDATE transfer_order SET status=?, version=version+1, updated_at=now() "
               + "WHERE transfer_id=? AND status=?",
           to.name(), transferId, from.name());
     }
@@ -115,7 +115,7 @@ public class TransferStateMachine {
         + (reason != null ? ",\"reason\":\"" + sanitize(reason) + "\"" : "") + "}";
     jdbc.update(
         "INSERT INTO outbox_event(id,aggregate_type,aggregate_id,event_type,event_version,payload,headers,status) " +
-        "VALUES (?,?,?,?,?,?,?::jsonb,?)",
+        "VALUES (?,?,?,?,?,?::jsonb,?::jsonb,?)",
         UUID.randomUUID(), "Transfer", transferId, "transfer.status.changed", 1,
         payload, "{}", "PENDING");
   }

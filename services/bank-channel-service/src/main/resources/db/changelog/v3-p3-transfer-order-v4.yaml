@@ -1,0 +1,56 @@
+databaseChangeLog:
+  - changeSet:
+      id: v3-p3-1-rename-transfer-to-transfer-order
+      author: BankingDomainAgent
+      changes:
+        - renameTable:
+            oldTableName: transfer
+            newTableName: transfer_order
+      comment: v4 §8.1 requires table name transfer_order
+
+  - changeSet:
+      id: v3-p3-2-add-v4-columns
+      author: BankingDomainAgent
+      changes:
+        - addColumn:
+            tableName: transfer_order
+            columns:
+              - column:
+                  name: tenant_id
+                  type: varchar(64)
+                  defaultValue: 'default'
+                  constraints:
+                    nullable: false
+              - column:
+                  name: source_fineract_id
+                  type: varchar(64)
+              - column:
+                  name: destination_type
+                  type: varchar(32)
+                  defaultValue: 'ACCOUNT'
+                  constraints:
+                    nullable: false
+              - column:
+                  name: destination_ref
+                  type: varchar(64)
+              - column:
+                  name: fineract_transfer_id
+                  type: bigint
+              - column:
+                  name: clearing_reference
+                  type: varchar(128)
+              - column:
+                  name: failure_code
+                  type: varchar(64)
+              - column:
+                  name: failure_detail
+                  type: varchar(512)
+      comment: v4 §8.1 required columns missing from transfer table
+
+  - changeSet:
+      id: v3-p3-3-sync-destination-ref
+      author: BankingDomainAgent
+      changes:
+        - sql:
+            sql: UPDATE transfer_order SET destination_ref = destination_account_id WHERE destination_ref IS NULL;
+      comment: Backfill destination_ref from existing destination_account_id

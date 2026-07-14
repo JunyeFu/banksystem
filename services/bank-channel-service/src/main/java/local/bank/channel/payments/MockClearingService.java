@@ -87,29 +87,29 @@ public class MockClearingService {
 
   private void propagateSubmitToTransfer(UUID transferId, String clearingStatus,
                                          String failureCode, String failureDetail) {
-    String currentStatus = jdbc.queryForObject("SELECT status FROM transfer WHERE transfer_id=?",
+    String currentStatus = jdbc.queryForObject("SELECT status FROM transfer_order WHERE transfer_id=?",
         String.class, transferId);
     Status current = Status.of(currentStatus);
 
     if ("ACCEPTED".equals(clearingStatus)) {
       if (current == Status.CREATED) {
-        stateMachine.transitionState(transferId, Status.CREATED, Status.RISK_PENDING,
+        stateMachine.transitionState(transferId, Status.CREATED, Status.VALIDATING,
             "SYSTEM", "mock-clearing");
-        stateMachine.transitionState(transferId, Status.RISK_PENDING, Status.APPROVED,
+        stateMachine.transitionState(transferId, Status.VALIDATING, Status.PENDING_APPROVAL,
             "SYSTEM", "mock-clearing");
-        stateMachine.transitionState(transferId, Status.APPROVED, Status.RESERVED,
+        stateMachine.transitionState(transferId, Status.PENDING_APPROVAL, Status.PENDING_CORE_POSTING,
             "SYSTEM", "mock-clearing");
-        stateMachine.transitionState(transferId, Status.RESERVED, Status.SUBMITTED,
+        stateMachine.transitionState(transferId, Status.PENDING_CORE_POSTING, Status.PENDING_CLEARING,
             "SYSTEM", "mock-clearing");
-      } else if (current == Status.RISK_PENDING) {
-        stateMachine.transitionState(transferId, Status.RISK_PENDING, Status.APPROVED,
+      } else if (current == Status.VALIDATING) {
+        stateMachine.transitionState(transferId, Status.VALIDATING, Status.PENDING_APPROVAL,
             "SYSTEM", "mock-clearing");
-        stateMachine.transitionState(transferId, Status.APPROVED, Status.RESERVED,
+        stateMachine.transitionState(transferId, Status.PENDING_APPROVAL, Status.PENDING_CORE_POSTING,
             "SYSTEM", "mock-clearing");
-        stateMachine.transitionState(transferId, Status.RESERVED, Status.SUBMITTED,
+        stateMachine.transitionState(transferId, Status.PENDING_CORE_POSTING, Status.PENDING_CLEARING,
             "SYSTEM", "mock-clearing");
-      } else if (current == Status.RESERVED) {
-        stateMachine.transitionState(transferId, Status.RESERVED, Status.SUBMITTED,
+      } else if (current == Status.PENDING_CORE_POSTING) {
+        stateMachine.transitionState(transferId, Status.PENDING_CORE_POSTING, Status.PENDING_CLEARING,
             "SYSTEM", "mock-clearing");
       }
       audit.record("TRANSFER_CLEARING_ACCEPTED", "SYSTEM", "mock-clearing", "Transfer",
@@ -162,7 +162,7 @@ public class MockClearingService {
   private void propagateDeliverToTransfer(UUID transferId, String clearingStatus, String scenario) {
     String currentStatus;
     try {
-      currentStatus = jdbc.queryForObject("SELECT status FROM transfer WHERE transfer_id=?",
+      currentStatus = jdbc.queryForObject("SELECT status FROM transfer_order WHERE transfer_id=?",
           String.class, transferId);
     } catch (org.springframework.dao.EmptyResultDataAccessException e) {
       log.warn("Clearing deliver for unknown transfer {}", transferId);
@@ -172,7 +172,7 @@ public class MockClearingService {
 
     switch (clearingStatus) {
       case "SETTLED":
-        if (current == Status.SUBMITTED || current == Status.TIMED_OUT) {
+        if (current == Status.PENDING_CLEARING) {
           log.info("Clearing SETTLED for transfer {}; invoking core posting", transferId);
           transferProcessor.process(transferId);
         }
@@ -193,14 +193,9 @@ public class MockClearingService {
         moveToTerminal(transferId, current, Status.FAILED, failureCode, failureDetail);
         break;
       case "TIMED_OUT":
-        if (current == Status.SUBMITTED) {
-          stateMachine.transitionState(transferId, Status.SUBMITTED, Status.TIMED_OUT,
-              "SYSTEM", "mock-clearing", "CLEARING_TIMEOUT", null);
-          audit.record("TRANSFER_TIMED_OUT", "SYSTEM", "mock-clearing", "Transfer",
-              transferId.toString(), "TIMEOUT", "INTERMEDIATE", null, Map.of("scenario", scenario));
-        }
+        log.info("Clearing TIMED_OUT for transfer {}; v4 terminal state, not propagating to transfer", transferId);
         break;
-      default: /* PENDING 等 — 不传播 */ break;
+      default: /* PENDING etc. — do not propagate */ break;
     }
   }
 
@@ -210,16 +205,16 @@ public class MockClearingService {
     if (current == Status.SETTLED || current == Status.REVERSED
         || current == Status.RETURNED || current == Status.REVERSAL_PENDING)
       return;
-    if (current != Status.SUBMITTED && current != Status.TIMED_OUT
-        && current != Status.CREATED && current != Status.RISK_PENDING
-        && current != Status.RESERVED && current != Status.APPROVED
-        && current != Status.REVIEW_REQUIRED) {
+    if (current != Status.PENDING_CLEARING && current != Status.TIMED_OUT
+        && current != Status.CREATED && current != Status.VALIDATING
+        && current != Status.PENDING_CORE_POSTING && current != Status.PENDING_APPROVAL
+        && current != Status.RISK_REVIEW) {
       log.warn("Cannot transition transfer {} from {} to {}", transferId, current, finalStatus);
       return;
     }
     String reason = failureCode != null ? failureCode + ": " + failureDetail : failureDetail;
     if (reason != null && reason.length() > 240) reason = reason.substring(0, 240);
-    jdbc.update("UPDATE transfer SET failure_reason=? WHERE transfer_id=?",
+    jdbc.update("UPDATE transfer_order SET failure_reason=? WHERE transfer_id=?",
         reason, transferId);
     stateMachine.transitionState(transferId, current, finalStatus,
         "SYSTEM", "mock-clearing", failureCode, null);

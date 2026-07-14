@@ -1,7 +1,9 @@
 # Risk register
 
-Spec: v4 stage 1.
+Scope: banking-core Track and external-demo migration risks in the v5.4 combined product.
 Frozen: 2026-07-11 as part of S0 baseline governance.
+
+The v5.4 platform risks (enterprise Agent tenant, model endpoint, quality-platform adapter, external-demo edge security and intranet migration) are tracked in `docs/architecture/v5.4-external-demo-baseline.md` and must be added here before the relevant acceptance gate.
 
 ## Active risks
 

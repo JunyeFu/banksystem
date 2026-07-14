@@ -1,7 +1,9 @@
 # Port, network, and volume baseline
 
-Frozen: 2026-07-11 per v4 S0 baseline.
-Spec: v4 stage 1, sections 3.2 and 6.
+Frozen: 2026-07-11 per v4 banking-core S0 baseline.
+Scope: current local target-system runtime inside the v5.4 external-demo product.
+
+The external demo must use a dedicated TLS edge/reverse-proxy boundary if it is reachable from the Internet. Internal Fineract, database, broker, Keycloak and channel ports remain unexposed; this document does not authorize changing the current compose bindings.
 
 ## Host port assignments
 

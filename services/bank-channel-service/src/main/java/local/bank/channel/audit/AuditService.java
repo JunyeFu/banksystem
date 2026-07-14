@@ -11,6 +11,15 @@ import org.springframework.stereotype.Service;
 
 @Service
 public class AuditService {
+  public static final String EVENT_CASE_CREATED = "CASE_CREATED";
+  public static final String EVENT_CASE_EXPORTED = "CASE_EXPORTED";
+  public static final String EVENT_VIDEO_UPLOADED = "VIDEO_UPLOADED";
+  public static final String EVENT_BASELINE_CREATED = "BASELINE_CREATED";
+  public static final String EVENT_BASELINE_APPROVED = "BASELINE_APPROVED";
+  public static final String EVENT_FIXTURE_SEEDED = "FIXTURE_SEEDED";
+  public static final String EVENT_FIXTURE_RESET = "FIXTURE_RESET";
+  public static final String EVENT_EVIDENCE_ACCESSED = "EVIDENCE_ACCESSED";
+
   private final JdbcTemplate jdbc;
 
   public AuditService(JdbcTemplate jdbc) {

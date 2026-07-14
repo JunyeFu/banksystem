@@ -127,7 +127,7 @@ components:
       required: [transferId, status, amount, currency]
       properties:
         transferId: { type: string }
-        status: { type: string, enum: [CREATED, RISK_PENDING, REVIEW_REQUIRED, APPROVED, RESERVED, SUBMITTED, SETTLED, FAILED, TIMED_OUT, RETURNED, REVERSAL_PENDING, REVERSED] }
+        status: { type: string, enum: [CREATED, VALIDATING, RISK_REVIEW, PENDING_APPROVAL, PENDING_CORE_POSTING, PENDING_CLEARING, SETTLED, FAILED, TIMED_OUT, RETURNED, REVERSAL_PENDING, REVERSED] }
         amount: { $ref: '#/components/schemas/Money' }
         currency: { type: string, pattern: '^[A-Z]{3}$' }
         coreReference: { type: [string, 'null'] }

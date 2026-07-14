@@ -1,6 +1,7 @@
 # Rollback principles
 
-Spec: v4 stage 1.
+Scope: banking-core Track within the v5.4 external-demo product.
+The v5.4 regression-platform rollback rules are defined in `docs/architecture/v5.4-reference/` and must not weaken these banking invariants.
 Frozen: 2026-07-11 as part of S0 baseline governance.
 
 ## Stage-level rollback

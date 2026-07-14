@@ -97,10 +97,11 @@ services:
       - "127.0.0.1:18082:80"
     volumes:
       - ./apps/customer-portal/dist:/usr/share/nginx/html:ro
+      - ./infra/gateway/customer-portal-nginx.conf:/etc/nginx/conf.d/default.conf:ro
     networks:
       - bank-channel-front
     healthcheck:
-      test: ["CMD-SHELL", "wget -q --spider http://localhost:80/ || exit 1"]
+      test: ["CMD-SHELL", "wget -q --spider http://localhost:80/portal/ || exit 1"]
       interval: 10s
       timeout: 5s
       retries: 10
@@ -111,10 +112,11 @@ services:
       - "127.0.0.1:18083:80"
     volumes:
       - ./apps/operations-console/dist:/usr/share/nginx/html:ro
+      - ./infra/gateway/operations-console-nginx.conf:/etc/nginx/conf.d/default.conf:ro
     networks:
       - bank-channel-front
     healthcheck:
-      test: ["CMD-SHELL", "wget -q --spider http://localhost:80/ || exit 1"]
+      test: ["CMD-SHELL", "wget -q --spider http://localhost:80/ops/ || exit 1"]
       interval: 10s
       timeout: 5s
       retries: 10
