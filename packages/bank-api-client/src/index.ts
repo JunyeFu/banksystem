@@ -25,6 +25,10 @@ export type TransferStateHistoryEntry = OperationsComponents['schemas']['Transfe
 export type OutboxEvent = OperationsComponents['schemas']['OutboxEvent'];
 export type TransferDetail = OperationsComponents['schemas']['TransferDetail'];
 export type OperationsDashboard = OperationsComponents['schemas']['OperationsDashboard'];
+export type OperationsRiskAlert = OperationsComponents['schemas']['RiskAlert'];
+export type OperationsRiskCase = OperationsComponents['schemas']['RiskCase'];
+export type OperationsRiskAlertStatus = OperationsComponents['schemas']['RiskAlertStatus'];
+export type OperationsRiskCaseStatus = OperationsComponents['schemas']['RiskCaseStatus'];
 export type CustomerTransferRequest = NonNullable<CustomerOperations['createCustomerTransfer']['requestBody']>['content']['application/json'];
 export type TransferAccepted = CustomerComponents['schemas']['TransferAccepted'];
 export type ProblemDetail = CustomerComponents['schemas']['Problem'] & {
@@ -127,6 +131,12 @@ export class CustomerApiClient extends BaseClient {
 export class OperationsApiClient extends BaseClient {
   getDashboard(): Promise<OperationsDashboard> {
     return this.request('/dashboard');
+  }
+  listRiskAlerts(status?: OperationsRiskAlertStatus): Promise<OperationsRiskAlert[]> {
+    return this.request(`/risk/alerts${queryString({ status })}`);
+  }
+  listRiskCases(status?: OperationsRiskCaseStatus): Promise<OperationsRiskCase[]> {
+    return this.request(`/risk/cases${queryString({ status })}`);
   }
   listTransfers(options: { status?: TransferStatus; currency?: string; query?: string; from?: string; to?: string; page?: number; size?: number } = {}): Promise<OperationsTransferPage> {
     return this.request(`/transfers${queryString(options)}`);

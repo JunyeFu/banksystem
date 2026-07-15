@@ -1,6 +1,6 @@
 import { expect, test, type Page, type Route } from '@playwright/test';
 
-const OPS = 'http://127.0.0.1:15175/ops';
+const OPS = 'http://127.0.0.1:15177/ops';
 const dashboard = { generatedAt: '2026-07-15T02:30:00Z', pendingApprovals: 12, clearingStatus: 'NORMAL', reconciliationStatus: 'MATCHED', activePayments: 18, failedPayments: 3, systemHealth: 'HEALTHY', todayPaymentAmount: '2345678901.00', todayPaymentCount: 45678, successRate: 99.76, pendingAlerts: 12 };
 
 async function freeze(page: Page): Promise<void> {

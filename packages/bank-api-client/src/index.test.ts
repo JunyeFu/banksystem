@@ -81,6 +81,20 @@ describe('generated-contract API clients', () => {
     expect(fetchMock.mock.calls[0]?.[0]).toBe('/api/operations/v1/transfers/transfer-1');
   });
 
+  it('uses generated operations dashboard and risk routes', async () => {
+    const fetchMock = vi.fn().mockImplementation(() => Promise.resolve(response([])));
+    vi.stubGlobal('fetch', fetchMock);
+    const client = new OperationsApiClient({ baseUrl: '/api/operations/v1', getAccessToken: () => null });
+    await client.getDashboard();
+    await client.listRiskAlerts('RESOLVED');
+    await client.listRiskCases('UNDER_REVIEW');
+    expect(fetchMock.mock.calls.map((call) => call[0])).toEqual([
+      '/api/operations/v1/dashboard',
+      '/api/operations/v1/risk/alerts?status=RESOLVED',
+      '/api/operations/v1/risk/cases?status=UNDER_REVIEW',
+    ]);
+  });
+
   it('downloads a customer receipt as a PDF blob', async () => {
     const fetchMock = vi.fn().mockResolvedValue(new Response('%PDF-1.4', { status: 200, headers: { 'Content-Type': 'application/pdf' } }));
     vi.stubGlobal('fetch', fetchMock);

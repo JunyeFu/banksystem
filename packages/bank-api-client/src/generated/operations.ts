@@ -21,6 +21,40 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/risk/alerts": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List risk alerts derived from persisted risk decisions */
+        get: operations["listRiskAlerts"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/risk/cases": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List risk cases and maker-checker review state */
+        get: operations["listRiskCases"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/transfers": {
         parameters: {
             query?: never;
@@ -136,6 +170,47 @@ export interface paths {
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
+        /** @enum {string} */
+        RiskAlertStatus: "ACTIVE" | "RESOLVED";
+        /** @enum {string} */
+        RiskCaseStatus: "OPEN" | "UNDER_REVIEW" | "APPROVED";
+        RiskAlert: {
+            /** Format: uuid */
+            alertId: string;
+            /** @enum {string} */
+            severity: "LOW" | "MEDIUM" | "HIGH" | "CRITICAL";
+            status: components["schemas"]["RiskAlertStatus"];
+            ruleName: string;
+            entityType: string;
+            /** Format: uuid */
+            entityId: string;
+            description: string;
+            score: number;
+            /** Format: date-time */
+            triggeredAt: string;
+            acknowledgedBy?: string | null;
+            /** Format: date-time */
+            resolvedAt?: string | null;
+        };
+        RiskCase: {
+            /** Format: uuid */
+            caseId: string;
+            /** Format: uuid */
+            transferId: string;
+            customerSubject: string;
+            /** @enum {string} */
+            decision: "ALLOW" | "REVIEW" | "BLOCK";
+            status: components["schemas"]["RiskCaseStatus"];
+            score: number;
+            triggeredRules: string[];
+            maker: string;
+            checker?: string | null;
+            version: number;
+            /** Format: date-time */
+            createdAt: string;
+            /** Format: date-time */
+            reviewedAt?: string | null;
+        };
         OperationsDashboard: {
             /** Format: date-time */
             generatedAt: string;
@@ -285,6 +360,52 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["OperationsDashboard"];
+                };
+            };
+            401: components["responses"]["Problem"];
+        };
+    };
+    listRiskAlerts: {
+        parameters: {
+            query?: {
+                status?: components["schemas"]["RiskAlertStatus"];
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Risk alert list */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RiskAlert"][];
+                };
+            };
+            401: components["responses"]["Problem"];
+        };
+    };
+    listRiskCases: {
+        parameters: {
+            query?: {
+                status?: components["schemas"]["RiskCaseStatus"];
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Risk case list */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RiskCase"][];
                 };
             };
             401: components["responses"]["Problem"];

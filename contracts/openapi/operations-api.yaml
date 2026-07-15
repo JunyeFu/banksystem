@@ -19,6 +19,30 @@ paths:
           content:
             application/json: { schema: { $ref: '#/components/schemas/OperationsDashboard' } }
         '401': { $ref: '#/components/responses/Problem' }
+  /risk/alerts:
+    get:
+      operationId: listRiskAlerts
+      summary: List risk alerts derived from persisted risk decisions
+      parameters:
+        - { name: status, in: query, schema: { $ref: '#/components/schemas/RiskAlertStatus' } }
+      responses:
+        '200':
+          description: Risk alert list
+          content:
+            application/json: { schema: { type: array, items: { $ref: '#/components/schemas/RiskAlert' } } }
+        '401': { $ref: '#/components/responses/Problem' }
+  /risk/cases:
+    get:
+      operationId: listRiskCases
+      summary: List risk cases and maker-checker review state
+      parameters:
+        - { name: status, in: query, schema: { $ref: '#/components/schemas/RiskCaseStatus' } }
+      responses:
+        '200':
+          description: Risk case list
+          content:
+            application/json: { schema: { type: array, items: { $ref: '#/components/schemas/RiskCase' } } }
+        '401': { $ref: '#/components/responses/Problem' }
   /transfers:
     get:
       operationId: listOperationsTransfers
@@ -155,6 +179,45 @@ components:
       content:
         application/problem+json: { schema: { $ref: '#/components/schemas/Problem' } }
   schemas:
+    RiskAlertStatus:
+      type: string
+      enum: [ACTIVE, RESOLVED]
+    RiskCaseStatus:
+      type: string
+      enum: [OPEN, UNDER_REVIEW, APPROVED]
+    RiskAlert:
+      type: object
+      additionalProperties: false
+      required: [alertId, severity, status, ruleName, entityType, entityId, description, score, triggeredAt]
+      properties:
+        alertId: { type: string, format: uuid }
+        severity: { type: string, enum: [LOW, MEDIUM, HIGH, CRITICAL] }
+        status: { $ref: '#/components/schemas/RiskAlertStatus' }
+        ruleName: { type: string }
+        entityType: { type: string }
+        entityId: { type: string, format: uuid }
+        description: { type: string }
+        score: { type: integer, minimum: 0, maximum: 100 }
+        triggeredAt: { type: string, format: date-time }
+        acknowledgedBy: { type: [string, 'null'] }
+        resolvedAt: { type: [string, 'null'], format: date-time }
+    RiskCase:
+      type: object
+      additionalProperties: false
+      required: [caseId, transferId, customerSubject, decision, status, score, triggeredRules, maker, version, createdAt]
+      properties:
+        caseId: { type: string, format: uuid }
+        transferId: { type: string, format: uuid }
+        customerSubject: { type: string }
+        decision: { type: string, enum: [ALLOW, REVIEW, BLOCK] }
+        status: { $ref: '#/components/schemas/RiskCaseStatus' }
+        score: { type: integer, minimum: 0, maximum: 100 }
+        triggeredRules: { type: array, items: { type: string } }
+        maker: { type: string }
+        checker: { type: [string, 'null'] }
+        version: { type: integer, minimum: 1 }
+        createdAt: { type: string, format: date-time }
+        reviewedAt: { type: [string, 'null'], format: date-time }
     OperationsDashboard:
       type: object
       additionalProperties: false
