@@ -95,6 +95,19 @@ describe('generated-contract API clients', () => {
     ]);
   });
 
+  it('uses approval filters and idempotent maker-checker actions', async () => {
+    const fetchMock = vi.fn().mockImplementation(() => Promise.resolve(response({ status: 'APPROVED', version: 2 })));
+    vi.stubGlobal('fetch', fetchMock);
+    const client = new OperationsApiClient({ baseUrl: '/api/operations/v1', getAccessToken: () => null });
+    await client.listApprovals('PENDING');
+    await client.approveReversal('reversal/1', 1, '复核通过', '1234567890abcdef');
+    await client.rejectReversal('reversal/2', 3, '资料不符', 'abcdef1234567890');
+    expect(fetchMock.mock.calls[0]?.[0]).toBe('/api/operations/v1/approvals?status=PENDING');
+    expect(fetchMock.mock.calls[1]?.[0]).toBe('/api/operations/v1/transfers/reversals/reversal%2F1/approve?version=1');
+    expect(new Headers((fetchMock.mock.calls[1]?.[1] as RequestInit).headers).get('Idempotency-Key')).toBe('1234567890abcdef');
+    expect(fetchMock.mock.calls[2]?.[0]).toContain('/reversal%2F2/reject?version=3');
+  });
+
   it('downloads a customer receipt as a PDF blob', async () => {
     const fetchMock = vi.fn().mockResolvedValue(new Response('%PDF-1.4', { status: 200, headers: { 'Content-Type': 'application/pdf' } }));
     vi.stubGlobal('fetch', fetchMock);

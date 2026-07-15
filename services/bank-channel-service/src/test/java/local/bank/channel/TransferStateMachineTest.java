@@ -46,6 +46,7 @@ class TransferStateMachineTest {
   @Test
   void reversalPendingCanTransitionToReversed() {
     assertTrue(isAllowed("REVERSAL_PENDING", "REVERSED"));
+    assertTrue(isAllowed("REVERSAL_PENDING", "SETTLED"));
   }
 
   @Test

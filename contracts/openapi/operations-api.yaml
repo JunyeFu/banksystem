@@ -43,6 +43,19 @@ paths:
           content:
             application/json: { schema: { type: array, items: { $ref: '#/components/schemas/RiskCase' } } }
         '401': { $ref: '#/components/responses/Problem' }
+  /approvals:
+    get:
+      operationId: listApprovals
+      summary: List transfer-reversal approval records
+      parameters:
+        - { name: status, in: query, schema: { $ref: '#/components/schemas/ApprovalStatus' } }
+      responses:
+        '200':
+          description: Approval queue
+          content:
+            application/json: { schema: { type: array, items: { $ref: '#/components/schemas/ApprovalRecord' } } }
+        '401': { $ref: '#/components/responses/Problem' }
+        '403': { $ref: '#/components/responses/Problem' }
   /transfers:
     get:
       operationId: listOperationsTransfers
@@ -157,7 +170,33 @@ paths:
           application/json:
             schema: { type: object, required: [reason], properties: { reason: { type: string, minLength: 1, maxLength: 240 } } }
       responses:
-        '200': { description: Compensating transfer posted }
+        '200':
+          description: Compensating transfer posted
+          content:
+            application/json: { schema: { $ref: '#/components/schemas/ApprovalActionResult' } }
+        '409': { $ref: '#/components/responses/Problem' }
+  /transfers/reversals/{reversalId}/reject:
+    parameters:
+      - name: reversalId
+        in: path
+        required: true
+        schema: { type: string, format: uuid }
+      - $ref: '#/components/parameters/IdempotencyKey'
+    post:
+      operationId: rejectTransferReversal
+      summary: Reject a pending transfer reversal and restore the settled transfer state
+      parameters:
+        - { name: version, in: query, required: true, schema: { type: integer, minimum: 1 } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { type: object, required: [reason], properties: { reason: { type: string, minLength: 1, maxLength: 240 } } }
+      responses:
+        '200':
+          description: Reversal request rejected
+          content:
+            application/json: { schema: { $ref: '#/components/schemas/ApprovalActionResult' } }
         '409': { $ref: '#/components/responses/Problem' }
 components:
   securitySchemes:
@@ -179,6 +218,39 @@ components:
       content:
         application/problem+json: { schema: { $ref: '#/components/schemas/Problem' } }
   schemas:
+    ApprovalStatus:
+      type: string
+      enum: [PENDING, APPROVED, REJECTED]
+    ApprovalRecord:
+      type: object
+      additionalProperties: false
+      required: [approvalId, reversalId, transferId, creator, status, reason, version, amount, currency, sourceAccountId, destinationAccountId, createdAt, updatedAt]
+      properties:
+        approvalId: { type: string, format: uuid }
+        reversalId: { type: string, format: uuid }
+        transferId: { type: string, format: uuid }
+        creator: { type: string }
+        checker: { type: [string, 'null'] }
+        status: { $ref: '#/components/schemas/ApprovalStatus' }
+        reason: { type: string }
+        version: { type: integer, minimum: 1 }
+        amount: { $ref: '#/components/schemas/Money' }
+        currency: { type: string, pattern: '^[A-Z]{3}$' }
+        sourceAccountId: { type: string }
+        destinationAccountId: { type: string }
+        coreReference: { type: [string, 'null'] }
+        createdAt: { type: string, format: date-time }
+        updatedAt: { type: string, format: date-time }
+    ApprovalActionResult:
+      type: object
+      additionalProperties: false
+      required: [reversalId, transferId, status, version]
+      properties:
+        reversalId: { type: string, format: uuid }
+        transferId: { type: string, format: uuid }
+        status: { $ref: '#/components/schemas/ApprovalStatus' }
+        version: { type: integer, minimum: 1 }
+        coreReference: { type: [string, 'null'] }
     RiskAlertStatus:
       type: string
       enum: [ACTIVE, RESOLVED]

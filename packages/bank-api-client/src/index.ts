@@ -29,6 +29,9 @@ export type OperationsRiskAlert = OperationsComponents['schemas']['RiskAlert'];
 export type OperationsRiskCase = OperationsComponents['schemas']['RiskCase'];
 export type OperationsRiskAlertStatus = OperationsComponents['schemas']['RiskAlertStatus'];
 export type OperationsRiskCaseStatus = OperationsComponents['schemas']['RiskCaseStatus'];
+export type OperationsApproval = OperationsComponents['schemas']['ApprovalRecord'];
+export type OperationsApprovalStatus = OperationsComponents['schemas']['ApprovalStatus'];
+export type OperationsApprovalActionResult = OperationsComponents['schemas']['ApprovalActionResult'];
 export type CustomerTransferRequest = NonNullable<CustomerOperations['createCustomerTransfer']['requestBody']>['content']['application/json'];
 export type TransferAccepted = CustomerComponents['schemas']['TransferAccepted'];
 export type ProblemDetail = CustomerComponents['schemas']['Problem'] & {
@@ -137,6 +140,15 @@ export class OperationsApiClient extends BaseClient {
   }
   listRiskCases(status?: OperationsRiskCaseStatus): Promise<OperationsRiskCase[]> {
     return this.request(`/risk/cases${queryString({ status })}`);
+  }
+  listApprovals(status?: OperationsApprovalStatus): Promise<OperationsApproval[]> {
+    return this.request(`/approvals${queryString({ status })}`);
+  }
+  approveReversal(reversalId: string, version: number, reason: string, idempotencyKey: string): Promise<OperationsApprovalActionResult> {
+    return this.request(`/transfers/reversals/${encodeURIComponent(reversalId)}/approve${queryString({ version })}`, { method: 'POST', headers: { 'Idempotency-Key': idempotencyKey }, body: JSON.stringify({ reason }) });
+  }
+  rejectReversal(reversalId: string, version: number, reason: string, idempotencyKey: string): Promise<OperationsApprovalActionResult> {
+    return this.request(`/transfers/reversals/${encodeURIComponent(reversalId)}/reject${queryString({ version })}`, { method: 'POST', headers: { 'Idempotency-Key': idempotencyKey }, body: JSON.stringify({ reason }) });
   }
   listTransfers(options: { status?: TransferStatus; currency?: string; query?: string; from?: string; to?: string; page?: number; size?: number } = {}): Promise<OperationsTransferPage> {
     return this.request(`/transfers${queryString(options)}`);

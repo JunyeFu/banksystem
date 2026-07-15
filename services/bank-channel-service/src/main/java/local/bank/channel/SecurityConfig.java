@@ -48,6 +48,8 @@ public class SecurityConfig {
             .requestMatchers("/api/operations/v1/cashiers").hasAnyAuthority("ROLE_TELLER", "ROLE_CUSTOMER_SERVICE", "ROLE_AUDITOR", "ROLE_SYSTEM_ADMIN")
             .requestMatchers("/api/operations/v1/savings/**").hasAnyAuthority("ROLE_TELLER", "ROLE_CUSTOMER_SERVICE", "ROLE_SYSTEM_ADMIN")
             .requestMatchers(HttpMethod.POST, "/api/operations/v1/transfers/reversals/*/approve").hasAnyAuthority("ROLE_PAYMENT_APPROVER", "ROLE_SYSTEM_ADMIN")
+            .requestMatchers(HttpMethod.POST, "/api/operations/v1/transfers/reversals/*/reject").hasAnyAuthority("ROLE_PAYMENT_APPROVER", "ROLE_SYSTEM_ADMIN")
+            .requestMatchers("/api/operations/v1/approvals/**").hasAnyAuthority("ROLE_PAYMENT_APPROVER", "ROLE_SYSTEM_ADMIN")
             .requestMatchers(HttpMethod.POST, "/api/operations/v1/transfers/*/reversal").hasAnyAuthority("ROLE_PAYMENT_OPERATOR", "ROLE_SYSTEM_ADMIN")
             .requestMatchers("/api/operations/v1/transfers/**").hasAnyAuthority("ROLE_PAYMENT_OPERATOR", "ROLE_PAYMENT_APPROVER", "ROLE_SYSTEM_ADMIN")
             .requestMatchers(HttpMethod.POST, "/api/operations/v1/loans/approvals/*/approve").hasAnyAuthority("ROLE_LOAN_APPROVER", "ROLE_SYSTEM_ADMIN")

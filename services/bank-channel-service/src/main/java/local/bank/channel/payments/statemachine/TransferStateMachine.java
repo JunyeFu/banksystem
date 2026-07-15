@@ -45,7 +45,7 @@ public class TransferStateMachine {
     ALLOWED.put(Status.PENDING_CORE_POSTING, Set.of(Status.PENDING_CLEARING, Status.FAILED));
     ALLOWED.put(Status.PENDING_CLEARING, Set.of(Status.SETTLED, Status.FAILED));
     ALLOWED.put(Status.SETTLED, Set.of(Status.REVERSAL_PENDING));
-    ALLOWED.put(Status.REVERSAL_PENDING, Set.of(Status.REVERSED));
+    ALLOWED.put(Status.REVERSAL_PENDING, Set.of(Status.REVERSED, Status.SETTLED));
     ALLOWED.put(Status.FAILED, Set.of());
     ALLOWED.put(Status.TIMED_OUT, Set.of());
     ALLOWED.put(Status.RETURNED, Set.of());
