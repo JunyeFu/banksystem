@@ -1,237 +1,43 @@
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import {
-  Button,
-  Card,
-  Descriptions,
-  Space,
-  Table,
-  Tag,
-  Typography,
-} from 'antd';
-import type { ColumnsType } from 'antd/es/table';
-import { PageContainer } from '@/components/PageContainer';
-import { apiClient, ApiError } from '@/api/client';
-import type {
-  ReconciliationBatch,
-  ReconciliationBatchType,
-  ReconciliationStatus,
-} from '@/types/models';
+import { useState } from 'react';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { Alert, Button, Card, Empty, Select, Skeleton, Table, Tag } from 'antd';
+import type { OperationsReconciliationRun, OperationsReconciliationStatus, OperationsReconciliationType } from '@localbank/bank-api-client';
+import { operationsApi } from '@/api/client';
 
-const { Text } = Typography;
-
-const RECONCILIATION_TYPES: { value: ReconciliationBatchType; label: string; description: string }[] = [
-  { value: 'CHANNEL_TO_CORE', label: '渠道到核心', description: 'Channel to Core 对账' },
-  { value: 'CHANNEL_TO_CLEARING', label: '渠道到清算', description: 'Channel to Clearing 对账' },
-  { value: 'CORE_TO_GENERAL_LEDGER', label: '核心到总账', description: 'Core to General Ledger 对账' },
-];
-
-const reconStatusColorMap: Record<ReconciliationStatus, string> = {
-  CREATED: 'default',
-  RUNNING: 'processing',
-  MATCHED: 'success',
-  DIFFERENCE_FOUND: 'warning',
-  FAILED: 'error',
-};
-
-function useReconciliationBatches() {
-  return useQuery<ReconciliationBatch[], ApiError>({
-    queryKey: ['reconciliation-batches'],
-    queryFn: () => apiClient.get<ReconciliationBatch[]>('/reconciliations'),
-  });
-}
-
-const batchTypeLabelMap: Record<ReconciliationBatchType, string> = {
-  CHANNEL_TO_CORE: '渠道到核心',
-  CHANNEL_TO_CLEARING: '渠道到清算',
-  CORE_TO_GENERAL_LEDGER: '核心到总账',
-};
-
-const columns: ColumnsType<ReconciliationBatch> = [
-  {
-    title: '对账类型',
-    dataIndex: 'batchType',
-    key: 'batchType',
-    width: 160,
-    render: (value: ReconciliationBatchType) => (
-      <span data-testid="recon-row-batch-type">{batchTypeLabelMap[value]}</span>
-    ),
-  },
-  {
-    title: '业务日期',
-    dataIndex: 'businessDate',
-    key: 'businessDate',
-    width: 140,
-  },
-  {
-    title: '状态',
-    dataIndex: 'status',
-    key: 'status',
-    width: 160,
-    render: (value: ReconciliationStatus) => (
-      <Tag color={reconStatusColorMap[value]} data-testid="recon-row-status">
-        {value}
-      </Tag>
-    ),
-  },
-  {
-    title: '源记录数',
-    dataIndex: 'sourceCount',
-    key: 'sourceCount',
-    width: 100,
-    align: 'right',
-  },
-  {
-    title: '目标记录数',
-    dataIndex: 'targetCount',
-    key: 'targetCount',
-    width: 100,
-    align: 'right',
-  },
-  {
-    title: '差异数量',
-    dataIndex: 'differenceCount',
-    key: 'differenceCount',
-    width: 100,
-    align: 'right',
-    render: (value: number) => (
-      <span
-        data-testid="recon-row-difference-count"
-        style={{ color: value > 0 ? '#cf1322' : undefined }}
-      >
-        {value}
-      </span>
-    ),
-  },
-  {
-    title: '差异金额',
-    dataIndex: 'differenceAmount',
-    key: 'differenceAmount',
-    width: 140,
-    align: 'right',
-    render: (value: string) => (
-      <span data-testid="recon-row-difference-amount">{value}</span>
-    ),
-  },
-  {
-    title: '开始时间',
-    dataIndex: 'startedAt',
-    key: 'startedAt',
-    width: 200,
-    render: (value: string | null) => value ?? <Text type="secondary">-</Text>,
-  },
-  {
-    title: '完成时间',
-    dataIndex: 'completedAt',
-    key: 'completedAt',
-    width: 200,
-    render: (value: string | null) => value ?? <Text type="secondary">-</Text>,
-  },
-];
+const typeLabels: Record<OperationsReconciliationType, string> = { CHANNEL_TO_CORE: '渠道与核心', CHANNEL_TO_CLEARING: '渠道与清算', CORE_TO_GENERAL_LEDGER: '核心与总账' };
+const statusLabels: Record<OperationsReconciliationStatus, string> = { RUNNING: '对账中', MATCHED: '账实相符', DIFFERENCE_FOUND: '发现差异', FAILED: '执行失败' };
+const statusColors: Record<OperationsReconciliationStatus, string> = { RUNNING: 'processing', MATCHED: 'success', DIFFERENCE_FOUND: 'warning', FAILED: 'error' };
 
 export function Reconciliation(): JSX.Element {
-  const queryClient = useQueryClient();
-  const { data, isLoading, isError } = useReconciliationBatches();
+  const client = useQueryClient();
+  const [type, setType] = useState<OperationsReconciliationType>('CHANNEL_TO_CORE');
+  const query = useQuery({ queryKey: ['operations-reconciliations'], queryFn: () => operationsApi.listReconciliations(), retry: false });
+  const mutation = useMutation({ mutationFn: () => operationsApi.runReconciliation(type), onSuccess: () => void client.invalidateQueries({ queryKey: ['operations-reconciliations'] }) });
+  const rows = query.data ?? [];
+  const derived = rows.length === 0 ? 'EMPTY' : rows[0]?.status ?? 'EMPTY';
+  const state = mutation.isPending ? 'RUNNING' : query.isLoading ? 'LOADING' : query.isError ? 'ERROR' : mutation.isError ? 'FAILED' : derived;
+  const differences = rows.reduce((sum, item) => sum + item.differenceCount, 0);
 
-  const triggerMutation = useMutation<
-    ReconciliationBatch,
-    ApiError,
-    ReconciliationBatchType
-  >({
-    mutationFn: (batchType: ReconciliationBatchType) =>
-      apiClient.post<ReconciliationBatch>(
-        '/reconciliations',
-        { batchType },
-        { idempotencyKey: crypto.randomUUID() },
-      ),
-    onSuccess: () => {
-      void queryClient.invalidateQueries({ queryKey: ['reconciliation-batches'] });
-    },
-  });
-
-  const pageState = isLoading ? 'LOADING' : isError ? 'ERROR' : 'READY';
-
-  const latestBatch = data && data.length > 0 ? data[0] : null;
-
-  return (
-    <PageContainer pageId="operations.reconciliation" state={pageState} title="对账">
-      <Card style={{ marginBottom: 16 }} data-testid="reconciliation-panel">
-        <h3>触发对账</h3>
-        <Space wrap>
-          {RECONCILIATION_TYPES.map((type) => (
-            <Button
-              key={type.value}
-              type="primary"
-              loading={triggerMutation.isPending}
-              onClick={() => triggerMutation.mutate(type.value)}
-              data-testid={`recon-trigger-${type.value}`}
-              aria-label={`触发${type.label}对账`}
-            >
-              {type.label}
-            </Button>
-          ))}
-        </Space>
-        <p style={{ marginTop: 8, color: '#888' }}>
-          {RECONCILIATION_TYPES.map((t) => t.description).join(' · ')}
-        </p>
-      </Card>
-
-      {latestBatch && (
-        <Card
-          title="最新对账结果"
-          style={{ marginBottom: 16 }}
-          data-testid="recon-latest-result"
-        >
-          <Descriptions
-            column={2}
-            bordered
-            size="small"
-            data-testid="recon-latest-descriptions"
-          >
-            <Descriptions.Item label="对账类型" data-testid="recon-latest-batch-type">
-              {batchTypeLabelMap[latestBatch.batchType]}
-            </Descriptions.Item>
-            <Descriptions.Item label="状态" data-testid="recon-latest-status">
-              <Tag color={reconStatusColorMap[latestBatch.status]}>
-                {latestBatch.status}
-              </Tag>
-            </Descriptions.Item>
-            <Descriptions.Item label="业务日期" data-testid="recon-latest-business-date">
-              {latestBatch.businessDate}
-            </Descriptions.Item>
-            <Descriptions.Item label="差异数量" data-testid="recon-latest-difference-count">
-              {latestBatch.differenceCount}
-            </Descriptions.Item>
-            <Descriptions.Item label="源记录数" data-testid="recon-latest-source-count">
-              {latestBatch.sourceCount}
-            </Descriptions.Item>
-            <Descriptions.Item label="目标记录数" data-testid="recon-latest-target-count">
-              {latestBatch.targetCount}
-            </Descriptions.Item>
-          </Descriptions>
-        </Card>
-      )}
-
-      <Card title="对账批次列表" data-testid="recon-batches-card">
-        <Table<ReconciliationBatch>
-          columns={columns}
-          dataSource={data ?? []}
-          rowKey="id"
-          loading={isLoading}
-          pagination={{ pageSize: 20, showSizeChanger: true }}
-          data-testid="recon-batches-table"
-          scroll={{ x: 1100 }}
-        />
-      </Card>
-
-      {triggerMutation.isError && (
-        <div
-          data-testid="recon-mutation-error"
-          role="alert"
-          style={{ marginTop: 16, color: '#cf1322' }}
-        >
-          对账触发失败: {triggerMutation.error?.message}
-        </div>
-      )}
-    </PageContainer>
-  );
+  return <section className="ops-settlement-page" data-page-id="operations.reconciliation" data-view-state={state}>
+    <div className="ops-page-heading"><div><p className="ops-breadcrumb">复兴银行运营控制台　/　资金运营</p><h1>对账中心</h1><span>核对渠道、核心、清算与总账数据，形成可追溯的差异结果。</span></div><Button onClick={() => void query.refetch()}>↻　刷新</Button></div>
+    <Card className="ops-settlement-action"><div><strong>发起对账</strong><p>选择账务链路后执行实时核对。执行结果将持久化并进入审计链。</p></div><Select value={type} onChange={setType} options={Object.entries(typeLabels).map(([value, label]) => ({ value, label }))} /><Button type="primary" loading={mutation.isPending} onClick={() => mutation.mutate()} data-testid="reconciliation-run">执行对账</Button></Card>
+    {query.isError ? <Alert type="error" showIcon message="对账记录加载失败" description="无法读取历史对账结果，请检查服务状态后重试。" /> : mutation.isError ? <Alert className="ops-settlement-alert" type="error" showIcon message="对账执行失败" description="本次执行未完成，请确认依赖服务状态后重试。" /> : null}
+    <div className="ops-risk-metrics ops-risk-metrics--three">
+      {query.isLoading ? [0, 1, 2].map((key) => <Card key={key}><Skeleton active paragraph={false} /></Card>) : <>
+        <Card><span>执行次数</span><strong>{rows.length}</strong><small>当前查询范围</small></Card>
+        <Card><span>账实相符</span><strong className="success">{rows.filter((item) => item.status === 'MATCHED').length}</strong><small>无需人工处理</small></Card>
+        <Card><span>差异记录</span><strong className={differences ? 'danger' : 'success'}>{differences}</strong><small>需要运营人员核查</small></Card>
+      </>}
+    </div>
+    <Card className="ops-risk-table" title="对账记录" extra={<span>共 {rows.length} 次</span>}>
+      {query.isLoading ? <Skeleton active paragraph={{ rows: 8 }} /> : rows.length === 0 ? <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description="尚无对账记录，请选择链路并发起首次对账" /> : <Table<OperationsReconciliationRun> rowKey="runId" dataSource={rows} pagination={{ pageSize: 10 }} columns={[
+        { title: '运行编号', dataIndex: 'runId', width: 175, render: (value: string) => <code>{value}</code> },
+        { title: '对账链路', dataIndex: 'type', width: 150, render: (value: OperationsReconciliationType) => typeLabels[value] },
+        { title: '状态', dataIndex: 'status', width: 120, render: (value: OperationsReconciliationStatus) => <Tag color={statusColors[value]}>{statusLabels[value]}</Tag> },
+        { title: '差异数量', dataIndex: 'differenceCount', width: 100, align: 'right', render: (value: number) => <b className={value ? 'danger' : ''}>{value}</b> },
+        { title: '结果说明', dataIndex: 'details', ellipsis: true },
+        { title: '执行时间', dataIndex: 'createdAt', width: 180, render: (value: string) => new Date(value).toLocaleString('zh-CN', { hour12: false }) },
+      ]} />}
+    </Card>
+  </section>;
 }

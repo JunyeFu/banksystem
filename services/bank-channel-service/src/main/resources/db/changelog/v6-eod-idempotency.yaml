@@ -1,0 +1,23 @@
+databaseChangeLog:
+  - changeSet:
+      id: v6-eod-idempotency
+      author: codex
+      preConditions:
+        - onFail: MARK_RAN
+        - tableExists:
+            tableName: eod_run
+        - not:
+            - columnExists:
+                tableName: eod_run
+                columnName: idempotency_key
+      changes:
+        - addColumn:
+            tableName: eod_run
+            columns:
+              - column:
+                  name: idempotency_key
+                  type: varchar(128)
+        - addUniqueConstraint:
+            tableName: eod_run
+            columnNames: idempotency_key
+            constraintName: uq_eod_run_idempotency_key

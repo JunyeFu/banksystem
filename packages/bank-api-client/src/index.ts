@@ -32,6 +32,13 @@ export type OperationsRiskCaseStatus = OperationsComponents['schemas']['RiskCase
 export type OperationsApproval = OperationsComponents['schemas']['ApprovalRecord'];
 export type OperationsApprovalStatus = OperationsComponents['schemas']['ApprovalStatus'];
 export type OperationsApprovalActionResult = OperationsComponents['schemas']['ApprovalActionResult'];
+export type OperationsClearingBatch = OperationsComponents['schemas']['ClearingBatch'];
+export type OperationsClearingBatchStatus = OperationsComponents['schemas']['ClearingBatchStatus'];
+export type OperationsReconciliationRun = OperationsComponents['schemas']['ReconciliationRun'];
+export type OperationsReconciliationType = OperationsComponents['schemas']['ReconciliationType'];
+export type OperationsReconciliationStatus = OperationsComponents['schemas']['ReconciliationStatus'];
+export type OperationsEodRun = OperationsComponents['schemas']['EodRun'];
+export type OperationsEodStatus = OperationsComponents['schemas']['EodStatus'];
 export type CustomerTransferRequest = NonNullable<CustomerOperations['createCustomerTransfer']['requestBody']>['content']['application/json'];
 export type TransferAccepted = CustomerComponents['schemas']['TransferAccepted'];
 export type ProblemDetail = CustomerComponents['schemas']['Problem'] & {
@@ -149,6 +156,21 @@ export class OperationsApiClient extends BaseClient {
   }
   rejectReversal(reversalId: string, version: number, reason: string, idempotencyKey: string): Promise<OperationsApprovalActionResult> {
     return this.request(`/transfers/reversals/${encodeURIComponent(reversalId)}/reject${queryString({ version })}`, { method: 'POST', headers: { 'Idempotency-Key': idempotencyKey }, body: JSON.stringify({ reason }) });
+  }
+  listClearingBatches(): Promise<OperationsClearingBatch[]> {
+    return this.request('/clearing/batches');
+  }
+  listReconciliations(): Promise<OperationsReconciliationRun[]> {
+    return this.request('/reconciliations');
+  }
+  runReconciliation(type: OperationsReconciliationType): Promise<OperationsReconciliationRun> {
+    return this.request('/reconciliations', { method: 'POST', body: JSON.stringify({ type }) });
+  }
+  getLatestEodRun(): Promise<OperationsEodRun> {
+    return this.request('/eod/latest');
+  }
+  runEod(idempotencyKey: string): Promise<OperationsEodRun> {
+    return this.request('/eod/run', { method: 'POST', headers: { 'Idempotency-Key': idempotencyKey } });
   }
   listTransfers(options: { status?: TransferStatus; currency?: string; query?: string; from?: string; to?: string; page?: number; size?: number } = {}): Promise<OperationsTransferPage> {
     return this.request(`/transfers${queryString(options)}`);

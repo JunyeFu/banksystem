@@ -72,6 +72,75 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/clearing/batches": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List daily clearing batches aggregated from clearing payments */
+        get: operations["listClearingBatches"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/reconciliations": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List reconciliation runs */
+        get: operations["listReconciliations"];
+        put?: never;
+        /** Execute a reconciliation type synchronously */
+        post: operations["runReconciliation"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/eod/latest": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get the latest end-of-day run */
+        get: operations["getLatestEodRun"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/eod/run": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Execute the guarded end-of-day workflow */
+        post: operations["runEod"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/transfers": {
         parameters: {
             query?: never;
@@ -208,6 +277,55 @@ export interface paths {
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
+        /** @enum {string} */
+        ClearingBatchStatus: "PROCESSING" | "COMPLETED" | "FAILED";
+        ClearingBatch: {
+            batchId: string;
+            /** Format: date */
+            businessDate: string;
+            status: components["schemas"]["ClearingBatchStatus"];
+            totalItems: number;
+            settledItems: number;
+            failedItems: number;
+            totalAmount: components["schemas"]["Money"];
+            currency: string;
+            /** Format: date-time */
+            startedAt: string;
+            /** Format: date-time */
+            completedAt: string | null;
+        };
+        /** @enum {string} */
+        ReconciliationType: "CHANNEL_TO_CORE" | "CHANNEL_TO_CLEARING" | "CORE_TO_GENERAL_LEDGER";
+        /** @enum {string} */
+        ReconciliationStatus: "RUNNING" | "MATCHED" | "DIFFERENCE_FOUND" | "FAILED";
+        ReconciliationRun: {
+            /** Format: uuid */
+            runId: string;
+            type: components["schemas"]["ReconciliationType"];
+            status: components["schemas"]["ReconciliationStatus"];
+            differenceCount: number;
+            details: string;
+            /** Format: date-time */
+            createdAt: string;
+        };
+        /** @enum {string} */
+        EodStatus: "NOT_STARTED" | "RUNNING" | "COMPLETED" | "FAILED";
+        EodRun: {
+            /** Format: uuid */
+            runId?: string;
+            /** Format: date */
+            businessDate?: string;
+            status: components["schemas"]["EodStatus"];
+            reconciliationStatus?: string | null;
+            reason?: string | null;
+            stepsCompleted?: string[];
+            /** Format: date-time */
+            startedAt?: string;
+            /** Format: date-time */
+            completedAt?: string | null;
+        } & {
+            [key: string]: unknown;
+        };
         /** @enum {string} */
         ApprovalStatus: "PENDING" | "APPROVED" | "REJECTED";
         ApprovalRecord: {
@@ -504,6 +622,115 @@ export interface operations {
             };
             401: components["responses"]["Problem"];
             403: components["responses"]["Problem"];
+        };
+    };
+    listClearingBatches: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Clearing batch list */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ClearingBatch"][];
+                };
+            };
+            401: components["responses"]["Problem"];
+        };
+    };
+    listReconciliations: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Reconciliation run list */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ReconciliationRun"][];
+                };
+            };
+        };
+    };
+    runReconciliation: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    type: components["schemas"]["ReconciliationType"];
+                };
+            };
+        };
+        responses: {
+            /** @description Reconciliation result */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ReconciliationRun"];
+                };
+            };
+        };
+    };
+    getLatestEodRun: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Latest run or NOT_STARTED sentinel */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EodRun"];
+                };
+            };
+        };
+    };
+    runEod: {
+        parameters: {
+            query?: never;
+            header: {
+                "Idempotency-Key": components["parameters"]["IdempotencyKey"];
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description End-of-day result */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EodRun"];
+                };
+            };
         };
     };
     listOperationsTransfers: {

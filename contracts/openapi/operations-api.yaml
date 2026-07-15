@@ -56,6 +56,67 @@ paths:
             application/json: { schema: { type: array, items: { $ref: '#/components/schemas/ApprovalRecord' } } }
         '401': { $ref: '#/components/responses/Problem' }
         '403': { $ref: '#/components/responses/Problem' }
+  /clearing/batches:
+    get:
+      operationId: listClearingBatches
+      summary: List daily clearing batches aggregated from clearing payments
+      responses:
+        '200':
+          description: Clearing batch list
+          content:
+            application/json: { schema: { type: array, items: { $ref: '#/components/schemas/ClearingBatch' } } }
+        '401': { $ref: '#/components/responses/Problem' }
+  /reconciliations:
+    get:
+      operationId: listReconciliations
+      summary: List reconciliation runs
+      responses:
+        '200':
+          description: Reconciliation run list
+          content:
+            application/json: { schema: { type: array, items: { $ref: '#/components/schemas/ReconciliationRun' } } }
+        '401': { $ref: '#/components/responses/Problem' }
+    post:
+      operationId: runReconciliation
+      summary: Execute a reconciliation type synchronously
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [type]
+              properties: { type: { $ref: '#/components/schemas/ReconciliationType' } }
+      responses:
+        '200':
+          description: Reconciliation result
+          content:
+            application/json: { schema: { $ref: '#/components/schemas/ReconciliationRun' } }
+        '400': { $ref: '#/components/responses/Problem' }
+        '401': { $ref: '#/components/responses/Problem' }
+  /eod/latest:
+    get:
+      operationId: getLatestEodRun
+      summary: Get the latest end-of-day run
+      responses:
+        '200':
+          description: Latest run or NOT_STARTED sentinel
+          content:
+            application/json: { schema: { $ref: '#/components/schemas/EodRun' } }
+        '401': { $ref: '#/components/responses/Problem' }
+  /eod/run:
+    post:
+      operationId: runEod
+      summary: Execute the guarded end-of-day workflow
+      parameters:
+        - $ref: '#/components/parameters/IdempotencyKey'
+      responses:
+        '200':
+          description: End-of-day result
+          content:
+            application/json: { schema: { $ref: '#/components/schemas/EodRun' } }
+        '401': { $ref: '#/components/responses/Problem' }
+        '409': { $ref: '#/components/responses/Problem' }
   /transfers:
     get:
       operationId: listOperationsTransfers
@@ -218,6 +279,57 @@ components:
       content:
         application/problem+json: { schema: { $ref: '#/components/schemas/Problem' } }
   schemas:
+    ClearingBatchStatus:
+      type: string
+      enum: [PROCESSING, COMPLETED, FAILED]
+    ClearingBatch:
+      type: object
+      additionalProperties: false
+      required: [batchId, businessDate, status, totalItems, settledItems, failedItems, totalAmount, currency, startedAt, completedAt]
+      properties:
+        batchId: { type: string }
+        businessDate: { type: string, format: date }
+        status: { $ref: '#/components/schemas/ClearingBatchStatus' }
+        totalItems: { type: integer, minimum: 0 }
+        settledItems: { type: integer, minimum: 0 }
+        failedItems: { type: integer, minimum: 0 }
+        totalAmount: { $ref: '#/components/schemas/Money' }
+        currency: { type: string, pattern: '^[A-Z]{3}$' }
+        startedAt: { type: string, format: date-time }
+        completedAt: { type: [string, 'null'], format: date-time }
+    ReconciliationType:
+      type: string
+      enum: [CHANNEL_TO_CORE, CHANNEL_TO_CLEARING, CORE_TO_GENERAL_LEDGER]
+    ReconciliationStatus:
+      type: string
+      enum: [RUNNING, MATCHED, DIFFERENCE_FOUND, FAILED]
+    ReconciliationRun:
+      type: object
+      additionalProperties: false
+      required: [runId, type, status, differenceCount, details, createdAt]
+      properties:
+        runId: { type: string, format: uuid }
+        type: { $ref: '#/components/schemas/ReconciliationType' }
+        status: { $ref: '#/components/schemas/ReconciliationStatus' }
+        differenceCount: { type: integer, minimum: 0 }
+        details: { type: string }
+        createdAt: { type: string, format: date-time }
+    EodStatus:
+      type: string
+      enum: [NOT_STARTED, RUNNING, COMPLETED, FAILED]
+    EodRun:
+      type: object
+      additionalProperties: true
+      required: [status]
+      properties:
+        runId: { type: string, format: uuid }
+        businessDate: { type: string, format: date }
+        status: { $ref: '#/components/schemas/EodStatus' }
+        reconciliationStatus: { type: [string, 'null'] }
+        reason: { type: [string, 'null'] }
+        stepsCompleted: { type: array, items: { type: string } }
+        startedAt: { type: string, format: date-time }
+        completedAt: { type: [string, 'null'], format: date-time }
     ApprovalStatus:
       type: string
       enum: [PENDING, APPROVED, REJECTED]

@@ -108,6 +108,26 @@ describe('generated-contract API clients', () => {
     expect(fetchMock.mock.calls[2]?.[0]).toContain('/reversal%2F2/reject?version=3');
   });
 
+  it('uses settlement monitoring and execution routes', async () => {
+    const fetchMock = vi.fn().mockImplementation(() => Promise.resolve(response([])));
+    vi.stubGlobal('fetch', fetchMock);
+    const client = new OperationsApiClient({ baseUrl: '/api/operations/v1', getAccessToken: () => null });
+    await client.listClearingBatches();
+    await client.listReconciliations();
+    await client.runReconciliation('CHANNEL_TO_CORE');
+    await client.getLatestEodRun();
+    await client.runEod('1234567890abcdef');
+    expect(fetchMock.mock.calls.map((call) => call[0])).toEqual([
+      '/api/operations/v1/clearing/batches',
+      '/api/operations/v1/reconciliations',
+      '/api/operations/v1/reconciliations',
+      '/api/operations/v1/eod/latest',
+      '/api/operations/v1/eod/run',
+    ]);
+    expect((fetchMock.mock.calls[2]?.[1] as RequestInit).body).toBe('{"type":"CHANNEL_TO_CORE"}');
+    expect(new Headers((fetchMock.mock.calls[4]?.[1] as RequestInit).headers).get('Idempotency-Key')).toBe('1234567890abcdef');
+  });
+
   it('downloads a customer receipt as a PDF blob', async () => {
     const fetchMock = vi.fn().mockResolvedValue(new Response('%PDF-1.4', { status: 200, headers: { 'Content-Type': 'application/pdf' } }));
     vi.stubGlobal('fetch', fetchMock);
