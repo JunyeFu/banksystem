@@ -1,0 +1,299 @@
+{
+  "schema_version": 1,
+  "generated_at": "2026-07-15T00:33:59.764122+00:00",
+  "source_package": "hiagent-2.5.1帮助文档",
+  "raw_root": "knowledge-sources/raw/hiagent-2.5.1",
+  "file_count": 29,
+  "files": [
+    {
+      "source_relative_path": "2.5.1帮助文档/API & SDK/HiAgent OpenAPI通用说明.pdf",
+      "source_sha256": "a1b3eb7ccc737536ab9f0a19e2695872117bd9b9f9ecf3a17c654ae43d59342c",
+      "raw_relative_path": "raw/2.5.1帮助文档/API & SDK/HiAgent OpenAPI通用说明.pdf",
+      "raw_sha256": "a1b3eb7ccc737536ab9f0a19e2695872117bd9b9f9ecf3a17c654ae43d59342c",
+      "markdown_relative_path": "2.5.1帮助文档/API & SDK/HiAgent OpenAPI通用说明.md",
+      "markdown_sha256": "77667bec5e1dcac48d0a634b2ae7ce90ac55b4f1c992d73325b687fd53fcc91c",
+      "extracted_characters": 18344,
+      "file_type": ".pdf"
+    },
+    {
+      "source_relative_path": "2.5.1帮助文档/API & SDK/HiAgent平台API调用示例.docx",
+      "source_sha256": "2a5d9df17a5191c7e03d91e371606428dfd91ffe0630a529c9dc89e02f5eb24d",
+      "raw_relative_path": "raw/2.5.1帮助文档/API & SDK/HiAgent平台API调用示例.docx",
+      "raw_sha256": "2a5d9df17a5191c7e03d91e371606428dfd91ffe0630a529c9dc89e02f5eb24d",
+      "markdown_relative_path": "2.5.1帮助文档/API & SDK/HiAgent平台API调用示例.md",
+      "markdown_sha256": "552cf46408b91ca5a6b58cd4411ddfc6aab42a3734dd0e149a7af49fa225bba8",
+      "extracted_characters": 43635,
+      "file_type": ".docx"
+    },
+    {
+      "source_relative_path": "2.5.1帮助文档/API & SDK/HiAgent接口列表概览.docx",
+      "source_sha256": "79475753f8f7aee5b740e9dbff136b373276571c0bb5521b94c680e19d13430e",
+      "raw_relative_path": "raw/2.5.1帮助文档/API & SDK/HiAgent接口列表概览.docx",
+      "raw_sha256": "79475753f8f7aee5b740e9dbff136b373276571c0bb5521b94c680e19d13430e",
+      "markdown_relative_path": "2.5.1帮助文档/API & SDK/HiAgent接口列表概览.md",
+      "markdown_sha256": "c01b4fd2b6bfe8ce21bbbae8f92cb7064f3f4c79e623e73c8bd3456d0b8fe9e9",
+      "extracted_characters": 801,
+      "file_type": ".docx"
+    },
+    {
+      "source_relative_path": "2.5.1帮助文档/API & SDK/MaaS大模型服务调用API文档.docx",
+      "source_sha256": "b4c219cddd1d92d591da481e47bc22e82b33f38b489e2d58cb5fa19949a11ea5",
+      "raw_relative_path": "raw/2.5.1帮助文档/API & SDK/MaaS大模型服务调用API文档.docx",
+      "raw_sha256": "b4c219cddd1d92d591da481e47bc22e82b33f38b489e2d58cb5fa19949a11ea5",
+      "markdown_relative_path": "2.5.1帮助文档/API & SDK/MaaS大模型服务调用API文档.md",
+      "markdown_sha256": "f58256e9a48b5e2b3bd79e0380df5613a45e6c36f63b65d39eeef9a48a8c9188",
+      "extracted_characters": 44966,
+      "file_type": ".docx"
+    },
+    {
+      "source_relative_path": "2.5.1帮助文档/API & SDK/平台接口/平台管理接口.docx",
+      "source_sha256": "c22be771f162de466a4bf1efa37d0c857b0d23fd5d6e2d1dbdcbbf63908d9245",
+      "raw_relative_path": "raw/2.5.1帮助文档/API & SDK/平台接口/平台管理接口.docx",
+      "raw_sha256": "c22be771f162de466a4bf1efa37d0c857b0d23fd5d6e2d1dbdcbbf63908d9245",
+      "markdown_relative_path": "2.5.1帮助文档/API & SDK/平台接口/平台管理接口.md",
+      "markdown_sha256": "c5294dc6aa660ba496795fdb345267c96f4f744ee142756a83a12f61c7c235a2",
+      "extracted_characters": 93551,
+      "file_type": ".docx"
+    },
+    {
+      "source_relative_path": "2.5.1帮助文档/API & SDK/平台接口/观测指标接口.docx",
+      "source_sha256": "d7315abf5dcc5b3bc33a25dc47f8958c5a750ecaf1f68578e8a3334d3a4fad26",
+      "raw_relative_path": "raw/2.5.1帮助文档/API & SDK/平台接口/观测指标接口.docx",
+      "raw_sha256": "d7315abf5dcc5b3bc33a25dc47f8958c5a750ecaf1f68578e8a3334d3a4fad26",
+      "markdown_relative_path": "2.5.1帮助文档/API & SDK/平台接口/观测指标接口.md",
+      "markdown_sha256": "91907224be6de6a33538fb46bb7bfb705aed570d2fc0a0a6323f096dc9609333",
+      "extracted_characters": 6667,
+      "file_type": ".docx"
+    },
+    {
+      "source_relative_path": "2.5.1帮助文档/API & SDK/平台接口/资源管理模块接口.docx",
+      "source_sha256": "ab2f151dbc2aceb822ce9268d4eddd4cb20275ade9a73daf150e029227c7bd34",
+      "raw_relative_path": "raw/2.5.1帮助文档/API & SDK/平台接口/资源管理模块接口.docx",
+      "raw_sha256": "ab2f151dbc2aceb822ce9268d4eddd4cb20275ade9a73daf150e029227c7bd34",
+      "markdown_relative_path": "2.5.1帮助文档/API & SDK/平台接口/资源管理模块接口.md",
+      "markdown_sha256": "0f759d512e4fa248ab706d6d41be02950815dec072eb86c0bd68e9d7a62b5d6e",
+      "extracted_characters": 70757,
+      "file_type": ".docx"
+    },
+    {
+      "source_relative_path": "2.5.1帮助文档/HiAgent 2.5.1 ReleaseNote/Agent Dev.docx",
+      "source_sha256": "b7e83c8e39b80c65e73309d84cc1567ca7c1b4a5b0ae8d47a7e627924bbd248d",
+      "raw_relative_path": "raw/2.5.1帮助文档/HiAgent 2.5.1 ReleaseNote/Agent Dev.docx",
+      "raw_sha256": "b7e83c8e39b80c65e73309d84cc1567ca7c1b4a5b0ae8d47a7e627924bbd248d",
+      "markdown_relative_path": "2.5.1帮助文档/HiAgent 2.5.1 ReleaseNote/Agent Dev.md",
+      "markdown_sha256": "bf8b26a8c42719e8b1a40be0c70dce5676a28f08839a6d3773156f75255afb9c",
+      "extracted_characters": 789,
+      "file_type": ".docx"
+    },
+    {
+      "source_relative_path": "2.5.1帮助文档/HiAgent 2.5.1 ReleaseNote/Agent Ops.docx",
+      "source_sha256": "447011c9c78e4162400d472c35478efc2a207094081f4af9ba122ea5e959c3fc",
+      "raw_relative_path": "raw/2.5.1帮助文档/HiAgent 2.5.1 ReleaseNote/Agent Ops.docx",
+      "raw_sha256": "447011c9c78e4162400d472c35478efc2a207094081f4af9ba122ea5e959c3fc",
+      "markdown_relative_path": "2.5.1帮助文档/HiAgent 2.5.1 ReleaseNote/Agent Ops.md",
+      "markdown_sha256": "8354b82eaa69b731ef24940d950de17e2d2b435d2cfa4385890af90cd3bc0ebc",
+      "extracted_characters": 263,
+      "file_type": ".docx"
+    },
+    {
+      "source_relative_path": "2.5.1帮助文档/HiAgent 2.5.1 ReleaseNote/MaaS模型管理.docx",
+      "source_sha256": "464ba8ecda0bde37c8175d505d896de94966db009cf64d3d2b2a9ceac9135b2a",
+      "raw_relative_path": "raw/2.5.1帮助文档/HiAgent 2.5.1 ReleaseNote/MaaS模型管理.docx",
+      "raw_sha256": "464ba8ecda0bde37c8175d505d896de94966db009cf64d3d2b2a9ceac9135b2a",
+      "markdown_relative_path": "2.5.1帮助文档/HiAgent 2.5.1 ReleaseNote/MaaS模型管理.md",
+      "markdown_sha256": "f0a2300834ef88381eed4efba966607495317a4c7e76ac7c48b466b32f9ba4b0",
+      "extracted_characters": 402,
+      "file_type": ".docx"
+    },
+    {
+      "source_relative_path": "2.5.1帮助文档/HiAgent 2.5.1 ReleaseNote/平台基座.docx",
+      "source_sha256": "d778970dad49f562a118a0f6bced1829cdf419b97a4fe668715678db619a357d",
+      "raw_relative_path": "raw/2.5.1帮助文档/HiAgent 2.5.1 ReleaseNote/平台基座.docx",
+      "raw_sha256": "d778970dad49f562a118a0f6bced1829cdf419b97a4fe668715678db619a357d",
+      "markdown_relative_path": "2.5.1帮助文档/HiAgent 2.5.1 ReleaseNote/平台基座.md",
+      "markdown_sha256": "eedab1f104055846f884751890f649f1b802eb4b6eb87f0678804b76f8633ec2",
+      "extracted_characters": 258,
+      "file_type": ".docx"
+    },
+    {
+      "source_relative_path": "2.5.1帮助文档/常见问题/使用咨询/SSO.docx",
+      "source_sha256": "ca7943ca150477d444b70e48734273900223a4632c715022262cd7bfe5a156b9",
+      "raw_relative_path": "raw/2.5.1帮助文档/常见问题/使用咨询/SSO.docx",
+      "raw_sha256": "ca7943ca150477d444b70e48734273900223a4632c715022262cd7bfe5a156b9",
+      "markdown_relative_path": "2.5.1帮助文档/常见问题/使用咨询/SSO.md",
+      "markdown_sha256": "b209da711d8de3a6be244f40a7929442043e494e58cfcce9744b4ace12014bec",
+      "extracted_characters": 3017,
+      "file_type": ".docx"
+    },
+    {
+      "source_relative_path": "2.5.1帮助文档/常见问题/使用咨询/插件.docx",
+      "source_sha256": "a55b266d6f12bfecc57b129f24e546d15cb0ff4d312d69178ae6fb957607c622",
+      "raw_relative_path": "raw/2.5.1帮助文档/常见问题/使用咨询/插件.docx",
+      "raw_sha256": "a55b266d6f12bfecc57b129f24e546d15cb0ff4d312d69178ae6fb957607c622",
+      "markdown_relative_path": "2.5.1帮助文档/常见问题/使用咨询/插件.md",
+      "markdown_sha256": "e7eeb35d8292bc9f223ed8a2ce6117053c555335d76fde3e93af81ac31cde823",
+      "extracted_characters": 20589,
+      "file_type": ".docx"
+    },
+    {
+      "source_relative_path": "2.5.1帮助文档/常见问题/使用咨询/模型.docx",
+      "source_sha256": "37cec45d8c598d5c7e08a21f4b9b30abe0ff21dbbd6ad1c5647084ca32741a09",
+      "raw_relative_path": "raw/2.5.1帮助文档/常见问题/使用咨询/模型.docx",
+      "raw_sha256": "37cec45d8c598d5c7e08a21f4b9b30abe0ff21dbbd6ad1c5647084ca32741a09",
+      "markdown_relative_path": "2.5.1帮助文档/常见问题/使用咨询/模型.md",
+      "markdown_sha256": "159f3c54e4c8deb8adf65528c15f953b888a9cedebb681dd80301cca6f8fed71",
+      "extracted_characters": 904,
+      "file_type": ".docx"
+    },
+    {
+      "source_relative_path": "2.5.1帮助文档/常见问题/异常问题/插件.docx",
+      "source_sha256": "2b1131302108e9d00df036e829502ebbd252d3c3a1fc3ac7a1c3553895f6f126",
+      "raw_relative_path": "raw/2.5.1帮助文档/常见问题/异常问题/插件.docx",
+      "raw_sha256": "2b1131302108e9d00df036e829502ebbd252d3c3a1fc3ac7a1c3553895f6f126",
+      "markdown_relative_path": "2.5.1帮助文档/常见问题/异常问题/插件.md",
+      "markdown_sha256": "e3ba3d550ce022d2c76a35e2bff955daf8cbbbc38dfe0fd7dbdc3c1751b423e7",
+      "extracted_characters": 2613,
+      "file_type": ".docx"
+    },
+    {
+      "source_relative_path": "2.5.1帮助文档/用户指南/HiAgent介绍.docx",
+      "source_sha256": "48f4d4892cc345e8f5e2a8dad0cd3c5d1280f621b8105ca1bb59243e7279d68f",
+      "raw_relative_path": "raw/2.5.1帮助文档/用户指南/HiAgent介绍.docx",
+      "raw_sha256": "48f4d4892cc345e8f5e2a8dad0cd3c5d1280f621b8105ca1bb59243e7279d68f",
+      "markdown_relative_path": "2.5.1帮助文档/用户指南/HiAgent介绍.md",
+      "markdown_sha256": "786c1bdd3a0aa4937f26cfba2cac9ba8f7f6eee981d0a3cd2a0797cb93d61727",
+      "extracted_characters": 2997,
+      "file_type": ".docx"
+    },
+    {
+      "source_relative_path": "2.5.1帮助文档/用户指南/Skills.docx",
+      "source_sha256": "a9fba8e22d504e7480186fb5361cf3afac019d31aecd271456e0fe8a15050d7f",
+      "raw_relative_path": "raw/2.5.1帮助文档/用户指南/Skills.docx",
+      "raw_sha256": "a9fba8e22d504e7480186fb5361cf3afac019d31aecd271456e0fe8a15050d7f",
+      "markdown_relative_path": "2.5.1帮助文档/用户指南/Skills.md",
+      "markdown_sha256": "3a91c8ffee758b69fbfd6af2cab90a3e2d073533d0ea0994807f4ff9b5e7aba3",
+      "extracted_characters": 2491,
+      "file_type": ".docx"
+    },
+    {
+      "source_relative_path": "2.5.1帮助文档/用户指南/团队空间.docx",
+      "source_sha256": "fb655d843c654b80441de84cc5747dc533e087341a5a66f9686dfe090b2a99e2",
+      "raw_relative_path": "raw/2.5.1帮助文档/用户指南/团队空间.docx",
+      "raw_sha256": "fb655d843c654b80441de84cc5747dc533e087341a5a66f9686dfe090b2a99e2",
+      "markdown_relative_path": "2.5.1帮助文档/用户指南/团队空间.md",
+      "markdown_sha256": "3c75f25580b77693c0c918ce7f9c2e070f4aa4ba2b57f1af82df3502ab1e51b5",
+      "extracted_characters": 1152,
+      "file_type": ".docx"
+    },
+    {
+      "source_relative_path": "2.5.1帮助文档/用户指南/审批中心.docx",
+      "source_sha256": "1691b281cfedd6f303a4b8499f83274cea4e2f388ce5c7ec8d779062df83fb1e",
+      "raw_relative_path": "raw/2.5.1帮助文档/用户指南/审批中心.docx",
+      "raw_sha256": "1691b281cfedd6f303a4b8499f83274cea4e2f388ce5c7ec8d779062df83fb1e",
+      "markdown_relative_path": "2.5.1帮助文档/用户指南/审批中心.md",
+      "markdown_sha256": "4078f4fee4bd305324236a310a20f3e88568706ad0742f18a1c2d5d932bfb5c3",
+      "extracted_characters": 2238,
+      "file_type": ".docx"
+    },
+    {
+      "source_relative_path": "2.5.1帮助文档/用户指南/插件.docx",
+      "source_sha256": "fa1c039e931ad673dbdadf67b5331d4693f90245b038dcdc0c442c058704fa77",
+      "raw_relative_path": "raw/2.5.1帮助文档/用户指南/插件.docx",
+      "raw_sha256": "fa1c039e931ad673dbdadf67b5331d4693f90245b038dcdc0c442c058704fa77",
+      "markdown_relative_path": "2.5.1帮助文档/用户指南/插件.md",
+      "markdown_sha256": "6c6ca7b6b4551121d7b9724fae9a2cdf58df5bba23840542a262a3b03947fb42",
+      "extracted_characters": 12248,
+      "file_type": ".docx"
+    },
+    {
+      "source_relative_path": "2.5.1帮助文档/用户指南/模型管理/大语言模型体验.docx",
+      "source_sha256": "7d6323f9760e1c21b820342555d7292327c6ea11aa18bb66c2c41a825ff047f1",
+      "raw_relative_path": "raw/2.5.1帮助文档/用户指南/模型管理/大语言模型体验.docx",
+      "raw_sha256": "7d6323f9760e1c21b820342555d7292327c6ea11aa18bb66c2c41a825ff047f1",
+      "markdown_relative_path": "2.5.1帮助文档/用户指南/模型管理/大语言模型体验.md",
+      "markdown_sha256": "7104d5ac0e3b292dc380745c3203518929d585de77c57b1e0e6478d2f232b892",
+      "extracted_characters": 1842,
+      "file_type": ".docx"
+    },
+    {
+      "source_relative_path": "2.5.1帮助文档/用户指南/模型管理/应用接入.docx",
+      "source_sha256": "22f56cd61a3c872babb524f738576224c0544bd401c03a5fb74a70d1fa92e2ad",
+      "raw_relative_path": "raw/2.5.1帮助文档/用户指南/模型管理/应用接入.docx",
+      "raw_sha256": "22f56cd61a3c872babb524f738576224c0544bd401c03a5fb74a70d1fa92e2ad",
+      "markdown_relative_path": "2.5.1帮助文档/用户指南/模型管理/应用接入.md",
+      "markdown_sha256": "b78523ef26f961f095ded0b9304efa15c56e22d93513cab0dfe48f648f46e62d",
+      "extracted_characters": 396,
+      "file_type": ".docx"
+    },
+    {
+      "source_relative_path": "2.5.1帮助文档/用户指南/模型管理/服务路由.docx",
+      "source_sha256": "1e36eeae3cfb1115b4cc85e9d223ee3d5c0e245051921ee710918e936f84b1f3",
+      "raw_relative_path": "raw/2.5.1帮助文档/用户指南/模型管理/服务路由.docx",
+      "raw_sha256": "1e36eeae3cfb1115b4cc85e9d223ee3d5c0e245051921ee710918e936f84b1f3",
+      "markdown_relative_path": "2.5.1帮助文档/用户指南/模型管理/服务路由.md",
+      "markdown_sha256": "27a7835d0864a26ae42827e2792c9954f27cd61eded368883e769de82e40ac7d",
+      "extracted_characters": 1815,
+      "file_type": ".docx"
+    },
+    {
+      "source_relative_path": "2.5.1帮助文档/用户指南/模型管理/模型仓库.docx",
+      "source_sha256": "43e92c68cf7d733776dc7d8e3a7dd67848a8b8ff606899fa5e2a3d832d07da0f",
+      "raw_relative_path": "raw/2.5.1帮助文档/用户指南/模型管理/模型仓库.docx",
+      "raw_sha256": "43e92c68cf7d733776dc7d8e3a7dd67848a8b8ff606899fa5e2a3d832d07da0f",
+      "markdown_relative_path": "2.5.1帮助文档/用户指南/模型管理/模型仓库.md",
+      "markdown_sha256": "b5a2c7e0838c4ecaa497e574ee6fe32b212f346c4eb21889da9d53f0bedf193f",
+      "extracted_characters": 2697,
+      "file_type": ".docx"
+    },
+    {
+      "source_relative_path": "2.5.1帮助文档/用户指南/模型管理/模型广场.docx",
+      "source_sha256": "fed8a65c38965703695077ea90c3d371ab2edce98713b38a5c575b78ef9dba54",
+      "raw_relative_path": "raw/2.5.1帮助文档/用户指南/模型管理/模型广场.docx",
+      "raw_sha256": "fed8a65c38965703695077ea90c3d371ab2edce98713b38a5c575b78ef9dba54",
+      "markdown_relative_path": "2.5.1帮助文档/用户指南/模型管理/模型广场.md",
+      "markdown_sha256": "133c081555a1e8ded1c07e48c179b0acd4de0e8082547b281ed4caf00865bc1e",
+      "extracted_characters": 834,
+      "file_type": ".docx"
+    },
+    {
+      "source_relative_path": "2.5.1帮助文档/用户指南/模型管理/模型服务.docx",
+      "source_sha256": "00f876178c20ecf54aa7202c63c55f122a969924bf939a6864fdf3562db56f00",
+      "raw_relative_path": "raw/2.5.1帮助文档/用户指南/模型管理/模型服务.docx",
+      "raw_sha256": "00f876178c20ecf54aa7202c63c55f122a969924bf939a6864fdf3562db56f00",
+      "markdown_relative_path": "2.5.1帮助文档/用户指南/模型管理/模型服务.md",
+      "markdown_sha256": "e499ba7f1f034449b59eb8b2817cb0fccb52c39406e348b81d8349ae93861505",
+      "extracted_characters": 4712,
+      "file_type": ".docx"
+    },
+    {
+      "source_relative_path": "2.5.1帮助文档/用户指南/模型管理/模型调优.docx",
+      "source_sha256": "2ae73cb5a3f77e5e88dbf328188ed44ecedb69a2be5fd54d0f766f26c129131c",
+      "raw_relative_path": "raw/2.5.1帮助文档/用户指南/模型管理/模型调优.docx",
+      "raw_sha256": "2ae73cb5a3f77e5e88dbf328188ed44ecedb69a2be5fd54d0f766f26c129131c",
+      "markdown_relative_path": "2.5.1帮助文档/用户指南/模型管理/模型调优.md",
+      "markdown_sha256": "55a01befd79af26667ec4f72e8de6682b1a81216a84c1985de8b5f020593b6bb",
+      "extracted_characters": 9404,
+      "file_type": ".docx"
+    },
+    {
+      "source_relative_path": "2.5.1帮助文档/用户指南/模型管理/视觉模型体验.docx",
+      "source_sha256": "1c5f42360458386672bb6b56c74254ac3da6d2d95bba829bd69086aa2c3d26e9",
+      "raw_relative_path": "raw/2.5.1帮助文档/用户指南/模型管理/视觉模型体验.docx",
+      "raw_sha256": "1c5f42360458386672bb6b56c74254ac3da6d2d95bba829bd69086aa2c3d26e9",
+      "markdown_relative_path": "2.5.1帮助文档/用户指南/模型管理/视觉模型体验.md",
+      "markdown_sha256": "4bdff23d06a0bff71a8d87c238b39f0ddcef541ce9570ef1f84dc91c7d541245",
+      "extracted_characters": 4980,
+      "file_type": ".docx"
+    },
+    {
+      "source_relative_path": "2.5.1帮助文档/用户指南/账号中心.docx",
+      "source_sha256": "08e9a67a7d4acd3708ceff24fd44118b4ae6349847c5bab83f2923fed0fbab5f",
+      "raw_relative_path": "raw/2.5.1帮助文档/用户指南/账号中心.docx",
+      "raw_sha256": "08e9a67a7d4acd3708ceff24fd44118b4ae6349847c5bab83f2923fed0fbab5f",
+      "markdown_relative_path": "2.5.1帮助文档/用户指南/账号中心.md",
+      "markdown_sha256": "bd309febd2b98dae2ff3be455a1695623c7e4265feaa7a3a58796b66d9263b81",
+      "extracted_characters": 498,
+      "file_type": ".docx"
+    }
+  ]
+}

@@ -1,0 +1,175 @@
+openapi: 3.1.0
+info:
+  title: Hengzhun Quality Platform API
+  version: 1.0.0
+  license: {name: Project internal demonstration, identifier: LicenseRef-Project-Internal}
+servers:
+  - url: /api/quality/v1
+security:
+  - bearerAuth: []
+paths:
+  /overview:
+    get:
+      summary: Get quality platform overview
+      operationId: getQualityOverview
+      responses:
+        '200':
+          description: Platform overview
+          content: {application/json: {schema: {$ref: '#/components/schemas/Overview'}}}
+        default: {$ref: '#/components/responses/Problem'}
+        '401': {$ref: '#/components/responses/Problem'}
+  /cases:
+    get:
+      summary: List quality cases
+      operationId: listQualityCases
+      responses:
+        '200': {description: Cases, content: {application/json: {schema: {type: array, items: {$ref: '#/components/schemas/QualityCase'}}}}}
+        default: {$ref: '#/components/responses/Problem'}
+        '401': {$ref: '#/components/responses/Problem'}
+    post:
+      summary: Create a quality case draft
+      operationId: createQualityCase
+      requestBody: {required: true, content: {application/json: {schema: {$ref: '#/components/schemas/CreateCaseRequest'}}}}
+      responses:
+        '201': {description: Created case, content: {application/json: {schema: {$ref: '#/components/schemas/QualityCase'}}}}
+        default: {$ref: '#/components/responses/Problem'}
+        '400': {$ref: '#/components/responses/Problem'}
+  /cases/{caseId}:
+    parameters: [{name: caseId, in: path, required: true, schema: {type: string}}]
+    get:
+      summary: Get quality case detail
+      operationId: getQualityCase
+      responses:
+        '200': {description: Case detail, content: {application/json: {schema: {$ref: '#/components/schemas/QualityCaseDetail'}}}}
+        default: {$ref: '#/components/responses/Problem'}
+        '404': {$ref: '#/components/responses/Problem'}
+  /baselines:
+    get:
+      summary: List immutable baselines
+      operationId: listBaselines
+      responses:
+        '200': {description: Baselines, content: {application/json: {schema: {type: array, items: {$ref: '#/components/schemas/Baseline'}}}}}
+        default: {$ref: '#/components/responses/Problem'}
+        '401': {$ref: '#/components/responses/Problem'}
+  /baselines/{baselineId}/decision:
+    post:
+      summary: Approve or reject a baseline
+      operationId: decideBaseline
+      parameters: [{name: baselineId, in: path, required: true, schema: {type: string}}]
+      requestBody: {required: true, content: {application/json: {schema: {type: object, required: [decision], properties: {decision: {type: string, enum: [APPROVE, REJECT]}, comment: {type: string, maxLength: 500}}}}}}
+      responses:
+        '200': {description: Updated baseline, content: {application/json: {schema: {$ref: '#/components/schemas/Baseline'}}}}
+        default: {$ref: '#/components/responses/Problem'}
+        '409': {$ref: '#/components/responses/Problem'}
+  /runs:
+    get:
+      summary: List regression runs
+      operationId: listRegressionRuns
+      responses:
+        '200': {description: Runs, content: {application/json: {schema: {type: array, items: {$ref: '#/components/schemas/RegressionRun'}}}}}
+        default: {$ref: '#/components/responses/Problem'}
+        '401': {$ref: '#/components/responses/Problem'}
+  /schedules:
+    get:
+      summary: List regression schedules
+      operationId: listSchedules
+      responses:
+        '200': {description: Schedules, content: {application/json: {schema: {type: array, items: {$ref: '#/components/schemas/Schedule'}}}}}
+        default: {$ref: '#/components/responses/Problem'}
+        '401': {$ref: '#/components/responses/Problem'}
+  /schedules/{scheduleId}/enabled:
+    put:
+      summary: Enable or disable a schedule
+      operationId: setScheduleEnabled
+      parameters: [{name: scheduleId, in: path, required: true, schema: {type: string}}]
+      requestBody: {required: true, content: {application/json: {schema: {type: object, required: [enabled], properties: {enabled: {type: boolean}}}}}}
+      responses:
+        '204': {description: Updated}
+        default: {$ref: '#/components/responses/Problem'}
+        '409': {$ref: '#/components/responses/Problem'}
+  /incidents:
+    get:
+      summary: List failure incidents
+      operationId: listFailureIncidents
+      responses:
+        '200': {description: Incidents, content: {application/json: {schema: {type: array, items: {$ref: '#/components/schemas/Incident'}}}}}
+        default: {$ref: '#/components/responses/Problem'}
+        '401': {$ref: '#/components/responses/Problem'}
+  /knowledge/status:
+    get:
+      summary: Get knowledge and authoring controls
+      operationId: getKnowledgeStatus
+      responses:
+        '200': {description: Knowledge and authoring status, content: {application/json: {schema: {$ref: '#/components/schemas/KnowledgeStatus'}}}}
+        default: {$ref: '#/components/responses/Problem'}
+        '401': {$ref: '#/components/responses/Problem'}
+  /releases:
+    get:
+      summary: List release evidence packages
+      operationId: listReleaseEvidence
+      responses:
+        '200': {description: Releases, content: {application/json: {schema: {type: array, items: {$ref: '#/components/schemas/ReleaseEvidence'}}}}}
+        default: {$ref: '#/components/responses/Problem'}
+        '401': {$ref: '#/components/responses/Problem'}
+components:
+  securitySchemes:
+    bearerAuth: {type: http, scheme: bearer, bearerFormat: JWT}
+  responses:
+    Problem:
+      description: RFC 9457 problem response
+      content: {application/problem+json: {schema: {$ref: '#/components/schemas/Problem'}}}
+  schemas:
+    Overview:
+      type: object
+      required: [services, caseCount, runningCount, passRate, openIncidentCount, releaseGate]
+      properties:
+        services: {type: array, items: {$ref: '#/components/schemas/ServiceHealth'}}
+        caseCount: {type: integer, minimum: 0}
+        runningCount: {type: integer, minimum: 0}
+        passRate: {type: number, minimum: 0, maximum: 100}
+        openIncidentCount: {type: integer, minimum: 0}
+        releaseGate: {type: string, enum: [PASS, BLOCKED, PENDING]}
+    ServiceHealth:
+      type: object
+      required: [name, status, latencyMs]
+      properties: {name: {type: string}, status: {type: string, enum: [HEALTHY, DEGRADED, UNAVAILABLE]}, latencyMs: {type: integer, minimum: 0}}
+    QualityCase:
+      type: object
+      required: [caseId, name, domain, status, version, updatedAt]
+      properties: {caseId: {type: string}, name: {type: string}, domain: {type: string}, status: {type: string, enum: [DRAFT, IN_REVIEW, APPROVED, CONFLICT, ARCHIVED]}, version: {type: integer, minimum: 1}, updatedAt: {type: string, format: date-time}}
+    QualityCaseDetail:
+      allOf:
+        - {$ref: '#/components/schemas/QualityCase'}
+        - {type: object, required: [description, steps, baselineId, evidenceCount, sha256], properties: {description: {type: string}, steps: {type: array, items: {type: string}}, baselineId: {type: [string, 'null']}, evidenceCount: {type: integer, minimum: 0}, sha256: {type: string}}}
+    CreateCaseRequest:
+      type: object
+      required: [name, domain, description]
+      properties: {name: {type: string, minLength: 2, maxLength: 120}, domain: {type: string}, description: {type: string, minLength: 10, maxLength: 2000}}
+    Baseline:
+      type: object
+      required: [baselineId, caseId, caseName, version, status, sha256, createdAt]
+      properties: {baselineId: {type: string}, caseId: {type: string}, caseName: {type: string}, version: {type: integer}, status: {type: string, enum: [DRAFT, PENDING_APPROVAL, APPROVED, REJECTED]}, sha256: {type: string}, createdAt: {type: string, format: date-time}}
+    RegressionRun:
+      type: object
+      required: [runId, caseName, environment, status, progress, startedAt]
+      properties: {runId: {type: string}, caseName: {type: string}, environment: {type: string}, status: {type: string, enum: [QUEUED, RUNNING, PAUSED, COMPLETED, FAILED]}, progress: {type: integer, minimum: 0, maximum: 100}, startedAt: {type: string, format: date-time}, durationSeconds: {type: integer, minimum: 0}, assertionSummary: {type: string}}
+    Schedule:
+      type: object
+      required: [scheduleId, name, cron, environment, enabled, nextRunAt]
+      properties: {scheduleId: {type: string}, name: {type: string}, cron: {type: string}, environment: {type: string}, enabled: {type: boolean}, nextRunAt: {type: string, format: date-time}, lastResult: {type: string, enum: [PASS, FAIL, NONE]}}
+    Incident:
+      type: object
+      required: [incidentId, title, severity, status, runId, createdAt]
+      properties: {incidentId: {type: string}, title: {type: string}, severity: {type: string, enum: [P0, P1, P2, P3]}, status: {type: string, enum: [OPEN, INVESTIGATING, RECOVERING, RESOLVED]}, runId: {type: string}, rootCause: {type: string}, recoveryOption: {type: string}, createdAt: {type: string, format: date-time}}
+    KnowledgeStatus:
+      type: object
+      required: [documentCount, indexedAt, redactionGate, authoringAdapter, modelProfile, planValidation]
+      properties: {documentCount: {type: integer}, indexedAt: {type: string, format: date-time}, redactionGate: {type: string, enum: [PASS, BLOCKED]}, authoringAdapter: {type: string}, modelProfile: {type: string}, planValidation: {type: string, enum: [PASS, PENDING, FAIL]}}
+    ReleaseEvidence:
+      type: object
+      required: [releaseId, version, status, benchmarkPassRate, evidenceSha256, createdAt]
+      properties: {releaseId: {type: string}, version: {type: string}, status: {type: string, enum: [DRAFT, READY, RELEASED, BLOCKED]}, benchmarkPassRate: {type: number}, evidenceSha256: {type: string}, createdAt: {type: string, format: date-time}}
+    Problem:
+      type: object
+      required: [title, status]
+      properties: {type: {type: string, format: uri-reference}, title: {type: string}, status: {type: integer}, detail: {type: string}, code: {type: string}}

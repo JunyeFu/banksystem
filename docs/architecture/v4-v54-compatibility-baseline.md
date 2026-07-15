@@ -1,3 +1,15 @@
+---
+id: DOC-2F44A671F7
+title: V4 银行业务系统与 v5.4 回归平台兼容基线
+document_type: reference
+domain: architecture
+status: accepted
+authority: normative
+version: 1.0
+effective_date: 2026-07-15
+owner: project-owner
+---
+
 # V4 银行业务系统与 v5.4 回归平台兼容基线
 
 > 状态：V4 落地调整基线
@@ -109,7 +121,7 @@ V4 不得仅以“页面能打开”或“接口返回 200”作为交付。至�
 
 ## 8. 关联文档
 
-- [V4 上层实施规范](../../_implementation_plan/Apache_Fineract_Mifos_Agent_Implementation_Plan.md)
+- [V4 上层实施规范（历史）](../archive/implementation-plans/Apache_Fineract_Mifos_Agent_Implementation_Plan.md)
 - [V5.4 外网演示系统与内网迁移基线](v5.4-external-demo-baseline.md)
-- [V5.4 平台文档规划](../../agent/v54-platform-documentation-plan.md)
-- [Docs 与 RAG 协作规范](../rag-governance.md)
+- [V5.4 平台文档规划](../../agent/plans/active/v54-platform-documentation-plan.md)
+- [Docs 与 RAG 协作规范](../workflows/rag-governance.md)

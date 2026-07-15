@@ -1,3 +1,15 @@
+---
+id: DOC-EA2C399131
+title: Port, network, and volume baseline
+document_type: reference
+domain: baseline
+status: verified
+authority: evidence
+version: 1.0
+effective_date: 2026-07-15
+owner: project-owner
+---
+
 # Port, network, and volume baseline
 
 Frozen: 2026-07-11 per v4 banking-core S0 baseline.

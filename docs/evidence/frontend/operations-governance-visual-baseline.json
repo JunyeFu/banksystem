@@ -1,0 +1,299 @@
+{
+    "schemaVersion":  1,
+    "evidenceType":  "frontend-visual-regression-baseline",
+    "generatedAt":  "2026-07-15T12:45:56.8682535+00:00",
+    "sourceCommit":  "bf7ce95681a4c629c251b72458829a9598d507ce",
+    "contractVersion":  "operations-governance-design-1.0",
+    "baselineVersion":  "operations-governance-windows-chromium-v1",
+    "environment":  {
+                        "operatingSystem":  "Windows",
+                        "browser":  "Chromium",
+                        "viewport":  "1440x900",
+                        "locale":  "zh-CN",
+                        "timezone":  "Asia/Shanghai",
+                        "colorScheme":  "light",
+                        "reducedMotion":  true
+                    },
+    "businessAssertions":  [
+                               "Fuxing Bank operations console covers 34 document, audit-chain, and system-health states from PV-0164 through PV-0197.",
+                               "Operations documents are stored in PostgreSQL with content bytes, SHA-256 checksum, lifecycle status, version, uploader, and immutable audit actions.",
+                               "Audit verification recalculates every record hash and verifies previous-hash continuity before reporting CHAIN_OK.",
+                               "System health combines dependency status and runtime-generated operational alerts through an authorized public contract.",
+                               "Visual baselines follow the unified Fuxing Bank operations shell while retaining the source previews information hierarchy, filters, tables, status semantics, and dialogs.",
+                               "Visual fixtures are deterministic synthetic data and contain no real personal data or secrets."
+                           ],
+    "cases":  [
+                  {
+                      "pv":  "PV-0164",
+                      "pageId":  "operations.documents",
+                      "testId":  "operations-governance-visual.spec.ts::PV-0164",
+                      "baselinePath":  "tests/e2e/frontend-operations-governance/snapshots/PV-0164.png",
+                      "sha256":  "dcec2a806e39d09973dcc97f1e5cb916b6eea6ecf89178b4bf2c460793db2c4b",
+                      "bytes":  63856
+                  },
+                  {
+                      "pv":  "PV-0165",
+                      "pageId":  "operations.documents",
+                      "testId":  "operations-governance-visual.spec.ts::PV-0165",
+                      "baselinePath":  "tests/e2e/frontend-operations-governance/snapshots/PV-0165.png",
+                      "sha256":  "108ccc3c854cacbf0c55c5d8dac9375977f0146e5eae1713619ab15a28ba5af9",
+                      "bytes":  91921
+                  },
+                  {
+                      "pv":  "PV-0166",
+                      "pageId":  "operations.documents",
+                      "testId":  "operations-governance-visual.spec.ts::PV-0166",
+                      "baselinePath":  "tests/e2e/frontend-operations-governance/snapshots/PV-0166.png",
+                      "sha256":  "e69b4d06468074ee343807f7dbab7ffce01a6ad926f8b183f029b85b610c4197",
+                      "bytes":  64649
+                  },
+                  {
+                      "pv":  "PV-0167",
+                      "pageId":  "operations.documents",
+                      "testId":  "operations-governance-visual.spec.ts::PV-0167",
+                      "baselinePath":  "tests/e2e/frontend-operations-governance/snapshots/PV-0167.png",
+                      "sha256":  "90c8f97a4284f8b44b1a2092371da4b97532af4e9ee52ac4777c943a6d7ce82a",
+                      "bytes":  76774
+                  },
+                  {
+                      "pv":  "PV-0168",
+                      "pageId":  "operations.documents",
+                      "testId":  "operations-governance-visual.spec.ts::PV-0168",
+                      "baselinePath":  "tests/e2e/frontend-operations-governance/snapshots/PV-0168.png",
+                      "sha256":  "ca9a95cdc7aab79321a9f5f1cea6352d0c3b1b48fa3cc742bf732c970ec88014",
+                      "bytes":  77335
+                  },
+                  {
+                      "pv":  "PV-0169",
+                      "pageId":  "operations.documents",
+                      "testId":  "operations-governance-visual.spec.ts::PV-0169",
+                      "baselinePath":  "tests/e2e/frontend-operations-governance/snapshots/PV-0169.png",
+                      "sha256":  "59f07600bdcfa0d17d530bbb457b299a2f44d7288ccaff5c8d3b449ba03029a2",
+                      "bytes":  75186
+                  },
+                  {
+                      "pv":  "PV-0170",
+                      "pageId":  "operations.documents",
+                      "testId":  "operations-governance-visual.spec.ts::PV-0170",
+                      "baselinePath":  "tests/e2e/frontend-operations-governance/snapshots/PV-0170.png",
+                      "sha256":  "6caf17028cc0780ed1370b3cacd014726f6334983c5591e5e59b72eac80df642",
+                      "bytes":  98514
+                  },
+                  {
+                      "pv":  "PV-0171",
+                      "pageId":  "operations.documents",
+                      "testId":  "operations-governance-visual.spec.ts::PV-0171",
+                      "baselinePath":  "tests/e2e/frontend-operations-governance/snapshots/PV-0171.png",
+                      "sha256":  "03d2c8b7660148e34a96aa8b849b39cd1d2bdb2c50c8c5e39cf306996e72ae9c",
+                      "bytes":  42021
+                  },
+                  {
+                      "pv":  "PV-0172",
+                      "pageId":  "operations.documents",
+                      "testId":  "operations-governance-visual.spec.ts::PV-0172",
+                      "baselinePath":  "tests/e2e/frontend-operations-governance/snapshots/PV-0172.png",
+                      "sha256":  "2b47ca548e8a94651de9ee20d411b1f44054e710d4a20cc9a61f8a229a19bcbd",
+                      "bytes":  69549
+                  },
+                  {
+                      "pv":  "PV-0173",
+                      "pageId":  "operations.documents",
+                      "testId":  "operations-governance-visual.spec.ts::PV-0173",
+                      "baselinePath":  "tests/e2e/frontend-operations-governance/snapshots/PV-0173.png",
+                      "sha256":  "d754a91ed40503a8103d7be44a8bc62739f416a18f7bc75dd70a95d5a867c0ba",
+                      "bytes":  43207
+                  },
+                  {
+                      "pv":  "PV-0174",
+                      "pageId":  "operations.documents",
+                      "testId":  "operations-governance-visual.spec.ts::PV-0174",
+                      "baselinePath":  "tests/e2e/frontend-operations-governance/snapshots/PV-0174.png",
+                      "sha256":  "fbd052f4e544d671f09cbe6b0bfd42b2429bd0f01b1b38ba637149e88b160983",
+                      "bytes":  54180
+                  },
+                  {
+                      "pv":  "PV-0175",
+                      "pageId":  "operations.documents",
+                      "testId":  "operations-governance-visual.spec.ts::PV-0175",
+                      "baselinePath":  "tests/e2e/frontend-operations-governance/snapshots/PV-0175.png",
+                      "sha256":  "7b0f6257e050ca3fd38872563c6e95bce422d1770aa40107a1c51aa07dff8f60",
+                      "bytes":  54704
+                  },
+                  {
+                      "pv":  "PV-0176",
+                      "pageId":  "operations.documents",
+                      "testId":  "operations-governance-visual.spec.ts::PV-0176",
+                      "baselinePath":  "tests/e2e/frontend-operations-governance/snapshots/PV-0176.png",
+                      "sha256":  "6845e899541bbc44469767deadb25b73098d0959647d488d5e601dd959d194f3",
+                      "bytes":  52830
+                  },
+                  {
+                      "pv":  "PV-0177",
+                      "pageId":  "operations.documents",
+                      "testId":  "operations-governance-visual.spec.ts::PV-0177",
+                      "baselinePath":  "tests/e2e/frontend-operations-governance/snapshots/PV-0177.png",
+                      "sha256":  "02f02c84406168dc4fffa0b146d0c3050646bbf17b02eaae193ab456589914c3",
+                      "bytes":  78723
+                  },
+                  {
+                      "pv":  "PV-0178",
+                      "pageId":  "operations.audit",
+                      "testId":  "operations-governance-visual.spec.ts::PV-0178",
+                      "baselinePath":  "tests/e2e/frontend-operations-governance/snapshots/PV-0178.png",
+                      "sha256":  "0290d436c5bdbe74ab00706f50ef0ca81a1def51d1ae32dc0d6a2d4c1612c759",
+                      "bytes":  61744
+                  },
+                  {
+                      "pv":  "PV-0179",
+                      "pageId":  "operations.audit",
+                      "testId":  "operations-governance-visual.spec.ts::PV-0179",
+                      "baselinePath":  "tests/e2e/frontend-operations-governance/snapshots/PV-0179.png",
+                      "sha256":  "2a6e27c3848b7497290bedef147af6af619dbd021599fd2b3ce1ddeac0ccd077",
+                      "bytes":  79665
+                  },
+                  {
+                      "pv":  "PV-0180",
+                      "pageId":  "operations.audit",
+                      "testId":  "operations-governance-visual.spec.ts::PV-0180",
+                      "baselinePath":  "tests/e2e/frontend-operations-governance/snapshots/PV-0180.png",
+                      "sha256":  "13308f91beac16ba7dc1e9f5b9c9b26619b8e82151c4fd955617383ed4d45cc4",
+                      "bytes":  62445
+                  },
+                  {
+                      "pv":  "PV-0181",
+                      "pageId":  "operations.audit",
+                      "testId":  "operations-governance-visual.spec.ts::PV-0181",
+                      "baselinePath":  "tests/e2e/frontend-operations-governance/snapshots/PV-0181.png",
+                      "sha256":  "c9fa7be5773f56ba93259d38742e8e73ca460e28d7f0f9b038f0f2809bf0b50e",
+                      "bytes":  87227
+                  },
+                  {
+                      "pv":  "PV-0182",
+                      "pageId":  "operations.audit",
+                      "testId":  "operations-governance-visual.spec.ts::PV-0182",
+                      "baselinePath":  "tests/e2e/frontend-operations-governance/snapshots/PV-0182.png",
+                      "sha256":  "11006370e795d7e6a485962e2e548f79f84c7bc05a8f91b383aea9dc7beba1e1",
+                      "bytes":  87900
+                  },
+                  {
+                      "pv":  "PV-0183",
+                      "pageId":  "operations.audit",
+                      "testId":  "operations-governance-visual.spec.ts::PV-0183",
+                      "baselinePath":  "tests/e2e/frontend-operations-governance/snapshots/PV-0183.png",
+                      "sha256":  "9ada70845b3740011ccda415ce8062420e0b4be441e47a30b0754f1a81eeb174",
+                      "bytes":  39952
+                  },
+                  {
+                      "pv":  "PV-0184",
+                      "pageId":  "operations.audit",
+                      "testId":  "operations-governance-visual.spec.ts::PV-0184",
+                      "baselinePath":  "tests/e2e/frontend-operations-governance/snapshots/PV-0184.png",
+                      "sha256":  "a4c89a4315ede5aed443730b06d9e2e70b6aab5b728992983ee4cc6069d0cf58",
+                      "bytes":  59349
+                  },
+                  {
+                      "pv":  "PV-0185",
+                      "pageId":  "operations.audit",
+                      "testId":  "operations-governance-visual.spec.ts::PV-0185",
+                      "baselinePath":  "tests/e2e/frontend-operations-governance/snapshots/PV-0185.png",
+                      "sha256":  "58bac4716560111d9e71a9798e017e1ba60686a2ecd9109fda0fe9e603d9c3ef",
+                      "bytes":  40439
+                  },
+                  {
+                      "pv":  "PV-0186",
+                      "pageId":  "operations.audit",
+                      "testId":  "operations-governance-visual.spec.ts::PV-0186",
+                      "baselinePath":  "tests/e2e/frontend-operations-governance/snapshots/PV-0186.png",
+                      "sha256":  "31fd9a33d5bfa254d2e4cae9ec9854244f5927efa0186e1c33e49788e2626c0c",
+                      "bytes":  66721
+                  },
+                  {
+                      "pv":  "PV-0187",
+                      "pageId":  "operations.audit",
+                      "testId":  "operations-governance-visual.spec.ts::PV-0187",
+                      "baselinePath":  "tests/e2e/frontend-operations-governance/snapshots/PV-0187.png",
+                      "sha256":  "94a02cdef7ba8c1709449bc7d8c68eccd4d9b2d63c0e936d6544b1b64234e0f0",
+                      "bytes":  67512
+                  },
+                  {
+                      "pv":  "PV-0188",
+                      "pageId":  "operations.system-health",
+                      "testId":  "operations-governance-visual.spec.ts::PV-0188",
+                      "baselinePath":  "tests/e2e/frontend-operations-governance/snapshots/PV-0188.png",
+                      "sha256":  "183f4cff045058af7d81f2d7b53baf4f348323e25f5a784b97e1972dc025ade2",
+                      "bytes":  69368
+                  },
+                  {
+                      "pv":  "PV-0189",
+                      "pageId":  "operations.system-health",
+                      "testId":  "operations-governance-visual.spec.ts::PV-0189",
+                      "baselinePath":  "tests/e2e/frontend-operations-governance/snapshots/PV-0189.png",
+                      "sha256":  "4f35783f52d58a84d2294e250c673bdf448570fa5a1250b5d9c75e42e7f2c16d",
+                      "bytes":  91148
+                  },
+                  {
+                      "pv":  "PV-0190",
+                      "pageId":  "operations.system-health",
+                      "testId":  "operations-governance-visual.spec.ts::PV-0190",
+                      "baselinePath":  "tests/e2e/frontend-operations-governance/snapshots/PV-0190.png",
+                      "sha256":  "0e7f39df3035ee66429cce02d4f702e4f4bb443e3dc8acf65f4e29f4fcda8343",
+                      "bytes":  95778
+                  },
+                  {
+                      "pv":  "PV-0191",
+                      "pageId":  "operations.system-health",
+                      "testId":  "operations-governance-visual.spec.ts::PV-0191",
+                      "baselinePath":  "tests/e2e/frontend-operations-governance/snapshots/PV-0191.png",
+                      "sha256":  "73052b30abadaad49a3d317582f0d454be01f55dac8a7cf704033d3594f0c3f5",
+                      "bytes":  95172
+                  },
+                  {
+                      "pv":  "PV-0192",
+                      "pageId":  "operations.system-health",
+                      "testId":  "operations-governance-visual.spec.ts::PV-0192",
+                      "baselinePath":  "tests/e2e/frontend-operations-governance/snapshots/PV-0192.png",
+                      "sha256":  "4cb842008563c5d50f6c542f1a5e67271b56d1b37f0bf23f13a2bae8009d196e",
+                      "bytes":  65106
+                  },
+                  {
+                      "pv":  "PV-0193",
+                      "pageId":  "operations.system-health",
+                      "testId":  "operations-governance-visual.spec.ts::PV-0193",
+                      "baselinePath":  "tests/e2e/frontend-operations-governance/snapshots/PV-0193.png",
+                      "sha256":  "8c4f85fc9ff5d7412348c438bc7103c0fd071e8ae7168669f824861fbbead350",
+                      "bytes":  42413
+                  },
+                  {
+                      "pv":  "PV-0194",
+                      "pageId":  "operations.system-health",
+                      "testId":  "operations-governance-visual.spec.ts::PV-0194",
+                      "baselinePath":  "tests/e2e/frontend-operations-governance/snapshots/PV-0194.png",
+                      "sha256":  "4b89820721619c7e2e35a1e5249a68ba2553073b65d7c92f246a01d0e4ebe99f",
+                      "bytes":  46414
+                  },
+                  {
+                      "pv":  "PV-0195",
+                      "pageId":  "operations.system-health",
+                      "testId":  "operations-governance-visual.spec.ts::PV-0195",
+                      "baselinePath":  "tests/e2e/frontend-operations-governance/snapshots/PV-0195.png",
+                      "sha256":  "e198104cef6b88a9aa4d8056743880351f45b41d34e463b4e1a280be69aee313",
+                      "bytes":  62192
+                  },
+                  {
+                      "pv":  "PV-0196",
+                      "pageId":  "operations.system-health",
+                      "testId":  "operations-governance-visual.spec.ts::PV-0196",
+                      "baselinePath":  "tests/e2e/frontend-operations-governance/snapshots/PV-0196.png",
+                      "sha256":  "1bc48a30c7a58b2c40d12a0b27b540ad5faf509c268522820d3330b95bd99693",
+                      "bytes":  61803
+                  },
+                  {
+                      "pv":  "PV-0197",
+                      "pageId":  "operations.system-health",
+                      "testId":  "operations-governance-visual.spec.ts::PV-0197",
+                      "baselinePath":  "tests/e2e/frontend-operations-governance/snapshots/PV-0197.png",
+                      "sha256":  "381be5e35c6cc051a57b9ff31a92b8338f06f0738a223b90d3ca9783ddffe4d6",
+                      "bytes":  44495
+                  }
+              ]
+}

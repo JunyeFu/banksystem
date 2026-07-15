@@ -30,7 +30,25 @@ public class EodController {
 
   @PostMapping("/internal/eod/run")
   @Transactional
-  public Map<String, Object> run(@RequestParam(required = false) LocalDate businessDate) {
+  public Map<String, Object> runInternal(@RequestParam(required = false) LocalDate businessDate) {
+    return execute(businessDate);
+  }
+
+  @PostMapping("/api/operations/v1/eod/run")
+  @Transactional
+  public Map<String, Object> runPublic(@RequestHeader("Idempotency-Key") String idempotencyKey) {
+    if (idempotencyKey == null || idempotencyKey.length() < 16 || idempotencyKey.length() > 128)
+      throw new org.springframework.web.server.ResponseStatusException(org.springframework.http.HttpStatus.BAD_REQUEST, "Idempotency-Key must contain 16 to 128 characters");
+    jdbc.queryForObject("SELECT pg_advisory_xact_lock(hashtext(?))", Object.class, "eod:" + idempotencyKey);
+    var existing = jdbc.query("SELECT run_id,business_date,status,reconciliation_status,reason,created_at,updated_at FROM eod_run WHERE idempotency_key=?",
+        (rs,n)->eodRow(rs.getString(1),rs.getDate(2).toString(),rs.getString(3),rs.getString(4),rs.getString(5),rs.getTimestamp(6).toInstant().toString(),rs.getTimestamp(7).toInstant().toString()), idempotencyKey);
+    if (!existing.isEmpty()) return existing.get(0);
+    Map<String,Object> result=execute(null);
+    jdbc.update("UPDATE eod_run SET idempotency_key=? WHERE run_id=?", idempotencyKey, UUID.fromString(String.valueOf(result.get("runId"))));
+    return result;
+  }
+
+  private Map<String, Object> execute(LocalDate businessDate) {
     jdbc.queryForObject("SELECT pg_advisory_xact_lock(hashtext('eod-run'))", Object.class);
     LocalDate date = businessDate == null ? fineract.businessDate() : businessDate;
     List<String> steps = new ArrayList<>();
@@ -144,16 +162,22 @@ public class EodController {
     result.put("reconciliationStatus", recon);
     result.put("reason", reason);
     result.put("stepsCompleted", steps);
+    String now = java.time.OffsetDateTime.now().toString();
+    result.put("startedAt", now);
+    result.put("completedAt", now);
     return result;
   }
 
-  @GetMapping("/internal/eod/latest")
+  @GetMapping({"/internal/eod/latest", "/api/operations/v1/eod/latest"})
   public Map<String, Object> latest() {
     var rows = jdbc.query(
-        "SELECT run_id,business_date,status,reconciliation_status,reason FROM eod_run ORDER BY created_at DESC LIMIT 1",
-        (rs, n) -> Map.<String, Object>of("runId", rs.getString(1), "businessDate", rs.getDate(2).toString(),
-            "status", rs.getString(3), "reconciliationStatus", rs.getString(4), "reason", rs.getString(5)));
+        "SELECT run_id,business_date,status,reconciliation_status,reason,created_at,updated_at FROM eod_run ORDER BY created_at DESC LIMIT 1",
+        (rs, n) -> eodRow(rs.getString(1), rs.getDate(2).toString(), rs.getString(3), rs.getString(4), rs.getString(5), rs.getTimestamp(6).toInstant().toString(), rs.getTimestamp(7).toInstant().toString()));
     return rows.isEmpty() ? Map.of("status", "NOT_STARTED") : rows.get(0);
+  }
+
+  private static Map<String,Object> eodRow(String runId,String businessDate,String status,String reconciliationStatus,String reason,String startedAt,String completedAt){
+    Map<String,Object> item=new LinkedHashMap<>();item.put("runId",runId);item.put("businessDate",businessDate);item.put("status",status);item.put("reconciliationStatus",reconciliationStatus);item.put("reason",reason);item.put("stepsCompleted",List.of());item.put("startedAt",startedAt);item.put("completedAt",completedAt);return item;
   }
 
   private static final class EodReconciliationFailed extends RuntimeException {

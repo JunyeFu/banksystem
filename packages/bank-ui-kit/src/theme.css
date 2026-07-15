@@ -1,0 +1,32 @@
+:root {
+  font-family: Inter, "PingFang SC", "Microsoft YaHei", sans-serif;
+  color: #16181d;
+  background: #f5f6f8;
+  font-synthesis: none;
+}
+* { box-sizing: border-box; }
+html, body, #root { min-height: 100%; margin: 0; }
+body { min-width: 1180px; background: #f5f6f8; }
+button, input, textarea, select { font: inherit; }
+.bank-page { width: 100%; }
+.bank-page__heading { margin: 0 0 22px; font-size: 28px; line-height: 1.35; font-weight: 700; }
+.bank-page__subheading { margin: -15px 0 20px; color: #646b78; }
+.bank-card { background: #fff; border: 1px solid #e4e7eb; border-radius: 7px; box-shadow: 0 2px 10px rgb(30 42 62 / 5%); }
+.bank-toolbar { display: flex; align-items: center; gap: 20px; flex-wrap: wrap; padding: 20px 22px; }
+.bank-table .ant-table { font-size: 14px; }
+.bank-table .ant-table-thead > tr > th { height: 52px; background: #fafafa; color: #20242b; font-weight: 600; }
+.bank-table .ant-table-tbody > tr > td { height: 58px; }
+.bank-primary-btn { min-width: 112px; height: 42px; font-weight: 600; }
+.bank-status { border-radius: 3px; font-weight: 600; }
+.bank-status--success { color: #138f52; background: #edf8f1; border-color: #b8e3c8; }
+.bank-status--danger { color: #d71f2b; background: #fff1f0; border-color: #ffc5c3; }
+.bank-status--warning { color: #e9790d; background: #fff7e8; border-color: #ffd9a3; }
+.bank-status--progress { color: #285f9c; background: #eef4fb; border-color: #cbdcf0; }
+.bank-link { color: #1769bd; font-weight: 500; }
+.bank-muted { color: #747c89; }
+.bank-accent, .bank-danger { color: #d9161c; }
+.bank-success { color: #159a58; }
+.bank-error-panel { padding: 48px 24px; text-align: center; }
+.bank-state-panel { min-height: 220px; padding: 24px; background: #fff; border: 1px solid #d9d9d6; border-radius: 8px; }
+.bank-state-panel--center { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 14px; }
+@media (max-width: 1280px) { body { min-width: 1024px; } }

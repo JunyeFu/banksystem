@@ -1,3 +1,15 @@
+---
+id: DOC-2922467DD2
+title: BANK-0003 security and operational configuration audit
+document_type: reference
+domain: baseline
+status: verified
+authority: evidence
+version: 1.0
+effective_date: 2026-07-15
+owner: project-owner
+---
+
 # BANK-0003 security and operational configuration audit
 
 Audit date: 2026-07-10. Evidence gathering was read-only. No database data,

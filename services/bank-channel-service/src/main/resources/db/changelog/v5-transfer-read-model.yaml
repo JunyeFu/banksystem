@@ -1,0 +1,62 @@
+databaseChangeLog:
+  - changeSet:
+      id: v5-transfer-beneficiary-resolution
+      author: Codex
+      changes:
+        - addColumn:
+            tableName: beneficiary
+            columns:
+              - column:
+                  name: destination_account_id
+                  type: varchar(64)
+        - addColumn:
+            tableName: transfer_order
+            columns:
+              - column:
+                  name: beneficiary_id
+                  type: uuid
+              - column:
+                  name: reference
+                  type: varchar(240)
+        - addForeignKeyConstraint:
+            baseTableName: transfer_order
+            baseColumnNames: beneficiary_id
+            referencedTableName: beneficiary
+            referencedColumnNames: beneficiary_id
+            constraintName: fk_transfer_order_beneficiary
+            onDelete: RESTRICT
+        - createIndex:
+            tableName: transfer_order
+            indexName: idx_transfer_order_subject_created
+            columns:
+              - column:
+                  name: subject
+              - column:
+                  name: created_at
+        - createIndex:
+            tableName: transfer_order
+            indexName: idx_transfer_order_status_created
+            columns:
+              - column:
+                  name: status
+              - column:
+                  name: created_at
+      rollback:
+        - dropIndex:
+            tableName: transfer_order
+            indexName: idx_transfer_order_status_created
+        - dropIndex:
+            tableName: transfer_order
+            indexName: idx_transfer_order_subject_created
+        - dropForeignKeyConstraint:
+            baseTableName: transfer_order
+            constraintName: fk_transfer_order_beneficiary
+        - dropColumn:
+            tableName: transfer_order
+            columnName: reference
+        - dropColumn:
+            tableName: transfer_order
+            columnName: beneficiary_id
+        - dropColumn:
+            tableName: beneficiary
+            columnName: destination_account_id

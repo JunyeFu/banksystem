@@ -1,186 +1,45 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useMutation } from '@tanstack/react-query';
-import { useForm, Controller } from 'react-hook-form';
+import { Controller, useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import {
-  Button,
-  Form,
-  Select,
-  InputNumber,
-  Input,
-  Alert,
-  Typography,
-  Space,
-} from 'antd';
+import { Alert, Button, DatePicker, Form, Input, InputNumber, Select } from 'antd';
+import type { LoanApplication } from '@localbank/bank-api-client';
+import { customerApi } from '@/api/client';
 import { PageContainer } from '@/components/PageContainer';
-import { apiClient } from '@/api/client';
-import type { LoanApplicationResponse } from '@/types/models';
 
-const { Title } = Typography;
-const { TextArea } = Input;
-
-const termOptions = [
-  { label: '12个月', value: 12 },
-  { label: '24个月', value: 24 },
-  { label: '36个月', value: 36 },
-  { label: '48个月', value: 48 },
-  { label: '60个月', value: 60 },
-];
-
-const validTerms = termOptions.map((o) => o.value);
-
-const loanSchema = z.object({
-  amount: z.number().positive('贷款金额必须大于0'),
-  termMonths: z.number().refine((v) => validTerms.includes(v), '请选择贷款期限'),
-  purpose: z
-    .string()
-    .min(1, '请输入贷款用途')
-    .max(500, '贷款用途不能超过500字'),
-});
-
-type LoanFormData = z.infer<typeof loanSchema>;
+const schema = z.object({ amount: z.number().positive('请输入大于 0 的贷款金额'), termMonths: z.number().min(1, '请选择贷款期限'), purpose: z.string().min(1, '请选择贷款用途'), repaymentMethod: z.string().min(1), note: z.string().max(200).optional() });
+type LoanForm = z.infer<typeof schema>;
+const terms = [12, 24, 36, 48, 60].map((value) => ({ value, label: `${value}个月` }));
 
 export function LoanApply(): JSX.Element {
   const navigate = useNavigate();
-  const [submitError, setSubmitError] = useState<string | null>(null);
-
-  const { control, handleSubmit } = useForm<LoanFormData>({
-    resolver: zodResolver(loanSchema),
-    defaultValues: {
-      amount: 0,
-      termMonths: 0,
-      purpose: '',
-    },
-  });
-
-  const mutation = useMutation<LoanApplicationResponse, Error, LoanFormData>({
-    mutationFn: async (data) => {
-      return apiClient.post<LoanApplicationResponse>('/loans/applications', {
-        amount: data.amount.toFixed(2),
-        termMonths: data.termMonths,
-        purpose: data.purpose,
-      });
-    },
-    onSuccess: (response) => {
-      navigate(`/loans/${response.loanId}`);
-    },
-    onError: (error) => {
-      setSubmitError(error.message);
-    },
-  });
-
-  const onSubmit = (data: LoanFormData): void => {
-    setSubmitError(null);
-    mutation.mutate(data);
-  };
-
-  return (
-    <PageContainer pageId="customer.loans.apply" state="READY" title="申请贷款">
-      <div style={{ padding: '24px', maxWidth: 600 }}>
-        <Title level={4}>填写贷款申请信息</Title>
-
-        {submitError !== null && (
-          <Alert
-            type="error"
-            message="申请失败"
-            description={submitError}
-            style={{ marginBottom: 24 }}
-            closable
-            onClose={() => setSubmitError(null)}
-            data-testid="loan-apply-error"
-          />
-        )}
-
-        <form onSubmit={handleSubmit(onSubmit)} data-testid="loan-apply-form">
-          <Form layout="vertical" component={false}>
-            <Controller
-              control={control}
-              name="amount"
-              render={({ field, fieldState: { error } }) => (
-                <Form.Item
-                  label="贷款金额"
-                  validateStatus={error ? 'error' : ''}
-                  help={error?.message}
-                >
-                  <InputNumber
-                    data-testid="loan-apply-amount"
-                    value={field.value || undefined}
-                    onChange={(v: number | null) => field.onChange(v ?? 0)}
-                    style={{ width: '100%' }}
-                    prefix="CNY"
-                    placeholder="请输入贷款金额"
-                    min={0.01}
-                    precision={2}
-                  />
-                </Form.Item>
-              )}
-            />
-
-            <Controller
-              control={control}
-              name="termMonths"
-              render={({ field, fieldState: { error } }) => (
-                <Form.Item
-                  label="贷款期限"
-                  validateStatus={error ? 'error' : ''}
-                  help={error?.message}
-                >
-                  <Select
-                    data-testid="loan-apply-term"
-                    value={field.value || undefined}
-                    onChange={field.onChange}
-                    placeholder="请选择贷款期限"
-                    options={termOptions}
-                  />
-                </Form.Item>
-              )}
-            />
-
-            <Controller
-              control={control}
-              name="purpose"
-              render={({ field, fieldState: { error } }) => (
-                <Form.Item
-                  label="贷款用途"
-                  validateStatus={error ? 'error' : ''}
-                  help={error?.message}
-                >
-                  <TextArea
-                    data-testid="loan-apply-purpose"
-                    value={field.value}
-                    onChange={field.onChange}
-                    rows={4}
-                    placeholder="请详细描述贷款用途"
-                    maxLength={500}
-                    showCount
-                  />
-                </Form.Item>
-              )}
-            />
-
-            <Space>
-              <Button
-                type="primary"
-                htmlType="submit"
-                data-testid="loan-apply-submit"
-                aria-label="提交申请"
-                loading={mutation.isPending}
-              >
-                提交申请
-              </Button>
-              <Button
-                data-testid="loan-apply-cancel"
-                onClick={() => navigate('/loans')}
-                disabled={mutation.isPending}
-              >
-                取消
-              </Button>
-            </Space>
-          </Form>
-        </form>
-      </div>
-    </PageContainer>
-  );
+  const [submitted, setSubmitted] = useState(false);
+  const { control, handleSubmit, watch } = useForm<LoanForm>({ resolver: zodResolver(schema), defaultValues: { amount: 300000, termMonths: 36, purpose: '经营周转', repaymentMethod: '等额本息', note: '' } });
+  const values = watch();
+  const mutation = useMutation<LoanApplication, Error, LoanForm>({ mutationFn: (value) => customerApi.createLoanApplication({ amount: value.amount.toFixed(2), termMonths: value.termMonths, purpose: value.purpose }), onSuccess: () => { setSubmitted(true); }, });
+  const monthly = values.amount > 0 && values.termMonths > 0 ? values.amount * (1 + 0.0435 * values.termMonths / 12) / values.termMonths : 0;
+  if (submitted) return <PageContainer pageId="customer.loans.apply" state="READY"><section className="customer-page"><div className="bank-card loan-application-result"><b>✓</b><h1>贷款申请已提交</h1><p>复兴银行已受理您的申请，后续进度将通过消息中心通知。</p><Button type="primary" onClick={() => navigate('/loans')}>返回我的贷款</Button></div></section></PageContainer>;
+  return <PageContainer pageId="customer.loans.apply" state="READY">
+    <section className="customer-page experience-page loan-application" data-view-state={mutation.isPending ? 'SUBMITTING' : mutation.isError ? 'ERROR' : 'DEFAULT'}>
+      <div className="customer-breadcrumb">贷款　/　申请贷款</div>
+      <div className="customer-page-head"><div><h1>申请贷款</h1><p>请填写贷款申请信息，我们将尽快为您审核。</p></div></div>
+      {mutation.isError ? <Alert type="error" showIcon message="申请提交失败" description="服务暂时不可用，您的表单内容已保留，请稍后重试。" /> : null}
+      <form onSubmit={handleSubmit((value) => mutation.mutate(value))}>
+        <div className="loan-application-layout">
+          <div className="bank-card loan-form-card"><h2>贷款申请信息</h2>
+            <Controller name="amount" control={control} render={({ field, fieldState }) => <Form.Item label="贷款金额" required validateStatus={fieldState.error ? 'error' : ''} help={fieldState.error?.message}><InputNumber {...field} style={{ width: '100%' }} min={0} precision={2} addonAfter="CNY" onChange={(value) => field.onChange(value ?? 0)} /></Form.Item>} />
+            <Controller name="termMonths" control={control} render={({ field, fieldState }) => <Form.Item label="期限" required validateStatus={fieldState.error ? 'error' : ''} help={fieldState.error?.message}><Select {...field} style={{ width: '100%' }} options={terms} /></Form.Item>} />
+            <Controller name="purpose" control={control} render={({ field, fieldState }) => <Form.Item label="用途" required validateStatus={fieldState.error ? 'error' : ''} help={fieldState.error?.message}><Select {...field} style={{ width: '100%' }} options={['经营周转','个人消费','车辆购置','房屋装修'].map((value) => ({ value, label: value }))} /></Form.Item>} />
+            <Controller name="repaymentMethod" control={control} render={({ field }) => <Form.Item label="还款方式" required><Select {...field} style={{ width: '100%' }} options={[{ value: '等额本息', label: '等额本息' }, { value: '等额本金', label: '等额本金' }]} /></Form.Item>} />
+            <Form.Item label="首期还款日" required><DatePicker style={{ width: '100%' }} value={undefined} placeholder="审批放款后确定" disabled /></Form.Item>
+            <Controller name="note" control={control} render={({ field, fieldState }) => <Form.Item label="备注" validateStatus={fieldState.error ? 'error' : ''} help={fieldState.error?.message}><Input.TextArea {...field} style={{ width: '100%' }} rows={3} maxLength={200} showCount placeholder="请输入备注信息（选填）" /></Form.Item>} />
+          </div>
+          <aside className="bank-card loan-summary-card"><h2>申请信息摘要</h2><dl><div><dt>贷款金额</dt><dd className="bank-accent">{values.amount.toLocaleString('zh-CN', { minimumFractionDigits: 2 })} CNY</dd></div><div><dt>期限</dt><dd>{values.termMonths} 个月</dd></div><div><dt>用途</dt><dd>{values.purpose}</dd></div><div><dt>还款方式</dt><dd>{values.repaymentMethod}</dd></div><div><dt>预计年利率</dt><dd>4.35%</dd></div><div><dt>预计月还款额</dt><dd>{monthly.toLocaleString('zh-CN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} CNY</dd></div></dl><div className="loan-note">以上信息为预估结果，实际审批结果以复兴银行最终审核为准。</div></aside>
+        </div>
+        <div className="loan-form-actions"><Button size="large" onClick={() => navigate('/loans')} disabled={mutation.isPending}>返回</Button><Button type="primary" size="large" htmlType="submit" loading={mutation.isPending}>提交申请</Button></div>
+      </form>
+    </section>
+  </PageContainer>;
 }

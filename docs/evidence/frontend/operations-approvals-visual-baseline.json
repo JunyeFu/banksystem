@@ -1,0 +1,251 @@
+{
+    "schemaVersion":  1,
+    "evidenceType":  "frontend-visual-regression-baseline",
+    "generatedAt":  "2026-07-15T12:45:55.7933763+00:00",
+    "sourceCommit":  "bf7ce95681a4c629c251b72458829a9598d507ce",
+    "contractVersion":  "operations-approvals-design-1.0",
+    "baselineVersion":  "operations-approvals-windows-chromium-v1",
+    "environment":  {
+                        "operatingSystem":  "Windows",
+                        "browser":  "Chromium",
+                        "viewport":  "1440x900",
+                        "locale":  "zh-CN",
+                        "timezone":  "Asia/Shanghai",
+                        "colorScheme":  "light",
+                        "reducedMotion":  true
+                    },
+    "businessAssertions":  [
+                               "Fuxing Bank operations console covers all 28 approval states from PV-0108 through PV-0135.",
+                               "The approval queue comes from persistent transfer_reversal data through the generated operations API client.",
+                               "Approve and reject actions require a reason, idempotency key, checker authority, and current version.",
+                               "Rejecting reversal restores REVERSAL_PENDING to SETTLED; approval executes compensation and reaches REVERSED.",
+                               "Visual states cover loading, empty, pending, forbidden, version conflict, drawer, confirmation, submission, and result.",
+                               "Visual fixtures are deterministic synthetic data and contain no real personal data or secrets."
+                           ],
+    "cases":  [
+                  {
+                      "pv":  "PV-0108",
+                      "pageId":  "operations.approvals",
+                      "testId":  "operations-approvals-visual.spec.ts::PV-0108",
+                      "baselinePath":  "tests/e2e/frontend-operations-approvals/snapshots/PV-0108.png",
+                      "sha256":  "7f18edf46b0cc6eb28351124391ca26e72cc87599f185299b91fe6d53e7acdf2",
+                      "bytes":  62198
+                  },
+                  {
+                      "pv":  "PV-0109",
+                      "pageId":  "operations.approvals",
+                      "testId":  "operations-approvals-visual.spec.ts::PV-0109",
+                      "baselinePath":  "tests/e2e/frontend-operations-approvals/snapshots/PV-0109.png",
+                      "sha256":  "327d50ff6ccdd17caf6c0d6266a65f4ae938f108aa7811f78ed23287b2e7bd58",
+                      "bytes":  91131
+                  },
+                  {
+                      "pv":  "PV-0110",
+                      "pageId":  "operations.approvals",
+                      "testId":  "operations-approvals-visual.spec.ts::PV-0110",
+                      "baselinePath":  "tests/e2e/frontend-operations-approvals/snapshots/PV-0110.png",
+                      "sha256":  "7ecb066c5a1683efb62a67f8d434040adc885816b3c01b0e8804c0fdc209c1a0",
+                      "bytes":  66105
+                  },
+                  {
+                      "pv":  "PV-0111",
+                      "pageId":  "operations.approvals",
+                      "testId":  "operations-approvals-visual.spec.ts::PV-0111",
+                      "baselinePath":  "tests/e2e/frontend-operations-approvals/snapshots/PV-0111.png",
+                      "sha256":  "aef8fc2dcc56318c71bc699c3f9f189f76f072b3df405548feec795503180c8f",
+                      "bytes":  79257
+                  },
+                  {
+                      "pv":  "PV-0112",
+                      "pageId":  "operations.approvals",
+                      "testId":  "operations-approvals-visual.spec.ts::PV-0112",
+                      "baselinePath":  "tests/e2e/frontend-operations-approvals/snapshots/PV-0112.png",
+                      "sha256":  "66f46ef95f0f1f429cbc24ef5f23f2d99c8e1e626a6d1c4361c3ea4fa096a2ce",
+                      "bytes":  99454
+                  },
+                  {
+                      "pv":  "PV-0113",
+                      "pageId":  "operations.approvals",
+                      "testId":  "operations-approvals-visual.spec.ts::PV-0113",
+                      "baselinePath":  "tests/e2e/frontend-operations-approvals/snapshots/PV-0113.png",
+                      "sha256":  "a88502ce294bb91cd1a7883b79fd03767b52e666996817a447fed9b99ac094dc",
+                      "bytes":  82411
+                  },
+                  {
+                      "pv":  "PV-0114",
+                      "pageId":  "operations.approvals",
+                      "testId":  "operations-approvals-visual.spec.ts::PV-0114",
+                      "baselinePath":  "tests/e2e/frontend-operations-approvals/snapshots/PV-0114.png",
+                      "sha256":  "9c77313b0410d6cdb410269b242f314254dd66b747df445f699b58bd6929b15c",
+                      "bytes":  89876
+                  },
+                  {
+                      "pv":  "PV-0115",
+                      "pageId":  "operations.approvals",
+                      "testId":  "operations-approvals-visual.spec.ts::PV-0115",
+                      "baselinePath":  "tests/e2e/frontend-operations-approvals/snapshots/PV-0115.png",
+                      "sha256":  "afff0aff76c71db639e9ec4a1fba66ceb992a98b9abbd3b9c6326e886fa32171",
+                      "bytes":  92976
+                  },
+                  {
+                      "pv":  "PV-0116",
+                      "pageId":  "operations.approvals",
+                      "testId":  "operations-approvals-visual.spec.ts::PV-0116",
+                      "baselinePath":  "tests/e2e/frontend-operations-approvals/snapshots/PV-0116.png",
+                      "sha256":  "2ad43093003fba5de81a35d9a7f25d71abb0a7c8434ee5cce65ad3b918fa1474",
+                      "bytes":  89966
+                  },
+                  {
+                      "pv":  "PV-0117",
+                      "pageId":  "operations.approvals",
+                      "testId":  "operations-approvals-visual.spec.ts::PV-0117",
+                      "baselinePath":  "tests/e2e/frontend-operations-approvals/snapshots/PV-0117.png",
+                      "sha256":  "3ec60029ee0b0692070c7a8e6942310d81cd813ffed1d9b9746a65124b681ab9",
+                      "bytes":  89529
+                  },
+                  {
+                      "pv":  "PV-0118",
+                      "pageId":  "operations.approvals",
+                      "testId":  "operations-approvals-visual.spec.ts::PV-0118",
+                      "baselinePath":  "tests/e2e/frontend-operations-approvals/snapshots/PV-0118.png",
+                      "sha256":  "3c74d203f3d31b6500d58cf86363cd33745bc4db67c5c8fc99d123a3addf5edf",
+                      "bytes":  76925
+                  },
+                  {
+                      "pv":  "PV-0119",
+                      "pageId":  "operations.approvals",
+                      "testId":  "operations-approvals-visual.spec.ts::PV-0119",
+                      "baselinePath":  "tests/e2e/frontend-operations-approvals/snapshots/PV-0119.png",
+                      "sha256":  "633516172ef8912e2d300286fafb609ebe46226dc148babb37fc523255f52d40",
+                      "bytes":  90053
+                  },
+                  {
+                      "pv":  "PV-0120",
+                      "pageId":  "operations.approvals",
+                      "testId":  "operations-approvals-visual.spec.ts::PV-0120",
+                      "baselinePath":  "tests/e2e/frontend-operations-approvals/snapshots/PV-0120.png",
+                      "sha256":  "0b236a359aff758ebd95067776b897247cab77412624eac7e609c9e23d16ff94",
+                      "bytes":  89599
+                  },
+                  {
+                      "pv":  "PV-0121",
+                      "pageId":  "operations.approvals",
+                      "testId":  "operations-approvals-visual.spec.ts::PV-0121",
+                      "baselinePath":  "tests/e2e/frontend-operations-approvals/snapshots/PV-0121.png",
+                      "sha256":  "ecf31c750d2bec7d41169e611555429d657322feb5310f9c8526805726e7349e",
+                      "bytes":  77487
+                  },
+                  {
+                      "pv":  "PV-0122",
+                      "pageId":  "operations.approvals",
+                      "testId":  "operations-approvals-visual.spec.ts::PV-0122",
+                      "baselinePath":  "tests/e2e/frontend-operations-approvals/snapshots/PV-0122.png",
+                      "sha256":  "369c6f43826e3d9de05569a2290e26116350bac0257e211b02d06b17bf048ed9",
+                      "bytes":  40508
+                  },
+                  {
+                      "pv":  "PV-0123",
+                      "pageId":  "operations.approvals",
+                      "testId":  "operations-approvals-visual.spec.ts::PV-0123",
+                      "baselinePath":  "tests/e2e/frontend-operations-approvals/snapshots/PV-0123.png",
+                      "sha256":  "4ea81ac3596e5f07e9310c6b7ead8cc59327de3895e8c0ce79c8673e299ccf63",
+                      "bytes":  71514
+                  },
+                  {
+                      "pv":  "PV-0124",
+                      "pageId":  "operations.approvals",
+                      "testId":  "operations-approvals-visual.spec.ts::PV-0124",
+                      "baselinePath":  "tests/e2e/frontend-operations-approvals/snapshots/PV-0124.png",
+                      "sha256":  "d6dddb03f94d4982f08025f7990c344c090f8aa9dff8835f83ddacffada7e0b7",
+                      "bytes":  41179
+                  },
+                  {
+                      "pv":  "PV-0125",
+                      "pageId":  "operations.approvals",
+                      "testId":  "operations-approvals-visual.spec.ts::PV-0125",
+                      "baselinePath":  "tests/e2e/frontend-operations-approvals/snapshots/PV-0125.png",
+                      "sha256":  "4ddf2dcb32292f123b9b25df0222d597b575c448edb0e0b27e814ebec5fab57f",
+                      "bytes":  58962
+                  },
+                  {
+                      "pv":  "PV-0126",
+                      "pageId":  "operations.approvals",
+                      "testId":  "operations-approvals-visual.spec.ts::PV-0126",
+                      "baselinePath":  "tests/e2e/frontend-operations-approvals/snapshots/PV-0126.png",
+                      "sha256":  "d10fe1bda6dfc5eac92b744c732dbc9935d1afc532c29d5e670b23f13042fa5a",
+                      "bytes":  83473
+                  },
+                  {
+                      "pv":  "PV-0127",
+                      "pageId":  "operations.approvals",
+                      "testId":  "operations-approvals-visual.spec.ts::PV-0127",
+                      "baselinePath":  "tests/e2e/frontend-operations-approvals/snapshots/PV-0127.png",
+                      "sha256":  "910eaa896ad38bb7abf81c3490f136b5752ee09b3135005e0afed12218f20b00",
+                      "bytes":  60839
+                  },
+                  {
+                      "pv":  "PV-0128",
+                      "pageId":  "operations.approvals",
+                      "testId":  "operations-approvals-visual.spec.ts::PV-0128",
+                      "baselinePath":  "tests/e2e/frontend-operations-approvals/snapshots/PV-0128.png",
+                      "sha256":  "5cff573c71c069dedbd1e6cf3ed5ddbcd8cb478586a66f982cc23678442ece90",
+                      "bytes":  73819
+                  },
+                  {
+                      "pv":  "PV-0129",
+                      "pageId":  "operations.approvals",
+                      "testId":  "operations-approvals-visual.spec.ts::PV-0129",
+                      "baselinePath":  "tests/e2e/frontend-operations-approvals/snapshots/PV-0129.png",
+                      "sha256":  "df70f203faaf8877317075ce37de495d1831cf7fce657c1526976d753fe6de10",
+                      "bytes":  77129
+                  },
+                  {
+                      "pv":  "PV-0130",
+                      "pageId":  "operations.approvals",
+                      "testId":  "operations-approvals-visual.spec.ts::PV-0130",
+                      "baselinePath":  "tests/e2e/frontend-operations-approvals/snapshots/PV-0130.png",
+                      "sha256":  "27b477332af9475cd07dc0e3ea65334e77bbabc630605a4955120310da5ab38e",
+                      "bytes":  78312
+                  },
+                  {
+                      "pv":  "PV-0131",
+                      "pageId":  "operations.approvals",
+                      "testId":  "operations-approvals-visual.spec.ts::PV-0131",
+                      "baselinePath":  "tests/e2e/frontend-operations-approvals/snapshots/PV-0131.png",
+                      "sha256":  "bd8f62cc228be7a6ca0d090e51ed6990cfff1710c687b25ef0028b477a092efe",
+                      "bytes":  77831
+                  },
+                  {
+                      "pv":  "PV-0132",
+                      "pageId":  "operations.approvals",
+                      "testId":  "operations-approvals-visual.spec.ts::PV-0132",
+                      "baselinePath":  "tests/e2e/frontend-operations-approvals/snapshots/PV-0132.png",
+                      "sha256":  "58501cbe2ee5b9dd0ad589f4f148e4b70bb6ccb29c019e70c62808efc7424290",
+                      "bytes":  60624
+                  },
+                  {
+                      "pv":  "PV-0133",
+                      "pageId":  "operations.approvals",
+                      "testId":  "operations-approvals-visual.spec.ts::PV-0133",
+                      "baselinePath":  "tests/e2e/frontend-operations-approvals/snapshots/PV-0133.png",
+                      "sha256":  "878a5bc73e67b8376889f2f441a69d71928bd49a1898efb60fdbd982df1c8b15",
+                      "bytes":  78390
+                  },
+                  {
+                      "pv":  "PV-0134",
+                      "pageId":  "operations.approvals",
+                      "testId":  "operations-approvals-visual.spec.ts::PV-0134",
+                      "baselinePath":  "tests/e2e/frontend-operations-approvals/snapshots/PV-0134.png",
+                      "sha256":  "ed1aae4e6900dec1015da3eff76e78dd99d583c9c7b5a77e833e932fac1886c3",
+                      "bytes":  77917
+                  },
+                  {
+                      "pv":  "PV-0135",
+                      "pageId":  "operations.approvals",
+                      "testId":  "operations-approvals-visual.spec.ts::PV-0135",
+                      "baselinePath":  "tests/e2e/frontend-operations-approvals/snapshots/PV-0135.png",
+                      "sha256":  "bcb515ca3720e2dc27d60695b6a72c13d32dbf46d59176f9141a43f7c1248766",
+                      "bytes":  61167
+                  }
+              ]
+}

@@ -1,0 +1,32 @@
+{
+  "schema_version": 1,
+  "source_class_weights": {
+    "contract": 1.0,
+    "test": 1.0,
+    "source": 1.0,
+    "evidence": 0.98,
+    "architecture": 0.95,
+    "design": 0.92,
+    "instruction": 0.90,
+    "workflow": 0.88,
+    "operations": 0.85,
+    "documentation": 0.82,
+    "planning": 0.72,
+    "research": 0.55,
+    "external_reference": 0.40,
+    "historical": 0.25
+  },
+  "status_weights": {
+    "verified": 1.0,
+    "implemented": 1.0,
+    "accepted": 1.0,
+    "review": 0.9,
+    "draft": 0.8,
+    "proposed": 0.65,
+    "planned": 0.65,
+    "historical": 0.35,
+    "superseded": 0.15,
+    "deprecated": 0.10,
+    "cancelled": 0.05
+  }
+}

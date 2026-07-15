@@ -1,85 +1,13 @@
 import { useQuery } from '@tanstack/react-query';
-import { Card, Descriptions, Tag, Skeleton, Empty } from 'antd';
+import { Alert, Button, Empty, Skeleton, Switch, Tag } from 'antd';
+import { customerApi } from '@/api/client';
 import { PageContainer } from '@/components/PageContainer';
-import type { PageState } from '@/components/PageContainer';
-import { apiClient } from '@/api/client';
-import type { SecuritySettingsResponse } from '@/types/models';
 
 export function SecuritySettings(): JSX.Element {
-  const { data, isLoading, isError } = useQuery<SecuritySettingsResponse>({
-    queryKey: ['security-settings'],
-    queryFn: () => apiClient.get<SecuritySettingsResponse>('/security/settings'),
-  });
-
-  const pageState: PageState = isLoading
-    ? 'LOADING'
-    : isError
-      ? 'ERROR'
-      : 'READY';
-
-  return (
-    <PageContainer
-      pageId="customer.security"
-      state={pageState}
-      title="安全设置"
-    >
-      <div data-testid="security-settings" style={{ padding: '24px' }}>
-        {isLoading && <Skeleton active />}
-
-        {!isLoading && isError && (
-          <Empty description="加载安全设置失败" data-testid="security-settings-error" />
-        )}
-
-        {!isLoading && !isError && data === undefined && (
-          <Empty description="未找到安全设置" data-testid="security-settings-empty" />
-        )}
-
-        {data !== undefined && (
-          <Card>
-            <Descriptions bordered column={1}>
-              <Descriptions.Item label="多因素认证 (MFA)">
-                {data.mfaEnabled ? (
-                  <Tag color="green" data-testid="security-mfa-enabled">
-                    已启用
-                  </Tag>
-                ) : (
-                  <Tag color="red" data-testid="security-mfa-disabled">
-                    未启用
-                  </Tag>
-                )}
-              </Descriptions.Item>
-              {data.mfaMethod !== undefined && (
-                <Descriptions.Item label="MFA方式">
-                  <span data-testid="security-mfa-method">{data.mfaMethod}</span>
-                </Descriptions.Item>
-              )}
-              {data.lastPasswordChange !== undefined && (
-                <Descriptions.Item label="上次密码修改">
-                  <span data-testid="security-password-change">
-                    {data.lastPasswordChange}
-                  </span>
-                </Descriptions.Item>
-              )}
-              <Descriptions.Item label="登录通知">
-                {data.loginNotificationsEnabled ? (
-                  <Tag color="green" data-testid="security-login-notify-on">
-                    已开启
-                  </Tag>
-                ) : (
-                  <Tag color="default" data-testid="security-login-notify-off">
-                    未开启
-                  </Tag>
-                )}
-              </Descriptions.Item>
-              {data.lastLoginAt !== undefined && (
-                <Descriptions.Item label="上次登录时间">
-                  <span data-testid="security-last-login">{data.lastLoginAt}</span>
-                </Descriptions.Item>
-              )}
-            </Descriptions>
-          </Card>
-        )}
-      </div>
-    </PageContainer>
-  );
+  const query = useQuery({ queryKey: ['security-settings'], queryFn: () => customerApi.getSecuritySettings() }); const data = query.data;
+  return <PageContainer pageId="customer.security" state="READY"><section className="customer-page experience-page" data-view-state={query.isLoading ? 'LOADING' : query.isError ? 'ERROR' : data ? 'NORMAL' : 'EMPTY'}>
+    {query.isError ? <Alert type="error" showIcon message="安全设置加载失败" /> : null}{query.isLoading ? <Skeleton active paragraph={{ rows: 15 }} /> : null}
+    {!query.isLoading && !data && !query.isError ? <div className="bank-card customer-empty"><Empty description="未找到安全设置" /></div> : null}
+    {data ? <div className="settings-layout"><aside className="bank-card settings-nav"><button>账户设置</button><button className="active">◇　安全设置</button><button>消息通知</button><button>支付设置</button><button>偏好设置</button><button>隐私设置</button><button>帮助与反馈</button></aside><div className="settings-main"><h1>安全设置</h1><div className="bank-card settings-card"><button><span className="settings-roundel red">▣</span><span><strong>登录密码</strong><small>用于登录复兴银行客户门户</small></span><span>修改　›</span></button><div className="settings-section"><div><span className="settings-roundel blue">◇</span><span><strong>双重验证</strong><small>登录及关键操作时需要验证，保障账户安全</small></span><Switch checked={data.mfaEnabled} disabled /></div><button>验证方式 <span>{data.mfaMethod ?? '未启用'}　›</span></button></div><div className="settings-section"><div><span className="settings-roundel green">▤</span><span><strong>当前登录会话</strong><small>{data.lastLoginAt ? new Date(data.lastLoginAt).toLocaleString('zh-CN', { hour12: false }) : '未提供会话时间'}</small></span><Tag color="green">当前会话</Tag></div></div><div className="settings-section"><div><span className="settings-roundel orange">♢</span><span><strong>安全提醒</strong><small>账户异常变动、登录等安全事件提醒</small></span><Switch checked={data.loginNotificationsEnabled} disabled /></div></div></div><Button type="primary" size="large" disabled>安全设置由身份服务统一管理</Button></div></div> : null}
+  </section></PageContainer>;
 }

@@ -34,20 +34,6 @@ export interface BeneficiaryListResponse {
   items: Beneficiary[];
 }
 
-export interface Transfer {
-  paymentId: string;
-  amount: string;
-  currency: string;
-  status: string;
-  fromAccountId: string;
-  toAccount: string;
-  createdDate: string;
-}
-
-export interface TransferListResponse {
-  items: Transfer[];
-}
-
 export interface Document {
   documentId: string;
   documentType: string;
@@ -96,31 +82,6 @@ export interface AccountDetailResponse {
   accountType?: string;
   status?: string;
   transactions: Transaction[];
-}
-
-export interface TransferDetailResponse {
-  paymentId: string;
-  amount: string;
-  currency: string;
-  status: string;
-  fromAccountId: string;
-  toAccount: string;
-  coreReference?: string;
-  createdDate: string;
-  description?: string;
-}
-
-export interface TransferCreateRequest {
-  fromAccountId: string;
-  toAccount: string;
-  amount: string;
-  currency: string;
-  description?: string;
-}
-
-export interface TransferCreateResponse {
-  paymentId: string;
-  status: string;
 }
 
 export interface LoanApplicationRequest {

@@ -1,0 +1,22 @@
+{
+  "schema_version": 3,
+  "include_roots": [
+    "docs", "contracts", "agent", "knowledge-sources/imported",
+    "apps", "services", "packages", "tests", "scripts", "infra",
+    "README.md", "AGENTS.md", "compose.channel.yaml", "compose.platform.yaml"
+  ],
+  "include_extensions": [
+    ".md", ".txt", ".json", ".yaml", ".yml", ".csv", ".java", ".ts", ".tsx",
+    ".js", ".mjs", ".py", ".ps1", ".cmd", ".sql", ".xml", ".properties", ".html", ".css", ".svg", ".conf"
+  ],
+  "include_names": ["README.md", "AGENTS.md", "Dockerfile", "Makefile"],
+  "exclude_parts": [
+    ".git", ".venv", "node_modules", "target", "dist", "build", "coverage", "data", "logs", "runs",
+    "backups", "secrets", "deliverables", "playwright-report", "test-results", "traces", "__pycache__"
+  ],
+  "exclude_names": [
+    ".env", ".env.local", ".env.production", "package-lock.json", "pnpm-lock.yaml", "yarn.lock",
+    "swagger-original.json", "migration-manifest.json"
+  ],
+  "exclude_prefixes": ["rag/index/", "rag/eval/reports/", "knowledge-sources/raw/"]
+}

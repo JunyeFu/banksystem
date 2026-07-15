@@ -1,146 +1,36 @@
-import { useParams, useNavigate } from 'react-router-dom';
+import { useNavigate, useParams } from 'react-router-dom';
+import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { Card, Descriptions, Button, Typography, Tag, Space, Empty } from 'antd';
+import { Alert, Button, Empty, Skeleton, Tag } from 'antd';
+import type { TransferStatus } from '@localbank/bank-api-client';
+import { dateTime, money, transferStatusText } from '@localbank/bank-ui-kit';
+import { customerApi } from '@/api/client';
 import { PageContainer } from '@/components/PageContainer';
-import type { PageState } from '@/components/PageContainer';
-import { apiClient } from '@/api/client';
-import type { TransferDetailResponse } from '@/types/models';
 
-const { Title } = Typography;
-
-function statusColor(status: string): string {
-  switch (status.toUpperCase()) {
-    case 'COMPLETED':
-    case 'SUCCESS':
-      return 'green';
-    case 'PENDING':
-    case 'PROCESSING':
-      return 'blue';
-    case 'FAILED':
-    case 'REJECTED':
-      return 'red';
-    default:
-      return 'default';
-  }
+const terminal = new Set<TransferStatus>(['SETTLED', 'FAILED', 'TIMED_OUT', 'RETURNED', 'REVERSED']);
+function presentation(status: TransferStatus): { tone: string; icon: string; title: string; lead: string } {
+  if (status === 'SETTLED') return { tone: 'success', icon: '✓', title: '转账已成功', lead: '资金已结算，感谢您的使用！' };
+  if (terminal.has(status)) return { tone: 'danger', icon: '×', title: '转账未完成', lead: '本次转账未能完成，请查看失败原因或稍后重试。' };
+  return { tone: 'progress', icon: '…', title: '转账处理中', lead: '申请已受理，状态更新后本页面会自动刷新。' };
 }
-
-function statusText(status: string): string {
-  switch (status.toUpperCase()) {
-    case 'COMPLETED':
-    case 'SUCCESS':
-      return '已完成';
-    case 'PENDING':
-      return '处理中';
-    case 'PROCESSING':
-      return '处理中';
-    case 'FAILED':
-      return '失败';
-    case 'REJECTED':
-      return '已拒绝';
-    default:
-      return status;
-  }
-}
-
 export function TransferResult(): JSX.Element {
-  const { paymentId } = useParams<{ paymentId: string }>();
-  const navigate = useNavigate();
-
-  const { data, isLoading, isError } = useQuery<TransferDetailResponse>({
-    queryKey: ['transfer', paymentId],
-    queryFn: () =>
-      apiClient.get<TransferDetailResponse>(`/transfers/${paymentId}`),
-    enabled: !!paymentId,
-  });
-
-  const pageState: PageState = isLoading
-    ? 'LOADING'
-    : isError
-      ? 'ERROR'
-      : 'READY';
-
-  return (
-    <PageContainer
-      pageId="customer.transfer.result"
-      state={pageState}
-      title="转账结果"
-    >
-      <div data-testid="transfer-result" style={{ padding: '24px' }}>
-        <Space direction="vertical" size="large" style={{ width: '100%' }}>
-          <Button onClick={() => navigate(-1)} data-testid="transfer-result-back">
-            返回
-          </Button>
-
-          {data !== undefined ? (
-            <Card>
-              <Title level={4}>转账详情</Title>
-              <Descriptions bordered column={1}>
-                <Descriptions.Item label="转账编号">
-                  <span data-testid="transfer-result-payment-id">
-                    {data.paymentId}
-                  </span>
-                </Descriptions.Item>
-                <Descriptions.Item label="状态">
-                  <Tag color={statusColor(data.status)} data-testid="transfer-result-status">
-                    {statusText(data.status)}
-                  </Tag>
-                </Descriptions.Item>
-                <Descriptions.Item label="金额">
-                  <span data-testid="transfer-result-amount">
-                    {data.amount} {data.currency}
-                  </span>
-                </Descriptions.Item>
-                <Descriptions.Item label="转出账户">
-                  <span data-testid="transfer-result-from-account">
-                    {data.fromAccountId}
-                  </span>
-                </Descriptions.Item>
-                <Descriptions.Item label="收款账户">
-                  <span data-testid="transfer-result-to-account">
-                    {data.toAccount}
-                  </span>
-                </Descriptions.Item>
-                {data.coreReference !== undefined && (
-                  <Descriptions.Item label="核心参考号">
-                    <span data-testid="transfer-result-core-reference">
-                      {data.coreReference}
-                    </span>
-                  </Descriptions.Item>
-                )}
-                <Descriptions.Item label="创建时间">
-                  {data.createdDate}
-                </Descriptions.Item>
-                {data.description !== undefined && (
-                  <Descriptions.Item label="备注">
-                    {data.description}
-                  </Descriptions.Item>
-                )}
-              </Descriptions>
-            </Card>
-          ) : (
-            !isLoading &&
-            !isError && (
-              <Empty description="未找到转账记录" data-testid="transfer-result-not-found" />
-            )
-          )}
-
-          <Space>
-            <Button
-              type="primary"
-              onClick={() => navigate('/transfers/new')}
-              data-testid="transfer-result-new-transfer"
-            >
-              新建转账
-            </Button>
-            <Button
-              onClick={() => navigate('/dashboard')}
-              data-testid="transfer-result-dashboard"
-            >
-              返回首页
-            </Button>
-          </Space>
-        </Space>
-      </div>
-    </PageContainer>
-  );
+  const navigate = useNavigate(); const { transferId = '' } = useParams<{ transferId: string }>();
+  const [receiptLoading, setReceiptLoading] = useState(false);
+  const [receiptError, setReceiptError] = useState<string>();
+  const query = useQuery({ queryKey: ['customer-transfer', transferId], queryFn: () => customerApi.getTransfer(transferId), enabled: Boolean(transferId), refetchInterval: (state) => state.state.data && !terminal.has(state.state.data.status) ? 2000 : false });
+  if (query.isLoading) return <PageContainer pageId="customer.transfer.result" state="READY"><Skeleton active paragraph={{ rows: 9 }} /></PageContainer>;
+  if (query.isError || !query.data) return <PageContainer pageId="customer.transfer.result" state="READY"><Empty description="未找到转账数据"><Button onClick={() => navigate('/transfers')}>返回转账列表</Button></Empty></PageContainer>;
+  const item = query.data; const view = presentation(item.status);
+  const downloadReceipt = async (): Promise<void> => {
+    setReceiptLoading(true); setReceiptError(undefined);
+    try {
+      const blob = await customerApi.getTransferReceiptPdf(item.transferId);
+      const url = URL.createObjectURL(blob);
+      const anchor = document.createElement('a');
+      anchor.href = url; anchor.download = `transfer-receipt-${item.transferId}.pdf`; anchor.click();
+      URL.revokeObjectURL(url);
+    } catch (error) { setReceiptError(error instanceof Error ? error.message : '电子回单下载失败，请稍后重试。'); }
+    finally { setReceiptLoading(false); }
+  };
+  return <PageContainer pageId="customer.transfer.result" state="READY"><div className="customer-breadcrumb">转账列表　/　<strong>转账结果</strong></div><section className="transfer-result" data-view-state={item.status}><span className={`transfer-result__icon transfer-result__icon--${view.tone}`}>{view.icon}</span><h1>{view.title}</h1><p className="transfer-result__lead">{view.lead}</p><div className="bank-card transfer-result__detail"><div className="transfer-result__grid"><div className="transfer-result__field"><label>转账参考号</label><strong>{item.transferId}</strong></div><div className="transfer-result__field"><label>状态</label><Tag className={`bank-status bank-status--${view.tone}`}>{transferStatusText[item.status]}</Tag></div><div className="transfer-result__field"><label>转出账户</label><strong>账户 {item.sourceAccountId}</strong></div><div className="transfer-result__field"><label>核心参考号</label><strong>{item.coreReference ?? '处理中生成'}</strong></div><div className="transfer-result__field"><label>收款账户</label><strong>{item.maskedDestinationAccount ?? `账户 ${item.destinationAccountId ?? '—'}`} {item.beneficiaryName ? `（${item.beneficiaryName}）` : ''}</strong></div><div className="transfer-result__field"><label>创建时间</label><strong>{dateTime(item.createdAt)}</strong></div><div className="transfer-result__field"><label>转账金额</label><strong className="transfer-result__amount">{money(item.amount, item.currency)}</strong></div><div className="transfer-result__field"><label>备注</label><strong>{item.reference ?? '—'}</strong></div>{item.failureDetail ? <div className="transfer-result__field"><label>失败原因</label><strong>{item.failureDetail}</strong></div> : null}</div></div>{receiptError ? <Alert type="error" showIcon closable message="电子回单下载失败" description={receiptError} onClose={() => setReceiptError(undefined)} style={{ maxWidth: 1120, margin: '20px auto 0', textAlign: 'left' }} /> : null}<div className="transfer-result__actions"><Button danger onClick={() => navigate('/transfers/new')}>再转一笔</Button>{item.receiptAvailable ? <Button loading={receiptLoading} onClick={() => void downloadReceipt()} data-testid="transfer-receipt-download">下载电子回单</Button> : null}<Button type="primary" onClick={() => navigate('/transfers')}>返回转账列表</Button></div></section></PageContainer>;
 }

@@ -1,4 +1,10 @@
 import { getAccessToken } from '@/auth/tokenStore';
+import { CustomerApiClient } from '@localbank/bank-api-client';
+
+export const customerApi = new CustomerApiClient({
+  baseUrl: '/api/customer/v1',
+  getAccessToken,
+});
 
 export class ApiError extends Error {
   constructor(

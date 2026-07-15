@@ -1,3 +1,15 @@
+---
+id: DOC-4C559D963E
+title: BANK-0002 local Fineract API index
+document_type: reference
+domain: baseline
+status: verified
+authority: evidence
+version: 1.0
+effective_date: 2026-07-15
+owner: project-owner
+---
+
 # BANK-0002 local Fineract API index
 
 ## Source and validation

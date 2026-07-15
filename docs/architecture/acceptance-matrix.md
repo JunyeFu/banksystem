@@ -1,3 +1,15 @@
+---
+id: DOC-48B156FA12
+title: Stage acceptance matrix
+document_type: reference
+domain: architecture
+status: accepted
+authority: normative
+version: 1.0
+effective_date: 2026-07-15
+owner: project-owner
+---
+
 # Stage acceptance matrix
 
 > Banking-core acceptance remains S0-S7 and is not replaced by v5.4. The combined external-demo product adds a separate v5.4 platform acceptance track; target capabilities must be marked planned, PoC, or `PENDING_ENTERPRISE_VALIDATION` until evidence exists.
@@ -12,7 +24,7 @@ Each stage has exit conditions and evidence requirements. A stage is not complet
 | All versions, images, ports, networks, volumes are frozen | `infra/versions.lock.yaml`, `infra/images.lock.txt`, `docs/baseline/port-network-volume-map.md` |
 | 5 ADRs are versioned and accepted | `docs/architecture/adr-001~005.md` |
 | Monorepo directory structure established per v4 section 4 | Directory tree with `.gitkeep` |
-| File ownership and Agent task boundaries defined | `agent/file-ownership.yaml` |
+| File ownership and Agent task boundaries defined | `agent/ownership.yaml` |
 | Stage-level acceptance matrix, risk register, rollback principles defined | This file, `docs/baseline/risk-register.md`, `docs/architecture/rollback-principles.md` |
 | No core business change | No modification to Fineract, Mifos X, core DB, or core compose |
 

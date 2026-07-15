@@ -1,0 +1,13 @@
+import type { components } from './generated/quality-api';
+export type Gate='PASS'|'BLOCKED'|'PENDING';
+export type ServiceHealth=components['schemas']['ServiceHealth'];
+export type Overview=components['schemas']['Overview'];
+export type QualityCase=components['schemas']['QualityCase'];
+export type QualityCaseDetail=components['schemas']['QualityCaseDetail'];
+export type Baseline=components['schemas']['Baseline'];
+export type RegressionRun=components['schemas']['RegressionRun'];
+export type Schedule=components['schemas']['Schedule'];
+export type Incident=components['schemas']['Incident'];
+export type KnowledgeStatus=components['schemas']['KnowledgeStatus'];
+export type ReleaseEvidence=components['schemas']['ReleaseEvidence'];
+export type Problem=components['schemas']['Problem'];

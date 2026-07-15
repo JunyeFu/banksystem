@@ -1,34 +1,3 @@
-export type TransferStatus =
-  | 'CREATED'
-  | 'VALIDATING'
-  | 'RISK_REVIEW'
-  | 'PENDING_APPROVAL'
-  | 'PENDING_CORE_POSTING'
-  | 'PENDING_CLEARING'
-  | 'SETTLED'
-  | 'FAILED'
-  | 'TIMED_OUT'
-  | 'RETURNED'
-  | 'REVERSAL_PENDING'
-  | 'REVERSED';
-
-export interface Transfer {
-  transferId: string;
-  status: TransferStatus;
-  amount: string;
-  currency: string;
-  coreReference: string | null;
-  correlationId: string | null;
-}
-
-export interface TransferRequest {
-  sourceAccountId: string;
-  destinationAccountId: string;
-  amount: string;
-  currency: string;
-  reference?: string;
-}
-
 export type ApprovalStatus = 'PENDING' | 'APPROVED' | 'REJECTED' | 'EXPIRED';
 
 export type RiskLevel = 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL';
@@ -72,31 +41,6 @@ export interface DashboardSummary {
   activePayments: number;
   failedPayments: number;
   systemHealth: string;
-}
-
-export interface TransferStateHistoryEntry {
-  id: string;
-  fromStatus: TransferStatus | null;
-  toStatus: TransferStatus;
-  reasonCode: string | null;
-  actorType: string;
-  actorId: string;
-  createdAt: string;
-}
-
-export interface OutboxEvent {
-  id: string;
-  eventType: string;
-  status: string;
-  attemptCount: number;
-  createdAt: string;
-  publishedAt: string | null;
-}
-
-export interface TransferDetail extends Transfer {
-  stateHistory: TransferStateHistoryEntry[];
-  outboxEvents: OutboxEvent[];
-  auditCount: number;
 }
 
 export type ReconciliationBatchType =

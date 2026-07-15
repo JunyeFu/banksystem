@@ -1,14 +1,26 @@
+---
+id: DOC-418D3BC22F
+title: Rollback principles
+document_type: reference
+domain: architecture
+status: accepted
+authority: normative
+version: 1.0
+effective_date: 2026-07-15
+owner: project-owner
+---
+
 # Rollback principles
 
 Scope: banking-core Track within the v5.4 external-demo product.
-The v5.4 regression-platform rollback rules are defined in `docs/architecture/v5.4-reference/` and must not weaken these banking invariants.
+The v5.4 regression-platform rollback rules are defined in `docs/archive/architecture/v5.4-reference/` and must not weaken these banking invariants.
 Frozen: 2026-07-11 as part of S0 baseline governance.
 
 ## Stage-level rollback
 
 1. A stage that fails its exit conditions MUST NOT proceed to the next stage.
 2. A failed stage is rolled back to its last known good state using stage-level backups.
-3. Rollback evidence (what was rolled back, why, and to what state) MUST be recorded in `agent/reports/`.
+3. Rollback evidence (what was rolled back, why, and to what state) MUST be recorded in `docs/evidence/agent-reports/`.
 
 ## Business date rollback
 

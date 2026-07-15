@@ -1,0 +1,98 @@
+{
+    "schemaVersion":  1,
+    "evidenceType":  "frontend-visual-regression-baseline",
+    "generatedAt":  "2026-07-15T12:45:57.8705721+00:00",
+    "sourceCommit":  "bf7ce95681a4c629c251b72458829a9598d507ce",
+    "contractVersion":  "quality-platform-api-1.0",
+    "baselineVersion":  "hengzhun-windows-chromium-v1",
+    "environment":  {
+                        "operatingSystem":  "Windows",
+                        "browser":  "Chromium",
+                        "viewport":  "1440x900",
+                        "locale":  "zh-CN",
+                        "timezone":  "Asia/Shanghai",
+                        "colorScheme":  "light",
+                        "reducedMotion":  true
+                    },
+    "businessAssertions":  [
+                               "Hengzhun uses an independent nine-page information architecture spanning B0 through B7 and does not reuse bank PV identifiers.",
+                               "No supplied preview image covers Hengzhun; multimodal review therefore compares the implementation with the accepted Hengzhun design document and shared design system, not with bank screenshots.",
+                               "Production pages consume only the formal /api/quality/v1 contract and expose explicit loading, empty, error, and retry states.",
+                               "Browser fixtures are deterministic synthetic responses used only for UI and interaction verification; they do not claim that the platform backend is implemented.",
+                               "All browser automation, evidence, validation, and recovery controls are represented as local execution boundaries, while GPT receives only minimal redacted context."
+                           ],
+    "cases":  [
+                  {
+                      "visualId":  "HZ-0001",
+                      "pageId":  "quality.dashboard",
+                      "testId":  "quality-platform-visual.spec.ts::HZ-0001",
+                      "baselinePath":  "tests/e2e/frontend-quality-platform/snapshots/HZ-0001.png",
+                      "sha256":  "aef35148f1ecc921731f8ac439bdd5788b93367adfa55b91c37945671e3a3e20",
+                      "bytes":  68952
+                  },
+                  {
+                      "visualId":  "HZ-0002",
+                      "pageId":  "quality.cases",
+                      "testId":  "quality-platform-visual.spec.ts::HZ-0002",
+                      "baselinePath":  "tests/e2e/frontend-quality-platform/snapshots/HZ-0002.png",
+                      "sha256":  "35e6e7cf2ef2863f3dea2580e0b9b33e3fa6e8d0abc40fc2a3fd0ee06456f15a",
+                      "bytes":  57919
+                  },
+                  {
+                      "visualId":  "HZ-0003",
+                      "pageId":  "quality.case.detail",
+                      "testId":  "quality-platform-visual.spec.ts::HZ-0003",
+                      "baselinePath":  "tests/e2e/frontend-quality-platform/snapshots/HZ-0003.png",
+                      "sha256":  "58f223e55544da7666331fc0646d721eda842a739fd632277e8e8dfa0a3ff75b",
+                      "bytes":  55085
+                  },
+                  {
+                      "visualId":  "HZ-0004",
+                      "pageId":  "quality.baselines",
+                      "testId":  "quality-platform-visual.spec.ts::HZ-0004",
+                      "baselinePath":  "tests/e2e/frontend-quality-platform/snapshots/HZ-0004.png",
+                      "sha256":  "8963b028a566c5486ba67f383f1372aa5bf66661803a8e97639c09a5452b40d1",
+                      "bytes":  52101
+                  },
+                  {
+                      "visualId":  "HZ-0005",
+                      "pageId":  "quality.runs",
+                      "testId":  "quality-platform-visual.spec.ts::HZ-0005",
+                      "baselinePath":  "tests/e2e/frontend-quality-platform/snapshots/HZ-0005.png",
+                      "sha256":  "10f300b44e7b1347ff410a27a5920bb1c41389e505bee8f7c7cecf34da43e910",
+                      "bytes":  50044
+                  },
+                  {
+                      "visualId":  "HZ-0006",
+                      "pageId":  "quality.schedules",
+                      "testId":  "quality-platform-visual.spec.ts::HZ-0006",
+                      "baselinePath":  "tests/e2e/frontend-quality-platform/snapshots/HZ-0006.png",
+                      "sha256":  "1624f6229d498f26fe4bf2da13cbc353b48587c25bfa7f3ea63572ce9abad9e5",
+                      "bytes":  47465
+                  },
+                  {
+                      "visualId":  "HZ-0007",
+                      "pageId":  "quality.incidents",
+                      "testId":  "quality-platform-visual.spec.ts::HZ-0007",
+                      "baselinePath":  "tests/e2e/frontend-quality-platform/snapshots/HZ-0007.png",
+                      "sha256":  "c6a3e55bca1ef4d56d961d66286551f36048d3ab750e5c87f9af0837110534ee",
+                      "bytes":  49192
+                  },
+                  {
+                      "visualId":  "HZ-0008",
+                      "pageId":  "quality.knowledge",
+                      "testId":  "quality-platform-visual.spec.ts::HZ-0008",
+                      "baselinePath":  "tests/e2e/frontend-quality-platform/snapshots/HZ-0008.png",
+                      "sha256":  "99df6186753c1d9418967676ab74f00ac5878845314a4b88da13f5a618bb147d",
+                      "bytes":  51551
+                  },
+                  {
+                      "visualId":  "HZ-0009",
+                      "pageId":  "quality.releases",
+                      "testId":  "quality-platform-visual.spec.ts::HZ-0009",
+                      "baselinePath":  "tests/e2e/frontend-quality-platform/snapshots/HZ-0009.png",
+                      "sha256":  "4d105955bcfd76755116a879f10311483a77b6fb8c27b1d24fb9360450f3adc7",
+                      "bytes":  50547
+                  }
+              ]
+}
