@@ -19,3 +19,5 @@ databaseChangeLog:
       file: db/changelog/v5-transfer-read-model.yaml
   - include:
       file: db/changelog/v6-eod-idempotency.yaml
+  - include:
+      file: db/changelog/v7-operations-documents.yaml

@@ -39,6 +39,14 @@ export type OperationsReconciliationType = OperationsComponents['schemas']['Reco
 export type OperationsReconciliationStatus = OperationsComponents['schemas']['ReconciliationStatus'];
 export type OperationsEodRun = OperationsComponents['schemas']['EodRun'];
 export type OperationsEodStatus = OperationsComponents['schemas']['EodStatus'];
+export type OperationsDocument = OperationsComponents['schemas']['OperationsDocument'];
+export type OperationsDocumentCategory = OperationsComponents['schemas']['DocumentCategory'];
+export type OperationsDocumentStatus = OperationsComponents['schemas']['DocumentStatus'];
+export type OperationsAuditEvent = OperationsComponents['schemas']['AuditEvent'];
+export type OperationsAuditOutcome = OperationsComponents['schemas']['AuditOutcome'];
+export type OperationsHashChainVerification = OperationsComponents['schemas']['HashChainVerification'];
+export type OperationsSystemHealth = OperationsComponents['schemas']['SystemHealthSnapshot'];
+export type OperationsMonitoringAlert = OperationsComponents['schemas']['MonitoringAlert'];
 export type CustomerTransferRequest = NonNullable<CustomerOperations['createCustomerTransfer']['requestBody']>['content']['application/json'];
 export type TransferAccepted = CustomerComponents['schemas']['TransferAccepted'];
 export type ProblemDetail = CustomerComponents['schemas']['Problem'] & {
@@ -66,7 +74,7 @@ class BaseClient {
     const headers = new Headers(init.headers);
     const token = this.configuration.getAccessToken();
     if (token) headers.set('Authorization', `Bearer ${token}`);
-    if (init.body !== undefined) headers.set('Content-Type', 'application/json');
+    if (init.body !== undefined && !(init.body instanceof FormData)) headers.set('Content-Type', 'application/json');
     const response = await fetch(`${this.configuration.baseUrl}${path}`, { ...init, headers });
     if (!response.ok) {
       let problem: ProblemDetail = { type: 'about:blank', title: response.statusText, status: response.status, code: 'HTTP_ERROR' };
@@ -171,6 +179,28 @@ export class OperationsApiClient extends BaseClient {
   }
   runEod(idempotencyKey: string): Promise<OperationsEodRun> {
     return this.request('/eod/run', { method: 'POST', headers: { 'Idempotency-Key': idempotencyKey } });
+  }
+  listDocuments(options: { category?: OperationsDocumentCategory; status?: OperationsDocumentStatus; query?: string } = {}): Promise<OperationsDocument[]> {
+    return this.request(`/documents${queryString(options)}`);
+  }
+  uploadDocument(input: { file: File; title: string; category: OperationsDocumentCategory; description?: string }): Promise<OperationsDocument> {
+    const form = new FormData(); form.set('file', input.file); form.set('title', input.title); form.set('category', input.category); if (input.description) form.set('description', input.description);
+    return this.request('/documents', { method: 'POST', body: form });
+  }
+  updateDocumentStatus(documentId: string, status: OperationsDocumentStatus): Promise<OperationsDocument> {
+    return this.request(`/documents/${encodeURIComponent(documentId)}/status`, { method: 'PATCH', body: JSON.stringify({ status }) });
+  }
+  downloadDocument(documentId: string): Promise<Blob> {
+    return this.request(`/documents/${encodeURIComponent(documentId)}/download`, {}, 'blob');
+  }
+  listAuditEvents(options: { eventType?: string; actorId?: string; outcome?: OperationsAuditOutcome; correlationId?: string } = {}): Promise<OperationsAuditEvent[]> {
+    return this.request(`/audit/events${queryString(options)}`);
+  }
+  verifyAuditHashChain(): Promise<OperationsHashChainVerification> {
+    return this.request('/audit/verify');
+  }
+  getSystemHealth(): Promise<OperationsSystemHealth> {
+    return this.request('/system-health');
   }
   listTransfers(options: { status?: TransferStatus; currency?: string; query?: string; from?: string; to?: string; page?: number; size?: number } = {}): Promise<OperationsTransferPage> {
     return this.request(`/transfers${queryString(options)}`);

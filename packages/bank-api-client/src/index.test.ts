@@ -128,6 +128,23 @@ describe('generated-contract API clients', () => {
     expect(new Headers((fetchMock.mock.calls[4]?.[1] as RequestInit).headers).get('Idempotency-Key')).toBe('1234567890abcdef');
   });
 
+  it('uses document, audit, and system-health routes', async () => {
+    const fetchMock = vi.fn().mockImplementation(() => Promise.resolve(response([])));
+    vi.stubGlobal('fetch', fetchMock);
+    const client = new OperationsApiClient({ baseUrl: '/api/operations/v1', getAccessToken: () => null });
+    await client.listDocuments({ category: 'POLICY', status: 'PUBLISHED', query: '制度' });
+    await client.updateDocumentStatus('document/1', 'ARCHIVED');
+    await client.listAuditEvents({ actorId: 'auditor', outcome: 'SUCCESS', correlationId: 'CORR-1' });
+    await client.verifyAuditHashChain();
+    await client.getSystemHealth();
+    expect(fetchMock.mock.calls[0]?.[0]).toContain('/documents?category=POLICY&status=PUBLISHED&query=');
+    expect(fetchMock.mock.calls[1]?.[0]).toContain('/documents/document%2F1/status');
+    expect((fetchMock.mock.calls[1]?.[1] as RequestInit).method).toBe('PATCH');
+    expect(fetchMock.mock.calls[2]?.[0]).toContain('/audit/events?actorId=auditor&outcome=SUCCESS&correlationId=CORR-1');
+    expect(fetchMock.mock.calls[3]?.[0]).toBe('/api/operations/v1/audit/verify');
+    expect(fetchMock.mock.calls[4]?.[0]).toBe('/api/operations/v1/system-health');
+  });
+
   it('downloads a customer receipt as a PDF blob', async () => {
     const fetchMock = vi.fn().mockResolvedValue(new Response('%PDF-1.4', { status: 200, headers: { 'Content-Type': 'application/pdf' } }));
     vi.stubGlobal('fetch', fetchMock);

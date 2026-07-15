@@ -214,6 +214,113 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/documents": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List persisted operations documents */
+        get: operations["listOperationsDocuments"];
+        put?: never;
+        /** Upload a document into the governed operations repository */
+        post: operations["uploadOperationsDocument"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/documents/{documentId}/status": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                documentId: string;
+            };
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** Publish or archive an operations document */
+        patch: operations["updateOperationsDocumentStatus"];
+        trace?: never;
+    };
+    "/documents/{documentId}/download": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                documentId: string;
+            };
+            cookie?: never;
+        };
+        /** Download governed document content */
+        get: operations["downloadOperationsDocument"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/audit/events": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Query immutable security audit events */
+        get: operations["listAuditEvents"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/audit/verify": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Verify audit-event hash continuity and record integrity */
+        get: operations["verifyAuditHashChain"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/system-health": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get service and active-alert health snapshot */
+        get: operations["getSystemHealth"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/internal/monitoring/alerts": {
         parameters: {
             query?: never;
@@ -277,6 +384,81 @@ export interface paths {
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
+        /** @enum {string} */
+        DocumentCategory: "POLICY" | "PROCEDURE" | "REPORT" | "COMPLIANCE" | "OTHER";
+        /** @enum {string} */
+        DocumentStatus: "DRAFT" | "PUBLISHED" | "ARCHIVED";
+        OperationsDocument: {
+            /** Format: uuid */
+            documentId: string;
+            title: string;
+            category: components["schemas"]["DocumentCategory"];
+            status: components["schemas"]["DocumentStatus"];
+            version: number;
+            uploadedBy: string;
+            /** Format: date-time */
+            uploadedAt: string;
+            fileName: string;
+            contentType: string;
+            fileSize: number;
+            checksum: string;
+            description?: string | null;
+        };
+        /** @enum {string} */
+        AuditOutcome: "SUCCESS" | "FAILURE" | "DENIED";
+        AuditEvent: {
+            /** Format: uuid */
+            eventId: string;
+            /** Format: date-time */
+            timestamp: string;
+            eventType: string;
+            actorId: string;
+            action: string;
+            resourceType: string | null;
+            resourceId: string | null;
+            outcome: components["schemas"]["AuditOutcome"];
+            recordHash: string;
+            previousHash?: string | null;
+            correlationId?: string | null;
+        };
+        HashChainVerification: {
+            verified: boolean;
+            totalEvents: number;
+            /** Format: uuid */
+            brokenAtEventId: string | null;
+            lastVerifiedHash: string | null;
+        };
+        ServiceHealth: {
+            serviceName: string;
+            /** @enum {string} */
+            status: "UP" | "DOWN";
+            latencyMs: number;
+        };
+        MonitoringAlert: {
+            alertId: string;
+            code: string;
+            /** @enum {string} */
+            severity: "INFO" | "WARNING" | "ERROR" | "CRITICAL";
+            /** @enum {string} */
+            status: "FIRING" | "RESOLVED";
+            serviceName: string;
+            message: string;
+            /** Format: date-time */
+            triggeredAt: string;
+            /** Format: date-time */
+            resolvedAt?: string | null;
+            labels: {
+                [key: string]: string;
+            };
+        };
+        SystemHealthSnapshot: {
+            /** @enum {string} */
+            overallStatus: "HEALTHY" | "DEGRADED";
+            /** Format: date-time */
+            checkedAt: string;
+            services: components["schemas"]["ServiceHealth"][];
+            alerts: components["schemas"]["MonitoringAlert"][];
+        };
         /** @enum {string} */
         ClearingBatchStatus: "PROCESSING" | "COMPLETED" | "FAILED";
         ClearingBatch: {
@@ -663,6 +845,7 @@ export interface operations {
                     "application/json": components["schemas"]["ReconciliationRun"][];
                 };
             };
+            401: components["responses"]["Problem"];
         };
     };
     runReconciliation: {
@@ -689,6 +872,8 @@ export interface operations {
                     "application/json": components["schemas"]["ReconciliationRun"];
                 };
             };
+            400: components["responses"]["Problem"];
+            401: components["responses"]["Problem"];
         };
     };
     getLatestEodRun: {
@@ -709,6 +894,7 @@ export interface operations {
                     "application/json": components["schemas"]["EodRun"];
                 };
             };
+            401: components["responses"]["Problem"];
         };
     };
     runEod: {
@@ -731,6 +917,8 @@ export interface operations {
                     "application/json": components["schemas"]["EodRun"];
                 };
             };
+            401: components["responses"]["Problem"];
+            409: components["responses"]["Problem"];
         };
     };
     listOperationsTransfers: {
@@ -868,6 +1056,189 @@ export interface operations {
                 content?: never;
             };
             409: components["responses"]["Problem"];
+        };
+    };
+    listOperationsDocuments: {
+        parameters: {
+            query?: {
+                category?: components["schemas"]["DocumentCategory"];
+                status?: components["schemas"]["DocumentStatus"];
+                query?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Document metadata list */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OperationsDocument"][];
+                };
+            };
+            401: components["responses"]["Problem"];
+            403: components["responses"]["Problem"];
+        };
+    };
+    uploadOperationsDocument: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "multipart/form-data": {
+                    /** Format: binary */
+                    file: string;
+                    title: string;
+                    category: components["schemas"]["DocumentCategory"];
+                    description?: string;
+                };
+            };
+        };
+        responses: {
+            /** @description Uploaded document metadata */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OperationsDocument"];
+                };
+            };
+            400: components["responses"]["Problem"];
+            401: components["responses"]["Problem"];
+            403: components["responses"]["Problem"];
+        };
+    };
+    updateOperationsDocumentStatus: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                documentId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    status: components["schemas"]["DocumentStatus"];
+                };
+            };
+        };
+        responses: {
+            /** @description Updated document metadata */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OperationsDocument"];
+                };
+            };
+            400: components["responses"]["Problem"];
+            404: components["responses"]["Problem"];
+        };
+    };
+    downloadOperationsDocument: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                documentId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Original document bytes */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/octet-stream": string;
+                };
+            };
+            404: components["responses"]["Problem"];
+        };
+    };
+    listAuditEvents: {
+        parameters: {
+            query?: {
+                eventType?: string;
+                actorId?: string;
+                outcome?: components["schemas"]["AuditOutcome"];
+                correlationId?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Audit event list */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AuditEvent"][];
+                };
+            };
+            401: components["responses"]["Problem"];
+            403: components["responses"]["Problem"];
+        };
+    };
+    verifyAuditHashChain: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Hash-chain verification result */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HashChainVerification"];
+                };
+            };
+            401: components["responses"]["Problem"];
+            403: components["responses"]["Problem"];
+        };
+    };
+    getSystemHealth: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Current system health snapshot */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SystemHealthSnapshot"];
+                };
+            };
+            401: components["responses"]["Problem"];
+            403: components["responses"]["Problem"];
         };
     };
     getMonitoringAlerts: {

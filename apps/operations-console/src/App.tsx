@@ -18,10 +18,10 @@ import { SystemHealth } from '@/pages/SystemHealth';
 
 const { Header, Sider, Content } = Layout;
 const entries = [
-  ['/dashboard', '⌂', '首页概览'], ['/system-health', '◉', '监控总览'], ['/payments', '▣', '支付监控'],
+  ['/dashboard', '⌂', '首页概览'], ['/system-health', '◉', '系统健康'], ['/payments', '▣', '支付监控'],
   ['/clearing', '◎', '清算监控'], ['/reconciliation', '▤', '对账管理'], ['/approvals', '⚠', '异常处理'],
-  ['/risk/alerts', '△', '风险告警'], ['/risk/cases', '◇', '风险案件'], ['/eod', '▧', '日终处理'], ['/documents', '□', '报表中心'],
-  ['/audit', '≡', '日志查询'],
+  ['/risk/alerts', '△', '风险告警'], ['/risk/cases', '◇', '风险案件'], ['/eod', '▧', '日终处理'], ['/documents', '□', '文档管理'],
+  ['/audit', '≡', '审计追踪'],
 ] as const;
 function selected(pathname: string): string { return entries.find(([path]) => pathname === path || pathname.startsWith(`${path}/`))?.[0] ?? '/dashboard'; }
 

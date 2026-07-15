@@ -195,6 +195,115 @@ paths:
       responses:
         '200': { description: Pending reversal }
         '409': { $ref: '#/components/responses/Problem' }
+  /documents:
+    get:
+      operationId: listOperationsDocuments
+      summary: List persisted operations documents
+      parameters:
+        - { name: category, in: query, schema: { $ref: '#/components/schemas/DocumentCategory' } }
+        - { name: status, in: query, schema: { $ref: '#/components/schemas/DocumentStatus' } }
+        - { name: query, in: query, schema: { type: string, maxLength: 120 } }
+      responses:
+        '200':
+          description: Document metadata list
+          content:
+            application/json: { schema: { type: array, items: { $ref: '#/components/schemas/OperationsDocument' } } }
+        '401': { $ref: '#/components/responses/Problem' }
+        '403': { $ref: '#/components/responses/Problem' }
+    post:
+      operationId: uploadOperationsDocument
+      summary: Upload a document into the governed operations repository
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required: [file, title, category]
+              properties:
+                file: { type: string, format: binary }
+                title: { type: string, minLength: 1, maxLength: 240 }
+                category: { $ref: '#/components/schemas/DocumentCategory' }
+                description: { type: string, maxLength: 1000 }
+      responses:
+        '200':
+          description: Uploaded document metadata
+          content:
+            application/json: { schema: { $ref: '#/components/schemas/OperationsDocument' } }
+        '400': { $ref: '#/components/responses/Problem' }
+        '401': { $ref: '#/components/responses/Problem' }
+        '403': { $ref: '#/components/responses/Problem' }
+  /documents/{documentId}/status:
+    parameters:
+      - { name: documentId, in: path, required: true, schema: { type: string, format: uuid } }
+    patch:
+      operationId: updateOperationsDocumentStatus
+      summary: Publish or archive an operations document
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [status]
+              properties: { status: { $ref: '#/components/schemas/DocumentStatus' } }
+      responses:
+        '200':
+          description: Updated document metadata
+          content:
+            application/json: { schema: { $ref: '#/components/schemas/OperationsDocument' } }
+        '400': { $ref: '#/components/responses/Problem' }
+        '404': { $ref: '#/components/responses/Problem' }
+  /documents/{documentId}/download:
+    parameters:
+      - { name: documentId, in: path, required: true, schema: { type: string, format: uuid } }
+    get:
+      operationId: downloadOperationsDocument
+      summary: Download governed document content
+      responses:
+        '200':
+          description: Original document bytes
+          content:
+            application/octet-stream: { schema: { type: string, format: binary } }
+        '404': { $ref: '#/components/responses/Problem' }
+  /audit/events:
+    get:
+      operationId: listAuditEvents
+      summary: Query immutable security audit events
+      parameters:
+        - { name: eventType, in: query, schema: { type: string, maxLength: 128 } }
+        - { name: actorId, in: query, schema: { type: string, maxLength: 128 } }
+        - { name: outcome, in: query, schema: { $ref: '#/components/schemas/AuditOutcome' } }
+        - { name: correlationId, in: query, schema: { type: string, maxLength: 128 } }
+      responses:
+        '200':
+          description: Audit event list
+          content:
+            application/json: { schema: { type: array, items: { $ref: '#/components/schemas/AuditEvent' } } }
+        '401': { $ref: '#/components/responses/Problem' }
+        '403': { $ref: '#/components/responses/Problem' }
+  /audit/verify:
+    get:
+      operationId: verifyAuditHashChain
+      summary: Verify audit-event hash continuity and record integrity
+      responses:
+        '200':
+          description: Hash-chain verification result
+          content:
+            application/json: { schema: { $ref: '#/components/schemas/HashChainVerification' } }
+        '401': { $ref: '#/components/responses/Problem' }
+        '403': { $ref: '#/components/responses/Problem' }
+  /system-health:
+    get:
+      operationId: getSystemHealth
+      summary: Get service and active-alert health snapshot
+      responses:
+        '200':
+          description: Current system health snapshot
+          content:
+            application/json: { schema: { $ref: '#/components/schemas/SystemHealthSnapshot' } }
+        '401': { $ref: '#/components/responses/Problem' }
+        '403': { $ref: '#/components/responses/Problem' }
   /internal/monitoring/alerts:
     get:
       operationId: getMonitoringAlerts
@@ -279,6 +388,88 @@ components:
       content:
         application/problem+json: { schema: { $ref: '#/components/schemas/Problem' } }
   schemas:
+    DocumentCategory:
+      type: string
+      enum: [POLICY, PROCEDURE, REPORT, COMPLIANCE, OTHER]
+    DocumentStatus:
+      type: string
+      enum: [DRAFT, PUBLISHED, ARCHIVED]
+    OperationsDocument:
+      type: object
+      additionalProperties: false
+      required: [documentId, title, category, status, version, uploadedBy, uploadedAt, fileName, contentType, fileSize, checksum]
+      properties:
+        documentId: { type: string, format: uuid }
+        title: { type: string }
+        category: { $ref: '#/components/schemas/DocumentCategory' }
+        status: { $ref: '#/components/schemas/DocumentStatus' }
+        version: { type: integer, minimum: 1 }
+        uploadedBy: { type: string }
+        uploadedAt: { type: string, format: date-time }
+        fileName: { type: string }
+        contentType: { type: string }
+        fileSize: { type: integer, minimum: 0 }
+        checksum: { type: string, pattern: '^[0-9a-f]{64}$' }
+        description: { type: [string, 'null'] }
+    AuditOutcome:
+      type: string
+      enum: [SUCCESS, FAILURE, DENIED]
+    AuditEvent:
+      type: object
+      additionalProperties: false
+      required: [eventId, timestamp, eventType, actorId, action, resourceType, resourceId, outcome, recordHash]
+      properties:
+        eventId: { type: string, format: uuid }
+        timestamp: { type: string, format: date-time }
+        eventType: { type: string }
+        actorId: { type: string }
+        action: { type: string }
+        resourceType: { type: [string, 'null'] }
+        resourceId: { type: [string, 'null'] }
+        outcome: { $ref: '#/components/schemas/AuditOutcome' }
+        recordHash: { type: string }
+        previousHash: { type: [string, 'null'] }
+        correlationId: { type: [string, 'null'] }
+    HashChainVerification:
+      type: object
+      additionalProperties: false
+      required: [verified, totalEvents, brokenAtEventId, lastVerifiedHash]
+      properties:
+        verified: { type: boolean }
+        totalEvents: { type: integer, minimum: 0 }
+        brokenAtEventId: { type: [string, 'null'], format: uuid }
+        lastVerifiedHash: { type: [string, 'null'] }
+    ServiceHealth:
+      type: object
+      additionalProperties: false
+      required: [serviceName, status, latencyMs]
+      properties:
+        serviceName: { type: string }
+        status: { type: string, enum: [UP, DOWN] }
+        latencyMs: { type: integer, minimum: 0 }
+    MonitoringAlert:
+      type: object
+      additionalProperties: false
+      required: [alertId, code, severity, status, serviceName, message, triggeredAt, labels]
+      properties:
+        alertId: { type: string }
+        code: { type: string }
+        severity: { type: string, enum: [INFO, WARNING, ERROR, CRITICAL] }
+        status: { type: string, enum: [FIRING, RESOLVED] }
+        serviceName: { type: string }
+        message: { type: string }
+        triggeredAt: { type: string, format: date-time }
+        resolvedAt: { type: [string, 'null'], format: date-time }
+        labels: { type: object, additionalProperties: { type: string } }
+    SystemHealthSnapshot:
+      type: object
+      additionalProperties: false
+      required: [overallStatus, checkedAt, services, alerts]
+      properties:
+        overallStatus: { type: string, enum: [HEALTHY, DEGRADED] }
+        checkedAt: { type: string, format: date-time }
+        services: { type: array, items: { $ref: '#/components/schemas/ServiceHealth' } }
+        alerts: { type: array, items: { $ref: '#/components/schemas/MonitoringAlert' } }
     ClearingBatchStatus:
       type: string
       enum: [PROCESSING, COMPLETED, FAILED]

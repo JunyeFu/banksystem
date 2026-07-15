@@ -1,6 +1,10 @@
 server:
   port: ${SERVER_PORT:8080}
 spring:
+  servlet:
+    multipart:
+      max-file-size: 20MB
+      max-request-size: 21MB
   datasource:
     url: ${CHANNEL_DB_URL:jdbc:postgresql://bank-channel-postgres:5432/bank_channel}
     username: ${CHANNEL_DB_USER:bank_channel}
