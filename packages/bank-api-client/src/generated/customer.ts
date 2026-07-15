@@ -492,6 +492,17 @@ export interface components {
             startDate?: string;
             /** Format: date */
             endDate?: string;
+            repaymentSchedule: components["schemas"]["RepaymentInstallment"][];
+        };
+        RepaymentInstallment: {
+            period: number;
+            /** Format: date */
+            dueDate: string;
+            principalDue: components["schemas"]["Money"];
+            interestDue: components["schemas"]["Money"];
+            totalDue: components["schemas"]["Money"];
+            /** @enum {string} */
+            status: "PAID" | "DUE";
         };
         LoanPage: {
             items: components["schemas"]["LoanSummary"][];

@@ -1,156 +1,38 @@
 import { useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
-import { Table, Button, Tag, Empty, Skeleton, Space } from 'antd';
-import type { TableProps } from 'antd';
-import { PageContainer } from '@/components/PageContainer';
-import type { PageState } from '@/components/PageContainer';
+import { Alert, Button, Empty, Skeleton, Table, Tag } from 'antd';
+import type { ColumnsType } from 'antd/es/table';
+import type { LoanSummary } from '@localbank/bank-api-client';
+import { money } from '@localbank/bank-ui-kit';
 import { customerApi } from '@/api/client';
-import type { LoanSummary as Loan } from '@localbank/bank-api-client';
+import { PageContainer } from '@/components/PageContainer';
 
-function statusColor(status: string): string {
-  switch (status.toUpperCase()) {
-    case 'APPROVED':
-    case 'ACTIVE':
-    case 'DISBURSED':
-      return 'green';
-    case 'PENDING':
-    case 'REVIEW':
-      return 'blue';
-    case 'REJECTED':
-    case 'CLOSED':
-      return 'red';
-    default:
-      return 'default';
-  }
-}
-
-function statusText(status: string): string {
-  switch (status.toUpperCase()) {
-    case 'APPROVED':
-      return '已批准';
-    case 'ACTIVE':
-      return '活跃';
-    case 'DISBURSED':
-      return '已放款';
-    case 'PENDING':
-      return '待审核';
-    case 'REVIEW':
-      return '审核中';
-    case 'REJECTED':
-      return '已拒绝';
-    case 'CLOSED':
-      return '已结清';
-    default:
-      return status;
-  }
-}
-
-const loanColumns = (
-  navigate: (path: string) => void,
-): TableProps<Loan>['columns'] => [
-  {
-    title: '贷款产品',
-    dataIndex: 'loanProductName',
-    key: 'loanProductName',
-  },
-  {
-    title: '本金',
-    dataIndex: 'principal',
-    key: 'principal',
-    width: 140,
-    render: (value: string, record: Loan) => `${value} ${record.currency}`,
-  },
-  {
-    title: '未还余额',
-    dataIndex: 'outstandingBalance',
-    key: 'outstandingBalance',
-    width: 140,
-    render: (value: string, record: Loan) => `${value} ${record.currency}`,
-  },
-  {
-    title: '状态',
-    dataIndex: 'status',
-    key: 'status',
-    width: 120,
-    render: (value: string, record: Loan) => (
-      <Tag
-        color={statusColor(value)}
-        data-testid={`loan-status-${record.loanId}`}
-      >
-        {statusText(value)}
-      </Tag>
-    ),
-  },
-  {
-    title: '操作',
-    key: 'action',
-    width: 100,
-    render: (_: unknown, record: Loan) => (
-      <Button
-        type="link"
-        onClick={() => navigate(`/loans/${record.loanId}`)}
-        data-testid={`loan-view-${record.loanId}`}
-      >
-        查看
-      </Button>
-    ),
-  },
-];
+const status = (value: string): JSX.Element => {
+  const normalized = value.toUpperCase();
+  if (['ACTIVE', 'APPROVED', 'DISBURSED'].includes(normalized)) return <Tag color="green">正常</Tag>;
+  if (normalized === 'CLOSED') return <Tag>已结清</Tag>;
+  return <Tag color="blue">{value}</Tag>;
+};
 
 export function LoanList(): JSX.Element {
   const navigate = useNavigate();
-
-  const { data, isLoading, isError } = useQuery({
-    queryKey: ['loans'],
-    queryFn: () => customerApi.listLoans(),
-  });
-
-  const pageState: PageState = isLoading
-    ? 'LOADING'
-    : isError
-      ? 'ERROR'
-      : 'READY';
-
-  const loans = data?.items ?? [];
-
-  return (
-    <PageContainer
-      pageId="customer.loans"
-      state={pageState}
-      title="贷款列表"
-    >
-      <div data-testid="loan-list" style={{ padding: '24px' }}>
-        <Space direction="vertical" size="large" style={{ width: '100%' }}>
-          <Button
-            type="primary"
-            onClick={() => navigate('/loans/apply')}
-            disabled={isLoading}
-            data-testid="loan-list-apply"
-          >
-            申请贷款
-          </Button>
-
-          {isLoading && <Skeleton active />}
-
-          {!isLoading && isError && (
-            <Empty description="加载贷款列表失败" data-testid="loan-list-error" />
-          )}
-
-          {!isLoading && !isError && loans.length === 0 && (
-            <Empty description="暂无贷款记录" data-testid="loan-list-empty" />
-          )}
-
-          {!isLoading && !isError && loans.length > 0 && (
-            <Table
-              columns={loanColumns(navigate)}
-              dataSource={loans}
-              rowKey="loanId"
-              pagination={{ pageSize: 10 }}
-              data-testid="loan-list-table"
-            />
-          )}
-        </Space>
+  const query = useQuery({ queryKey: ['loans'], queryFn: () => customerApi.listLoans() });
+  const items = query.data?.items ?? [];
+  const columns: ColumnsType<LoanSummary> = [
+    { title: '产品名称', dataIndex: 'loanProductName', key: 'product' },
+    { title: '贷款编号', dataIndex: 'loanId', key: 'id' },
+    { title: '本金', key: 'principal', render: (_, item) => money(item.principal, item.currency) },
+    { title: '未还余额', key: 'outstanding', render: (_, item) => money(item.outstandingBalance, item.currency) },
+    { title: '状态', dataIndex: 'status', key: 'status', render: status },
+    { title: '操作', key: 'action', render: (_, item) => <Button onClick={() => navigate(`/loans/${item.loanId}`)}>查看</Button> },
+  ];
+  return <PageContainer pageId="customer.loans" state="READY">
+    <section className="customer-page experience-page" data-view-state={query.isLoading ? 'LOADING' : query.isError ? 'ERROR' : items.length ? 'NORMAL' : 'EMPTY'}>
+      <div className="customer-page-head"><div><h1>我的贷款</h1><p>查看贷款余额、状态和合同详情。</p></div><Button type="primary" size="large" onClick={() => navigate('/loans/apply')}>申请贷款</Button></div>
+      {query.isError ? <Alert type="error" showIcon message="贷款列表加载失败" action={<Button onClick={() => query.refetch()}>重新加载</Button>} /> : null}
+      <div className="bank-card customer-table-card">
+        {query.isLoading ? <Skeleton active paragraph={{ rows: 7 }} /> : items.length ? <Table columns={columns} dataSource={items} rowKey="loanId" pagination={{ pageSize: 20, showTotal: (total) => `共 ${total} 条` }} /> : !query.isError ? <div className="customer-empty"><Empty description="暂无贷款记录" /></div> : null}
       </div>
-    </PageContainer>
-  );
+    </section>
+  </PageContainer>;
 }

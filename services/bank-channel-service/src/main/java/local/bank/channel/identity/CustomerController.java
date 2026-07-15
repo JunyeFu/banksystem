@@ -212,6 +212,26 @@ public class CustomerController {
     String endDate = date(valueFrom(timeline, "expectedMaturityDate", null));
     if (startDate != null) result.put("startDate", startDate);
     if (endDate != null) result.put("endDate", endDate);
+    Object schedule = valueFrom(source.get("repaymentSchedule"), "periods", List.of());
+    if (schedule instanceof List<?> periods) {
+      result.put("repaymentSchedule", periods.stream().filter(Map.class::isInstance).limit(24)
+          .map(Map.class::cast).filter(CustomerController::validInstallment).map(CustomerController::installment).toList());
+    } else result.put("repaymentSchedule", List.of());
     return result;
+  }
+
+  static Map<String, Object> installment(Map<?, ?> source) {
+    Map<String, Object> result = new LinkedHashMap<>();
+    result.put("period", source.get("period") == null ? 1 : source.get("period"));
+    result.put("dueDate", date(source.get("dueDate")));
+    result.put("principalDue", decimal(source.get("principalDue") == null ? "0.00" : source.get("principalDue")));
+    result.put("interestDue", decimal(source.get("interestDue") == null ? "0.00" : source.get("interestDue")));
+    result.put("totalDue", decimal(source.get("totalDueForPeriod") == null ? "0.00" : source.get("totalDueForPeriod")));
+    result.put("status", Boolean.TRUE.equals(source.get("complete")) ? "PAID" : "DUE");
+    return result;
+  }
+
+  private static boolean validInstallment(Map<?, ?> source) {
+    return source.get("period") instanceof Number period && period.intValue() >= 1 && date(source.get("dueDate")) != null;
   }
 }

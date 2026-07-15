@@ -5,7 +5,7 @@ document_type: reference
 domain: frontend
 status: accepted
 authority: supporting
-version: 1.2
+version: 1.3
 effective_date: 2026-07-15
 owner: project-owner
 ---
@@ -68,3 +68,18 @@ owner: project-owner
 这 17 个状态的可执行映射位于 `tests/e2e/frontend-customer-core/customer-core-visual.spec.ts`，固定基线位于其 `snapshots/`。账户详情由 `AccountDetail` OpenAPI 读模型驱动，最近交易由网关校验账户归属后通过 Fineract API 获取；导出交易、行导航、账户信息和账户文件页签均有可执行交互验证。
 
 PV-0003 至 PV-0005 分别属于运营控制台展开壳层、运营控制台收起壳层和第三方管理端壳层，不属于本客户核心批次，必须在对应端的实现批次单独验收。
+
+## 客户业务页面精确映射
+
+| 页面 | PV 范围 | 逻辑状态数 | 可执行状态 |
+|---|---|---:|---|
+| 收款人管理 | PV-0039–PV-0041 | 3 | 加载、正常、空数据 |
+| 贷款列表 | PV-0042–PV-0044 | 3 | 加载、正常、空数据 |
+| 申请贷款 | PV-0045–PV-0048 | 4 | 默认、校验错误、提交中、提交失败 |
+| 贷款详情 | PV-0049–PV-0051 | 3 | 加载、正常、网络错误 |
+| 客户文档 | PV-0052–PV-0054 | 3 | 加载、正常、空数据 |
+| 消息中心 | PV-0055–PV-0059 | 5 | 加载、正常、空数据、已读、未读 |
+| 个人资料 | PV-0060–PV-0062 | 3 | 加载、正常、空数据 |
+| 安全设置 | PV-0063–PV-0065 | 3 | 加载、正常、空数据 |
+
+这 27 个状态的可执行映射位于 `tests/e2e/frontend-customer-experience/customer-experience-visual.spec.ts`，固定基线位于其 `snapshots/`。页面使用生成式客户 API 客户端；贷款详情还款计划来自 Fineract `repaymentSchedule.periods` 的客户隔离读模型，客户文档下载指向真实对账单接口，未读消息可执行按客户归属标记已读。原始通知 payload 不直接暴露给浏览器。

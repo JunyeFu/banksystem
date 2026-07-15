@@ -9,6 +9,7 @@ export type AccountTransaction = CustomerComponents['schemas']['AccountTransacti
 export type Beneficiary = CustomerComponents['schemas']['Beneficiary'];
 export type LoanSummary = CustomerComponents['schemas']['LoanSummary'];
 export type LoanDetail = CustomerComponents['schemas']['LoanDetail'];
+export type RepaymentInstallment = CustomerComponents['schemas']['RepaymentInstallment'];
 export type Message = CustomerComponents['schemas']['Message'];
 export type CustomerProfile = CustomerComponents['schemas']['CustomerProfile'];
 export type SecuritySettings = CustomerComponents['schemas']['SecuritySettings'];

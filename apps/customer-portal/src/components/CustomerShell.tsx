@@ -19,7 +19,7 @@ import { TransferResult } from '@/pages/TransferResult';
 
 const navigation = [
   ['/dashboard', '账户概览'], ['/accounts', '账户'], ['/transfers', '转账'], ['/beneficiaries', '收款人'], ['/loans', '贷款'],
-  ['/documents', '文档'], ['/messages', '消息'], ['/profile', '个人资料'], ['/security', '安全设置'],
+  ['/documents', '文档'], ['/messages', '消息'], ['/profile', '个人资料'], ['/security', '设置'],
 ] as const;
 
 export function CustomerShell(): JSX.Element {

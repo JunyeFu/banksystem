@@ -1,88 +1,22 @@
 import { useQuery } from '@tanstack/react-query';
-import { Table, Tag, Empty, Skeleton } from 'antd';
-import type { TableProps } from 'antd';
-import { PageContainer } from '@/components/PageContainer';
-import type { PageState } from '@/components/PageContainer';
+import { Alert, Button, Empty, Skeleton, Table } from 'antd';
+import type { ColumnsType } from 'antd/es/table';
+import type { CustomerDocument } from '@localbank/bank-api-client';
 import { customerApi } from '@/api/client';
-import type { CustomerDocument as Document } from '@localbank/bank-api-client';
-
-const documentColumns: TableProps<Document>['columns'] = [
-  {
-    title: '文档类型',
-    dataIndex: 'documentType',
-    key: 'documentType',
-    width: 140,
-    render: (value: string, record: Document) => (
-      <Tag data-testid={`document-type-${record.documentId}`}>{value}</Tag>
-    ),
-  },
-  {
-    title: '描述',
-    dataIndex: 'description',
-    key: 'description',
-  },
-  {
-    title: '创建时间',
-    dataIndex: 'createdDate',
-    key: 'createdDate',
-    width: 180,
-  },
-  {
-    title: '操作',
-    key: 'action',
-    width: 100,
-    render: (_: unknown, record: Document) => (
-      <a
-        href={record.downloadUrl}
-        data-testid={`document-download-${record.documentId}`}
-      >
-        下载
-      </a>
-    ),
-  },
-];
+import { PageContainer } from '@/components/PageContainer';
 
 export function Documents(): JSX.Element {
-  const { data, isLoading, isError } = useQuery({
-    queryKey: ['documents'],
-    queryFn: () => customerApi.listDocuments(),
-  });
-
-  const pageState: PageState = isLoading
-    ? 'LOADING'
-    : isError
-      ? 'ERROR'
-      : 'READY';
-
-  const documents = data?.items ?? [];
-
-  return (
-    <PageContainer
-      pageId="customer.documents"
-      state={pageState}
-      title="文档"
-    >
-      <div data-testid="document-list" style={{ padding: '24px' }}>
-        {isLoading && <Skeleton active />}
-
-        {!isLoading && isError && (
-          <Empty description="加载文档列表失败" data-testid="document-list-error" />
-        )}
-
-        {!isLoading && !isError && documents.length === 0 && (
-          <Empty description="暂无文档" data-testid="document-list-empty" />
-        )}
-
-        {!isLoading && !isError && documents.length > 0 && (
-          <Table
-            columns={documentColumns}
-            dataSource={documents}
-            rowKey="documentId"
-            pagination={{ pageSize: 10 }}
-            data-testid="document-list-table"
-          />
-        )}
-      </div>
-    </PageContainer>
-  );
+  const query = useQuery({ queryKey: ['documents'], queryFn: () => customerApi.listDocuments() });
+  const items = query.data?.items ?? [];
+  const columns: ColumnsType<CustomerDocument> = [
+    { title: '文件类型', dataIndex: 'documentType', key: 'type', render: (value: string) => <span className="document-type"><b>▤</b>{value}</span> },
+    { title: '描述', dataIndex: 'description', key: 'description' },
+    { title: '创建日期', dataIndex: 'createdDate', key: 'date' },
+    { title: '操作', key: 'action', render: (_, item) => <Button href={item.downloadUrl} download type="link">↓　下载</Button> },
+  ];
+  return <PageContainer pageId="customer.documents" state="READY"><section className="customer-page experience-page" data-view-state={query.isLoading ? 'LOADING' : query.isError ? 'ERROR' : items.length ? 'NORMAL' : 'EMPTY'}>
+    <div className="customer-page-head"><div><h1>文档</h1><p>查看并下载您在复兴银行的账户文件和业务记录。</p></div><Button size="large" onClick={() => query.refetch()} disabled={query.isLoading}>↻　刷新</Button></div>
+    {query.isError ? <Alert type="error" showIcon message="文档加载失败" action={<Button onClick={() => query.refetch()}>重新加载</Button>} /> : null}
+    <div className="bank-card customer-table-card">{query.isLoading ? <Skeleton active paragraph={{ rows: 8 }} /> : items.length ? <Table columns={columns} dataSource={items} rowKey="documentId" pagination={false} /> : !query.isError ? <div className="customer-empty"><Empty description="暂无文档" /></div> : null}</div>
+  </section></PageContainer>;
 }

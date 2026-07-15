@@ -75,11 +75,19 @@ class CustomerControllerMappingTest {
         "interestRatePerPeriod", "4.35",
         "timeline", Map.of(
             "actualDisbursementDate", List.of(2026, 1, 15),
-            "expectedMaturityDate", List.of(2029, 1, 15))), Map.of());
+            "expectedMaturityDate", List.of(2029, 1, 15)),
+        "repaymentSchedule", Map.of("periods", List.of(
+            Map.of("period", 0),
+            Map.of("period", 1, "dueDate", List.of(2026, 2, 15), "principalDue", "2500", "interestDue", "1100", "totalDueForPeriod", "3600", "complete", true)))), Map.of());
 
     assertEquals(36, mapped.get("termMonths"));
     assertEquals("4.35", mapped.get("interestRate"));
     assertEquals("2026-01-15", mapped.get("startDate"));
     assertEquals("2029-01-15", mapped.get("endDate"));
+    @SuppressWarnings("unchecked")
+    List<Map<String, Object>> schedule = (List<Map<String, Object>>) mapped.get("repaymentSchedule");
+    assertEquals(1, schedule.size());
+    assertEquals("2026-02-15", schedule.get(0).get("dueDate"));
+    assertEquals("PAID", schedule.get(0).get("status"));
   }
 }

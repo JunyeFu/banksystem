@@ -482,12 +482,26 @@ components:
       allOf:
         - $ref: '#/components/schemas/LoanSummary'
         - type: object
-          required: [termMonths]
+          required: [termMonths, repaymentSchedule]
           properties:
             termMonths: { type: integer, minimum: 0 }
             interestRate: { type: string }
             startDate: { type: string, format: date }
             endDate: { type: string, format: date }
+            repaymentSchedule:
+              type: array
+              items: { $ref: '#/components/schemas/RepaymentInstallment' }
+    RepaymentInstallment:
+      type: object
+      additionalProperties: false
+      required: [period, dueDate, principalDue, interestDue, totalDue, status]
+      properties:
+        period: { type: integer, minimum: 1 }
+        dueDate: { type: string, format: date }
+        principalDue: { $ref: '#/components/schemas/Money' }
+        interestDue: { $ref: '#/components/schemas/Money' }
+        totalDue: { $ref: '#/components/schemas/Money' }
+        status: { type: string, enum: [PAID, DUE] }
     LoanPage:
       type: object
       additionalProperties: false
