@@ -1,0 +1,46 @@
+package local.bank.channel.identity;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
+
+import java.util.List;
+import java.util.Map;
+import org.junit.jupiter.api.Test;
+
+class CustomerControllerMappingTest {
+  @Test
+  void mapsCoreSavingsAccountToStableCustomerContract() {
+    Map<String, Object> mapped = CustomerController.summary(Map.of(
+        "id", 42,
+        "accountNo", "621800005302",
+        "currency", Map.of("code", "CNY"),
+        "summary", Map.of("accountBalance", "128560.341"),
+        "productName", "活期账户",
+        "status", Map.of("value", "ACTIVE"),
+        "timeline", Map.of("activatedOnDate", List.of(2025, 1, 15))));
+
+    assertEquals("42", mapped.get("accountId"));
+    assertEquals("****5302", mapped.get("maskedAccountNumber"));
+    assertEquals("128560.34", mapped.get("balance"));
+    assertEquals("活期账户", mapped.get("accountType"));
+    assertEquals("ACTIVE", mapped.get("status"));
+    assertEquals("2025-01-15", mapped.get("openedOn"));
+  }
+
+  @Test
+  void mapsCoreWithdrawalWithoutExposingRawPayload() {
+    Map<String, Object> mapped = CustomerController.transaction(Map.of(
+        "id", 7,
+        "date", List.of(2026, 7, 15),
+        "transactionType", Map.of("value", "Withdrawal", "withdrawal", true),
+        "amount", "8800.00",
+        "runningBalance", "128560.34",
+        "currency", Map.of("code", "CNY"),
+        "note", "合成测试交易"));
+
+    assertEquals("DEBIT", mapped.get("transactionType"));
+    assertEquals("2026-07-15T00:00:00Z", mapped.get("transactionDate"));
+    assertEquals("8800.00", mapped.get("amount"));
+    assertEquals("合成测试交易", mapped.get("counterparty"));
+    assertEquals(8, mapped.size());
+  }
+}

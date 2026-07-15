@@ -110,10 +110,8 @@ public class FineractAdapter {
         .retrieve().body(Map.class);
     if (body == null) return List.of();
     Object savings = body.get("savingsAccounts");
-    Object loans = body.get("loanAccounts");
     java.util.ArrayList<Map<String, Object>> result = new java.util.ArrayList<>();
     if (savings instanceof List<?> list) list.forEach(x -> { if (x instanceof Map<?, ?> m) result.add((Map<String,Object>) m); });
-    if (loans instanceof List<?> list) list.forEach(x -> { if (x instanceof Map<?, ?> m) result.add((Map<String,Object>) m); });
     return result;
   }
 
@@ -188,7 +186,7 @@ public class FineractAdapter {
   private record AccountTransferRequest(long fromAccountId, long toAccountId, java.math.BigDecimal transferAmount, String transferDate, int fromAccountType, int toAccountType, int fromOfficeId, long fromClientId, int toOfficeId, long toClientId, String transferDescription, String locale, String dateFormat, String currencyCode) {}
 
   @SuppressWarnings("unchecked")
-  private Map<String, Object> accountDetails(long accountId) {
+  public Map<String, Object> accountDetails(long accountId) {
     return client.get().uri("/api/v1/savingsaccounts/{id}", accountId).retrieve().body(Map.class);
   }
 

@@ -45,10 +45,10 @@ paths:
       summary: Get customer account
       responses:
         '200':
-          description: Account summary
+          description: Account detail with recent transactions
           content:
             application/json:
-              schema: { $ref: '#/components/schemas/AccountSummary' }
+              schema: { $ref: '#/components/schemas/AccountDetail' }
         '401': { $ref: '#/components/responses/Unauthorized' }
         '404': { $ref: '#/components/responses/NotFound' }
   /loans/applications:
@@ -361,12 +361,39 @@ components:
         displayName: { type: string, minLength: 1, maxLength: 160 }
     AccountSummary:
       type: object
+      additionalProperties: false
       required: [accountId, maskedAccountNumber, currency, balance]
       properties:
         accountId: { type: string, minLength: 1, maxLength: 64 }
         maskedAccountNumber: { type: string, pattern: '^\*{4,}[0-9]{2,4}$' }
         currency: { type: string }
         balance: { $ref: '#/components/schemas/Money' }
+        accountType: { type: string }
+        status: { type: string }
+        openedOn: { type: string, format: date }
+    AccountDetail:
+      unevaluatedProperties: false
+      allOf:
+        - $ref: '#/components/schemas/AccountSummary'
+        - type: object
+          required: [transactions]
+          properties:
+            transactions:
+              type: array
+              items: { $ref: '#/components/schemas/AccountTransaction' }
+    AccountTransaction:
+      type: object
+      additionalProperties: false
+      required: [transactionId, transactionDate, transactionType, description, amount, currency]
+      properties:
+        transactionId: { type: string }
+        transactionDate: { type: string, format: date-time }
+        transactionType: { type: string, enum: [CREDIT, DEBIT] }
+        description: { type: string }
+        counterparty: { type: string }
+        amount: { $ref: '#/components/schemas/Money' }
+        currency: { type: string }
+        runningBalance: { $ref: '#/components/schemas/Money' }
     LoanApplicationRequest:
       type: object
       required: [amount, termMonths, purpose]

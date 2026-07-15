@@ -18,8 +18,8 @@ import { TransferList } from '@/pages/TransferList';
 import { TransferResult } from '@/pages/TransferResult';
 
 const navigation = [
-  ['/accounts', '账户'], ['/transfers', '转账'], ['/beneficiaries', '收款人'], ['/loans', '贷款'],
-  ['/documents', '文档'], ['/messages', '消息'], ['/security', '安全设置'],
+  ['/dashboard', '账户概览'], ['/accounts', '账户'], ['/transfers', '转账'], ['/beneficiaries', '收款人'], ['/loans', '贷款'],
+  ['/documents', '文档'], ['/messages', '消息'], ['/profile', '个人资料'], ['/security', '安全设置'],
 ] as const;
 
 export function CustomerShell(): JSX.Element {

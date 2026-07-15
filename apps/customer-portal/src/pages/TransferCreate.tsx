@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useMutation, useQuery } from '@tanstack/react-query';
 import { Controller, useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -14,6 +14,7 @@ type FormData = z.infer<typeof schema>;
 
 export function TransferCreate(): JSX.Element {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const [submitError, setSubmitError] = useState<string>();
   const [idempotencyKey] = useState(() => crypto.randomUUID());
   const accounts = useQuery({ queryKey: ['accounts'], queryFn: () => customerApi.listAccounts() });
@@ -23,9 +24,11 @@ export function TransferCreate(): JSX.Element {
   const account = accounts.data?.items.find((item) => item.accountId === sourceId);
   const beneficiary = beneficiaries.data?.items.find((item) => item.beneficiaryId === beneficiaryId);
   useEffect(() => {
-    if (!sourceId && accounts.data?.items.length === 1 && accounts.data.items[0]) setValue('sourceAccountId', accounts.data.items[0].accountId);
+    const requestedSource = searchParams.get('sourceAccountId');
+    if (!sourceId && requestedSource && accounts.data?.items.some((item) => item.accountId === requestedSource)) setValue('sourceAccountId', requestedSource);
+    else if (!sourceId && accounts.data?.items.length === 1 && accounts.data.items[0]) setValue('sourceAccountId', accounts.data.items[0].accountId);
     if (!beneficiaryId && beneficiaries.data?.items.length === 1 && beneficiaries.data.items[0]) setValue('beneficiaryId', beneficiaries.data.items[0].beneficiaryId);
-  }, [accounts.data, beneficiaries.data, beneficiaryId, setValue, sourceId]);
+  }, [accounts.data, beneficiaries.data, beneficiaryId, searchParams, setValue, sourceId]);
   const mutation = useMutation({
     mutationFn: (value: FormData) => customerApi.createTransfer({ sourceAccountId: value.sourceAccountId, beneficiaryId: value.beneficiaryId, amount: value.amount.toFixed(2), currency: account?.currency ?? 'CNY', reference: value.reference || undefined }, idempotencyKey),
     onSuccess: (result) => navigate(`/transfers/${result.transferId}`), onError: (error: Error) => setSubmitError(error.message),

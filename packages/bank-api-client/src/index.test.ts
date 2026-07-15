@@ -17,6 +17,16 @@ describe('generated-contract API clients', () => {
     expect(fetchMock).toHaveBeenCalledWith('/api/customer/v1/transfers?status=RISK_REVIEW&page=0&size=20', expect.objectContaining({ headers: expect.any(Headers) }));
   });
 
+  it('encodes account identifiers when loading account detail', async () => {
+    const fetchMock = vi.fn().mockResolvedValue(response({
+      accountId: 'account/1', maskedAccountNumber: '****0001', currency: 'CNY', balance: '10.00', transactions: [],
+    }));
+    vi.stubGlobal('fetch', fetchMock);
+    const client = new CustomerApiClient({ baseUrl: '/api/customer/v1', getAccessToken: () => null });
+    await client.getAccount('account/1');
+    expect(fetchMock.mock.calls[0]?.[0]).toBe('/api/customer/v1/accounts/account%2F1');
+  });
+
   it('sends the customer creation date range', async () => {
     const fetchMock = vi.fn().mockResolvedValue(response({ items: [], page: 0, size: 20, totalItems: 0, totalPages: 0 }));
     vi.stubGlobal('fetch', fetchMock);

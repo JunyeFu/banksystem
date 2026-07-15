@@ -351,6 +351,25 @@ export interface components {
             maskedAccountNumber: string;
             currency: string;
             balance: components["schemas"]["Money"];
+            accountType?: string;
+            status?: string;
+            /** Format: date */
+            openedOn?: string;
+        };
+        AccountDetail: components["schemas"]["AccountSummary"] & {
+            transactions: components["schemas"]["AccountTransaction"][];
+        };
+        AccountTransaction: {
+            transactionId: string;
+            /** Format: date-time */
+            transactionDate: string;
+            /** @enum {string} */
+            transactionType: "CREDIT" | "DEBIT";
+            description: string;
+            counterparty?: string;
+            amount: components["schemas"]["Money"];
+            currency: string;
+            runningBalance?: components["schemas"]["Money"];
         };
         LoanApplicationRequest: {
             amount: components["schemas"]["Money"];
@@ -477,13 +496,13 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
-            /** @description Account summary */
+            /** @description Account detail with recent transactions */
             200: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["AccountSummary"];
+                    "application/json": components["schemas"]["AccountDetail"];
                 };
             };
             401: components["responses"]["Unauthorized"];

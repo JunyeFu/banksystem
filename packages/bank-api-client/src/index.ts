@@ -2,7 +2,10 @@ import type { components as CustomerComponents, operations as CustomerOperations
 import type { components as OperationsComponents } from './generated/operations';
 
 export type TransferStatus = CustomerComponents['schemas']['TransferStatus'];
-export type AccountSummary = CustomerComponents['schemas']['AccountSummary'] & { accountType?: string };
+export type Customer = CustomerComponents['schemas']['Customer'];
+export type AccountSummary = CustomerComponents['schemas']['AccountSummary'];
+export type AccountDetail = CustomerComponents['schemas']['AccountDetail'];
+export type AccountTransaction = CustomerComponents['schemas']['AccountTransaction'];
 export type Beneficiary = CustomerComponents['schemas']['Beneficiary'];
 export type Transfer = CustomerComponents['schemas']['Transfer'];
 export type TransferPage = CustomerComponents['schemas']['TransferPage'];
@@ -53,8 +56,17 @@ class BaseClient {
 }
 
 export class CustomerApiClient extends BaseClient {
+  getCurrentCustomer(): Promise<Customer> {
+    return this.request('/customers/me');
+  }
   listAccounts(): Promise<{ items: AccountSummary[] }> {
     return this.request('/accounts');
+  }
+  getAccount(accountId: string): Promise<AccountDetail> {
+    return this.request(`/accounts/${encodeURIComponent(accountId)}`);
+  }
+  downloadStatement(accountId: string, format: 'csv' | 'pdf' = 'csv'): Promise<Blob> {
+    return this.request(`/statements${queryString({ accountId, format })}`, {}, 'blob');
   }
   listBeneficiaries(): Promise<{ items: Beneficiary[] }> {
     return this.request('/beneficiaries');

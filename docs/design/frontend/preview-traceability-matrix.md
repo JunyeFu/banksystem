@@ -5,7 +5,7 @@ document_type: reference
 domain: frontend
 status: accepted
 authority: supporting
-version: 1.1
+version: 1.2
 effective_date: 2026-07-15
 owner: project-owner
 ---
@@ -53,3 +53,18 @@ owner: project-owner
 这 36 个逻辑状态构成首个跨客户门户与运营控制台的转账垂直切片。具体接口、字段和前后端调整以该实施方案为准。
 
 可执行映射位于 `tests/e2e/frontend-transfer/transfer-visual.spec.ts`，固定基线位于其 `snapshots/`。测试名称直接使用 PV 编号，确保 36 个逻辑状态逐项可追溯；基线是可运行页面产物，不是对原始设计 PNG 的复制。
+
+## 客户核心页面精确映射
+
+| 页面或壳层 | PV 范围 | 逻辑状态数 | 当前证据 |
+|---|---|---:|---|
+| 登录壳层 | PV-0001 | 1 | 登录主区域组件基线 |
+| 客户门户壳层 | PV-0002 | 1 | 顶部导航壳层组件基线 |
+| 客户登录 | PV-0006–PV-0008 | 3 | 默认、OIDC/PKCE 提交中、认证失败 |
+| 账户概览 | PV-0009–PV-0012 | 4 | 加载、正常、空数据、网络错误 |
+| 账户列表 | PV-0013–PV-0016 | 4 | 加载、正常、空数据、网络错误 |
+| 账户详情 | PV-0017–PV-0020 | 4 | 加载、正常、无交易记录、网络错误 |
+
+这 17 个状态的可执行映射位于 `tests/e2e/frontend-customer-core/customer-core-visual.spec.ts`，固定基线位于其 `snapshots/`。账户详情由 `AccountDetail` OpenAPI 读模型驱动，最近交易由网关校验账户归属后通过 Fineract API 获取；导出交易、行导航、账户信息和账户文件页签均有可执行交互验证。
+
+PV-0003 至 PV-0005 分别属于运营控制台展开壳层、运营控制台收起壳层和第三方管理端壳层，不属于本客户核心批次，必须在对应端的实现批次单独验收。
