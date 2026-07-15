@@ -39,3 +39,18 @@ tracks:
       - {id: B5, title: Codex knowledge and authoring control, status: PROPOSED, owner: 傅钧烨, dependsOn: [B4]}
       - {id: B6, title: Codex visual authoring and controlled execution, status: PROPOSED, owner: 傅钧烨, dependsOn: [B5]}
       - {id: B7, title: Recovery benchmark and delivery, status: PROPOSED, owner: 傅钧烨, dependsOn: [B6]}
+
+  - id: FRONTEND-TRANSFER-SLICE
+    name: five-page-transfer-vertical-slice
+    workItems:
+      - id: FE-PLAN-001
+        title: Five-page frontend and backend bidirectional adjustment plan
+        status: REVIEW
+        owner: 傅钧烨
+        dependsOn: []
+        evidence: [docs/design/frontend/transfer-five-page-bidirectional-adjustment.md, agent/plans/active/frontend-transfer-five-page-rebuild-plan.md]
+      - {id: FTR-0, title: Transfer contracts and secure read models, status: PROPOSED, owner: 傅钧烨, dependsOn: [FE-PLAN-001]}
+      - {id: FTR-1, title: Generated API client and minimum bank UI kit, status: PROPOSED, owner: 傅钧烨, dependsOn: [FTR-0]}
+      - {id: FTR-2, title: Rebuild three customer transfer pages, status: PROPOSED, owner: 傅钧烨, dependsOn: [FTR-1]}
+      - {id: FTR-3, title: Rebuild two operations payment pages, status: PROPOSED, owner: 傅钧烨, dependsOn: [FTR-1]}
+      - {id: FTR-4, title: Cross-portal transfer acceptance, status: PROPOSED, owner: 傅钧烨, dependsOn: [FTR-2, FTR-3]}

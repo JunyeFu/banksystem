@@ -56,6 +56,7 @@
     {"id":"GQ-047","query":"前端规则 React TypeScript Ant Design data-testid","profile":"frontend","expected_sources":["apps/AGENTS.md"]},
     {"id":"GQ-048","query":"后端服务规则 Java21 BigDecimal FineractAdapter","profile":"implementation","expected_sources":["services/AGENTS.md"]},
     {"id":"GQ-049","query":"契约规则 OpenAPI operationId Problem Details breaking change","profile":"implementation","expected_sources":["contracts/AGENTS.md"]},
-    {"id":"GQ-050","query":"测试证据规则 BrowserContext Storage State visual baseline","profile":"implementation","expected_sources":["tests/AGENTS.md"]}
+    {"id":"GQ-050","query":"测试证据规则 BrowserContext Storage State visual baseline","profile":"implementation","expected_sources":["tests/AGENTS.md"]},
+    {"id":"GQ-051","query":"客户转账列表 新建转账 转账结果 支付监控 支付详情 五页面 双向调整 beneficiaryId","profile":"frontend","expected_sources":["docs/design/frontend/transfer-five-page-bidirectional-adjustment.md"]}
   ]
 }

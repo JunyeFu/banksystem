@@ -28,6 +28,18 @@ related_contracts: [contracts/openapi/customer-api.yaml, contracts/openapi/opera
 | 衡准用例/基线 | 用例、版本、审批、基线 | 仅 JSON Schema | 未实现服务契约 | 新建平台 OpenAPI |
 | 衡准运行/证据 | 运行、验证、Artifact、调度、事件 | 无完整 OpenAPI | 未实现 | B2-B4 契约优先落地 |
 
+## 首批五页面核验结论
+
+| 页面 | 当前前端调用 | 当前后端事实 | 调整结论 |
+|---|---|---|---|
+| 转账列表 | `GET /api/customer/v1/transfers` | 无对应 GET Controller/OpenAPI 操作 | 新增 subject-scoped 分页操作 `listCustomerTransfers` |
+| 新建转账 | `POST /api/customer/v1/transfers`，字段和响应标识错位 | POST 已实现，要求 16–128 位幂等键 | 客户请求改用 `beneficiaryId`；统一 `transferId` 和 Problem Details |
+| 转账结果 | `GET /api/customer/v1/transfers/{id}` | 仅有运营详情 GET；客户回单 GET 已有 | 新增客户详情，轮询真实 12 态，按回单可用性显示入口 |
+| 支付监控 | `GET /api/operations/v1/transfers?status=` | `/transfers` 只有 POST | 新增分页筛选操作 `listOperationsTransfers` |
+| 支付详情 | `GET /api/operations/v1/transfers/{id}` | 仅返回 6 个基础字段 | 扩展为状态历史、Outbox 安全元数据和审计数量的组合读模型 |
+
+完整 Actual-Target-Decision 与 36 个 PV 状态见 [`transfer-five-page-bidirectional-adjustment.md`](transfer-five-page-bidirectional-adjustment.md)。
+
 ## 每行最终必须补齐的字段
 
 `route`、`action`、`operationId`、`requestSchema`、`responseSchema`、`problemCodes`、`role`、`idempotency`、`mockFixture`、`backendStatus`、`contractTest`、`playwrightCase`。

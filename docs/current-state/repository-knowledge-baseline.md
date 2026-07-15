@@ -39,14 +39,14 @@ owner: project-owner
 
 | 指标 | 结果 |
 |---|---:|
-| 受控来源 | 331 |
-| 结构化分块 | 2642 |
-| 黄金问题 | 50 |
+| 受控来源 | 333 |
+| 结构化分块 | 2666 |
+| 黄金问题 | 51 |
 | Expected Source Recall@8 | 100% |
 | Expected Source Top-1 | 92% |
 | Mean Reciprocal Rank | 0.955 |
 | 敏感/运行态来源污染 | 0 |
-| 文档元数据检查 | 49 份通过 |
+| 文档元数据检查 | 50 份通过 |
 | 本地链接检查 | 通过 |
 
 `rag/index`、RAG 评测报告、Agent runs、外部二进制原件和本地 deliverables 已配置为 Git 忽略项。任务在 `agent/backlog.yaml` 中保持 `REVIEW`，待人工验收后才能标记 `DONE`。
