@@ -1,8 +1,8 @@
 {
     "schemaVersion":  1,
     "evidenceType":  "frontend-visual-regression-baseline",
-    "generatedAt":  "2026-07-15T12:04:29.1659246+00:00",
-    "sourceCommit":  "ad78b46729c04d9624ef8b9b100f2fd9eb5cc99f",
+    "generatedAt":  "2026-07-15T12:45:56.5058627+00:00",
+    "sourceCommit":  "bf7ce95681a4c629c251b72458829a9598d507ce",
     "contractVersion":  "operations-external-design-1.0",
     "baselineVersion":  "operations-external-windows-chromium-v1",
     "environment":  {
@@ -15,6 +15,7 @@
                         "reducedMotion":  true
                     },
     "businessAssertions":  [
+                               "Fuxing Bank operations console maps the PV-0005 third-party shell reference to the truthful local external-management center without copying the source bank brand or inventing tenant metrics.",
                                "Fuxing Bank operations console covers PV-0198 through PV-0201 with loading, available, partial, and unavailable external-service states.",
                                "The page probes loopback-only Mifos X, Keycloak, and Grafana endpoints and never stores or displays credentials.",
                                "The supplied PV-0198-PV-0201 composite is mislabeled: its four panels show audit pages rather than external-management pages.",
@@ -22,6 +23,14 @@
                                "Visual fixtures are deterministic synthetic data and contain no real personal data or secrets."
                            ],
     "cases":  [
+                  {
+                      "pv":  "PV-0005",
+                      "pageId":  "operations.external.shell",
+                      "testId":  "operations-external-visual.spec.ts::PV-0005",
+                      "baselinePath":  "tests/e2e/frontend-operations-external/snapshots/PV-0005.png",
+                      "sha256":  "96aeb1d596625ef40ef966680563096bc779c1f6ebe44089c87e01863da31de4",
+                      "bytes":  106822
+                  },
                   {
                       "pv":  "PV-0198",
                       "pageId":  "operations.external",

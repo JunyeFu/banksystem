@@ -1,8 +1,8 @@
 {
     "schemaVersion":  1,
     "evidenceType":  "frontend-visual-regression-baseline",
-    "generatedAt":  "2026-07-15T12:22:49.3523133+00:00",
-    "sourceCommit":  "6ca80c265025fb34ce8bb9c3ccbd12583ea80a5a",
+    "generatedAt":  "2026-07-15T12:45:57.8705721+00:00",
+    "sourceCommit":  "bf7ce95681a4c629c251b72458829a9598d507ce",
     "contractVersion":  "quality-platform-api-1.0",
     "baselineVersion":  "hengzhun-windows-chromium-v1",
     "environment":  {

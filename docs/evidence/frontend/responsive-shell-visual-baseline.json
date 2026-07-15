@@ -1,0 +1,39 @@
+{
+    "schemaVersion":  1,
+    "evidenceType":  "frontend-responsive-visual-baseline",
+    "generatedAt":  "2026-07-15T12:45:58.1902523+00:00",
+    "sourceCommit":  "bf7ce95681a4c629c251b72458829a9598d507ce",
+    "baselineVersion":  "three-shells-windows-chromium-1180-v1",
+    "businessAssertions":  [
+                               "Customer, operations, and Hengzhun shells are verified at the accepted 1180x800 narrow desktop viewport.",
+                               "Each test asserts that document scroll width does not exceed the viewport width before the screenshot is accepted.",
+                               "Tables may use local overflow where required, but the application shell must not create page-level horizontal scrolling.",
+                               "Visual fixtures are deterministic synthetic data and contain no real personal data or secrets."
+                           ],
+    "cases":  [
+                  {
+                      "app":  "customer-portal",
+                      "pageId":  "customer.dashboard",
+                      "viewport":  "1180x800",
+                      "baselinePath":  "tests/e2e/frontend-customer-core/snapshots/RESP-CUSTOMER-1180.png",
+                      "sha256":  "f717389a29d87f1a291dee09f68050202237a23a592fb801cc884555d76fc9eb",
+                      "bytes":  64128
+                  },
+                  {
+                      "app":  "operations-console",
+                      "pageId":  "operations.dashboard",
+                      "viewport":  "1180x800",
+                      "baselinePath":  "tests/e2e/frontend-operations-dashboard/snapshots/RESP-OPERATIONS-1180.png",
+                      "sha256":  "ec387052cb49d3e592a6f748b91ada95bb7973055c926e53477fa684918d9718",
+                      "bytes":  58013
+                  },
+                  {
+                      "app":  "quality-case-portal",
+                      "pageId":  "quality.dashboard",
+                      "viewport":  "1180x800",
+                      "baselinePath":  "tests/e2e/frontend-quality-platform/snapshots/RESP-QUALITY-1180.png",
+                      "sha256":  "8faa5f7404f29cf19dd8cd53dc3922c2e5abd663f8b650cccebdf01569bf66a5",
+                      "bytes":  67136
+                  }
+              ]
+}

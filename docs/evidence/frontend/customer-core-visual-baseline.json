@@ -1,162 +1,162 @@
 {
-  "schemaVersion": 1,
-  "evidenceType": "frontend-visual-regression-baseline",
-  "generatedAt": "2026-07-15T10:05:36.4928311+00:00",
-  "sourceCommit": "3eed6e8d39450ad2026b51696017fdf32b15ba60",
-  "contractVersion": "customer-core-design-1.2",
-  "baselineVersion": "customer-core-windows-chromium-v1",
-  "environment": {
-    "operatingSystem": "Windows",
-    "browser": "Chromium",
-    "viewport": "1440x900",
-    "locale": "zh-CN",
-    "timezone": "Asia/Shanghai",
-    "colorScheme": "light",
-    "reducedMotion": true
-  },
-  "businessAssertions": [
-    "复兴银行客户登录、首页、账户列表和账户详情状态可执行。",
-    "Account summaries and account details are supplied through generated customer API contracts.",
-    "Account ownership is checked before savings account details and transactions are returned.",
-    "Statement download, transfer prefill and customer navigation actions are executable.",
-    "All 17 PV states use deterministic synthetic data and no secrets or real PII."
-  ],
-  "cases": [
-    {
-      "pv": "PV-0001",
-      "pageId": "customer.login.shell",
-      "testId": "customer-core-visual.spec.ts::PV-0001",
-      "baselinePath": "tests/e2e/frontend-customer-core/snapshots/PV-0001.png",
-      "sha256": "6f455f123e1fe970a90fbbda079c78f96d13a08263a893c10ecb9f5347aad357",
-      "bytes": 186100
-    },
-    {
-      "pv": "PV-0002",
-      "pageId": "customer.authenticated.shell",
-      "testId": "customer-core-visual.spec.ts::PV-0002",
-      "baselinePath": "tests/e2e/frontend-customer-core/snapshots/PV-0002.png",
-      "sha256": "a5b59e53481e7944bda4c77b21b19c0e3b850a03fdd8885df5405a74f3c8d7d9",
-      "bytes": 11775
-    },
-    {
-      "pv": "PV-0006",
-      "pageId": "customer.login",
-      "testId": "customer-core-visual.spec.ts::PV-0006",
-      "baselinePath": "tests/e2e/frontend-customer-core/snapshots/PV-0006.png",
-      "sha256": "0305c11408c70e9c319112953667da962d190f7382da82017cd7cf3416a56e06",
-      "bytes": 201247
-    },
-    {
-      "pv": "PV-0007",
-      "pageId": "customer.login",
-      "testId": "customer-core-visual.spec.ts::PV-0007",
-      "baselinePath": "tests/e2e/frontend-customer-core/snapshots/PV-0007.png",
-      "sha256": "52c93443a1cab4ab8e61b40374d900e3afa3d7c6eeba0582372def580cbc92cc",
-      "bytes": 200592
-    },
-    {
-      "pv": "PV-0008",
-      "pageId": "customer.login",
-      "testId": "customer-core-visual.spec.ts::PV-0008",
-      "baselinePath": "tests/e2e/frontend-customer-core/snapshots/PV-0008.png",
-      "sha256": "0284215d38c871e926c43155010d86e7a15807d6e3fcf0f10f958902b488aa4f",
-      "bytes": 203344
-    },
-    {
-      "pv": "PV-0009",
-      "pageId": "customer.dashboard",
-      "testId": "customer-core-visual.spec.ts::PV-0009",
-      "baselinePath": "tests/e2e/frontend-customer-core/snapshots/PV-0009.png",
-      "sha256": "5d4cae1bed1eb45395af7674ca03b6989dd9d59b3c6eeac6a2b77b0ac44b908d",
-      "bytes": 29030
-    },
-    {
-      "pv": "PV-0010",
-      "pageId": "customer.dashboard",
-      "testId": "customer-core-visual.spec.ts::PV-0010",
-      "baselinePath": "tests/e2e/frontend-customer-core/snapshots/PV-0010.png",
-      "sha256": "d6cd04354c003dbe3c83283b252fdaf17d07c1cabfb0eefa1263fd9f5c6da630",
-      "bytes": 70402
-    },
-    {
-      "pv": "PV-0011",
-      "pageId": "customer.dashboard",
-      "testId": "customer-core-visual.spec.ts::PV-0011",
-      "baselinePath": "tests/e2e/frontend-customer-core/snapshots/PV-0011.png",
-      "sha256": "fd7f41f041adba25f24aa0a9fab4b2df46e436228217980efc52602e4570fde8",
-      "bytes": 31457
-    },
-    {
-      "pv": "PV-0012",
-      "pageId": "customer.dashboard",
-      "testId": "customer-core-visual.spec.ts::PV-0012",
-      "baselinePath": "tests/e2e/frontend-customer-core/snapshots/PV-0012.png",
-      "sha256": "3fd6546a216756ebe9d7a0ff1cc5bf5dad2b97d0c3eaa7b9d0f124202fdf8e87",
-      "bytes": 34037
-    },
-    {
-      "pv": "PV-0013",
-      "pageId": "customer.account.list",
-      "testId": "customer-core-visual.spec.ts::PV-0013",
-      "baselinePath": "tests/e2e/frontend-customer-core/snapshots/PV-0013.png",
-      "sha256": "56f57c6f57c6fd212e46d4b9342da6600236ed3724f4572eafa1d2013b284a03",
-      "bytes": 28522
-    },
-    {
-      "pv": "PV-0014",
-      "pageId": "customer.account.list",
-      "testId": "customer-core-visual.spec.ts::PV-0014",
-      "baselinePath": "tests/e2e/frontend-customer-core/snapshots/PV-0014.png",
-      "sha256": "27e8581fb13153defd01d65e5acd5d668fb322cd0b111a6192f84774e3b9d75f",
-      "bytes": 43240
-    },
-    {
-      "pv": "PV-0015",
-      "pageId": "customer.account.list",
-      "testId": "customer-core-visual.spec.ts::PV-0015",
-      "baselinePath": "tests/e2e/frontend-customer-core/snapshots/PV-0015.png",
-      "sha256": "4320b2a4cf3c3b1f519cb13afc8e6fe67a1bff049e671b131431bd40e78e407e",
-      "bytes": 29874
-    },
-    {
-      "pv": "PV-0016",
-      "pageId": "customer.account.list",
-      "testId": "customer-core-visual.spec.ts::PV-0016",
-      "baselinePath": "tests/e2e/frontend-customer-core/snapshots/PV-0016.png",
-      "sha256": "2eacc98fd60b335ec97801b2023262934ae24e7b310f9ec2dd292d9e91e9e556",
-      "bytes": 30313
-    },
-    {
-      "pv": "PV-0017",
-      "pageId": "customer.account.detail",
-      "testId": "customer-core-visual.spec.ts::PV-0017",
-      "baselinePath": "tests/e2e/frontend-customer-core/snapshots/PV-0017.png",
-      "sha256": "ac7bc02badc9227e90624c43d4a995e9fc4b82453440b2a5882ca38a15df9c6e",
-      "bytes": 28122
-    },
-    {
-      "pv": "PV-0018",
-      "pageId": "customer.account.detail",
-      "testId": "customer-core-visual.spec.ts::PV-0018",
-      "baselinePath": "tests/e2e/frontend-customer-core/snapshots/PV-0018.png",
-      "sha256": "51961de2727b9e93f3e3fa75797a88ef6a031715e574bcd21babfdaec8e9da47",
-      "bytes": 68306
-    },
-    {
-      "pv": "PV-0019",
-      "pageId": "customer.account.detail",
-      "testId": "customer-core-visual.spec.ts::PV-0019",
-      "baselinePath": "tests/e2e/frontend-customer-core/snapshots/PV-0019.png",
-      "sha256": "ae4e956b477866603eda613d3b9e51ce547e459474e8bb8300b1deb43e4ed885",
-      "bytes": 47711
-    },
-    {
-      "pv": "PV-0020",
-      "pageId": "customer.account.detail",
-      "testId": "customer-core-visual.spec.ts::PV-0020",
-      "baselinePath": "tests/e2e/frontend-customer-core/snapshots/PV-0020.png",
-      "sha256": "154c773158543f2c62d4123a3583c6114f1dbe29f0f6a275fceb8255dc63165e",
-      "bytes": 32448
-    }
-  ]
+    "schemaVersion":  1,
+    "evidenceType":  "frontend-visual-regression-baseline",
+    "generatedAt":  "2026-07-15T12:45:55.0410931+00:00",
+    "sourceCommit":  "bf7ce95681a4c629c251b72458829a9598d507ce",
+    "contractVersion":  "customer-core-design-1.2",
+    "baselineVersion":  "customer-core-windows-chromium-v1",
+    "environment":  {
+                        "operatingSystem":  "Windows",
+                        "browser":  "Chromium",
+                        "viewport":  "1440x900",
+                        "locale":  "zh-CN",
+                        "timezone":  "Asia/Shanghai",
+                        "colorScheme":  "light",
+                        "reducedMotion":  true
+                    },
+    "businessAssertions":  [
+                               "Fuxing Bank customer login, dashboard, account list, and account detail states are executable.",
+                               "Account summaries and account details are supplied through generated customer API contracts.",
+                               "Account ownership is checked before savings account details and transactions are returned.",
+                               "Statement download, transfer prefill and customer navigation actions are executable.",
+                               "All 17 PV states use deterministic synthetic data and no secrets or real PII."
+                           ],
+    "cases":  [
+                  {
+                      "pv":  "PV-0001",
+                      "pageId":  "customer.login.shell",
+                      "testId":  "customer-core-visual.spec.ts::PV-0001",
+                      "baselinePath":  "tests/e2e/frontend-customer-core/snapshots/PV-0001.png",
+                      "sha256":  "6f455f123e1fe970a90fbbda079c78f96d13a08263a893c10ecb9f5347aad357",
+                      "bytes":  186100
+                  },
+                  {
+                      "pv":  "PV-0002",
+                      "pageId":  "customer.authenticated.shell",
+                      "testId":  "customer-core-visual.spec.ts::PV-0002",
+                      "baselinePath":  "tests/e2e/frontend-customer-core/snapshots/PV-0002.png",
+                      "sha256":  "a5b59e53481e7944bda4c77b21b19c0e3b850a03fdd8885df5405a74f3c8d7d9",
+                      "bytes":  11775
+                  },
+                  {
+                      "pv":  "PV-0006",
+                      "pageId":  "customer.login",
+                      "testId":  "customer-core-visual.spec.ts::PV-0006",
+                      "baselinePath":  "tests/e2e/frontend-customer-core/snapshots/PV-0006.png",
+                      "sha256":  "0305c11408c70e9c319112953667da962d190f7382da82017cd7cf3416a56e06",
+                      "bytes":  201247
+                  },
+                  {
+                      "pv":  "PV-0007",
+                      "pageId":  "customer.login",
+                      "testId":  "customer-core-visual.spec.ts::PV-0007",
+                      "baselinePath":  "tests/e2e/frontend-customer-core/snapshots/PV-0007.png",
+                      "sha256":  "52c93443a1cab4ab8e61b40374d900e3afa3d7c6eeba0582372def580cbc92cc",
+                      "bytes":  200592
+                  },
+                  {
+                      "pv":  "PV-0008",
+                      "pageId":  "customer.login",
+                      "testId":  "customer-core-visual.spec.ts::PV-0008",
+                      "baselinePath":  "tests/e2e/frontend-customer-core/snapshots/PV-0008.png",
+                      "sha256":  "0284215d38c871e926c43155010d86e7a15807d6e3fcf0f10f958902b488aa4f",
+                      "bytes":  203344
+                  },
+                  {
+                      "pv":  "PV-0009",
+                      "pageId":  "customer.dashboard",
+                      "testId":  "customer-core-visual.spec.ts::PV-0009",
+                      "baselinePath":  "tests/e2e/frontend-customer-core/snapshots/PV-0009.png",
+                      "sha256":  "5d4cae1bed1eb45395af7674ca03b6989dd9d59b3c6eeac6a2b77b0ac44b908d",
+                      "bytes":  29030
+                  },
+                  {
+                      "pv":  "PV-0010",
+                      "pageId":  "customer.dashboard",
+                      "testId":  "customer-core-visual.spec.ts::PV-0010",
+                      "baselinePath":  "tests/e2e/frontend-customer-core/snapshots/PV-0010.png",
+                      "sha256":  "d6cd04354c003dbe3c83283b252fdaf17d07c1cabfb0eefa1263fd9f5c6da630",
+                      "bytes":  70402
+                  },
+                  {
+                      "pv":  "PV-0011",
+                      "pageId":  "customer.dashboard",
+                      "testId":  "customer-core-visual.spec.ts::PV-0011",
+                      "baselinePath":  "tests/e2e/frontend-customer-core/snapshots/PV-0011.png",
+                      "sha256":  "fd7f41f041adba25f24aa0a9fab4b2df46e436228217980efc52602e4570fde8",
+                      "bytes":  31457
+                  },
+                  {
+                      "pv":  "PV-0012",
+                      "pageId":  "customer.dashboard",
+                      "testId":  "customer-core-visual.spec.ts::PV-0012",
+                      "baselinePath":  "tests/e2e/frontend-customer-core/snapshots/PV-0012.png",
+                      "sha256":  "3fd6546a216756ebe9d7a0ff1cc5bf5dad2b97d0c3eaa7b9d0f124202fdf8e87",
+                      "bytes":  34037
+                  },
+                  {
+                      "pv":  "PV-0013",
+                      "pageId":  "customer.account.list",
+                      "testId":  "customer-core-visual.spec.ts::PV-0013",
+                      "baselinePath":  "tests/e2e/frontend-customer-core/snapshots/PV-0013.png",
+                      "sha256":  "56f57c6f57c6fd212e46d4b9342da6600236ed3724f4572eafa1d2013b284a03",
+                      "bytes":  28522
+                  },
+                  {
+                      "pv":  "PV-0014",
+                      "pageId":  "customer.account.list",
+                      "testId":  "customer-core-visual.spec.ts::PV-0014",
+                      "baselinePath":  "tests/e2e/frontend-customer-core/snapshots/PV-0014.png",
+                      "sha256":  "27e8581fb13153defd01d65e5acd5d668fb322cd0b111a6192f84774e3b9d75f",
+                      "bytes":  43240
+                  },
+                  {
+                      "pv":  "PV-0015",
+                      "pageId":  "customer.account.list",
+                      "testId":  "customer-core-visual.spec.ts::PV-0015",
+                      "baselinePath":  "tests/e2e/frontend-customer-core/snapshots/PV-0015.png",
+                      "sha256":  "4320b2a4cf3c3b1f519cb13afc8e6fe67a1bff049e671b131431bd40e78e407e",
+                      "bytes":  29874
+                  },
+                  {
+                      "pv":  "PV-0016",
+                      "pageId":  "customer.account.list",
+                      "testId":  "customer-core-visual.spec.ts::PV-0016",
+                      "baselinePath":  "tests/e2e/frontend-customer-core/snapshots/PV-0016.png",
+                      "sha256":  "2eacc98fd60b335ec97801b2023262934ae24e7b310f9ec2dd292d9e91e9e556",
+                      "bytes":  30313
+                  },
+                  {
+                      "pv":  "PV-0017",
+                      "pageId":  "customer.account.detail",
+                      "testId":  "customer-core-visual.spec.ts::PV-0017",
+                      "baselinePath":  "tests/e2e/frontend-customer-core/snapshots/PV-0017.png",
+                      "sha256":  "ac7bc02badc9227e90624c43d4a995e9fc4b82453440b2a5882ca38a15df9c6e",
+                      "bytes":  28122
+                  },
+                  {
+                      "pv":  "PV-0018",
+                      "pageId":  "customer.account.detail",
+                      "testId":  "customer-core-visual.spec.ts::PV-0018",
+                      "baselinePath":  "tests/e2e/frontend-customer-core/snapshots/PV-0018.png",
+                      "sha256":  "51961de2727b9e93f3e3fa75797a88ef6a031715e574bcd21babfdaec8e9da47",
+                      "bytes":  68306
+                  },
+                  {
+                      "pv":  "PV-0019",
+                      "pageId":  "customer.account.detail",
+                      "testId":  "customer-core-visual.spec.ts::PV-0019",
+                      "baselinePath":  "tests/e2e/frontend-customer-core/snapshots/PV-0019.png",
+                      "sha256":  "ae4e956b477866603eda613d3b9e51ce547e459474e8bb8300b1deb43e4ed885",
+                      "bytes":  47711
+                  },
+                  {
+                      "pv":  "PV-0020",
+                      "pageId":  "customer.account.detail",
+                      "testId":  "customer-core-visual.spec.ts::PV-0020",
+                      "baselinePath":  "tests/e2e/frontend-customer-core/snapshots/PV-0020.png",
+                      "sha256":  "154c773158543f2c62d4123a3583c6114f1dbe29f0f6a275fceb8255dc63165e",
+                      "bytes":  32448
+                  }
+              ]
 }

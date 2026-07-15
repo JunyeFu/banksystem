@@ -1,0 +1,11 @@
+param([string]$RepositoryRoot = (Resolve-Path (Join-Path $PSScriptRoot '../..')).Path)
+$ErrorActionPreference='Stop';$outputPath=Join-Path $RepositoryRoot 'docs/evidence/frontend/responsive-shell-visual-baseline.json'
+$definitions=@(
+  [ordered]@{app='customer-portal';pageId='customer.dashboard';viewport='1180x800';path='tests/e2e/frontend-customer-core/snapshots/RESP-CUSTOMER-1180.png'},
+  [ordered]@{app='operations-console';pageId='operations.dashboard';viewport='1180x800';path='tests/e2e/frontend-operations-dashboard/snapshots/RESP-OPERATIONS-1180.png'},
+  [ordered]@{app='quality-case-portal';pageId='quality.dashboard';viewport='1180x800';path='tests/e2e/frontend-quality-platform/snapshots/RESP-QUALITY-1180.png'}
+)
+$cases=foreach($definition in $definitions){$absolute=Join-Path $RepositoryRoot $definition.path;if(-not(Test-Path -LiteralPath $absolute)){throw "Missing responsive snapshot: $($definition.path)"};[ordered]@{app=$definition.app;pageId=$definition.pageId;viewport=$definition.viewport;baselinePath=$definition.path;sha256=(Get-FileHash -LiteralPath $absolute -Algorithm SHA256).Hash.ToLowerInvariant();bytes=(Get-Item -LiteralPath $absolute).Length}}
+if(@($cases.sha256|Sort-Object -Unique).Count -ne 3){throw 'Responsive snapshots must have three unique hashes.'}
+$evidence=[ordered]@{schemaVersion=1;evidenceType='frontend-responsive-visual-baseline';generatedAt=[DateTimeOffset]::UtcNow.ToString('o');sourceCommit=(git -C $RepositoryRoot rev-parse HEAD).Trim();baselineVersion='three-shells-windows-chromium-1180-v1';businessAssertions=@('Customer, operations, and Hengzhun shells are verified at the accepted 1180x800 narrow desktop viewport.','Each test asserts that document scroll width does not exceed the viewport width before the screenshot is accepted.','Tables may use local overflow where required, but the application shell must not create page-level horizontal scrolling.','Visual fixtures are deterministic synthetic data and contain no real personal data or secrets.');cases=$cases}
+New-Item -ItemType Directory -Force -Path (Split-Path -Parent $outputPath)|Out-Null;$utf8NoBom=New-Object Text.UTF8Encoding($false);[IO.File]::WriteAllText($outputPath,($evidence|ConvertTo-Json -Depth 8),$utf8NoBom);Write-Output $outputPath

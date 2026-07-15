@@ -1,8 +1,8 @@
 {
     "schemaVersion":  1,
     "evidenceType":  "frontend-visual-regression-baseline",
-    "generatedAt":  "2026-07-15T11:52:06.9526070+00:00",
-    "sourceCommit":  "620265a28c206fa79b04d579933d51ae55c23da1",
+    "generatedAt":  "2026-07-15T12:45:56.8682535+00:00",
+    "sourceCommit":  "bf7ce95681a4c629c251b72458829a9598d507ce",
     "contractVersion":  "operations-governance-design-1.0",
     "baselineVersion":  "operations-governance-windows-chromium-v1",
     "environment":  {

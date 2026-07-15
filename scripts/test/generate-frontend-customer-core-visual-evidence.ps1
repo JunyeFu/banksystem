@@ -50,7 +50,7 @@ $evidence = [ordered]@{
     reducedMotion = $true
   }
   businessAssertions = @(
-    '复兴银行客户登录、首页、账户列表和账户详情状态可执行。',
+    'Fuxing Bank customer login, dashboard, account list, and account detail states are executable.',
     'Account summaries and account details are supplied through generated customer API contracts.',
     'Account ownership is checked before savings account details and transactions are returned.',
     'Statement download, transfer prefill and customer navigation actions are executable.',

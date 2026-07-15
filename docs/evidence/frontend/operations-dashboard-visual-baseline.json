@@ -1,89 +1,89 @@
 {
-  "schemaVersion": 1,
-  "evidenceType": "frontend-visual-regression-baseline",
-  "generatedAt": "2026-07-15T10:44:06.6224094+00:00",
-  "sourceCommit": "cf34013a6268252bd46f0daa29073e11bbdc95e6",
-  "contractVersion": "operations-dashboard-design-1.0",
-  "baselineVersion": "operations-dashboard-windows-chromium-v1",
-  "environment": {
-    "operatingSystem": "Windows",
-    "browser": "Chromium",
-    "viewport": "1440x900",
-    "locale": "zh-CN",
-    "timezone": "Asia/Shanghai",
-    "colorScheme": "light",
-    "reducedMotion": true
-  },
-  "businessAssertions": [
-    "复兴银行运营控制台覆盖展开与折叠壳层、加载、正常和接口错误状态。",
-    "仪表盘使用生成式 operations API 客户端读取真实聚合端点。",
-    "错误状态提供可执行重试，并经浏览器测试验证可恢复。",
-    "视觉数据为确定性合成数据，不包含真实个人信息或密钥。"
-  ],
-  "cases": [
-    {
-      "pv": "PV-0003",
-      "pageId": "operations.dashboard",
-      "testId": "operations-dashboard-visual.spec.ts::PV-0003",
-      "baselinePath": "tests/e2e/frontend-operations-dashboard/snapshots/PV-0003.png",
-      "sha256": "74abb92586f37c52101ec1f07157253183c185610cc370029a8e440496a9a4de",
-      "bytes": 54269
-    },
-    {
-      "pv": "PV-0004",
-      "pageId": "operations.dashboard",
-      "testId": "operations-dashboard-visual.spec.ts::PV-0004",
-      "baselinePath": "tests/e2e/frontend-operations-dashboard/snapshots/PV-0004.png",
-      "sha256": "a8e753796e0a90d385c7ea1d1ce88c65f3754a62ff813f91741484f523bc5707",
-      "bytes": 32921
-    },
-    {
-      "pv": "PV-0066",
-      "pageId": "operations.dashboard",
-      "testId": "operations-dashboard-visual.spec.ts::PV-0066",
-      "baselinePath": "tests/e2e/frontend-operations-dashboard/snapshots/PV-0066.png",
-      "sha256": "74abb92586f37c52101ec1f07157253183c185610cc370029a8e440496a9a4de",
-      "bytes": 54269
-    },
-    {
-      "pv": "PV-0067",
-      "pageId": "operations.dashboard",
-      "testId": "operations-dashboard-visual.spec.ts::PV-0067",
-      "baselinePath": "tests/e2e/frontend-operations-dashboard/snapshots/PV-0067.png",
-      "sha256": "f92e4dbb490ddb026c1dc06b7e14a4c06d8c9353e188d74220230595dbe81e8a",
-      "bytes": 107854
-    },
-    {
-      "pv": "PV-0068",
-      "pageId": "operations.dashboard",
-      "testId": "operations-dashboard-visual.spec.ts::PV-0068",
-      "baselinePath": "tests/e2e/frontend-operations-dashboard/snapshots/PV-0068.png",
-      "sha256": "fc692f0a4eeaf1439e6d494cb4bf0fa96217b6f450d7600476ae19e5ec3ecfa0",
-      "bytes": 66667
-    },
-    {
-      "pv": "PV-0069",
-      "pageId": "operations.dashboard",
-      "testId": "operations-dashboard-visual.spec.ts::PV-0069",
-      "baselinePath": "tests/e2e/frontend-operations-dashboard/snapshots/PV-0069.png",
-      "sha256": "a8e753796e0a90d385c7ea1d1ce88c65f3754a62ff813f91741484f523bc5707",
-      "bytes": 32921
-    },
-    {
-      "pv": "PV-0070",
-      "pageId": "operations.dashboard",
-      "testId": "operations-dashboard-visual.spec.ts::PV-0070",
-      "baselinePath": "tests/e2e/frontend-operations-dashboard/snapshots/PV-0070.png",
-      "sha256": "4efd7d5fecbb9e717bb188c23cba3a53e7672113fd96c93ce70f78cf27196417",
-      "bytes": 82212
-    },
-    {
-      "pv": "PV-0071",
-      "pageId": "operations.dashboard",
-      "testId": "operations-dashboard-visual.spec.ts::PV-0071",
-      "baselinePath": "tests/e2e/frontend-operations-dashboard/snapshots/PV-0071.png",
-      "sha256": "575324bab2e796f143040c77c4c3c62ff276b75a4aa1196045980def511a98b4",
-      "bytes": 45386
-    }
-  ]
+    "schemaVersion":  1,
+    "evidenceType":  "frontend-visual-regression-baseline",
+    "generatedAt":  "2026-07-15T12:45:56.1580104+00:00",
+    "sourceCommit":  "bf7ce95681a4c629c251b72458829a9598d507ce",
+    "contractVersion":  "operations-dashboard-design-1.0",
+    "baselineVersion":  "operations-dashboard-windows-chromium-v1",
+    "environment":  {
+                        "operatingSystem":  "Windows",
+                        "browser":  "Chromium",
+                        "viewport":  "1440x900",
+                        "locale":  "zh-CN",
+                        "timezone":  "Asia/Shanghai",
+                        "colorScheme":  "light",
+                        "reducedMotion":  true
+                    },
+    "businessAssertions":  [
+                               "Fuxing Bank operations console covers expanded and collapsed shells plus loading, ready, and API-error states.",
+                               "The dashboard reads the formal aggregate endpoint through the generated operations API client.",
+                               "Error states expose executable retry behavior verified in a real browser.",
+                               "Visual fixtures are deterministic synthetic data and contain no real personal data or secrets."
+                           ],
+    "cases":  [
+                  {
+                      "pv":  "PV-0003",
+                      "pageId":  "operations.dashboard",
+                      "testId":  "operations-dashboard-visual.spec.ts::PV-0003",
+                      "baselinePath":  "tests/e2e/frontend-operations-dashboard/snapshots/PV-0003.png",
+                      "sha256":  "74abb92586f37c52101ec1f07157253183c185610cc370029a8e440496a9a4de",
+                      "bytes":  54269
+                  },
+                  {
+                      "pv":  "PV-0004",
+                      "pageId":  "operations.dashboard",
+                      "testId":  "operations-dashboard-visual.spec.ts::PV-0004",
+                      "baselinePath":  "tests/e2e/frontend-operations-dashboard/snapshots/PV-0004.png",
+                      "sha256":  "a8e753796e0a90d385c7ea1d1ce88c65f3754a62ff813f91741484f523bc5707",
+                      "bytes":  32921
+                  },
+                  {
+                      "pv":  "PV-0066",
+                      "pageId":  "operations.dashboard",
+                      "testId":  "operations-dashboard-visual.spec.ts::PV-0066",
+                      "baselinePath":  "tests/e2e/frontend-operations-dashboard/snapshots/PV-0066.png",
+                      "sha256":  "74abb92586f37c52101ec1f07157253183c185610cc370029a8e440496a9a4de",
+                      "bytes":  54269
+                  },
+                  {
+                      "pv":  "PV-0067",
+                      "pageId":  "operations.dashboard",
+                      "testId":  "operations-dashboard-visual.spec.ts::PV-0067",
+                      "baselinePath":  "tests/e2e/frontend-operations-dashboard/snapshots/PV-0067.png",
+                      "sha256":  "f92e4dbb490ddb026c1dc06b7e14a4c06d8c9353e188d74220230595dbe81e8a",
+                      "bytes":  107854
+                  },
+                  {
+                      "pv":  "PV-0068",
+                      "pageId":  "operations.dashboard",
+                      "testId":  "operations-dashboard-visual.spec.ts::PV-0068",
+                      "baselinePath":  "tests/e2e/frontend-operations-dashboard/snapshots/PV-0068.png",
+                      "sha256":  "fc692f0a4eeaf1439e6d494cb4bf0fa96217b6f450d7600476ae19e5ec3ecfa0",
+                      "bytes":  66667
+                  },
+                  {
+                      "pv":  "PV-0069",
+                      "pageId":  "operations.dashboard",
+                      "testId":  "operations-dashboard-visual.spec.ts::PV-0069",
+                      "baselinePath":  "tests/e2e/frontend-operations-dashboard/snapshots/PV-0069.png",
+                      "sha256":  "a8e753796e0a90d385c7ea1d1ce88c65f3754a62ff813f91741484f523bc5707",
+                      "bytes":  32921
+                  },
+                  {
+                      "pv":  "PV-0070",
+                      "pageId":  "operations.dashboard",
+                      "testId":  "operations-dashboard-visual.spec.ts::PV-0070",
+                      "baselinePath":  "tests/e2e/frontend-operations-dashboard/snapshots/PV-0070.png",
+                      "sha256":  "4efd7d5fecbb9e717bb188c23cba3a53e7672113fd96c93ce70f78cf27196417",
+                      "bytes":  82212
+                  },
+                  {
+                      "pv":  "PV-0071",
+                      "pageId":  "operations.dashboard",
+                      "testId":  "operations-dashboard-visual.spec.ts::PV-0071",
+                      "baselinePath":  "tests/e2e/frontend-operations-dashboard/snapshots/PV-0071.png",
+                      "sha256":  "575324bab2e796f143040c77c4c3c62ff276b75a4aa1196045980def511a98b4",
+                      "bytes":  45386
+                  }
+              ]
 }

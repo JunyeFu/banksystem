@@ -1,8 +1,8 @@
 {
     "schemaVersion":  1,
     "evidenceType":  "frontend-visual-regression-baseline",
-    "generatedAt":  "2026-07-15T12:26:57.9738066+00:00",
-    "sourceCommit":  "f8a48632b7292e11709388ef4e514530e4ee1115",
+    "generatedAt":  "2026-07-15T12:45:57.2000010+00:00",
+    "sourceCommit":  "bf7ce95681a4c629c251b72458829a9598d507ce",
     "contractVersion":  "operations-risk-design-1.0",
     "baselineVersion":  "operations-risk-windows-chromium-v1",
     "environment":  {

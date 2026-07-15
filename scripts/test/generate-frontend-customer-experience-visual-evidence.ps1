@@ -23,7 +23,7 @@ if (@($cases.sha256 | Sort-Object -Unique).Count -ne 27) { throw 'Customer exper
 $evidence = [ordered]@{
   schemaVersion=1; evidenceType='frontend-visual-regression-baseline'; generatedAt=[DateTimeOffset]::UtcNow.ToString('o'); sourceCommit=(git -C $RepositoryRoot rev-parse HEAD).Trim(); contractVersion='customer-experience-design-1.3'; baselineVersion='customer-experience-windows-chromium-v1';
   environment=[ordered]@{ operatingSystem='Windows'; browser='Chromium'; viewport='1440x900'; locale='zh-CN'; timezone='Asia/Shanghai'; colorScheme='light'; reducedMotion=$true };
-  businessAssertions=@('复兴银行客户业务页面覆盖 PV-0039 至 PV-0065 的全部 27 个逻辑状态。','贷款、文档、消息、资料和安全设置使用生成式客户 API 契约。','贷款还款计划来自客户隔离的 Fineract 读模型。','文档下载和未读消息标记已读为可执行交互。','视觉数据为确定性合成数据，不包含真实个人信息或密钥。'); cases=$cases
+  businessAssertions=@('Fuxing Bank customer experience pages cover all 27 logical states from PV-0039 through PV-0065.','Loans, documents, messages, profile, and security settings use the generated customer API contract.','Loan repayment schedules come from the customer-scoped Fineract read model.','Document download and unread-message acknowledgement are executable interactions.','Visual fixtures are deterministic synthetic data and contain no real personal data or secrets.'); cases=$cases
 }
 New-Item -ItemType Directory -Force -Path (Split-Path -Parent $outputPath) | Out-Null
 $utf8NoBom=New-Object System.Text.UTF8Encoding($false); [System.IO.File]::WriteAllText($outputPath,($evidence | ConvertTo-Json -Depth 8),$utf8NoBom); Write-Output $outputPath

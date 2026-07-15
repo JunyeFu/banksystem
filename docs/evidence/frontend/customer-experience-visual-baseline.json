@@ -1,242 +1,242 @@
 {
-  "schemaVersion": 1,
-  "evidenceType": "frontend-visual-regression-baseline",
-  "generatedAt": "2026-07-15T10:05:36.4044405+00:00",
-  "sourceCommit": "3eed6e8d39450ad2026b51696017fdf32b15ba60",
-  "contractVersion": "customer-experience-design-1.3",
-  "baselineVersion": "customer-experience-windows-chromium-v1",
-  "environment": {
-    "operatingSystem": "Windows",
-    "browser": "Chromium",
-    "viewport": "1440x900",
-    "locale": "zh-CN",
-    "timezone": "Asia/Shanghai",
-    "colorScheme": "light",
-    "reducedMotion": true
-  },
-  "businessAssertions": [
-    "复兴银行客户业务页面覆盖 PV-0039 至 PV-0065 的全部 27 个逻辑状态。",
-    "贷款、文档、消息、资料和安全设置使用生成式客户 API 契约。",
-    "贷款还款计划来自客户隔离的 Fineract 读模型。",
-    "文档下载和未读消息标记已读为可执行交互。",
-    "视觉数据为确定性合成数据，不包含真实个人信息或密钥。"
-  ],
-  "cases": [
-    {
-      "pv": "PV-0039",
-      "pageId": "customer.beneficiaries",
-      "testId": "customer-experience-visual.spec.ts::PV-0039",
-      "baselinePath": "tests/e2e/frontend-customer-experience/snapshots/PV-0039.png",
-      "sha256": "f095c14cca6adc9048948b61bf9835012f53a0f41c2c468b826f4d6f213352c2",
-      "bytes": 30675
-    },
-    {
-      "pv": "PV-0040",
-      "pageId": "customer.beneficiaries",
-      "testId": "customer-experience-visual.spec.ts::PV-0040",
-      "baselinePath": "tests/e2e/frontend-customer-experience/snapshots/PV-0040.png",
-      "sha256": "6a10a3fe200299ac17ae05898648b6e525efcc8af4740329703430c0b6e84311",
-      "bytes": 55246
-    },
-    {
-      "pv": "PV-0041",
-      "pageId": "customer.beneficiaries",
-      "testId": "customer-experience-visual.spec.ts::PV-0041",
-      "baselinePath": "tests/e2e/frontend-customer-experience/snapshots/PV-0041.png",
-      "sha256": "3edd7e13c39ba3c6fc2a3b7bfc2e339e4b817c7ba094a33f6d441705c2b56f75",
-      "bytes": 32401
-    },
-    {
-      "pv": "PV-0042",
-      "pageId": "customer.loans",
-      "testId": "customer-experience-visual.spec.ts::PV-0042",
-      "baselinePath": "tests/e2e/frontend-customer-experience/snapshots/PV-0042.png",
-      "sha256": "f29a3532e43c3dab441f3676c8d13d333d0c1cab133f17b0fa770fd008a498d8",
-      "bytes": 28970
-    },
-    {
-      "pv": "PV-0043",
-      "pageId": "customer.loans",
-      "testId": "customer-experience-visual.spec.ts::PV-0043",
-      "baselinePath": "tests/e2e/frontend-customer-experience/snapshots/PV-0043.png",
-      "sha256": "05bd33ed9f3d187a22a9dba928216145b2ade35480e214f53516b77e47df0b85",
-      "bytes": 46871
-    },
-    {
-      "pv": "PV-0044",
-      "pageId": "customer.loans",
-      "testId": "customer-experience-visual.spec.ts::PV-0044",
-      "baselinePath": "tests/e2e/frontend-customer-experience/snapshots/PV-0044.png",
-      "sha256": "ec2db49bf33ae816175e4a5746e2fce31818a2537025aa3bb7d2b435cd944250",
-      "bytes": 30916
-    },
-    {
-      "pv": "PV-0045",
-      "pageId": "customer.loans.apply",
-      "testId": "customer-experience-visual.spec.ts::PV-0045",
-      "baselinePath": "tests/e2e/frontend-customer-experience/snapshots/PV-0045.png",
-      "sha256": "7b355103efa8a559d2eccbcf3bcbd7240f594a828b94f0052bd6c317b6e1ebf4",
-      "bytes": 66726
-    },
-    {
-      "pv": "PV-0046",
-      "pageId": "customer.loans.apply",
-      "testId": "customer-experience-visual.spec.ts::PV-0046",
-      "baselinePath": "tests/e2e/frontend-customer-experience/snapshots/PV-0046.png",
-      "sha256": "d7a0b2c312abf1507a241790a5fbba43060defe064994c4356d1b142092e1e73",
-      "bytes": 68040
-    },
-    {
-      "pv": "PV-0047",
-      "pageId": "customer.loans.apply",
-      "testId": "customer-experience-visual.spec.ts::PV-0047",
-      "baselinePath": "tests/e2e/frontend-customer-experience/snapshots/PV-0047.png",
-      "sha256": "c79d9bace4f28c2c977a0c0d69666f86f4a0b1a1f1fc1f8aa19de4d64c7b7cb9",
-      "bytes": 66830
-    },
-    {
-      "pv": "PV-0048",
-      "pageId": "customer.loans.apply",
-      "testId": "customer-experience-visual.spec.ts::PV-0048",
-      "baselinePath": "tests/e2e/frontend-customer-experience/snapshots/PV-0048.png",
-      "sha256": "cbb72e4f8baee086d6e21f75e76adf81fd0b1638bd0b0baf1d68f4d29830142d",
-      "bytes": 69280
-    },
-    {
-      "pv": "PV-0049",
-      "pageId": "customer.loan.detail",
-      "testId": "customer-experience-visual.spec.ts::PV-0049",
-      "baselinePath": "tests/e2e/frontend-customer-experience/snapshots/PV-0049.png",
-      "sha256": "5a494709209e2372746d0c6b63ea605c691f166ee9a4cc697556aaa99b5d63f2",
-      "bytes": 31955
-    },
-    {
-      "pv": "PV-0050",
-      "pageId": "customer.loan.detail",
-      "testId": "customer-experience-visual.spec.ts::PV-0050",
-      "baselinePath": "tests/e2e/frontend-customer-experience/snapshots/PV-0050.png",
-      "sha256": "9f5557f05875b3c808c24c3316bc939a140954d63b286e1c60d79c6d27ef4258",
-      "bytes": 58742
-    },
-    {
-      "pv": "PV-0051",
-      "pageId": "customer.loan.detail",
-      "testId": "customer-experience-visual.spec.ts::PV-0051",
-      "baselinePath": "tests/e2e/frontend-customer-experience/snapshots/PV-0051.png",
-      "sha256": "7fc2b11594c77f27bfd422f8e93e8d4894001be20e81d5b41548a21ed43da938",
-      "bytes": 33769
-    },
-    {
-      "pv": "PV-0052",
-      "pageId": "customer.documents",
-      "testId": "customer-experience-visual.spec.ts::PV-0052",
-      "baselinePath": "tests/e2e/frontend-customer-experience/snapshots/PV-0052.png",
-      "sha256": "652b609aae9851edcaf10fa9e9065ce7e2c45efe0d49395a7efc12813460f5fa",
-      "bytes": 26914
-    },
-    {
-      "pv": "PV-0053",
-      "pageId": "customer.documents",
-      "testId": "customer-experience-visual.spec.ts::PV-0053",
-      "baselinePath": "tests/e2e/frontend-customer-experience/snapshots/PV-0053.png",
-      "sha256": "59b55c5d32d0e40573ffc178be94afa115e72b9073ef3ea899e9e9123f806c3d",
-      "bytes": 47330
-    },
-    {
-      "pv": "PV-0054",
-      "pageId": "customer.documents",
-      "testId": "customer-experience-visual.spec.ts::PV-0054",
-      "baselinePath": "tests/e2e/frontend-customer-experience/snapshots/PV-0054.png",
-      "sha256": "8453e4f3ecb640992ee3427850908fc4ceab9d5bd5d0328d805333e9551efa58",
-      "bytes": 28450
-    },
-    {
-      "pv": "PV-0055",
-      "pageId": "customer.messages",
-      "testId": "customer-experience-visual.spec.ts::PV-0055",
-      "baselinePath": "tests/e2e/frontend-customer-experience/snapshots/PV-0055.png",
-      "sha256": "f51bb5bc3f2737b8248101a339816a32edc465b5c1f46c107525f23919e783bb",
-      "bytes": 27670
-    },
-    {
-      "pv": "PV-0056",
-      "pageId": "customer.messages",
-      "testId": "customer-experience-visual.spec.ts::PV-0056",
-      "baselinePath": "tests/e2e/frontend-customer-experience/snapshots/PV-0056.png",
-      "sha256": "246cd191c57b89bd22e9902012e5f6882c821a37914f514ec7b8720795f2da4a",
-      "bytes": 73153
-    },
-    {
-      "pv": "PV-0057",
-      "pageId": "customer.messages",
-      "testId": "customer-experience-visual.spec.ts::PV-0057",
-      "baselinePath": "tests/e2e/frontend-customer-experience/snapshots/PV-0057.png",
-      "sha256": "b20566cf42885d3c48ada3dec3f3d20e259476d06f96f16303c5968ec04d7cd5",
-      "bytes": 28771
-    },
-    {
-      "pv": "PV-0058",
-      "pageId": "customer.messages",
-      "testId": "customer-experience-visual.spec.ts::PV-0058",
-      "baselinePath": "tests/e2e/frontend-customer-experience/snapshots/PV-0058.png",
-      "sha256": "daaa96b154f03199db99c2a69ad020788d059d127e22ea1adcd571ca3dac7c32",
-      "bytes": 71449
-    },
-    {
-      "pv": "PV-0059",
-      "pageId": "customer.messages",
-      "testId": "customer-experience-visual.spec.ts::PV-0059",
-      "baselinePath": "tests/e2e/frontend-customer-experience/snapshots/PV-0059.png",
-      "sha256": "0d0ac8dcd86b8eb224d7a05f7145c6ff18787f6da7bf102b2a0256bb3c3c5c56",
-      "bytes": 76353
-    },
-    {
-      "pv": "PV-0060",
-      "pageId": "customer.profile",
-      "testId": "customer-experience-visual.spec.ts::PV-0060",
-      "baselinePath": "tests/e2e/frontend-customer-experience/snapshots/PV-0060.png",
-      "sha256": "fd61b27c5699aab037e2b2946f2e2c80e43a6693cf3095219c2c4dafcab36514",
-      "bytes": 28664
-    },
-    {
-      "pv": "PV-0061",
-      "pageId": "customer.profile",
-      "testId": "customer-experience-visual.spec.ts::PV-0061",
-      "baselinePath": "tests/e2e/frontend-customer-experience/snapshots/PV-0061.png",
-      "sha256": "918882526d2e7a633074a85a458b9f66dff3e07c20b4af1de7212a2a4c5ebfb7",
-      "bytes": 67078
-    },
-    {
-      "pv": "PV-0062",
-      "pageId": "customer.profile",
-      "testId": "customer-experience-visual.spec.ts::PV-0062",
-      "baselinePath": "tests/e2e/frontend-customer-experience/snapshots/PV-0062.png",
-      "sha256": "f4571bc3ee9841d085996c1eb25e30fd16ff42d8c28468b1a25efa22347195f1",
-      "bytes": 29209
-    },
-    {
-      "pv": "PV-0063",
-      "pageId": "customer.security",
-      "testId": "customer-experience-visual.spec.ts::PV-0063",
-      "baselinePath": "tests/e2e/frontend-customer-experience/snapshots/PV-0063.png",
-      "sha256": "2e1a30ae872a16617158517b7410e8358d08b13932a9f557de2212e511ba5f63",
-      "bytes": 19812
-    },
-    {
-      "pv": "PV-0064",
-      "pageId": "customer.security",
-      "testId": "customer-experience-visual.spec.ts::PV-0064",
-      "baselinePath": "tests/e2e/frontend-customer-experience/snapshots/PV-0064.png",
-      "sha256": "6191ed204c800087e769e278ffdb19f1c6d21f8d13ca5b1e9b0a5c2f5e5df3cc",
-      "bytes": 53636
-    },
-    {
-      "pv": "PV-0065",
-      "pageId": "customer.security",
-      "testId": "customer-experience-visual.spec.ts::PV-0065",
-      "baselinePath": "tests/e2e/frontend-customer-experience/snapshots/PV-0065.png",
-      "sha256": "5be8e28331ed64df8e7cd6a647dd48380bfa7e189ae3fa08732ce034d54e5ac5",
-      "bytes": 20118
-    }
-  ]
+    "schemaVersion":  1,
+    "evidenceType":  "frontend-visual-regression-baseline",
+    "generatedAt":  "2026-07-15T12:45:55.4065533+00:00",
+    "sourceCommit":  "bf7ce95681a4c629c251b72458829a9598d507ce",
+    "contractVersion":  "customer-experience-design-1.3",
+    "baselineVersion":  "customer-experience-windows-chromium-v1",
+    "environment":  {
+                        "operatingSystem":  "Windows",
+                        "browser":  "Chromium",
+                        "viewport":  "1440x900",
+                        "locale":  "zh-CN",
+                        "timezone":  "Asia/Shanghai",
+                        "colorScheme":  "light",
+                        "reducedMotion":  true
+                    },
+    "businessAssertions":  [
+                               "Fuxing Bank customer experience pages cover all 27 logical states from PV-0039 through PV-0065.",
+                               "Loans, documents, messages, profile, and security settings use the generated customer API contract.",
+                               "Loan repayment schedules come from the customer-scoped Fineract read model.",
+                               "Document download and unread-message acknowledgement are executable interactions.",
+                               "Visual fixtures are deterministic synthetic data and contain no real personal data or secrets."
+                           ],
+    "cases":  [
+                  {
+                      "pv":  "PV-0039",
+                      "pageId":  "customer.beneficiaries",
+                      "testId":  "customer-experience-visual.spec.ts::PV-0039",
+                      "baselinePath":  "tests/e2e/frontend-customer-experience/snapshots/PV-0039.png",
+                      "sha256":  "f095c14cca6adc9048948b61bf9835012f53a0f41c2c468b826f4d6f213352c2",
+                      "bytes":  30675
+                  },
+                  {
+                      "pv":  "PV-0040",
+                      "pageId":  "customer.beneficiaries",
+                      "testId":  "customer-experience-visual.spec.ts::PV-0040",
+                      "baselinePath":  "tests/e2e/frontend-customer-experience/snapshots/PV-0040.png",
+                      "sha256":  "6a10a3fe200299ac17ae05898648b6e525efcc8af4740329703430c0b6e84311",
+                      "bytes":  55246
+                  },
+                  {
+                      "pv":  "PV-0041",
+                      "pageId":  "customer.beneficiaries",
+                      "testId":  "customer-experience-visual.spec.ts::PV-0041",
+                      "baselinePath":  "tests/e2e/frontend-customer-experience/snapshots/PV-0041.png",
+                      "sha256":  "3edd7e13c39ba3c6fc2a3b7bfc2e339e4b817c7ba094a33f6d441705c2b56f75",
+                      "bytes":  32401
+                  },
+                  {
+                      "pv":  "PV-0042",
+                      "pageId":  "customer.loans",
+                      "testId":  "customer-experience-visual.spec.ts::PV-0042",
+                      "baselinePath":  "tests/e2e/frontend-customer-experience/snapshots/PV-0042.png",
+                      "sha256":  "f29a3532e43c3dab441f3676c8d13d333d0c1cab133f17b0fa770fd008a498d8",
+                      "bytes":  28970
+                  },
+                  {
+                      "pv":  "PV-0043",
+                      "pageId":  "customer.loans",
+                      "testId":  "customer-experience-visual.spec.ts::PV-0043",
+                      "baselinePath":  "tests/e2e/frontend-customer-experience/snapshots/PV-0043.png",
+                      "sha256":  "05bd33ed9f3d187a22a9dba928216145b2ade35480e214f53516b77e47df0b85",
+                      "bytes":  46871
+                  },
+                  {
+                      "pv":  "PV-0044",
+                      "pageId":  "customer.loans",
+                      "testId":  "customer-experience-visual.spec.ts::PV-0044",
+                      "baselinePath":  "tests/e2e/frontend-customer-experience/snapshots/PV-0044.png",
+                      "sha256":  "ec2db49bf33ae816175e4a5746e2fce31818a2537025aa3bb7d2b435cd944250",
+                      "bytes":  30916
+                  },
+                  {
+                      "pv":  "PV-0045",
+                      "pageId":  "customer.loans.apply",
+                      "testId":  "customer-experience-visual.spec.ts::PV-0045",
+                      "baselinePath":  "tests/e2e/frontend-customer-experience/snapshots/PV-0045.png",
+                      "sha256":  "7b355103efa8a559d2eccbcf3bcbd7240f594a828b94f0052bd6c317b6e1ebf4",
+                      "bytes":  66726
+                  },
+                  {
+                      "pv":  "PV-0046",
+                      "pageId":  "customer.loans.apply",
+                      "testId":  "customer-experience-visual.spec.ts::PV-0046",
+                      "baselinePath":  "tests/e2e/frontend-customer-experience/snapshots/PV-0046.png",
+                      "sha256":  "d7a0b2c312abf1507a241790a5fbba43060defe064994c4356d1b142092e1e73",
+                      "bytes":  68040
+                  },
+                  {
+                      "pv":  "PV-0047",
+                      "pageId":  "customer.loans.apply",
+                      "testId":  "customer-experience-visual.spec.ts::PV-0047",
+                      "baselinePath":  "tests/e2e/frontend-customer-experience/snapshots/PV-0047.png",
+                      "sha256":  "c79d9bace4f28c2c977a0c0d69666f86f4a0b1a1f1fc1f8aa19de4d64c7b7cb9",
+                      "bytes":  66830
+                  },
+                  {
+                      "pv":  "PV-0048",
+                      "pageId":  "customer.loans.apply",
+                      "testId":  "customer-experience-visual.spec.ts::PV-0048",
+                      "baselinePath":  "tests/e2e/frontend-customer-experience/snapshots/PV-0048.png",
+                      "sha256":  "cbb72e4f8baee086d6e21f75e76adf81fd0b1638bd0b0baf1d68f4d29830142d",
+                      "bytes":  69280
+                  },
+                  {
+                      "pv":  "PV-0049",
+                      "pageId":  "customer.loan.detail",
+                      "testId":  "customer-experience-visual.spec.ts::PV-0049",
+                      "baselinePath":  "tests/e2e/frontend-customer-experience/snapshots/PV-0049.png",
+                      "sha256":  "5a494709209e2372746d0c6b63ea605c691f166ee9a4cc697556aaa99b5d63f2",
+                      "bytes":  31955
+                  },
+                  {
+                      "pv":  "PV-0050",
+                      "pageId":  "customer.loan.detail",
+                      "testId":  "customer-experience-visual.spec.ts::PV-0050",
+                      "baselinePath":  "tests/e2e/frontend-customer-experience/snapshots/PV-0050.png",
+                      "sha256":  "9f5557f05875b3c808c24c3316bc939a140954d63b286e1c60d79c6d27ef4258",
+                      "bytes":  58742
+                  },
+                  {
+                      "pv":  "PV-0051",
+                      "pageId":  "customer.loan.detail",
+                      "testId":  "customer-experience-visual.spec.ts::PV-0051",
+                      "baselinePath":  "tests/e2e/frontend-customer-experience/snapshots/PV-0051.png",
+                      "sha256":  "7fc2b11594c77f27bfd422f8e93e8d4894001be20e81d5b41548a21ed43da938",
+                      "bytes":  33769
+                  },
+                  {
+                      "pv":  "PV-0052",
+                      "pageId":  "customer.documents",
+                      "testId":  "customer-experience-visual.spec.ts::PV-0052",
+                      "baselinePath":  "tests/e2e/frontend-customer-experience/snapshots/PV-0052.png",
+                      "sha256":  "652b609aae9851edcaf10fa9e9065ce7e2c45efe0d49395a7efc12813460f5fa",
+                      "bytes":  26914
+                  },
+                  {
+                      "pv":  "PV-0053",
+                      "pageId":  "customer.documents",
+                      "testId":  "customer-experience-visual.spec.ts::PV-0053",
+                      "baselinePath":  "tests/e2e/frontend-customer-experience/snapshots/PV-0053.png",
+                      "sha256":  "59b55c5d32d0e40573ffc178be94afa115e72b9073ef3ea899e9e9123f806c3d",
+                      "bytes":  47330
+                  },
+                  {
+                      "pv":  "PV-0054",
+                      "pageId":  "customer.documents",
+                      "testId":  "customer-experience-visual.spec.ts::PV-0054",
+                      "baselinePath":  "tests/e2e/frontend-customer-experience/snapshots/PV-0054.png",
+                      "sha256":  "8453e4f3ecb640992ee3427850908fc4ceab9d5bd5d0328d805333e9551efa58",
+                      "bytes":  28450
+                  },
+                  {
+                      "pv":  "PV-0055",
+                      "pageId":  "customer.messages",
+                      "testId":  "customer-experience-visual.spec.ts::PV-0055",
+                      "baselinePath":  "tests/e2e/frontend-customer-experience/snapshots/PV-0055.png",
+                      "sha256":  "f51bb5bc3f2737b8248101a339816a32edc465b5c1f46c107525f23919e783bb",
+                      "bytes":  27670
+                  },
+                  {
+                      "pv":  "PV-0056",
+                      "pageId":  "customer.messages",
+                      "testId":  "customer-experience-visual.spec.ts::PV-0056",
+                      "baselinePath":  "tests/e2e/frontend-customer-experience/snapshots/PV-0056.png",
+                      "sha256":  "246cd191c57b89bd22e9902012e5f6882c821a37914f514ec7b8720795f2da4a",
+                      "bytes":  73153
+                  },
+                  {
+                      "pv":  "PV-0057",
+                      "pageId":  "customer.messages",
+                      "testId":  "customer-experience-visual.spec.ts::PV-0057",
+                      "baselinePath":  "tests/e2e/frontend-customer-experience/snapshots/PV-0057.png",
+                      "sha256":  "b20566cf42885d3c48ada3dec3f3d20e259476d06f96f16303c5968ec04d7cd5",
+                      "bytes":  28771
+                  },
+                  {
+                      "pv":  "PV-0058",
+                      "pageId":  "customer.messages",
+                      "testId":  "customer-experience-visual.spec.ts::PV-0058",
+                      "baselinePath":  "tests/e2e/frontend-customer-experience/snapshots/PV-0058.png",
+                      "sha256":  "daaa96b154f03199db99c2a69ad020788d059d127e22ea1adcd571ca3dac7c32",
+                      "bytes":  71449
+                  },
+                  {
+                      "pv":  "PV-0059",
+                      "pageId":  "customer.messages",
+                      "testId":  "customer-experience-visual.spec.ts::PV-0059",
+                      "baselinePath":  "tests/e2e/frontend-customer-experience/snapshots/PV-0059.png",
+                      "sha256":  "0d0ac8dcd86b8eb224d7a05f7145c6ff18787f6da7bf102b2a0256bb3c3c5c56",
+                      "bytes":  76353
+                  },
+                  {
+                      "pv":  "PV-0060",
+                      "pageId":  "customer.profile",
+                      "testId":  "customer-experience-visual.spec.ts::PV-0060",
+                      "baselinePath":  "tests/e2e/frontend-customer-experience/snapshots/PV-0060.png",
+                      "sha256":  "fd61b27c5699aab037e2b2946f2e2c80e43a6693cf3095219c2c4dafcab36514",
+                      "bytes":  28664
+                  },
+                  {
+                      "pv":  "PV-0061",
+                      "pageId":  "customer.profile",
+                      "testId":  "customer-experience-visual.spec.ts::PV-0061",
+                      "baselinePath":  "tests/e2e/frontend-customer-experience/snapshots/PV-0061.png",
+                      "sha256":  "918882526d2e7a633074a85a458b9f66dff3e07c20b4af1de7212a2a4c5ebfb7",
+                      "bytes":  67078
+                  },
+                  {
+                      "pv":  "PV-0062",
+                      "pageId":  "customer.profile",
+                      "testId":  "customer-experience-visual.spec.ts::PV-0062",
+                      "baselinePath":  "tests/e2e/frontend-customer-experience/snapshots/PV-0062.png",
+                      "sha256":  "f4571bc3ee9841d085996c1eb25e30fd16ff42d8c28468b1a25efa22347195f1",
+                      "bytes":  29209
+                  },
+                  {
+                      "pv":  "PV-0063",
+                      "pageId":  "customer.security",
+                      "testId":  "customer-experience-visual.spec.ts::PV-0063",
+                      "baselinePath":  "tests/e2e/frontend-customer-experience/snapshots/PV-0063.png",
+                      "sha256":  "2e1a30ae872a16617158517b7410e8358d08b13932a9f557de2212e511ba5f63",
+                      "bytes":  19812
+                  },
+                  {
+                      "pv":  "PV-0064",
+                      "pageId":  "customer.security",
+                      "testId":  "customer-experience-visual.spec.ts::PV-0064",
+                      "baselinePath":  "tests/e2e/frontend-customer-experience/snapshots/PV-0064.png",
+                      "sha256":  "6191ed204c800087e769e278ffdb19f1c6d21f8d13ca5b1e9b0a5c2f5e5df3cc",
+                      "bytes":  53636
+                  },
+                  {
+                      "pv":  "PV-0065",
+                      "pageId":  "customer.security",
+                      "testId":  "customer-experience-visual.spec.ts::PV-0065",
+                      "baselinePath":  "tests/e2e/frontend-customer-experience/snapshots/PV-0065.png",
+                      "sha256":  "5be8e28331ed64df8e7cd6a647dd48380bfa7e189ae3fa08732ce034d54e5ac5",
+                      "bytes":  20118
+                  }
+              ]
 }
