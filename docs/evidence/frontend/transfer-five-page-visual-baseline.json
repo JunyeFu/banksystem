@@ -1,314 +1,314 @@
 {
-    "schemaVersion":  1,
-    "evidenceType":  "frontend-visual-regression-baseline",
-    "generatedAt":  "2026-07-15T08:28:02.9114265+00:00",
-    "sourceCommit":  "daa52b9b0cda183edc35c64dc2ebb81ff897c652",
-    "contractVersion":  "transfer-five-page-design-1.2",
-    "baselineVersion":  "transfer-five-page-windows-chromium-v1",
-    "environment":  {
-                        "operatingSystem":  "Windows",
-                        "browser":  "Chromium",
-                        "viewport":  "1440x900",
-                        "locale":  "zh-CN",
-                        "timezone":  "Asia/Shanghai",
-                        "colorScheme":  "light",
-                        "reducedMotion":  true
-                    },
-    "businessAssertions":  [
-                               "Customer transfer list, creation and result states are contract-backed.",
-                               "Operations monitoring filters, aggregate summary, CSV export and detail navigation are executable.",
-                               "Settled customer transfers expose a subject-scoped PDF receipt action.",
-                               "Outbox evidence exposes safe metadata only.",
-                               "All 36 PV states use deterministic synthetic data and no secrets or real PII."
-                           ],
-    "cases":  [
-                  {
-                      "pv":  "PV-0021",
-                      "pageId":  "customer.transfer.list",
-                      "testId":  "transfer-visual.spec.ts::PV-0021",
-                      "baselinePath":  "tests/e2e/frontend-transfer/snapshots/PV-0021.png",
-                      "sha256":  "1c9749f79af421907ad481730f4954c47885de1b7957ec886b343fbd90810036",
-                      "bytes":  27311
-                  },
-                  {
-                      "pv":  "PV-0022",
-                      "pageId":  "customer.transfer.list",
-                      "testId":  "transfer-visual.spec.ts::PV-0022",
-                      "baselinePath":  "tests/e2e/frontend-transfer/snapshots/PV-0022.png",
-                      "sha256":  "86deebba87afa180bd1a5716ad12efb78800b9d21ed92a2bce3af45673700707",
-                      "bytes":  44751
-                  },
-                  {
-                      "pv":  "PV-0023",
-                      "pageId":  "customer.transfer.list",
-                      "testId":  "transfer-visual.spec.ts::PV-0023",
-                      "baselinePath":  "tests/e2e/frontend-transfer/snapshots/PV-0023.png",
-                      "sha256":  "c27edab299eb94b1909a6a60709c78dfff0fd7ea36a0f32c2d658538e83e3842",
-                      "bytes":  31246
-                  },
-                  {
-                      "pv":  "PV-0024",
-                      "pageId":  "customer.transfer.list",
-                      "testId":  "transfer-visual.spec.ts::PV-0024",
-                      "baselinePath":  "tests/e2e/frontend-transfer/snapshots/PV-0024.png",
-                      "sha256":  "8310e85e80223548510d70178c24bd6448e64d589030c8eae393017e477cf553",
-                      "bytes":  45422
-                  },
-                  {
-                      "pv":  "PV-0025",
-                      "pageId":  "customer.transfer.list",
-                      "testId":  "transfer-visual.spec.ts::PV-0025",
-                      "baselinePath":  "tests/e2e/frontend-transfer/snapshots/PV-0025.png",
-                      "sha256":  "50e5373ac1c8372c05aa9f7b4529802a2dd361db2126fbe122a703f04fe2fb8d",
-                      "bytes":  45013
-                  },
-                  {
-                      "pv":  "PV-0026",
-                      "pageId":  "customer.transfer.list",
-                      "testId":  "transfer-visual.spec.ts::PV-0026",
-                      "baselinePath":  "tests/e2e/frontend-transfer/snapshots/PV-0026.png",
-                      "sha256":  "4d0a36200e8f08363795fb13bce0c7d7c38ebfedcd11f4d2dbe0f9e130abd40f",
-                      "bytes":  46193
-                  },
-                  {
-                      "pv":  "PV-0027",
-                      "pageId":  "customer.transfer.list",
-                      "testId":  "transfer-visual.spec.ts::PV-0027",
-                      "baselinePath":  "tests/e2e/frontend-transfer/snapshots/PV-0027.png",
-                      "sha256":  "3e69222a0026e4002505dfed5052962f5fefa52ca3108942537666be30e55f71",
-                      "bytes":  55148
-                  },
-                  {
-                      "pv":  "PV-0028",
-                      "pageId":  "customer.transfer.create",
-                      "testId":  "transfer-visual.spec.ts::PV-0028",
-                      "baselinePath":  "tests/e2e/frontend-transfer/snapshots/PV-0028.png",
-                      "sha256":  "544fd5f6290aac9fd09a88bb11fe285e0fd8fb7b6ae27401557edd97e826b9db",
-                      "bytes":  54857
-                  },
-                  {
-                      "pv":  "PV-0029",
-                      "pageId":  "customer.transfer.create",
-                      "testId":  "transfer-visual.spec.ts::PV-0029",
-                      "baselinePath":  "tests/e2e/frontend-transfer/snapshots/PV-0029.png",
-                      "sha256":  "3eee609ce22cedd0f35bb5650421ec890a13d46786cb5724278c011d0a7594b3",
-                      "bytes":  57963
-                  },
-                  {
-                      "pv":  "PV-0030",
-                      "pageId":  "customer.transfer.create",
-                      "testId":  "transfer-visual.spec.ts::PV-0030",
-                      "baselinePath":  "tests/e2e/frontend-transfer/snapshots/PV-0030.png",
-                      "sha256":  "1174fca424b37fd855255f936b051636231c1306380c0ac4c0f934d1ec9252ba",
-                      "bytes":  66427
-                  },
-                  {
-                      "pv":  "PV-0031",
-                      "pageId":  "customer.transfer.create",
-                      "testId":  "transfer-visual.spec.ts::PV-0031",
-                      "baselinePath":  "tests/e2e/frontend-transfer/snapshots/PV-0031.png",
-                      "sha256":  "1a996b5a3dcfab8bf05161410884bc05e8223c4ee337b880d0cf37eecc2f1b60",
-                      "bytes":  72269
-                  },
-                  {
-                      "pv":  "PV-0032",
-                      "pageId":  "customer.transfer.create",
-                      "testId":  "transfer-visual.spec.ts::PV-0032",
-                      "baselinePath":  "tests/e2e/frontend-transfer/snapshots/PV-0032.png",
-                      "sha256":  "55231f1709f4a6271a612e6752c2e5f4b26b70bce50309c43809c2fc3665926c",
-                      "bytes":  62399
-                  },
-                  {
-                      "pv":  "PV-0033",
-                      "pageId":  "customer.transfer.create",
-                      "testId":  "transfer-visual.spec.ts::PV-0033",
-                      "baselinePath":  "tests/e2e/frontend-transfer/snapshots/PV-0033.png",
-                      "sha256":  "0330cc542a59de6281ba3a0cb2590392ba20607cc4d9fd690e7465d97d846fd2",
-                      "bytes":  60190
-                  },
-                  {
-                      "pv":  "PV-0034",
-                      "pageId":  "customer.transfer.create",
-                      "testId":  "transfer-visual.spec.ts::PV-0034",
-                      "baselinePath":  "tests/e2e/frontend-transfer/snapshots/PV-0034.png",
-                      "sha256":  "2691e82f77aa629e58386191bfe92006e6b20ca19a7cf6a01aa11a8fbb7258f3",
-                      "bytes":  64711
-                  },
-                  {
-                      "pv":  "PV-0035",
-                      "pageId":  "customer.transfer.result",
-                      "testId":  "transfer-visual.spec.ts::PV-0035",
-                      "baselinePath":  "tests/e2e/frontend-transfer/snapshots/PV-0035.png",
-                      "sha256":  "26a97f6bef3453ebf11d2cbc733f875c1f11e9f6811deecaa8a129de4c8e0764",
-                      "bytes":  67590
-                  },
-                  {
-                      "pv":  "PV-0036",
-                      "pageId":  "customer.transfer.result",
-                      "testId":  "transfer-visual.spec.ts::PV-0036",
-                      "baselinePath":  "tests/e2e/frontend-transfer/snapshots/PV-0036.png",
-                      "sha256":  "91d19f3ddf1c528ebd2ce1a599a7c4c98d07c2cf0b9a8d6a7ddbeb30e1631e7c",
-                      "bytes":  76120
-                  },
-                  {
-                      "pv":  "PV-0037",
-                      "pageId":  "customer.transfer.result",
-                      "testId":  "transfer-visual.spec.ts::PV-0037",
-                      "baselinePath":  "tests/e2e/frontend-transfer/snapshots/PV-0037.png",
-                      "sha256":  "249adb0895bbab9eca188a208b7362df2e2d058ffab9073e41e4e131ebf9e0b6",
-                      "bytes":  64436
-                  },
-                  {
-                      "pv":  "PV-0038",
-                      "pageId":  "customer.transfer.result",
-                      "testId":  "transfer-visual.spec.ts::PV-0038",
-                      "baselinePath":  "tests/e2e/frontend-transfer/snapshots/PV-0038.png",
-                      "sha256":  "170a6b66abaf06db9ed13096ef3f2222b5ba54c71675d3d7e1b4b03b6cd9cc26",
-                      "bytes":  21664
-                  },
-                  {
-                      "pv":  "PV-0072",
-                      "pageId":  "operations.payment.monitoring",
-                      "testId":  "transfer-visual.spec.ts::PV-0072",
-                      "baselinePath":  "tests/e2e/frontend-transfer/snapshots/PV-0072.png",
-                      "sha256":  "3863edffed715d159528a3653fa32af303febb0279eb9991cdef35511c92beb7",
-                      "bytes":  67590
-                  },
-                  {
-                      "pv":  "PV-0073",
-                      "pageId":  "operations.payment.monitoring",
-                      "testId":  "transfer-visual.spec.ts::PV-0073",
-                      "baselinePath":  "tests/e2e/frontend-transfer/snapshots/PV-0073.png",
-                      "sha256":  "9f9d8a3806f8b013599533145c6841095516fc18e4342144546cce6dc575e30d",
-                      "bytes":  81467
-                  },
-                  {
-                      "pv":  "PV-0074",
-                      "pageId":  "operations.payment.monitoring",
-                      "testId":  "transfer-visual.spec.ts::PV-0074",
-                      "baselinePath":  "tests/e2e/frontend-transfer/snapshots/PV-0074.png",
-                      "sha256":  "8dc44bf6959f9f1cb549941668bb01f8f444c0082faff2d8f37c16aa0288fa8c",
-                      "bytes":  70222
-                  },
-                  {
-                      "pv":  "PV-0075",
-                      "pageId":  "operations.payment.monitoring",
-                      "testId":  "transfer-visual.spec.ts::PV-0075",
-                      "baselinePath":  "tests/e2e/frontend-transfer/snapshots/PV-0075.png",
-                      "sha256":  "4d172ef0b0c0c76463341aaf5edbba87bc1967bf240df0999939a83523efd39f",
-                      "bytes":  81094
-                  },
-                  {
-                      "pv":  "PV-0076",
-                      "pageId":  "operations.payment.monitoring",
-                      "testId":  "transfer-visual.spec.ts::PV-0076",
-                      "baselinePath":  "tests/e2e/frontend-transfer/snapshots/PV-0076.png",
-                      "sha256":  "ffdc9aeb59e27e0c330edf5f0869781656f49c61be1d3e998987f96c116c3439",
-                      "bytes":  80629
-                  },
-                  {
-                      "pv":  "PV-0077",
-                      "pageId":  "operations.payment.monitoring",
-                      "testId":  "transfer-visual.spec.ts::PV-0077",
-                      "baselinePath":  "tests/e2e/frontend-transfer/snapshots/PV-0077.png",
-                      "sha256":  "2dcdf53b62c6158202fbf79424478eb2d9641f5998d1192daa2283c103d1e640",
-                      "bytes":  93069
-                  },
-                  {
-                      "pv":  "PV-0078",
-                      "pageId":  "operations.payment.monitoring",
-                      "testId":  "transfer-visual.spec.ts::PV-0078",
-                      "baselinePath":  "tests/e2e/frontend-transfer/snapshots/PV-0078.png",
-                      "sha256":  "ee030bc2942a1db81227b813b7420d39adddae79446eb0b6e2f8ac45edf68af6",
-                      "bytes":  46981
-                  },
-                  {
-                      "pv":  "PV-0079",
-                      "pageId":  "operations.payment.monitoring",
-                      "testId":  "transfer-visual.spec.ts::PV-0079",
-                      "baselinePath":  "tests/e2e/frontend-transfer/snapshots/PV-0079.png",
-                      "sha256":  "eeb01a74be0117067bfda3085d9fa8917a72532c87723fdbd372e58eac225710",
-                      "bytes":  61205
-                  },
-                  {
-                      "pv":  "PV-0080",
-                      "pageId":  "operations.payment.monitoring",
-                      "testId":  "transfer-visual.spec.ts::PV-0080",
-                      "baselinePath":  "tests/e2e/frontend-transfer/snapshots/PV-0080.png",
-                      "sha256":  "3b8248aaa3e4f7df0e056fa04060fda6947596240588b4459936e13a2e3a1eb9",
-                      "bytes":  49525
-                  },
-                  {
-                      "pv":  "PV-0081",
-                      "pageId":  "operations.payment.monitoring",
-                      "testId":  "transfer-visual.spec.ts::PV-0081",
-                      "baselinePath":  "tests/e2e/frontend-transfer/snapshots/PV-0081.png",
-                      "sha256":  "002aa552ce8234f0af2536c9964945adea5752044bd2bc15ed080750a685da3c",
-                      "bytes":  61164
-                  },
-                  {
-                      "pv":  "PV-0082",
-                      "pageId":  "operations.payment.monitoring",
-                      "testId":  "transfer-visual.spec.ts::PV-0082",
-                      "baselinePath":  "tests/e2e/frontend-transfer/snapshots/PV-0082.png",
-                      "sha256":  "57b51ed1fd9d1665ed1bbe03efa6d27c3a9ef4e5ff277cc632a9d23c5dfd1566",
-                      "bytes":  60648
-                  },
-                  {
-                      "pv":  "PV-0083",
-                      "pageId":  "operations.payment.monitoring",
-                      "testId":  "transfer-visual.spec.ts::PV-0083",
-                      "baselinePath":  "tests/e2e/frontend-transfer/snapshots/PV-0083.png",
-                      "sha256":  "0a401fd43cd069dac9fa83f1173eb93d3b06078b58690a1b429a6ca876680442",
-                      "bytes":  71421
-                  },
-                  {
-                      "pv":  "PV-0084",
-                      "pageId":  "operations.payment.detail",
-                      "testId":  "transfer-visual.spec.ts::PV-0084",
-                      "baselinePath":  "tests/e2e/frontend-transfer/snapshots/PV-0084.png",
-                      "sha256":  "2d461997c5fa6de9e5eb2141e687b6f9e38cc0307523a591aeac196298cae1bd",
-                      "bytes":  93361
-                  },
-                  {
-                      "pv":  "PV-0085",
-                      "pageId":  "operations.payment.detail",
-                      "testId":  "transfer-visual.spec.ts::PV-0085",
-                      "baselinePath":  "tests/e2e/frontend-transfer/snapshots/PV-0085.png",
-                      "sha256":  "8f5d0832e5975b82a1e08663faa2af4e8472377f9d6ffbbc071dcc0e31229623",
-                      "bytes":  94711
-                  },
-                  {
-                      "pv":  "PV-0086",
-                      "pageId":  "operations.payment.detail",
-                      "testId":  "transfer-visual.spec.ts::PV-0086",
-                      "baselinePath":  "tests/e2e/frontend-transfer/snapshots/PV-0086.png",
-                      "sha256":  "743d2861e570e23ee8a6bd5bbfa5dd8d0377ceb1f469fd4c64763e4399038127",
-                      "bytes":  47444
-                  },
-                  {
-                      "pv":  "PV-0087",
-                      "pageId":  "operations.payment.detail",
-                      "testId":  "transfer-visual.spec.ts::PV-0087",
-                      "baselinePath":  "tests/e2e/frontend-transfer/snapshots/PV-0087.png",
-                      "sha256":  "51373666345b7f8a436eb300e208907c9845a41c34ea3c264cf05bd45a228a1f",
-                      "bytes":  77573
-                  },
-                  {
-                      "pv":  "PV-0088",
-                      "pageId":  "operations.payment.detail",
-                      "testId":  "transfer-visual.spec.ts::PV-0088",
-                      "baselinePath":  "tests/e2e/frontend-transfer/snapshots/PV-0088.png",
-                      "sha256":  "3e733b938fa9ef02c071219292ae4cc4c39d6461ab027655d0a3f65fec9a4a15",
-                      "bytes":  78897
-                  },
-                  {
-                      "pv":  "PV-0089",
-                      "pageId":  "operations.payment.detail",
-                      "testId":  "transfer-visual.spec.ts::PV-0089",
-                      "baselinePath":  "tests/e2e/frontend-transfer/snapshots/PV-0089.png",
-                      "sha256":  "667fdc7b5cdecdf71c6a7f0e7a8e930b34b1c25c19ce63b0e771946338b224b3",
-                      "bytes":  27778
-                  }
-              ]
+  "schemaVersion": 1,
+  "evidenceType": "frontend-visual-regression-baseline",
+  "generatedAt": "2026-07-15T09:08:51.5530654+00:00",
+  "sourceCommit": "481bc0160fd576dde030f7eb1365e14fd2bf6a1b",
+  "contractVersion": "transfer-five-page-design-1.2",
+  "baselineVersion": "transfer-five-page-windows-chromium-v1",
+  "environment": {
+    "operatingSystem": "Windows",
+    "browser": "Chromium",
+    "viewport": "1440x900",
+    "locale": "zh-CN",
+    "timezone": "Asia/Shanghai",
+    "colorScheme": "light",
+    "reducedMotion": true
+  },
+  "businessAssertions": [
+    "Customer transfer list, creation and result states are contract-backed.",
+    "Operations monitoring filters, aggregate summary, CSV export and detail navigation are executable.",
+    "Settled customer transfers expose a subject-scoped PDF receipt action.",
+    "Outbox evidence exposes safe metadata only.",
+    "All 36 PV states use deterministic synthetic data and no secrets or real PII."
+  ],
+  "cases": [
+    {
+      "pv": "PV-0021",
+      "pageId": "customer.transfer.list",
+      "testId": "transfer-visual.spec.ts::PV-0021",
+      "baselinePath": "tests/e2e/frontend-transfer/snapshots/PV-0021.png",
+      "sha256": "ade83dfc557b00ca48f41e87ec6d727dfc6edc85b63076e9fc17e21f57837bbf",
+      "bytes": 28637
+    },
+    {
+      "pv": "PV-0022",
+      "pageId": "customer.transfer.list",
+      "testId": "transfer-visual.spec.ts::PV-0022",
+      "baselinePath": "tests/e2e/frontend-transfer/snapshots/PV-0022.png",
+      "sha256": "ac640c8d656089e53e7b4da90685dcfed465fd3dacbb327df493cf87d6402a37",
+      "bytes": 46047
+    },
+    {
+      "pv": "PV-0023",
+      "pageId": "customer.transfer.list",
+      "testId": "transfer-visual.spec.ts::PV-0023",
+      "baselinePath": "tests/e2e/frontend-transfer/snapshots/PV-0023.png",
+      "sha256": "d9e63dc3a0c8eae435589071165b07635b149abfee3c165b257e20a66d3f2883",
+      "bytes": 32566
+    },
+    {
+      "pv": "PV-0024",
+      "pageId": "customer.transfer.list",
+      "testId": "transfer-visual.spec.ts::PV-0024",
+      "baselinePath": "tests/e2e/frontend-transfer/snapshots/PV-0024.png",
+      "sha256": "6b8c616445cb896e94f4dd0a708dd8857264cb2d0f2ebaa5b432cc6681bb9621",
+      "bytes": 46668
+    },
+    {
+      "pv": "PV-0025",
+      "pageId": "customer.transfer.list",
+      "testId": "transfer-visual.spec.ts::PV-0025",
+      "baselinePath": "tests/e2e/frontend-transfer/snapshots/PV-0025.png",
+      "sha256": "d6ef84831317e5de1dd7c0bcde0d99cbded5b10768b9516fb09786b3977efbcc",
+      "bytes": 46307
+    },
+    {
+      "pv": "PV-0026",
+      "pageId": "customer.transfer.list",
+      "testId": "transfer-visual.spec.ts::PV-0026",
+      "baselinePath": "tests/e2e/frontend-transfer/snapshots/PV-0026.png",
+      "sha256": "3340bd9fd7dad69def8e69520df52bc562fc10dcad86ff08f2e86ec84e266c5f",
+      "bytes": 47403
+    },
+    {
+      "pv": "PV-0027",
+      "pageId": "customer.transfer.list",
+      "testId": "transfer-visual.spec.ts::PV-0027",
+      "baselinePath": "tests/e2e/frontend-transfer/snapshots/PV-0027.png",
+      "sha256": "20b37a05645f41a4c9f43cbf934b8d12b1c609fc9a8076943c97fcaf58958769",
+      "bytes": 56482
+    },
+    {
+      "pv": "PV-0028",
+      "pageId": "customer.transfer.create",
+      "testId": "transfer-visual.spec.ts::PV-0028",
+      "baselinePath": "tests/e2e/frontend-transfer/snapshots/PV-0028.png",
+      "sha256": "a5fd8801e1e95ccc42dbf4c9b8d553f4de7a3cde5c99ed6ca8ec3842af232f79",
+      "bytes": 56198
+    },
+    {
+      "pv": "PV-0029",
+      "pageId": "customer.transfer.create",
+      "testId": "transfer-visual.spec.ts::PV-0029",
+      "baselinePath": "tests/e2e/frontend-transfer/snapshots/PV-0029.png",
+      "sha256": "b7f6fbc65468a9fe5ec77577cd059d1e12160b19cd71d57106e80471fa9ebc6d",
+      "bytes": 59285
+    },
+    {
+      "pv": "PV-0030",
+      "pageId": "customer.transfer.create",
+      "testId": "transfer-visual.spec.ts::PV-0030",
+      "baselinePath": "tests/e2e/frontend-transfer/snapshots/PV-0030.png",
+      "sha256": "64a78ed3b83cd94b738d3028b23baa02bd74f4f656fec58287ca2ffec591ca3a",
+      "bytes": 67760
+    },
+    {
+      "pv": "PV-0031",
+      "pageId": "customer.transfer.create",
+      "testId": "transfer-visual.spec.ts::PV-0031",
+      "baselinePath": "tests/e2e/frontend-transfer/snapshots/PV-0031.png",
+      "sha256": "1088c83eaa2b6fe571eef85cbb06587966c8da7b45b21a26797a2a027de44053",
+      "bytes": 73570
+    },
+    {
+      "pv": "PV-0032",
+      "pageId": "customer.transfer.create",
+      "testId": "transfer-visual.spec.ts::PV-0032",
+      "baselinePath": "tests/e2e/frontend-transfer/snapshots/PV-0032.png",
+      "sha256": "3274a2c0164283226577827f1f1ee6146796b921d7e04a2ab9c9b78acb154933",
+      "bytes": 63698
+    },
+    {
+      "pv": "PV-0033",
+      "pageId": "customer.transfer.create",
+      "testId": "transfer-visual.spec.ts::PV-0033",
+      "baselinePath": "tests/e2e/frontend-transfer/snapshots/PV-0033.png",
+      "sha256": "bc14e24d64c7d22ae96cc0887dba401cef0e715f4d60dac13d8cf6d8e3bae383",
+      "bytes": 61478
+    },
+    {
+      "pv": "PV-0034",
+      "pageId": "customer.transfer.create",
+      "testId": "transfer-visual.spec.ts::PV-0034",
+      "baselinePath": "tests/e2e/frontend-transfer/snapshots/PV-0034.png",
+      "sha256": "a89ca7e9c09c6917bb0aea753892aac909b52554a41bc4b6dc7444ebf100b6d3",
+      "bytes": 66031
+    },
+    {
+      "pv": "PV-0035",
+      "pageId": "customer.transfer.result",
+      "testId": "transfer-visual.spec.ts::PV-0035",
+      "baselinePath": "tests/e2e/frontend-transfer/snapshots/PV-0035.png",
+      "sha256": "27fcfa944f7d60674f9ac25054c37501bb7602ce41382b68e63abe8c5bc59b20",
+      "bytes": 68898
+    },
+    {
+      "pv": "PV-0036",
+      "pageId": "customer.transfer.result",
+      "testId": "transfer-visual.spec.ts::PV-0036",
+      "baselinePath": "tests/e2e/frontend-transfer/snapshots/PV-0036.png",
+      "sha256": "e3906ab5e3f95018ac69ead94284fe650323672cdbe207afaf9a9545ff3c8d32",
+      "bytes": 77439
+    },
+    {
+      "pv": "PV-0037",
+      "pageId": "customer.transfer.result",
+      "testId": "transfer-visual.spec.ts::PV-0037",
+      "baselinePath": "tests/e2e/frontend-transfer/snapshots/PV-0037.png",
+      "sha256": "8c8242d3fc7e4d99fa855d214618cd8ba85be3926c9b373d0eba3642f3d6b7ad",
+      "bytes": 65755
+    },
+    {
+      "pv": "PV-0038",
+      "pageId": "customer.transfer.result",
+      "testId": "transfer-visual.spec.ts::PV-0038",
+      "baselinePath": "tests/e2e/frontend-transfer/snapshots/PV-0038.png",
+      "sha256": "2c609809268e11a70d06c15194e1abbfb20ca953597cba85893dd18e38af2bb7",
+      "bytes": 23030
+    },
+    {
+      "pv": "PV-0072",
+      "pageId": "operations.payment.monitoring",
+      "testId": "transfer-visual.spec.ts::PV-0072",
+      "baselinePath": "tests/e2e/frontend-transfer/snapshots/PV-0072.png",
+      "sha256": "3863edffed715d159528a3653fa32af303febb0279eb9991cdef35511c92beb7",
+      "bytes": 67590
+    },
+    {
+      "pv": "PV-0073",
+      "pageId": "operations.payment.monitoring",
+      "testId": "transfer-visual.spec.ts::PV-0073",
+      "baselinePath": "tests/e2e/frontend-transfer/snapshots/PV-0073.png",
+      "sha256": "9f9d8a3806f8b013599533145c6841095516fc18e4342144546cce6dc575e30d",
+      "bytes": 81467
+    },
+    {
+      "pv": "PV-0074",
+      "pageId": "operations.payment.monitoring",
+      "testId": "transfer-visual.spec.ts::PV-0074",
+      "baselinePath": "tests/e2e/frontend-transfer/snapshots/PV-0074.png",
+      "sha256": "3c613c4a719bd04194be0d5b8addc3e3ee3dd35a80293d4a29700ccaceb92465",
+      "bytes": 70167
+    },
+    {
+      "pv": "PV-0075",
+      "pageId": "operations.payment.monitoring",
+      "testId": "transfer-visual.spec.ts::PV-0075",
+      "baselinePath": "tests/e2e/frontend-transfer/snapshots/PV-0075.png",
+      "sha256": "2476f7ecdfdbc44d0a392fb9cb18b89958647d04ef06bd77e1d5fcd31e23ac42",
+      "bytes": 81277
+    },
+    {
+      "pv": "PV-0076",
+      "pageId": "operations.payment.monitoring",
+      "testId": "transfer-visual.spec.ts::PV-0076",
+      "baselinePath": "tests/e2e/frontend-transfer/snapshots/PV-0076.png",
+      "sha256": "ffdc9aeb59e27e0c330edf5f0869781656f49c61be1d3e998987f96c116c3439",
+      "bytes": 80629
+    },
+    {
+      "pv": "PV-0077",
+      "pageId": "operations.payment.monitoring",
+      "testId": "transfer-visual.spec.ts::PV-0077",
+      "baselinePath": "tests/e2e/frontend-transfer/snapshots/PV-0077.png",
+      "sha256": "defd24573ee0dc4ebb1ef5df5a35912ea16d5e1121e2aae8375c1eae27282cc8",
+      "bytes": 93232
+    },
+    {
+      "pv": "PV-0078",
+      "pageId": "operations.payment.monitoring",
+      "testId": "transfer-visual.spec.ts::PV-0078",
+      "baselinePath": "tests/e2e/frontend-transfer/snapshots/PV-0078.png",
+      "sha256": "ee030bc2942a1db81227b813b7420d39adddae79446eb0b6e2f8ac45edf68af6",
+      "bytes": 46981
+    },
+    {
+      "pv": "PV-0079",
+      "pageId": "operations.payment.monitoring",
+      "testId": "transfer-visual.spec.ts::PV-0079",
+      "baselinePath": "tests/e2e/frontend-transfer/snapshots/PV-0079.png",
+      "sha256": "eeb01a74be0117067bfda3085d9fa8917a72532c87723fdbd372e58eac225710",
+      "bytes": 61205
+    },
+    {
+      "pv": "PV-0080",
+      "pageId": "operations.payment.monitoring",
+      "testId": "transfer-visual.spec.ts::PV-0080",
+      "baselinePath": "tests/e2e/frontend-transfer/snapshots/PV-0080.png",
+      "sha256": "3b8248aaa3e4f7df0e056fa04060fda6947596240588b4459936e13a2e3a1eb9",
+      "bytes": 49525
+    },
+    {
+      "pv": "PV-0081",
+      "pageId": "operations.payment.monitoring",
+      "testId": "transfer-visual.spec.ts::PV-0081",
+      "baselinePath": "tests/e2e/frontend-transfer/snapshots/PV-0081.png",
+      "sha256": "002aa552ce8234f0af2536c9964945adea5752044bd2bc15ed080750a685da3c",
+      "bytes": 61164
+    },
+    {
+      "pv": "PV-0082",
+      "pageId": "operations.payment.monitoring",
+      "testId": "transfer-visual.spec.ts::PV-0082",
+      "baselinePath": "tests/e2e/frontend-transfer/snapshots/PV-0082.png",
+      "sha256": "57b51ed1fd9d1665ed1bbe03efa6d27c3a9ef4e5ff277cc632a9d23c5dfd1566",
+      "bytes": 60648
+    },
+    {
+      "pv": "PV-0083",
+      "pageId": "operations.payment.monitoring",
+      "testId": "transfer-visual.spec.ts::PV-0083",
+      "baselinePath": "tests/e2e/frontend-transfer/snapshots/PV-0083.png",
+      "sha256": "1493c4950f5994a532cdc094a89c676b597206f0d876287b62c6276bdd0c4552",
+      "bytes": 72989
+    },
+    {
+      "pv": "PV-0084",
+      "pageId": "operations.payment.detail",
+      "testId": "transfer-visual.spec.ts::PV-0084",
+      "baselinePath": "tests/e2e/frontend-transfer/snapshots/PV-0084.png",
+      "sha256": "2d461997c5fa6de9e5eb2141e687b6f9e38cc0307523a591aeac196298cae1bd",
+      "bytes": 93361
+    },
+    {
+      "pv": "PV-0085",
+      "pageId": "operations.payment.detail",
+      "testId": "transfer-visual.spec.ts::PV-0085",
+      "baselinePath": "tests/e2e/frontend-transfer/snapshots/PV-0085.png",
+      "sha256": "8f5d0832e5975b82a1e08663faa2af4e8472377f9d6ffbbc071dcc0e31229623",
+      "bytes": 94711
+    },
+    {
+      "pv": "PV-0086",
+      "pageId": "operations.payment.detail",
+      "testId": "transfer-visual.spec.ts::PV-0086",
+      "baselinePath": "tests/e2e/frontend-transfer/snapshots/PV-0086.png",
+      "sha256": "743d2861e570e23ee8a6bd5bbfa5dd8d0377ceb1f469fd4c64763e4399038127",
+      "bytes": 47444
+    },
+    {
+      "pv": "PV-0087",
+      "pageId": "operations.payment.detail",
+      "testId": "transfer-visual.spec.ts::PV-0087",
+      "baselinePath": "tests/e2e/frontend-transfer/snapshots/PV-0087.png",
+      "sha256": "51373666345b7f8a436eb300e208907c9845a41c34ea3c264cf05bd45a228a1f",
+      "bytes": 77573
+    },
+    {
+      "pv": "PV-0088",
+      "pageId": "operations.payment.detail",
+      "testId": "transfer-visual.spec.ts::PV-0088",
+      "baselinePath": "tests/e2e/frontend-transfer/snapshots/PV-0088.png",
+      "sha256": "3e733b938fa9ef02c071219292ae4cc4c39d6461ab027655d0a3f65fec9a4a15",
+      "bytes": 78897
+    },
+    {
+      "pv": "PV-0089",
+      "pageId": "operations.payment.detail",
+      "testId": "transfer-visual.spec.ts::PV-0089",
+      "baselinePath": "tests/e2e/frontend-transfer/snapshots/PV-0089.png",
+      "sha256": "667fdc7b5cdecdf71c6a7f0e7a8e930b34b1c25c19ce63b0e771946338b224b3",
+      "bytes": 27778
+    }
+  ]
 }
