@@ -79,4 +79,4 @@ owner: project-owner
 - 使用 `platform_artifacts`、`platform_evidence`、`platform_runtime` 命名 Volume；Worker 临时目录用 tmpfs。
 - `.gitignore` 扩展忽略平台运行产物、`.auth`、Artifact/Evidence/Runtime、报告、视频、截图、构建产物和依赖目录。
 - B0 建立 GPT Authoring Adapter、模型 Profile 名称和默认关闭状态；GPT 凭据只由受控本机运行时注入，不能被浏览器、Worker 或银行服务读取。实际 GPT 启用和最小 Smoke 在 B6。
-- B0 建立共享品牌配置与术语映射：银行产品展示名为“复兴”智能数字银行，测试平台展示名为“衡准”自动化回归测试平台。品牌仅用于 UI、README、演示与报告；既有服务、API、数据库、Docker 和包名保持兼容，既有门户显示名称随前端重构迁移。
+- B0 建立共享品牌配置与术语映射：银行产品展示名为“复兴银行数字银行系统”，银行子系统统一使用“复兴银行 + 系统/门户/控制台/中心名称”；测试平台展示名为“衡准自动化回归测试平台”。品牌仅用于 UI、README、演示与报告；既有服务、API、数据库、Docker 和包名保持兼容，既有门户显示名称随前端重构迁移。

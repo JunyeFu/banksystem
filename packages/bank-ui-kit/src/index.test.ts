@@ -4,6 +4,7 @@ import { dateTime, money, productBrand, transferStatusText } from './index';
 describe('bank UI formatting', () => {
   it('exposes the approved product names', () => {
     expect(productBrand.bank.shortName).toBe('复兴银行');
+    expect(productBrand.bank.displayName).toBe('复兴银行数字银行系统');
     expect(productBrand.bank.customerPortalName).toBe('复兴银行客户门户');
     expect(productBrand.bank.operationsConsoleName).toBe('复兴银行运营控制台');
     expect(productBrand.regressionPlatform.displayName).toBe('衡准自动化回归测试平台');

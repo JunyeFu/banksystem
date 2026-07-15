@@ -12,7 +12,7 @@ owner: project-owner
 
 # 设计文档索引
 
-- [`frontend/`](frontend/README.md)：复兴智能数字银行与衡准自动化回归测试平台的前端设计。
+- [`frontend/`](frontend/README.md)：复兴银行数字银行系统与衡准自动化回归测试平台的前端设计。
 - 银行业务设计继续由架构基线、状态机和 OpenAPI 共同约束。
 - 回归平台目标设计见当前 v5.4 基线；历史长篇方案已迁入 `docs/archive/architecture/v5.4-reference/`。
 

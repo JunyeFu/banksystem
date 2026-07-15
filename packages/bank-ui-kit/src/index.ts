@@ -16,6 +16,7 @@ export const bankTheme = {
 export const productBrand = {
   bank: {
     shortName: '复兴银行',
+    displayName: '复兴银行数字银行系统',
     customerPortalName: '复兴银行客户门户',
     operationsConsoleName: '复兴银行运营控制台',
   },
