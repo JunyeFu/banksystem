@@ -1,0 +1,170 @@
+{
+  "schemaVersion": 1,
+  "evidenceType": "frontend-visual-regression-baseline",
+  "generatedAt": "2026-07-15T10:44:06.6383378+00:00",
+  "sourceCommit": "cf34013a6268252bd46f0daa29073e11bbdc95e6",
+  "contractVersion": "operations-risk-design-1.0",
+  "baselineVersion": "operations-risk-windows-chromium-v1",
+  "environment": {
+    "operatingSystem": "Windows",
+    "browser": "Chromium",
+    "viewport": "1440x900",
+    "locale": "zh-CN",
+    "timezone": "Asia/Shanghai",
+    "colorScheme": "light",
+    "reducedMotion": true
+  },
+  "businessAssertions": [
+    "复兴银行运营控制台覆盖风险告警 PV-0090 至 PV-0099 和风险案件 PV-0100 至 PV-0107。",
+    "告警和案件数据来自持久化 risk_decision，并通过生成式 operations API 客户端读取。",
+    "状态筛选覆盖 ACTIVE、RESOLVED 和 UNDER_REVIEW，展开与折叠侧栏均有独立基线。",
+    "原始预览包对应编号存在错页，视觉实现以状态文件名、统一运营壳层和真实业务契约为准。",
+    "视觉数据为确定性合成数据，不包含真实个人信息或密钥。"
+  ],
+  "cases": [
+    {
+      "pv": "PV-0090",
+      "pageId": "operations.risk.alerts",
+      "testId": "operations-risk-visual.spec.ts::PV-0090",
+      "baselinePath": "tests/e2e/frontend-operations-risk/snapshots/PV-0090.png",
+      "sha256": "b3c0499278a3555cae06f7502aff9d31dcf8f2e7cc52bfe783eb8b76fe7be452",
+      "bytes": 63142
+    },
+    {
+      "pv": "PV-0091",
+      "pageId": "operations.risk.alerts",
+      "testId": "operations-risk-visual.spec.ts::PV-0091",
+      "baselinePath": "tests/e2e/frontend-operations-risk/snapshots/PV-0091.png",
+      "sha256": "8dffdd6790887177d08d3fc33c450b6b4ae545712878f96116faa4b5dde11aa3",
+      "bytes": 97402
+    },
+    {
+      "pv": "PV-0092",
+      "pageId": "operations.risk.alerts",
+      "testId": "operations-risk-visual.spec.ts::PV-0092",
+      "baselinePath": "tests/e2e/frontend-operations-risk/snapshots/PV-0092.png",
+      "sha256": "b9b512bb14a16e88464d54f3f486304cdf35ea82253810813bad3bfc7f0f8dd9",
+      "bytes": 70762
+    },
+    {
+      "pv": "PV-0093",
+      "pageId": "operations.risk.alerts",
+      "testId": "operations-risk-visual.spec.ts::PV-0093",
+      "baselinePath": "tests/e2e/frontend-operations-risk/snapshots/PV-0093.png",
+      "sha256": "01e2866fb0f8a82f8f11fdbff2ad7ae44c3e52f500b6685836becdffee89605f",
+      "bytes": 88140
+    },
+    {
+      "pv": "PV-0094",
+      "pageId": "operations.risk.alerts",
+      "testId": "operations-risk-visual.spec.ts::PV-0094",
+      "baselinePath": "tests/e2e/frontend-operations-risk/snapshots/PV-0094.png",
+      "sha256": "a78f828f60ab3b02fade5ae15cb4b27dfddc8a59d792ee7833b9c1a39ab4e767",
+      "bytes": 81848
+    },
+    {
+      "pv": "PV-0095",
+      "pageId": "operations.risk.alerts",
+      "testId": "operations-risk-visual.spec.ts::PV-0095",
+      "baselinePath": "tests/e2e/frontend-operations-risk/snapshots/PV-0095.png",
+      "sha256": "9a9ba8e288f33c5b3e27753edf6d2896a176749ab59e18cb844ef81d1d19c1b0",
+      "bytes": 41178
+    },
+    {
+      "pv": "PV-0096",
+      "pageId": "operations.risk.alerts",
+      "testId": "operations-risk-visual.spec.ts::PV-0096",
+      "baselinePath": "tests/e2e/frontend-operations-risk/snapshots/PV-0096.png",
+      "sha256": "18daaefa58e07d2a541fd4d362047ae18fee100425252b8f6e2054965151a3cd",
+      "bytes": 73145
+    },
+    {
+      "pv": "PV-0097",
+      "pageId": "operations.risk.alerts",
+      "testId": "operations-risk-visual.spec.ts::PV-0097",
+      "baselinePath": "tests/e2e/frontend-operations-risk/snapshots/PV-0097.png",
+      "sha256": "92011f7f6d57a28fcbd9663f466895c0b56471aa668782a7592987325c8998fc",
+      "bytes": 44454
+    },
+    {
+      "pv": "PV-0098",
+      "pageId": "operations.risk.alerts",
+      "testId": "operations-risk-visual.spec.ts::PV-0098",
+      "baselinePath": "tests/e2e/frontend-operations-risk/snapshots/PV-0098.png",
+      "sha256": "5b03e852cb7fcbb7ed54980761467a67ad4034b5019b031795c7f48a8225004d",
+      "bytes": 68595
+    },
+    {
+      "pv": "PV-0099",
+      "pageId": "operations.risk.alerts",
+      "testId": "operations-risk-visual.spec.ts::PV-0099",
+      "baselinePath": "tests/e2e/frontend-operations-risk/snapshots/PV-0099.png",
+      "sha256": "a17b17826f085a80a3979af9a58aee21cd29b1ad87270c7b534288a8a9d31b6b",
+      "bytes": 61721
+    },
+    {
+      "pv": "PV-0100",
+      "pageId": "operations.risk.cases",
+      "testId": "operations-risk-visual.spec.ts::PV-0100",
+      "baselinePath": "tests/e2e/frontend-operations-risk/snapshots/PV-0100.png",
+      "sha256": "60bcefd04356075af50b0b935e0686b23af229b796147996ee1163ea2ebb81b2",
+      "bytes": 64045
+    },
+    {
+      "pv": "PV-0101",
+      "pageId": "operations.risk.cases",
+      "testId": "operations-risk-visual.spec.ts::PV-0101",
+      "baselinePath": "tests/e2e/frontend-operations-risk/snapshots/PV-0101.png",
+      "sha256": "93389756afdb223849789bf1d44d015afa7ceda2ff152ec149ea1846a54b57db",
+      "bytes": 95031
+    },
+    {
+      "pv": "PV-0102",
+      "pageId": "operations.risk.cases",
+      "testId": "operations-risk-visual.spec.ts::PV-0102",
+      "baselinePath": "tests/e2e/frontend-operations-risk/snapshots/PV-0102.png",
+      "sha256": "9a7380d6c6fa47b1d9da7c4040bd52f9f55c33326491f3080218ea4681e37a9d",
+      "bytes": 69349
+    },
+    {
+      "pv": "PV-0103",
+      "pageId": "operations.risk.cases",
+      "testId": "operations-risk-visual.spec.ts::PV-0103",
+      "baselinePath": "tests/e2e/frontend-operations-risk/snapshots/PV-0103.png",
+      "sha256": "2335d0ac7a19634a8c7af66b81df8a4115464a6eaf67c8bc5269f83b44b3a4f4",
+      "bytes": 82090
+    },
+    {
+      "pv": "PV-0104",
+      "pageId": "operations.risk.cases",
+      "testId": "operations-risk-visual.spec.ts::PV-0104",
+      "baselinePath": "tests/e2e/frontend-operations-risk/snapshots/PV-0104.png",
+      "sha256": "aec1a56c447581a7ca03084cce5fb66973fb4636dc925a221e289b848a55ae79",
+      "bytes": 41901
+    },
+    {
+      "pv": "PV-0105",
+      "pageId": "operations.risk.cases",
+      "testId": "operations-risk-visual.spec.ts::PV-0105",
+      "baselinePath": "tests/e2e/frontend-operations-risk/snapshots/PV-0105.png",
+      "sha256": "732617fbc7af4f5d4e2b6da9020580e256a6d9cfe402fca29ff7935a43edc295",
+      "bytes": 75735
+    },
+    {
+      "pv": "PV-0106",
+      "pageId": "operations.risk.cases",
+      "testId": "operations-risk-visual.spec.ts::PV-0106",
+      "baselinePath": "tests/e2e/frontend-operations-risk/snapshots/PV-0106.png",
+      "sha256": "4fe147523aa8665307ab532fa22bd12b00306135c68abcb132ee8eaab5b27425",
+      "bytes": 42862
+    },
+    {
+      "pv": "PV-0107",
+      "pageId": "operations.risk.cases",
+      "testId": "operations-risk-visual.spec.ts::PV-0107",
+      "baselinePath": "tests/e2e/frontend-operations-risk/snapshots/PV-0107.png",
+      "sha256": "c8d48ee325a3cad6cc61263a6baa5c569d0a68960a16b2e4183e717b0c8c49d1",
+      "bytes": 61317
+    }
+  ]
+}

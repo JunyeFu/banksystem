@@ -1,8 +1,8 @@
 {
   "schemaVersion": 1,
   "evidenceType": "frontend-visual-regression-baseline",
-  "generatedAt": "2026-07-15T09:08:51.5530654+00:00",
-  "sourceCommit": "481bc0160fd576dde030f7eb1365e14fd2bf6a1b",
+  "generatedAt": "2026-07-15T10:44:06.6189562+00:00",
+  "sourceCommit": "cf34013a6268252bd46f0daa29073e11bbdc95e6",
   "contractVersion": "transfer-five-page-design-1.2",
   "baselineVersion": "transfer-five-page-windows-chromium-v1",
   "environment": {
@@ -171,144 +171,144 @@
       "pageId": "operations.payment.monitoring",
       "testId": "transfer-visual.spec.ts::PV-0072",
       "baselinePath": "tests/e2e/frontend-transfer/snapshots/PV-0072.png",
-      "sha256": "3863edffed715d159528a3653fa32af303febb0279eb9991cdef35511c92beb7",
-      "bytes": 67590
+      "sha256": "bde0427ccdbe8ee69dc04d2c0c997f8af22cde140bf59a4f3dcae4d3356b1290",
+      "bytes": 68956
     },
     {
       "pv": "PV-0073",
       "pageId": "operations.payment.monitoring",
       "testId": "transfer-visual.spec.ts::PV-0073",
       "baselinePath": "tests/e2e/frontend-transfer/snapshots/PV-0073.png",
-      "sha256": "9f9d8a3806f8b013599533145c6841095516fc18e4342144546cce6dc575e30d",
-      "bytes": 81467
+      "sha256": "bac1deaa42a2a33f6aa78222902f0f70c1bccb5adac882dbca4b830d4e2c1851",
+      "bytes": 82560
     },
     {
       "pv": "PV-0074",
       "pageId": "operations.payment.monitoring",
       "testId": "transfer-visual.spec.ts::PV-0074",
       "baselinePath": "tests/e2e/frontend-transfer/snapshots/PV-0074.png",
-      "sha256": "3c613c4a719bd04194be0d5b8addc3e3ee3dd35a80293d4a29700ccaceb92465",
-      "bytes": 70167
+      "sha256": "54fdf64ecbfd7ec101704cbccfca4dc8cec9a09acec733940dce76055f6485f3",
+      "bytes": 71577
     },
     {
       "pv": "PV-0075",
       "pageId": "operations.payment.monitoring",
       "testId": "transfer-visual.spec.ts::PV-0075",
       "baselinePath": "tests/e2e/frontend-transfer/snapshots/PV-0075.png",
-      "sha256": "2476f7ecdfdbc44d0a392fb9cb18b89958647d04ef06bd77e1d5fcd31e23ac42",
-      "bytes": 81277
+      "sha256": "a4361051390a459a3a56a7900aac61ea389bb44039736eede4f101bf1f49bc34",
+      "bytes": 82555
     },
     {
       "pv": "PV-0076",
       "pageId": "operations.payment.monitoring",
       "testId": "transfer-visual.spec.ts::PV-0076",
       "baselinePath": "tests/e2e/frontend-transfer/snapshots/PV-0076.png",
-      "sha256": "ffdc9aeb59e27e0c330edf5f0869781656f49c61be1d3e998987f96c116c3439",
-      "bytes": 80629
+      "sha256": "36754dcd6d74fc8e0729f19e7732228a0df5442acc0bfa34a663c5c956fe15cd",
+      "bytes": 81898
     },
     {
       "pv": "PV-0077",
       "pageId": "operations.payment.monitoring",
       "testId": "transfer-visual.spec.ts::PV-0077",
       "baselinePath": "tests/e2e/frontend-transfer/snapshots/PV-0077.png",
-      "sha256": "defd24573ee0dc4ebb1ef5df5a35912ea16d5e1121e2aae8375c1eae27282cc8",
-      "bytes": 93232
+      "sha256": "046fad0948e785fb9b349ec5421f8ebf4159e1ab14d5ed5fddfa6da8d52e00da",
+      "bytes": 94372
     },
     {
       "pv": "PV-0078",
       "pageId": "operations.payment.monitoring",
       "testId": "transfer-visual.spec.ts::PV-0078",
       "baselinePath": "tests/e2e/frontend-transfer/snapshots/PV-0078.png",
-      "sha256": "ee030bc2942a1db81227b813b7420d39adddae79446eb0b6e2f8ac45edf68af6",
-      "bytes": 46981
+      "sha256": "55ddb72f00a56184a46f3060abdd5a0e285bd3c610b6d0810724c3342140bdc9",
+      "bytes": 47162
     },
     {
       "pv": "PV-0079",
       "pageId": "operations.payment.monitoring",
       "testId": "transfer-visual.spec.ts::PV-0079",
       "baselinePath": "tests/e2e/frontend-transfer/snapshots/PV-0079.png",
-      "sha256": "eeb01a74be0117067bfda3085d9fa8917a72532c87723fdbd372e58eac225710",
-      "bytes": 61205
+      "sha256": "2544853cffae093de6ddcdaa45c04a346e66e156dc782fc18e4a3ffc44e60786",
+      "bytes": 61317
     },
     {
       "pv": "PV-0080",
       "pageId": "operations.payment.monitoring",
       "testId": "transfer-visual.spec.ts::PV-0080",
       "baselinePath": "tests/e2e/frontend-transfer/snapshots/PV-0080.png",
-      "sha256": "3b8248aaa3e4f7df0e056fa04060fda6947596240588b4459936e13a2e3a1eb9",
-      "bytes": 49525
+      "sha256": "5bc697cf6c27cd695a70e0de406949c78eeca55ec87635000203f8df343ff3c2",
+      "bytes": 49764
     },
     {
       "pv": "PV-0081",
       "pageId": "operations.payment.monitoring",
       "testId": "transfer-visual.spec.ts::PV-0081",
       "baselinePath": "tests/e2e/frontend-transfer/snapshots/PV-0081.png",
-      "sha256": "002aa552ce8234f0af2536c9964945adea5752044bd2bc15ed080750a685da3c",
-      "bytes": 61164
+      "sha256": "59d2d27b76af24751a92ffab067b2f64067b9b1cd153ebc36598d92f3abda9d7",
+      "bytes": 61270
     },
     {
       "pv": "PV-0082",
       "pageId": "operations.payment.monitoring",
       "testId": "transfer-visual.spec.ts::PV-0082",
       "baselinePath": "tests/e2e/frontend-transfer/snapshots/PV-0082.png",
-      "sha256": "57b51ed1fd9d1665ed1bbe03efa6d27c3a9ef4e5ff277cc632a9d23c5dfd1566",
-      "bytes": 60648
+      "sha256": "7ab99381cd2e137f1adbc186f4b7cd8c2b3a3b6db7c7fc7c6b7ece5cc9fe061f",
+      "bytes": 60756
     },
     {
       "pv": "PV-0083",
       "pageId": "operations.payment.monitoring",
       "testId": "transfer-visual.spec.ts::PV-0083",
       "baselinePath": "tests/e2e/frontend-transfer/snapshots/PV-0083.png",
-      "sha256": "1493c4950f5994a532cdc094a89c676b597206f0d876287b62c6276bdd0c4552",
-      "bytes": 72989
+      "sha256": "a7bcc816a99cfea7fbe93c01d884115f4e59103d79c9fd0c85963ea9bf5f017c",
+      "bytes": 73162
     },
     {
       "pv": "PV-0084",
       "pageId": "operations.payment.detail",
       "testId": "transfer-visual.spec.ts::PV-0084",
       "baselinePath": "tests/e2e/frontend-transfer/snapshots/PV-0084.png",
-      "sha256": "2d461997c5fa6de9e5eb2141e687b6f9e38cc0307523a591aeac196298cae1bd",
-      "bytes": 93361
+      "sha256": "4727919d9084b41b463fd5d8d46ee39d0cfd6508ec511b4b77d831c55c2be469",
+      "bytes": 94568
     },
     {
       "pv": "PV-0085",
       "pageId": "operations.payment.detail",
       "testId": "transfer-visual.spec.ts::PV-0085",
       "baselinePath": "tests/e2e/frontend-transfer/snapshots/PV-0085.png",
-      "sha256": "8f5d0832e5975b82a1e08663faa2af4e8472377f9d6ffbbc071dcc0e31229623",
-      "bytes": 94711
+      "sha256": "a8506d652f68cb84c63fc7558259d0e776797d80449ca1882cc8f024836edd0d",
+      "bytes": 95897
     },
     {
       "pv": "PV-0086",
       "pageId": "operations.payment.detail",
       "testId": "transfer-visual.spec.ts::PV-0086",
       "baselinePath": "tests/e2e/frontend-transfer/snapshots/PV-0086.png",
-      "sha256": "743d2861e570e23ee8a6bd5bbfa5dd8d0377ceb1f469fd4c64763e4399038127",
-      "bytes": 47444
+      "sha256": "6b3d0e11d90ec9a4fddeaff590eb31591eac81721d22f20b5edaf23375573ea2",
+      "bytes": 48788
     },
     {
       "pv": "PV-0087",
       "pageId": "operations.payment.detail",
       "testId": "transfer-visual.spec.ts::PV-0087",
       "baselinePath": "tests/e2e/frontend-transfer/snapshots/PV-0087.png",
-      "sha256": "51373666345b7f8a436eb300e208907c9845a41c34ea3c264cf05bd45a228a1f",
-      "bytes": 77573
+      "sha256": "60fc888983daa4afa3e3741d8f29269a9f4e0071dfa76590d2709ad2406b8cf0",
+      "bytes": 77731
     },
     {
       "pv": "PV-0088",
       "pageId": "operations.payment.detail",
       "testId": "transfer-visual.spec.ts::PV-0088",
       "baselinePath": "tests/e2e/frontend-transfer/snapshots/PV-0088.png",
-      "sha256": "3e733b938fa9ef02c071219292ae4cc4c39d6461ab027655d0a3f65fec9a4a15",
-      "bytes": 78897
+      "sha256": "54f124be833bc74f2c0b83ce212c58193757dacb6424b2bfcc13a7d92f9996d5",
+      "bytes": 79055
     },
     {
       "pv": "PV-0089",
       "pageId": "operations.payment.detail",
       "testId": "transfer-visual.spec.ts::PV-0089",
       "baselinePath": "tests/e2e/frontend-transfer/snapshots/PV-0089.png",
-      "sha256": "667fdc7b5cdecdf71c6a7f0e7a8e930b34b1c25c19ce63b0e771946338b224b3",
-      "bytes": 27778
+      "sha256": "423898d0d23813b14d5153a7745c51b49d20ccb75064701143414be0604552b9",
+      "bytes": 27909
     }
   ]
 }
