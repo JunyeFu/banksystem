@@ -1,3 +1,15 @@
+---
+id: DOC-3D26A1A0FE
+title: 银行项目文书链路：RAG 分片索引
+document_type: explanation
+domain: research
+status: accepted
+authority: supporting
+version: 1.0
+effective_date: 2026-07-15
+owner: project-owner
+---
+
 # 银行项目文书链路：RAG 分片索引
 
 > 用途：为“复兴”智能数字银行与“衡准”自动化回归测试平台提供从立项到交付的可检索文书链路。本文及同目录文件是 RAG 的项目文档源；仅使用公开资料，不含真实客户、账户、接口凭据或生产数据。

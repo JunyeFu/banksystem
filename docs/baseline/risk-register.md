@@ -1,3 +1,15 @@
+---
+id: DOC-110B41049A
+title: Risk register
+document_type: reference
+domain: baseline
+status: verified
+authority: evidence
+version: 1.0
+effective_date: 2026-07-15
+owner: project-owner
+---
+
 # Risk register
 
 Scope: banking-core Track and external-demo migration risks in the v5.4 combined product.

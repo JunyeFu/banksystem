@@ -1,3 +1,15 @@
+---
+id: DOC-71E8E53308
+title: BANK-0001 runtime inventory
+document_type: reference
+domain: baseline
+status: verified
+authority: evidence
+version: 1.0
+effective_date: 2026-07-15
+owner: project-owner
+---
+
 # BANK-0001 runtime inventory
 
 Captured on 2026-07-10 from Windows 11 Pro with Docker Engine 29.5.3.

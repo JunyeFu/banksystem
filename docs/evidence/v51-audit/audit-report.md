@@ -1,3 +1,15 @@
+---
+id: DOC-D6F1A36416
+title: V5.1 阶段一审计报告：现状缺陷全清单
+document_type: reference
+domain: evidence
+status: verified
+authority: evidence
+version: 1.0
+effective_date: 2026-07-15
+owner: project-owner
+---
+
 # V5.1 阶段一审计报告：现状缺陷全清单
 
 > 历史审计记录：原背景资料目录已迁移并删除，相关 V5.1/V5.4 资料快照保留在 `rag`；当前产品定位和 v5.4 外网演示边界见 `docs/architecture/v5.4-external-demo-baseline.md`。本报告中的 V5.1 结论保持历史证据，不因新规划而改写。

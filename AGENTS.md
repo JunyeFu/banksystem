@@ -1,76 +1,47 @@
-# Bank System - Agent Execution Rules
+# Bank System - Repository Rules
 
-## Project context
+## Stable project boundary
 
-- **Project**: External-demo complete open-source banking system plus full regression testing platform, designed for later intranet migration
-- **Spec**: v5.4 external-demo baseline for the combined product; v4 remains the banking-core safety baseline
-- **Tech stack**: Java 21 / Spring Boot 3.4.5 / React TypeScript Vite / PostgreSQL / Keycloak / ActiveMQ / Docker
-- **Current state**: Banking core has a completed Phase 1 audit with 3 P0 + 11 P1 blockers; v5.4 AI authoring/regression capabilities remain partly planned/PoC and enterprise-platform integration is pending. See `docs/architecture/v5.4-external-demo-baseline.md`, the acceptance matrix, and the audit report.
-- **Stage status**: S0-S6 DONE (with gaps), S7 NOT PASSED
+- Product: “复兴”智能数字银行 and “衡准”自动化回归测试平台.
+- Stack: Java 21 / Spring Boot / React TypeScript Vite / PostgreSQL / Keycloak / ActiveMQ / Docker.
+- Current capability claims must be verified against `docs/current-state/capability-matrix.md`, tests, contracts, and live runtime evidence.
+- Target designs and historical plans must never be described as implemented without evidence.
 
-## Critical rules (MUST follow)
+## Mandatory banking rules
 
-1. **Fineract is the sole core truth source.** The databases `fineract_default` and `fineract_tenants` are core-owned - do not write to them directly. Use the Fineract REST API via `FineractAdapter` for all business changes.
-2. **Browser clients MUST NOT directly call Fineract.** The correct chain is: Customer Portal -> Gateway (18443) -> Bank Channel Service -> Fineract Adapter -> Fineract API.
-3. **All money write operations MUST include:** Idempotency-Key, Correlation ID, state machine, optimistic lock, outbox, audit hash chain, accounting assertion, reconciliation, failure compensation, and replay evidence.
-4. **Money uses BigDecimal / NUMERIC(19,2).** Never use `double` or JSON number for monetary values.
-5. **All schema changes go through Liquibase.** Do not use raw `CREATE TABLE IF NOT EXISTS` for new tables.
-6. **All images must have immutable SHA-256 digests.** No `latest` tags.
-7. **Test Support API is only available under `local`/`test` profiles** and requires `ROLE_TEST_SUPPORT`.
-8. **Secrets must not appear in logs, responses, or committed files.** Use `.env` (gitignored) and Docker secrets for sensitive values.
-9. **Cross-ownership modifications MUST be documented** in `agent/reports/`. See `agent/file-ownership.yaml` for owner assignments.
-10. **Every task MUST pass quality gates** before moving to DONE: contract lint, build, unit tests, integration tests, accessibility review, financial E2E, and security review.
+1. Fineract is the sole core banking truth source. Never write directly to `fineract_default` or `fineract_tenants`.
+2. Browser clients call Gateway -> Bank Channel Service -> Fineract Adapter -> Fineract API; they never call Fineract directly.
+3. Money writes require idempotency, correlation ID, state machine, optimistic locking, outbox, audit chain, accounting assertion, reconciliation, compensation, and replay evidence.
+4. Money uses `BigDecimal` / `NUMERIC(19,2)` and an explicit JSON decimal representation, never binary floating point.
+5. Database schema changes use Liquibase.
+6. Container images use immutable SHA-256 digests, never `latest`.
+7. Test Support API is restricted to `local`/`test` profiles and `ROLE_TEST_SUPPORT`.
+8. AI authoring is separate from formal regression execution. Validated scripts, not LLM calls, drive scheduled runs.
 
-11. **The external demo MUST NOT be a degraded path.** Use synthetic/redacted data and isolated credentials, but retain banking invariants, independent script validation, Baseline comparison, evidence, audit, failure explanation, and recovery gates.
-12. **AI authoring MUST remain separate from formal regression execution.** Scheduled regression runs execute only validated scripts and do not call LLM, Midscene, or vision models.
-13. **HiAgentPattern, CozePlatformAdapter, and EnterpriseAgentPlatformAdapter are distinct concepts.** Do not claim enterprise tenant capabilities until validated in the target environment.
+## Security and repository hygiene
 
-## Stage progression
+- Do not read, print, commit, or index `.env`, secrets, API keys, credentials, Cookie, Token, Storage State, real PII, database volumes, logs, runs, caches, worker output, or local deliverables.
+- Preserve unrelated work in a dirty tree. Stage explicit intended paths only.
+- Do not auto-merge, force-push, or delete unknown runtime processes.
+- External model calls receive only minimum redacted context and never receive execution tools or runtime credentials.
 
-```
-S0 Baseline & Governance (DONE)
-  -> S1 Platform, Identity & Trust (DONE)
-  -> S2 Core Adapter, Channel Data & Contracts (DONE)
-  -> S3 Three Business Clients (DONE)
-  -> S4 Banking Business Closure (DONE - see audit for gaps)
-  -> S5 Testability Foundation (DONE - see audit for gaps)
-  -> S6 Observability, Recovery & Security (DONE - see audit for gaps)
-  -> S7 Final Acceptance (NOT PASSED - see audit report)
-```
+## Knowledge and task control
 
-## File ownership
+- `docs/` is the reviewed human knowledge source.
+- `contracts/` is the executable interface/data contract source.
+- `rag/index/` is generated and disposable; edit `rag/config/` or source documents instead.
+- `agent/backlog.yaml` is the only task-status source. `agent/runs/` is disposable runtime state.
+- Stable decisions use ADRs. Active plans live in `agent/plans/active/`; accepted evidence lives in `docs/evidence/`.
+- Follow nested `AGENTS.md` files for `apps/`, `services/`, `contracts/`, and `tests/`.
 
-Key principles:
-- Frontend Agent does not modify database migrations
-- Database Agent does not modify frontend code
-- Fineract Adapter has a single dedicated owner (CoreIntegrationAgent)
-- Money-related changes require BankingDomainAgent + Stage1Reviewer sign-off
+## Required verification
 
-## Review chain
+Run checks proportional to changed scope:
 
-```
-Developer Agent
-  -> Contract Lint
-  -> Build
-  -> Unit
-  -> Integration
-  -> Accessibility/Testability Review
-  -> Financial E2E
-  -> Accounting/Reconciliation Review
-  -> Security Reviewer
-  -> Human Reviewer
-  -> Merge
-```
+- Docs/RAG: `python scripts/docs/validate_docs.py`, `python scripts/rag/build_rag.py`, `python scripts/rag/validate_rag.py`.
+- Java service: `services/bank-channel-service/mvnw.cmd test` with Java 21.
+- Frontend: `npm.cmd run build` and relevant tests in each changed app/package.
+- Contracts: validate JSON/OpenAPI plus producer/consumer contract tests.
+- Money or release changes: relevant integration, financial E2E, reconciliation, security, Docker Smoke, and rollback verification.
 
-## Rollback principles
-
-Key rules (see `docs/architecture/rollback-principles.md` for full details):
-- A failed stage does not advance.
-- EOD failure does not advance business date.
-- Money failures go through state machine, never overwrite original records.
-- Post-restore must verify invariants: balance, identity mapping, audit hash chain, transfer state history, reconciliation.
-
-## Scheduler
-
-`agent/backlog.yaml` is the authoritative scheduler for banking-core stages S0-S7. v5.4 platform work must be tracked as a separate documentation/planning track until its implementation backlog is explicitly created.
-Claim exactly one READY task, honour all dependencies and allowed paths, and move completed work only to REVIEW.
+Do not mark a task `DONE` until its acceptance evidence is reviewed. If a required check cannot run, record the exact cause and residual risk.

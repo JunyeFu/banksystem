@@ -19,3 +19,20 @@ logs/
 **/dist/
 **/target/
 *.tsbuildinfo
+
+# Generated knowledge, agent runtime, and local deliverables are reproducible or machine-local.
+rag/index/
+rag/eval/reports/*.json
+agent/runs/
+deliverables/
+
+# Third-party binary originals stay local; extracted reviewed text may be committed.
+knowledge-sources/raw/
+
+# Browser and worker runtime artifacts.
+**/playwright-report/
+**/test-results/
+**/traces/
+**/storage-state*.json
+**/__pycache__/
+*.pyc

@@ -9,11 +9,20 @@
 
 本仓库不是生产银行系统，外网部署前必须完成安全评审、凭据隔离、网络限制和演示数据审计。
 
+## 项目事实与开发入口
+
+- [文档索引](docs/README.md)：状态、架构、设计、工作流、运行与证据。
+- [当前能力矩阵](docs/current-state/capability-matrix.md)：区分已验证、部分验证和规划能力。
+- [个人全栈固定工作流](docs/workflows/fullstack-development-workflow.md)：契约优先的垂直切片开发顺序。
+- [前端设计索引](docs/design/frontend/README.md)：设计系统、页面状态、组件、接口和 201 个预览状态追溯。
+- [Agent任务控制面](agent/README.md)：唯一 Backlog、责任域和当前实施计划。
+- [本地RAG](rag/README.md)：受控来源、权重、检索域和黄金问题验证。
+
 This has been tested on Linux Ubuntu 24.04 LTS. Make sure you have Docker and Docker Compose plugin installed
 
 ## Quick Start
 
-当前 Docker Compose 启动说明仍针对银行目标系统；回归平台的 v5.4 目标和待验证项见 `docs/architecture/v5.4-reference/`，不应把文档目标状态当作已经实现。
+当前 Docker Compose 启动说明仍针对银行目标系统；回归平台的 v5.4 目标和待验证项见 `docs/archive/architecture/v5.4-reference/`，不应把文档目标状态当作已经实现。
 
 ### Automated Installation (Recommended)
 ```console
