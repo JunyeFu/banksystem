@@ -7,6 +7,14 @@ export type AccountSummary = CustomerComponents['schemas']['AccountSummary'];
 export type AccountDetail = CustomerComponents['schemas']['AccountDetail'];
 export type AccountTransaction = CustomerComponents['schemas']['AccountTransaction'];
 export type Beneficiary = CustomerComponents['schemas']['Beneficiary'];
+export type LoanSummary = CustomerComponents['schemas']['LoanSummary'];
+export type LoanDetail = CustomerComponents['schemas']['LoanDetail'];
+export type Message = CustomerComponents['schemas']['Message'];
+export type CustomerProfile = CustomerComponents['schemas']['CustomerProfile'];
+export type SecuritySettings = CustomerComponents['schemas']['SecuritySettings'];
+export type CustomerDocument = CustomerComponents['schemas']['CustomerDocument'];
+export type LoanApplication = CustomerComponents['schemas']['LoanApplication'];
+export type LoanApplicationRequest = CustomerComponents['schemas']['LoanApplicationRequest'];
 export type Transfer = CustomerComponents['schemas']['Transfer'];
 export type TransferPage = CustomerComponents['schemas']['TransferPage'];
 export type OperationsTransferPage = OperationsComponents['schemas']['TransferPage'];
@@ -70,6 +78,33 @@ export class CustomerApiClient extends BaseClient {
   }
   listBeneficiaries(): Promise<{ items: Beneficiary[] }> {
     return this.request('/beneficiaries');
+  }
+  createBeneficiary(request: CustomerComponents['schemas']['CreateBeneficiaryRequest']): Promise<Beneficiary> {
+    return this.request('/beneficiaries', { method: 'POST', body: JSON.stringify(request) });
+  }
+  listLoans(): Promise<{ items: LoanSummary[] }> {
+    return this.request('/loans');
+  }
+  getLoan(loanId: string): Promise<LoanDetail> {
+    return this.request(`/loans/${encodeURIComponent(loanId)}`);
+  }
+  createLoanApplication(request: LoanApplicationRequest): Promise<LoanApplication> {
+    return this.request('/loans/applications', { method: 'POST', body: JSON.stringify(request) });
+  }
+  listDocuments(): Promise<{ items: CustomerDocument[] }> {
+    return this.request('/documents');
+  }
+  listMessages(): Promise<{ items: Message[] }> {
+    return this.request('/notifications');
+  }
+  markMessageRead(messageId: string): Promise<{ messageId: string; read: boolean }> {
+    return this.request(`/notifications/${encodeURIComponent(messageId)}/read`, { method: 'POST' });
+  }
+  getProfile(): Promise<CustomerProfile> {
+    return this.request('/profile');
+  }
+  getSecuritySettings(): Promise<SecuritySettings> {
+    return this.request('/security/settings');
   }
   listTransfers(options: { status?: TransferStatus; from?: string; to?: string; page?: number; size?: number } = {}): Promise<TransferPage> {
     return this.request(`/transfers${queryString(options)}`);

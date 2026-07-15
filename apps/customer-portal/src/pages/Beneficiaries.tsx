@@ -12,28 +12,17 @@ import {
 } from 'antd';
 import { PageContainer } from '@/components/PageContainer';
 import type { PageState } from '@/components/PageContainer';
-import { apiClient } from '@/api/client';
-import type { BeneficiaryListResponse } from '@/types/models';
+import { customerApi } from '@/api/client';
+import type { Beneficiary } from '@localbank/bank-api-client';
 
 const { Text } = Typography;
-
-function maskAccountNumber(accountNumber: string): string {
-  const visible = 4;
-  if (accountNumber.length <= visible * 2) {
-    return accountNumber;
-  }
-  const first = accountNumber.slice(0, visible);
-  const last = accountNumber.slice(-visible);
-  const masked = '*'.repeat(accountNumber.length - visible * 2);
-  return `${first}${masked}${last}`;
-}
 
 export function Beneficiaries(): JSX.Element {
   const navigate = useNavigate();
 
-  const { data, isLoading, isError } = useQuery<BeneficiaryListResponse>({
+  const { data, isLoading, isError } = useQuery({
     queryKey: ['beneficiaries'],
-    queryFn: () => apiClient.get<BeneficiaryListResponse>('/beneficiaries'),
+    queryFn: () => customerApi.listBeneficiaries(),
   });
 
   const pageState: PageState = isLoading
@@ -70,31 +59,25 @@ export function Beneficiaries(): JSX.Element {
         )}
 
         <Row gutter={[16, 16]}>
-          {beneficiaries.map((b) => (
-            <Col span={8} key={b.id}>
+          {beneficiaries.map((b: Beneficiary) => (
+            <Col span={8} key={b.beneficiaryId}>
               <Card
-                data-testid={`beneficiary-card-${b.id}`}
+                data-testid={`beneficiary-card-${b.beneficiaryId}`}
                 hoverable
                 onClick={() => navigate('/transfers/new')}
               >
                 <p>
-                  <strong data-testid={`beneficiary-name-${b.id}`}>
-                    {b.name}
+                  <strong data-testid={`beneficiary-name-${b.beneficiaryId}`}>
+                    {b.displayName}
                   </strong>
                 </p>
                 <p>
                   <Text type="secondary">账号：</Text>
-                  <span data-testid={`beneficiary-account-${b.id}`}>
-                    {maskAccountNumber(b.accountNumber)}
+                  <span data-testid={`beneficiary-account-${b.beneficiaryId}`}>
+                    {b.maskedAccountNumber}
                   </span>
                 </p>
-                {b.bankName !== undefined && (
-                  <p>
-                    <Tag data-testid={`beneficiary-bank-${b.id}`}>
-                      {b.bankName}
-                    </Tag>
-                  </p>
-                )}
+                <p><Tag>复兴银行已核验</Tag></p>
               </Card>
             </Col>
           ))}

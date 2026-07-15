@@ -84,6 +84,42 @@ export interface paths {
         /** List customer beneficiaries */
         get: operations["listBeneficiaries"];
         put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/loans": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List customer loans */
+        get: operations["listLoans"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/loans/{loanId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                loanId: string;
+            };
+            cookie?: never;
+        };
+        /** Get a customer loan */
+        get: operations["getLoan"];
+        put?: never;
         /** Create and resolve a beneficiary against the core savings account directory */
         post: operations["createBeneficiary"];
         delete?: never;
@@ -101,6 +137,76 @@ export interface paths {
         };
         /** List customer notifications */
         get: operations["listNotifications"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/notifications/{notificationId}/read": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                notificationId: string;
+            };
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Mark a customer notification as read */
+        post: operations["markNotificationRead"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/profile": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get customer profile claims */
+        get: operations["getCustomerProfile"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/security/settings": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get authenticated session security settings */
+        get: operations["getSecuritySettings"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/documents": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List downloadable customer documents */
+        get: operations["listDocuments"];
         put?: never;
         post?: never;
         delete?: never;
@@ -371,6 +477,63 @@ export interface components {
             currency: string;
             runningBalance?: components["schemas"]["Money"];
         };
+        LoanSummary: {
+            loanId: string;
+            loanProductName: string;
+            principal: components["schemas"]["Money"];
+            outstandingBalance: components["schemas"]["Money"];
+            currency: string;
+            status: string;
+        };
+        LoanDetail: components["schemas"]["LoanSummary"] & {
+            termMonths: number;
+            interestRate?: string;
+            /** Format: date */
+            startDate?: string;
+            /** Format: date */
+            endDate?: string;
+        };
+        LoanPage: {
+            items: components["schemas"]["LoanSummary"][];
+        };
+        Message: {
+            /** Format: uuid */
+            messageId: string;
+            subject: string;
+            body: string;
+            read: boolean;
+            /** Format: date-time */
+            createdDate: string;
+        };
+        MessagePage: {
+            items: components["schemas"]["Message"][];
+        };
+        CustomerProfile: {
+            customerId: string;
+            displayName: string;
+            /** Format: email */
+            email?: string;
+            phone?: string;
+        };
+        SecuritySettings: {
+            mfaEnabled: boolean;
+            mfaMethod?: string;
+            loginNotificationsEnabled: boolean;
+            /** Format: date-time */
+            lastLoginAt?: string;
+        };
+        CustomerDocument: {
+            documentId: string;
+            documentType: string;
+            description: string;
+            /** Format: date */
+            createdDate: string;
+            /** Format: uri-reference */
+            downloadUrl: string;
+        };
+        DocumentPage: {
+            items: components["schemas"]["CustomerDocument"][];
+        };
         LoanApplicationRequest: {
             amount: components["schemas"]["Money"];
             termMonths: number;
@@ -555,11 +718,58 @@ export interface operations {
             401: components["responses"]["Unauthorized"];
         };
     };
-    createBeneficiary: {
+    listLoans: {
         parameters: {
             query?: never;
             header?: never;
             path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Loans linked to the authenticated customer */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LoanPage"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+        };
+    };
+    getLoan: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                loanId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Customer-scoped loan detail */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LoanDetail"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            404: components["responses"]["NotFound"];
+        };
+    };
+    createBeneficiary: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                loanId: string;
+            };
             cookie?: never;
         };
         requestBody: {
@@ -601,7 +811,94 @@ export interface operations {
                 headers: {
                     [name: string]: unknown;
                 };
+                content: {
+                    "application/json": components["schemas"]["MessagePage"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+        };
+    };
+    markNotificationRead: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                notificationId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Updated notification read state */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
                 content?: never;
+            };
+            401: components["responses"]["Unauthorized"];
+            404: components["responses"]["NotFound"];
+        };
+    };
+    getCustomerProfile: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Authenticated customer profile */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CustomerProfile"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+        };
+    };
+    getSecuritySettings: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Security posture derived from authenticated session claims */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SecuritySettings"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+        };
+    };
+    listDocuments: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Customer-scoped generated documents */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DocumentPage"];
+                };
             };
             401: components["responses"]["Unauthorized"];
         };

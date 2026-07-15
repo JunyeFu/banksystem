@@ -15,8 +15,8 @@ import {
   Space,
 } from 'antd';
 import { PageContainer } from '@/components/PageContainer';
-import { apiClient } from '@/api/client';
-import type { LoanApplicationResponse } from '@/types/models';
+import { customerApi } from '@/api/client';
+import type { LoanApplication } from '@localbank/bank-api-client';
 
 const { Title } = Typography;
 const { TextArea } = Input;
@@ -55,16 +55,16 @@ export function LoanApply(): JSX.Element {
     },
   });
 
-  const mutation = useMutation<LoanApplicationResponse, Error, LoanFormData>({
+  const mutation = useMutation<LoanApplication, Error, LoanFormData>({
     mutationFn: async (data) => {
-      return apiClient.post<LoanApplicationResponse>('/loans/applications', {
+      return customerApi.createLoanApplication({
         amount: data.amount.toFixed(2),
         termMonths: data.termMonths,
         purpose: data.purpose,
       });
     },
-    onSuccess: (response) => {
-      navigate(`/loans/${response.loanId}`);
+    onSuccess: () => {
+      navigate('/loans');
     },
     onError: (error) => {
       setSubmitError(error.message);

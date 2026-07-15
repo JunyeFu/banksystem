@@ -2,13 +2,12 @@ import { useQuery } from '@tanstack/react-query';
 import { Card, Descriptions, Tag, Skeleton, Empty } from 'antd';
 import { PageContainer } from '@/components/PageContainer';
 import type { PageState } from '@/components/PageContainer';
-import { apiClient } from '@/api/client';
-import type { SecuritySettingsResponse } from '@/types/models';
+import { customerApi } from '@/api/client';
 
 export function SecuritySettings(): JSX.Element {
-  const { data, isLoading, isError } = useQuery<SecuritySettingsResponse>({
+  const { data, isLoading, isError } = useQuery({
     queryKey: ['security-settings'],
-    queryFn: () => apiClient.get<SecuritySettingsResponse>('/security/settings'),
+    queryFn: () => customerApi.getSecuritySettings(),
   });
 
   const pageState: PageState = isLoading
@@ -51,13 +50,6 @@ export function SecuritySettings(): JSX.Element {
               {data.mfaMethod !== undefined && (
                 <Descriptions.Item label="MFA方式">
                   <span data-testid="security-mfa-method">{data.mfaMethod}</span>
-                </Descriptions.Item>
-              )}
-              {data.lastPasswordChange !== undefined && (
-                <Descriptions.Item label="上次密码修改">
-                  <span data-testid="security-password-change">
-                    {data.lastPasswordChange}
-                  </span>
                 </Descriptions.Item>
               )}
               <Descriptions.Item label="登录通知">

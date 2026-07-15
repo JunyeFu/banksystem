@@ -43,4 +43,43 @@ class CustomerControllerMappingTest {
     assertEquals("合成测试交易", mapped.get("counterparty"));
     assertEquals(8, mapped.size());
   }
+
+  @Test
+  void mapsCoreLoanToStableCustomerContract() {
+    Map<String, Object> mapped = CustomerController.loanSummary(Map.of(
+        "id", 81,
+        "productName", "个人经营贷",
+        "principal", "300000",
+        "summary", Map.of("totalOutstanding", "212400.0"),
+        "currency", Map.of("code", "CNY"),
+        "status", Map.of("value", "Active")));
+
+    assertEquals("81", mapped.get("loanId"));
+    assertEquals("个人经营贷", mapped.get("loanProductName"));
+    assertEquals("300000.00", mapped.get("principal"));
+    assertEquals("212400.00", mapped.get("outstandingBalance"));
+    assertEquals("CNY", mapped.get("currency"));
+    assertEquals("Active", mapped.get("status"));
+  }
+
+  @Test
+  void mapsCoreLoanDetailDatesAndRate() {
+    Map<String, Object> mapped = CustomerController.loanDetail(Map.of(
+        "id", 81,
+        "productName", "个人经营贷",
+        "principal", "300000.00",
+        "loanBalanceOutstanding", "212400.00",
+        "currency", Map.of("code", "CNY"),
+        "status", Map.of("value", "Active"),
+        "termFrequency", 36,
+        "interestRatePerPeriod", "4.35",
+        "timeline", Map.of(
+            "actualDisbursementDate", List.of(2026, 1, 15),
+            "expectedMaturityDate", List.of(2029, 1, 15))), Map.of());
+
+    assertEquals(36, mapped.get("termMonths"));
+    assertEquals("4.35", mapped.get("interestRate"));
+    assertEquals("2026-01-15", mapped.get("startDate"));
+    assertEquals("2029-01-15", mapped.get("endDate"));
+  }
 }

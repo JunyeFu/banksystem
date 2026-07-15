@@ -1,17 +1,19 @@
-import { useQuery } from '@tanstack/react-query';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { List, Tag, Empty, Skeleton, Typography } from 'antd';
 import { PageContainer } from '@/components/PageContainer';
 import type { PageState } from '@/components/PageContainer';
-import { apiClient } from '@/api/client';
-import type { MessageListResponse, Message } from '@/types/models';
+import { customerApi } from '@/api/client';
+import type { Message } from '@localbank/bank-api-client';
 
 const { Text } = Typography;
 
 export function Messages(): JSX.Element {
-  const { data, isLoading, isError } = useQuery<MessageListResponse>({
+  const queryClient = useQueryClient();
+  const { data, isLoading, isError } = useQuery({
     queryKey: ['messages'],
-    queryFn: () => apiClient.get<MessageListResponse>('/messages'),
+    queryFn: () => customerApi.listMessages(),
   });
+  const markRead = useMutation({ mutationFn: (id: string) => customerApi.markMessageRead(id), onSuccess: () => queryClient.invalidateQueries({ queryKey: ['messages'] }) });
 
   const pageState: PageState = isLoading
     ? 'LOADING'
@@ -45,6 +47,7 @@ export function Messages(): JSX.Element {
               <List.Item
                 key={msg.messageId}
                 data-testid={`message-item-${msg.messageId}`}
+                onClick={() => { if (!msg.read) markRead.mutate(msg.messageId); }}
               >
                 <List.Item.Meta
                   title={

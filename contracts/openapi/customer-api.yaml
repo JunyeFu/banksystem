@@ -76,6 +76,32 @@ paths:
           content:
             application/json: { schema: { $ref: '#/components/schemas/BeneficiaryPage' } }
         '401': { $ref: '#/components/responses/Unauthorized' }
+  /loans:
+    get:
+      operationId: listLoans
+      summary: List customer loans
+      responses:
+        '200':
+          description: Loans linked to the authenticated customer
+          content:
+            application/json: { schema: { $ref: '#/components/schemas/LoanPage' } }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+  /loans/{loanId}:
+    parameters:
+      - name: loanId
+        in: path
+        required: true
+        schema: { type: string, minLength: 1, maxLength: 64 }
+    get:
+      operationId: getLoan
+      summary: Get a customer loan
+      responses:
+        '200':
+          description: Customer-scoped loan detail
+          content:
+            application/json: { schema: { $ref: '#/components/schemas/LoanDetail' } }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '404': { $ref: '#/components/responses/NotFound' }
     post:
       operationId: createBeneficiary
       summary: Create and resolve a beneficiary against the core savings account directory
@@ -95,7 +121,53 @@ paths:
       operationId: listNotifications
       summary: List customer notifications
       responses:
-        '200': { description: Customer-scoped notifications }
+        '200':
+          description: Customer-scoped notifications
+          content:
+            application/json: { schema: { $ref: '#/components/schemas/MessagePage' } }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+  /notifications/{notificationId}/read:
+    parameters:
+      - name: notificationId
+        in: path
+        required: true
+        schema: { type: string, format: uuid }
+    post:
+      operationId: markNotificationRead
+      summary: Mark a customer notification as read
+      responses:
+        '200': { description: Updated notification read state }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '404': { $ref: '#/components/responses/NotFound' }
+  /profile:
+    get:
+      operationId: getCustomerProfile
+      summary: Get customer profile claims
+      responses:
+        '200':
+          description: Authenticated customer profile
+          content:
+            application/json: { schema: { $ref: '#/components/schemas/CustomerProfile' } }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+  /security/settings:
+    get:
+      operationId: getSecuritySettings
+      summary: Get authenticated session security settings
+      responses:
+        '200':
+          description: Security posture derived from authenticated session claims
+          content:
+            application/json: { schema: { $ref: '#/components/schemas/SecuritySettings' } }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+  /documents:
+    get:
+      operationId: listDocuments
+      summary: List downloadable customer documents
+      responses:
+        '200':
+          description: Customer-scoped generated documents
+          content:
+            application/json: { schema: { $ref: '#/components/schemas/DocumentPage' } }
         '401': { $ref: '#/components/responses/Unauthorized' }
   /statements:
     get:
@@ -394,6 +466,84 @@ components:
         amount: { $ref: '#/components/schemas/Money' }
         currency: { type: string }
         runningBalance: { $ref: '#/components/schemas/Money' }
+    LoanSummary:
+      type: object
+      additionalProperties: false
+      required: [loanId, loanProductName, principal, outstandingBalance, currency, status]
+      properties:
+        loanId: { type: string }
+        loanProductName: { type: string }
+        principal: { $ref: '#/components/schemas/Money' }
+        outstandingBalance: { $ref: '#/components/schemas/Money' }
+        currency: { type: string }
+        status: { type: string }
+    LoanDetail:
+      unevaluatedProperties: false
+      allOf:
+        - $ref: '#/components/schemas/LoanSummary'
+        - type: object
+          required: [termMonths]
+          properties:
+            termMonths: { type: integer, minimum: 0 }
+            interestRate: { type: string }
+            startDate: { type: string, format: date }
+            endDate: { type: string, format: date }
+    LoanPage:
+      type: object
+      additionalProperties: false
+      required: [items]
+      properties:
+        items: { type: array, items: { $ref: '#/components/schemas/LoanSummary' } }
+    Message:
+      type: object
+      additionalProperties: false
+      required: [messageId, subject, body, read, createdDate]
+      properties:
+        messageId: { type: string, format: uuid }
+        subject: { type: string }
+        body: { type: string }
+        read: { type: boolean }
+        createdDate: { type: string, format: date-time }
+    MessagePage:
+      type: object
+      additionalProperties: false
+      required: [items]
+      properties:
+        items: { type: array, items: { $ref: '#/components/schemas/Message' } }
+    CustomerProfile:
+      type: object
+      additionalProperties: false
+      required: [customerId, displayName]
+      properties:
+        customerId: { type: string }
+        displayName: { type: string }
+        email: { type: string, format: email }
+        phone: { type: string }
+    SecuritySettings:
+      type: object
+      additionalProperties: false
+      required: [mfaEnabled, loginNotificationsEnabled]
+      properties:
+        mfaEnabled: { type: boolean }
+        mfaMethod: { type: string }
+        loginNotificationsEnabled: { type: boolean }
+        lastLoginAt: { type: string, format: date-time }
+    CustomerDocument:
+      type: object
+      additionalProperties: false
+      required: [documentId, documentType, description, createdDate, downloadUrl]
+      properties:
+        documentId: { type: string }
+        documentType: { type: string }
+        description: { type: string }
+        createdDate: { type: string, format: date }
+        downloadUrl: { type: string, format: uri-reference }
+    DocumentPage:
+      type: object
+      additionalProperties: false
+      required: [items]
+      properties:
+        items: { type: array, items: { $ref: '#/components/schemas/CustomerDocument' } }
     LoanApplicationRequest:
       type: object
       required: [amount, termMonths, purpose]

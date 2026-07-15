@@ -128,6 +128,90 @@ public class CustomerController {
     return Map.of("customerId", jwt.getSubject(), "displayName", displayName);
   }
 
+  @GetMapping("/api/customer/v1/profile")
+  public Map<String, Object> profile(@AuthenticationPrincipal Jwt jwt) {
+    Map<String, Object> result = new LinkedHashMap<>();
+    result.put("customerId", jwt.getSubject());
+    result.put("displayName", displayName(jwt));
+    putIfPresent(result, "email", jwt.getClaimAsString("email"));
+    putIfPresent(result, "phone", jwt.getClaimAsString("phone_number"));
+    return result;
+  }
+
+  @GetMapping("/api/customer/v1/security/settings")
+  public Map<String, Object> securitySettings(@AuthenticationPrincipal Jwt jwt) {
+    List<String> authenticationMethods = jwt.getClaimAsStringList("amr");
+    boolean mfaEnabled = authenticationMethods != null && authenticationMethods.stream()
+        .anyMatch(method -> List.of("mfa", "otp", "totp").contains(method.toLowerCase()));
+    Map<String, Object> result = new LinkedHashMap<>();
+    result.put("mfaEnabled", mfaEnabled);
+    result.put("loginNotificationsEnabled", true);
+    if (mfaEnabled) result.put("mfaMethod", "动态口令");
+    if (jwt.getIssuedAt() != null) result.put("lastLoginAt", jwt.getIssuedAt().toString());
+    return result;
+  }
+
+  @GetMapping("/api/customer/v1/documents")
+  public Map<String, Object> documents(@AuthenticationPrincipal Jwt jwt) {
+    var items = fineract.clientAccounts(linkedClient(jwt.getSubject())).stream().map(account -> {
+      Map<String, Object> summary = summary(account);
+      String accountId = String.valueOf(summary.get("accountId"));
+      Map<String, Object> document = new LinkedHashMap<>();
+      document.put("documentId", "statement-" + accountId);
+      document.put("documentType", "账户对账单");
+      document.put("description", String.valueOf(summary.get("maskedAccountNumber")) + " 最新账户对账单");
+      document.put("createdDate", LocalDate.now().toString());
+      document.put("downloadUrl", "/api/customer/v1/statements?accountId=" + accountId + "&format=pdf");
+      return document;
+    }).toList();
+    return Map.of("items", items);
+  }
+
   @GetMapping("/api/customer/v1/loans")
-  public Map<String,Object> loans(@AuthenticationPrincipal Jwt jwt){return Map.of("items",fineract.clientLoans(linkedClient(jwt.getSubject())));}
+  public Map<String,Object> loans(@AuthenticationPrincipal Jwt jwt){
+    return Map.of("items", fineract.clientLoans(linkedClient(jwt.getSubject())).stream().map(CustomerController::loanSummary).toList());
+  }
+
+  @GetMapping("/api/customer/v1/loans/{loanId}")
+  public Map<String,Object> loan(@AuthenticationPrincipal Jwt jwt, @PathVariable String loanId) {
+    Map<String, Object> owned = fineract.clientLoans(linkedClient(jwt.getSubject())).stream()
+        .filter(item -> loanId.equals(String.valueOf(item.getOrDefault("id", item.get("loanId")))))
+        .findFirst().orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Loan is not linked"));
+    long coreLoanId;
+    try { coreLoanId = Long.parseLong(loanId); }
+    catch (NumberFormatException exception) { throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Loan is not linked"); }
+    return loanDetail(fineract.loanDetails(coreLoanId), owned);
+  }
+
+  private static String displayName(Jwt jwt) {
+    String value = jwt.getClaimAsString("name");
+    if (value == null || value.isBlank()) value = jwt.getClaimAsString("preferred_username");
+    return value == null || value.isBlank() ? jwt.getSubject() : value;
+  }
+
+  static Map<String, Object> loanSummary(Map<String, Object> source) {
+    Map<String, Object> result = new LinkedHashMap<>();
+    result.put("loanId", String.valueOf(source.getOrDefault("id", source.getOrDefault("loanId", ""))));
+    result.put("loanProductName", String.valueOf(source.getOrDefault("loanProductName", source.getOrDefault("productName", "贷款"))));
+    result.put("principal", decimal(source.getOrDefault("principal", "0.00")));
+    Object summary = source.get("summary");
+    result.put("outstandingBalance", decimal(source.getOrDefault("loanBalanceOutstanding", valueFrom(summary, "totalOutstanding", "0.00"))));
+    Object currency = source.get("currency");
+    result.put("currency", String.valueOf(valueFrom(currency, "code", source.getOrDefault("currencyCode", "CNY"))));
+    result.put("status", String.valueOf(valueFrom(source.get("status"), "value", source.getOrDefault("status", "UNKNOWN"))));
+    return result;
+  }
+
+  static Map<String, Object> loanDetail(Map<String, Object> source, Map<String, Object> fallback) {
+    Map<String, Object> result = new LinkedHashMap<>(loanSummary(source.isEmpty() ? fallback : source));
+    Object term = source.getOrDefault("termFrequency", source.getOrDefault("numberOfRepayments", 0));
+    result.put("termMonths", term instanceof Number ? ((Number) term).intValue() : 0);
+    putIfPresent(result, "interestRate", source.getOrDefault("interestRatePerPeriod", source.get("annualInterestRate")));
+    Object timeline = source.get("timeline");
+    String startDate = date(valueFrom(timeline, "actualDisbursementDate", valueFrom(timeline, "submittedOnDate", null)));
+    String endDate = date(valueFrom(timeline, "expectedMaturityDate", null));
+    if (startDate != null) result.put("startDate", startDate);
+    if (endDate != null) result.put("endDate", endDate);
+    return result;
+  }
 }

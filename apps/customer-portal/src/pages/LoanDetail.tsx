@@ -13,8 +13,7 @@ import {
 } from 'antd';
 import { PageContainer } from '@/components/PageContainer';
 import type { PageState } from '@/components/PageContainer';
-import { apiClient } from '@/api/client';
-import type { LoanDetailResponse } from '@/types/models';
+import { customerApi } from '@/api/client';
 
 function statusColor(status: string): string {
   switch (status.toUpperCase()) {
@@ -58,9 +57,9 @@ export function LoanDetail(): JSX.Element {
   const { loanId } = useParams<{ loanId: string }>();
   const navigate = useNavigate();
 
-  const { data, isLoading, isError } = useQuery<LoanDetailResponse>({
+  const { data, isLoading, isError } = useQuery({
     queryKey: ['loan', loanId],
-    queryFn: () => apiClient.get<LoanDetailResponse>(`/loans/${loanId}`),
+    queryFn: () => customerApi.getLoan(loanId ?? ''),
     enabled: !!loanId,
   });
 

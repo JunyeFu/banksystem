@@ -4,8 +4,8 @@ import { Table, Button, Tag, Empty, Skeleton, Space } from 'antd';
 import type { TableProps } from 'antd';
 import { PageContainer } from '@/components/PageContainer';
 import type { PageState } from '@/components/PageContainer';
-import { apiClient } from '@/api/client';
-import type { LoanListResponse, Loan } from '@/types/models';
+import { customerApi } from '@/api/client';
+import type { LoanSummary as Loan } from '@localbank/bank-api-client';
 
 function statusColor(status: string): string {
   switch (status.toUpperCase()) {
@@ -100,9 +100,9 @@ const loanColumns = (
 export function LoanList(): JSX.Element {
   const navigate = useNavigate();
 
-  const { data, isLoading, isError } = useQuery<LoanListResponse>({
+  const { data, isLoading, isError } = useQuery({
     queryKey: ['loans'],
-    queryFn: () => apiClient.get<LoanListResponse>('/loans'),
+    queryFn: () => customerApi.listLoans(),
   });
 
   const pageState: PageState = isLoading

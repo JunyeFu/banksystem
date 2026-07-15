@@ -3,8 +3,8 @@ import { Table, Tag, Empty, Skeleton } from 'antd';
 import type { TableProps } from 'antd';
 import { PageContainer } from '@/components/PageContainer';
 import type { PageState } from '@/components/PageContainer';
-import { apiClient } from '@/api/client';
-import type { DocumentListResponse, Document } from '@/types/models';
+import { customerApi } from '@/api/client';
+import type { CustomerDocument as Document } from '@localbank/bank-api-client';
 
 const documentColumns: TableProps<Document>['columns'] = [
   {
@@ -33,7 +33,7 @@ const documentColumns: TableProps<Document>['columns'] = [
     width: 100,
     render: (_: unknown, record: Document) => (
       <a
-        href={`/api/customer/v1/documents/${record.documentId}/download`}
+        href={record.downloadUrl}
         data-testid={`document-download-${record.documentId}`}
       >
         下载
@@ -43,9 +43,9 @@ const documentColumns: TableProps<Document>['columns'] = [
 ];
 
 export function Documents(): JSX.Element {
-  const { data, isLoading, isError } = useQuery<DocumentListResponse>({
+  const { data, isLoading, isError } = useQuery({
     queryKey: ['documents'],
-    queryFn: () => apiClient.get<DocumentListResponse>('/documents'),
+    queryFn: () => customerApi.listDocuments(),
   });
 
   const pageState: PageState = isLoading

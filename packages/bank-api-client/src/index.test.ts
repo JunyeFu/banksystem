@@ -27,6 +27,35 @@ describe('generated-contract API clients', () => {
     expect(fetchMock.mock.calls[0]?.[0]).toBe('/api/customer/v1/accounts/account%2F1');
   });
 
+  it('uses customer-scoped experience routes', async () => {
+    const fetchMock = vi.fn().mockImplementation(() => Promise.resolve(response({ items: [] })));
+    vi.stubGlobal('fetch', fetchMock);
+    const client = new CustomerApiClient({ baseUrl: '/api/customer/v1', getAccessToken: () => null });
+    await client.listLoans();
+    await client.getLoan('loan/81');
+    await client.listDocuments();
+    await client.listMessages();
+    await client.getProfile();
+    await client.getSecuritySettings();
+    expect(fetchMock.mock.calls.map((call) => call[0])).toEqual([
+      '/api/customer/v1/loans',
+      '/api/customer/v1/loans/loan%2F81',
+      '/api/customer/v1/documents',
+      '/api/customer/v1/notifications',
+      '/api/customer/v1/profile',
+      '/api/customer/v1/security/settings',
+    ]);
+  });
+
+  it('marks only the encoded customer message as read', async () => {
+    const fetchMock = vi.fn().mockResolvedValue(response({ messageId: 'message/1', read: true }));
+    vi.stubGlobal('fetch', fetchMock);
+    const client = new CustomerApiClient({ baseUrl: '/api/customer/v1', getAccessToken: () => null });
+    await client.markMessageRead('message/1');
+    expect(fetchMock.mock.calls[0]?.[0]).toBe('/api/customer/v1/notifications/message%2F1/read');
+    expect((fetchMock.mock.calls[0]?.[1] as RequestInit).method).toBe('POST');
+  });
+
   it('sends the customer creation date range', async () => {
     const fetchMock = vi.fn().mockResolvedValue(response({ items: [], page: 0, size: 20, totalItems: 0, totalPages: 0 }));
     vi.stubGlobal('fetch', fetchMock);
