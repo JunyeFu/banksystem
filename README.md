@@ -18,6 +18,16 @@
 - [Agent任务控制面](agent/README.md)：唯一 Backlog、责任域和当前实施计划。
 - [本地RAG](rag/README.md)：受控来源、权重、检索域和黄金问题验证。
 
+Python 辅助工具统一使用 Python 3.14 与 uv 锁定环境：
+
+```powershell
+uv python install 3.14 --default
+uv sync --locked
+uv run python scripts/tooling/verify_python_environment.py
+```
+
+完整说明见 [Python 与 uv 开发工具链](docs/operations/development-environment/python-toolchain.md)。
+
 This has been tested on Linux Ubuntu 24.04 LTS. Make sure you have Docker and Docker Compose plugin installed
 
 ## Quick Start

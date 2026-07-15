@@ -13,14 +13,14 @@
 
 ## 使用
 
-项目没有可靠的系统级 `python` 时，使用本机配置的工作区 Python 执行同样脚本。
+先按 [Python 与 uv 开发工具链](../docs/operations/development-environment/python-toolchain.md) 完成 `uv sync --locked`，再通过项目锁定环境执行脚本：
 
 ```powershell
-python scripts/rag/build_rag.py
-python scripts/rag/validate_rag.py
-python scripts/rag/query_rag.py --profile current "Fineract 账务唯一事实源"
-python scripts/rag/query_rag.py --profile frontend "转账页面接口和状态"
-python scripts/rag/query_rag.py --profile reference "HiAgent 历史参考"
+uv run python scripts/rag/build_rag.py
+uv run python scripts/rag/validate_rag.py
+uv run python scripts/rag/query_rag.py --profile current "Fineract 账务唯一事实源"
+uv run python scripts/rag/query_rag.py --profile frontend "转账页面接口和状态"
+uv run python scripts/rag/query_rag.py --profile reference "HiAgent 历史参考"
 ```
 
 默认 `current` 不检索历史方案和第三方资料。查询命中后必须根据返回的源路径与 SHA-256 回到原文件核验。
