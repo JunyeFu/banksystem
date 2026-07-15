@@ -1,0 +1,89 @@
+{
+  "schemaVersion": 1,
+  "evidenceType": "frontend-visual-regression-baseline",
+  "generatedAt": "2026-07-15T10:21:36.8595633+00:00",
+  "sourceCommit": "ba622edc8ff592c264e02cf1829f8e4a047fa931",
+  "contractVersion": "operations-dashboard-design-1.0",
+  "baselineVersion": "operations-dashboard-windows-chromium-v1",
+  "environment": {
+    "operatingSystem": "Windows",
+    "browser": "Chromium",
+    "viewport": "1440x900",
+    "locale": "zh-CN",
+    "timezone": "Asia/Shanghai",
+    "colorScheme": "light",
+    "reducedMotion": true
+  },
+  "businessAssertions": [
+    "复兴银行运营控制台覆盖展开与折叠壳层、加载、正常和接口错误状态。",
+    "仪表盘使用生成式 operations API 客户端读取真实聚合端点。",
+    "错误状态提供可执行重试，并经浏览器测试验证可恢复。",
+    "视觉数据为确定性合成数据，不包含真实个人信息或密钥。"
+  ],
+  "cases": [
+    {
+      "pv": "PV-0003",
+      "pageId": "operations.dashboard",
+      "testId": "operations-dashboard-visual.spec.ts::PV-0003",
+      "baselinePath": "tests/e2e/frontend-operations-dashboard/snapshots/PV-0003.png",
+      "sha256": "42a62698ef82407a8226c65e65f016ccca23d4ed60b5b554ada02665553f3c06",
+      "bytes": 52835
+    },
+    {
+      "pv": "PV-0004",
+      "pageId": "operations.dashboard",
+      "testId": "operations-dashboard-visual.spec.ts::PV-0004",
+      "baselinePath": "tests/e2e/frontend-operations-dashboard/snapshots/PV-0004.png",
+      "sha256": "da9dd6f3da08dfa6c6088ab06def6da373d801d4e70f9bc53186a4d234333f59",
+      "bytes": 32820
+    },
+    {
+      "pv": "PV-0066",
+      "pageId": "operations.dashboard",
+      "testId": "operations-dashboard-visual.spec.ts::PV-0066",
+      "baselinePath": "tests/e2e/frontend-operations-dashboard/snapshots/PV-0066.png",
+      "sha256": "42a62698ef82407a8226c65e65f016ccca23d4ed60b5b554ada02665553f3c06",
+      "bytes": 52835
+    },
+    {
+      "pv": "PV-0067",
+      "pageId": "operations.dashboard",
+      "testId": "operations-dashboard-visual.spec.ts::PV-0067",
+      "baselinePath": "tests/e2e/frontend-operations-dashboard/snapshots/PV-0067.png",
+      "sha256": "80a6753c2f32571446fafd73f977e983100e4cee2e3df13b4372a6bbdd075f76",
+      "bytes": 106486
+    },
+    {
+      "pv": "PV-0068",
+      "pageId": "operations.dashboard",
+      "testId": "operations-dashboard-visual.spec.ts::PV-0068",
+      "baselinePath": "tests/e2e/frontend-operations-dashboard/snapshots/PV-0068.png",
+      "sha256": "549adfbdc53e3598ea2986adf2feb628ee96922f9b79611109f59e5dfb17532e",
+      "bytes": 65342
+    },
+    {
+      "pv": "PV-0069",
+      "pageId": "operations.dashboard",
+      "testId": "operations-dashboard-visual.spec.ts::PV-0069",
+      "baselinePath": "tests/e2e/frontend-operations-dashboard/snapshots/PV-0069.png",
+      "sha256": "da9dd6f3da08dfa6c6088ab06def6da373d801d4e70f9bc53186a4d234333f59",
+      "bytes": 32820
+    },
+    {
+      "pv": "PV-0070",
+      "pageId": "operations.dashboard",
+      "testId": "operations-dashboard-visual.spec.ts::PV-0070",
+      "baselinePath": "tests/e2e/frontend-operations-dashboard/snapshots/PV-0070.png",
+      "sha256": "b4a24a8368307f22021288e4603771a8d335f3f5e3d060daf900f493484cd45d",
+      "bytes": 81972
+    },
+    {
+      "pv": "PV-0071",
+      "pageId": "operations.dashboard",
+      "testId": "operations-dashboard-visual.spec.ts::PV-0071",
+      "baselinePath": "tests/e2e/frontend-operations-dashboard/snapshots/PV-0071.png",
+      "sha256": "edd12c0d7deed861d6608be1b2e112835b747a7c7424a399549c6d641c9c1d6e",
+      "bytes": 45307
+    }
+  ]
+}
