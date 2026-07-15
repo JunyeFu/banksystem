@@ -1,8 +1,8 @@
 {
   "schemaVersion": 1,
   "evidenceType": "frontend-visual-regression-baseline",
-  "generatedAt": "2026-07-15T09:09:07.9261573+00:00",
-  "sourceCommit": "481bc0160fd576dde030f7eb1365e14fd2bf6a1b",
+  "generatedAt": "2026-07-15T10:05:36.4928311+00:00",
+  "sourceCommit": "3eed6e8d39450ad2026b51696017fdf32b15ba60",
   "contractVersion": "customer-core-design-1.2",
   "baselineVersion": "customer-core-windows-chromium-v1",
   "environment": {
@@ -35,8 +35,8 @@
       "pageId": "customer.authenticated.shell",
       "testId": "customer-core-visual.spec.ts::PV-0002",
       "baselinePath": "tests/e2e/frontend-customer-core/snapshots/PV-0002.png",
-      "sha256": "30c2f7f012eafa20c0018e00c5b87aad81fd96513c62b026795a35bcc5197fe9",
-      "bytes": 12074
+      "sha256": "a5b59e53481e7944bda4c77b21b19c0e3b850a03fdd8885df5405a74f3c8d7d9",
+      "bytes": 11775
     },
     {
       "pv": "PV-0006",
