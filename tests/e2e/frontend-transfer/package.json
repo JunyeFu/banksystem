@@ -1,0 +1,13 @@
+{
+  "name": "banksystem-frontend-transfer-e2e",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test": "playwright test",
+    "test:update": "playwright test --update-snapshots"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.55.1"
+  }
+}

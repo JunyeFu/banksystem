@@ -131,7 +131,7 @@ services:
       - bank-channel-front
       - bank-channel-net
     depends_on:
-      bank-channel-postgres:
+      bank-channel-service:
         condition: service_healthy
       customer-portal:
         condition: service_started

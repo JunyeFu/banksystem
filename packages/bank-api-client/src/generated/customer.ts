@@ -321,6 +321,7 @@ export interface components {
             correlationId?: string;
             failureCode?: string;
             failureDetail?: string;
+            receiptAvailable?: boolean;
             /** Format: date-time */
             createdAt: string;
             /** Format: date-time */
@@ -639,6 +640,10 @@ export interface operations {
         parameters: {
             query?: {
                 status?: components["schemas"]["TransferStatus"];
+                /** @description Inclusive creation timestamp lower bound */
+                from?: string;
+                /** @description Inclusive creation timestamp upper bound */
+                to?: string;
                 page?: number;
                 size?: number;
             };

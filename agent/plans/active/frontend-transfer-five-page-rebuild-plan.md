@@ -13,11 +13,11 @@
 
 | 批次 | 目标 | 允许主要路径 | 验收门禁 | 当前状态 |
 |---|---|---|---|---|
-| FTR-0 | 契约与安全读模型 | `contracts/openapi/**`、转账/收款人 Controller、Liquibase、Java tests | 6 个目标 operationId、收款人解析、客户 ownership、运营角色、迁移与回滚测试通过 | 代码与单测完成；实库回滚/角色 E2E 待发布环境 |
-| FTR-1 | 生成客户端与最小 UI Kit | `packages/bank-api-client/**`、`packages/bank-domain-types/**`、`packages/bank-ui-kit/**` | OpenAPI 生成无漂移；Token、状态、金额、页面状态组件有测试和 Storybook | 生成与 7 项包测试完成；Storybook 未纳入本批代码 |
-| FTR-2 | 客户三页 | `apps/customer-portal/**` | PV-0021–PV-0038 对应状态、创建到终态、回单和负向流程通过 | 页面、构建、交互和代表性视觉状态完成；全量正式 E2E 待发布环境 |
-| FTR-3 | 运营两页 | `apps/operations-console/**` | PV-0072–PV-0089 对应状态、筛选、详情、事件失败和权限流程通过 | 页面、构建、运行态和代表性视觉状态完成；权限矩阵待发布环境 |
-| FTR-4 | 跨端验收 | `tests/**`、`docs/evidence/**` | 客户创建→运营观察→客户终态/回单闭环，契约、无障碍和视觉证据齐全 | 代码级验收完成；Docker 金融 E2E、全 36 状态基线审批待完成 |
+| FTR-0 | 契约与安全读模型 | `contracts/openapi/**`、转账/收款人 Controller、Liquibase、Java tests | 目标 operationId、收款人解析、客户 ownership、运营角色、迁移与回滚测试通过 | OpenAPI、33 项 Java 测试和真实 Docker Liquibase 升级已通过；角色 E2E、实库回滚仍待执行 |
+| FTR-1 | 生成客户端与最小 UI Kit | `packages/bank-api-client/**`、`packages/bank-domain-types/**`、`packages/bank-ui-kit/**` | OpenAPI 生成无漂移；Token、状态、金额、页面状态组件有测试和 Storybook/页面 Fixture | 生成客户端、10 项包测试和确定性页面 Fixture 已完成；采用页面 Fixture 而非 Storybook |
+| FTR-2 | 客户三页 | `apps/customer-portal/**` | PV-0021–PV-0038 对应状态、创建到终态、回单和负向流程通过 | 18 个 PV 状态、日期筛选、整行导航、创建→终态和 PDF 回单均有 Playwright 证据；真实角色 E2E 待执行 |
+| FTR-3 | 运营两页 | `apps/operations-console/**` | PV-0072–PV-0089 对应状态、筛选、详情、事件失败和权限流程通过 | 18 个 PV 状态、五类筛选、全量聚合、CSV 导出、详情和事件失败均有 Playwright 证据；权限矩阵待执行 |
+| FTR-4 | 跨端验收 | `tests/**`、`docs/evidence/**` | 客户创建→运营观察→客户终态/回单闭环，契约、无障碍和视觉证据齐全 | 40 项 Playwright、36 张固定视觉基线及 Docker 服务 Smoke 已通过；真实带角色金融 E2E、回滚和正式基线审批待完成 |
 
 ## 文件与数据规则
 

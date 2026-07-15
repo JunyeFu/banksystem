@@ -5,7 +5,7 @@ document_type: design
 domain: frontend
 status: accepted
 authority: normative
-version: 1.1
+version: 1.2
 effective_date: 2026-07-15
 owner: project-owner
 related_contracts: [contracts/openapi/customer-api.yaml, contracts/openapi/operations-api.yaml]
@@ -14,7 +14,7 @@ related_code: [apps/customer-portal, apps/operations-console, services/bank-chan
 
 # 转账闭环五页面前后端双向调整方案
 
-本方案把客户转账三页和运营支付两页作为首个跨端垂直切片。2026-07-15 已按本方案完成五页、契约、后端读模型、生成客户端与最小 UI Kit 的首轮实现；发布级 Docker 金融 E2E 仍需在具备本地测试凭据的环境单独执行。
+本方案把客户转账三页和运营支付两页作为首个跨端垂直切片。2026-07-15 已按本方案完成五页、契约、后端读模型、生成客户端、最小 UI Kit、36 状态页面 Fixture 和 Docker Smoke；发布级带角色金融 E2E 与数据库回滚仍需在不暴露本地凭据的验证流程中执行。
 
 ## 1. 页面与 PV 范围
 
@@ -150,7 +150,9 @@ related_code: [apps/customer-portal, apps/operations-console, services/bank-chan
 
 - `customer-api.yaml` 与 `operations-api.yaml` 已补齐客户/运营列表、详情、客户受益人引用和组合证据读模型，并由 `openapi-typescript` 生成共享类型。
 - Bank Channel Service 已通过 Liquibase 保存受益人解析后的核心目标引用；客户创建按 subject 校验账户和收款人，客户/运营列表及详情已实现。
-- 客户转账列表、新建、结果与运营支付监控、详情共五页已重建，共享红白黑银行主题、12 态文案、金额/时间格式化和安全 Outbox 展示。
-- Java 33 项测试、共享包 7 项测试、两个 Vite 生产构建、Redocly OpenAPI lint、PowerShell 语法和文档校验已通过。
-- 已使用固定 1440×900 Playwright 画布对 PV-0022、PV-0028、PV-0035、PV-0073、PV-0084 进行多模态对照并迭代；浏览器导航、必填校验和控制台错误检查通过。
-- 未在本次无凭据会话执行 Docker 金融 E2E、真实 Keycloak 角色矩阵和 Liquibase 实库回滚；这些仍是发布门禁，不影响代码级实现结论。
+- 客户转账列表、新建、结果与运营支付监控、详情共五页已重建，共享红白黑银行主题、12 态文案、金额/时间格式化、安全 Outbox 和电子回单展示。
+- 客户列表支持真实日期过滤和整行导航；运营监控支持状态、币种、时间、转账/核心/关联 ID 查询、服务端全量聚合和同筛选条件 CSV 导出。
+- Java 33 项测试、共享包 10 项测试、两个 Vite 生产构建、Redocly OpenAPI lint 和 40 项 Playwright 已通过。
+- PV-0021–PV-0038、PV-0072–PV-0089 共 36 个逻辑状态均有固定 Windows/Chromium/1440×900/zh-CN/Asia-Shanghai 页面 Fixture 与视觉基线；多模态复核后修正了回单操作区截断和详情页错误滚动取证。
+- 本机 `mifos-isolated` 与 `mifos-channel` 可并存运行；渠道 PostgreSQL、服务、门户、运营端、Keycloak、Gateway 和支撑服务均通过 Smoke，v5 Liquibase 变更已在真实渠道库执行。
+- 未读取本机凭据，因此未执行真实 Keycloak 角色矩阵、带角色金融写入 E2E 和 Liquibase 实库回滚；这些仍是发布门禁，不能被合成 Fixture 替代。

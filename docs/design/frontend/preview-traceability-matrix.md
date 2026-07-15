@@ -41,3 +41,5 @@ owner: project-owner
 | 支付详情 | PV-0084–PV-0089 | 6 | 同上 |
 
 这 36 个逻辑状态构成首个跨客户门户与运营控制台的转账垂直切片。具体接口、字段和前后端调整以该实施方案为准。
+
+可执行映射位于 `tests/e2e/frontend-transfer/transfer-visual.spec.ts`，固定基线位于其 `snapshots/`。测试名称直接使用 PV 编号，确保 36 个逻辑状态逐项可追溯；基线是可运行页面产物，不是对原始设计 PNG 的复制。

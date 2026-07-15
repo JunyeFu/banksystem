@@ -47,6 +47,6 @@
 .transfer-result__field label { display: block; color: #656e7a; margin-bottom: 9px; }
 .transfer-result__field strong { font-size: 18px; }
 .transfer-result__amount { color: #d9161c; font-size: 25px !important; }
-.transfer-result__actions { max-width: 1120px; margin: 46px auto 0; display: grid; grid-template-columns: 1fr 1fr; gap: 36px; }
+.transfer-result__actions { max-width: 1120px; margin: 30px auto 0; display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 24px; }
 .transfer-result__actions .ant-btn { height: 54px; font-size: 17px; font-weight: 650; }
 @media (max-width: 1200px) { .customer-nav { gap: 24px; } .customer-header { padding: 0 24px; } .customer-transfer-layout { gap: 30px; } }

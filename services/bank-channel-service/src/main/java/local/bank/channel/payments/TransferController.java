@@ -6,6 +6,7 @@ import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.time.OffsetDateTime;
 import java.util.ArrayList;
 import java.util.HexFormat;
 import java.util.LinkedHashMap;
@@ -14,6 +15,8 @@ import java.util.Map;
 import java.util.UUID;
 import org.slf4j.MDC;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -27,6 +30,7 @@ import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.server.ResponseStatusException;
+import org.springframework.format.annotation.DateTimeFormat;
 
 import local.bank.channel.FineractAdapter;
 import local.bank.channel.audit.AuditService;
@@ -38,7 +42,8 @@ public class TransferController {
   private static final String BASE_SELECT = """
       SELECT t.transfer_id,t.status,t.amount,t.currency,t.source_account_id,t.destination_account_id,
              t.beneficiary_id,b.display_name,b.account_last4,t.reference,t.core_reference,t.correlation_id,
-             t.failure_code,t.failure_detail,t.failure_reason,t.created_at,t.updated_at
+             t.failure_code,t.failure_detail,t.failure_reason,t.created_at,t.updated_at,
+             EXISTS(SELECT 1 FROM transfer_receipt r WHERE r.transfer_id=t.transfer_id) AS receipt_available
         FROM transfer_order t
         LEFT JOIN beneficiary b ON b.beneficiary_id=t.beneficiary_id
       """;
@@ -139,9 +144,12 @@ public class TransferController {
   public Map<String, Object> listCustomer(
       @AuthenticationPrincipal Jwt jwt,
       @RequestParam(required = false) String status,
+      @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) OffsetDateTime from,
+      @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) OffsetDateTime to,
       @RequestParam(defaultValue = "0") int page,
       @RequestParam(defaultValue = "20") int size) {
     PageRequest pagination = pageRequest(status, page, size);
+    validateDateRange(from, to);
     List<Object> parameters = new ArrayList<>();
     parameters.add(jwt.getSubject());
     String where = " WHERE t.subject=?";
@@ -149,22 +157,78 @@ public class TransferController {
       where += " AND t.status=?";
       parameters.add(pagination.status());
     }
+    if (from != null) { where += " AND t.created_at>=?"; parameters.add(from); }
+    if (to != null) { where += " AND t.created_at<=?"; parameters.add(to); }
     return transferPage(where, parameters, pagination);
   }
 
   @GetMapping("/api/operations/v1/transfers")
   public Map<String, Object> listOperations(
       @RequestParam(required = false) String status,
+      @RequestParam(required = false) String currency,
+      @RequestParam(required = false, name = "query") String query,
+      @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) OffsetDateTime from,
+      @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) OffsetDateTime to,
       @RequestParam(defaultValue = "0") int page,
       @RequestParam(defaultValue = "20") int size) {
     PageRequest pagination = pageRequest(status, page, size);
+    validateDateRange(from, to);
     List<Object> parameters = new ArrayList<>();
-    String where = "";
+    List<String> predicates = new ArrayList<>();
     if (pagination.status() != null) {
-      where = " WHERE t.status=?";
+      predicates.add("t.status=?");
       parameters.add(pagination.status());
     }
-    return transferPage(where, parameters, pagination);
+    String normalizedCurrency = normalizeCurrency(currency);
+    if (normalizedCurrency != null) { predicates.add("t.currency=?"); parameters.add(normalizedCurrency); }
+    String normalizedQuery = blankToNull(query);
+    if (normalizedQuery != null) {
+      predicates.add("(CAST(t.transfer_id AS text) ILIKE ? OR t.core_reference ILIKE ? OR t.correlation_id ILIKE ?)");
+      String pattern = "%" + normalizedQuery.replace("%", "\\%").replace("_", "\\_") + "%";
+      parameters.add(pattern); parameters.add(pattern); parameters.add(pattern);
+    }
+    if (from != null) { predicates.add("t.created_at>=?"); parameters.add(from); }
+    if (to != null) { predicates.add("t.created_at<=?"); parameters.add(to); }
+    String where = predicates.isEmpty() ? "" : " WHERE " + String.join(" AND ", predicates);
+    Map<String, Object> result = new LinkedHashMap<>(transferPage(where, parameters, pagination));
+    result.put("summary", transferSummary(where, parameters));
+    return result;
+  }
+
+  @GetMapping(value = "/api/operations/v1/transfers/export", produces = "text/csv;charset=UTF-8")
+  public ResponseEntity<String> exportOperations(
+      @RequestParam(required = false) String status,
+      @RequestParam(required = false) String currency,
+      @RequestParam(required = false, name = "query") String query,
+      @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) OffsetDateTime from,
+      @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) OffsetDateTime to) {
+    PageRequest request = pageRequest(status, 0, MAX_PAGE_SIZE);
+    validateDateRange(from, to);
+    List<Object> parameters = new ArrayList<>();
+    List<String> predicates = new ArrayList<>();
+    if (request.status() != null) { predicates.add("t.status=?"); parameters.add(request.status()); }
+    String normalizedCurrency = normalizeCurrency(currency);
+    if (normalizedCurrency != null) { predicates.add("t.currency=?"); parameters.add(normalizedCurrency); }
+    String normalizedQuery = blankToNull(query);
+    if (normalizedQuery != null) {
+      predicates.add("(CAST(t.transfer_id AS text) ILIKE ? OR t.core_reference ILIKE ? OR t.correlation_id ILIKE ?)");
+      String pattern = "%" + normalizedQuery.replace("%", "\\%").replace("_", "\\_") + "%";
+      parameters.add(pattern); parameters.add(pattern); parameters.add(pattern);
+    }
+    if (from != null) { predicates.add("t.created_at>=?"); parameters.add(from); }
+    if (to != null) { predicates.add("t.created_at<=?"); parameters.add(to); }
+    String where = predicates.isEmpty() ? "" : " WHERE " + String.join(" AND ", predicates);
+    var rows = jdbc.query(BASE_SELECT + where + " ORDER BY t.created_at DESC LIMIT 10000", this::transferRow, parameters.toArray());
+    StringBuilder csv = new StringBuilder("transferId,status,amount,currency,coreReference,correlationId,createdAt\r\n");
+    for (Map<String, Object> row : rows) {
+      csv.append(csv(row.get("transferId"))).append(',').append(csv(row.get("status"))).append(',')
+          .append(csv(row.get("amount"))).append(',').append(csv(row.get("currency"))).append(',')
+          .append(csv(row.get("coreReference"))).append(',').append(csv(row.get("correlationId"))).append(',')
+          .append(csv(row.get("createdAt"))).append("\r\n");
+    }
+    return ResponseEntity.ok()
+        .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=transfer-monitoring.csv")
+        .contentType(new MediaType("text", "csv", StandardCharsets.UTF_8)).body(csv.toString());
   }
 
   @GetMapping("/api/customer/v1/transfers/{transferId}")
@@ -210,6 +274,15 @@ public class TransferController {
         "totalPages", count == 0 ? 0 : (count + page.size() - 1) / page.size());
   }
 
+  private Map<String, Object> transferSummary(String where, List<Object> parameters) {
+    return jdbc.queryForObject("SELECT count(*),count(*) FILTER (WHERE t.status='SETTLED'),"
+            + "count(*) FILTER (WHERE t.status IN ('CREATED','VALIDATING','PENDING_APPROVAL','PENDING_CORE_POSTING','PENDING_CLEARING','REVERSAL_PENDING')),"
+            + "count(*) FILTER (WHERE t.status='RISK_REVIEW'),"
+            + "count(*) FILTER (WHERE t.status IN ('FAILED','TIMED_OUT','RETURNED','REVERSED')) FROM transfer_order t" + where,
+        (rs, rowNum) -> Map.of("total", rs.getLong(1), "settled", rs.getLong(2), "processing", rs.getLong(3),
+            "riskReview", rs.getLong(4), "failed", rs.getLong(5)), parameters.toArray());
+  }
+
   private Map<String, Object> transferRow(ResultSet rs, int rowNum) throws SQLException {
     Map<String, Object> row = new LinkedHashMap<>();
     row.put("transferId", rs.getString(1));
@@ -231,6 +304,7 @@ public class TransferController {
     putIfPresent(row, "failureDetail", failureDetail);
     row.put("createdAt", rs.getObject(16).toString());
     row.put("updatedAt", rs.getObject(17).toString());
+    row.put("receiptAvailable", rs.getBoolean(18));
     return row;
   }
 
@@ -268,6 +342,25 @@ public class TransferController {
       }
     }
     return new PageRequest(page, size, normalized);
+  }
+
+  private static void validateDateRange(OffsetDateTime from, OffsetDateTime to) {
+    if (from != null && to != null && from.isAfter(to)) {
+      throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Invalid date range");
+    }
+  }
+
+  private static String normalizeCurrency(String currency) {
+    String normalized = blankToNull(currency);
+    if (normalized == null) return null;
+    normalized = normalized.toUpperCase();
+    if (!normalized.matches("[A-Z]{3}")) throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Invalid currency");
+    return normalized;
+  }
+
+  private static String csv(Object value) {
+    String text = value == null ? "" : String.valueOf(value);
+    return '"' + text.replace("\"", "\"\"") + '"';
   }
 
   private static Map<String, Object> nullableMap(Object... entries) {

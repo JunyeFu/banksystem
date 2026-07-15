@@ -6,6 +6,9 @@ export type AccountSummary = CustomerComponents['schemas']['AccountSummary'] & {
 export type Beneficiary = CustomerComponents['schemas']['Beneficiary'];
 export type Transfer = CustomerComponents['schemas']['Transfer'];
 export type TransferPage = CustomerComponents['schemas']['TransferPage'];
+export type OperationsTransferPage = OperationsComponents['schemas']['TransferPage'];
+export type OperationsTransfer = OperationsComponents['schemas']['Transfer'];
+export type TransferSummary = OperationsComponents['schemas']['TransferSummary'];
 export type TransferStateHistoryEntry = OperationsComponents['schemas']['TransferStateHistoryEntry'];
 export type OutboxEvent = OperationsComponents['schemas']['OutboxEvent'];
 export type TransferDetail = OperationsComponents['schemas']['TransferDetail'];
@@ -32,7 +35,7 @@ export interface ClientConfiguration {
 class BaseClient {
   constructor(private readonly configuration: ClientConfiguration) {}
 
-  protected async request<T>(path: string, init: RequestInit = {}): Promise<T> {
+  protected async request<T>(path: string, init: RequestInit = {}, responseType: 'json' | 'blob' = 'json'): Promise<T> {
     const headers = new Headers(init.headers);
     const token = this.configuration.getAccessToken();
     if (token) headers.set('Authorization', `Bearer ${token}`);
@@ -44,6 +47,7 @@ class BaseClient {
       throw new BankApiError(response.status, problem);
     }
     if (response.status === 204) return undefined as T;
+    if (responseType === 'blob') return await response.blob() as T;
     return response.json() as Promise<T>;
   }
 }
@@ -55,11 +59,14 @@ export class CustomerApiClient extends BaseClient {
   listBeneficiaries(): Promise<{ items: Beneficiary[] }> {
     return this.request('/beneficiaries');
   }
-  listTransfers(options: { status?: TransferStatus; page?: number; size?: number } = {}): Promise<TransferPage> {
+  listTransfers(options: { status?: TransferStatus; from?: string; to?: string; page?: number; size?: number } = {}): Promise<TransferPage> {
     return this.request(`/transfers${queryString(options)}`);
   }
   getTransfer(transferId: string): Promise<Transfer> {
     return this.request(`/transfers/${encodeURIComponent(transferId)}`);
+  }
+  getTransferReceiptPdf(transferId: string): Promise<Blob> {
+    return this.request(`/transfers/${encodeURIComponent(transferId)}/receipt?format=pdf`, {}, 'blob');
   }
   createTransfer(request: CustomerTransferRequest, idempotencyKey: string): Promise<TransferAccepted> {
     return this.request('/transfers', {
@@ -69,8 +76,11 @@ export class CustomerApiClient extends BaseClient {
 }
 
 export class OperationsApiClient extends BaseClient {
-  listTransfers(options: { status?: TransferStatus; page?: number; size?: number } = {}): Promise<TransferPage> {
+  listTransfers(options: { status?: TransferStatus; currency?: string; query?: string; from?: string; to?: string; page?: number; size?: number } = {}): Promise<OperationsTransferPage> {
     return this.request(`/transfers${queryString(options)}`);
+  }
+  exportTransfersCsv(options: { status?: TransferStatus; currency?: string; query?: string; from?: string; to?: string } = {}): Promise<Blob> {
+    return this.request(`/transfers/export${queryString(options)}`, {}, 'blob');
   }
   getTransfer(transferId: string): Promise<TransferDetail> {
     return this.request(`/transfers/${encodeURIComponent(transferId)}`);

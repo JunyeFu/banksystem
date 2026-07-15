@@ -15,6 +15,10 @@ paths:
       summary: List transfers for operational monitoring
       parameters:
         - { name: status, in: query, schema: { $ref: '#/components/schemas/TransferStatus' } }
+        - { name: currency, in: query, schema: { type: string, pattern: '^[A-Z]{3}$' } }
+        - { name: query, in: query, description: "Transfer ID, core reference or correlation ID fragment", schema: { type: string, maxLength: 120 } }
+        - { name: from, in: query, schema: { type: string, format: date-time } }
+        - { name: to, in: query, schema: { type: string, format: date-time } }
         - { name: page, in: query, schema: { type: integer, minimum: 0, default: 0 } }
         - { name: size, in: query, schema: { type: integer, minimum: 1, maximum: 100, default: 20 } }
       responses:
@@ -41,6 +45,23 @@ paths:
         '400': { $ref: '#/components/responses/Problem' }
         '401': { $ref: '#/components/responses/Problem' }
         '409': { $ref: '#/components/responses/Problem' }
+  /transfers/export:
+    get:
+      operationId: exportOperationsTransfers
+      summary: Export the filtered transfer monitoring result as CSV
+      parameters:
+        - { name: status, in: query, schema: { $ref: '#/components/schemas/TransferStatus' } }
+        - { name: currency, in: query, schema: { type: string, pattern: '^[A-Z]{3}$' } }
+        - { name: query, in: query, schema: { type: string, maxLength: 120 } }
+        - { name: from, in: query, schema: { type: string, format: date-time } }
+        - { name: to, in: query, schema: { type: string, format: date-time } }
+      responses:
+        '200':
+          description: UTF-8 CSV with at most 10,000 filtered transfers
+          content:
+            text/csv: { schema: { type: string } }
+        '400': { $ref: '#/components/responses/Problem' }
+        '401': { $ref: '#/components/responses/Problem' }
   /transfers/{transferId}:
     parameters:
       - $ref: '#/components/parameters/TransferId'
@@ -157,18 +178,30 @@ components:
         reference: { type: string }
         failureCode: { type: string }
         failureDetail: { type: string }
+        receiptAvailable: { type: boolean }
         createdAt: { type: string, format: date-time }
         updatedAt: { type: string, format: date-time }
     TransferPage:
       type: object
       additionalProperties: false
-      required: [items, page, size, totalItems, totalPages]
+      required: [items, page, size, totalItems, totalPages, summary]
       properties:
         items: { type: array, items: { $ref: '#/components/schemas/Transfer' } }
         page: { type: integer, minimum: 0 }
         size: { type: integer, minimum: 1 }
         totalItems: { type: integer, minimum: 0 }
         totalPages: { type: integer, minimum: 0 }
+        summary: { $ref: '#/components/schemas/TransferSummary' }
+    TransferSummary:
+      type: object
+      additionalProperties: false
+      required: [total, settled, processing, riskReview, failed]
+      properties:
+        total: { type: integer, minimum: 0 }
+        settled: { type: integer, minimum: 0 }
+        processing: { type: integer, minimum: 0 }
+        riskReview: { type: integer, minimum: 0 }
+        failed: { type: integer, minimum: 0 }
     TransferStateHistoryEntry:
       type: object
       required: [toStatus, actorType, actorId, createdAt]

@@ -17,6 +17,14 @@ describe('generated-contract API clients', () => {
     expect(fetchMock).toHaveBeenCalledWith('/api/customer/v1/transfers?status=RISK_REVIEW&page=0&size=20', expect.objectContaining({ headers: expect.any(Headers) }));
   });
 
+  it('sends the customer creation date range', async () => {
+    const fetchMock = vi.fn().mockResolvedValue(response({ items: [], page: 0, size: 20, totalItems: 0, totalPages: 0 }));
+    vi.stubGlobal('fetch', fetchMock);
+    const client = new CustomerApiClient({ baseUrl: '/api/customer/v1', getAccessToken: () => null });
+    await client.listTransfers({ from: '2026-07-01T00:00:00.000Z', to: '2026-07-31T23:59:59.999Z' });
+    expect(fetchMock.mock.calls[0]?.[0]).toContain('from=2026-07-01T00%3A00%3A00.000Z&to=2026-07-31T23%3A59%3A59.999Z');
+  });
+
   it('sends the idempotency key and beneficiary reference', async () => {
     const fetchMock = vi.fn().mockResolvedValue(response({ transferId: crypto.randomUUID(), status: 'CREATED', amount: '1.00', currency: 'CNY', correlationId: 'corr' }, 202));
     vi.stubGlobal('fetch', fetchMock);
@@ -32,6 +40,29 @@ describe('generated-contract API clients', () => {
     const client = new OperationsApiClient({ baseUrl: '/api/operations/v1', getAccessToken: () => null });
     await client.getTransfer('transfer-1');
     expect(fetchMock.mock.calls[0]?.[0]).toBe('/api/operations/v1/transfers/transfer-1');
+  });
+
+  it('downloads a customer receipt as a PDF blob', async () => {
+    const fetchMock = vi.fn().mockResolvedValue(new Response('%PDF-1.4', { status: 200, headers: { 'Content-Type': 'application/pdf' } }));
+    vi.stubGlobal('fetch', fetchMock);
+    const client = new CustomerApiClient({ baseUrl: '/api/customer/v1', getAccessToken: () => null });
+    const receipt = await client.getTransferReceiptPdf('transfer-1');
+    expect(receipt.type).toBe('application/pdf');
+    expect(fetchMock.mock.calls[0]?.[0]).toBe('/api/customer/v1/transfers/transfer-1/receipt?format=pdf');
+  });
+
+  it('sends operations filters and downloads the matching CSV', async () => {
+    const fetchMock = vi.fn()
+      .mockResolvedValueOnce(response({ items: [], page: 0, size: 20, totalItems: 0, totalPages: 0, summary: { total: 0, settled: 0, processing: 0, riskReview: 0, failed: 0 } }))
+      .mockResolvedValueOnce(new Response('transferId,status\r\n', { status: 200, headers: { 'Content-Type': 'text/csv' } }));
+    vi.stubGlobal('fetch', fetchMock);
+    const client = new OperationsApiClient({ baseUrl: '/api/operations/v1', getAccessToken: () => null });
+    const filters = { status: 'FAILED' as const, currency: 'CNY', query: 'CORR-42', from: '2026-07-01T00:00:00Z', to: '2026-07-31T23:59:59Z' };
+    await client.listTransfers({ ...filters, page: 0, size: 10 });
+    const csv = await client.exportTransfersCsv(filters);
+    expect(fetchMock.mock.calls[0]?.[0]).toContain('currency=CNY&query=CORR-42');
+    expect(fetchMock.mock.calls[1]?.[0]).toContain('/transfers/export?status=FAILED&currency=CNY&query=CORR-42');
+    expect(csv.type).toBe('text/csv');
   });
 
   it('surfaces RFC 9457 problem details', async () => {

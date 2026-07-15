@@ -22,6 +22,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/transfers/export": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Export the filtered transfer monitoring result as CSV */
+        get: operations["exportOperationsTransfers"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/transfers/{transferId}": {
         parameters: {
             query?: never;
@@ -128,6 +145,7 @@ export interface components {
             reference?: string;
             failureCode?: string;
             failureDetail?: string;
+            receiptAvailable?: boolean;
             /** Format: date-time */
             createdAt?: string;
             /** Format: date-time */
@@ -139,6 +157,14 @@ export interface components {
             size: number;
             totalItems: number;
             totalPages: number;
+            summary: components["schemas"]["TransferSummary"];
+        };
+        TransferSummary: {
+            total: number;
+            settled: number;
+            processing: number;
+            riskReview: number;
+            failed: number;
         };
         TransferStateHistoryEntry: {
             fromStatus?: components["schemas"]["TransferStatus"] | null;
@@ -212,6 +238,11 @@ export interface operations {
         parameters: {
             query?: {
                 status?: components["schemas"]["TransferStatus"];
+                currency?: string;
+                /** @description Transfer ID, core reference or correlation ID fragment */
+                query?: string;
+                from?: string;
+                to?: string;
                 page?: number;
                 size?: number;
             };
@@ -260,6 +291,34 @@ export interface operations {
             400: components["responses"]["Problem"];
             401: components["responses"]["Problem"];
             409: components["responses"]["Problem"];
+        };
+    };
+    exportOperationsTransfers: {
+        parameters: {
+            query?: {
+                status?: components["schemas"]["TransferStatus"];
+                currency?: string;
+                query?: string;
+                from?: string;
+                to?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description UTF-8 CSV with at most 10,000 filtered transfers */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "text/csv": string;
+                };
+            };
+            400: components["responses"]["Problem"];
+            401: components["responses"]["Problem"];
         };
     };
     getOperationsTransfer: {
