@@ -43,3 +43,6 @@ export function dateTime(value?: string | null): string {
   const parsed = new Date(value);
   return Number.isNaN(parsed.getTime()) ? value : parsed.toLocaleString('zh-CN', { hour12: false }).replace(/\//g, '-');
 }
+
+export { BankPageState, BankStatusTag } from './state-components';
+export type { BankPageStateKind } from './state-components';

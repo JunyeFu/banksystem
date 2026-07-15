@@ -27,4 +27,6 @@ button, input, textarea, select { font: inherit; }
 .bank-accent, .bank-danger { color: #d9161c; }
 .bank-success { color: #159a58; }
 .bank-error-panel { padding: 48px 24px; text-align: center; }
+.bank-state-panel { min-height: 220px; padding: 24px; background: #fff; border: 1px solid #d9d9d6; border-radius: 8px; }
+.bank-state-panel--center { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 14px; }
 @media (max-width: 1280px) { body { min-width: 1024px; } }

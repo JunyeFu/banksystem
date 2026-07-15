@@ -17,6 +17,7 @@ logs/
 # Dependency caches and local build output are reproducible artifacts.
 **/node_modules/
 **/dist/
+**/storybook-static/
 **/target/
 *.tsbuildinfo
 

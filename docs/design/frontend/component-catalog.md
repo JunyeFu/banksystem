@@ -27,4 +27,6 @@ owner: project-owner
 | `EvidenceTimeline` | 证据、事件和哈希链展示 | 修改证据 |
 | `RunStatusPanel` | 回归运行和验证状态 | 直接控制 Worker |
 
-所有组件必须提供 Storybook 状态、键盘交互、稳定测试标识和错误边界。跨页面共享状态必须有单一所有者。
+可独立渲染的共享基础组件必须提供 Storybook 状态；依赖路由、查询缓存或业务 Provider 的组合组件必须提供确定性页面 Fixture。两类证据都必须覆盖适用的正常、加载、空、错、禁用、无权限和提交状态，并具有键盘交互、稳定测试标识和错误边界。跨页面共享状态必须有单一所有者。
+
+`BankPageState` 与 `BankStatusTag` 是当前共享状态事实源，由 UI Kit Storybook 覆盖；衡准平台已直接消费这两个组件。壳层、导航、表格、审批抽屉、证据链和运行面板继续由对应 PV/HZ 页面 Fixture 覆盖，因为它们依赖真实路由和查询边界。

@@ -35,3 +35,7 @@ test('dashboard retry restores the live snapshot', async ({ page }) => {
   await page.getByRole('button', { name: /重试/ }).click(); await expect(page.locator('[data-view-state]')).toHaveAttribute('data-view-state', 'READY');
   await expect(page.getByText('¥ 2,345,678,901.00')).toBeVisible();
 });
+
+test('operations shell remains usable at narrow desktop viewport', async ({ page }) => {
+  await page.setViewportSize({ width: 1180, height: 800 }); await open(page, 'normal', true); await page.evaluate(() => window.scrollTo(0, 0)); expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true); await expect(page).toHaveScreenshot('RESP-OPERATIONS-1180.png', { fullPage: false });
+});

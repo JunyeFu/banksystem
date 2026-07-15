@@ -46,3 +46,8 @@ test('account row navigation and statement export are executable', async ({ page
   await page.getByRole('tab', { name: '账户信息' }).click(); await expect(page.getByText('100001', { exact: true })).toBeVisible();
   await page.getByRole('tab', { name: '账户文件' }).click(); await expect(page.getByRole('button', { name: '前往文档中心' })).toBeVisible();
 });
+
+test('customer shell remains usable at narrow desktop viewport', async ({ page }) => {
+  await page.setViewportSize({ width: 1180, height: 800 }); await common(page); await page.route('**/api/customer/v1/accounts', (route) => json(route, { items: accounts })); await page.goto(`${CUSTOMER}/dashboard`); await expect(page.locator('[data-view-state]')).toHaveAttribute('data-view-state', 'NORMAL');
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true); await expect(page).toHaveScreenshot('RESP-CUSTOMER-1180.png', { fullPage: false });
+});
