@@ -12,7 +12,7 @@ if (@($cases.sha256 | Sort-Object -Unique).Count -ne 18) { throw 'Operations ris
 $evidence=[ordered]@{
   schemaVersion=1; evidenceType='frontend-visual-regression-baseline'; generatedAt=[DateTimeOffset]::UtcNow.ToString('o'); sourceCommit=(git -C $RepositoryRoot rev-parse HEAD).Trim(); contractVersion='operations-risk-design-1.0'; baselineVersion='operations-risk-windows-chromium-v1';
   environment=[ordered]@{ operatingSystem='Windows'; browser='Chromium'; viewport='1440x900'; locale='zh-CN'; timezone='Asia/Shanghai'; colorScheme='light'; reducedMotion=$true };
-  businessAssertions=@('复兴银行运营控制台覆盖风险告警 PV-0090 至 PV-0099 和风险案件 PV-0100 至 PV-0107。','告警和案件数据来自持久化 risk_decision，并通过生成式 operations API 客户端读取。','状态筛选覆盖 ACTIVE、RESOLVED 和 UNDER_REVIEW，展开与折叠侧栏均有独立基线。','原始预览包对应编号存在错页，视觉实现以状态文件名、统一运营壳层和真实业务契约为准。','视觉数据为确定性合成数据，不包含真实个人信息或密钥。'); cases=$cases
+  businessAssertions=@('Fuxing Bank operations console covers risk alerts PV-0090 through PV-0099 and risk cases PV-0100 through PV-0107.','Alert and case data comes from persistent risk_decision records through the generated operations API client.','Status filters cover ACTIVE, RESOLVED, and UNDER_REVIEW with independent expanded and collapsed shell baselines.','The source preview package contains mislabeled pages, so state filenames, the accepted operations shell, and the formal business contract are authoritative.','Visual fixtures are deterministic synthetic data and contain no real personal data or secrets.'); cases=$cases
 }
 New-Item -ItemType Directory -Force -Path (Split-Path -Parent $outputPath) | Out-Null
 $utf8NoBom=New-Object System.Text.UTF8Encoding($false); [System.IO.File]::WriteAllText($outputPath,($evidence|ConvertTo-Json -Depth 8),$utf8NoBom); Write-Output $outputPath
