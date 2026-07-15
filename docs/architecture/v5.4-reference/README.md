@@ -1,4 +1,6 @@
-# 四阶段完整工程实施方案 V5.4——正向脚本生产与反向失败恢复闭环
+# 四阶段完整工程实施方案 V5.4——历史正向脚本生产与反向失败恢复闭环
+
+> 状态：历史调研与冻结证据，仅供追溯；不得作为当前实施工作流依据。当前实施基线为 `agent/v54-implementation-batches.md`、`agent/v54-decision-register.md` 与 `docs/architecture/v5.4-external-demo-baseline.md`，采用 Codex 受控开发与 GPT LLM 推理，不使用外部编程工作流。
 
 > 版本：5.4.0  
 > 定位：需求文档 + 架构设计 + 开发文档 + 测试验收规范一体化完整版

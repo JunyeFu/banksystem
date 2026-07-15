@@ -2,7 +2,7 @@
 
 > 状态：规划基线，非实现完成证明
 > 更新：2026-07-14
-> 上游：`docs/architecture/v5.4-reference/`
+> 历史参考：`docs/architecture/v5.4-reference/` 仅保留调研与冻结证据，不再作为实施工作流依据。
 
 ## 目标
 
@@ -20,7 +20,7 @@
 
 1. 测试目标、人工成功案例、Fixture、Baseline 和案例导出；
 2. Playwright 脚本资产、独立验证、定时回归和失败事件；
-3. HiAgentPattern、RAG、Coze/企业 Agent Adapter、三动作窗口、Midscene 原子动作、事实采集、脚本生成和反向恢复；
+3. Codex 开发执行、RAG、受控 GPT LLM 作者化适配、三动作窗口、Midscene 原子动作、事实采集、脚本生成和反向恢复；
 4. 双 Track 集成、基准评测、企业联调、安全、交付和内网迁移准备。
 
 ## 状态规则

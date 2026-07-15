@@ -36,12 +36,12 @@
 ## AI 作者阶段与恢复
 
 - RAG 只使用审核后的项目知识资产；`regression-knowledge-service` 以 PostgreSQL 全文检索、版本、Hash、审核状态和 Retrieval Snapshot 实现。
-- 首批直接接入真实 Coze 与真实 Midscene 视觉模型，但所有 Provider 能力须通过 Secret、健康检查、脱敏、最小 Smoke、工具回调和 Artifact 链路验证。
-- Coze 凭据采用 Docker Secret，仅作者服务可读；专用 Regression Authoring Bot 使用受控 Tool Schema。
-- 真实截图只可在虚构/脱敏 Fixture、规则脱敏与批准模型前提下发送；未满足条件时作者能力状态为 `PENDING_PROVIDER_VALIDATION`。
+- 本演示系统由 Codex 执行受控开发与作者化；浏览器操作、脚本生成、验证、证据、调度和恢复均在本机隔离环境内完成。不得引入外部编程工作流、外部 Agent 控制面、外部回调或云端 Task Relay。
+- 演示作者能力由 Codex、审核后的 RAG、本地 Plan Harness 和本地 Playwright/Midscene Worker 组成。GPT LLM 仅用于受控推理；模型不是执行主体，也不构成控制面。
+- 演示截图、视频、Trace 与知识资产不得离开本机受控 Volume；仅允许使用虚构/脱敏 Fixture。GPT LLM 只接收最小化、脱敏后的推理上下文，不得获得银行接口、浏览器控制、文件系统、密钥、Storage State 或执行凭据。
 - LLM 仅产生 `FullActionPlan` 候选；Plan Harness 与人工确认后才可复刻。风险策略优先于模型，未知动作按 HIGH。
 - Midscene 使用全局摘要与 previous/current/next 窗口、单动作预算、ActionEventStore、租约和可重放状态；高风险动作为 Midscene Locate + Playwright Commit。
-- 云端 Agent 到本地 Worker 通过 Task Relay + 主动出站 Local Bridge 连接。Agent 不可访问 Shell、SQL、任意 HTTP、文件系统根、浏览器 CDP、Storage State 或密钥。
+- 演示 Worker 只连接受控内部 API/队列；Codex 通过受控 GPT Authoring Adapter 提交脱敏推理请求。GPT LLM 与任何未来外部 Agent 均不得访问 Shell、SQL、任意 HTTP、文件系统根、浏览器 CDP、Storage State 或密钥。
 - 失败恢复仅有“重新录入人工成功案例”与“描述行为变化后重新作者化”两条结构化、可审计路径。
 
 ## 权限、审计、工程化与交付
@@ -50,7 +50,7 @@
 - 平台使用独立 append-only 审计链；不写入银行 `security_audit_event`。
 - Case Export ZIP 固定 Case/Baseline/知识版本，不含 Token、Storage State、数据库凭据或绝对宿主机路径。
 - 知识资产遵循 TEST_DEVELOPER 提交、REGRESSION_AUDITOR 审核、版本/Hash/来源/范围/失效治理。
-- 本机外网演示使用脱敏数据、独立演示身份、独立数据库和受控 Volume；确定性平台与 Authoring 使用不同 Compose Overlay。
+- 本机演示使用脱敏数据、独立演示身份、独立数据库和受控 Volume；所有容器、浏览器、Worker、证据和恢复动作均留在本机网络内。唯一允许的模型调用是由 Codex 经受控 GPT Authoring Adapter 发起的最小化、脱敏推理请求。
 - 平台采用精确版本、lockfile、镜像 digest、SBOM、非 root 容器、最小挂载、最小网络与健康检查。
 - 迁移以 `platform-migrate` 一次性 Job 执行；数据库、Artifact 和 Evidence 分别备份并在临时目标验证。
 - GitHub Actions 执行契约、类型、Lint、单元、SQL migration 和 ZIP 安全检查；浏览器集成测试在受控 Runner 运行。
@@ -66,4 +66,5 @@
 - B0 只创建 pnpm workspace、共享 contracts/config、三个 API 服务和两个 Worker 的配置/健康检查骨架；Case/Baseline 表与业务 API 在 B1 实现。
 - 使用 `platform_artifacts`、`platform_evidence`、`platform_runtime` 命名 Volume；Worker 临时目录用 tmpfs。
 - `.gitignore` 扩展忽略平台运行产物、`.auth`、Artifact/Evidence/Runtime、报告、视频、截图、构建产物和依赖目录。
-- B0 仅建立 Provider Secret 名称、Adapter 接口、健康检查契约和默认关闭状态；真实 Coze/视觉模型凭据与启用测试在 B6。
+- B0 建立 GPT Authoring Adapter、模型 Profile 名称和默认关闭状态；GPT 凭据只由受控本机运行时注入，不能被浏览器、Worker 或银行服务读取。实际 GPT 启用和最小 Smoke 在 B6。
+- B0 建立共享品牌配置与术语映射：银行产品展示名为“复兴”智能数字银行，测试平台展示名为“衡准”自动化回归测试平台。品牌仅用于 UI、README、演示与报告；既有服务、API、数据库、Docker 和包名保持兼容，既有门户显示名称随前端重构迁移。

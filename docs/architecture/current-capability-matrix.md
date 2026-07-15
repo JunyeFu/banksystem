@@ -29,7 +29,7 @@
 |---|---|---|
 | RegressionCase, Fixture, Baseline and human-success evidence | PARTIAL / PLANNED | Existing contracts and test assets exist; v5.4 full workflow is not yet implemented end to end |
 | RAG template/rule retrieval | PARTIAL | Project RAG exists with sharded index; v5.4 ActionListTemplateCatalog governance is a target |
-| HiAgentPattern and Coze/enterprise adapter | PENDING_ENTERPRISE_VALIDATION | Platform distinction and required interfaces are documented; enterprise tenant/API not validated |
+| Codex/GPT authoring adapter | PLANNED | Codex/GPT boundary and required interfaces are documented; no runtime adapter has been implemented |
 | Midscene atomic action plus Playwright fact collection | POC / PARTIAL | Local v5.4 references and PoC evidence exist; full integration with this repo is not complete |
 | Independent Playwright script validation | PLANNED | Required by v5.4; current final regression is not equivalent |
 | Scheduled regression and automatic failure pause | PLANNED | Banking EOD/recovery exists; v5.4 script Schedule/FailureIncident loop is separate |
