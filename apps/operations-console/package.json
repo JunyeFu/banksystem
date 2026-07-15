@@ -9,6 +9,8 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@localbank/bank-api-client": "file:../../packages/bank-api-client",
+    "@localbank/bank-ui-kit": "file:../../packages/bank-ui-kit",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
     "react-router-dom": "^6.26.2",

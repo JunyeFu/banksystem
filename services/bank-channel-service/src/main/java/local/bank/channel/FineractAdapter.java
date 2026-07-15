@@ -124,6 +124,32 @@ public class FineractAdapter {
     return list.stream().filter(x->x instanceof Map<?,?>).map(x->(Map<String,Object>)x).toList();
   }
 
+  @SuppressWarnings("unchecked")
+  public long resolveSavingsAccountId(String accountNumber) {
+    if (accountNumber == null || accountNumber.isBlank()) {
+      throw new IllegalArgumentException("accountNumber is required");
+    }
+    List<Map<String, Object>> results = client.get().uri(uri -> uri
+            .path("/api/v1/search")
+            .queryParam("query", accountNumber.trim())
+            .queryParam("resource", "savingsaccounts")
+            .queryParam("exactMatch", true)
+            .build())
+        .retrieve().body(List.class);
+    if (results == null) results = List.of();
+    return selectSavingsAccountId(results, accountNumber);
+  }
+
+  static long selectSavingsAccountId(List<Map<String, Object>> results, String accountNumber) {
+    List<Map<String, Object>> exact = results.stream()
+        .filter(row -> accountNumber.trim().equals(String.valueOf(row.get("entityAccountNo"))))
+        .toList();
+    if (exact.size() != 1 || !(exact.get(0).get("entityId") instanceof Number id)) {
+      throw new IllegalArgumentException("Savings account could not be resolved uniquely");
+    }
+    return id.longValue();
+  }
+
   public Map<String, Object> accountTransfer(long fromAccountId, long toAccountId, java.math.BigDecimal amount, String currency, String idempotencyKey) {
     Map<String, Object> from = accountDetails(fromAccountId);
     Map<String, Object> to = accountDetails(toAccountId);

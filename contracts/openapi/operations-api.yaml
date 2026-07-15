@@ -10,8 +10,21 @@ security:
   - bearerAuth: []
 paths:
   /transfers:
+    get:
+      operationId: listOperationsTransfers
+      summary: List transfers for operational monitoring
+      parameters:
+        - { name: status, in: query, schema: { $ref: '#/components/schemas/TransferStatus' } }
+        - { name: page, in: query, schema: { type: integer, minimum: 0, default: 0 } }
+        - { name: size, in: query, schema: { type: integer, minimum: 1, maximum: 100, default: 20 } }
+      responses:
+        '200':
+          description: Transfer monitoring page
+          content:
+            application/json: { schema: { $ref: '#/components/schemas/TransferPage' } }
+        '401': { $ref: '#/components/responses/Problem' }
     post:
-      operationId: createTransfer
+      operationId: createOperationsTransfer
       summary: Submit an idempotent transfer request
       parameters:
         - $ref: '#/components/parameters/IdempotencyKey'
@@ -32,13 +45,13 @@ paths:
     parameters:
       - $ref: '#/components/parameters/TransferId'
     get:
-      operationId: getTransfer
+      operationId: getOperationsTransfer
       summary: Get transfer status
       responses:
         '200':
           description: Transfer state
           content:
-            application/json: { schema: { $ref: '#/components/schemas/Transfer' } }
+            application/json: { schema: { $ref: '#/components/schemas/TransferDetail' } }
         '404': { $ref: '#/components/responses/Problem' }
   /transfers/{transferId}/reversal:
     parameters: [{ $ref: '#/components/parameters/TransferId' }]
@@ -58,6 +71,7 @@ paths:
       operationId: getMonitoringAlerts
       summary: Get active operational alerts
       responses:
+        '401': { $ref: '#/components/responses/Problem' }
         '200':
           description: No service-blocking alert is active
           content:
@@ -113,6 +127,9 @@ components:
     Money:
       type: string
       pattern: '^(0|[1-9][0-9]*)(\.[0-9]{1,4})?$'
+    TransferStatus:
+      type: string
+      enum: [CREATED, VALIDATING, RISK_REVIEW, PENDING_APPROVAL, PENDING_CORE_POSTING, PENDING_CLEARING, SETTLED, FAILED, TIMED_OUT, RETURNED, REVERSAL_PENDING, REVERSED]
     TransferRequest:
       type: object
       required: [sourceAccountId, destinationAccountId, amount, currency]
@@ -127,11 +144,64 @@ components:
       required: [transferId, status, amount, currency]
       properties:
         transferId: { type: string }
-        status: { type: string, enum: [CREATED, VALIDATING, RISK_REVIEW, PENDING_APPROVAL, PENDING_CORE_POSTING, PENDING_CLEARING, SETTLED, FAILED, TIMED_OUT, RETURNED, REVERSAL_PENDING, REVERSED] }
+        status: { $ref: '#/components/schemas/TransferStatus' }
         amount: { $ref: '#/components/schemas/Money' }
         currency: { type: string, pattern: '^[A-Z]{3}$' }
         coreReference: { type: [string, 'null'] }
         correlationId: { type: [string, 'null'] }
+        sourceAccountId: { type: string }
+        destinationAccountId: { type: string }
+        beneficiaryId: { type: string, format: uuid }
+        beneficiaryName: { type: string }
+        maskedDestinationAccount: { type: string }
+        reference: { type: string }
+        failureCode: { type: string }
+        failureDetail: { type: string }
+        createdAt: { type: string, format: date-time }
+        updatedAt: { type: string, format: date-time }
+    TransferPage:
+      type: object
+      additionalProperties: false
+      required: [items, page, size, totalItems, totalPages]
+      properties:
+        items: { type: array, items: { $ref: '#/components/schemas/Transfer' } }
+        page: { type: integer, minimum: 0 }
+        size: { type: integer, minimum: 1 }
+        totalItems: { type: integer, minimum: 0 }
+        totalPages: { type: integer, minimum: 0 }
+    TransferStateHistoryEntry:
+      type: object
+      required: [toStatus, actorType, actorId, createdAt]
+      properties:
+        fromStatus:
+          oneOf:
+            - $ref: '#/components/schemas/TransferStatus'
+            - type: 'null'
+        toStatus: { $ref: '#/components/schemas/TransferStatus' }
+        reasonCode: { type: [string, 'null'] }
+        actorType: { type: string }
+        actorId: { type: string }
+        createdAt: { type: string, format: date-time }
+    OutboxEvent:
+      type: object
+      required: [eventId, eventType, status, attemptCount, createdAt, updatedAt]
+      properties:
+        eventId: { type: string, format: uuid }
+        eventType: { type: string }
+        status: { type: string }
+        attemptCount: { type: integer, minimum: 0 }
+        publishedAt: { type: [string, 'null'], format: date-time }
+        createdAt: { type: string, format: date-time }
+        updatedAt: { type: string, format: date-time }
+    TransferDetail:
+      allOf:
+        - $ref: '#/components/schemas/Transfer'
+        - type: object
+          required: [stateHistory, outboxEvents, auditCount]
+          properties:
+            stateHistory: { type: array, items: { $ref: '#/components/schemas/TransferStateHistoryEntry' } }
+            outboxEvents: { type: array, items: { $ref: '#/components/schemas/OutboxEvent' } }
+            auditCount: { type: integer, minimum: 0 }
     MonitoringAlertResponse:
       type: object
       required: [alerts, count]

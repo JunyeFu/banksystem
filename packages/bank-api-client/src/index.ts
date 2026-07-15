@@ -1,42 +1,87 @@
-export interface Money {
-  currency: string;
-  value: string;
-}
+import type { components as CustomerComponents, operations as CustomerOperations } from './generated/customer';
+import type { components as OperationsComponents } from './generated/operations';
 
-export interface Transfer {
-  transferId: string;
-  status: TransferStatus;
-  amount: string;
-  currency: string;
-  coreReference?: string | null;
-  correlationId?: string | null;
-}
-
-export type TransferStatus =
-  | 'CREATED' | 'VALIDATING' | 'RISK_REVIEW'
-  | 'PENDING_APPROVAL' | 'PENDING_CORE_POSTING' | 'PENDING_CLEARING' | 'SETTLED'
-  | 'FAILED' | 'TIMED_OUT' | 'RETURNED'
-  | 'REVERSAL_PENDING' | 'REVERSED';
-
-export interface ProblemDetail {
-  type: string;
-  title: string;
-  status: number;
-  code: string;
-  detail?: string;
+export type TransferStatus = CustomerComponents['schemas']['TransferStatus'];
+export type AccountSummary = CustomerComponents['schemas']['AccountSummary'] & { accountType?: string };
+export type Beneficiary = CustomerComponents['schemas']['Beneficiary'];
+export type Transfer = CustomerComponents['schemas']['Transfer'];
+export type TransferPage = CustomerComponents['schemas']['TransferPage'];
+export type TransferStateHistoryEntry = OperationsComponents['schemas']['TransferStateHistoryEntry'];
+export type OutboxEvent = OperationsComponents['schemas']['OutboxEvent'];
+export type TransferDetail = OperationsComponents['schemas']['TransferDetail'];
+export type CustomerTransferRequest = NonNullable<CustomerOperations['createCustomerTransfer']['requestBody']>['content']['application/json'];
+export type TransferAccepted = CustomerComponents['schemas']['TransferAccepted'];
+export type ProblemDetail = CustomerComponents['schemas']['Problem'] & {
   requestId?: string;
   correlationId?: string;
   fieldErrors?: Array<{ field: string; message: string }>;
+};
+
+export class BankApiError extends Error {
+  constructor(public readonly status: number, public readonly problem: ProblemDetail) {
+    super(problem.detail ?? problem.title ?? `HTTP ${status}`);
+    this.name = 'BankApiError';
+  }
 }
 
-export interface AccountSummary {
-  accountId: string;
-  maskedAccountNumber: string;
-  currency: string;
-  balance: Money;
+export interface ClientConfiguration {
+  baseUrl: string;
+  getAccessToken: () => string | null;
 }
 
-export interface CustomerProfile {
-  customerId: string;
-  displayName: string;
+class BaseClient {
+  constructor(private readonly configuration: ClientConfiguration) {}
+
+  protected async request<T>(path: string, init: RequestInit = {}): Promise<T> {
+    const headers = new Headers(init.headers);
+    const token = this.configuration.getAccessToken();
+    if (token) headers.set('Authorization', `Bearer ${token}`);
+    if (init.body !== undefined) headers.set('Content-Type', 'application/json');
+    const response = await fetch(`${this.configuration.baseUrl}${path}`, { ...init, headers });
+    if (!response.ok) {
+      let problem: ProblemDetail = { type: 'about:blank', title: response.statusText, status: response.status, code: 'HTTP_ERROR' };
+      try { problem = await response.json() as ProblemDetail; } catch { /* keep transport problem */ }
+      throw new BankApiError(response.status, problem);
+    }
+    if (response.status === 204) return undefined as T;
+    return response.json() as Promise<T>;
+  }
+}
+
+export class CustomerApiClient extends BaseClient {
+  listAccounts(): Promise<{ items: AccountSummary[] }> {
+    return this.request('/accounts');
+  }
+  listBeneficiaries(): Promise<{ items: Beneficiary[] }> {
+    return this.request('/beneficiaries');
+  }
+  listTransfers(options: { status?: TransferStatus; page?: number; size?: number } = {}): Promise<TransferPage> {
+    return this.request(`/transfers${queryString(options)}`);
+  }
+  getTransfer(transferId: string): Promise<Transfer> {
+    return this.request(`/transfers/${encodeURIComponent(transferId)}`);
+  }
+  createTransfer(request: CustomerTransferRequest, idempotencyKey: string): Promise<TransferAccepted> {
+    return this.request('/transfers', {
+      method: 'POST', headers: { 'Idempotency-Key': idempotencyKey }, body: JSON.stringify(request),
+    });
+  }
+}
+
+export class OperationsApiClient extends BaseClient {
+  listTransfers(options: { status?: TransferStatus; page?: number; size?: number } = {}): Promise<TransferPage> {
+    return this.request(`/transfers${queryString(options)}`);
+  }
+  getTransfer(transferId: string): Promise<TransferDetail> {
+    return this.request(`/transfers/${encodeURIComponent(transferId)}`);
+  }
+}
+
+function queryString(values: Record<string, string | number | undefined>): string {
+  const query = new URLSearchParams();
+  Object.entries(values).forEach(([key, value]) => {
+    if (value !== undefined && value !== '') query.set(key, String(value));
+  });
+  const encoded = query.toString();
+  return encoded ? `?${encoded}` : '';
 }

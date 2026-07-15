@@ -23,10 +23,10 @@ owner: project-owner
 
 ## 当前客户路由
 
-`/portal/dashboard`、`/portal/accounts`、`/portal/accounts/:accountId`、`/portal/transfers`、`/portal/transfers/new`、`/portal/transfers/:paymentId`、`/portal/beneficiaries`、`/portal/loans`、`/portal/loans/apply`、`/portal/loans/:loanId`、`/portal/documents`、`/portal/messages`、`/portal/profile`、`/portal/security`。
+`/portal/dashboard`、`/portal/accounts`、`/portal/accounts/:accountId`、`/portal/transfers`、`/portal/transfers/new`、`/portal/transfers/:transferId`、`/portal/beneficiaries`、`/portal/loans`、`/portal/loans/apply`、`/portal/loans/:loanId`、`/portal/documents`、`/portal/messages`、`/portal/profile`、`/portal/security`。
 
 ## 当前运营路由
 
-`/ops/dashboard`、`/ops/payments`、`/ops/payments/:paymentId`、`/ops/risk/alerts`、`/ops/risk/cases`、`/ops/approvals`、`/ops/clearing`、`/ops/reconciliation`、`/ops/eod`、`/ops/documents`、`/ops/audit`、`/ops/system-health`。
+`/ops/dashboard`、`/ops/payments`、`/ops/payments/:transferId`、`/ops/risk/alerts`、`/ops/risk/cases`、`/ops/approvals`、`/ops/clearing`、`/ops/reconciliation`、`/ops/eod`、`/ops/documents`、`/ops/audit`、`/ops/system-health`。
 
 路由、权限、字段和业务状态不得仅因视觉稿存在而新增。衡准平台路由必须在对应 OpenAPI、页面设计和实现批次共同批准后建立。

@@ -1,4 +1,7 @@
 import { getAccessToken } from '@/auth/tokenStore';
+import { OperationsApiClient } from '@localbank/bank-api-client';
+
+export const operationsApi = new OperationsApiClient({ baseUrl: '/api/operations/v1', getAccessToken });
 
 export class ApiError extends Error {
   constructor(

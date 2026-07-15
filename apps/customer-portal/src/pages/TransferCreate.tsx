@@ -1,265 +1,54 @@
-import { useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useQuery, useMutation } from '@tanstack/react-query';
-import { useForm, Controller } from 'react-hook-form';
+import { useMutation, useQuery } from '@tanstack/react-query';
+import { Controller, useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import {
-  Button,
-  Form,
-  Select,
-  InputNumber,
-  Input,
-  Alert,
-  Typography,
-  Space,
-} from 'antd';
+import { Alert, Button, Form, Input, InputNumber, Select, Skeleton, Space } from 'antd';
+import { money } from '@localbank/bank-ui-kit';
+import { customerApi } from '@/api/client';
 import { PageContainer } from '@/components/PageContainer';
-import { apiClient } from '@/api/client';
-import type { PageState } from '@/components/PageContainer';
-import type {
-  AccountListResponse,
-  BeneficiaryListResponse,
-  TransferCreateResponse,
-} from '@/types/models';
 
-const { Title, Text } = Typography;
-const { TextArea } = Input;
-
-const transferSchema = z.object({
-  fromAccountId: z.string().min(1, '请选择转出账户'),
-  beneficiaryId: z.string().min(1, '请选择收款人'),
-  amount: z.number().positive('转账金额必须大于0'),
-  description: z.string().max(200, '备注不能超过200字'),
-});
-
-type TransferFormData = z.infer<typeof transferSchema>;
-
-function maskAccountNumber(accountNumber: string): string {
-  const visible = 4;
-  if (accountNumber.length <= visible * 2) {
-    return accountNumber;
-  }
-  const first = accountNumber.slice(0, visible);
-  const last = accountNumber.slice(-visible);
-  const masked = '*'.repeat(accountNumber.length - visible * 2);
-  return `${first}${masked}${last}`;
-}
+const schema = z.object({ sourceAccountId: z.string().min(1, '请选择转出账户'), beneficiaryId: z.string().uuid('请选择收款人'), amount: z.number().positive('转账金额必须大于 0'), reference: z.string().max(240, '备注不能超过 240 字') });
+type FormData = z.infer<typeof schema>;
 
 export function TransferCreate(): JSX.Element {
   const navigate = useNavigate();
-  const [submitError, setSubmitError] = useState<string | null>(null);
+  const [submitError, setSubmitError] = useState<string>();
   const [idempotencyKey] = useState(() => crypto.randomUUID());
-
-  const accountsQuery = useQuery<AccountListResponse>({
-    queryKey: ['accounts'],
-    queryFn: () => apiClient.get<AccountListResponse>('/accounts'),
+  const accounts = useQuery({ queryKey: ['accounts'], queryFn: () => customerApi.listAccounts() });
+  const beneficiaries = useQuery({ queryKey: ['beneficiaries'], queryFn: () => customerApi.listBeneficiaries() });
+  const { control, handleSubmit, setValue, watch } = useForm<FormData>({ resolver: zodResolver(schema), defaultValues: { sourceAccountId: '', beneficiaryId: '', amount: 0, reference: '' } });
+  const sourceId = watch('sourceAccountId'); const beneficiaryId = watch('beneficiaryId'); const amount = watch('amount');
+  const account = accounts.data?.items.find((item) => item.accountId === sourceId);
+  const beneficiary = beneficiaries.data?.items.find((item) => item.beneficiaryId === beneficiaryId);
+  useEffect(() => {
+    if (!sourceId && accounts.data?.items.length === 1 && accounts.data.items[0]) setValue('sourceAccountId', accounts.data.items[0].accountId);
+    if (!beneficiaryId && beneficiaries.data?.items.length === 1 && beneficiaries.data.items[0]) setValue('beneficiaryId', beneficiaries.data.items[0].beneficiaryId);
+  }, [accounts.data, beneficiaries.data, beneficiaryId, setValue, sourceId]);
+  const mutation = useMutation({
+    mutationFn: (value: FormData) => customerApi.createTransfer({ sourceAccountId: value.sourceAccountId, beneficiaryId: value.beneficiaryId, amount: value.amount.toFixed(2), currency: account?.currency ?? 'CNY', reference: value.reference || undefined }, idempotencyKey),
+    onSuccess: (result) => navigate(`/transfers/${result.transferId}`), onError: (error: Error) => setSubmitError(error.message),
   });
-
-  const beneficiariesQuery = useQuery<BeneficiaryListResponse>({
-    queryKey: ['beneficiaries'],
-    queryFn: () => apiClient.get<BeneficiaryListResponse>('/beneficiaries'),
-  });
-
-  const { control, handleSubmit, watch } = useForm<TransferFormData>({
-    resolver: zodResolver(transferSchema),
-    defaultValues: {
-      fromAccountId: '',
-      beneficiaryId: '',
-      amount: 0,
-      description: '',
-    },
-  });
-
-  const selectedAccountId = watch('fromAccountId');
-  const accounts = accountsQuery.data?.items ?? [];
-  const beneficiaries = beneficiariesQuery.data?.items ?? [];
-  const selectedAccount = accounts.find((a) => a.accountId === selectedAccountId);
-  const currency = selectedAccount?.currency ?? 'CNY';
-
-  const mutation = useMutation<TransferCreateResponse, Error, TransferFormData>({
-    mutationFn: async (data) => {
-      const beneficiary = beneficiaries.find((b) => b.id === data.beneficiaryId);
-      if (!beneficiary) {
-        throw new Error('选择的收款人不存在');
-      }
-      return apiClient.post<TransferCreateResponse>(
-        '/transfers',
-        {
-          fromAccountId: data.fromAccountId,
-          toAccount: beneficiary.accountNumber,
-          amount: data.amount.toFixed(2),
-          currency,
-          description: data.description || undefined,
-        },
-        {
-          headers: { 'Idempotency-Key': idempotencyKey },
-        },
-      );
-    },
-    onSuccess: (response) => {
-      navigate(`/transfers/${response.paymentId}`);
-    },
-    onError: (error) => {
-      setSubmitError(error.message);
-    },
-  });
-
-  const onSubmit = (data: TransferFormData): void => {
-    setSubmitError(null);
-    mutation.mutate(data);
-  };
-
-  const accountOptions = accounts.map((a) => ({
-    label: `${a.maskedAccountNumber} — 余额 ${a.balance} ${a.currency}`,
-    value: a.accountId,
-  }));
-
-  const beneficiaryOptions = beneficiaries.map((b) => ({
-    label: `${b.name} — ${maskAccountNumber(b.accountNumber)}`,
-    value: b.id,
-  }));
-
-  const pageState: PageState =
-    accountsQuery.isLoading || beneficiariesQuery.isLoading
-      ? 'LOADING'
-      : accountsQuery.isError || beneficiariesQuery.isError
-        ? 'ERROR'
-        : 'READY';
-
+  const accountOptions = useMemo(() => accounts.data?.items.map((item) => ({ value: item.accountId, label: `${item.maskedAccountNumber}（${item.accountType ?? '活期账户'}）　可用余额 ${money(item.balance, item.currency)}` })) ?? [], [accounts.data]);
+  const beneficiaryOptions = useMemo(() => beneficiaries.data?.items.map((item) => ({ value: item.beneficiaryId, label: `${item.displayName}（${item.maskedAccountNumber}）` })) ?? [], [beneficiaries.data]);
+  const loading = accounts.isLoading || beneficiaries.isLoading;
   return (
-    <PageContainer pageId="customer.transfer.create" state={pageState} title="新建转账">
-      <div style={{ padding: '24px', maxWidth: 600 }}>
-        <Title level={4}>填写转账信息</Title>
-
-        {submitError !== null && (
-          <Alert
-            type="error"
-            message="转账失败"
-            description={submitError}
-            style={{ marginBottom: 24 }}
-            closable
-            onClose={() => setSubmitError(null)}
-            data-testid="transfer-error"
-          />
-        )}
-
-        <form onSubmit={handleSubmit(onSubmit)} data-testid="transfer-form">
+    <PageContainer pageId="customer.transfer.create" state="READY">
+      <div className="customer-breadcrumb">转账列表　/　<strong>新建转账</strong></div>
+      {loading ? <Skeleton active paragraph={{ rows: 10 }} /> : <div className="customer-transfer-layout" data-view-state={mutation.isPending ? 'SUBMITTING' : submitError ? 'ERROR' : 'DEFAULT'}>
+        <form className="transfer-form-panel" onSubmit={handleSubmit((value) => { setSubmitError(undefined); mutation.mutate(value); })} data-testid="transfer-form">
+          {submitError ? <Alert type="error" showIcon message="转账提交失败" description={submitError} closable onClose={() => setSubmitError(undefined)} style={{ marginBottom: 24 }} data-testid="transfer-error" /> : null}
           <Form layout="vertical" component={false}>
-            <Controller
-              control={control}
-              name="fromAccountId"
-              render={({ field, fieldState: { error } }) => (
-                <Form.Item
-                  label="转出账户"
-                  validateStatus={error ? 'error' : ''}
-                  help={error?.message}
-                >
-                  <Select
-                    data-testid="transfer-source-account"
-                    value={field.value || undefined}
-                    onChange={field.onChange}
-                    placeholder="请选择转出账户"
-                    loading={accountsQuery.isLoading}
-                    options={accountOptions}
-                  />
-                </Form.Item>
-              )}
-            />
-
-            <Controller
-              control={control}
-              name="beneficiaryId"
-              render={({ field, fieldState: { error } }) => (
-                <Form.Item
-                  label="收款人"
-                  validateStatus={error ? 'error' : ''}
-                  help={error?.message}
-                >
-                  <Select
-                    data-testid="transfer-beneficiary"
-                    value={field.value || undefined}
-                    onChange={field.onChange}
-                    placeholder="请选择收款人"
-                    loading={beneficiariesQuery.isLoading}
-                    options={beneficiaryOptions}
-                  />
-                </Form.Item>
-              )}
-            />
-
-            <Controller
-              control={control}
-              name="amount"
-              render={({ field, fieldState: { error } }) => (
-                <Form.Item
-                  label="转账金额"
-                  validateStatus={error ? 'error' : ''}
-                  help={error?.message}
-                >
-                  <InputNumber
-                    data-testid="transfer-amount"
-                    value={field.value || undefined}
-                    onChange={(v: number | null) => field.onChange(v ?? 0)}
-                    style={{ width: '100%' }}
-                    prefix={currency}
-                    placeholder="请输入转账金额"
-                    min={0.01}
-                    precision={2}
-                  />
-                </Form.Item>
-              )}
-            />
-
-            <Controller
-              control={control}
-              name="description"
-              render={({ field, fieldState: { error } }) => (
-                <Form.Item
-                  label="备注（选填）"
-                  validateStatus={error ? 'error' : ''}
-                  help={error?.message}
-                >
-                  <TextArea
-                    data-testid="transfer-description"
-                    value={field.value}
-                    onChange={field.onChange}
-                    rows={3}
-                    placeholder="请输入转账备注"
-                    maxLength={200}
-                    showCount
-                  />
-                </Form.Item>
-              )}
-            />
-
-            {selectedAccount !== undefined && (
-              <Text type="secondary" style={{ display: 'block', marginBottom: 16 }}>
-                当前余额：{selectedAccount.balance} {selectedAccount.currency}
-              </Text>
-            )}
-
-            <Space>
-              <Button
-                type="primary"
-                htmlType="submit"
-                data-testid="transfer-confirm"
-                aria-label="确认转账"
-                loading={mutation.isPending}
-              >
-                确认转账
-              </Button>
-              <Button
-                data-testid="transfer-cancel"
-                onClick={() => navigate('/transfers')}
-                disabled={mutation.isPending}
-              >
-                取消
-              </Button>
-            </Space>
+            <Controller name="sourceAccountId" control={control} render={({ field, fieldState }) => <Form.Item label="转账类型" required validateStatus={fieldState.error ? 'error' : ''} help={fieldState.error?.message}><Select {...field} value={field.value || undefined} options={accountOptions} placeholder="请选择转出账户" size="large" data-testid="transfer-source-account" /></Form.Item>} />
+            <Controller name="beneficiaryId" control={control} render={({ field, fieldState }) => <Form.Item label={<span className="transfer-beneficiary-label"><span>收款人</span><a href="/portal/beneficiaries">管理收款人</a></span>} required validateStatus={fieldState.error ? 'error' : ''} help={fieldState.error?.message}><Select {...field} value={field.value || undefined} options={beneficiaryOptions} placeholder="请选择收款人" size="large" showSearch optionFilterProp="label" data-testid="transfer-beneficiary" /></Form.Item>} />
+            <Controller name="amount" control={control} render={({ field, fieldState }) => <Form.Item label="转账金额" required validateStatus={fieldState.error ? 'error' : ''} help={fieldState.error?.message}><Space.Compact style={{ width: '100%' }}><InputNumber value={field.value || undefined} onChange={(value) => field.onChange(value ?? 0)} min={0.01} precision={2} placeholder="请输入转账金额" size="large" style={{ flex: 1 }} data-testid="transfer-amount" /><Input value={account?.currency ?? 'CNY'} readOnly aria-label="币种" style={{ width: 74, textAlign: 'center' }} /></Space.Compact></Form.Item>} />
+            <Controller name="reference" control={control} render={({ field, fieldState }) => <Form.Item label="备注" validateStatus={fieldState.error ? 'error' : ''} help={fieldState.error?.message}><Input.TextArea {...field} rows={4} placeholder="请输入转账备注（选填）" showCount maxLength={240} data-testid="transfer-description" /></Form.Item>} />
+            <div className="transfer-actions"><Button onClick={() => navigate('/transfers')}>取消</Button><Button type="primary" htmlType="submit" loading={mutation.isPending} data-testid="transfer-submit">确认转账</Button></div>
           </Form>
         </form>
-      </div>
+        <aside className="bank-card transfer-summary"><h2>转账摘要</h2><div className="transfer-summary__item"><span>转出账户</span><strong>{account?.maskedAccountNumber ?? '待选择'}</strong><p className="bank-muted">{account?.accountType ?? '—'}</p></div><div className="transfer-summary__item"><span>收款人</span><strong>{beneficiary?.displayName ?? '待选择'}</strong><p className="bank-muted">{beneficiary?.maskedAccountNumber ?? '—'}</p></div><div className="transfer-summary__item transfer-summary__total"><span>转账金额</span><strong>{money(String(amount || 0), account?.currency ?? 'CNY')}</strong></div><div className="transfer-summary__item"><span>手续费</span><strong>0.00 {account?.currency ?? 'CNY'}</strong></div><div className="transfer-summary__item transfer-summary__total"><span>合计</span><strong>{money(String(amount || 0), account?.currency ?? 'CNY')}</strong></div></aside>
+      </div>}
     </PageContainer>
   );
 }

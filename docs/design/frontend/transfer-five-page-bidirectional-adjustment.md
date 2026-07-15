@@ -3,9 +3,9 @@ id: DOC-FE-TRANSFER-FIVE-PAGE-ADJUSTMENT
 title: 转账闭环五页面前后端双向调整方案
 document_type: design
 domain: frontend
-status: proposed
+status: accepted
 authority: normative
-version: 1.0
+version: 1.1
 effective_date: 2026-07-15
 owner: project-owner
 related_contracts: [contracts/openapi/customer-api.yaml, contracts/openapi/operations-api.yaml]
@@ -14,7 +14,7 @@ related_code: [apps/customer-portal, apps/operations-console, services/bank-chan
 
 # 转账闭环五页面前后端双向调整方案
 
-本方案把客户转账三页和运营支付两页作为首个跨端垂直切片。它定义进入实现前必须完成的契约、后端读模型、前端状态和视觉追溯调整；本文本身不代表这些代码已经实现。
+本方案把客户转账三页和运营支付两页作为首个跨端垂直切片。2026-07-15 已按本方案完成五页、契约、后端读模型、生成客户端与最小 UI Kit 的首轮实现；发布级 Docker 金融 E2E 仍需在具备本地测试凭据的环境单独执行。
 
 ## 1. 页面与 PV 范围
 
@@ -28,7 +28,7 @@ related_code: [apps/customer-portal, apps/operations-console, services/bank-chan
 
 合计 5 个页面、36 个逻辑设计状态。路由参数由 `paymentId` 统一命名为 `transferId`，URL 结构不变。
 
-## 2. 已核验的当前事实
+## 2. 实现前核验基线
 
 | 证据 | 当前事实 | 对五页的影响 |
 |---|---|---|
@@ -145,3 +145,12 @@ related_code: [apps/customer-portal, apps/operations-console, services/bank-chan
 - 36 个 PV 状态逐一关联到 Storybook 或页面 Fixture；PV 是设计参考，不直接作为运行视觉基线。
 - 两个应用通过 TypeScript build、单元测试、Playwright 完整闭环和 1440×900 视觉对照。
 - Java 单元/集成测试、OpenAPI 校验、数据库迁移和回滚验证全部通过。
+
+## 8. 2026-07-15 实现结果
+
+- `customer-api.yaml` 与 `operations-api.yaml` 已补齐客户/运营列表、详情、客户受益人引用和组合证据读模型，并由 `openapi-typescript` 生成共享类型。
+- Bank Channel Service 已通过 Liquibase 保存受益人解析后的核心目标引用；客户创建按 subject 校验账户和收款人，客户/运营列表及详情已实现。
+- 客户转账列表、新建、结果与运营支付监控、详情共五页已重建，共享红白黑银行主题、12 态文案、金额/时间格式化和安全 Outbox 展示。
+- Java 33 项测试、共享包 7 项测试、两个 Vite 生产构建、Redocly OpenAPI lint、PowerShell 语法和文档校验已通过。
+- 已使用固定 1440×900 Playwright 画布对 PV-0022、PV-0028、PV-0035、PV-0073、PV-0084 进行多模态对照并迭代；浏览器导航、必填校验和控制台错误检查通过。
+- 未在本次无凭据会话执行 Docker 金融 E2E、真实 Keycloak 角色矩阵和 Liquibase 实库回滚；这些仍是发布门禁，不影响代码级实现结论。

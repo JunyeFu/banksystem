@@ -71,8 +71,25 @@ paths:
       operationId: listBeneficiaries
       summary: List customer beneficiaries
       responses:
-        '200': { description: Masked beneficiary list }
+        '200':
+          description: Masked, resolved beneficiary list
+          content:
+            application/json: { schema: { $ref: '#/components/schemas/BeneficiaryPage' } }
         '401': { $ref: '#/components/responses/Unauthorized' }
+    post:
+      operationId: createBeneficiary
+      summary: Create and resolve a beneficiary against the core savings account directory
+      requestBody:
+        required: true
+        content:
+          application/json: { schema: { $ref: '#/components/schemas/CreateBeneficiaryRequest' } }
+      responses:
+        '200':
+          description: Masked beneficiary resource
+          content:
+            application/json: { schema: { $ref: '#/components/schemas/Beneficiary' } }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '422': { description: Account number cannot be uniquely resolved in core banking }
   /notifications:
     get:
       operationId: listNotifications
@@ -108,23 +125,20 @@ paths:
         '200': { description: Receipt payload and SHA-256 checksum }
         '401': { $ref: '#/components/responses/Unauthorized' }
         '404': { $ref: '#/components/responses/NotFound' }
-    post:
-      operationId: createBeneficiary
-      summary: Create beneficiary
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              type: object
-              required: [accountNumber, displayName]
-              properties:
-                accountNumber: { type: string, minLength: 6, maxLength: 64, writeOnly: true }
-                displayName: { type: string, minLength: 1, maxLength: 160 }
-      responses:
-        '200': { description: Masked beneficiary resource }
-        '401': { $ref: '#/components/responses/Unauthorized' }
   /transfers:
+    get:
+      operationId: listCustomerTransfers
+      summary: List authenticated customer's transfers
+      parameters:
+        - { name: status, in: query, schema: { $ref: '#/components/schemas/TransferStatus' } }
+        - { name: page, in: query, schema: { type: integer, minimum: 0, default: 0 } }
+        - { name: size, in: query, schema: { type: integer, minimum: 1, maximum: 100, default: 20 } }
+      responses:
+        '200':
+          description: Subject-scoped transfer page
+          content:
+            application/json: { schema: { $ref: '#/components/schemas/TransferPage' } }
+        '401': { $ref: '#/components/responses/Unauthorized' }
     post:
       operationId: createCustomerTransfer
       summary: Create an internal customer transfer
@@ -135,17 +149,39 @@ paths:
           application/json:
             schema:
               type: object
-              required: [sourceAccountId, destinationAccountId, amount, currency]
+              required: [sourceAccountId, beneficiaryId, amount, currency]
               properties:
                 sourceAccountId: { type: string, minLength: 1, maxLength: 64 }
-                destinationAccountId: { type: string, minLength: 1, maxLength: 64 }
+                beneficiaryId: { type: string, format: uuid }
                 amount: { $ref: '#/components/schemas/Money' }
                 currency: { type: string, minLength: 3, maxLength: 3 }
                 reference: { type: string, maxLength: 240 }
       responses:
-        '202': { description: Transfer accepted for asynchronous core posting }
+        '202':
+          description: Transfer accepted for asynchronous core posting
+          content:
+            application/json: { schema: { $ref: '#/components/schemas/TransferAccepted' } }
+        '400': { $ref: '#/components/responses/Problem' }
         '401': { $ref: '#/components/responses/Unauthorized' }
         '403': { description: Source account is not owned by the customer }
+        '409': { $ref: '#/components/responses/Problem' }
+        '422': { description: Beneficiary is unavailable or unresolved }
+  /transfers/{transferId}:
+    parameters:
+      - name: transferId
+        in: path
+        required: true
+        schema: { type: string, format: uuid }
+    get:
+      operationId: getCustomerTransfer
+      summary: Get an authenticated customer's transfer
+      responses:
+        '200':
+          description: Subject-scoped transfer detail
+          content:
+            application/json: { schema: { $ref: '#/components/schemas/Transfer' } }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '404': { $ref: '#/components/responses/NotFound' }
   /loans/applications/{applicationId}/submit:
     parameters: [{ $ref: '#/components/parameters/ApplicationId' }]
     post:
@@ -228,8 +264,12 @@ components:
       name: Idempotency-Key
       in: header
       required: true
-      schema: { type: string, minLength: 8, maxLength: 128 }
+      schema: { type: string, minLength: 16, maxLength: 128 }
   responses:
+    Problem:
+      description: RFC 9457 problem details
+      content:
+        application/problem+json: { schema: { $ref: '#/components/schemas/Problem' } }
     Unauthorized:
       description: Authentication required
       content:
@@ -244,6 +284,72 @@ components:
       pattern: '^-?(0|[1-9][0-9]*)(\.[0-9]{1,4})?$'
       description: Decimal money value serialized as a string; never a JSON number.
       examples: ['1250.00']
+    TransferStatus:
+      type: string
+      enum: [CREATED, VALIDATING, RISK_REVIEW, PENDING_APPROVAL, PENDING_CORE_POSTING, PENDING_CLEARING, SETTLED, FAILED, TIMED_OUT, RETURNED, REVERSAL_PENDING, REVERSED]
+    Beneficiary:
+      type: object
+      additionalProperties: false
+      required: [beneficiaryId, maskedAccountNumber, displayName, createdAt]
+      properties:
+        beneficiaryId: { type: string, format: uuid }
+        maskedAccountNumber: { type: string }
+        displayName: { type: string }
+        createdAt: { type: string, format: date-time }
+    BeneficiaryPage:
+      type: object
+      additionalProperties: false
+      required: [items]
+      properties:
+        items: { type: array, items: { $ref: '#/components/schemas/Beneficiary' } }
+    CreateBeneficiaryRequest:
+      type: object
+      additionalProperties: false
+      required: [accountNumber, displayName]
+      properties:
+        accountNumber: { type: string, minLength: 6, maxLength: 64, writeOnly: true }
+        displayName: { type: string, minLength: 1, maxLength: 160 }
+    Transfer:
+      type: object
+      additionalProperties: false
+      required: [transferId, status, amount, currency, sourceAccountId, destinationAccountId, createdAt, updatedAt]
+      properties:
+        transferId: { type: string, format: uuid }
+        status: { $ref: '#/components/schemas/TransferStatus' }
+        amount: { $ref: '#/components/schemas/Money' }
+        currency: { type: string, pattern: '^[A-Z]{3}$' }
+        sourceAccountId: { type: string }
+        destinationAccountId: { type: string, writeOnly: true }
+        beneficiaryId: { type: string, format: uuid }
+        beneficiaryName: { type: string }
+        maskedDestinationAccount: { type: string }
+        reference: { type: string }
+        coreReference: { type: string }
+        correlationId: { type: string }
+        failureCode: { type: string }
+        failureDetail: { type: string }
+        createdAt: { type: string, format: date-time }
+        updatedAt: { type: string, format: date-time }
+    TransferAccepted:
+      type: object
+      additionalProperties: false
+      required: [transferId, status, amount, currency, correlationId]
+      properties:
+        transferId: { type: string, format: uuid }
+        status: { $ref: '#/components/schemas/TransferStatus' }
+        amount: { $ref: '#/components/schemas/Money' }
+        currency: { type: string, pattern: '^[A-Z]{3}$' }
+        correlationId: { type: string }
+    TransferPage:
+      type: object
+      additionalProperties: false
+      required: [items, page, size, totalItems, totalPages]
+      properties:
+        items: { type: array, items: { $ref: '#/components/schemas/Transfer' } }
+        page: { type: integer, minimum: 0 }
+        size: { type: integer, minimum: 1 }
+        totalItems: { type: integer, minimum: 0 }
+        totalPages: { type: integer, minimum: 0 }
     Customer:
       type: object
       required: [customerId, displayName]
