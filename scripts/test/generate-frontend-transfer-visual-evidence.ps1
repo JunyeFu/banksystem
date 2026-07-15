@@ -60,5 +60,7 @@ $evidence = [ordered]@{
 
 $directory = Split-Path -Parent $outputPath
 New-Item -ItemType Directory -Force -Path $directory | Out-Null
-$evidence | ConvertTo-Json -Depth 8 | Set-Content -LiteralPath $outputPath -Encoding utf8NoBOM
+$json = $evidence | ConvertTo-Json -Depth 8
+$utf8NoBom = New-Object System.Text.UTF8Encoding($false)
+[System.IO.File]::WriteAllText($outputPath, $json, $utf8NoBom)
 Write-Output $outputPath
