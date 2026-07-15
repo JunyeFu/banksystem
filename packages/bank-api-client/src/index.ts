@@ -24,6 +24,7 @@ export type TransferSummary = OperationsComponents['schemas']['TransferSummary']
 export type TransferStateHistoryEntry = OperationsComponents['schemas']['TransferStateHistoryEntry'];
 export type OutboxEvent = OperationsComponents['schemas']['OutboxEvent'];
 export type TransferDetail = OperationsComponents['schemas']['TransferDetail'];
+export type OperationsDashboard = OperationsComponents['schemas']['OperationsDashboard'];
 export type CustomerTransferRequest = NonNullable<CustomerOperations['createCustomerTransfer']['requestBody']>['content']['application/json'];
 export type TransferAccepted = CustomerComponents['schemas']['TransferAccepted'];
 export type ProblemDetail = CustomerComponents['schemas']['Problem'] & {
@@ -124,6 +125,9 @@ export class CustomerApiClient extends BaseClient {
 }
 
 export class OperationsApiClient extends BaseClient {
+  getDashboard(): Promise<OperationsDashboard> {
+    return this.request('/dashboard');
+  }
   listTransfers(options: { status?: TransferStatus; currency?: string; query?: string; from?: string; to?: string; page?: number; size?: number } = {}): Promise<OperationsTransferPage> {
     return this.request(`/transfers${queryString(options)}`);
   }

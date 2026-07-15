@@ -9,6 +9,16 @@ servers:
 security:
   - bearerAuth: []
 paths:
+  /dashboard:
+    get:
+      operationId: getOperationsDashboard
+      summary: Get the operational dashboard snapshot
+      responses:
+        '200':
+          description: Current operational workload and service-health snapshot
+          content:
+            application/json: { schema: { $ref: '#/components/schemas/OperationsDashboard' } }
+        '401': { $ref: '#/components/responses/Problem' }
   /transfers:
     get:
       operationId: listOperationsTransfers
@@ -145,6 +155,22 @@ components:
       content:
         application/problem+json: { schema: { $ref: '#/components/schemas/Problem' } }
   schemas:
+    OperationsDashboard:
+      type: object
+      additionalProperties: false
+      required: [generatedAt, pendingApprovals, clearingStatus, reconciliationStatus, activePayments, failedPayments, systemHealth, todayPaymentAmount, todayPaymentCount, successRate, pendingAlerts]
+      properties:
+        generatedAt: { type: string, format: date-time }
+        pendingApprovals: { type: integer, minimum: 0 }
+        clearingStatus: { type: string, enum: [NORMAL, ATTENTION] }
+        reconciliationStatus: { type: string, enum: [MATCHED, DIFFERENCE, NOT_RUN] }
+        activePayments: { type: integer, minimum: 0 }
+        failedPayments: { type: integer, minimum: 0 }
+        systemHealth: { type: string, enum: [HEALTHY, DEGRADED] }
+        todayPaymentAmount: { $ref: '#/components/schemas/Money' }
+        todayPaymentCount: { type: integer, minimum: 0 }
+        successRate: { type: number, format: double, minimum: 0, maximum: 100 }
+        pendingAlerts: { type: integer, minimum: 0 }
     Money:
       type: string
       pattern: '^(0|[1-9][0-9]*)(\.[0-9]{1,4})?$'

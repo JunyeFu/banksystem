@@ -29,7 +29,7 @@ export function App(): JSX.Element {
   const navigate = useNavigate(); const location = useLocation(); const [collapsed, setCollapsed] = useState(false);
   const menuItems = useMemo<MenuProps['items']>(() => entries.map(([key, icon, label]) => ({ key, icon: <span className="ops-menu-icon">{icon}</span>, label })), []);
   const title = entries.find(([path]) => selected(location.pathname) === path)?.[2] ?? '运营控制台';
-  return <Layout className="ops-shell">
+  return <Layout className="ops-shell" data-sidebar-state={collapsed ? 'COLLAPSED' : 'EXPANDED'}>
     <Sider width={214} collapsedWidth={72} collapsed={collapsed} trigger={null} className="ops-sidebar" data-testid="ops-sidebar">
       <button className="ops-brand" onClick={() => navigate('/dashboard')} aria-label={productBrand.bank.operationsConsoleName}><span className="ops-brand__mark">复</span>{collapsed ? null : <span><strong>{productBrand.bank.shortName}</strong><small>运营控制台</small></span>}</button>
       <Menu theme="dark" mode="inline" selectedKeys={[selected(location.pathname)]} items={menuItems} onClick={({ key }) => navigate(key)} data-testid="ops-nav-menu" />
