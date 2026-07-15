@@ -22,5 +22,6 @@ owner: project-owner
 | [预览图追溯矩阵](preview-traceability-matrix.md) | PV-0001 至 PV-0201 的设计覆盖 |
 | [视觉验收标准](visual-acceptance-standard.md) | Storybook、Playwright 和人工验收门禁 |
 | [转账闭环五页面双向调整](transfer-five-page-bidirectional-adjustment.md) | 首批 5 页、36 个 PV 状态与真实后端契约的调整方案 |
+| [衡准平台前端设计](hengzhun-platform-design.md) | 独立 HZ 页面矩阵、B0—B7 信息架构与实现边界 |
 
 历史输入包和确认记录保存在 `docs/archive/design/`，只用于追溯。

@@ -8,7 +8,7 @@ authority: normative
 version: 1.1
 effective_date: 2026-07-15
 owner: project-owner
-related_contracts: [contracts/openapi/customer-api.yaml, contracts/openapi/operations-api.yaml, contracts/openapi/test-support-api.yaml]
+related_contracts: [contracts/openapi/customer-api.yaml, contracts/openapi/operations-api.yaml, contracts/openapi/test-support-api.yaml, contracts/openapi/quality-platform-api.yaml]
 ---
 
 # 前后端契约矩阵
@@ -25,8 +25,8 @@ related_contracts: [contracts/openapi/customer-api.yaml, contracts/openapi/opera
 | 运营贷款/风险 | 评分、批准、风险决策 | 未完整声明 | 缺口 | 完成 OpenAPI 后才能重构交互 |
 | 清算/对账/日终 | 触发、查询最新结果 | 未完整声明 | 缺口 | 明确内部/运营边界与错误码 |
 | 测试支撑 | Fixture、断言、业务日期 | `test-support-api.yaml` | 基础较完整 | 保持 local/test 与角色限制 |
-| 衡准用例/基线 | 用例、版本、审批、基线 | 仅 JSON Schema | 未实现服务契约 | 新建平台 OpenAPI |
-| 衡准运行/证据 | 运行、验证、Artifact、调度、事件 | 无完整 OpenAPI | 未实现 | B2-B4 契约优先落地 |
+| 衡准用例/基线 | 用例、版本、审批、基线 | `quality-platform-api.yaml` + JSON Schema | 前端与正式契约已实现，后端待 B1-B3 | 后端实现不得改变已发布状态语义 |
+| 衡准运行/证据 | 运行、验证、Artifact、调度、事件 | `quality-platform-api.yaml` | 查询与控制面前端已实现，运行链待 B2-B7 | Artifact 下载/恢复写操作随服务实现扩展契约 |
 
 ## 首批五页面实现结论
 

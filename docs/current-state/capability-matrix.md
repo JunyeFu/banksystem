@@ -46,3 +46,4 @@ owner: project-owner
 | Independent Playwright script validation | PLANNED | Required by v5.4; current final regression is not equivalent |
 | Scheduled regression and automatic failure pause | PLANNED | Banking EOD/recovery exists; v5.4 script Schedule/FailureIncident loop is separate |
 | Reverse recovery with exactly two options | PLANNED | v5.4 target; not claimed as implemented in the current banking services |
+| Hengzhun quality platform frontend | IMPLEMENTED / BACKEND PENDING | Nine contract-backed routes, generated OpenAPI types, 14 Playwright visual/interaction checks and nine multimodal-reviewed baselines; browser fixtures are not backend completion evidence |

@@ -18,7 +18,7 @@ owner: project-owner
 |---|---|---|
 | 客户银行端 | `/portal/*` | 白色顶部导航、1200px 内容区、中等密度 |
 | 运营管理端 | `/ops/*` | 墨黑侧栏、白色工具栏、中高密度 |
-| 衡准平台 | `/quality/*`（目标） | 独立平台壳层，未实现前不得声称存在 |
+| 衡准平台 | `/quality/*` | 独立平台壳层；前端已实现，平台后端按 B0—B7 单独验收 |
 | 登录/外部管理 | 登录、Mifos X、Keycloak、Grafana | 保留各系统功能和权限，不新增 Gateway UI |
 
 ## 当前客户路由
@@ -27,6 +27,10 @@ owner: project-owner
 
 ## 当前运营路由
 
-`/ops/dashboard`、`/ops/payments`、`/ops/payments/:transferId`、`/ops/risk/alerts`、`/ops/risk/cases`、`/ops/approvals`、`/ops/clearing`、`/ops/reconciliation`、`/ops/eod`、`/ops/documents`、`/ops/audit`、`/ops/system-health`。
+`/ops/dashboard`、`/ops/payments`、`/ops/payments/:transferId`、`/ops/risk/alerts`、`/ops/risk/cases`、`/ops/approvals`、`/ops/clearing`、`/ops/reconciliation`、`/ops/eod`、`/ops/documents`、`/ops/audit`、`/ops/system-health`、`/ops/external`。
 
-路由、权限、字段和业务状态不得仅因视觉稿存在而新增。衡准平台路由必须在对应 OpenAPI、页面设计和实现批次共同批准后建立。
+## 当前衡准路由
+
+`/quality/dashboard`、`/quality/cases`、`/quality/cases/:caseId`、`/quality/baselines`、`/quality/runs`、`/quality/schedules`、`/quality/incidents`、`/quality/knowledge`、`/quality/releases`。这些页面只消费 `quality-platform-api.yaml`，不以浏览器夹具代替生产后端实现。
+
+路由、权限、字段和业务状态不得仅因视觉稿存在而新增。衡准路由由独立设计、OpenAPI 和 B0—B7 批次共同约束。
