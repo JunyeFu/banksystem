@@ -1,6 +1,7 @@
 import { NavLink, Navigate, Route, Routes, useNavigate } from 'react-router-dom';
 import { Badge, Button, Dropdown } from 'antd';
 import type { MenuProps } from 'antd';
+import { productBrand } from '@localbank/bank-ui-kit';
 import { AccountDetail } from '@/pages/AccountDetail';
 import { AccountList } from '@/pages/AccountList';
 import { Beneficiaries } from '@/pages/Beneficiaries';
@@ -30,8 +31,8 @@ export function CustomerShell(): JSX.Element {
   return (
     <div className="customer-shell">
       <header className="customer-header">
-        <button className="customer-brand" onClick={() => navigate('/dashboard')} aria-label="返回首页">
-          <span className="customer-brand__mark"><i /></span><span>复兴银行</span>
+        <button className="customer-brand" onClick={() => navigate('/dashboard')} aria-label={`${productBrand.bank.customerPortalName}首页`}>
+          <span className="customer-brand__mark"><i /></span><span>{productBrand.bank.shortName}</span>
         </button>
         <nav className="customer-nav" aria-label="客户门户主导航">
           {navigation.map(([path, label]) => <NavLink key={path} to={path}>{label}</NavLink>)}

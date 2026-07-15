@@ -2,6 +2,7 @@ import { useMemo, useState } from 'react';
 import { Navigate, Route, Routes, useLocation, useNavigate } from 'react-router-dom';
 import { Badge, Button, Layout, Menu } from 'antd';
 import type { MenuProps } from 'antd';
+import { productBrand } from '@localbank/bank-ui-kit';
 import { Approvals } from '@/pages/Approvals';
 import { AuditViewer } from '@/pages/AuditViewer';
 import { Clearing } from '@/pages/Clearing';
@@ -30,7 +31,7 @@ export function App(): JSX.Element {
   const title = entries.find(([path]) => selected(location.pathname) === path)?.[2] ?? '运营控制台';
   return <Layout className="ops-shell">
     <Sider width={214} collapsedWidth={72} collapsed={collapsed} trigger={null} className="ops-sidebar" data-testid="ops-sidebar">
-      <button className="ops-brand" onClick={() => navigate('/dashboard')} aria-label="华复银行运营控制台"><span className="ops-brand__mark">C</span>{collapsed ? null : <span><strong>华复银行</strong><small>运营控制台</small></span>}</button>
+      <button className="ops-brand" onClick={() => navigate('/dashboard')} aria-label={productBrand.bank.operationsConsoleName}><span className="ops-brand__mark">复</span>{collapsed ? null : <span><strong>{productBrand.bank.shortName}</strong><small>运营控制台</small></span>}</button>
       <Menu theme="dark" mode="inline" selectedKeys={[selected(location.pathname)]} items={menuItems} onClick={({ key }) => navigate(key)} data-testid="ops-nav-menu" />
       <Button type="text" className="ops-collapse" onClick={() => setCollapsed((value) => !value)}>{collapsed ? '›' : '‹　收起菜单'}</Button>
     </Sider>

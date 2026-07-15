@@ -13,6 +13,18 @@ export const bankTheme = {
   },
 } as const;
 
+export const productBrand = {
+  bank: {
+    shortName: '复兴银行',
+    customerPortalName: '复兴银行客户门户',
+    operationsConsoleName: '复兴银行运营控制台',
+  },
+  regressionPlatform: {
+    shortName: '衡准',
+    displayName: '衡准自动化回归测试平台',
+  },
+} as const;
+
 export const transferStatusText = {
   CREATED: '已创建', VALIDATING: '校验中', RISK_REVIEW: '风险复核',
   PENDING_APPROVAL: '待审批', PENDING_CORE_POSTING: '核心入账中',
