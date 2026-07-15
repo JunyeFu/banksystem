@@ -304,6 +304,17 @@ paths:
             application/json: { schema: { $ref: '#/components/schemas/SystemHealthSnapshot' } }
         '401': { $ref: '#/components/responses/Problem' }
         '403': { $ref: '#/components/responses/Problem' }
+  /external-services:
+    get:
+      operationId: getExternalServices
+      summary: Probe and list local third-party administration services
+      responses:
+        '200':
+          description: Local administration service availability
+          content:
+            application/json: { schema: { $ref: '#/components/schemas/ExternalServiceSnapshot' } }
+        '401': { $ref: '#/components/responses/Problem' }
+        '403': { $ref: '#/components/responses/Problem' }
   /internal/monitoring/alerts:
     get:
       operationId: getMonitoringAlerts
@@ -470,6 +481,28 @@ components:
         checkedAt: { type: string, format: date-time }
         services: { type: array, items: { $ref: '#/components/schemas/ServiceHealth' } }
         alerts: { type: array, items: { $ref: '#/components/schemas/MonitoringAlert' } }
+    ExternalServiceStatus:
+      type: string
+      enum: [AVAILABLE, PARTIAL, UNAVAILABLE]
+    ExternalService:
+      type: object
+      additionalProperties: false
+      required: [serviceId, displayName, purpose, launchUrl, status, latencyMs]
+      properties:
+        serviceId: { type: string, enum: [MIFOS_X, KEYCLOAK, GRAFANA] }
+        displayName: { type: string }
+        purpose: { type: string }
+        launchUrl: { type: string, format: uri }
+        status: { type: string, enum: [AVAILABLE, UNAVAILABLE] }
+        latencyMs: { type: integer, minimum: 0 }
+    ExternalServiceSnapshot:
+      type: object
+      additionalProperties: false
+      required: [overallStatus, checkedAt, items]
+      properties:
+        overallStatus: { $ref: '#/components/schemas/ExternalServiceStatus' }
+        checkedAt: { type: string, format: date-time }
+        items: { type: array, minItems: 3, maxItems: 3, items: { $ref: '#/components/schemas/ExternalService' } }
     ClearingBatchStatus:
       type: string
       enum: [PROCESSING, COMPLETED, FAILED]

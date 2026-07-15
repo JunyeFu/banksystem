@@ -47,6 +47,7 @@ export type OperationsAuditOutcome = OperationsComponents['schemas']['AuditOutco
 export type OperationsHashChainVerification = OperationsComponents['schemas']['HashChainVerification'];
 export type OperationsSystemHealth = OperationsComponents['schemas']['SystemHealthSnapshot'];
 export type OperationsMonitoringAlert = OperationsComponents['schemas']['MonitoringAlert'];
+export type OperationsExternalServices = OperationsComponents['schemas']['ExternalServiceSnapshot'];
 export type CustomerTransferRequest = NonNullable<CustomerOperations['createCustomerTransfer']['requestBody']>['content']['application/json'];
 export type TransferAccepted = CustomerComponents['schemas']['TransferAccepted'];
 export type ProblemDetail = CustomerComponents['schemas']['Problem'] & {
@@ -201,6 +202,9 @@ export class OperationsApiClient extends BaseClient {
   }
   getSystemHealth(): Promise<OperationsSystemHealth> {
     return this.request('/system-health');
+  }
+  getExternalServices(): Promise<OperationsExternalServices> {
+    return this.request('/external-services');
   }
   listTransfers(options: { status?: TransferStatus; currency?: string; query?: string; from?: string; to?: string; page?: number; size?: number } = {}): Promise<OperationsTransferPage> {
     return this.request(`/transfers${queryString(options)}`);

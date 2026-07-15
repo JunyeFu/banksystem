@@ -8,6 +8,7 @@ import { AuditViewer } from '@/pages/AuditViewer';
 import { Clearing } from '@/pages/Clearing';
 import { Dashboard } from '@/pages/Dashboard';
 import { EOD } from '@/pages/EOD';
+import { ExternalManagement } from '@/pages/ExternalManagement';
 import { OpsDocuments } from '@/pages/OpsDocuments';
 import { PaymentDetail } from '@/pages/PaymentDetail';
 import { PaymentMonitoring } from '@/pages/PaymentMonitoring';
@@ -22,6 +23,7 @@ const entries = [
   ['/clearing', '◎', '清算监控'], ['/reconciliation', '▤', '对账管理'], ['/approvals', '⚠', '异常处理'],
   ['/risk/alerts', '△', '风险告警'], ['/risk/cases', '◇', '风险案件'], ['/eod', '▧', '日终处理'], ['/documents', '□', '文档管理'],
   ['/audit', '≡', '审计追踪'],
+  ['/external', '↗', '外部管理'],
 ] as const;
 function selected(pathname: string): string { return entries.find(([path]) => pathname === path || pathname.startsWith(`${path}/`))?.[0] ?? '/dashboard'; }
 
@@ -42,6 +44,7 @@ export function App(): JSX.Element {
         <Route path="/risk/alerts" element={<RiskAlerts />} /><Route path="/risk/cases" element={<RiskCases />} /><Route path="/approvals" element={<Approvals />} />
         <Route path="/clearing" element={<Clearing />} /><Route path="/reconciliation" element={<Reconciliation />} /><Route path="/eod" element={<EOD />} />
         <Route path="/documents" element={<OpsDocuments />} /><Route path="/audit" element={<AuditViewer />} /><Route path="/system-health" element={<SystemHealth />} />
+        <Route path="/external" element={<ExternalManagement />} />
         <Route path="/" element={<Navigate to="/dashboard" replace />} /><Route path="*" element={<Navigate to="/dashboard" replace />} />
       </Routes></Content>
     </Layout>

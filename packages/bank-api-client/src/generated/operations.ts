@@ -321,6 +321,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/external-services": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Probe and list local third-party administration services */
+        get: operations["getExternalServices"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/internal/monitoring/alerts": {
         parameters: {
             query?: never;
@@ -458,6 +475,25 @@ export interface components {
             checkedAt: string;
             services: components["schemas"]["ServiceHealth"][];
             alerts: components["schemas"]["MonitoringAlert"][];
+        };
+        /** @enum {string} */
+        ExternalServiceStatus: "AVAILABLE" | "PARTIAL" | "UNAVAILABLE";
+        ExternalService: {
+            /** @enum {string} */
+            serviceId: "MIFOS_X" | "KEYCLOAK" | "GRAFANA";
+            displayName: string;
+            purpose: string;
+            /** Format: uri */
+            launchUrl: string;
+            /** @enum {string} */
+            status: "AVAILABLE" | "UNAVAILABLE";
+            latencyMs: number;
+        };
+        ExternalServiceSnapshot: {
+            overallStatus: components["schemas"]["ExternalServiceStatus"];
+            /** Format: date-time */
+            checkedAt: string;
+            items: components["schemas"]["ExternalService"][];
         };
         /** @enum {string} */
         ClearingBatchStatus: "PROCESSING" | "COMPLETED" | "FAILED";
@@ -1235,6 +1271,28 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["SystemHealthSnapshot"];
+                };
+            };
+            401: components["responses"]["Problem"];
+            403: components["responses"]["Problem"];
+        };
+    };
+    getExternalServices: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Local administration service availability */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ExternalServiceSnapshot"];
                 };
             };
             401: components["responses"]["Problem"];

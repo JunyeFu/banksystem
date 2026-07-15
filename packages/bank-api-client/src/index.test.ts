@@ -137,12 +137,14 @@ describe('generated-contract API clients', () => {
     await client.listAuditEvents({ actorId: 'auditor', outcome: 'SUCCESS', correlationId: 'CORR-1' });
     await client.verifyAuditHashChain();
     await client.getSystemHealth();
+    await client.getExternalServices();
     expect(fetchMock.mock.calls[0]?.[0]).toContain('/documents?category=POLICY&status=PUBLISHED&query=');
     expect(fetchMock.mock.calls[1]?.[0]).toContain('/documents/document%2F1/status');
     expect((fetchMock.mock.calls[1]?.[1] as RequestInit).method).toBe('PATCH');
     expect(fetchMock.mock.calls[2]?.[0]).toContain('/audit/events?actorId=auditor&outcome=SUCCESS&correlationId=CORR-1');
     expect(fetchMock.mock.calls[3]?.[0]).toBe('/api/operations/v1/audit/verify');
     expect(fetchMock.mock.calls[4]?.[0]).toBe('/api/operations/v1/system-health');
+    expect(fetchMock.mock.calls[5]?.[0]).toBe('/api/operations/v1/external-services');
   });
 
   it('downloads a customer receipt as a PDF blob', async () => {

@@ -62,6 +62,7 @@ public class SecurityConfig {
             .requestMatchers("/api/operations/v1/documents/**").hasAnyAuthority("ROLE_AUDITOR", "ROLE_ACCOUNTANT", "ROLE_SYSTEM_ADMIN")
             .requestMatchers("/api/operations/v1/audit/**").hasAnyAuthority("ROLE_AUDITOR", "ROLE_SYSTEM_ADMIN")
             .requestMatchers("/api/operations/v1/system-health").hasAnyAuthority("ROLE_AUDITOR", "ROLE_SYSTEM_ADMIN")
+            .requestMatchers("/api/operations/v1/external-services").hasAnyAuthority("ROLE_AUDITOR", "ROLE_SYSTEM_ADMIN")
             .requestMatchers("/internal/mock-clearing/**").hasAuthority("ROLE_SYSTEM_ADMIN")
             .requestMatchers("/internal/transfers/**").hasAnyAuthority("ROLE_PAYMENT_OPERATOR", "ROLE_SYSTEM_ADMIN")
             .requestMatchers("/api/customer/v1/loans/applications/*/core/**").denyAll()
