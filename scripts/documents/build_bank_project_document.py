@@ -97,7 +97,7 @@ def add_table(doc: Document, rows: list[tuple[str, str]]) -> None:
     doc.add_paragraph()
 
 
-def configure_doc(doc: Document, doc_type: str, project_code: str, classification: str) -> None:
+def configure_doc(doc: Document, doc_type: str, project_code: str) -> None:
     section = doc.sections[0]
     section.top_margin, section.bottom_margin = Cm(2.54), Cm(2.54)
     section.left_margin, section.right_margin = Cm(3.17), Cm(3.17)
@@ -116,12 +116,12 @@ def configure_doc(doc: Document, doc_type: str, project_code: str, classificatio
         style.font.color.rgb = RGBColor.from_string(RED)
     header = section.header.paragraphs[0]
     header.alignment = WD_ALIGN_PARAGRAPH.LEFT
-    run = header.add_run(f"{project_code}  |  {doc_type.upper()}  |  {classification}")
+    run = header.add_run(f"{project_code}  |  {doc_type.upper()}  |  受控副本")
     set_font(run, "Arial", 8.5, GRAY, True)
     add_bottom_border(header, RED)
     footer = section.footer.paragraphs[0]
     footer.alignment = WD_ALIGN_PARAGRAPH.CENTER
-    run = footer.add_run(f"{classification} | 仅限项目用途 | 第 ")
+    run = footer.add_run("仅限项目用途 | 第 ")
     set_font(run, "Arial", 8.5, GRAY)
     field = OxmlElement("w:fldSimple")
     field.set(qn("w:instr"), "PAGE")
@@ -130,10 +130,10 @@ def configure_doc(doc: Document, doc_type: str, project_code: str, classificatio
     set_font(run, "Arial", 8.5, GRAY)
 
 
-def build_docx(output: Path, document_type: str, title: str, project_code: str, classification: str) -> None:
+def build_docx(output: Path, document_type: str, title: str, project_code: str) -> None:
     doc = Document()
     type_label = TYPE_LABELS[document_type]
-    configure_doc(doc, type_label, project_code, classification)
+    configure_doc(doc, type_label, project_code)
     cover = doc.add_table(rows=3, cols=1)
     cover.autofit = False
     for row in cover.rows:
@@ -154,7 +154,7 @@ def build_docx(output: Path, document_type: str, title: str, project_code: str, 
     p = cover.cell(2, 0).paragraphs[0]
     p.paragraph_format.space_before = Pt(8)
     p.paragraph_format.space_after = Pt(8)
-    run = p.add_run(f"{project_code}  ·  {classification}")
+    run = p.add_run(project_code)
     set_font(run, "Arial", 10, "FFFFFF", True)
     doc.add_page_break()
     p = doc.add_paragraph()
@@ -162,7 +162,7 @@ def build_docx(output: Path, document_type: str, title: str, project_code: str, 
     run = p.add_run("文档控制信息")
     set_font(run, "SimHei", 18, INK, True)
     add_bottom_border(p)
-    add_table(doc, [("文书类型", type_label), ("项目名称", title), ("项目编号", project_code), ("密级", classification), ("版本", "V0.1 草案"), ("状态", "待编制/待审批"), ("编制/复核/批准", "【待填写】/【待填写】/【待填写】"), ("关联编号", "需求/变更/测试/验收编号【待填写】")])
+    add_table(doc, [("文书类型", type_label), ("项目名称", title), ("项目编号", project_code), ("版本", "V0.1 草案"), ("状态", "待编制/待审批"), ("编制/复核/批准", "【待填写】/【待填写】/【待填写】"), ("关联编号", "需求/变更/测试/验收编号【待填写】")])
     doc.add_page_break()
     for index, section_title in enumerate(SECTIONS[document_type], 1):
         doc.add_heading(f"{index}. {section_title}", level=1)
@@ -174,15 +174,15 @@ def build_docx(output: Path, document_type: str, title: str, project_code: str, 
     doc.save(output)
 
 
-def build_pdf(output: Path, document_type: str, title: str, project_code: str, classification: str) -> None:
+def build_pdf(output: Path, document_type: str, title: str, project_code: str) -> None:
     pdfmetrics.registerFont(UnicodeCIDFont(PDF_CJK))
     styles = getSampleStyleSheet()
     title_style = ParagraphStyle("bank-title", parent=styles["Title"], fontName=PDF_CJK, fontSize=22, leading=28, textColor=colors.HexColor("#161616"), alignment=1)
     heading_style = ParagraphStyle("bank-h1", parent=styles["Heading1"], fontName=PDF_CJK, fontSize=14, leading=18, textColor=colors.HexColor("#A6192E"), spaceBefore=12, spaceAfter=6)
     body_style = ParagraphStyle("bank-body", parent=styles["BodyText"], fontName=PDF_CJK, fontSize=10, leading=15, textColor=colors.HexColor("#161616"))
     doc = SimpleDocTemplate(str(output), pagesize=A4, rightMargin=31.7 * mm, leftMargin=31.7 * mm, topMargin=25.4 * mm, bottomMargin=25.4 * mm)
-    story = [Spacer(1, 35 * mm), Table([[Paragraph("BANK PROJECT DOCUMENT", ParagraphStyle("cover-kicker", parent=body_style, textColor=colors.white, fontName="Helvetica-Bold", alignment=1))]], colWidths=[145 * mm], rowHeights=[15 * mm], style=TableStyle([("BACKGROUND", (0, 0), (-1, -1), colors.HexColor("#161616")), ("VALIGN", (0, 0), (-1, -1), "MIDDLE")])), Spacer(1, 36 * mm), Paragraph(title, title_style), Spacer(1, 32 * mm), Table([[Paragraph(f"{project_code}  ·  {classification}", ParagraphStyle("cover-footer", parent=body_style, textColor=colors.white, alignment=1, fontName=PDF_CJK))]], colWidths=[145 * mm], rowHeights=[12 * mm], style=TableStyle([("BACKGROUND", (0, 0), (-1, -1), colors.HexColor("#A6192E"))])), PageBreak(), Paragraph("文档控制信息", title_style)]
-    rows = [["文书类型", TYPE_LABELS[document_type]], ["项目名称", title], ["项目编号", project_code], ["密级", classification], ["版本", "V0.1 草案"], ["状态", "待编制/待审批"]]
+    story = [Spacer(1, 35 * mm), Table([[Paragraph("BANK PROJECT DOCUMENT", ParagraphStyle("cover-kicker", parent=body_style, textColor=colors.white, fontName="Helvetica-Bold", alignment=1))]], colWidths=[145 * mm], rowHeights=[15 * mm], style=TableStyle([("BACKGROUND", (0, 0), (-1, -1), colors.HexColor("#161616")), ("VALIGN", (0, 0), (-1, -1), "MIDDLE")])), Spacer(1, 36 * mm), Paragraph(title, title_style), Spacer(1, 32 * mm), Table([[Paragraph(project_code, ParagraphStyle("cover-footer", parent=body_style, textColor=colors.white, alignment=1, fontName=PDF_CJK))]], colWidths=[145 * mm], rowHeights=[12 * mm], style=TableStyle([("BACKGROUND", (0, 0), (-1, -1), colors.HexColor("#A6192E"))])), PageBreak(), Paragraph("文档控制信息", title_style)]
+    rows = [["文书类型", TYPE_LABELS[document_type]], ["项目名称", title], ["项目编号", project_code], ["版本", "V0.1 草案"], ["状态", "待编制/待审批"]]
     control = Table(rows, colWidths=[35 * mm, 110 * mm])
     control.setStyle(TableStyle([("GRID", (0, 0), (-1, -1), 0.4, colors.HexColor("#161616")), ("BACKGROUND", (0, 0), (0, -1), colors.HexColor("#F4F4F4")), ("FONTNAME", (0, 0), (-1, -1), PDF_CJK), ("FONTSIZE", (0, 0), (-1, -1), 9), ("VALIGN", (0, 0), (-1, -1), "MIDDLE"), ("TOPPADDING", (0, 0), (-1, -1), 7), ("BOTTOMPADDING", (0, 0), (-1, -1), 7)]))
     story += [Spacer(1, 8 * mm), control, PageBreak()]
@@ -196,16 +196,15 @@ def main() -> int:
     parser.add_argument("--document-type", choices=sorted(SECTIONS), required=True)
     parser.add_argument("--title", required=True)
     parser.add_argument("--project-code", required=True)
-    parser.add_argument("--classification", default="内部")
     parser.add_argument("--output-dir", type=Path, required=True)
     parser.add_argument("--format", choices=("docx", "pdf", "both"), default="both")
     args = parser.parse_args()
     args.output_dir.mkdir(parents=True, exist_ok=True)
     stem = f"{args.project_code}_{args.document_type}"
     if args.format in {"docx", "both"}:
-        build_docx(args.output_dir / f"{stem}.docx", args.document_type, args.title, args.project_code, args.classification)
+        build_docx(args.output_dir / f"{stem}.docx", args.document_type, args.title, args.project_code)
     if args.format in {"pdf", "both"}:
-        build_pdf(args.output_dir / f"{stem}.pdf", args.document_type, args.title, args.project_code, args.classification)
+        build_pdf(args.output_dir / f"{stem}.pdf", args.document_type, args.title, args.project_code)
     return 0
 
 
