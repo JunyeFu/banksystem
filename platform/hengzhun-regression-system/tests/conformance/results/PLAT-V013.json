@@ -1,0 +1,15 @@
+{
+  "schemaVersion": 1,
+  "id": "PLAT-V013",
+  "platform": { "name": "Coze Studio", "version": "0.5.1" },
+  "testedAt": "2026-07-16T18:08:20+08:00",
+  "conclusion": "PARTIALLY_VERIFIED",
+  "evidenceSha256": [
+    "eb9757635304ba544cfbc5a7bf05fbd72a311040ca6c842337fa8c4b56218707",
+    "69e5246f5e4271dc6fbee3f0606a38fab23b206f4a3b856a3e93c4f784caaa1a",
+    "02d5767f9d42fbae1ddd30116309de095a7c67c875631ebb7d2431b7ff247406",
+    "bc8596306d6e08e32e5ff9c08fb957ab01851a807f2b72a07f1e5852a6123425"
+  ],
+  "finding": "最小 Agent、机械模型、Knowledge Base 与两节点 Workflow 已通过公开界面创建、调用和发布；Skill 与 Plugin 的交集仍分别受不支持和入口阻塞影响。",
+  "impact": "只允许使用已实测的 Agent、Workflow、Knowledge Base 与模型机械调用，不得宣称完整平台交集已关闭。"
+}

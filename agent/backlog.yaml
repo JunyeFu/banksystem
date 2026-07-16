@@ -3,7 +3,7 @@ project: banksystem
 root: D:\Agent\banksystem
 defaultBranch: main
 statusSource: agent/backlog.yaml
-updatedAt: '2026-07-15T00:00:00+08:00'
+updatedAt: '2026-07-16T00:00:00+08:00'
 
 allowedStatuses: [PROPOSED, READY, IN_PROGRESS, BLOCKED, REVIEW, DONE, CANCELLED]
 
@@ -16,7 +16,7 @@ tracks:
         status: REVIEW
         owner: 傅钧烨
         dependsOn: []
-        allowedPaths: [AGENTS.md, apps/AGENTS.md, services/AGENTS.md, contracts/AGENTS.md, tests/AGENTS.md, docs/**, knowledge-sources/**, rag/**, agent/**, scripts/docs/**, scripts/rag/**, scripts/knowledge/**, .gitignore]
+        allowedPaths: [AGENTS.md, apps/AGENTS.md, services/AGENTS.md, contracts/AGENTS.md, tests/AGENTS.md, docs/**, documents/**, knowledge-sources/**, rag/**, agent/**, scripts/docs/**, scripts/rag/**, scripts/knowledge/**, .gitignore]
         acceptance:
           - Docs are the reviewed knowledge source and archives are separated.
           - Agent backlog is the only task-status source.
@@ -28,17 +28,96 @@ tracks:
           - python scripts/rag/validate_rag.py
         evidence: [docs/current-state/repository-knowledge-baseline.md]
 
-  - id: V54
-    name: regression-platform
+  - id: PRIORITY-20260715
+    name: internship-regression-platform-first
     workItems:
-      - {id: B0, title: Platform baseline and brand mapping, status: READY, owner: 傅钧烨, dependsOn: [GOV-001]}
-      - {id: B1, title: Quality Case and Baseline, status: PROPOSED, owner: 傅钧烨, dependsOn: [B0]}
-      - {id: B2, title: Artifact and Evidence, status: PROPOSED, owner: 傅钧烨, dependsOn: [B1]}
-      - {id: B3, title: Deterministic validation, status: PROPOSED, owner: 傅钧烨, dependsOn: [B2]}
-      - {id: B4, title: Scheduled regression, status: PROPOSED, owner: 傅钧烨, dependsOn: [B3]}
-      - {id: B5, title: Codex knowledge and authoring control, status: PROPOSED, owner: 傅钧烨, dependsOn: [B4]}
-      - {id: B6, title: Codex visual authoring and controlled execution, status: PROPOSED, owner: 傅钧烨, dependsOn: [B5]}
-      - {id: B7, title: Recovery benchmark and delivery, status: PROPOSED, owner: 傅钧烨, dependsOn: [B6]}
+      - id: FE-DEFECT-001
+        title: Frontend defect inventory, remediation and acceptance
+        status: IN_PROGRESS
+        owner: 傅钧烨
+        dependsOn: [FE-PLAN-001]
+        allowedPaths: [apps/**, services/**, contracts/**, tests/**, docs/design/frontend/**, docs/evidence/**, agent/**]
+        acceptance:
+          - Current customer and operations frontend defects are recorded against real API contracts and split into independently verifiable batches.
+          - The identified batches are fixed in scoped implementation work before this parent item is marked DONE.
+          - Each changed flow passes relevant frontend build, contract, browser and visual acceptance checks.
+          - No v5.4 Coze/Harness or 衡准 implementation is started in this item.
+        evidence: [docs/evidence/frontend/frontend-defect-inventory-2026-07-15.md, docs/evidence/frontend/customer-live-read-remediation-2026-07-16.md]
+      - id: FE-DEFECT-002
+        title: Fail closed for EOD when authoritative status is unavailable
+        status: IN_PROGRESS
+        owner: 傅钧烨
+        dependsOn: [FE-PLAN-001]
+        allowedPaths: [apps/operations-console/**, tests/e2e/frontend-operations-settlement/**, docs/evidence/**, agent/**]
+        acceptance:
+          - A failed or unavailable EOD status query disables both the start and confirm execution controls.
+          - The UI provides an explicit retry path and never infers a business date or executable state from unavailable data.
+          - Mocked and live-browser safety checks cover the failure branch without executing EOD.
+      - id: FE-DEFECT-003
+        title: Restore customer portal live read paths and recoverability
+        status: IN_PROGRESS
+        owner: 傅钧烨
+        dependsOn: [FE-PLAN-001]
+        allowedPaths: [apps/customer-portal/**, services/**, contracts/**, tests/**, docs/evidence/**, agent/**]
+        acceptance:
+          - A persistent bank-customer identity completes user-entered graphical username/password login from /portal/login without exposing credentials, then reaches the customer dashboard and its uniquely linked core account.
+          - Identity readiness covers enabled/no-required-action state, default CUSTOMER role, unique customer_identity mapping and restart re-verification; phone-number login is not claimed until its contract exists.
+          - Dashboard, security settings and transfer list consume contract-valid data in the local authenticated demo.
+          - Each error state exposes safe retry and actionable, non-sensitive recovery feedback.
+          - Root cause and remediation evidence distinguish client, gateway, authorization and downstream dependency failures.
+        evidence: [docs/evidence/frontend/customer-live-read-remediation-2026-07-16.md, docs/evidence/frontend/customer-password-login-gap-2026-07-16.md]
+      - id: FE-DEFECT-004
+        title: Restore operations console live read paths
+        status: IN_PROGRESS
+        owner: 傅钧烨
+        dependsOn: [FE-PLAN-001]
+        allowedPaths: [apps/operations-console/**, services/**, contracts/**, tests/**, docs/evidence/**, agent/**]
+        acceptance:
+          - EOD and payment monitoring consume contract-valid data in the local authenticated demo.
+          - Failures remain explicit and are not converted to a misleading empty state.
+          - Remediation evidence identifies the responsible integration boundary without exposing credentials.
+      - id: FE-DEFECT-005
+        title: Add live frontend integration health gates
+        status: IN_PROGRESS
+        owner: 傅钧烨
+        dependsOn: [FE-DEFECT-002, FE-DEFECT-003, FE-DEFECT-004]
+        allowedPaths: [tests/**, apps/**, services/**, contracts/**, docs/evidence/**, agent/**]
+        acceptance:
+          - A deterministic local smoke suite avoids page.route for the covered read paths.
+          - It covers customer and operations reads, authorization/error recovery, and EOD fail-closed behavior.
+          - Evidence is synthetic/redacted and captures contract version, route, status and assertion outcome.
+      - id: FE-DEFECT-006
+        title: Establish frontend performance budgets and route-level code splitting
+        status: READY
+        owner: 傅钧烨
+        dependsOn: [FE-PLAN-001]
+        allowedPaths: [apps/customer-portal/**, apps/operations-console/**, tests/**, docs/evidence/**, agent/**]
+        acceptance:
+          - Each portal has a documented and automated initial JavaScript budget.
+          - Route-level splitting is introduced where necessary without weakening accessibility, visual acceptance or banking controls.
+      - id: COZE-HARNESS-CORE-001
+        title: Coze-only regression authoring and deterministic execution core
+        status: IN_PROGRESS
+        owner: 傅钧烨
+        dependsOn: []
+        evidence: [docs/evidence/platform/hengzhun-i1-platform-baseline-2026-07-16.md, platform/hengzhun-regression-system/tests/conformance/status.yaml]
+        allowedPaths: [platform/**, contracts/**, tests/**, docs/architecture/**, docs/current-state/**, docs/evidence/**, documents/**, rag/**, agent/**, infra/**, scripts/platform/**]
+        acceptance:
+          - Platform runtime, Coze deployment, Harness OpenAPI, SQLite, Artifact and Worker foundations may start while unrelated frontend defects remain open.
+          - Each bank case must pass its own route, API, role, fixture, stable-locator and redacted-browser-evidence gate before Harness integrates that case; one blocked case does not block platform foundations or other ready cases.
+          - The internship minimum closes three low-risk cases: customer password login/profile consistency, customer account list/detail isolation, and safe rejection/recovery for invalid credentials, authorization or expired sessions.
+          - Coze is the only user-facing authoring and task-control entry.
+          - Harness provides the audited SQLite-backed tool boundary and deterministic Playwright execution.
+          - Midscene is model-backed and risk-routed; formal schedules execute only validated Playwright scripts.
+          - 衡准 UI implementation is excluded.
+      - id: HZ-OBSERVABILITY-001
+        title: Hengzhun read-only observability implementation
+        status: BLOCKED
+        owner: 傅钧烨
+        dependsOn: [COZE-HARNESS-CORE-001]
+        allowedPaths: [platform/**, apps/**, contracts/**, tests/**, docs/**, agent/**]
+        acceptance:
+          - Deferred by project-owner decision; no implementation work is authorized until explicitly resumed.
 
   - id: FRONTEND-TRANSFER-SLICE
     name: five-page-transfer-vertical-slice

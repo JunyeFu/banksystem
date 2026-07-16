@@ -106,6 +106,16 @@ def search(query: str, profile_name: str = "current", limit: int = 8) -> list[di
                 intent_boost *= 1.25
             if any(marker in query.lower() for marker in ("当前", "已实现", "运行", "代码")) and item["retrieval_domain"] == "current":
                 intent_boost *= 1.20
+            # A query that explicitly requests the task backlog must prefer the
+            # single authoritative task-status source over secondary evidence
+            # that merely cites the same work item identifiers.
+            if "backlog" in query.lower() and item["source"] == "agent/backlog.yaml":
+                intent_boost *= 1.65
+            # Implementation-order questions must resolve to the one declared
+            # authority instead of architecture or evidence documents that
+            # repeat individual sequencing terms.
+            if any(marker in query.lower() for marker in ("实施顺序", "implementation order")) and item["source"] == "agent/plans/active/v54-implementation-batches.md":
+                intent_boost *= 3.0
             score = raw * float(item.get("authority_weight", 0.5)) * status_weight * domain_boost * class_boost * intent_boost
             candidates.append({"score": round(score, 6), **item})
 

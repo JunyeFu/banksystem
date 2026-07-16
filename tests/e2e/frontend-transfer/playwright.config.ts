@@ -23,6 +23,7 @@ export default defineConfig({
     {
       command: 'npm.cmd run dev -- --host 127.0.0.1 --port 15173',
       cwd: '../../../apps/customer-portal',
+      env: { ...process.env, VITE_E2E_AUTH_BYPASS: 'true' },
       url: 'http://127.0.0.1:15173/portal/',
       reuseExistingServer: false,
       timeout: 120_000,
@@ -30,6 +31,7 @@ export default defineConfig({
     {
       command: 'npm.cmd run dev -- --host 127.0.0.1 --port 15174',
       cwd: '../../../apps/operations-console',
+      env: { ...process.env, VITE_E2E_AUTH_BYPASS: 'true' },
       url: 'http://127.0.0.1:15174/ops/',
       reuseExistingServer: false,
       timeout: 120_000,

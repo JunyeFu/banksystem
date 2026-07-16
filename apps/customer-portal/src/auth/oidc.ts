@@ -1,5 +1,5 @@
-const OIDC_ISSUER = 'http://127.0.0.1:18082/realms/bank-customer';
-const OIDC_CLIENT_ID = 'bank-customer-web';
+const OIDC_ISSUER = 'http://127.0.0.1:19000/realms/bank-customer';
+const OIDC_CLIENT_ID = 'customer-portal';
 const OIDC_REDIRECT_URI = `${window.location.origin}/portal/login/callback`;
 
 function randomString(size: number = 48): string {
@@ -42,6 +42,7 @@ export async function buildAuthRequest(): Promise<OidcAuthRequest> {
     state,
     code_challenge: challenge,
     code_challenge_method: 'S256',
+    ui_locales: 'zh-CN',
   });
   url.search = params.toString();
 
@@ -81,4 +82,39 @@ export async function exchangeCodeForToken(
   }
 
   throw new Error('OIDC token response missing access_token');
+}
+
+export async function exchangePasswordForToken(
+  username: string,
+  password: string,
+): Promise<string> {
+  const body = new URLSearchParams({
+    grant_type: 'password',
+    client_id: OIDC_CLIENT_ID,
+    username,
+    password,
+    scope: 'openid profile',
+  });
+
+  const res = await fetch(`${OIDC_ISSUER}/protocol/openid-connect/token`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+    body,
+  });
+
+  if (!res.ok) {
+    throw new Error('账号或密码不正确，或账号密码登录暂不可用。');
+  }
+
+  const data: unknown = await res.json();
+  if (
+    typeof data === 'object' &&
+    data !== null &&
+    'access_token' in data &&
+    typeof (data as Record<string, unknown>).access_token === 'string'
+  ) {
+    return (data as Record<string, unknown>).access_token as string;
+  }
+
+  throw new Error('身份服务未返回有效登录结果。');
 }

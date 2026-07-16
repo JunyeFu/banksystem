@@ -5,8 +5,10 @@ import type { ColumnsType } from 'antd/es/table';
 import type { Beneficiary } from '@localbank/bank-api-client';
 import { customerApi } from '@/api/client';
 import { PageContainer } from '@/components/PageContainer';
+import { useNavigate } from 'react-router-dom';
 
 export function Beneficiaries(): JSX.Element {
+  const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [open, setOpen] = useState(false);
   const [form] = Form.useForm<{ displayName: string; accountNumber: string }>();
@@ -21,7 +23,7 @@ export function Beneficiaries(): JSX.Element {
     { title: '账户号', dataIndex: 'maskedAccountNumber', key: 'account' },
     { title: '核验状态', key: 'verified', render: () => <Tag color="green">复兴银行已核验</Tag> },
     { title: '添加时间', dataIndex: 'createdAt', key: 'createdAt', render: (value: string) => value.slice(0, 10) },
-    { title: '操作', key: 'action', render: () => <Button type="link">发起转账</Button> },
+    { title: '操作', key: 'action', render: (_: unknown, item: Beneficiary) => <Button type="link" onClick={() => navigate(`/transfers/new?beneficiaryId=${encodeURIComponent(item.beneficiaryId)}`)} data-testid={`beneficiary-transfer-${item.beneficiaryId}`}>发起转账</Button> },
   ];
   return <PageContainer pageId="customer.beneficiaries" state="READY">
     <section className="customer-page experience-page" data-view-state={query.isLoading ? 'LOADING' : query.isError ? 'ERROR' : items.length ? 'NORMAL' : 'EMPTY'}>

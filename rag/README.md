@@ -1,6 +1,6 @@
 # 项目本地 RAG
 
-`rag/` 是检索工程，不是项目事实源。事实来自当前代码、测试、契约、运行证据和经过评审的 `docs/`。
+`rag/` 是开发期检索工程，不是项目事实源，也不是 Coze/HiAgent 运行时知识库。事实来自当前代码、测试、契约、运行证据和经过评审的 `docs/`；`documents/` 只提供正式文书目录与受控文本来源。
 
 ## 目录
 
@@ -11,6 +11,12 @@
 - `eval/reports/`：验证报告，机器生成、默认不提交。
 - `index/`：本地索引，机器生成、默认不提交。
 
+## 来源边界
+
+- 纳入：`docs/`、`documents/` 中的受控文本、契约、源码、测试、Agent 控制文件和已导入的外部参考文本。
+- 排除：`deliverables/` 中的 DOCX/PDF、`.data/`、密钥、凭据、日志、运行结果、浏览器状态、缓存与二进制原件。
+- 唯一开发顺序始终是 [`../agent/plans/active/v54-implementation-batches.md`](../agent/plans/active/v54-implementation-batches.md)；检索排名或其他文档不得改变顺序。
+
 ## 使用
 
 先按 [Python 与 uv 开发工具链](../docs/operations/development-environment/python-toolchain.md) 完成 `uv sync --locked`，再通过项目锁定环境执行脚本：
@@ -20,9 +26,9 @@ uv run python scripts/rag/build_rag.py
 uv run python scripts/rag/validate_rag.py
 uv run python scripts/rag/query_rag.py --profile current "Fineract 账务唯一事实源"
 uv run python scripts/rag/query_rag.py --profile frontend "转账页面接口和状态"
-uv run python scripts/rag/query_rag.py --profile reference "HiAgent 历史参考"
+uv run python scripts/rag/query_rag.py --profile reference "外部技术参考"
 ```
 
-默认 `current` 不检索历史方案和第三方资料。查询命中后必须根据返回的源路径与 SHA-256 回到原文件核验。
+默认 `current` 不检索第三方资料。查询命中后必须根据返回的源路径与 SHA-256 回到原文件核验。
 
 治理规则见 [Docs 与 RAG 协作规范](../docs/workflows/rag-governance.md)。

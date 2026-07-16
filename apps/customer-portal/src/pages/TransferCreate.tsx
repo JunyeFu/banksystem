@@ -25,9 +25,11 @@ export function TransferCreate(): JSX.Element {
   const beneficiary = beneficiaries.data?.items.find((item) => item.beneficiaryId === beneficiaryId);
   useEffect(() => {
     const requestedSource = searchParams.get('sourceAccountId');
+    const requestedBeneficiary = searchParams.get('beneficiaryId');
     if (!sourceId && requestedSource && accounts.data?.items.some((item) => item.accountId === requestedSource)) setValue('sourceAccountId', requestedSource);
     else if (!sourceId && accounts.data?.items.length === 1 && accounts.data.items[0]) setValue('sourceAccountId', accounts.data.items[0].accountId);
-    if (!beneficiaryId && beneficiaries.data?.items.length === 1 && beneficiaries.data.items[0]) setValue('beneficiaryId', beneficiaries.data.items[0].beneficiaryId);
+    if (!beneficiaryId && requestedBeneficiary && beneficiaries.data?.items.some((item) => item.beneficiaryId === requestedBeneficiary)) setValue('beneficiaryId', requestedBeneficiary);
+    else if (!beneficiaryId && beneficiaries.data?.items.length === 1 && beneficiaries.data.items[0]) setValue('beneficiaryId', beneficiaries.data.items[0].beneficiaryId);
   }, [accounts.data, beneficiaries.data, beneficiaryId, searchParams, setValue, sourceId]);
   const mutation = useMutation({
     mutationFn: (value: FormData) => customerApi.createTransfer({ sourceAccountId: value.sourceAccountId, beneficiaryId: value.beneficiaryId, amount: value.amount.toFixed(2), currency: account?.currency ?? 'CNY', reference: value.reference || undefined }, idempotencyKey),

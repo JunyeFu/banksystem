@@ -21,7 +21,7 @@ MIN_MRR = 0.90
 def main() -> None:
     manifest = json.loads((INDEX / "manifest.json").read_text(encoding="utf-8"))
     sources = [json.loads(line) for line in (INDEX / "sources.jsonl").read_text(encoding="utf-8").splitlines() if line]
-    banned_parts = {".env", "secrets", "data", "logs", "runs", "deliverables", "knowledge-sources/raw"}
+    banned_parts = {".env", "secrets", "data", ".data", "logs", "runs", "deliverables", "knowledge-sources/raw"}
     hygiene_errors = []
     for item in sources:
         source = item["source"]

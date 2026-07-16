@@ -13,7 +13,7 @@ owner: project-owner
 # Rollback principles
 
 Scope: banking-core Track within the v5.4 external-demo product.
-The v5.4 regression-platform rollback rules are defined in `docs/archive/architecture/v5.4-reference/` and must not weaken these banking invariants.
+The v5.4 regression-platform rollback boundary is defined by the current [Coze/Harness responsibility baseline](overview/coze-harness-midscene-observability-boundary.md) and must not weaken these banking invariants.
 Frozen: 2026-07-11 as part of S0 baseline governance.
 
 ## Stage-level rollback

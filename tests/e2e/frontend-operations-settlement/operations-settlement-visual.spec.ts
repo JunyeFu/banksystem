@@ -25,3 +25,12 @@ for (const [index, state] of eodStates.entries()) for (const collapsed of [false
   const pv = `PV-${String(154 + index + (collapsed ? 5 : 0)).padStart(4, '0')}`;
   test(`${pv} eod ${state}`, async ({ page }) => { await freeze(page); await page.route('**/api/operations/v1/eod/latest', route => json(route, state === 'EMPTY' ? { status: 'NOT_STARTED' } : { ...eodBase, status: state === 'TRIGGER_CONFIRM_DIALOG' ? 'COMPLETED' : state, reason: state === 'FAILED' ? '清算批次仍有未决交易。' : null, completedAt: state === 'RUNNING' ? null : eodBase.completedAt })); await page.route('**/api/operations/v1/eod/run', async route => { await new Promise<void>(resolve => setTimeout(resolve, 5000)); return json(route, eodBase); }); await open(page, 'eod', collapsed); if (state === 'TRIGGER_CONFIRM_DIALOG') await page.getByTestId('eod-open-confirm').click(); await expect(page.locator('[data-view-state]')).toHaveAttribute('data-view-state', state); await shot(page, pv); });
 }
+
+test('EOD state read failure fails closed', async ({ page }) => {
+  await freeze(page);
+  await page.route('**/api/operations/v1/eod/latest', route => json(route, { title: '状态读取失败' }, 503));
+  await open(page, 'eod', false);
+  await expect(page.getByText('日终状态加载失败')).toBeVisible();
+  await expect(page.getByText('未获得权威日终状态，已禁止启动处理。')).toBeVisible();
+  await expect(page.getByTestId('eod-open-confirm')).toBeDisabled();
+});

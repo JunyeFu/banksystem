@@ -15,7 +15,7 @@ paths:
       summary: Get current customer
       responses:
         '200':
-          description: Current linked customer
+          description: Current authenticated identity profile
           content:
             application/json:
               schema: { $ref: '#/components/schemas/Customer' }
@@ -37,6 +37,10 @@ paths:
                     type: array
                     items: { $ref: '#/components/schemas/AccountSummary' }
         '401': { $ref: '#/components/responses/Unauthorized' }
+        '404':
+          description: Authenticated identity is not linked to a core banking customer
+          content:
+            application/problem+json: { schema: { $ref: '#/components/schemas/Problem' } }
   /accounts/{accountId}:
     parameters:
       - $ref: '#/components/parameters/AccountId'
@@ -86,6 +90,10 @@ paths:
           content:
             application/json: { schema: { $ref: '#/components/schemas/LoanPage' } }
         '401': { $ref: '#/components/responses/Unauthorized' }
+        '404':
+          description: Authenticated identity is not linked to a core banking customer
+          content:
+            application/problem+json: { schema: { $ref: '#/components/schemas/Problem' } }
   /loans/{loanId}:
     parameters:
       - name: loanId

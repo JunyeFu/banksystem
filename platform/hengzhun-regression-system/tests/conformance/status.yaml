@@ -1,0 +1,18 @@
+schemaVersion: 1
+sourceRegister: docs/current-state/coze-hiagent-verification-register.md
+defaultStatus: NOT_RUN
+items:
+  - {id: PLAT-V001, status: FAIL}
+  - {id: PLAT-V002, status: PARTIALLY_VERIFIED}
+  - {id: PLAT-V003, status: PARTIALLY_VERIFIED}
+  - {id: PLAT-V004, status: NOT_RUN}
+  - {id: PLAT-V005, status: NOT_RUN}
+  - {id: PLAT-V006, status: BLOCKED}
+  - {id: PLAT-V007, status: NOT_RUN}
+  - {id: PLAT-V008, status: NOT_RUN}
+  - {id: PLAT-V009, status: RUNTIME_VERIFIED}
+  - {id: PLAT-V010, status: NOT_RUN}
+  - {id: PLAT-V011, status: NOT_RUN}
+  - {id: PLAT-V012, status: NOT_RUN}
+  - {id: PLAT-V013, status: PARTIALLY_VERIFIED}
+  - {id: PLAT-V014, status: NOT_RUN}

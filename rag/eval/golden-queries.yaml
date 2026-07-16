@@ -6,7 +6,7 @@
     {"id":"GQ-003","query":"资金操作幂等 状态机 outbox 审计 对账","profile":"current","expected_sources":["docs/architecture/adr/adr-004-deterministic-money-ops.md"]},
     {"id":"GQ-004","query":"可测试性是一等架构能力 Test Support API","profile":"current","expected_sources":["docs/architecture/adr/adr-005-testability-first-class.md"]},
     {"id":"GQ-005","query":"模块化单体架构决定","profile":"current","expected_sources":["docs/architecture/adr/adr-002-modular-monolith.md"]},
-    {"id":"GQ-006","query":"当前项目能力矩阵 已实现 规划 部分实现","profile":"current","expected_sources":["docs/current-state/capability-matrix.md"],"forbidden_prefixes":["docs/archive/"]},
+    {"id":"GQ-006","query":"当前项目能力矩阵 已实现 规划 部分实现","profile":"current","expected_sources":["docs/current-state/capability-matrix.md"],"forbidden_prefixes":[]},
     {"id":"GQ-007","query":"日终失败不得推进业务日期 回滚原则","profile":"current","expected_sources":["docs/architecture/rollback-principles.md"]},
     {"id":"GQ-008","query":"V5.4 Codex GPT 本机演示系统 内网迁移基线","profile":"current","expected_sources":["docs/architecture/v5.4-external-demo-baseline.md"]},
     {"id":"GQ-009","query":"银行转账业务状态机 PENDING CLEARING SETTLED","profile":"current","expected_sources":["docs/architecture/state-machines/banking-state-machines.md"]},
@@ -47,16 +47,18 @@
 
     {"id":"GQ-040","query":"银行项目文书链 立项 需求 设计 测试 验收","profile":"reference","expected_sources":["docs/research/bank-project-document-chain/00-index.md"]},
     {"id":"GQ-041","query":"大型银行 UI 调研 信息架构 视觉秩序","profile":"reference","expected_sources":["docs/research/large-bank-ui-research.md"]},
-    {"id":"GQ-042","query":"V5.4 决策登记册 Codex GPT 作者控制","profile":"planning","expected_sources":["docs/architecture/decision-log/v54-decision-register.md"]},
-    {"id":"GQ-043","query":"B0 平台基线 品牌映射 B1 Case Baseline","profile":"planning","expected_sources":["agent/plans/active/v54-implementation-batches.md"]},
-    {"id":"GQ-044","query":"当前 backlog GOV-001 B0 READY B7","profile":"planning","expected_sources":["agent/backlog.yaml"]},
+    {"id":"GQ-042","query":"V5.4 决策登记册 Coze Harness SQLite 衡准暂缓","profile":"planning","expected_sources":["docs/architecture/decision-log/v54-decision-register.md"]},
+    {"id":"GQ-043","query":"Coze Harness 回归核心实施顺序 前端缺陷 namespace runId","profile":"planning","expected_sources":["agent/plans/active/v54-implementation-batches.md"]},
+    {"id":"GQ-044","query":"当前 backlog FE-DEFECT-001 COZE-HARNESS-CORE-001 HZ-OBSERVABILITY-001","profile":"planning","expected_sources":["agent/backlog.yaml"]},
     {"id":"GQ-045","query":"单人项目逻辑责任域 ownership frontend backend contract","profile":"implementation","expected_sources":["agent/ownership.yaml"]},
 
     {"id":"GQ-046","query":"仓库规则 Fineract BigDecimal Liquibase secrets verification","profile":"current","expected_sources":["AGENTS.md"]},
     {"id":"GQ-047","query":"前端规则 React TypeScript Ant Design data-testid","profile":"frontend","expected_sources":["apps/AGENTS.md"]},
     {"id":"GQ-048","query":"后端服务规则 Java21 BigDecimal FineractAdapter","profile":"implementation","expected_sources":["services/AGENTS.md"]},
     {"id":"GQ-049","query":"契约规则 OpenAPI operationId Problem Details breaking change","profile":"implementation","expected_sources":["contracts/AGENTS.md"]},
-    {"id":"GQ-050","query":"测试证据规则 BrowserContext Storage State visual baseline","profile":"implementation","expected_sources":["tests/AGENTS.md"]},
-    {"id":"GQ-051","query":"客户转账列表 新建转账 转账结果 支付监控 支付详情 五页面 双向调整 beneficiaryId","profile":"frontend","expected_sources":["docs/design/frontend/transfer-five-page-bidirectional-adjustment.md"]}
+    {"id":"GQ-050","query":"Test and Evidence Rules synthetic redacted data evidence directory accounting reconciliation assertions","profile":"implementation","expected_sources":["tests/AGENTS.md"]},
+    {"id":"GQ-051","query":"客户转账列表 新建转账 转账结果 支付监控 支付详情 五页面 双向调整 beneficiaryId","profile":"frontend","expected_sources":["docs/design/frontend/transfer-five-page-bidirectional-adjustment.md"]},
+    {"id":"GQ-052","query":"IMPLEMENTATION_ORDER_AUTHORITY v54-implementation-batches 当前第一开发步骤 I1","profile":"planning","expected_sources":["agent/plans/active/v54-implementation-batches.md"]},
+    {"id":"GQ-053","query":"正式项目文书 立项 需求 设计 测试 发布 验收 交接 生成边界","profile":"current","expected_sources":["documents/README.md"]}
   ]
 }

@@ -2,6 +2,7 @@ import { useQuery } from '@tanstack/react-query';
 import { Button, Card, Progress, Skeleton, Table, Tag } from 'antd';
 import type { OperationsDashboard } from '@localbank/bank-api-client';
 import { operationsApi } from '@/api/client';
+import { useNavigate } from 'react-router-dom';
 
 const tasks = [
   { key: '1', type: '支付', item: '大额转账人工复核', owner: '支付监控', priority: '高', time: '09:42', status: '待处理' },
@@ -33,6 +34,7 @@ function LoadingDashboard(): JSX.Element {
 }
 
 export function Dashboard(): JSX.Element {
+  const navigate = useNavigate();
   const query = useDashboardSummary();
   const state = query.isLoading ? 'LOADING' : query.isError ? 'ERROR' : 'READY';
   const data = query.data;
@@ -60,12 +62,12 @@ export function Dashboard(): JSX.Element {
         <Progress percent={data.successRate} strokeColor="#d71920" showInfo={false} /><small>交易成功率</small>
       </Card>
 
-      <Card className="ops-dashboard-panel ops-dashboard-panel--full" title="待处理事项" extra={<Button type="link">查看全部　›</Button>}>
+      <Card className="ops-dashboard-panel ops-dashboard-panel--full" title="待处理事项" extra={<Button type="link" onClick={() => navigate('/approvals')} data-testid="dashboard-view-all-tasks">查看全部　›</Button>}>
         <Table pagination={false} size="small" dataSource={tasks} columns={[
           { title: '类型', dataIndex: 'type' }, { title: '事项', dataIndex: 'item' }, { title: '发起方', dataIndex: 'owner' },
           { title: '优先级', dataIndex: 'priority', render: (value: string) => <Tag color={value === '高' ? 'red' : 'orange'}>{value}</Tag> },
           { title: '创建时间', dataIndex: 'time' }, { title: '状态', dataIndex: 'status', render: (value: string) => <Tag color={value === '处理中' ? 'blue' : 'orange'}>{value}</Tag> },
-          { title: '操作', render: () => <Button type="link">处理</Button> },
+          { title: '操作', render: () => <Button type="link" onClick={() => navigate('/approvals')}>处理</Button> },
         ]} />
       </Card>
     </div> : null}

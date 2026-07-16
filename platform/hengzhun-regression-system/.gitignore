@@ -1,0 +1,16 @@
+# Runtime data and evidence are machine-local and may contain sensitive context.
+.data/
+
+# Portable runtime binaries and installed dependencies are reproducible local assets.
+runtime/node-v20.20.2-win-x64/
+runtime/browsers/
+runtime/node_modules/
+
+# Generated Coze/HiAgent packages and reports are validated before separate publication.
+coze/dist/
+tests/results/
+*.log
+
+# Generated public-platform packages and machine-local vendor sources.
+coze/packages/*.skill
+coze/packages/*.zip

@@ -1,0 +1,11 @@
+{
+  "schemaVersion": 1,
+  "id": "PLAT-V001",
+  "platform": { "name": "Coze Studio", "version": "0.5.1" },
+  "testedAt": "2026-07-16T18:08:20+08:00",
+  "conclusion": "FAIL",
+  "artifactSha256": "8ddff7ab5485ff5aaeb86418afbb7c7a9e83f703480aae6c0ff207da8264ee80",
+  "evidenceSha256": ["8e3ed56519fccedf0166f0733371f6963b9d0aa9fae1f66ab5784c8da3821f7c"],
+  "finding": "当前公开界面没有可完成同结构 Skill 包上传、解析与发布的入口，因此同一制品可直接迁移的主张未通过。",
+  "impact": "保留同源 Skill 源码和 HiAgent 包；Coze 侧只能使用其公开支持的 Agent、Workflow、Knowledge Base 与 Plugin 制品。"
+}

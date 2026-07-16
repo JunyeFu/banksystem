@@ -1,0 +1,39 @@
+name: hengzhun-regression-system
+
+# I1 exposes only synthetic, side-effect-free conformance endpoints. The real
+# Harness domain kernel is implemented in I2. No banking network or host port is
+# attached here.
+services:
+  hengzhun-conformance:
+    build:
+      context: .
+      dockerfile: harness/conformance/Dockerfile
+    image: hengzhun/conformance:i1-local
+    container_name: hengzhun-conformance
+    restart: unless-stopped
+    env_file:
+      - .data/runtime.env
+    environment:
+      HOST: 0.0.0.0
+      PORT: "18787"
+      RESPONSE_BUDGET_BYTES: "4096"
+    read_only: true
+    tmpfs:
+      - /tmp:size=16m,noexec,nosuid,nodev
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:18787/health').then(r=>{if(!r.ok)process.exit(1)}).catch(()=>process.exit(1))"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+      start_period: 5s
+    networks:
+      - hengzhun-control
+
+networks:
+  hengzhun-control:
+    name: hengzhun-control
+    internal: true

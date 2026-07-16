@@ -5,19 +5,19 @@ document_type: reference
 domain: current-state
 status: verified
 authority: evidence
-version: 1.0
-effective_date: 2026-07-15
+version: 1.4
+effective_date: 2026-07-16
 owner: project-owner
 ---
 
 # Current capability matrix
 
-> This matrix describes the current banking-core evidence. It is not a completion claim for the v5.4 regression platform. The combined external-demo target and migration boundary are defined in [`../architecture/v5.4-external-demo-baseline.md`](../architecture/v5.4-external-demo-baseline.md).
+> This matrix describes banking-core implementation and accepted evidence, not automatic readiness of every newly created identity. A Keycloak user becomes a usable banking customer only after an explicit `customer_identity` link to a Fineract client exists. Historical synthetic-user E2E evidence does not prove that an independently created demo user is linked. It is not a completion claim for the v5.4 regression platform. The combined external-demo target and migration boundary are defined in [`../architecture/v5.4-external-demo-baseline.md`](../architecture/v5.4-external-demo-baseline.md).
 
 | Capability | Implemented | Runtime evidence | Status |
 |---|---:|---|---|
 | Phase 0 baseline and backup | Yes | Hash, OpenAPI parse, restore drill | VERIFIED |
-| Customer login and account query | Yes | Authorized profile/account E2E, Gateway-only Customer Web, API 401 without token, foreign account HTTP 404 | VERIFIED |
+| Customer login and account query | Yes | Portal username/password form, customer Realm/Client and a temporary synthetic-user graphical smoke are proven; persistent demo credentials still need user-entered browser acceptance, explicit Fineract identity linking and restart re-verification. Phone-number login and session renewal are not yet verified | PARTIALLY_VERIFIED |
 | Beneficiary tokenization | Yes | Authorized customer create/list returned masked `****7890`; temporary data removed | VERIFIED |
 | Notifications | Yes | Customer transfer produced one subject-scoped `TRANSFER_SETTLED` notification | VERIFIED |
 | Transfer receipts/statements | Yes | Repeatable customer E2E verifies JSON/PDF receipts, 64-digit SHA-256, CSV/PDF statements, balance equation, and identical statement replay | VERIFIED |
@@ -34,16 +34,22 @@ owner: project-owner
 | EOD/reconciliation orchestration | Yes | Authorized EOD plus all three reconciliation types returned MATCHED with zero differences and balanced debit/credit totals | VERIFIED |
 | Cashier/freeze/close/maturity operations | Partial | Authorized cashier read, block/unblock, business-date move/restore, one-period maturity schedule, post-maturity close, and premature-close HTTP 409 passed | PARTIALLY_VERIFIED |
 | Final full regression | Partial | Repeatable smoke regression and backup drills pass; E2E-001 to E2E-014 are not all automated/executed | PARTIALLY_VERIFIED |
+| Local identity-data readiness | Partial | Keycloak persistence and default `CUSTOMER` role are configured; each persistent demo customer still requires enabled/no-required-action checks, a unique Fineract client link and credential-private graphical acceptance | PARTIALLY_VERIFIED |
+
+Customer graphical password-login qualification and its local-demo/production boundary are detailed in [`../evidence/frontend/customer-password-login-gap-2026-07-16.md`](../evidence/frontend/customer-password-login-gap-2026-07-16.md).
 
 ## v5.4 regression-platform target status
 
 | Capability | Current status | Evidence/qualification |
 |---|---|---|
+| Dedicated Node/Playwright/Midscene runtime | VERIFIED | `platform/hengzhun-regression-system/runtime` now contains the product-local verified copy of Node 20.20.2, Playwright/Test/Core 1.59.1, Midscene Web/CLI 1.10.5, Chromium revision 1217 and FFmpeg revision 1011; legacy `platform/runtime` is retained temporarily as rollback source |
+| Hengzhun single-directory product skeleton | PARTIALLY_VERIFIED | Product root, module boundaries, `.data` isolation, structure verifier, fixed-runtime verifier and compatibility-test registry pass; Harness, Worker, OpenAPI and Coze public-interface registration remain unimplemented or not run |
 | RegressionCase, Fixture, Baseline and human-success evidence | PARTIAL / PLANNED | Existing contracts and test assets exist; v5.4 full workflow is not yet implemented end to end |
-| RAG template/rule retrieval | PARTIAL | Project RAG exists with sharded index; v5.4 ActionListTemplateCatalog governance is a target |
-| Codex/GPT authoring adapter | PLANNED | Codex/GPT boundary and required interfaces are documented; no runtime adapter has been implemented |
-| Midscene atomic action plus Playwright fact collection | POC / PARTIAL | Local v5.4 references and PoC evidence exist; full integration with this repo is not complete |
+| Repository development RAG | PARTIAL | Project RAG exists for development, audit and Codex maintenance only; it is not a delivered runtime knowledge source |
+| Coze runtime knowledge base | PLANNED | Coze Knowledge Base is the confirmed sole runtime authority; its ingestion, versioning, retrieval and audit integration are not implemented in this repository |
+| Coze Agent orchestration plus Harness tools | PLANNED | Latest responsibility boundary is documented; no complete Coze-to-Harness runtime chain has been implemented |
+| Midscene visual Agent plus Playwright fact collection | POC / PARTIAL | Dedicated-runtime MiMo v2.5 page understanding, assertion and visual location pass, with 0.9606 IoU against the Playwright DOM box; Harness three-action-window integration and repeatability qualification are not complete |
 | Independent Playwright script validation | PLANNED | Required by v5.4; current final regression is not equivalent |
 | Scheduled regression and automatic failure pause | PLANNED | Banking EOD/recovery exists; v5.4 script Schedule/FailureIncident loop is separate |
 | Reverse recovery with exactly two options | PLANNED | v5.4 target; not claimed as implemented in the current banking services |
-| Hengzhun quality platform frontend | IMPLEMENTED / BACKEND PENDING | Nine contract-backed routes, generated OpenAPI types, 15 Playwright visual/interaction checks and nine multimodal-reviewed baselines; browser fixtures are not backend completion evidence |
+| Hengzhun observability frontend | DEFERRED | Legacy UI assets and browser fixtures exist but are outside the approved read-only boundary; they are not current capability evidence and must not be extended until `HZ-OBSERVABILITY-001` is resumed |

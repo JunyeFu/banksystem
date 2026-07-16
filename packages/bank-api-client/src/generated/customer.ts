@@ -624,7 +624,7 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
-            /** @description Current linked customer */
+            /** @description Current authenticated identity profile */
             200: {
                 headers: {
                     [name: string]: unknown;
@@ -657,6 +657,15 @@ export interface operations {
                 };
             };
             401: components["responses"]["Unauthorized"];
+            /** @description Authenticated identity is not linked to a core banking customer */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
         };
     };
     getAccount: {
@@ -748,6 +757,15 @@ export interface operations {
                 };
             };
             401: components["responses"]["Unauthorized"];
+            /** @description Authenticated identity is not linked to a core banking customer */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
         };
     };
     getLoan: {

@@ -30,7 +30,9 @@ services:
     ports:
       - "127.0.0.1:19000:8080"
     volumes:
+      - keycloak_data:/opt/keycloak/data
       - ./infra/keycloak/realms:/opt/keycloak/data/import:ro
+      - ./infra/keycloak/themes:/opt/keycloak/themes:ro
     networks:
       - bank-channel-front
       - bank-channel-net
@@ -210,6 +212,7 @@ networks:
 
 volumes:
   bank_channel_pg_data: {}
+  keycloak_data: {}
   prometheus_data: {}
   grafana_data: {}
   loki_data: {}

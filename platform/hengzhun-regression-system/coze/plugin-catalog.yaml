@@ -1,0 +1,13 @@
+schemaVersion: 1
+pluginName: 衡准回归 Harness
+registration: PUBLIC_UI_OPENAPI_IMPORT
+authentication: BEARER_TOKEN
+status: SPECIFIED_NOT_IMPORTED
+tools:
+  - case_create_draft
+  - case_get
+  - plan_compile
+  - run_submit
+  - task_get
+  - artifact_get_metadata
+  - decision_submit

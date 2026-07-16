@@ -1,0 +1,38 @@
+schemaVersion: 1
+platform:
+  product: Coze Studio
+  version: 0.5.1
+  sourceRevision: 72cecff858a5a18662c5d9d1a4764c53ebc98317
+  url: http://127.0.0.1:8888
+  registration: public_ui_only
+constraints:
+  - 禁止数据库直写、私有管理 API、容器挂载发布和代码绕过。
+  - 本清单只描述公开界面操作；本地文件存在不等于平台已安装或发布。
+  - 运行时知识只进入 Coze Knowledge Base，不从仓库 docs 或 rag 回退。
+model:
+  name: 衡准 I1 机械链路模型
+  purpose: 仅验证模型连接、Agent 和 Workflow 机械链路
+  productionInference: false
+  expectedPing: I1_CONFORMANCE_PING
+  expectedPong: I1_CONFORMANCE_PONG
+knowledgeBase:
+  name: 衡准-I1-合成知识库
+  source: knowledge/i1-synthetic-knowledge.md
+  expectedQuestion: I1 的运行时知识权威是什么？
+  expectedAnswerContains: Coze Knowledge Base
+agent:
+  name: 衡准-I1-一致性代理
+  promptSource: agents/i1-conformance-agent.md
+  requiredModel: 衡准 I1 机械链路模型
+  requiredKnowledgeBase: 衡准-I1-合成知识库
+workflow:
+  name: 衡准-I1-最小工作流
+  source: workflows/i1-minimal-workflow.yaml
+plugin:
+  name: 衡准-I1-一致性插件
+  openapi: ../contracts/openapi/i1-conformance.yaml
+  auth: bearer
+skill:
+  packageSource: skills/i1-conformance-skill
+  generatedPackage: packages/hengzhun-i1-conformance.skill
+  publicUploadRequired: true

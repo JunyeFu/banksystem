@@ -1,8 +1,22 @@
+---
+id: HIAGENT-251-CA7943CA150477D4
+title: "SSO"
+document_type: external-reference
+domain: hiagent
+status: reference
+authority: external
+version: 2.5.1
+effective_date: 2026-07-16
+source_file: "2.5.1帮助文档/常见问题/使用咨询/SSO.docx"
+source_sha256: ca7943ca150477d444b70e48734273900223a4632c715022262cd7bfe5a156b9
+extraction_method: docx
+---
+
 # SSO
 
-> 迁移来源：`raw/SSO.docx`
+> 外部参考资料：HiAgent 2.5.1 帮助文档。仅供项目开发阶段检索，不得覆盖本项目当前架构、契约、代码、测试或运行证据；不得作为交付系统运行时知识来源。
 
-> 原文含 25 个内嵌图像；完整原件保存在 `raw/`，图像不作 OCR 推断。
+## 提取正文
 
 SSO
 
@@ -102,12 +116,18 @@ TokenUri：参考上面的获取填写
 
 ## 表格 1
 
-- 行 1: Shell { "code": 0, "msg": "success", "data": { #用户中文姓名 "name": "zhangsan", #用户英文姓名 "en_name": "zhangsan", #用户头像的完整 URL 地址 "avatar_url": "www.feishu.cn/avatar/icon", #用户头像缩略图的 URL 地址 "avatar_thumb": "www.feishu.cn/avatar/icon_thumb", #用户头像中等尺寸图片的 URL 地址 "avatar_middle": "www.feishu.cn/avatar/icon_middle", #用户头像大尺寸图片的 URL 地址 "avatar_big": "www.feishu.cn/avatar/icon_big", #飞书开放平台为用户生成的唯一标识，在同一个应用内，每个用户的 open_id 是唯一的。它用于在应用中识别用户，确保用户身份的唯一性 "open_id": "ou-caecc734c2e3328a62489fe0648c4b98779515d3", #在飞书开放平台体系下，union_id是跨应用的用户唯一标识。对于同一个用户，在不同的应用中其 union_id是相同的，方便进行用户身份的统一管理和关联 "union_id": "on-d89jhsdhjsajkda7828enjdj328ydhhw3u43yjhdj", #用户的飞书邮箱地址 "email": "zhangsan@feishu.cn", #用户的企业邮箱地址 "enterprise_email": "demo@mail.com", #飞书系统内部为用户分配的唯一标识 "user_id": "5d9bdxxx", #用户的手机号码 "mobile": "+86130002883xx", #用户所属企业的唯一标识 "tenant_key": "736xxx75d", #用户的员工编号 "employee_no": "111222333" } }
+| Shell { "code": 0, "msg": "success", "data": { #用户中文姓名 "name": "zhangsan", #用户英文姓名 "en_name": "zhangsan", #用户头像的完整 URL 地址 "avatar_url": "www.feishu.cn/avatar/icon", #用户头像缩略图的 URL 地址 "avatar_thumb": "www.feishu.cn/avatar/icon_thumb", #用户头像中等尺寸图片的 URL 地址 "avatar_middle": "www.feishu.cn/avatar/icon_middle", #用户头像大尺寸图片的 URL 地址 "avatar_big": "www.feishu.cn/avatar/icon_big", #飞书开放平台为用户生成的唯一标识，在同一个应用内，每个用户的 open_id 是唯一的。它用于在应用中识别用户，确保用户身份的唯一性 "open_id": "ou-caecc734c2e3328a62489fe0648c4b98779515d3", #在飞书开放平台体系下，union_id是跨应用的用户唯一标识。对于同一个用户，在不同的应用中其 union_id是相同的，方便进行用户身份的统一管理和关联 "union_id": "on-d89jhsdhjsajkda7828enjdj328ydhhw3u43yjhdj", #用户的飞书邮箱地址 "email": "zhangsan@feishu.cn", #用户的企业邮箱地址 "enterprise_email": "demo@mail.com", #飞书系统内部为用户分配的唯一标识 "user_id": "5d9bdxxx", #用户的手机号码 "mobile": "+86130002883xx", #用户所属企业的唯一标识 "tenant_key": "736xxx75d", #用户的员工编号 "employee_no": "111222333" } } |
+
+| --- |
 
 ## 表格 2
 
-- 行 1: Shell volcWeb: llmops: #强制SSO登陆功能，控制页面是否强制跳转SSO页面; #设置为true时，前置需要设置useSSO为true,tenantMode为single isForceSSO: false # 全局开启SSO，如果用户端需要用sso，则需要为true useSSO: "true" # 'single' \| 'multiple', 用户端登录方式：单租户、多租户 tenantMode: "multiple" # 打开llmops-base模块开关，其余模块设置为 false modules: - name: llmops-base version: v1.3.0 enable: true
+| Shell volcWeb: llmops: #强制SSO登陆功能，控制页面是否强制跳转SSO页面; #设置为true时，前置需要设置useSSO为true,tenantMode为single isForceSSO: false # 全局开启SSO，如果用户端需要用sso，则需要为true useSSO: "true" # 'single' \| 'multiple', 用户端登录方式：单租户、多租户 tenantMode: "multiple" # 打开llmops-base模块开关，其余模块设置为 false modules: - name: llmops-base version: v1.3.0 enable: true |
+
+| --- |
 
 ## 表格 3
 
-- 行 1: Bash /vecps/cadm product install --config-file /vecps/configs.yaml --kubeconfig /root/.kube/config
+| Bash /vecps/cadm product install --config-file /vecps/configs.yaml --kubeconfig /root/.kube/config |
+
+| --- |

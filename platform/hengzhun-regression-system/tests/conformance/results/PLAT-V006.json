@@ -1,0 +1,10 @@
+{
+  "schemaVersion": 1,
+  "id": "PLAT-V006",
+  "platform": { "name": "Coze Studio", "version": "0.5.1" },
+  "testedAt": "2026-07-16T18:08:20+08:00",
+  "conclusion": "BLOCKED",
+  "evidenceSha256": ["8e3ed56519fccedf0166f0733371f6963b9d0aa9fae1f66ab5784c8da3821f7c"],
+  "finding": "本地合成服务已提供 1、30、60、120 秒延迟档，但公开界面的 Plugin 导入路径未建立，无法得到 Coze Plugin 或 HTTP 节点的真实同步中断窗口。",
+  "impact": "I2 继续采用立即返回任务标识的异步协议；在平台实测前不依赖长同步调用。"
+}

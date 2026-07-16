@@ -21,3 +21,5 @@ databaseChangeLog:
       file: db/changelog/v6-eod-idempotency.yaml
   - include:
       file: db/changelog/v7-operations-documents.yaml
+  - include:
+      file: db/changelog/v8-transfer-receipt-reference.yaml

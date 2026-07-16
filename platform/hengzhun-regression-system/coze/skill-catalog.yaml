@@ -1,0 +1,15 @@
+schemaVersion: 1
+registration: PUBLIC_UI_LOCAL_UPLOAD
+allowedPackages: [.skill, .zip]
+maxPackageBytes: 10485760
+statusMeaning: Local specification is not platform installation evidence.
+skills:
+  - id: natural-language-case-structuring
+    name: 自然语言回归需求结构化
+    status: SPECIFIED_NOT_PACKAGED
+  - id: execution-route-selection
+    name: 执行路线选择
+    status: SPECIFIED_NOT_PACKAGED
+  - id: regression-result-explanation
+    name: 回归结果解释
+    status: SPECIFIED_NOT_PACKAGED

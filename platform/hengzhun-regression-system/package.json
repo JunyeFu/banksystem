@@ -1,0 +1,21 @@
+{
+  "name": "hengzhun-regression-system",
+  "version": "0.1.0",
+  "private": true,
+  "description": "衡准自动化回归测试系统单目录产品根",
+  "engines": {
+    "node": "20.20.2"
+  },
+  "scripts": {
+    "verify": "verify.cmd",
+    "verify:structure": "runtime\\node-v20.20.2-win-x64\\node.exe scripts\\verify-structure.cjs",
+    "verify:runtime": "runtime\\verify-runtime.cmd",
+    "verify:i1-results": "runtime\\node-v20.20.2-win-x64\\node.exe scripts\\verify-i1-results.cjs",
+    "test:conformance": "runtime\\node-v20.20.2-win-x64\\node.exe --test tests\\conformance\\conformance-server.test.cjs",
+    "verify:i1": "powershell.exe -NoProfile -ExecutionPolicy Bypass -File scripts\\verify-i1.ps1",
+    "prepare:i1": "powershell.exe -NoProfile -ExecutionPolicy Bypass -File scripts\\prepare-i1.ps1",
+    "start:i1": "powershell.exe -NoProfile -ExecutionPolicy Bypass -File scripts\\start-i1.ps1",
+    "stop:i1": "powershell.exe -NoProfile -ExecutionPolicy Bypass -File scripts\\stop-i1.ps1",
+    "package:skills": "powershell.exe -NoProfile -ExecutionPolicy Bypass -File scripts\\package-skills.ps1"
+  }
+}

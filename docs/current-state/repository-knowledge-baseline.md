@@ -31,9 +31,11 @@ owner: project-owner
 - `agent/backlog.yaml` 成为唯一任务状态源。
 - 根与局部 `AGENTS.md` 只保存稳定工程规则，不写易过期完成度。
 
-## 保护说明
+## 清理说明
 
-重建保留了原前端输入包、确认表、外部资料和历史阶段方案；它们迁入 `docs/archive` 或 `knowledge-sources`，未作为当前实现事实使用。
+已清除被替代的历史阶段方案和旧前端确认记录。当前仓库只保留与银行前端修复、Coze/Harness 回归核心、运行证据和现行开发工作流有关的文档；外部资料仅保留仍具开发价值的来源。
+
+2026-07-16：HiAgent 2.5.1 帮助包已从原件提取为 `knowledge-sources/imported/hiagent-2.5.1/` 下的外部参考 Markdown，并以原件 SHA-256 清单、RAG 构建和检索验证确认完整。该资料仅供开发 RAG 检索，不能覆盖 Coze-only 当前架构，也不能成为交付系统运行时知识来源。
 
 ## 重建后验收
 
