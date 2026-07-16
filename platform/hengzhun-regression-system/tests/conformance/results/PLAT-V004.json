@@ -1,0 +1,11 @@
+{
+  "schemaVersion": 1,
+  "id": "PLAT-V004",
+  "platform": { "name": "Coze Studio", "version": "0.5.1" },
+  "testedAt": "2026-07-16T22:10:00+08:00",
+  "conclusion": "PARTIALLY_VERIFIED",
+  "artifactSha256": "25db3a642526bb621fca45260330ad6c43c794b56a813661aedd104df99984f7",
+  "evidenceSha256": ["aae646d348e56aee8c07ccf977a6da6a9f61bf41c3a7bae0c28a0ecc848bf547"],
+  "finding": "七个唯一工具的 OpenAPI 3.0.3 契约通过无副作用可导入性校验；当前公开资源库能显示插件类型，但资源创建菜单未进入插件创建表单，未执行真实导入、发布或调用。",
+  "impact": "I2 契约门禁关闭；I3 必须通过公开界面完成真实导入、发布和七工具逐项调用后才能完全关闭本项。"
+}

@@ -5,11 +5,11 @@ items:
   - {id: PLAT-V001, status: FAIL}
   - {id: PLAT-V002, status: PARTIALLY_VERIFIED}
   - {id: PLAT-V003, status: PARTIALLY_VERIFIED}
-  - {id: PLAT-V004, status: NOT_RUN}
-  - {id: PLAT-V005, status: NOT_RUN}
+  - {id: PLAT-V004, status: PARTIALLY_VERIFIED}
+  - {id: PLAT-V005, status: HARNESS_VERIFIED}
   - {id: PLAT-V006, status: BLOCKED}
   - {id: PLAT-V007, status: NOT_RUN}
-  - {id: PLAT-V008, status: NOT_RUN}
+  - {id: PLAT-V008, status: HARNESS_VERIFIED}
   - {id: PLAT-V009, status: RUNTIME_VERIFIED}
   - {id: PLAT-V010, status: NOT_RUN}
   - {id: PLAT-V011, status: NOT_RUN}

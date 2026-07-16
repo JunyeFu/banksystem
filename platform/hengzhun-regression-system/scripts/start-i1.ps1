@@ -10,7 +10,7 @@ $cozeEnv = Join-Path $vendorDocker '.env'
 
 & (Join-Path $PSScriptRoot 'prepare-i1.ps1') | Out-Null
 
-docker compose -f (Join-Path $root 'compose.yaml') up -d --build
+docker compose -f (Join-Path $root 'compose.yaml') up -d --build hengzhun-conformance
 if ($LASTEXITCODE -ne 0) { throw 'Failed to start the I1 conformance service.' }
 
 docker compose --env-file $cozeEnv -f $baseCompose -f $overrideCompose up -d

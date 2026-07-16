@@ -1,0 +1,12 @@
+.data
+runtime
+node_modules
+dist
+coze
+contracts
+tests
+scripts
+docs
+worker
+harness/conformance
+*.log

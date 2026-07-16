@@ -101,6 +101,18 @@ owner: project-owner
 
 因此，I1 机器基础已经可运行，但 I1 平台退出门禁仍未关闭。失败只阻塞 Skill 直接迁移、Plugin 参数实调和同步窗口测量；不得反向阻塞 I2 中不依赖 Coze 导入入口的 Harness、SQLite、Artifact 与安全内核开发。
 
-## 8. 来源边界
+## 8. 2026-07-16 I2 真实执行结论
+
+I2 已完成 TypeScript/Node Harness、唯一 `regression_platform.sqlite`、七工具 OpenAPI、安全鉴权、namespace/runId 隔离、幂等、不可变审计、Artifact/Evidence 元数据和分级输出预算。12 项 Node 测试、TypeScript 编译、生产依赖审计和 Docker 内部网络运行检查均通过；Harness 无宿主机端口。
+
+| ID | 当前状态 | 真实结论 | 可提交证据 |
+|---|---|---|---|
+| `PLAT-V004` | `PARTIALLY_VERIFIED` | 七工具 OpenAPI 通过无副作用可导入契约验证；Coze 公开资源库的创建菜单未进入插件表单，真实导入/发布/调用留到 I3 | `tests/conformance/results/PLAT-V004.json` |
+| `PLAT-V005` | `HARNESS_VERIFIED` | 有效、缺失、错误、已轮换令牌和无泄露分支通过；Coze 公开配置注入随 I3 复验 | `tests/conformance/results/PLAT-V005.json` |
+| `PLAT-V008` | `HARNESS_VERIFIED` | L0-L3 的 UTF-8 精确字节、分页和绝对上限通过；Coze 节点实测上限随 I3 复验 | `tests/conformance/results/PLAT-V008.json` |
+
+I2 Harness 侧退出门禁已关闭。平台侧剩余事实没有被改写为成功：`PLAT-V004` 全量关闭仍是 I3 的硬门禁。
+
+## 9. 来源边界
 
 本登记册的待验证主张来自用户提供的 Coze/HiAgent 调研材料，但该材料不作为权威证据入库。HiAgent 已有依据只引用仓库中的 2.5.1 本地帮助文档；Coze 数字限制、云端网络要求和产品行为在真实验证前一律保持 `PENDING`。

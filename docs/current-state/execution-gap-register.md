@@ -27,7 +27,7 @@ owner: project-owner
 | ID | 优先级 | 缺口 | 当前证据 | 完成判定 | 建议归属 |
 |---|---|---|---|---|---|
 | GAP-001 | P0 | 首批三个被测案例尚未全部形成案例级冻结证据 | `FE-DEFECT-001` 仍为 `IN_PROGRESS`，但平台基础不再等待其整体完成；只需为登录/个人资料、账户列表/详情、安全拒绝/恢复分别补齐页面、API、角色、Fixture 与定位器证据 | 三条首批案例逐条通过案例门禁；某案例未通过只阻塞该案例，不阻塞 Harness 基础或其他案例 | `FE-DEFECT-003`、`FE-DEFECT-005`、`COZE-HARNESS-CORE-001` |
-| GAP-002 | P0 | Coze/Harness 回归执行核心尚未形成纵向闭环 | `COZE-HARNESS-CORE-001` 为 `IN_PROGRESS`；I1 已完成单目录、固定运行时、Coze Studio 0.5.1、合成一致性服务、内部网络、最小 Agent、Knowledge Base 与 Workflow。当前 Coze 公开界面没有同结构 Skill 上传入口，Plugin/OpenAPI 创建入口未建立；I2 的正式 Harness、SQLite、七工具、Worker 仍未实现 | Coze Plugin、Harness、SQLite 权威状态、Fixture 隔离、Midscene 风险路由、独立 Playwright 验证形成三案例闭环；平台失败项按兼容路径关闭 | `COZE-HARNESS-CORE-001` |
+| GAP-002 | P0 | Coze/Harness 回归执行核心尚未形成纵向闭环 | `COZE-HARNESS-CORE-001` 为 `IN_PROGRESS`；I1 机器基础已完成，I2 已落地 TypeScript Harness、唯一 SQLite 产品库、七工具契约、安全/审计/幂等、Artifact 元数据和输出预算。当前剩余主缺口是 Coze 公开 Plugin 真实导入/发布、Playwright Worker 和首个银行纵向案例 | Coze 公开 Plugin、Harness、SQLite 权威状态、Fixture 隔离、Midscene 风险路由、独立 Playwright 验证形成三案例闭环；平台失败项按兼容路径关闭 | `COZE-HARNESS-CORE-001` |
 | GAP-004 | P1 | 演示运行态已经恢复，但缺少与平台批次绑定的可重复冻结证据 | 2026-07-16 Keycloak、Bank Channel Service、Customer Portal 和 Gateway 容器均为 healthy；旧“全部端口无监听”审计已过期 | 为首批案例固定启动、健康、认证入口、Gateway 路由和重启复验命令，输出同一时间的脱敏证据 | I0 被测基线冻结 |
 | GAP-005 | P1 | 银行核心全量回归与若干业务闭环仅部分验证 | E2E-001—E2E-014 未全部自动化/执行；贷款生命周期、账户冻结/关闭/到期为 `PARTIALLY_VERIFIED` | 全量回归、账务平衡、对账、恢复和关键异常路径在冻结环境可重复通过 | 银行核心发布验收批次 |
 | GAP-006 | P1 | 转账状态机文档与机器契约不一致 | 状态机仍为 `RECEIVED -> PENDING_REVIEW -> PROCESSING -> POSTED`；OpenAPI/AsyncAPI 使用 `CREATED -> VALIDATING -> ... -> SETTLED` | 选定唯一状态词表；状态机、OpenAPI、AsyncAPI、Liquibase、测试、页面文案和证据全部一致 | 新建状态机契约收敛任务 |
@@ -58,7 +58,7 @@ GAP-006、GAP-005 和未被首批案例使用的银行缺陷继续后置，不�
 |---|---|---|---|
 | GAP-003 | 2026-07-16 | `platform/runtime/verify-runtime.cmd` 在专属 Node v20.20.2 下验证 Playwright/Test/Core 1.59.1、Midscene Web/CLI 1.10.5、Chromium 147.0.7727.15 revision 1217 和 FFmpeg revision 1011 全绿；MiMo v2.5 使用 `xiaomi-mimo` family 完成门户 Playwright/Midscene 联合冒烟，视觉框与 DOM 框 IoU 为 0.9606 | 运行时冻结不等于 GAP-002 已完成；Coze、Harness、SQLite、Worker、三动作窗口与正式脚本验证仍需实施 |
 
-I1 骨架证据见 [`../evidence/platform/hengzhun-i1-skeleton-2026-07-16.md`](../evidence/platform/hengzhun-i1-skeleton-2026-07-16.md)，机器基线与公开界面实测见 [`../evidence/platform/hengzhun-i1-platform-baseline-2026-07-16.md`](../evidence/platform/hengzhun-i1-platform-baseline-2026-07-16.md)。
+I1 骨架证据见 [`../evidence/platform/hengzhun-i1-skeleton-2026-07-16.md`](../evidence/platform/hengzhun-i1-skeleton-2026-07-16.md)，机器基线与公开界面实测见 [`../evidence/platform/hengzhun-i1-platform-baseline-2026-07-16.md`](../evidence/platform/hengzhun-i1-platform-baseline-2026-07-16.md)，I2 安全内核见 [`../evidence/platform/hengzhun-i2-safe-kernel-2026-07-16.md`](../evidence/platform/hengzhun-i2-safe-kernel-2026-07-16.md)。
 
 ## 审计依据
 

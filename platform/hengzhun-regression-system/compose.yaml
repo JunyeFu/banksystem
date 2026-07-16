@@ -33,6 +33,37 @@ services:
     networks:
       - hengzhun-control
 
+  hengzhun-harness:
+    build:
+      context: .
+      dockerfile: harness/Dockerfile
+    image: hengzhun/harness:i2-local
+    container_name: hengzhun-harness
+    restart: unless-stopped
+    env_file:
+      - .data/runtime.env
+    environment:
+      HOST: 0.0.0.0
+      PORT: "18788"
+      HENGZHUN_PRODUCT_ROOT: /app
+    volumes:
+      - ./.data:/app/.data
+    read_only: true
+    tmpfs:
+      - /tmp:size=32m,noexec,nosuid,nodev
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:18788/health').then(r=>{if(!r.ok)process.exit(1)}).catch(()=>process.exit(1))"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+      start_period: 10s
+    networks:
+      - hengzhun-control
+
 networks:
   hengzhun-control:
     name: hengzhun-control

@@ -8,6 +8,15 @@
   },
   "scripts": {
     "verify": "verify.cmd",
+    "build": "runtime\\node-v20.20.2-win-x64\\node.exe node_modules\\typescript\\bin\\tsc",
+    "start:harness": "runtime\\node-v20.20.2-win-x64\\node.exe dist\\harness\\src\\index.js",
+    "test:i2": "runtime\\node-v20.20.2-win-x64\\node.exe --test tests\\i2\\database.test.cjs tests\\i2\\output-budget.test.cjs tests\\i2\\harness-api.test.cjs",
+    "verify:openapi": "runtime\\node-v20.20.2-win-x64\\node.exe scripts\\verify-i2-openapi.cjs",
+    "verify:i2": "powershell.exe -NoProfile -ExecutionPolicy Bypass -File scripts\\verify-i2.ps1",
+    "verify:i2-results": "runtime\\node-v20.20.2-win-x64\\node.exe scripts\\verify-i2-results.cjs",
+    "prepare:i2": "powershell.exe -NoProfile -ExecutionPolicy Bypass -File scripts\\prepare-i2.ps1",
+    "start:i2": "powershell.exe -NoProfile -ExecutionPolicy Bypass -File scripts\\start-i2.ps1",
+    "stop:i2": "powershell.exe -NoProfile -ExecutionPolicy Bypass -File scripts\\stop-i2.ps1",
     "verify:structure": "runtime\\node-v20.20.2-win-x64\\node.exe scripts\\verify-structure.cjs",
     "verify:runtime": "runtime\\verify-runtime.cmd",
     "verify:i1-results": "runtime\\node-v20.20.2-win-x64\\node.exe scripts\\verify-i1-results.cjs",
@@ -17,5 +26,15 @@
     "start:i1": "powershell.exe -NoProfile -ExecutionPolicy Bypass -File scripts\\start-i1.ps1",
     "stop:i1": "powershell.exe -NoProfile -ExecutionPolicy Bypass -File scripts\\stop-i1.ps1",
     "package:skills": "powershell.exe -NoProfile -ExecutionPolicy Bypass -File scripts\\package-skills.ps1"
+  },
+  "dependencies": {
+    "better-sqlite3": "11.10.0",
+    "zod": "4.4.3"
+  },
+  "devDependencies": {
+    "@types/better-sqlite3": "7.6.13",
+    "@types/node": "20.19.43",
+    "typescript": "5.9.3",
+    "yaml": "2.9.0"
   }
 }

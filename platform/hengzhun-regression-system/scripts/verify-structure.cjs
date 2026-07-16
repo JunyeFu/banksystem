@@ -18,12 +18,23 @@ const requiredFiles = [
   'coze/studio/docker-compose.hengzhun.yml',
   'scripts/prepare-i1.ps1', 'scripts/start-i1.ps1', 'scripts/verify-i1.ps1',
   'scripts/verify-i1-results.cjs',
+  'harness/Dockerfile', 'harness/migrations/001_i2_core.sql',
+  'harness/src/index.ts', 'harness/src/server.ts', 'harness/src/service.ts',
+  'contracts/openapi/hengzhun-harness-v1.yaml',
+  'scripts/prepare-i2.ps1', 'scripts/start-i2.ps1', 'scripts/stop-i2.ps1',
+  'scripts/verify-i2.ps1', 'scripts/verify-i2-openapi.cjs',
+  'scripts/verify-i2-results.cjs',
+  'tests/i2/database.test.cjs', 'tests/i2/output-budget.test.cjs',
+  'tests/i2/harness-api.test.cjs',
   'tests/conformance/results/PLAT-V001.json',
   'tests/conformance/results/PLAT-V002.json',
   'tests/conformance/results/PLAT-V003.json',
   'tests/conformance/results/PLAT-V006.json',
   'tests/conformance/results/PLAT-V009.json',
-  'tests/conformance/results/PLAT-V013.json'
+  'tests/conformance/results/PLAT-V013.json',
+  'tests/conformance/results/PLAT-V004.json',
+  'tests/conformance/results/PLAT-V005.json',
+  'tests/conformance/results/PLAT-V008.json'
 ];
 const failures = [];
 

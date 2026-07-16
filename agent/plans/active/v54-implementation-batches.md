@@ -67,6 +67,8 @@ I1 当前第一步的退出条件：目录结构校验通过、产品目录内�
 - 建立 Artifact/Evidence 元数据、Hash、受管目录和禁止入库规则。
 - 完成 `PLAT-V005` 鉴权负测、`PLAT-V008` 输出预算边界测试，并使 `PLAT-V004` 的七工具 OpenAPI 至少通过无副作用导入验证。
 
+2026-07-16 实施状态：I2 Harness 最小安全内核已落地。正式七工具 OpenAPI、`namespace + runId`、服务令牌/allowlist、Zod Schema、幂等、任务与不可变审计、SQLite WAL/外键/`busy_timeout`/单写入/备份/完整性、Artifact/Evidence 元数据与 L0-L3 输出预算均通过自动验证；容器在内部网络健康运行且无宿主端口。`PLAT-V005`、`PLAT-V008` 的 Harness 侧门禁已关闭，`PLAT-V004` 已完成无副作用可导入契约验证。Coze Studio 0.5.1 公开界面的资源创建菜单仍未进入插件表单，真实导入、发布和七工具调用按本文件留在 I3，不能冒充已经完成。
+
 ### I3：第一个纵向闭环
 
 完成以下可演示链路：
