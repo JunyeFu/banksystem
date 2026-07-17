@@ -4,6 +4,35 @@ name: hengzhun-regression-system
 # the Harness on a loopback-only host port for the local Worker; it does not
 # publish banking services or execution data to an external network.
 services:
+  hengzhun-model-gateway:
+    build:
+      context: .
+      dockerfile: model-gateway/Dockerfile
+    image: hengzhun/model-gateway:i3-local
+    container_name: hengzhun-model-gateway
+    restart: unless-stopped
+    env_file:
+      - .data/runtime.env
+    environment:
+      HOST: 0.0.0.0
+      PORT: "18789"
+    read_only: true
+    tmpfs:
+      - /tmp:size=16m,noexec,nosuid,nodev
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:18789/health').then(r=>{if(!r.ok)process.exit(1)}).catch(()=>process.exit(1))"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+      start_period: 5s
+    networks:
+      - hengzhun-control
+      - hengzhun-model-egress
+
   hengzhun-conformance:
     build:
       context: .
@@ -73,4 +102,7 @@ networks:
     internal: true
   hengzhun-worker-bridge:
     name: hengzhun-worker-bridge
+    driver: bridge
+  hengzhun-model-egress:
+    name: hengzhun-model-egress
     driver: bridge

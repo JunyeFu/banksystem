@@ -7,13 +7,13 @@ const path = require('node:path');
 const root = path.resolve(__dirname, '..');
 const resultRoot = path.join(root, 'tests', 'conformance', 'results');
 const expected = new Map([
-  ['PLAT-V004', 'PARTIALLY_VERIFIED'],
-  ['PLAT-V005', 'HARNESS_VERIFIED'],
-  ['PLAT-V008', 'HARNESS_VERIFIED']
+  ['PLAT-V004', new Set(['PARTIALLY_VERIFIED', 'RUNTIME_VERIFIED'])],
+  ['PLAT-V005', new Set(['HARNESS_VERIFIED'])],
+  ['PLAT-V008', new Set(['HARNESS_VERIFIED'])]
 ]);
 const failures = [];
 
-for (const [id, conclusion] of expected) {
+for (const [id, conclusions] of expected) {
   const file = path.join(resultRoot, `${id}.json`);
   if (!fs.existsSync(file)) {
     failures.push(`missing result: ${id}`);
@@ -27,7 +27,7 @@ for (const [id, conclusion] of expected) {
     if (result.platform?.name !== 'Coze Studio' || result.platform?.version !== '0.5.1') {
       failures.push(`${id}: platform baseline mismatch`);
     }
-    if (result.conclusion !== conclusion) failures.push(`${id}: conclusion mismatch`);
+    if (!conclusions.has(result.conclusion)) failures.push(`${id}: conclusion mismatch`);
     if (!Array.isArray(result.evidenceSha256) || result.evidenceSha256.length === 0) {
       failures.push(`${id}: evidenceSha256 is empty`);
     } else if (result.evidenceSha256.some(hash => !/^[a-f0-9]{64}$/.test(hash))) {
@@ -46,10 +46,12 @@ if (failures.length) {
   failures.forEach(failure => console.error(`- ${failure}`));
   process.exitCode = 2;
 } else {
+  const pluginResult = JSON.parse(fs.readFileSync(path.join(resultRoot, 'PLAT-V004.json'), 'utf8'));
+  const pluginCallVerified = pluginResult.conclusion === 'RUNTIME_VERIFIED';
   console.log(JSON.stringify({
     status: 'HENGZHUN_I2_RESULTS_VERIFIED',
     resultCount: expected.size,
     i2HarnessGate: 'CLOSED',
-    deferredToI3: ['PLAT-V004_REAL_PUBLISH_AND_CALL']
+    deferredToI3: pluginCallVerified ? [] : ['PLAT-V004_REAL_PUBLISH_AND_CALL']
   }, null, 2));
 }

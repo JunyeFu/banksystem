@@ -78,10 +78,15 @@ async function executeLoginProfile(task, environment = process.env) {
     await page.getByTestId('customer-profile-name').waitFor({ state: 'visible', timeout: 30000 });
     steps.push({ step: 'portal-password-login', passed: true });
 
-    const headerName = (await page.getByTestId('customer-profile-name').innerText()).trim();
-    const headerAvatar = (await page.getByTestId('customer-profile-avatar').innerText()).trim();
     await page.getByRole('link', { name: '个人资料', exact: true }).click();
     await page.getByTestId('profile-display-name').waitFor({ state: 'visible', timeout: 30000 });
+    await page.waitForFunction(() => {
+      const header = document.querySelector('[data-testid="customer-profile-name"]')?.textContent?.trim();
+      const profile = document.querySelector('[data-testid="profile-display-name"]')?.textContent?.trim();
+      return Boolean(header && profile && header === profile);
+    }, undefined, { timeout: 30000 });
+    const headerName = (await page.getByTestId('customer-profile-name').innerText()).trim();
+    const headerAvatar = (await page.getByTestId('customer-profile-avatar').innerText()).trim();
     const profileName = (await page.getByTestId('profile-display-name').innerText()).trim();
     const expectedAvatar = Array.from(headerName.replace(/\s+/g, ''))[0] || '';
     const assertions = {

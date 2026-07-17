@@ -6,7 +6,7 @@ const path = require('node:path');
 
 const productRoot = path.resolve(__dirname, '..');
 const requiredDirectories = [
-  'coze', 'harness', 'worker', 'runtime', 'contracts', 'tests',
+  'coze', 'harness', 'worker', 'model-gateway', 'runtime', 'contracts', 'tests',
   'scripts', 'docs', 'config', '.data'
 ];
 const requiredFiles = [
@@ -27,9 +27,10 @@ const requiredFiles = [
   'harness/migrations/002_i3_execution.sql',
   'contracts/openapi/hengzhun-worker-internal-v1.yaml',
   'worker/src/index.cjs', 'worker/src/login-profile.cjs',
+  'model-gateway/src/server.cjs', 'model-gateway/Dockerfile',
   'scripts/prepare-i3.ps1', 'scripts/start-i3.ps1', 'scripts/stop-i3.ps1',
   'scripts/verify-i3.ps1', 'scripts/verify-i3-openapi.cjs', 'scripts/verify-i3-results.cjs',
-  'tests/i3/vertical-closure.test.cjs',
+  'tests/i3/vertical-closure.test.cjs', 'tests/i3/model-gateway.test.cjs',
   'coze/agents/hengzhun-i3-regression-agent.md',
   'coze/knowledge/i3-login-profile-runtime-rules.md',
   'coze/workflows/i3-first-vertical.yaml',

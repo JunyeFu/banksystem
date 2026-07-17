@@ -115,17 +115,17 @@ I2 Harness 侧退出门禁已关闭。平台侧剩余事实没有被改写为成
 
 ## 9. 2026-07-17 I3 真实执行结论
 
-I3 Harness/Worker 运行时闭环已完成：固定 Playwright Worker 在门户页面执行合成账号密码登录，断言页眉姓名、头像与个人资料一致；七工具、三类脱敏证据、Artifact Hash、Worker 独立鉴权、租约、Fixture 隔离、会话恢复与知识检索 Hash 审计通过自动测试和真实 E2E。
+I3 已完成运行时与 Coze 公开平台闭环。固定 Playwright Worker 在门户执行合成账号密码登录，真实断言页眉姓名、头像与个人资料一致；最终运行 `PASSED`，报告/遮罩截图/日志三类证据完整，决策为 `RECORDED/APPROVE`。Coze 仅通过公开界面完成插件导入、调试、发布、Agent 绑定和 Agent 发布，没有使用私有管理 API、数据库直写或容器挂载发布。
 
 | ID | 当前状态 | 真实结论 | 可提交证据 |
 |---|---|---|---|
-| `PLAT-V004` | `PARTIALLY_VERIFIED` | 七工具 OpenAPI 已通过公开 UI 导入；Coze 0.5.1 插件公开编辑页显示“无法查看智能体”，尚不能调试、发布、绑定 Agent 或真实对话调用 | `tests/conformance/results/PLAT-V004.json` |
-| `PLAT-V011` | `RUNTIME_VERIFIED` | 新会话使用原 `namespace + taskId` 可恢复同一 SQLite 任务终态、runVersion 和结果 Artifact；待 Agent 发布后补平台会话证据 | `tests/conformance/results/PLAT-V011.json` |
-| `PLAT-V012` | `RUNTIME_VERIFIED` | Knowledge Base 已处理为 929 Bytes/2 分段并绑定 Agent；Harness 只保存检索 Hash 与引用标识，待 Agent 发布后补真实检索命中证据 | `tests/conformance/results/PLAT-V012.json` |
+| `PLAT-V004` | `RUNTIME_VERIFIED` | 同一发布 Agent 在恢复会话中真实调用七个 Harness 工具；v2 案例、计划、运行和决策幂等记录均为 HTTP 200，最终运行 `PASSED` | `tests/conformance/results/PLAT-V004.json` |
+| `PLAT-V011` | `RUNTIME_VERIFIED` | 首次会话创建/复核案例，后续新会话使用同一 SQLite 对象继续计划、运行、终态查询、取证和决策；没有重复创建 v2 案例、计划或运行 | `tests/conformance/results/PLAT-V011.json` |
+| `PLAT-V012` | `RUNTIME_VERIFIED` | Knowledge Base v2 已由当前仓库导入源创建并替换旧库；全新会话真实命中 `i3-customer`、七工具顺序和稳定引用，Harness 只保存检索 Hash 与引用 | `tests/conformance/results/PLAT-V012.json` |
 
-Coze 公共 OpenAPI 导入的实测兼容条件是：每个操作只文档化 HTTP 200，Schema 不使用 `additionalProperties`。Harness 成功响应已同步为 HTTP 200，严格请求校验仍由 Zod fail-closed 执行。Coze Server 到 Harness 的受控 Docker 网络健康探针通过。
+Coze 0.5.1 OpenAPI 的实测兼容条件仍是：每个操作只文档化 HTTP 200，Schema 不使用 `additionalProperties`，严格请求校验由 Zod fail-closed 执行。外部 MiMo v2.5 当前接口的原生流式请求不稳定，单目录内新增 Bearer 保护的兼容网关，将非流式 OpenAI 响应转换为 Coze 所需 SSE；网关不承接 Harness 领域状态，也不构成第二个 Agent。
 
-由于 `PLAT-V004` 仍未关闭，I3 不得标记完整完成，也不得进入依赖真实 Coze Plugin 的 I4 实施。
+`PLAT-V004`、`PLAT-V011`、`PLAT-V012` 已关闭，I3 完成。I4 只有在单独启动并满足 `PLAT-V014` 时才能把 Midscene 动作纳入正式路由。
 
 ## 10. 来源边界
 

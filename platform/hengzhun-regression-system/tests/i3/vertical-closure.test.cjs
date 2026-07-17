@@ -50,7 +50,7 @@ async function request(baseUrl, pathname, { worker = false, ...options } = {}) {
 }
 
 async function createRunnableCase(baseUrl, namespace) {
-  const created = await request(baseUrl, '/v1/cases/drafts', {
+  const created = await request(baseUrl, '/v1/plugin/cases:create-draft', {
     method: 'POST',
     body: JSON.stringify({
       namespace,
@@ -73,17 +73,24 @@ async function createRunnableCase(baseUrl, namespace) {
     })
   });
   assert.equal(created.response.status, 200);
-  const compiled = await request(baseUrl, `/v1/cases/${created.body.caseId}/plans:compile`, {
+  const compiled = await request(baseUrl, '/v1/plugin/plans:compile', {
     method: 'POST',
     body: JSON.stringify({
       namespace,
       idempotencyKey: 'i3-plan-compile-0001',
+      caseId: created.body.caseId,
       expectedCaseVersion: 1,
       executionRoute: 'PLAYWRIGHT'
     })
   });
   assert.equal(compiled.response.status, 200);
-  const run = await request(baseUrl, '/v1/runs', {
+  const planTask = await request(baseUrl, '/v1/plugin/tasks:get', {
+    method: 'POST', body: JSON.stringify({ namespace, taskId: compiled.body.taskId })
+  });
+  assert.equal(planTask.response.status, 200);
+  assert.equal(planTask.body.status, 'SUCCEEDED');
+  assert.equal(Object.hasOwn(planTask.body, 'runId'), false);
+  const run = await request(baseUrl, '/v1/plugin/runs:submit', {
     method: 'POST',
     body: JSON.stringify({
       namespace,
@@ -99,12 +106,14 @@ async function createRunnableCase(baseUrl, namespace) {
   return { created, compiled, run };
 }
 
-test('I3 seven-tool state survives a new polling session and records Coze knowledge hashes', async t => {
+test('I3 Coze-compatible seven-tool state survives a new polling session and records knowledge hashes', async t => {
   const { application, baseUrl, root } = await startTemporaryHarness(t);
   const namespace = 'i3-acceptance';
   const { created, compiled, run } = await createRunnableCase(baseUrl, namespace);
 
-  const caseRead = await request(baseUrl, `/v1/cases/${created.body.caseId}?namespace=${namespace}`);
+  const caseRead = await request(baseUrl, '/v1/plugin/cases:get', {
+    method: 'POST', body: JSON.stringify({ namespace, caseId: created.body.caseId })
+  });
   assert.equal(caseRead.response.status, 200);
   assert.equal(caseRead.body.definition.credentialAlias, 'customer-synthetic-01');
 
@@ -141,19 +150,23 @@ test('I3 seven-tool state survives a new polling session and records Coze knowle
   assert.equal(complete.body.outcome, 'PASSED');
 
   // A fresh stateless request represents recovery after the Coze conversation was interrupted.
-  const recovered = await request(baseUrl, `/v1/tasks/${run.body.taskId}?namespace=${namespace}`);
+  const recovered = await request(baseUrl, '/v1/plugin/tasks:get', {
+    method: 'POST', body: JSON.stringify({ namespace, taskId: run.body.taskId })
+  });
   assert.equal(recovered.response.status, 200);
   assert.equal(recovered.body.status, 'SUCCEEDED');
   assert.equal(recovered.body.runVersion, 3);
   assert.equal(recovered.body.resultArtifactId, complete.body.resultArtifactId);
 
-  const metadata = await request(baseUrl, `/v1/artifacts/${complete.body.resultArtifactId}/metadata?namespace=${namespace}`);
+  const metadata = await request(baseUrl, '/v1/plugin/artifacts:get-metadata', {
+    method: 'POST', body: JSON.stringify({ namespace, artifactId: complete.body.resultArtifactId })
+  });
   assert.equal(metadata.response.status, 200);
   assert.equal(metadata.body.sha256, crypto.createHash('sha256').update(report).digest('hex'));
   assert.equal(metadata.text.includes(root), false);
   assert.equal(metadata.body.controlledAccess.downloadable, false);
 
-  const decision = await request(baseUrl, '/v1/decisions', {
+  const decision = await request(baseUrl, '/v1/plugin/decisions:submit', {
     method: 'POST',
     body: JSON.stringify({
       namespace,

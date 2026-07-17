@@ -11,8 +11,8 @@ $workerErr = Join-Path $root '.data\logs\worker.stderr.log'
 & (Join-Path $PSScriptRoot 'prepare-i3.ps1') | Out-Null
 & (Join-Path $PSScriptRoot 'stop-worker.ps1') | Out-Null
 
-docker compose -f (Join-Path $root 'compose.yaml') up -d --build hengzhun-harness hengzhun-conformance
-if ($LASTEXITCODE -ne 0) { throw 'Failed to start Hengzhun I3 Harness.' }
+docker compose -f (Join-Path $root 'compose.yaml') up -d --build hengzhun-model-gateway hengzhun-harness hengzhun-conformance
+if ($LASTEXITCODE -ne 0) { throw 'Failed to start Hengzhun I3 services.' }
 
 $deadline = (Get-Date).AddMinutes(2)
 do {
@@ -22,6 +22,14 @@ do {
     Start-Sleep -Seconds 2
 } while ((Get-Date) -lt $deadline)
 if ($health.status -ne 'ok') { throw 'Hengzhun Harness did not become healthy.' }
+
+$gatewayDeadline = (Get-Date).AddMinutes(2)
+do {
+    $gatewayHealth = docker inspect hengzhun-model-gateway --format '{{.State.Health.Status}}' 2>$null
+    if ($gatewayHealth -eq 'healthy') { break }
+    Start-Sleep -Seconds 2
+} while ((Get-Date) -lt $gatewayDeadline)
+if ($gatewayHealth -ne 'healthy') { throw 'Hengzhun model gateway did not become healthy.' }
 
 Get-Content -LiteralPath $runtimeEnv -Encoding UTF8 | ForEach-Object {
     if ($_ -match '^\s*([A-Za-z_][A-Za-z0-9_]*)=(.*)$') { [Environment]::SetEnvironmentVariable($Matches[1], $Matches[2], 'Process') }
@@ -37,5 +45,6 @@ $process = Start-Process -FilePath $node -ArgumentList @($worker) -WorkingDirect
     status = 'STARTED'
     harness = 'http://127.0.0.1:18788'
     worker = 'RUNNING'
+    modelGateway = 'HEALTHY_INTERNAL_ONLY'
     portal = $env:HENGZHUN_PORTAL_BASE_URL
 } | ConvertTo-Json -Compress

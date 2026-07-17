@@ -1,17 +1,18 @@
 openapi: 3.0.3
 info:
   title: 衡准回归 Harness
-  version: 1.1.0
+  version: 1.2.0
   description: >-
-    Coze/HiAgent 公开 OpenAPI 插件使用的七工具安全边界。所有长任务立即返回 taskId，
-    不返回凭据、文件字节、完整日志、截图或本机绝对路径。
+    Coze/HiAgent 公开 OpenAPI 插件使用的七工具安全边界。为兼容 Coze Studio 0.5.1，
+    七个操作统一使用 POST JSON body，Operation 内不使用 Parameter 或 Schema 引用。
+    所有长任务立即返回 taskId，不返回凭据、文件字节、完整日志、截图或本机绝对路径。
 servers:
   - url: http://hengzhun-harness:18788
     description: 本机隔离 Docker 网络
 security:
   - bearerAuth: []
 paths:
-  /v1/cases/drafts:
+  /v1/plugin/cases:create-draft:
     post:
       operationId: case_create_draft
       summary: 创建结构化回归案例草稿
@@ -19,44 +20,146 @@ paths:
         required: true
         content:
           application/json:
-            schema: {$ref: '#/components/schemas/CaseCreateDraftRequest'}
+            schema:
+              type: object
+              required: [namespace, idempotencyKey, title, objective, summary, riskLevel, route, steps, assertions]
+              properties:
+                namespace:
+                  type: string
+                  pattern: '^[a-z0-9][a-z0-9._-]{2,63}$'
+                  example: demo-local
+                idempotencyKey:
+                  type: string
+                  minLength: 8
+                  maxLength: 128
+                  pattern: '^[A-Za-z0-9._:-]+$'
+                actorRef: {type: string, minLength: 1, maxLength: 128, default: coze-agent}
+                title: {type: string, minLength: 1, maxLength: 160}
+                objective: {type: string, minLength: 1, maxLength: 2000}
+                summary: {type: string, minLength: 1, maxLength: 1000}
+                riskLevel: {type: string, enum: [LOW, MEDIUM, HIGH]}
+                route: {type: string, minLength: 1, maxLength: 512}
+                steps:
+                  type: array
+                  minItems: 1
+                  maxItems: 50
+                  items:
+                    type: object
+                    required: [action, expected]
+                    properties:
+                      action: {type: string, minLength: 1, maxLength: 500}
+                      expected: {type: string, minLength: 1, maxLength: 500}
+                assertions:
+                  type: array
+                  minItems: 1
+                  maxItems: 50
+                  items: {type: string, minLength: 1, maxLength: 500}
+                credentialAlias: {type: string, minLength: 1, maxLength: 128}
+                knowledgeRetrieval:
+                  type: object
+                  required: [sourceAuthority, query, resultSummary, citationRefs]
+                  properties:
+                    sourceAuthority: {type: string, enum: [COZE_KNOWLEDGE_BASE]}
+                    query: {type: string, minLength: 1, maxLength: 1000}
+                    resultSummary: {type: string, minLength: 1, maxLength: 2000}
+                    citationRefs:
+                      type: array
+                      minItems: 1
+                      maxItems: 20
+                      items: {type: string, minLength: 1, maxLength: 256}
       responses:
         '200':
           description: 案例已创建
           content:
             application/json:
-              schema: {$ref: '#/components/schemas/CaseReceipt'}
-  /v1/cases/{caseId}:
-    get:
+              schema:
+                type: object
+                required: [caseId, version, status, validationIssues, summary, replayed]
+                properties:
+                  caseId: {type: string}
+                  version: {type: integer}
+                  status: {type: string, enum: [VALIDATED]}
+                  validationIssues: {type: array, items: {type: string}}
+                  summary: {type: string}
+                  replayed: {type: boolean}
+                  knowledgeRetrievalId: {type: string}
+  /v1/plugin/cases:get:
+    post:
       operationId: case_get
       summary: 获取当前案例版本和短摘要
-      parameters:
-        - {$ref: '#/components/parameters/CaseId'}
-        - {$ref: '#/components/parameters/Namespace'}
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [namespace, caseId]
+              properties:
+                namespace:
+                  type: string
+                  pattern: '^[a-z0-9][a-z0-9._-]{2,63}$'
+                  example: demo-local
+                caseId: {type: string, minLength: 8, maxLength: 80}
       responses:
         '200':
           description: 案例详情
           content:
             application/json:
-              schema: {$ref: '#/components/schemas/CaseDetail'}
-  /v1/cases/{caseId}/plans:compile:
+              schema:
+                type: object
+                required: [caseId, namespace, version, status, title, summary, riskLevel, definition, contentHash, updatedAt]
+                properties:
+                  caseId: {type: string}
+                  namespace: {type: string}
+                  version: {type: integer}
+                  status: {type: string}
+                  title: {type: string}
+                  summary: {type: string}
+                  riskLevel: {type: string}
+                  definition: {type: object}
+                  contentHash: {type: string}
+                  updatedAt: {type: string}
+  /v1/plugin/plans:compile:
     post:
       operationId: plan_compile
       summary: 编译确定性执行计划
-      parameters:
-        - {$ref: '#/components/parameters/CaseId'}
       requestBody:
         required: true
         content:
           application/json:
-            schema: {$ref: '#/components/schemas/PlanCompileRequest'}
+            schema:
+              type: object
+              required: [namespace, idempotencyKey, caseId, expectedCaseVersion]
+              properties:
+                namespace:
+                  type: string
+                  pattern: '^[a-z0-9][a-z0-9._-]{2,63}$'
+                  example: demo-local
+                idempotencyKey:
+                  type: string
+                  minLength: 8
+                  maxLength: 128
+                  pattern: '^[A-Za-z0-9._:-]+$'
+                caseId: {type: string, minLength: 8, maxLength: 80}
+                expectedCaseVersion: {type: integer, minimum: 1}
+                executionRoute: {type: string, enum: [PLAYWRIGHT, AUTHORING_REQUIRED], default: PLAYWRIGHT}
       responses:
         '200':
           description: 计划编译任务已受理
           content:
             application/json:
-              schema: {$ref: '#/components/schemas/PlanReceipt'}
-  /v1/runs:
+              schema:
+                type: object
+                required: [taskId, planId, status, planStatus, caseId, caseVersion, replayed]
+                properties:
+                  taskId: {type: string}
+                  planId: {type: string}
+                  status: {type: string}
+                  planStatus: {type: string}
+                  caseId: {type: string}
+                  caseVersion: {type: integer}
+                  replayed: {type: boolean}
+  /v1/plugin/runs:submit:
     post:
       operationId: run_submit
       summary: 提交已允许的案例执行
@@ -64,40 +167,115 @@ paths:
         required: true
         content:
           application/json:
-            schema: {$ref: '#/components/schemas/RunSubmitRequest'}
+            schema:
+              type: object
+              required: [namespace, idempotencyKey, caseId, expectedCaseVersion, planId, environment, credentialAlias]
+              properties:
+                namespace:
+                  type: string
+                  pattern: '^[a-z0-9][a-z0-9._-]{2,63}$'
+                  example: demo-local
+                idempotencyKey:
+                  type: string
+                  minLength: 8
+                  maxLength: 128
+                  pattern: '^[A-Za-z0-9._:-]+$'
+                caseId: {type: string, minLength: 8, maxLength: 80}
+                expectedCaseVersion: {type: integer, minimum: 1}
+                planId: {type: string, minLength: 8, maxLength: 80}
+                environment: {type: string, enum: [local]}
+                credentialAlias: {type: string, minLength: 1, maxLength: 128}
       responses:
         '200':
           description: 回归任务已排队
           content:
             application/json:
-              schema: {$ref: '#/components/schemas/RunReceipt'}
-  /v1/tasks/{taskId}:
-    get:
+              schema:
+                type: object
+                required: [taskId, runId, status, namespace, caseId, replayed]
+                properties:
+                  taskId: {type: string}
+                  runId: {type: string}
+                  status: {type: string, enum: [QUEUED]}
+                  namespace: {type: string}
+                  caseId: {type: string}
+                  replayed: {type: boolean}
+  /v1/plugin/tasks:get:
+    post:
       operationId: task_get
       summary: 查询异步任务状态
-      parameters:
-        - {$ref: '#/components/parameters/TaskId'}
-        - {$ref: '#/components/parameters/Namespace'}
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [namespace, taskId]
+              properties:
+                namespace:
+                  type: string
+                  pattern: '^[a-z0-9][a-z0-9._-]{2,63}$'
+                  example: demo-local
+                taskId: {type: string, minLength: 8, maxLength: 80}
       responses:
         '200':
           description: 任务短状态
           content:
             application/json:
-              schema: {$ref: '#/components/schemas/TaskDetail'}
-  /v1/artifacts/{artifactId}/metadata:
-    get:
+              schema:
+                type: object
+                required: [taskId, type, status, progress, version, retryable, userActionRequired, updatedAt]
+                properties:
+                  taskId: {type: string}
+                  runId: {type: string}
+                  caseId: {type: string}
+                  type: {type: string}
+                  status: {type: string, enum: [QUEUED, RUNNING, WAITING_USER, SUCCEEDED, FAILED, CANCELLED]}
+                  progress: {type: integer, minimum: 0, maximum: 100}
+                  version: {type: integer}
+                  runVersion: {type: integer}
+                  summary: {type: string}
+                  resultArtifactId: {type: string}
+                  errorCode: {type: string}
+                  errorCategory: {type: string}
+                  retryable: {type: boolean}
+                  userActionRequired: {type: boolean}
+                  updatedAt: {type: string}
+  /v1/plugin/artifacts:get-metadata:
+    post:
       operationId: artifact_get_metadata
       summary: 获取受控 Artifact 元数据
-      parameters:
-        - {$ref: '#/components/parameters/ArtifactId'}
-        - {$ref: '#/components/parameters/Namespace'}
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [namespace, artifactId]
+              properties:
+                namespace:
+                  type: string
+                  pattern: '^[a-z0-9][a-z0-9._-]{2,63}$'
+                  example: demo-local
+                artifactId: {type: string, minLength: 8, maxLength: 80}
       responses:
         '200':
           description: 脱敏元数据；不返回文件内容和本机路径
           content:
             application/json:
-              schema: {$ref: '#/components/schemas/ArtifactMetadata'}
-  /v1/decisions:
+              schema:
+                type: object
+                description: Harness 可能返回额外受控字段，但不返回文件路径或内容。
+                required: [artifactId, type, sha256, byteSize, mediaType, redactionStatus, createdAt]
+                properties:
+                  artifactId: {type: string}
+                  type: {type: string}
+                  sha256: {type: string, minLength: 64, maxLength: 64}
+                  byteSize: {type: integer, minimum: 0}
+                  mediaType: {type: string}
+                  redactionStatus: {type: string, enum: [NOT_REQUIRED, REDACTED, QUARANTINED]}
+                  createdAt: {type: string}
+  /v1/plugin/decisions:submit:
     post:
       operationId: decision_submit
       summary: 记录脚本激活或运行恢复决定
@@ -105,239 +283,44 @@ paths:
         required: true
         content:
           application/json:
-            schema: {$ref: '#/components/schemas/DecisionSubmitRequest'}
+            schema:
+              type: object
+              required: [namespace, idempotencyKey, targetType, targetId, expectedVersion, choice, reason, confirmationRef]
+              properties:
+                namespace:
+                  type: string
+                  pattern: '^[a-z0-9][a-z0-9._-]{2,63}$'
+                  example: demo-local
+                idempotencyKey:
+                  type: string
+                  minLength: 8
+                  maxLength: 128
+                  pattern: '^[A-Za-z0-9._:-]+$'
+                targetType: {type: string, enum: [SCRIPT_ACTIVATION, RUN_RECOVERY]}
+                targetId: {type: string, minLength: 8, maxLength: 80}
+                expectedVersion: {type: integer, minimum: 1}
+                choice: {type: string, enum: [APPROVE, REJECT, RETRY, CANCEL]}
+                reason: {type: string, minLength: 1, maxLength: 1000}
+                confirmationRef: {type: string, minLength: 1, maxLength: 160}
       responses:
         '200':
           description: 决策已审计记录；I3 不自动激活脚本或恢复调度
           content:
             application/json:
-              schema: {$ref: '#/components/schemas/DecisionReceipt'}
+              schema:
+                type: object
+                required: [decisionId, targetType, targetId, status, version, effect, replayed]
+                properties:
+                  decisionId: {type: string}
+                  targetType: {type: string}
+                  targetId: {type: string}
+                  status: {type: string, enum: [RECORDED]}
+                  version: {type: integer}
+                  effect: {type: string, enum: [DEFERRED_TO_FUTURE_BATCH]}
+                  replayed: {type: boolean}
 components:
   securitySchemes:
     bearerAuth:
       type: http
       scheme: bearer
       bearerFormat: opaque-service-token
-  parameters:
-    Namespace:
-      name: namespace
-      in: query
-      required: true
-      schema: {$ref: '#/components/schemas/Namespace'}
-    CaseId:
-      name: caseId
-      in: path
-      required: true
-      schema: {type: string, minLength: 8, maxLength: 80}
-    TaskId:
-      name: taskId
-      in: path
-      required: true
-      schema: {type: string, minLength: 8, maxLength: 80}
-    ArtifactId:
-      name: artifactId
-      in: path
-      required: true
-      schema: {type: string, minLength: 8, maxLength: 80}
-  responses:
-    ContractError:
-      description: 请求契约错误
-      content:
-        application/json:
-          schema: {$ref: '#/components/schemas/Problem'}
-    AuthError:
-      description: 鉴权或调用方网络边界拒绝
-      content:
-        application/json:
-          schema: {$ref: '#/components/schemas/Problem'}
-    ConflictError:
-      description: 幂等键或对象版本冲突
-      content:
-        application/json:
-          schema: {$ref: '#/components/schemas/Problem'}
-    NotFoundError:
-      description: 对象不存在或不属于当前命名空间
-      content:
-        application/json:
-          schema: {$ref: '#/components/schemas/Problem'}
-  schemas:
-    Namespace:
-      type: string
-      pattern: '^[a-z0-9][a-z0-9._-]{2,63}$'
-      example: demo-local
-    IdempotencyKey:
-      type: string
-      minLength: 8
-      maxLength: 128
-      pattern: '^[A-Za-z0-9._:-]+$'
-    CaseStep:
-      type: object
-      required: [action, expected]
-      properties:
-        action: {type: string, minLength: 1, maxLength: 500}
-        expected: {type: string, minLength: 1, maxLength: 500}
-    CaseCreateDraftRequest:
-      type: object
-      required: [namespace, idempotencyKey, title, objective, summary, riskLevel, route, steps, assertions]
-      properties:
-        namespace: {$ref: '#/components/schemas/Namespace'}
-        idempotencyKey: {$ref: '#/components/schemas/IdempotencyKey'}
-        actorRef: {type: string, minLength: 1, maxLength: 128, default: coze-agent}
-        title: {type: string, minLength: 1, maxLength: 160}
-        objective: {type: string, minLength: 1, maxLength: 2000}
-        summary: {type: string, minLength: 1, maxLength: 1000}
-        riskLevel: {type: string, enum: [LOW, MEDIUM, HIGH]}
-        route: {type: string, minLength: 1, maxLength: 512}
-        steps:
-          type: array
-          minItems: 1
-          maxItems: 50
-          items: {$ref: '#/components/schemas/CaseStep'}
-        assertions:
-          type: array
-          minItems: 1
-          maxItems: 50
-          items: {type: string, minLength: 1, maxLength: 500}
-        credentialAlias: {type: string, minLength: 1, maxLength: 128}
-        knowledgeRetrieval:
-          type: object
-          required: [sourceAuthority, query, resultSummary, citationRefs]
-          properties:
-            sourceAuthority: {type: string, enum: [COZE_KNOWLEDGE_BASE]}
-            query: {type: string, minLength: 1, maxLength: 1000}
-            resultSummary: {type: string, minLength: 1, maxLength: 2000}
-            citationRefs:
-              type: array
-              minItems: 1
-              maxItems: 20
-              items: {type: string, minLength: 1, maxLength: 256}
-    PlanCompileRequest:
-      type: object
-      required: [namespace, idempotencyKey, expectedCaseVersion]
-      properties:
-        namespace: {$ref: '#/components/schemas/Namespace'}
-        idempotencyKey: {$ref: '#/components/schemas/IdempotencyKey'}
-        expectedCaseVersion: {type: integer, minimum: 1}
-        executionRoute: {type: string, enum: [PLAYWRIGHT, AUTHORING_REQUIRED], default: PLAYWRIGHT}
-    RunSubmitRequest:
-      type: object
-      required: [namespace, idempotencyKey, caseId, expectedCaseVersion, planId, environment, credentialAlias]
-      properties:
-        namespace: {$ref: '#/components/schemas/Namespace'}
-        idempotencyKey: {$ref: '#/components/schemas/IdempotencyKey'}
-        caseId: {type: string, minLength: 8, maxLength: 80}
-        expectedCaseVersion: {type: integer, minimum: 1}
-        planId: {type: string, minLength: 8, maxLength: 80}
-        environment: {type: string, enum: [local]}
-        credentialAlias: {type: string, minLength: 1, maxLength: 128}
-    DecisionSubmitRequest:
-      type: object
-      required: [namespace, idempotencyKey, targetType, targetId, expectedVersion, choice, reason, confirmationRef]
-      properties:
-        namespace: {$ref: '#/components/schemas/Namespace'}
-        idempotencyKey: {$ref: '#/components/schemas/IdempotencyKey'}
-        targetType: {type: string, enum: [SCRIPT_ACTIVATION, RUN_RECOVERY]}
-        targetId: {type: string, minLength: 8, maxLength: 80}
-        expectedVersion: {type: integer, minimum: 1}
-        choice: {type: string, enum: [APPROVE, REJECT, RETRY, CANCEL]}
-        reason: {type: string, minLength: 1, maxLength: 1000}
-        confirmationRef: {type: string, minLength: 1, maxLength: 160}
-    CaseReceipt:
-      type: object
-      required: [caseId, version, status, validationIssues, summary, replayed]
-      properties:
-        caseId: {type: string}
-        version: {type: integer}
-        status: {type: string, enum: [VALIDATED]}
-        validationIssues: {type: array, items: {type: string}}
-        summary: {type: string}
-        replayed: {type: boolean}
-        knowledgeRetrievalId: {type: string}
-    CaseDetail:
-      type: object
-      required: [caseId, namespace, version, status, title, summary, riskLevel, definition, contentHash, updatedAt]
-      properties:
-        caseId: {type: string}
-        namespace: {$ref: '#/components/schemas/Namespace'}
-        version: {type: integer}
-        status: {type: string}
-        title: {type: string}
-        summary: {type: string}
-        riskLevel: {type: string}
-        definition: {type: object}
-        contentHash: {type: string}
-        updatedAt: {type: string, format: date-time}
-    PlanReceipt:
-      type: object
-      required: [taskId, planId, status, planStatus, caseId, caseVersion, replayed]
-      properties:
-        taskId: {type: string}
-        planId: {type: string}
-        status: {type: string}
-        planStatus: {type: string}
-        caseId: {type: string}
-        caseVersion: {type: integer}
-        replayed: {type: boolean}
-    RunReceipt:
-      type: object
-      required: [taskId, runId, status, namespace, caseId, replayed]
-      properties:
-        taskId: {type: string}
-        runId: {type: string}
-        status: {type: string, enum: [QUEUED]}
-        namespace: {$ref: '#/components/schemas/Namespace'}
-        caseId: {type: string}
-        replayed: {type: boolean}
-    TaskDetail:
-      type: object
-      required: [taskId, type, status, progress, version, retryable, userActionRequired, updatedAt]
-      properties:
-        taskId: {type: string}
-        runId: {type: string, nullable: true}
-        caseId: {type: string, nullable: true}
-        type: {type: string}
-        status: {type: string, enum: [QUEUED, RUNNING, WAITING_USER, SUCCEEDED, FAILED, CANCELLED]}
-        progress: {type: integer, minimum: 0, maximum: 100}
-        version: {type: integer}
-        runVersion: {type: integer, nullable: true}
-        summary: {type: string, nullable: true}
-        resultArtifactId: {type: string, nullable: true}
-        errorCode: {type: string, nullable: true}
-        errorCategory: {type: string, nullable: true}
-        retryable: {type: boolean}
-        userActionRequired: {type: boolean}
-        updatedAt: {type: string, format: date-time}
-    ArtifactMetadata:
-      type: object
-      description: Coze 兼容的 Artifact 摘要；Harness 可能返回额外受控字段，但不返回文件路径或内容。
-      required: [artifactId, type, sha256, byteSize, mediaType, redactionStatus, createdAt]
-      properties:
-        artifactId: {type: string}
-        type: {type: string}
-        sha256: {type: string, minLength: 64, maxLength: 64}
-        byteSize: {type: integer, minimum: 0}
-        mediaType: {type: string}
-        redactionStatus: {type: string, enum: [NOT_REQUIRED, REDACTED, QUARANTINED]}
-        createdAt: {type: string, format: date-time}
-    DecisionReceipt:
-      type: object
-      required: [decisionId, targetType, targetId, status, version, effect, replayed]
-      properties:
-        decisionId: {type: string}
-        targetType: {type: string}
-        targetId: {type: string}
-        status: {type: string, enum: [RECORDED]}
-        version: {type: integer}
-        effect: {type: string, enum: [DEFERRED_TO_FUTURE_BATCH]}
-        replayed: {type: boolean}
-    Problem:
-      type: object
-      required: [errorCode, category, message, retryable, userActionRequired, requestId]
-      properties:
-        errorCode: {type: string}
-        category: {type: string}
-        message: {type: string}
-        retryable: {type: boolean}
-        userActionRequired: {type: boolean}
-        requestId: {type: string}
-        details: {type: object}

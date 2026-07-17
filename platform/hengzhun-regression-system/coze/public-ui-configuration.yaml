@@ -37,15 +37,24 @@ skill:
   generatedPackage: packages/hengzhun-i1-conformance.skill
   publicUploadRequired: true
 i3:
+  model:
+    name: MiMo v2.5（衡准主控）
+    transport: hengzhun-model-gateway
+    upstreamMode: nonstream
+    cozeMode: openai_sse
+    auth: bearer
+    status: RUNTIME_VERIFIED
   agent:
     name: 衡准-I3-回归主控
     promptSource: agents/hengzhun-i3-regression-agent.md
-    status: PROMPT_CONFIGURED_KNOWLEDGE_ATTACHED_NOT_PUBLISHED
+    status: PUBLISHED
   knowledgeBase:
-    name: 衡准-I3-门户登录回归知识库
+    name: 衡准-I3-门户登录回归知识库-v2
     source: knowledge/i3-login-profile-runtime-rules.md
-    status: PROCESSED_AND_ATTACHED
-    processingEvidence: 929_BYTES_2_SEGMENTS
+    status: PROCESSED_ATTACHED_AUTO_RETRIEVAL_VERIFIED
+    processingEvidence: 1644_BYTES_1_SEGMENT
+    callMode: automatic
+    maxRecall: 5
   workflow:
     name: hengzhun_i3_first_vertical
     displayName: 衡准-I3-首个纵向回归闭环
@@ -54,8 +63,11 @@ i3:
   plugin:
     name: 衡准回归 Harness
     openapi: ../contracts/openapi/hengzhun-harness-v1.yaml
-    status: IMPORTED_DRAFT_EDITOR_BLOCKED
+    status: PUBLISHED_ATTACHED_SEVEN_TOOLS_VERIFIED
   acceptance:
     runtimeSevenToolCalls: VERIFIED
-    publicAgentSevenToolCalls: BLOCKED_BY_PLUGIN_EDITOR
-    publishGate: OPEN
+    publicAgentSevenToolCalls: VERIFIED_WITH_RECOVERY_SESSIONS
+    knowledgeRetrieval: VERIFIED_NON_NULL
+    finalRun: PASSED
+    decision: RECORDED_APPROVE
+    publishGate: CLOSED

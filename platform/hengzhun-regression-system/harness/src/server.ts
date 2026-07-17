@@ -42,6 +42,23 @@ const workerCompletionSchema = z.object({
   }).strict()).max(8)
 }).strict();
 
+const pluginReferenceSchema = z.string().trim().min(8).max(80);
+const pluginCaseGetSchema = z.object({
+  namespace: namespaceSchema,
+  caseId: pluginReferenceSchema
+}).strict();
+const pluginPlanCompileSchema = planCompileSchema.extend({
+  caseId: pluginReferenceSchema
+}).strict();
+const pluginTaskGetSchema = z.object({
+  namespace: namespaceSchema,
+  taskId: pluginReferenceSchema
+}).strict();
+const pluginArtifactGetSchema = z.object({
+  namespace: namespaceSchema,
+  artifactId: pluginReferenceSchema
+}).strict();
+
 export interface HarnessApplicationOptions {
   productRoot: string;
   databasePath?: string;
@@ -121,6 +138,10 @@ function errorBody(error: HarnessError, requestId: string): Record<string, unkno
   };
 }
 
+function omitNullValues(value: Record<string, unknown>): Record<string, unknown> {
+  return Object.fromEntries(Object.entries(value).filter(([, item]) => item !== null && item !== undefined));
+}
+
 export async function createHarnessApplication(options: HarnessApplicationOptions): Promise<HarnessApplication> {
   const database = await HarnessDatabase.open({
     databasePath: options.databasePath ?? path.join(options.productRoot, '.data', 'sqlite', 'regression_platform.sqlite'),
@@ -182,6 +203,39 @@ export async function createHarnessApplication(options: HarnessApplicationOption
       }
 
       const context = { requestId, credentialFingerprint: fingerprint };
+      if (request.method === 'POST' && url.pathname === '/v1/plugin/cases:create-draft') {
+        const input = caseCreateDraftSchema.parse(await readJson(request));
+        const result = await service.createCaseDraft(input, context);
+        return sendJson(response, result.status, result.response, 'L1', requestId);
+      }
+      if (request.method === 'POST' && url.pathname === '/v1/plugin/cases:get') {
+        const input = pluginCaseGetSchema.parse(await readJson(request));
+        return sendJson(response, 200, service.getCase(input.namespace, input.caseId), 'L2', requestId);
+      }
+      if (request.method === 'POST' && url.pathname === '/v1/plugin/plans:compile') {
+        const { caseId, ...compileInput } = pluginPlanCompileSchema.parse(await readJson(request));
+        const result = await service.compilePlan(caseId, compileInput, context);
+        return sendJson(response, result.status, result.response, 'L1', requestId);
+      }
+      if (request.method === 'POST' && url.pathname === '/v1/plugin/runs:submit') {
+        const input = runSubmitSchema.parse(await readJson(request));
+        const result = await service.submitRun(input, context);
+        return sendJson(response, result.status, result.response, 'L1', requestId);
+      }
+      if (request.method === 'POST' && url.pathname === '/v1/plugin/tasks:get') {
+        const input = pluginTaskGetSchema.parse(await readJson(request));
+        return sendJson(response, 200, omitNullValues(service.getTask(input.namespace, input.taskId)), 'L0', requestId);
+      }
+      if (request.method === 'POST' && url.pathname === '/v1/plugin/artifacts:get-metadata') {
+        const input = pluginArtifactGetSchema.parse(await readJson(request));
+        return sendJson(response, 200, service.getArtifactMetadata(input.namespace, input.artifactId), 'L3', requestId);
+      }
+      if (request.method === 'POST' && url.pathname === '/v1/plugin/decisions:submit') {
+        const input = decisionSubmitSchema.parse(await readJson(request));
+        const result = await service.submitDecision(input, context);
+        return sendJson(response, result.status, result.response, 'L1', requestId);
+      }
+
       if (request.method === 'POST' && url.pathname === '/v1/cases/drafts') {
         const input = caseCreateDraftSchema.parse(await readJson(request));
         const result = await service.createCaseDraft(input, context);

@@ -4,9 +4,9 @@
 
 ## 当前状态
 
-I1 的单目录产品边界、固定运行时、结构校验、合成一致性服务、OpenAPI 样例、本机 Coze Studio 0.5.1、受控 Docker 网络、最小 Agent、Knowledge Base 和 Workflow 已真实落地。I2 的 TypeScript/Node Harness、SQLite 单库、七工具 OpenAPI、Bearer/allowlist、安全审计、幂等、输出预算和 Artifact 元数据内核也已落地。I3 的 SQLite 迁移、Worker 租约、凭据别名、Fixture 隔离、真实门户登录与资料一致性 Playwright 案例、三类脱敏证据、会话恢复和知识检索 Hash 审计已落地。公开界面与内核验证结果写入 `tests/conformance/results/`。
+I1 的单目录产品边界、固定运行时、结构校验、合成一致性服务、OpenAPI 样例、本机 Coze Studio 0.5.1、受控 Docker 网络、最小 Agent、Knowledge Base 和 Workflow 已真实落地。I2 的 TypeScript/Node Harness、SQLite 单库、七工具 OpenAPI、Bearer/allowlist、安全审计、幂等、输出预算和 Artifact 元数据内核也已落地。I3 已完成 SQLite 状态、Playwright Worker、MiMo 兼容网关、真实门户登录与资料一致性、三类脱敏证据、Coze 七工具真实调用、会话恢复和真实知识检索，结果写入 `tests/conformance/results/`。
 
-I1 不能据实标记为完整通过：当前 Coze Studio 公开界面不支持同结构 Skill 包上传。I3 已通过公开 UI 导入七工具 Plugin，修复了该版本只接受 200 响应且不兼容 `additionalProperties` 的契约问题；但导入后插件编辑页显示“无法查看智能体”，尚不能调试、发布或绑定 Agent。I3 Agent Prompt 与 Knowledge Base 已配置，Workflow 已创建草稿；真实 Coze Agent 七工具调用仍是未关闭门禁，不得冒充完成。
+I1 仍不能据实标记为完整通过：当前 Coze Studio 公开界面不支持同结构 Skill 包上传；这是已登记的平台差异。I3 的插件已通过公开 UI 导入、调试、发布并绑定已发布 Agent；Knowledge Base 自动检索和七工具恢复会话均实测通过，最终运行 `PASSED`、决策 `RECORDED/APPROVE`。
 
 ## 目录职责
 
@@ -15,6 +15,7 @@ I1 不能据实标记为完整通过：当前 Coze Studio 公开界面不支持�
 | `coze/` | 可公开上传或导入的 Skill、插件和界面配置制品 | I1 制品、公开界面配置与 Coze Studio 基线已落地 |
 | `harness/` | API、安全、任务、状态机、SQLite 与证据控制层 | I3 执行状态、租约、知识审计和证据闭环已落地 |
 | `worker/` | Playwright 正式执行与 Midscene 作者化适配 | I3 确定性登录/资料一致性 Worker 已落地；Midscene 留待 I4 |
+| `model-gateway/` | MiMo 非流式上游到 Coze OpenAI SSE 的受控兼容层 | 内部网络、Bearer、无宿主端口；不保存领域状态 |
 | `runtime/` | 固定 Node、Chromium 与本地依赖 | 已迁移副本，需通过校验 |
 | `contracts/` | Harness OpenAPI 与数据契约 | 七工具 OpenAPI 3.0.3 契约已版本化并通过静态导入校验 |
 | `tests/` | 单元、契约、集成、E2E 与平台一致性测试 | I3 Worker、七工具终态、会话恢复、知识审计和真实门户 E2E 已落地 |

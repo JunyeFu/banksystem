@@ -7,7 +7,7 @@ const path = require('node:path');
 const root = path.resolve(__dirname, '..');
 const resultRoot = path.join(root, 'tests', 'conformance', 'results');
 const expected = new Map([
-  ['PLAT-V004', 'PARTIALLY_VERIFIED'],
+  ['PLAT-V004', 'RUNTIME_VERIFIED'],
   ['PLAT-V011', 'RUNTIME_VERIFIED'],
   ['PLAT-V012', 'RUNTIME_VERIFIED']
 ]);
@@ -38,8 +38,8 @@ if (failures.length) {
   process.exitCode = 2;
 } else {
   console.log(JSON.stringify({
-    status: 'HENGZHUN_I3_RUNTIME_RESULTS_VERIFIED',
-    runtimeGatesClosed: ['PLAT-V011', 'PLAT-V012'],
-    publicPlatformGateOpen: ['PLAT-V004']
+    status: 'HENGZHUN_I3_RESULTS_VERIFIED',
+    runtimeGatesClosed: ['PLAT-V004', 'PLAT-V011', 'PLAT-V012'],
+    publicPlatformGateOpen: []
   }, null, 2));
 }

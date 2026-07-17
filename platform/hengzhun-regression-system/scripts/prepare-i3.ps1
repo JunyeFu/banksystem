@@ -53,8 +53,8 @@ $containerCommand = @'
 set -eu
 PHASE=INITIALIZE
 trap 'code=$?; if [ "$code" -ne 0 ]; then printf "FAILED_%s" "$PHASE"; fi' EXIT
-IFS= read -r HZ_PASSWORD_B64
-HZ_PASSWORD=$(printf %s "$HZ_PASSWORD_B64" | tr -d '\r' | base64 -d)
+HZ_PASSWORD_B64=$(cat | tr -cd 'A-Za-z0-9+/=')
+HZ_PASSWORD=$(printf %s "$HZ_PASSWORD_B64" | base64 -d)
 HZ_USERNAME=hz-i3-customer
 KCADM=/opt/keycloak/bin/kcadm.sh
 PHASE=AUTHENTICATE

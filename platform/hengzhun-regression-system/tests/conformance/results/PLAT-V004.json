@@ -2,10 +2,15 @@
   "schemaVersion": 1,
   "id": "PLAT-V004",
   "platform": { "name": "Coze Studio", "version": "0.5.1" },
-  "testedAt": "2026-07-17T10:00:00+08:00",
-  "conclusion": "PARTIALLY_VERIFIED",
-  "artifactSha256": "a9bb06cea1dced14c68887f795c5cac983146ddc25e72d7ab963458ce967c556",
-  "evidenceSha256": ["a9bb06cea1dced14c68887f795c5cac983146ddc25e72d7ab963458ce967c556", "4bfc21e5934e1430d17939b88ae501a2d0bd1ab6a3d2b8f86ad4ca50d41786d3"],
-  "finding": "七工具 OpenAPI 已通过 Coze Studio 0.5.1 公开界面导入，实测要求每个操作只文档化 HTTP 200 且不使用 additionalProperties；导入后资源库可见插件，但公开编辑页显示无法查看智能体，不能调试、发布、绑定 Agent 或执行真实对话调用。",
-  "impact": "公开导入门禁关闭；I3 仍必须修复插件公开编辑发布能力并完成七工具 Agent 真实调用后才能关闭本项。"
+  "testedAt": "2026-07-17T12:25:00+08:00",
+  "conclusion": "RUNTIME_VERIFIED",
+  "artifactSha256": "dfbf05412cdf9292eac430cde4634c63e67d414ae31f28d6592b089c92c05568",
+  "evidenceSha256": [
+    "dfbf05412cdf9292eac430cde4634c63e67d414ae31f28d6592b089c92c05568",
+    "f5fd21599761a7105295e3060df67906c29bad0806bd8dd7c11ac97f5eb24a51",
+    "9e747e5d26ecd6a47f2f8c3f09cb17cfadc5a3890549bfa5899d8199b41a3e0e",
+    "67eec4c3919da40c5dba8166f53fe3caebdf6f2694c15b143ff42159bb31f1a8"
+  ],
+  "finding": "七工具 OpenAPI 已经由 Coze Studio 0.5.1 公开界面导入、调试、发布并绑定到同一已发布 Agent。case_create_draft、case_get、plan_compile、run_submit、task_get、artifact_get_metadata、decision_submit 均完成真实调用；最终运行 PASSED，决策 RECORDED/APPROVE。",
+  "impact": "I3 的 PLAT-V004 退出门禁关闭。后续契约变化必须重新导入并全量复验。"
 }

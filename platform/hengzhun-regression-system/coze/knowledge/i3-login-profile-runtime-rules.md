@@ -11,7 +11,7 @@
 - 正式浏览器执行与断言：Playwright Worker。
 - 被测系统：复兴银行门户。
 - 正式回归不调用 LLM 或 Midscene。
-- 凭据只使用 `customer-synthetic-01` 形式的别名，禁止传递账号密码原文。
+- 首条 I3 案例固定使用凭据别名 `i3-customer`，禁止传递账号密码原文。
 
 ## 七工具顺序
 
