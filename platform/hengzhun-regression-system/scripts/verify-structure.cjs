@@ -24,6 +24,15 @@ const requiredFiles = [
   'scripts/prepare-i2.ps1', 'scripts/start-i2.ps1', 'scripts/stop-i2.ps1',
   'scripts/verify-i2.ps1', 'scripts/verify-i2-openapi.cjs',
   'scripts/verify-i2-results.cjs',
+  'harness/migrations/002_i3_execution.sql',
+  'contracts/openapi/hengzhun-worker-internal-v1.yaml',
+  'worker/src/index.cjs', 'worker/src/login-profile.cjs',
+  'scripts/prepare-i3.ps1', 'scripts/start-i3.ps1', 'scripts/stop-i3.ps1',
+  'scripts/verify-i3.ps1', 'scripts/verify-i3-openapi.cjs', 'scripts/verify-i3-results.cjs',
+  'tests/i3/vertical-closure.test.cjs',
+  'coze/agents/hengzhun-i3-regression-agent.md',
+  'coze/knowledge/i3-login-profile-runtime-rules.md',
+  'coze/workflows/i3-first-vertical.yaml',
   'tests/i2/database.test.cjs', 'tests/i2/output-budget.test.cjs',
   'tests/i2/harness-api.test.cjs',
   'tests/conformance/results/PLAT-V001.json',
@@ -34,7 +43,9 @@ const requiredFiles = [
   'tests/conformance/results/PLAT-V013.json',
   'tests/conformance/results/PLAT-V004.json',
   'tests/conformance/results/PLAT-V005.json',
-  'tests/conformance/results/PLAT-V008.json'
+  'tests/conformance/results/PLAT-V008.json',
+  'tests/conformance/results/PLAT-V011.json',
+  'tests/conformance/results/PLAT-V012.json'
 ];
 const failures = [];
 

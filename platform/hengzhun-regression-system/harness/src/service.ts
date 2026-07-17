@@ -21,6 +21,26 @@ interface StoredIdempotency {
   response_json: string;
 }
 
+export interface WorkerEvidenceInput {
+  artifactType: 'JSON' | 'TEXT' | 'SCREENSHOT' | 'LOG' | 'REPORT' | 'DIAGNOSTIC';
+  mediaType: string;
+  redactionStatus: 'NOT_REQUIRED' | 'REDACTED' | 'QUARANTINED';
+  extension: string;
+  base64Content: string;
+  metadata?: Record<string, unknown>;
+}
+
+export interface WorkerCompletionInput {
+  workerId: string;
+  outcome: 'PASSED' | 'FAILED' | 'BLOCKED';
+  summary: string;
+  errorCode?: string;
+  errorCategory?: 'TEST_FAILURE' | 'ENVIRONMENT' | 'EVIDENCE';
+  retryable?: boolean;
+  userActionRequired?: boolean;
+  evidence: WorkerEvidenceInput[];
+}
+
 export class HarnessService {
   readonly artifacts: ArtifactStore;
 
@@ -138,8 +158,22 @@ export class HarnessService {
         INSERT INTO case_versions(case_id, version, definition_json, content_hash, created_by, created_at)
         VALUES (?, ?, ?, ?, ?, ?)
       `).run(caseId, version, canonicalJson(definition), sha256(canonicalJson(definition)), input.actorRef, timestamp);
+      let retrievalId: string | undefined;
+      if (input.knowledgeRetrieval) {
+        retrievalId = opaqueId('retrieval');
+        db.prepare(`
+          INSERT INTO knowledge_retrieval_events(
+            retrieval_id, namespace, case_id, source_authority, query_hash,
+            result_hash, citation_refs_json, created_at
+          ) VALUES (?, ?, ?, 'COZE_KNOWLEDGE_BASE', ?, ?, ?, ?)
+        `).run(
+          retrievalId, input.namespace, caseId, sha256(input.knowledgeRetrieval.query),
+          sha256(input.knowledgeRetrieval.resultSummary),
+          canonicalJson(input.knowledgeRetrieval.citationRefs), timestamp
+        );
+      }
       return {
-        status: 201,
+        status: 200,
         objectType: 'CASE',
         objectId: caseId,
         response: {
@@ -147,7 +181,8 @@ export class HarnessService {
           version,
           status: 'VALIDATED',
           validationIssues: [],
-          summary: input.summary
+          summary: input.summary,
+          ...(retrievalId ? { knowledgeRetrievalId: retrievalId } : {})
         }
       };
     });
@@ -210,7 +245,7 @@ export class HarnessService {
         VALUES (?, ?, 'PLAN_COMPILE', 'SUCCEEDED', 100, ?, ?, 1, ?, ?, ?)
       `).run(taskId, input.namespace, caseId, `计划 ${planId} 已编译。`, timestamp, timestamp, timestamp);
       return {
-        status: 202,
+        status: 200,
         objectType: 'PLAN',
         objectId: planId,
         taskId,
@@ -233,16 +268,22 @@ export class HarnessService {
       if (plan.status !== 'READY') throw new HarnessError(409, 'PLAN_NOT_RUNNABLE', 'DOMAIN', '计划当前不可执行。', false, true);
       const runId = opaqueId('run');
       const taskId = opaqueId('task');
+      const fixtureNamespace = `fx-${sha256(`${input.namespace}:${runId}`).slice(0, 20)}`;
+      const payload = canonicalJson({
+        environment: input.environment,
+        credentialAlias: input.credentialAlias,
+        fixtureNamespace
+      });
       db.prepare(`
-        INSERT INTO tasks(task_id, namespace, task_type, status, progress, case_id, run_id, version, created_at, updated_at)
-        VALUES (?, ?, 'RUN_EXECUTE', 'QUEUED', 0, ?, ?, 1, ?, ?)
-      `).run(taskId, input.namespace, input.caseId, runId, timestamp, timestamp);
+        INSERT INTO tasks(task_id, namespace, task_type, status, progress, case_id, run_id, payload_json, version, created_at, updated_at)
+        VALUES (?, ?, 'RUN_EXECUTE', 'QUEUED', 0, ?, ?, ?, 1, ?, ?)
+      `).run(taskId, input.namespace, input.caseId, runId, payload, timestamp, timestamp);
       db.prepare(`
-        INSERT INTO runs(run_id, namespace, case_id, case_version, plan_id, task_id, status, version, created_at)
-        VALUES (?, ?, ?, ?, ?, ?, 'QUEUED', 1, ?)
-      `).run(runId, input.namespace, input.caseId, input.expectedCaseVersion, input.planId, taskId, timestamp);
+        INSERT INTO runs(run_id, namespace, case_id, case_version, plan_id, task_id, status, credential_alias, fixture_namespace, version, created_at)
+        VALUES (?, ?, ?, ?, ?, ?, 'QUEUED', ?, ?, 1, ?)
+      `).run(runId, input.namespace, input.caseId, input.expectedCaseVersion, input.planId, taskId, input.credentialAlias, fixtureNamespace, timestamp);
       return {
-        status: 202,
+        status: 200,
         objectType: 'RUN',
         objectId: runId,
         runId,
@@ -252,9 +293,142 @@ export class HarnessService {
     });
   }
 
+  async claimNextRun(workerId: string, leaseSeconds = 300): Promise<Record<string, unknown>> {
+    return this.database.write(db => {
+      const timestamp = nowIso();
+      db.prepare(`
+        UPDATE tasks
+        SET status = 'QUEUED', progress = 0, lease_owner = NULL, lease_expires_at = NULL,
+            version = version + 1, updated_at = ?
+        WHERE task_type = 'RUN_EXECUTE' AND status = 'RUNNING'
+          AND lease_expires_at IS NOT NULL AND lease_expires_at < ?
+      `).run(timestamp, timestamp);
+      db.prepare(`
+        UPDATE runs SET status = 'QUEUED', version = version + 1
+        WHERE task_id IN (SELECT task_id FROM tasks WHERE task_type = 'RUN_EXECUTE' AND status = 'QUEUED')
+          AND status = 'RUNNING'
+      `).run();
+
+      const row = db.prepare(`
+        SELECT t.task_id, t.namespace, t.case_id, t.run_id, t.payload_json,
+               r.case_version, r.plan_id, cv.definition_json
+        FROM tasks t
+        JOIN runs r ON r.task_id = t.task_id
+        JOIN case_versions cv ON cv.case_id = r.case_id AND cv.version = r.case_version
+        WHERE t.task_type = 'RUN_EXECUTE' AND t.status = 'QUEUED'
+        ORDER BY t.created_at ASC
+        LIMIT 1
+      `).get() as {
+        task_id: string; namespace: string; case_id: string; run_id: string;
+        payload_json: string; case_version: number; plan_id: string; definition_json: string;
+      } | undefined;
+      if (!row) return { status: 'EMPTY' };
+
+      const leaseExpiresAt = new Date(Date.now() + leaseSeconds * 1000).toISOString();
+      db.prepare(`
+        UPDATE tasks SET status = 'RUNNING', progress = 10, lease_owner = ?, lease_expires_at = ?,
+            attempt_count = attempt_count + 1, version = version + 1, updated_at = ?
+        WHERE task_id = ? AND status = 'QUEUED'
+      `).run(workerId, leaseExpiresAt, timestamp, row.task_id);
+      db.prepare(`
+        UPDATE runs SET status = 'RUNNING', version = version + 1,
+            started_at = COALESCE(started_at, ?) WHERE run_id = ?
+      `).run(timestamp, row.run_id);
+      db.prepare(`
+        INSERT INTO audit_events(
+          event_id, namespace, run_id, task_id, actor_type, action, object_type,
+          object_id, outcome, correlation_id, details_json, created_at
+        ) VALUES (?, ?, ?, ?, 'WORKER', 'run.claim', 'RUN', ?, 'ACCEPTED', ?, ?, ?)
+      `).run(opaqueId('evt'), row.namespace, row.run_id, row.task_id, row.run_id,
+        opaqueId('worker'), JSON.stringify({ workerId, leaseExpiresAt }), timestamp);
+      return {
+        status: 'CLAIMED',
+        taskId: row.task_id,
+        runId: row.run_id,
+        namespace: row.namespace,
+        caseId: row.case_id,
+        caseVersion: row.case_version,
+        planId: row.plan_id,
+        definition: JSON.parse(row.definition_json),
+        execution: JSON.parse(row.payload_json),
+        leaseExpiresAt
+      };
+    });
+  }
+
+  async completeRun(taskId: string, input: WorkerCompletionInput): Promise<Record<string, unknown>> {
+    const task = this.database.read(db => db.prepare(`
+      SELECT namespace, run_id, status, lease_owner FROM tasks
+      WHERE task_id = ? AND task_type = 'RUN_EXECUTE'
+    `).get(taskId) as { namespace: string; run_id: string; status: string; lease_owner: string | null } | undefined);
+    if (!task) throw new HarnessError(404, 'WORKER_TASK_NOT_FOUND', 'DOMAIN', 'Worker 任务不存在。');
+    if (task.status !== 'RUNNING' || task.lease_owner !== input.workerId) {
+      throw new HarnessError(409, 'WORKER_LEASE_CONFLICT', 'CONCURRENCY', 'Worker 租约已失效。', false, true);
+    }
+    if (input.outcome === 'PASSED' && input.evidence.length < 3) {
+      throw new HarnessError(400, 'EVIDENCE_INCOMPLETE', 'EVIDENCE', '通过结果必须包含报告、截图和日志证据。');
+    }
+
+    const artifacts: Record<string, unknown>[] = [];
+    for (const evidence of input.evidence) {
+      artifacts.push(await this.artifacts.create({
+        namespace: task.namespace,
+        runId: task.run_id,
+        taskId,
+        artifactType: evidence.artifactType,
+        mediaType: evidence.mediaType,
+        redactionStatus: evidence.redactionStatus,
+        extension: evidence.extension,
+        content: Buffer.from(evidence.base64Content, 'base64'),
+        metadata: evidence.metadata
+      }));
+    }
+    const resultArtifact = artifacts.find(item => item.type === 'REPORT') ?? artifacts[0];
+    const timestamp = nowIso();
+    const taskStatus = input.outcome === 'PASSED' ? 'SUCCEEDED' : 'FAILED';
+    await this.database.write(db => {
+      db.prepare(`
+        UPDATE tasks SET status = ?, progress = 100, result_summary = ?, result_artifact_id = ?,
+            error_code = ?, error_category = ?, retryable = ?, user_action_required = ?,
+            lease_owner = NULL, lease_expires_at = NULL, version = version + 1,
+            updated_at = ?, completed_at = ?
+        WHERE task_id = ?
+      `).run(
+        taskStatus, input.summary, resultArtifact?.artifactId ?? null,
+        input.errorCode ?? null, input.errorCategory ?? null, input.retryable ? 1 : 0,
+        input.userActionRequired ? 1 : 0, timestamp, timestamp, taskId
+      );
+      db.prepare(`
+        UPDATE runs SET status = ?, version = version + 1, completed_at = ? WHERE run_id = ?
+      `).run(input.outcome, timestamp, task.run_id);
+      db.prepare(`
+        INSERT INTO audit_events(
+          event_id, namespace, run_id, task_id, actor_type, action, object_type,
+          object_id, outcome, correlation_id, details_json, created_at
+        ) VALUES (?, ?, ?, ?, 'WORKER', 'run.complete', 'RUN', ?, ?, ?, ?, ?)
+      `).run(
+        opaqueId('evt'), task.namespace, task.run_id, taskId, task.run_id,
+        input.outcome === 'PASSED' ? 'SUCCEEDED' : 'FAILED', opaqueId('worker'),
+        JSON.stringify({ outcome: input.outcome, artifactIds: artifacts.map(item => item.artifactId) }), timestamp
+      );
+    });
+    return {
+      taskId,
+      runId: task.run_id,
+      status: taskStatus,
+      outcome: input.outcome,
+      resultArtifactId: resultArtifact?.artifactId ?? null,
+      artifactIds: artifacts.map(item => item.artifactId)
+    };
+  }
+
   getTask(namespace: string, taskId: string): Record<string, unknown> {
     return this.database.read(db => {
-      const row = db.prepare('SELECT * FROM tasks WHERE namespace = ? AND task_id = ?').get(namespace, taskId) as Record<string, unknown> | undefined;
+      const row = db.prepare(`
+        SELECT t.*, r.version AS run_version
+        FROM tasks t LEFT JOIN runs r ON r.run_id = t.run_id
+        WHERE t.namespace = ? AND t.task_id = ?
+      `).get(namespace, taskId) as Record<string, unknown> | undefined;
       if (!row) throw new HarnessError(404, 'TASK_NOT_FOUND', 'DOMAIN', '任务不存在。');
       return {
         taskId: row.task_id,
@@ -264,6 +438,7 @@ export class HarnessService {
         status: row.status,
         progress: row.progress,
         version: row.version,
+        runVersion: row.run_version,
         summary: row.result_summary,
         resultArtifactId: row.result_artifact_id,
         errorCode: row.error_code,
@@ -315,7 +490,7 @@ export class HarnessService {
         ) VALUES (?, ?, ?, ?, ?, ?, ?, 'RECORDED', 1, ?)
       `).run(decisionId, input.namespace, input.targetType, input.targetId, input.expectedVersion, input.choice, input.reason, timestamp);
       return {
-        status: 201,
+        status: 200,
         objectType: 'DECISION',
         objectId: decisionId,
         response: {

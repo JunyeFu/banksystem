@@ -88,6 +88,10 @@ I1 当前第一步的退出条件：目录结构校验通过、产品目录内�
 
 I3 退出前必须关闭 `PLAT-V004` 七工具真实调用、`PLAT-V011` 会话中断恢复和 `PLAT-V012` 首版知识检索审计链。
 
+2026-07-17 实施状态：I3 Harness/Worker 纵向运行时已完成。SQLite 迁移、独立 Worker Bearer 通道、租约重领、凭据别名、Fixture 命名空间、每次执行全新 BrowserContext、真实门户账号密码登录、页眉姓名/头像与个人资料一致性断言、报告/遮罩截图/日志三类证据、Artifact Hash、四类失败语义、`taskId + namespace` 会话恢复和 Coze Knowledge Base 检索 Hash 审计均通过自动与真实 E2E；`PLAT-V011`、`PLAT-V012` 的运行时门禁已关闭。
+
+Coze Studio 0.5.1 公开 UI 已完成 I3 Agent Prompt、929 Bytes/2 分段 Knowledge Base 及绑定、Workflow 草稿创建，并成功导入七工具 Harness 插件。导入兼容性要求已实测为“每个操作只文档化 HTTP 200，且 Schema 不使用 `additionalProperties`”。插件导入后资源库可见，但点击公开编辑页显示“无法查看智能体”，导致无法调试、发布、绑定 Agent 和执行七工具真实对话调用；三个 `.skill` 包也仍无该版本公开上传入口。因此 `PLAT-V004` 和 I3 平台退出门禁保持未关闭，I3 不得标记完整完成。
+
 ### I4：三案例与 Midscene
 
 - 三条首批案例全部通过独立 BrowserContext、Fixture 隔离和脱敏证据验收。

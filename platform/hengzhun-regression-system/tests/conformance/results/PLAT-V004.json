@@ -2,10 +2,10 @@
   "schemaVersion": 1,
   "id": "PLAT-V004",
   "platform": { "name": "Coze Studio", "version": "0.5.1" },
-  "testedAt": "2026-07-16T22:10:00+08:00",
+  "testedAt": "2026-07-17T10:00:00+08:00",
   "conclusion": "PARTIALLY_VERIFIED",
-  "artifactSha256": "25db3a642526bb621fca45260330ad6c43c794b56a813661aedd104df99984f7",
-  "evidenceSha256": ["aae646d348e56aee8c07ccf977a6da6a9f61bf41c3a7bae0c28a0ecc848bf547"],
-  "finding": "七个唯一工具的 OpenAPI 3.0.3 契约通过无副作用可导入性校验；当前公开资源库能显示插件类型，但资源创建菜单未进入插件创建表单，未执行真实导入、发布或调用。",
-  "impact": "I2 契约门禁关闭；I3 必须通过公开界面完成真实导入、发布和七工具逐项调用后才能完全关闭本项。"
+  "artifactSha256": "a9bb06cea1dced14c68887f795c5cac983146ddc25e72d7ab963458ce967c556",
+  "evidenceSha256": ["a9bb06cea1dced14c68887f795c5cac983146ddc25e72d7ab963458ce967c556", "4bfc21e5934e1430d17939b88ae501a2d0bd1ab6a3d2b8f86ad4ca50d41786d3"],
+  "finding": "七工具 OpenAPI 已通过 Coze Studio 0.5.1 公开界面导入，实测要求每个操作只文档化 HTTP 200 且不使用 additionalProperties；导入后资源库可见插件，但公开编辑页显示无法查看智能体，不能调试、发布、绑定 Agent 或执行真实对话调用。",
+  "impact": "公开导入门禁关闭；I3 仍必须修复插件公开编辑发布能力并完成七工具 Agent 真实调用后才能关闭本项。"
 }

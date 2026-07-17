@@ -34,5 +34,8 @@ if errorlevel 1 exit /b %ERRORLEVEL%
 "%NODE%" "%PRODUCT_ROOT%scripts\verify-i2-results.cjs"
 if errorlevel 1 exit /b %ERRORLEVEL%
 
-echo HENGZHUN_I1_I2_STATIC_BASELINE_VERIFIED
+call "%PRODUCT_ROOT%runtime\node-v20.20.2-win-x64\npm.cmd" run verify:i3
+if errorlevel 1 exit /b %ERRORLEVEL%
+
+echo HENGZHUN_I1_I2_I3_RUNTIME_BASELINE_VERIFIED_PUBLIC_PLATFORM_GATE_OPEN
 exit /b 0

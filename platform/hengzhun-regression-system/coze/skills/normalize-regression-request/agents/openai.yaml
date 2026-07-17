@@ -1,0 +1,4 @@
+interface:
+  display_name: "Regression Request Normalizer"
+  short_description: "Structure natural language regression requests safely"
+  default_prompt: "Use $normalize-regression-request to structure this regression request."

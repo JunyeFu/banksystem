@@ -4,21 +4,21 @@
 
 ## 当前状态
 
-I1 的单目录产品边界、固定运行时、结构校验、合成一致性服务、OpenAPI 样例、本机 Coze Studio 0.5.1、受控 Docker 网络、最小 Agent、Knowledge Base 和 Workflow 已真实落地。I2 的 TypeScript/Node Harness、SQLite 单库、七工具 OpenAPI、Bearer/allowlist、安全审计、幂等、输出预算和 Artifact 元数据内核也已落地。公开界面与内核验证结果写入 `tests/conformance/results/`。
+I1 的单目录产品边界、固定运行时、结构校验、合成一致性服务、OpenAPI 样例、本机 Coze Studio 0.5.1、受控 Docker 网络、最小 Agent、Knowledge Base 和 Workflow 已真实落地。I2 的 TypeScript/Node Harness、SQLite 单库、七工具 OpenAPI、Bearer/allowlist、安全审计、幂等、输出预算和 Artifact 元数据内核也已落地。I3 的 SQLite 迁移、Worker 租约、凭据别名、Fixture 隔离、真实门户登录与资料一致性 Playwright 案例、三类脱敏证据、会话恢复和知识检索 Hash 审计已落地。公开界面与内核验证结果写入 `tests/conformance/results/`。
 
-I1 不能据实标记为完整通过：当前 Coze Studio 公开界面不支持同结构 Skill 包上传，资源库的“资源”菜单也未能进入可用的 Plugin/OpenAPI 创建表单。I2 已完成 Harness 侧的 `PLAT-V005`、`PLAT-V008` 和 `PLAT-V004` 可导入契约验证；真实 Plugin 导入、发布和七工具调用仍属于 I3 门禁，不得冒充完成。
+I1 不能据实标记为完整通过：当前 Coze Studio 公开界面不支持同结构 Skill 包上传。I3 已通过公开 UI 导入七工具 Plugin，修复了该版本只接受 200 响应且不兼容 `additionalProperties` 的契约问题；但导入后插件编辑页显示“无法查看智能体”，尚不能调试、发布或绑定 Agent。I3 Agent Prompt 与 Knowledge Base 已配置，Workflow 已创建草稿；真实 Coze Agent 七工具调用仍是未关闭门禁，不得冒充完成。
 
 ## 目录职责
 
 | 路径 | 职责 | 当前声明 |
 |---|---|---|
 | `coze/` | 可公开上传或导入的 Skill、插件和界面配置制品 | I1 制品、公开界面配置与 Coze Studio 基线已落地 |
-| `harness/` | API、安全、任务、状态机、SQLite 与证据控制层 | I2 最小安全内核已落地；Worker 执行仍待 I3 |
-| `worker/` | Playwright 正式执行与 Midscene 作者化适配 | 待实现 |
+| `harness/` | API、安全、任务、状态机、SQLite 与证据控制层 | I3 执行状态、租约、知识审计和证据闭环已落地 |
+| `worker/` | Playwright 正式执行与 Midscene 作者化适配 | I3 确定性登录/资料一致性 Worker 已落地；Midscene 留待 I4 |
 | `runtime/` | 固定 Node、Chromium 与本地依赖 | 已迁移副本，需通过校验 |
 | `contracts/` | Harness OpenAPI 与数据契约 | 七工具 OpenAPI 3.0.3 契约已版本化并通过静态导入校验 |
-| `tests/` | 单元、契约、集成、E2E 与平台一致性测试 | I2 数据库、安全、七工具、隔离、幂等和输出预算测试已落地 |
-| `scripts/` | 准备、启动、停止、验证和离线打包入口 | I1/I2 准备、启停与验证入口已落地 |
+| `tests/` | 单元、契约、集成、E2E 与平台一致性测试 | I3 Worker、七工具终态、会话恢复、知识审计和真实门户 E2E 已落地 |
+| `scripts/` | 准备、启动、停止、验证和离线打包入口 | I1-I3 准备、启停、静态与真实运行验证入口已落地 |
 | `docs/` | 产品目录内部说明 | 仅辅助设计，不定义项目顺序 |
 | `.data/` | SQLite、日志、证据和运行数据 | 本地生成，禁止入库与 RAG |
 
@@ -32,4 +32,4 @@ I1 不能据实标记为完整通过：当前 Coze Studio 公开界面不支持�
 .\verify.cmd
 ```
 
-`verify.cmd` 会执行 I1 静态基线和 I2 编译、OpenAPI、数据库、安全、七工具、输出预算及依赖审计。验证不读取或输出凭据；运行态验证使用 `npm run start:i2`，Harness 仅加入内部 Docker 网络，不发布宿主机端口。公开界面结论以 `tests/conformance/results/` 为准，不从本地文件存在性推断。
+`verify.cmd` 会执行 I1 静态基线、I2 编译/数据库/安全/输出预算，以及 I3 Worker/七工具终态/会话恢复/知识审计。真实门户 E2E 使用 `npm run start:i3` 后执行 `scripts/verify-i3-live.ps1`；凭据只从忽略的 `.data/runtime.env` 解析为别名，脚本不输出原文。公开界面结论以 `tests/conformance/results/` 为准，不从本地文件存在性推断。

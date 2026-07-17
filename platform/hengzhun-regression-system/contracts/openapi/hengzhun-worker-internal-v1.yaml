@@ -1,0 +1,105 @@
+openapi: 3.0.3
+info:
+  title: 衡准 Worker 内部接口
+  version: 1.0.0
+  description: 仅供本机 Playwright Worker 领取和完成 SQLite 持久化任务，不导入 Coze/HiAgent。
+servers:
+  - url: http://127.0.0.1:18788
+security:
+  - workerBearer: []
+paths:
+  /internal/worker/tasks:claim:
+    post:
+      operationId: workerClaimTask
+      summary: 领取一个带租约的正式回归任务
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: {$ref: '#/components/schemas/WorkerClaimRequest'}
+            example: {workerId: worker-local-01}
+      responses:
+        '200':
+          description: 已领取任务或当前队列为空
+          content:
+            application/json:
+              schema: {type: object, additionalProperties: true}
+        '401': {$ref: '#/components/responses/Problem'}
+        '403': {$ref: '#/components/responses/Problem'}
+  /internal/worker/tasks/{taskId}:complete:
+    post:
+      operationId: workerCompleteTask
+      summary: 提交确定性断言结果和受控证据
+      parameters:
+        - name: taskId
+          in: path
+          required: true
+          schema: {type: string, minLength: 8, maxLength: 80}
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: {$ref: '#/components/schemas/WorkerCompletionRequest'}
+      responses:
+        '200':
+          description: 任务和运行状态已原子更新
+          content:
+            application/json:
+              schema: {type: object, additionalProperties: true}
+        '400': {$ref: '#/components/responses/Problem'}
+        '401': {$ref: '#/components/responses/Problem'}
+        '403': {$ref: '#/components/responses/Problem'}
+        '409': {$ref: '#/components/responses/Problem'}
+components:
+  securitySchemes:
+    workerBearer: {type: http, scheme: bearer, bearerFormat: opaque-worker-token}
+  schemas:
+    WorkerClaimRequest:
+      type: object
+      additionalProperties: false
+      required: [workerId]
+      properties:
+        workerId: {type: string, minLength: 3, maxLength: 128, pattern: '^[A-Za-z0-9._:-]+$'}
+    WorkerEvidence:
+      type: object
+      additionalProperties: false
+      required: [artifactType, mediaType, redactionStatus, extension, base64Content]
+      properties:
+        artifactType: {type: string, enum: [JSON, TEXT, SCREENSHOT, LOG, REPORT, DIAGNOSTIC]}
+        mediaType: {type: string, minLength: 1, maxLength: 128}
+        redactionStatus: {type: string, enum: [NOT_REQUIRED, REDACTED, QUARANTINED]}
+        extension: {type: string, minLength: 1, maxLength: 10, pattern: '^[A-Za-z0-9]+$'}
+        base64Content: {type: string, minLength: 1, description: Base64 编码且不得包含凭据或真实个人信息。}
+        metadata: {type: object, additionalProperties: true}
+    WorkerCompletionRequest:
+      type: object
+      additionalProperties: false
+      required: [workerId, outcome, summary, evidence]
+      properties:
+        workerId: {type: string, minLength: 3, maxLength: 128}
+        outcome: {type: string, enum: [PASSED, FAILED, BLOCKED]}
+        summary: {type: string, minLength: 1, maxLength: 1000}
+        errorCode: {type: string, minLength: 1, maxLength: 128}
+        errorCategory: {type: string, enum: [TEST_FAILURE, ENVIRONMENT, EVIDENCE]}
+        retryable: {type: boolean}
+        userActionRequired: {type: boolean}
+        evidence:
+          type: array
+          maxItems: 8
+          items: {$ref: '#/components/schemas/WorkerEvidence'}
+  responses:
+    Problem:
+      description: 受控问题响应
+      content:
+        application/json:
+          schema:
+            type: object
+            additionalProperties: false
+            required: [errorCode, category, message, retryable, userActionRequired, requestId]
+            properties:
+              errorCode: {type: string}
+              category: {type: string}
+              message: {type: string}
+              retryable: {type: boolean}
+              userActionRequired: {type: boolean}
+              requestId: {type: string}

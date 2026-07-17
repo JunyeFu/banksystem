@@ -84,13 +84,13 @@ test('seven-tool contract persists authoritative state and enforces idempotency/
     credentialAlias: 'customer-demo-01'
   };
   const created = await request(baseUrl, '/v1/cases/drafts', { method: 'POST', body: JSON.stringify(caseInput) });
-  assert.equal(created.response.status, 201);
+  assert.equal(created.response.status, 200);
   assert.equal(created.response.headers.get('x-hengzhun-output-level'), 'L1');
   assert.equal(created.body.replayed, false);
   const caseId = created.body.caseId;
 
   const replay = await request(baseUrl, '/v1/cases/drafts', { method: 'POST', body: JSON.stringify(caseInput) });
-  assert.equal(replay.response.status, 201);
+  assert.equal(replay.response.status, 200);
   assert.equal(replay.body.caseId, caseId);
   assert.equal(replay.body.replayed, true);
   const conflict = await request(baseUrl, '/v1/cases/drafts', {
@@ -110,7 +110,7 @@ test('seven-tool contract persists authoritative state and enforces idempotency/
     method: 'POST',
     body: JSON.stringify({ namespace, idempotencyKey: 'plan-compile-0001', expectedCaseVersion: 1, executionRoute: 'PLAYWRIGHT' })
   });
-  assert.equal(compiled.response.status, 202);
+  assert.equal(compiled.response.status, 200);
   assert.equal(compiled.body.status, 'SUCCEEDED');
   const planTask = await request(baseUrl, `/v1/tasks/${compiled.body.taskId}?namespace=${namespace}`);
   assert.equal(planTask.response.status, 200);
@@ -124,7 +124,7 @@ test('seven-tool contract persists authoritative state and enforces idempotency/
       planId: compiled.body.planId, environment: 'local', credentialAlias: 'customer-demo-01'
     })
   });
-  assert.equal(run.response.status, 202);
+  assert.equal(run.response.status, 200);
   assert.equal(run.body.status, 'QUEUED');
   const runTask = await request(baseUrl, `/v1/tasks/${run.body.taskId}?namespace=${namespace}`);
   assert.equal(runTask.body.runId, run.body.runId);
@@ -154,7 +154,7 @@ test('seven-tool contract persists authoritative state and enforces idempotency/
       expectedVersion: 1, choice: 'CANCEL', reason: 'I2 协议验收，不执行 Worker。', confirmationRef: 'conversation-confirmation-1'
     })
   });
-  assert.equal(decision.response.status, 201);
+  assert.equal(decision.response.status, 200);
   assert.equal(decision.body.status, 'RECORDED');
   assert.equal(decision.body.effect, 'DEFERRED_TO_FUTURE_BATCH');
 

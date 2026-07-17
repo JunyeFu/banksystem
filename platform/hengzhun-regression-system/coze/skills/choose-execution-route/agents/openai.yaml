@@ -1,0 +1,4 @@
+interface:
+  display_name: "Execution Route Selector"
+  short_description: "Choose validated Playwright or authoring safely"
+  default_prompt: "Use $choose-execution-route to select the safe execution route."

@@ -1,0 +1,187 @@
+const crypto = require('node:crypto');
+const fs = require('node:fs');
+const path = require('node:path');
+const { chromium } = require('../../runtime/node_modules/playwright');
+
+function sha256(value) {
+  return crypto.createHash('sha256').update(value).digest('hex');
+}
+
+function credentialEnvironmentName(alias, field) {
+  const key = alias.toUpperCase().replace(/[^A-Z0-9]+/g, '_').replace(/^_+|_+$/g, '');
+  return `HENGZHUN_CREDENTIAL_${key}_${field}`;
+}
+
+function resolveCredential(alias, environment = process.env) {
+  const username = environment[credentialEnvironmentName(alias, 'USERNAME')];
+  const password = environment[credentialEnvironmentName(alias, 'PASSWORD')];
+  if (!username || !password) {
+    const error = new Error('凭据别名未配置。');
+    error.code = 'CREDENTIAL_ALIAS_UNAVAILABLE';
+    error.category = 'ENVIRONMENT';
+    throw error;
+  }
+  return { username, password };
+}
+
+function artifact(artifactType, mediaType, redactionStatus, extension, content, metadata) {
+  const bytes = Buffer.isBuffer(content) ? content : Buffer.from(content, 'utf8');
+  return {
+    artifactType,
+    mediaType,
+    redactionStatus,
+    extension,
+    base64Content: bytes.toString('base64'),
+    metadata
+  };
+}
+
+async function executeLoginProfile(task, environment = process.env) {
+  const alias = task.execution?.credentialAlias;
+  const credential = resolveCredential(alias, environment);
+  const productRoot = path.resolve(__dirname, '..', '..');
+  const executablePath = environment.HENGZHUN_CHROMIUM_EXECUTABLE
+    || path.join(productRoot, 'runtime', 'browsers', 'chromium-1217', 'chrome-win64', 'chrome.exe');
+  if (!fs.existsSync(executablePath)) {
+    const error = new Error('固定 Chromium 不可用。');
+    error.code = 'CHROMIUM_UNAVAILABLE';
+    error.category = 'ENVIRONMENT';
+    throw error;
+  }
+
+  const portalBaseUrl = (environment.HENGZHUN_PORTAL_BASE_URL || 'http://127.0.0.1:18082').replace(/\/$/, '');
+  const network = [];
+  const steps = [];
+  const browser = await chromium.launch({ executablePath, headless: true });
+  const context = await browser.newContext({
+    locale: 'zh-CN',
+    timezoneId: 'Asia/Shanghai',
+    viewport: { width: 1440, height: 1100 },
+    ignoreHTTPSErrors: false
+  });
+  const page = await context.newPage();
+  page.on('response', response => {
+    try {
+      const url = new URL(response.url());
+      if (url.origin === new URL(portalBaseUrl).origin || url.port === '19000') {
+        network.push({ method: response.request().method(), path: url.pathname, status: response.status() });
+      }
+    } catch { }
+  });
+
+  try {
+    await page.goto(`${portalBaseUrl}/portal/login`, { waitUntil: 'domcontentloaded', timeout: 30000 });
+    steps.push({ step: 'portal-login-opened', passed: true });
+    await page.getByTestId('login-username').fill(credential.username);
+    await page.getByTestId('login-password').fill(credential.password);
+    await page.getByTestId('login-submit').click();
+    await page.getByTestId('customer-profile-name').waitFor({ state: 'visible', timeout: 30000 });
+    steps.push({ step: 'portal-password-login', passed: true });
+
+    const headerName = (await page.getByTestId('customer-profile-name').innerText()).trim();
+    const headerAvatar = (await page.getByTestId('customer-profile-avatar').innerText()).trim();
+    await page.getByRole('link', { name: '个人资料', exact: true }).click();
+    await page.getByTestId('profile-display-name').waitFor({ state: 'visible', timeout: 30000 });
+    const profileName = (await page.getByTestId('profile-display-name').innerText()).trim();
+    const expectedAvatar = Array.from(headerName.replace(/\s+/g, ''))[0] || '';
+    const assertions = {
+      headerNamePresent: headerName.length > 0,
+      profileNamePresent: profileName.length > 0,
+      namesEqual: headerName === profileName,
+      avatarMatchesName: headerAvatar === expectedAvatar
+    };
+    steps.push({ step: 'identity-consistency-asserted', passed: Object.values(assertions).every(Boolean) });
+
+    const screenshot = await page.screenshot({
+      fullPage: true,
+      mask: [
+        page.getByTestId('profile-customer-id'),
+        page.getByTestId('profile-email'),
+        page.getByTestId('profile-phone')
+      ],
+      maskColor: '#202020'
+    });
+    const passed = Object.values(assertions).every(Boolean);
+    const contractPath = path.join(productRoot, 'contracts', 'openapi', 'hengzhun-harness-v1.yaml');
+    const report = {
+      schemaVersion: 'i3-evidence-v1',
+      caseId: task.caseId,
+      caseVersion: task.caseVersion,
+      runId: task.runId,
+      taskId: task.taskId,
+      namespace: task.namespace,
+      fixtureNamespace: task.execution?.fixtureNamespace,
+      sourceCommit: environment.HENGZHUN_SOURCE_COMMIT || 'unknown',
+      contractSha256: fs.existsSync(contractPath) ? sha256(fs.readFileSync(contractPath)) : null,
+      scriptSha256: sha256(fs.readFileSync(__filename)),
+      assertions,
+      identityEvidence: {
+        displayNameSha256: sha256(headerName),
+        displayNameLength: Array.from(headerName).length,
+        avatarSha256: sha256(headerAvatar)
+      },
+      networkSummary: network.slice(-50),
+      passed
+    };
+    const log = steps.map(item => `${item.passed ? 'PASS' : 'FAIL'} ${item.step}`).join('\n') + '\n';
+    const evidence = [
+      artifact('REPORT', 'application/json', 'REDACTED', 'json', JSON.stringify(report, null, 2), {
+        schemaVersion: report.schemaVersion,
+        assertionCount: Object.keys(assertions).length,
+        passed
+      }),
+      artifact('SCREENSHOT', 'image/png', 'REDACTED', 'png', screenshot, {
+        pageId: 'customer.profile',
+        maskedFields: ['customerId', 'email', 'phone']
+      }),
+      artifact('LOG', 'text/plain; charset=utf-8', 'REDACTED', 'log', log, {
+        lineCount: steps.length,
+        containsCredentials: false
+      })
+    ];
+    return passed
+      ? { outcome: 'PASSED', summary: '门户账号密码登录成功，右上角姓名、头像与个人资料一致。', evidence }
+      : {
+          outcome: 'FAILED',
+          summary: '门户已登录，但姓名、头像或个人资料一致性断言失败。',
+          errorCode: 'IDENTITY_ASSERTION_FAILED',
+          errorCategory: 'TEST_FAILURE',
+          retryable: false,
+          userActionRequired: false,
+          evidence
+        };
+  } catch (error) {
+    const loginError = await page.getByTestId('login-error').textContent().catch(() => null);
+    if (!error.category) {
+      error.category = loginError ? 'TEST_FAILURE' : (error.name === 'TimeoutError' ? 'ENVIRONMENT' : 'TEST_FAILURE');
+      error.code = loginError ? 'PORTAL_LOGIN_REJECTED' : (error.name === 'TimeoutError' ? 'PORTAL_TIMEOUT' : 'LOGIN_PROFILE_EXECUTION_FAILED');
+    }
+    const diagnostic = {
+      schemaVersion: 'i3-diagnostic-v1',
+      runId: task.runId,
+      taskId: task.taskId,
+      errorCode: error.code,
+      errorCategory: error.category,
+      pagePath: (() => { try { return new URL(page.url()).pathname; } catch { return 'unknown'; } })(),
+      loginError: loginError ? loginError.slice(0, 300) : null,
+      networkSummary: network.slice(-50),
+      completedSteps: steps
+    };
+    const failureEvidence = [artifact('DIAGNOSTIC', 'application/json', 'REDACTED', 'json', JSON.stringify(diagnostic, null, 2), { containsCredentials: false })];
+    const failureScreenshot = await page.screenshot({
+      fullPage: true,
+      mask: [page.getByTestId('login-username'), page.getByTestId('login-password')],
+      maskColor: '#202020'
+    }).catch(() => null);
+    if (failureScreenshot) {
+      failureEvidence.push(artifact('SCREENSHOT', 'image/png', 'REDACTED', 'png', failureScreenshot, { maskedFields: ['username', 'password'] }));
+    }
+    error.evidence = failureEvidence;
+    throw error;
+  } finally {
+    await context.close();
+    await browser.close();
+  }
+}
+
+module.exports = { executeLoginProfile, resolveCredential, credentialEnvironmentName };

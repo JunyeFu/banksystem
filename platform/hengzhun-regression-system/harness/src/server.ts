@@ -1,6 +1,7 @@
 import http from 'node:http';
 import path from 'node:path';
-import { ZodError } from 'zod';
+import crypto from 'node:crypto';
+import { z, ZodError } from 'zod';
 import { HarnessDatabase } from './database';
 import { asHarnessError, HarnessError } from './errors';
 import { OutputLevel, serializeWithinBudget } from './output-budget';
@@ -17,6 +18,29 @@ import { HarnessService } from './service';
 import { credentialFingerprint, nowIso, opaqueId } from './utils';
 
 const MAX_REQUEST_BYTES = 256 * 1024;
+const MAX_WORKER_REQUEST_BYTES = 8 * 1024 * 1024;
+
+const workerClaimSchema = z.object({
+  workerId: z.string().trim().min(3).max(128).regex(/^[A-Za-z0-9._:-]+$/)
+}).strict();
+
+const workerCompletionSchema = z.object({
+  workerId: z.string().trim().min(3).max(128).regex(/^[A-Za-z0-9._:-]+$/),
+  outcome: z.enum(['PASSED', 'FAILED', 'BLOCKED']),
+  summary: z.string().trim().min(1).max(1000),
+  errorCode: z.string().trim().min(1).max(128).optional(),
+  errorCategory: z.enum(['TEST_FAILURE', 'ENVIRONMENT', 'EVIDENCE']).optional(),
+  retryable: z.boolean().optional(),
+  userActionRequired: z.boolean().optional(),
+  evidence: z.array(z.object({
+    artifactType: z.enum(['JSON', 'TEXT', 'SCREENSHOT', 'LOG', 'REPORT', 'DIAGNOSTIC']),
+    mediaType: z.string().trim().min(1).max(128),
+    redactionStatus: z.enum(['NOT_REQUIRED', 'REDACTED', 'QUARANTINED']),
+    extension: z.string().trim().min(1).max(10).regex(/^[A-Za-z0-9]+$/),
+    base64Content: z.string().min(1).max(7 * 1024 * 1024).regex(/^[A-Za-z0-9+/]+={0,2}$/),
+    metadata: z.record(z.string(), z.unknown()).optional()
+  }).strict()).max(8)
+}).strict();
 
 export interface HarnessApplicationOptions {
   productRoot: string;
@@ -25,6 +49,7 @@ export interface HarnessApplicationOptions {
   backupDirectory?: string;
   artifactRoot?: string;
   security?: SecurityConfig;
+  workerToken?: string;
 }
 
 export interface HarnessApplication {
@@ -34,13 +59,13 @@ export interface HarnessApplication {
   close(): Promise<void>;
 }
 
-async function readJson(request: http.IncomingMessage): Promise<unknown> {
+async function readJson(request: http.IncomingMessage, maximumBytes = MAX_REQUEST_BYTES): Promise<unknown> {
   const chunks: Buffer[] = [];
   let total = 0;
   for await (const chunk of request) {
     const bytes = Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk);
     total += bytes.byteLength;
-    if (total > MAX_REQUEST_BYTES) throw new HarnessError(413, 'REQUEST_TOO_LARGE', 'CONTRACT', '请求体超过 256 KiB。');
+    if (total > maximumBytes) throw new HarnessError(413, 'REQUEST_TOO_LARGE', 'CONTRACT', '请求体超过允许的大小。');
     chunks.push(bytes);
   }
   if (chunks.length === 0) return {};
@@ -48,6 +73,20 @@ async function readJson(request: http.IncomingMessage): Promise<unknown> {
     return JSON.parse(Buffer.concat(chunks).toString('utf8'));
   } catch {
     throw new HarnessError(400, 'INVALID_JSON', 'CONTRACT', '请求体不是有效 JSON。');
+  }
+}
+
+function authorizeWorker(header: string | undefined, configuredToken: string | undefined): void {
+  if (!configuredToken || configuredToken.length < 32) {
+    throw new HarnessError(503, 'WORKER_CHANNEL_DISABLED', 'ENVIRONMENT', 'Worker 内部通道未配置。', true, true);
+  }
+  if (!header?.startsWith('Bearer ')) {
+    throw new HarnessError(401, 'WORKER_AUTH_REQUIRED', 'AUTHENTICATION', 'Worker 鉴权失败。');
+  }
+  const provided = Buffer.from(header.slice('Bearer '.length));
+  const expected = Buffer.from(configuredToken);
+  if (provided.length !== expected.length || !crypto.timingSafeEqual(provided, expected)) {
+    throw new HarnessError(403, 'WORKER_AUTH_REJECTED', 'AUTHORIZATION', 'Worker 鉴权失败。');
   }
 }
 
@@ -90,6 +129,7 @@ export async function createHarnessApplication(options: HarnessApplicationOption
   });
   const service = new HarnessService(database, options.artifactRoot ?? path.join(options.productRoot, '.data', 'artifacts'));
   const security = options.security ?? loadSecurityConfig();
+  const workerToken = options.workerToken ?? process.env.HENGZHUN_WORKER_TOKEN;
 
   const handler: http.RequestListener = async (request, response) => {
     const requestId = opaqueId('req');
@@ -103,6 +143,18 @@ export async function createHarnessApplication(options: HarnessApplicationOption
           version: '1.0.0',
           database: { engine: 'sqlite', quickCheck: database.quickCheck() }
         }, 'L0', requestId);
+      }
+
+      if (request.method === 'POST' && url.pathname === '/internal/worker/tasks:claim') {
+        authorizeWorker(request.headers.authorization, workerToken);
+        const input = workerClaimSchema.parse(await readJson(request));
+        return sendJson(response, 200, await service.claimNextRun(input.workerId), 'L0', requestId);
+      }
+      const workerCompleteMatch = url.pathname.match(/^\/internal\/worker\/tasks\/([^/]+):complete$/);
+      if (request.method === 'POST' && workerCompleteMatch) {
+        authorizeWorker(request.headers.authorization, workerToken);
+        const input = workerCompletionSchema.parse(await readJson(request, MAX_WORKER_REQUEST_BYTES));
+        return sendJson(response, 200, await service.completeRun(decodeURIComponent(workerCompleteMatch[1] as string), input), 'L1', requestId);
       }
 
       let authorization: SecurityResult;

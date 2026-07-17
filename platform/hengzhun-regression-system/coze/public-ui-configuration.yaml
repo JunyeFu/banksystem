@@ -36,3 +36,26 @@ skill:
   packageSource: skills/i1-conformance-skill
   generatedPackage: packages/hengzhun-i1-conformance.skill
   publicUploadRequired: true
+i3:
+  agent:
+    name: 衡准-I3-回归主控
+    promptSource: agents/hengzhun-i3-regression-agent.md
+    status: PROMPT_CONFIGURED_KNOWLEDGE_ATTACHED_NOT_PUBLISHED
+  knowledgeBase:
+    name: 衡准-I3-门户登录回归知识库
+    source: knowledge/i3-login-profile-runtime-rules.md
+    status: PROCESSED_AND_ATTACHED
+    processingEvidence: 929_BYTES_2_SEGMENTS
+  workflow:
+    name: hengzhun_i3_first_vertical
+    displayName: 衡准-I3-首个纵向回归闭环
+    source: workflows/i3-first-vertical.yaml
+    status: DRAFT_CREATED_START_END_ONLY
+  plugin:
+    name: 衡准回归 Harness
+    openapi: ../contracts/openapi/hengzhun-harness-v1.yaml
+    status: IMPORTED_DRAFT_EDITOR_BLOCKED
+  acceptance:
+    runtimeSevenToolCalls: VERIFIED
+    publicAgentSevenToolCalls: BLOCKED_BY_PLUGIN_EDITOR
+    publishGate: OPEN

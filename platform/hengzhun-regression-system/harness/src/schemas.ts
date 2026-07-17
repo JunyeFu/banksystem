@@ -18,7 +18,13 @@ export const caseCreateDraftSchema = z.object({
     expected: boundedText(500)
   }).strict()).min(1).max(50),
   assertions: z.array(boundedText(500)).min(1).max(50),
-  credentialAlias: boundedText(128).optional()
+  credentialAlias: boundedText(128).optional(),
+  knowledgeRetrieval: z.object({
+    sourceAuthority: z.literal('COZE_KNOWLEDGE_BASE'),
+    query: boundedText(1000),
+    resultSummary: boundedText(2000),
+    citationRefs: z.array(boundedText(256)).min(1).max(20)
+  }).strict().optional()
 }).strict();
 
 export const planCompileSchema = z.object({

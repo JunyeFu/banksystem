@@ -50,6 +50,6 @@ if (failures.length) {
     status: 'HENGZHUN_I2_RESULTS_VERIFIED',
     resultCount: expected.size,
     i2HarnessGate: 'CLOSED',
-    deferredToI3: ['PLAT-V004_REAL_IMPORT_PUBLISH_CALL']
+    deferredToI3: ['PLAT-V004_REAL_PUBLISH_AND_CALL']
   }, null, 2));
 }

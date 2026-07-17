@@ -1,0 +1,54 @@
+#!/usr/bin/env node
+'use strict';
+
+const fs = require('node:fs');
+const path = require('node:path');
+const YAML = require('yaml');
+
+const root = path.resolve(__dirname, '..');
+const publicPath = path.join(root, 'contracts', 'openapi', 'hengzhun-harness-v1.yaml');
+const workerPath = path.join(root, 'contracts', 'openapi', 'hengzhun-worker-internal-v1.yaml');
+const failures = [];
+
+function parse(file) {
+  const text = fs.readFileSync(file, 'utf8');
+  const document = YAML.parse(text);
+  if (document.openapi !== '3.0.3') failures.push(`${path.basename(file)}: OpenAPI version must be 3.0.3`);
+  if (Buffer.byteLength(text, 'utf8') > 2 * 1024 * 1024) failures.push(`${path.basename(file)}: exceeds 2 MiB`);
+  return { document, text };
+}
+
+const publicContract = parse(publicPath);
+const workerContract = parse(workerPath);
+const publicOperations = Object.values(publicContract.document.paths ?? {}).flatMap(pathItem =>
+  Object.entries(pathItem ?? {}).filter(([method]) => ['get', 'post'].includes(method)).map(([, operation]) => operation.operationId).filter(Boolean)
+);
+const expectedPublic = ['case_create_draft', 'case_get', 'plan_compile', 'run_submit', 'task_get', 'artifact_get_metadata', 'decision_submit'];
+if (JSON.stringify(publicOperations.sort()) !== JSON.stringify(expectedPublic.sort())) failures.push('public contract must expose exactly seven operations');
+if (publicContract.document.components?.securitySchemes?.bearerAuth?.scheme !== 'bearer') failures.push('public Bearer authentication is missing');
+for (const [route, pathItem] of Object.entries(publicContract.document.paths ?? {})) {
+  for (const [method, operation] of Object.entries(pathItem ?? {})) {
+    if (!['get', 'post'].includes(method)) continue;
+    const responseCodes = Object.keys(operation.responses ?? {});
+    if (responseCodes.length !== 1 || responseCodes[0] !== '200') failures.push(`${method.toUpperCase()} ${route}: Coze import contract supports only a documented 200 response`);
+  }
+}
+
+const workerOperations = Object.values(workerContract.document.paths ?? {}).flatMap(pathItem =>
+  Object.entries(pathItem ?? {}).filter(([method]) => ['get', 'post'].includes(method)).map(([, operation]) => operation.operationId).filter(Boolean)
+);
+if (JSON.stringify(workerOperations.sort()) !== JSON.stringify(['workerClaimTask', 'workerCompleteTask'].sort())) failures.push('worker contract must expose only claim and complete');
+if (workerContract.document.components?.securitySchemes?.workerBearer?.scheme !== 'bearer') failures.push('worker Bearer authentication is missing');
+
+if (failures.length) {
+  console.error('HENGZHUN_I3_OPENAPI_INVALID');
+  failures.forEach(failure => console.error(`- ${failure}`));
+  process.exitCode = 2;
+} else {
+  console.log(JSON.stringify({
+    status: 'HENGZHUN_I3_OPENAPI_VERIFIED',
+    publicOperationCount: publicOperations.length,
+    workerOperationCount: workerOperations.length,
+    separateWorkerChannel: true
+  }, null, 2));
+}

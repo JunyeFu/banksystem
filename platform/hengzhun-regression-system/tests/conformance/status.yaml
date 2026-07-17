@@ -12,7 +12,7 @@ items:
   - {id: PLAT-V008, status: HARNESS_VERIFIED}
   - {id: PLAT-V009, status: RUNTIME_VERIFIED}
   - {id: PLAT-V010, status: NOT_RUN}
-  - {id: PLAT-V011, status: NOT_RUN}
-  - {id: PLAT-V012, status: NOT_RUN}
+  - {id: PLAT-V011, status: RUNTIME_VERIFIED}
+  - {id: PLAT-V012, status: RUNTIME_VERIFIED}
   - {id: PLAT-V013, status: PARTIALLY_VERIFIED}
   - {id: PLAT-V014, status: NOT_RUN}

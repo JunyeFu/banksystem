@@ -1,7 +1,7 @@
 openapi: 3.0.3
 info:
   title: 衡准回归 Harness
-  version: 1.0.0
+  version: 1.1.0
   description: >-
     Coze/HiAgent 公开 OpenAPI 插件使用的七工具安全边界。所有长任务立即返回 taskId，
     不返回凭据、文件字节、完整日志、截图或本机绝对路径。
@@ -21,15 +21,11 @@ paths:
           application/json:
             schema: {$ref: '#/components/schemas/CaseCreateDraftRequest'}
       responses:
-        '201':
+        '200':
           description: 案例已创建
           content:
             application/json:
               schema: {$ref: '#/components/schemas/CaseReceipt'}
-        '400': {$ref: '#/components/responses/ContractError'}
-        '401': {$ref: '#/components/responses/AuthError'}
-        '403': {$ref: '#/components/responses/AuthError'}
-        '409': {$ref: '#/components/responses/ConflictError'}
   /v1/cases/{caseId}:
     get:
       operationId: case_get
@@ -43,9 +39,6 @@ paths:
           content:
             application/json:
               schema: {$ref: '#/components/schemas/CaseDetail'}
-        '401': {$ref: '#/components/responses/AuthError'}
-        '403': {$ref: '#/components/responses/AuthError'}
-        '404': {$ref: '#/components/responses/NotFoundError'}
   /v1/cases/{caseId}/plans:compile:
     post:
       operationId: plan_compile
@@ -58,16 +51,11 @@ paths:
           application/json:
             schema: {$ref: '#/components/schemas/PlanCompileRequest'}
       responses:
-        '202':
+        '200':
           description: 计划编译任务已受理
           content:
             application/json:
               schema: {$ref: '#/components/schemas/PlanReceipt'}
-        '400': {$ref: '#/components/responses/ContractError'}
-        '401': {$ref: '#/components/responses/AuthError'}
-        '403': {$ref: '#/components/responses/AuthError'}
-        '404': {$ref: '#/components/responses/NotFoundError'}
-        '409': {$ref: '#/components/responses/ConflictError'}
   /v1/runs:
     post:
       operationId: run_submit
@@ -78,16 +66,11 @@ paths:
           application/json:
             schema: {$ref: '#/components/schemas/RunSubmitRequest'}
       responses:
-        '202':
+        '200':
           description: 回归任务已排队
           content:
             application/json:
               schema: {$ref: '#/components/schemas/RunReceipt'}
-        '400': {$ref: '#/components/responses/ContractError'}
-        '401': {$ref: '#/components/responses/AuthError'}
-        '403': {$ref: '#/components/responses/AuthError'}
-        '404': {$ref: '#/components/responses/NotFoundError'}
-        '409': {$ref: '#/components/responses/ConflictError'}
   /v1/tasks/{taskId}:
     get:
       operationId: task_get
@@ -101,9 +84,6 @@ paths:
           content:
             application/json:
               schema: {$ref: '#/components/schemas/TaskDetail'}
-        '401': {$ref: '#/components/responses/AuthError'}
-        '403': {$ref: '#/components/responses/AuthError'}
-        '404': {$ref: '#/components/responses/NotFoundError'}
   /v1/artifacts/{artifactId}/metadata:
     get:
       operationId: artifact_get_metadata
@@ -117,9 +97,6 @@ paths:
           content:
             application/json:
               schema: {$ref: '#/components/schemas/ArtifactMetadata'}
-        '401': {$ref: '#/components/responses/AuthError'}
-        '403': {$ref: '#/components/responses/AuthError'}
-        '404': {$ref: '#/components/responses/NotFoundError'}
   /v1/decisions:
     post:
       operationId: decision_submit
@@ -130,16 +107,11 @@ paths:
           application/json:
             schema: {$ref: '#/components/schemas/DecisionSubmitRequest'}
       responses:
-        '201':
-          description: 决策已审计记录；I2 不自动激活脚本或恢复调度
+        '200':
+          description: 决策已审计记录；I3 不自动激活脚本或恢复调度
           content:
             application/json:
               schema: {$ref: '#/components/schemas/DecisionReceipt'}
-        '400': {$ref: '#/components/responses/ContractError'}
-        '401': {$ref: '#/components/responses/AuthError'}
-        '403': {$ref: '#/components/responses/AuthError'}
-        '404': {$ref: '#/components/responses/NotFoundError'}
-        '409': {$ref: '#/components/responses/ConflictError'}
 components:
   securitySchemes:
     bearerAuth:
@@ -200,14 +172,12 @@ components:
       pattern: '^[A-Za-z0-9._:-]+$'
     CaseStep:
       type: object
-      additionalProperties: false
       required: [action, expected]
       properties:
         action: {type: string, minLength: 1, maxLength: 500}
         expected: {type: string, minLength: 1, maxLength: 500}
     CaseCreateDraftRequest:
       type: object
-      additionalProperties: false
       required: [namespace, idempotencyKey, title, objective, summary, riskLevel, route, steps, assertions]
       properties:
         namespace: {$ref: '#/components/schemas/Namespace'}
@@ -229,9 +199,20 @@ components:
           maxItems: 50
           items: {type: string, minLength: 1, maxLength: 500}
         credentialAlias: {type: string, minLength: 1, maxLength: 128}
+        knowledgeRetrieval:
+          type: object
+          required: [sourceAuthority, query, resultSummary, citationRefs]
+          properties:
+            sourceAuthority: {type: string, enum: [COZE_KNOWLEDGE_BASE]}
+            query: {type: string, minLength: 1, maxLength: 1000}
+            resultSummary: {type: string, minLength: 1, maxLength: 2000}
+            citationRefs:
+              type: array
+              minItems: 1
+              maxItems: 20
+              items: {type: string, minLength: 1, maxLength: 256}
     PlanCompileRequest:
       type: object
-      additionalProperties: false
       required: [namespace, idempotencyKey, expectedCaseVersion]
       properties:
         namespace: {$ref: '#/components/schemas/Namespace'}
@@ -240,7 +221,6 @@ components:
         executionRoute: {type: string, enum: [PLAYWRIGHT, AUTHORING_REQUIRED], default: PLAYWRIGHT}
     RunSubmitRequest:
       type: object
-      additionalProperties: false
       required: [namespace, idempotencyKey, caseId, expectedCaseVersion, planId, environment, credentialAlias]
       properties:
         namespace: {$ref: '#/components/schemas/Namespace'}
@@ -252,7 +232,6 @@ components:
         credentialAlias: {type: string, minLength: 1, maxLength: 128}
     DecisionSubmitRequest:
       type: object
-      additionalProperties: false
       required: [namespace, idempotencyKey, targetType, targetId, expectedVersion, choice, reason, confirmationRef]
       properties:
         namespace: {$ref: '#/components/schemas/Namespace'}
@@ -273,6 +252,7 @@ components:
         validationIssues: {type: array, items: {type: string}}
         summary: {type: string}
         replayed: {type: boolean}
+        knowledgeRetrievalId: {type: string}
     CaseDetail:
       type: object
       required: [caseId, namespace, version, status, title, summary, riskLevel, definition, contentHash, updatedAt]
@@ -284,7 +264,7 @@ components:
         title: {type: string}
         summary: {type: string}
         riskLevel: {type: string}
-        definition: {type: object, additionalProperties: true}
+        definition: {type: object}
         contentHash: {type: string}
         updatedAt: {type: string, format: date-time}
     PlanReceipt:
@@ -319,6 +299,7 @@ components:
         status: {type: string, enum: [QUEUED, RUNNING, WAITING_USER, SUCCEEDED, FAILED, CANCELLED]}
         progress: {type: integer, minimum: 0, maximum: 100}
         version: {type: integer}
+        runVersion: {type: integer, nullable: true}
         summary: {type: string, nullable: true}
         resultArtifactId: {type: string, nullable: true}
         errorCode: {type: string, nullable: true}
@@ -328,23 +309,15 @@ components:
         updatedAt: {type: string, format: date-time}
     ArtifactMetadata:
       type: object
-      required: [artifactId, type, sha256, byteSize, mediaType, redactionStatus, metadata, controlledAccess, createdAt]
+      description: Coze 兼容的 Artifact 摘要；Harness 可能返回额外受控字段，但不返回文件路径或内容。
+      required: [artifactId, type, sha256, byteSize, mediaType, redactionStatus, createdAt]
       properties:
         artifactId: {type: string}
-        runId: {type: string, nullable: true}
-        taskId: {type: string, nullable: true}
         type: {type: string}
         sha256: {type: string, minLength: 64, maxLength: 64}
         byteSize: {type: integer, minimum: 0}
         mediaType: {type: string}
         redactionStatus: {type: string, enum: [NOT_REQUIRED, REDACTED, QUARANTINED]}
-        metadata: {type: object, additionalProperties: true}
-        controlledAccess:
-          type: object
-          required: [mode, downloadable]
-          properties:
-            mode: {type: string, enum: [HARNESS_MANAGED]}
-            downloadable: {type: boolean, enum: [false]}
         createdAt: {type: string, format: date-time}
     DecisionReceipt:
       type: object
@@ -367,4 +340,4 @@ components:
         retryable: {type: boolean}
         userActionRequired: {type: boolean}
         requestId: {type: string}
-        details: {type: object, additionalProperties: true}
+        details: {type: object}

@@ -6,10 +6,22 @@ statusMeaning: Local specification is not platform installation evidence.
 skills:
   - id: natural-language-case-structuring
     name: 自然语言回归需求结构化
-    status: SPECIFIED_NOT_PACKAGED
+    source: skills/normalize-regression-request
+    package: packages/hengzhun-normalize-regression-request.skill
+    packageBytes: 1230
+    packageSha256: bed30a28c73ced03d4061dba9a64484f5547c98e8447748228f94592005dd9fd
+    status: PACKAGED_PUBLIC_UI_INSTALL_NOT_VERIFIED
   - id: execution-route-selection
     name: 执行路线选择
-    status: SPECIFIED_NOT_PACKAGED
+    source: skills/choose-execution-route
+    package: packages/hengzhun-choose-execution-route.skill
+    packageBytes: 934
+    packageSha256: 9cc7b7940febb3060cd0e1109cba45b0aab79b6faa84af3d67ac0d85cc511b15
+    status: PACKAGED_PUBLIC_UI_INSTALL_NOT_VERIFIED
   - id: regression-result-explanation
     name: 回归结果解释
-    status: SPECIFIED_NOT_PACKAGED
+    source: skills/explain-regression-result
+    package: packages/hengzhun-explain-regression-result.skill
+    packageBytes: 1032
+    packageSha256: 50bc9cc60299776db0c1bb7ffd81807d547c0f2c7830d3279a3171b95b536fd7
+    status: PACKAGED_PUBLIC_UI_INSTALL_NOT_VERIFIED

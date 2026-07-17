@@ -1,0 +1,10 @@
+{
+  "schemaVersion": 1,
+  "id": "PLAT-V012",
+  "platform": { "name": "Coze Studio", "version": "0.5.1" },
+  "testedAt": "2026-07-17T10:05:00+08:00",
+  "conclusion": "RUNTIME_VERIFIED",
+  "evidenceSha256": ["70a5d5c4e3a6e35203e1d217ba90d039aeab2c7817e6da27d409b2448796fc24", "eb2973099dd090090a162b69994e825d354f012277d7009af170789ba0111331"],
+  "finding": "案例创建可登记 Coze Knowledge Base 来源、检索问题 Hash、结果 Hash 与引用标识；SQLite 不保存原始检索问题或结果正文。",
+  "impact": "I3 首版知识检索审计运行时门禁关闭；Knowledge Base 完成公开发布后还需补平台侧检索命中证据。"
+}

@@ -113,6 +113,20 @@ I2 已完成 TypeScript/Node Harness、唯一 `regression_platform.sqlite`、七
 
 I2 Harness 侧退出门禁已关闭。平台侧剩余事实没有被改写为成功：`PLAT-V004` 全量关闭仍是 I3 的硬门禁。
 
-## 9. 来源边界
+## 9. 2026-07-17 I3 真实执行结论
+
+I3 Harness/Worker 运行时闭环已完成：固定 Playwright Worker 在门户页面执行合成账号密码登录，断言页眉姓名、头像与个人资料一致；七工具、三类脱敏证据、Artifact Hash、Worker 独立鉴权、租约、Fixture 隔离、会话恢复与知识检索 Hash 审计通过自动测试和真实 E2E。
+
+| ID | 当前状态 | 真实结论 | 可提交证据 |
+|---|---|---|---|
+| `PLAT-V004` | `PARTIALLY_VERIFIED` | 七工具 OpenAPI 已通过公开 UI 导入；Coze 0.5.1 插件公开编辑页显示“无法查看智能体”，尚不能调试、发布、绑定 Agent 或真实对话调用 | `tests/conformance/results/PLAT-V004.json` |
+| `PLAT-V011` | `RUNTIME_VERIFIED` | 新会话使用原 `namespace + taskId` 可恢复同一 SQLite 任务终态、runVersion 和结果 Artifact；待 Agent 发布后补平台会话证据 | `tests/conformance/results/PLAT-V011.json` |
+| `PLAT-V012` | `RUNTIME_VERIFIED` | Knowledge Base 已处理为 929 Bytes/2 分段并绑定 Agent；Harness 只保存检索 Hash 与引用标识，待 Agent 发布后补真实检索命中证据 | `tests/conformance/results/PLAT-V012.json` |
+
+Coze 公共 OpenAPI 导入的实测兼容条件是：每个操作只文档化 HTTP 200，Schema 不使用 `additionalProperties`。Harness 成功响应已同步为 HTTP 200，严格请求校验仍由 Zod fail-closed 执行。Coze Server 到 Harness 的受控 Docker 网络健康探针通过。
+
+由于 `PLAT-V004` 仍未关闭，I3 不得标记完整完成，也不得进入依赖真实 Coze Plugin 的 I4 实施。
+
+## 10. 来源边界
 
 本登记册的待验证主张来自用户提供的 Coze/HiAgent 调研材料，但该材料不作为权威证据入库。HiAgent 已有依据只引用仓库中的 2.5.1 本地帮助文档；Coze 数字限制、云端网络要求和产品行为在真实验证前一律保持 `PENDING`。
