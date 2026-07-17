@@ -7,5 +7,4 @@ contracts
 tests
 scripts
 docs
-worker
 *.log

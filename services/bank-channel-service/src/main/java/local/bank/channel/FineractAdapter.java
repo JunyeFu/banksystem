@@ -196,20 +196,18 @@ public class FineractAdapter {
   @SuppressWarnings("unchecked")
   public Map<String, Object> createClient(String displayName, String mobileNo) {
     String[] parts = displayName.split(" ", 2);
-    String firstname = parts.length >= 1 ? parts[0] : displayName;
-    String lastname = parts.length >= 2 ? parts[1] : "";
+    String firstname = parts.length >= 2 ? parts[0] : "Test";
+    String lastname = parts.length >= 2 ? parts[1] : displayName;
     Map<String, Object> body = new java.util.LinkedHashMap<>();
     body.put("officeId", 1);
     body.put("firstname", firstname);
     body.put("lastname", lastname);
     body.put("externalId", "fixture-" + java.util.UUID.randomUUID().toString().substring(0, 8));
     body.put("active", true);
-    body.put("activationDate", LocalDate.now().toString());
+    body.put("activationDate", LocalDate.of(2020, 1, 1).toString());
     body.put("dateFormat", "yyyy-MM-dd");
     body.put("locale", "en");
     if (mobileNo != null && !mobileNo.isBlank()) body.put("mobileNo", mobileNo);
-    body.put("clientTypeId", 1);
-    body.put("clientClassificationId", 1);
     body.put("legalFormId", 1);
     return client.post().uri("/api/v1/clients").body(body).retrieve().body(Map.class);
   }
@@ -219,8 +217,6 @@ public class FineractAdapter {
     Map<String, Object> body = new java.util.LinkedHashMap<>();
     body.put("clientId", clientId);
     body.put("productId", productId);
-    body.put("fieldOfficerId", 1);
-    body.put("accountId", "fixture-" + java.util.UUID.randomUUID().toString().substring(0, 8));
     body.put("nominalAnnualInterestRate", java.math.BigDecimal.ZERO);
     body.put("interestCompoundingPeriodType", 1);
     body.put("interestPostingPeriodType", 4);
@@ -228,7 +224,7 @@ public class FineractAdapter {
     body.put("interestCalculationDaysInYearType", 365);
     body.put("lockinPeriodFrequency", 0);
     body.put("lockinPeriodFrequencyType", 0);
-    body.put("submittedOnDate", LocalDate.now().toString());
+    body.put("submittedOnDate", LocalDate.of(2020, 1, 1).toString());
     body.put("dateFormat", "yyyy-MM-dd");
     body.put("locale", "en");
     return client.post().uri("/api/v1/savingsaccounts").body(body).retrieve().body(Map.class);

@@ -25,11 +25,17 @@ foreach ($skill in $skills) {
   Move-Item -LiteralPath $zipPath -Destination $skillPath
   $size = (Get-Item -LiteralPath $skillPath).Length
   if ($size -gt 10MB) { throw "Generated Skill package exceeds 10 MiB: $($skill.Name)" }
+  $stream = [System.IO.File]::OpenRead($skillPath)
+  try {
+    $algorithm = [System.Security.Cryptography.SHA256]::Create()
+    try { $hash = ([System.BitConverter]::ToString($algorithm.ComputeHash($stream))).Replace('-', '').ToLowerInvariant() }
+    finally { $algorithm.Dispose() }
+  } finally { $stream.Dispose() }
   $results += [ordered]@{
     name = $skill.Name
     path = 'coze/packages/' + $skill.File
     bytes = $size
-    sha256 = (Get-FileHash -LiteralPath $skillPath -Algorithm SHA256).Hash.ToLowerInvariant()
+    sha256 = $hash
   }
 }
 

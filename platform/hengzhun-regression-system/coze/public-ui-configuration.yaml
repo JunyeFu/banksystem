@@ -63,11 +63,36 @@ i3:
   plugin:
     name: 衡准回归 Harness
     openapi: ../contracts/openapi/hengzhun-harness-v1.yaml
-    status: PUBLISHED_ATTACHED_SEVEN_TOOLS_VERIFIED
+    status: HISTORICAL_I3_VERIFIED_CURRENT_UI_ABSENT
   acceptance:
     runtimeSevenToolCalls: VERIFIED
     publicAgentSevenToolCalls: VERIFIED_WITH_RECOVERY_SESSIONS
     knowledgeRetrieval: VERIFIED_NON_NULL
     finalRun: PASSED
     decision: RECORDED_APPROVE
-    publishGate: CLOSED
+    publishGate: HISTORICAL_CLOSED_CURRENT_CONFIGURATION_DRIFTED
+i4:
+  agent:
+    name: 衡准-I4-回归主控
+    promptSource: agents/hengzhun-i4-regression-agent.md
+    status: DRAFT_CREATED_PLUGIN_AND_KNOWLEDGE_NOT_BOUND
+  knowledgeBase:
+    name: 衡准-I4-三案例与作者化运行规则
+    source: knowledge/i4-three-case-authoring-runtime-rules.md
+    status: IMPORT_SOURCE_READY_NOT_IMPORTED
+  workflow:
+    name: hengzhun_i4_three_cases_authoring
+    source: workflows/i4-three-cases-authoring.yaml
+    status: REPRODUCTION_CHECKLIST_READY
+  plugin:
+    reuse: 衡准回归 Harness
+    publicOperationCount: 7
+    newPublicOperationCount: 0
+    currentStatus: ABSENT_FROM_PUBLIC_RESOURCE_LIBRARY
+    blocker: 当前公开创建入口不提供插件类型，禁止用私有 API、数据库或容器挂载绕过
+  acceptance:
+    threeDeterministicCases: RUNTIME_VERIFIED
+    threeActionWindow: RUNTIME_VERIFIED
+    explicitActivationGate: RUNTIME_VERIFIED
+    platformConfigurationPublished: false
+    platformExitGate: OPEN

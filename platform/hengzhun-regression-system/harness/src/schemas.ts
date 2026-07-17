@@ -13,11 +13,19 @@ export const caseCreateDraftSchema = z.object({
   summary: boundedText(1000),
   riskLevel: z.enum(['LOW', 'MEDIUM', 'HIGH']),
   route: boundedText(512),
+  executionProfile: z.enum(['LOGIN_PROFILE', 'ACCOUNT_OWNERSHIP', 'AUTH_REJECTION_RECOVERY']).optional(),
   steps: z.array(z.object({
     action: boundedText(500),
     expected: boundedText(500)
   }).strict()).min(1).max(50),
   assertions: z.array(boundedText(500)).min(1).max(50),
+  authoringActions: z.array(z.object({
+    actionType: z.enum(['LOCATE', 'INPUT', 'TAP', 'SCROLL']),
+    prompt: boundedText(500),
+    targetRef: z.enum(['PAGE', 'LOGIN_USERNAME', 'LOGIN_SSO_TAB', 'LOGIN_SUBMIT']),
+    valueRef: z.enum(['SYNTHETIC_TEXT']).optional(),
+    riskLevel: z.enum(['LOW', 'MEDIUM', 'HIGH'])
+  }).strict()).min(1).max(50).optional(),
   credentialAlias: boundedText(128).optional(),
   knowledgeRetrieval: z.object({
     sourceAuthority: z.literal('COZE_KNOWLEDGE_BASE'),

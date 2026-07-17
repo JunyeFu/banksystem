@@ -46,7 +46,11 @@ if (JSON.stringify(publicContract.document.paths ?? {}).includes('"format"')) fa
 const workerOperations = Object.values(workerContract.document.paths ?? {}).flatMap(pathItem =>
   Object.entries(pathItem ?? {}).filter(([method]) => ['get', 'post'].includes(method)).map(([, operation]) => operation.operationId).filter(Boolean)
 );
-if (JSON.stringify(workerOperations.sort()) !== JSON.stringify(['workerClaimTask', 'workerCompleteTask'].sort())) failures.push('worker contract must expose only claim and complete');
+const expectedWorker = [
+  'workerClaimTask', 'workerCompleteTask', 'workerClaimAuthoringAction',
+  'workerCompleteAuthoringAction', 'workerRecordMidsceneCapability'
+];
+if (JSON.stringify(workerOperations.sort()) !== JSON.stringify(expectedWorker.sort())) failures.push('worker contract must expose the five deterministic run/authoring operations');
 if (workerContract.document.components?.securitySchemes?.workerBearer?.scheme !== 'bearer') failures.push('worker Bearer authentication is missing');
 
 if (failures.length) {
@@ -58,6 +62,7 @@ if (failures.length) {
     status: 'HENGZHUN_I3_OPENAPI_VERIFIED',
     publicOperationCount: publicOperations.length,
     workerOperationCount: workerOperations.length,
-    separateWorkerChannel: true
+    separateWorkerChannel: true,
+    authoringOperationCount: 3
   }, null, 2));
 }

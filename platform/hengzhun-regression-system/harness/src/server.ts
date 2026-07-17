@@ -42,6 +42,29 @@ const workerCompletionSchema = z.object({
   }).strict()).max(8)
 }).strict();
 
+const authoringActionCompletionSchema = z.object({
+  workerId: z.string().trim().min(3).max(128).regex(/^[A-Za-z0-9._:-]+$/),
+  slotId: z.string().trim().min(8).max(80),
+  outcome: z.enum(['VERIFIED_PASSED', 'FAILED', 'AMBIGUOUS']),
+  summary: z.string().trim().min(1).max(1000),
+  pageState: z.record(z.string(), z.unknown()),
+  verification: z.object({
+    dom: z.boolean(),
+    url: z.boolean(),
+    request: z.boolean(),
+    business: z.boolean()
+  }).strict()
+}).strict();
+
+const midsceneCapabilitySchema = z.object({
+  actionType: z.enum(['LOCATE', 'INPUT', 'TAP', 'SCROLL']),
+  viewportCount: z.number().int().nonnegative(),
+  attemptCount: z.number().int().nonnegative(),
+  failureCount: z.number().int().nonnegative(),
+  falseSuccessCount: z.number().int().nonnegative(),
+  verificationRef: z.string().trim().min(8).max(256)
+}).strict();
+
 const pluginReferenceSchema = z.string().trim().min(8).max(80);
 const pluginCaseGetSchema = z.object({
   namespace: namespaceSchema,
@@ -148,7 +171,7 @@ export async function createHarnessApplication(options: HarnessApplicationOption
     migrationsDirectory: options.migrationsDirectory ?? path.join(options.productRoot, 'harness', 'migrations'),
     backupDirectory: options.backupDirectory ?? path.join(options.productRoot, '.data', 'sqlite', 'backups')
   });
-  const service = new HarnessService(database, options.artifactRoot ?? path.join(options.productRoot, '.data', 'artifacts'));
+  const service = new HarnessService(database, options.artifactRoot ?? path.join(options.productRoot, '.data', 'artifacts'), options.productRoot);
   const security = options.security ?? loadSecurityConfig();
   const workerToken = options.workerToken ?? process.env.HENGZHUN_WORKER_TOKEN;
 
@@ -170,6 +193,22 @@ export async function createHarnessApplication(options: HarnessApplicationOption
         authorizeWorker(request.headers.authorization, workerToken);
         const input = workerClaimSchema.parse(await readJson(request));
         return sendJson(response, 200, await service.claimNextRun(input.workerId), 'L0', requestId);
+      }
+      if (request.method === 'POST' && url.pathname === '/internal/worker/authoring:claim') {
+        authorizeWorker(request.headers.authorization, workerToken);
+        const input = workerClaimSchema.parse(await readJson(request));
+        return sendJson(response, 200, await service.claimNextAuthoringAction(input.workerId), 'L1', requestId);
+      }
+      const authoringCompleteMatch = url.pathname.match(/^\/internal\/worker\/authoring\/([^/]+)\/actions:complete$/);
+      if (request.method === 'POST' && authoringCompleteMatch) {
+        authorizeWorker(request.headers.authorization, workerToken);
+        const input = authoringActionCompletionSchema.parse(await readJson(request));
+        return sendJson(response, 200, await service.completeAuthoringAction(decodeURIComponent(authoringCompleteMatch[1] as string), input), 'L1', requestId);
+      }
+      if (request.method === 'POST' && url.pathname === '/internal/worker/midscene-capabilities:record') {
+        authorizeWorker(request.headers.authorization, workerToken);
+        const input = midsceneCapabilitySchema.parse(await readJson(request));
+        return sendJson(response, 200, await service.recordMidsceneCapability(input), 'L0', requestId);
       }
       const workerCompleteMatch = url.pathname.match(/^\/internal\/worker\/tasks\/([^/]+):complete$/);
       if (request.method === 'POST' && workerCompleteMatch) {

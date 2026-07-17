@@ -15,7 +15,7 @@ try {
     if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
     & $npm run verify:i3:results
     if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-    Write-Output 'HENGZHUN_I3_RUNTIME_AND_PUBLIC_PLATFORM_GATES_VERIFIED'
+    Write-Output 'HENGZHUN_I3_RUNTIME_CONTRACTS_AND_HISTORICAL_PLATFORM_EVIDENCE_VERIFIED'
 } finally {
     Pop-Location
 }

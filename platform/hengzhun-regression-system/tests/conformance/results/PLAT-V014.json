@@ -1,0 +1,59 @@
+{
+  "schemaVersion": 1,
+  "id": "PLAT-V014",
+  "platform": {
+    "name": "Midscene + MiMo v2.5",
+    "runtimeFreezeId": "node20-midscene-playwright-chromium"
+  },
+  "testedAt": "2026-07-17T14:23:47+08:00",
+  "conclusion": "PARTIALLY_VERIFIED",
+  "evidenceSha256": [
+    "8886da935c39a0a925d8c9d7264a192162e035e7575ac9d43e41f62ad721156b"
+  ],
+  "actionResults": {
+    "LOCATE": {
+      "viewportCount": 5,
+      "attemptCount": 10,
+      "passedCount": 8,
+      "failureCount": 2,
+      "falseSuccessCount": 1,
+      "status": "DEGRADED",
+      "midsceneAdmission": false
+    },
+    "INPUT": {
+      "viewportCount": 5,
+      "attemptCount": 10,
+      "passedCount": 10,
+      "failureCount": 0,
+      "falseSuccessCount": 0,
+      "status": "VERIFIED",
+      "midsceneAdmission": true
+    },
+    "TAP": {
+      "viewportCount": 5,
+      "attemptCount": 10,
+      "passedCount": 10,
+      "failureCount": 0,
+      "falseSuccessCount": 0,
+      "status": "VERIFIED",
+      "midsceneAdmission": true
+    },
+    "SCROLL": {
+      "viewportCount": 5,
+      "attemptCount": 10,
+      "passedCount": 10,
+      "failureCount": 0,
+      "falseSuccessCount": 0,
+      "status": "VERIFIED",
+      "midsceneAdmission": true
+    }
+  },
+  "routing": {
+    "unsafeActionsAdmitted": false,
+    "locateFallback": "PLAYWRIGHT_ONLY",
+    "highRiskFallback": "PLAYWRIGHT_ONLY",
+    "formalRegression": "SCRIPT_VALIDATED_PLAYWRIGHT_ONLY"
+  },
+  "finding": "五个视口、每个视口两次的真实模型测试中，INPUT、TAP、SCROLL 均为 10/10 且无错误自报成功；LOCATE 为 8/10，并出现两次失败和一次错误自报成功。Harness 已拒绝 LOCATE 的 Midscene 执行权，失败或歧义不会推进三动作窗口游标。",
+  "impact": "PLAT-V014 仅部分通过。INPUT、TAP、SCROLL 可在 LOW/MEDIUM 作者化路线中受 Playwright 独立验证后使用；LOCATE 和所有依赖 LOCATE 的高风险路线退化为纯 Playwright。正式回归始终只执行 SCRIPT_VALIDATED Playwright 脚本。"
+}

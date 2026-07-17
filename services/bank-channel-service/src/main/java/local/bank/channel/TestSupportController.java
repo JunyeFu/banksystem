@@ -17,12 +17,14 @@ import org.springframework.http.ResponseEntity;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
 import local.bank.channel.audit.AuditService;
+import org.springframework.transaction.annotation.Transactional;
 
 @Profile({"local", "test"})
 @RestController
 @RequestMapping("/internal/test-support/v1")
 @PreAuthorize("hasAuthority('ROLE_TEST_SUPPORT')")
 public class TestSupportController {
+  public record IdentityLinkRequest(String subject, String logicalRef) { }
   private final JdbcTemplate jdbc;
   private final FineractAdapter fineract;
   private final AuditService audit;
@@ -144,6 +146,30 @@ public class TestSupportController {
     jdbc.update("DELETE FROM customer_identity WHERE subject LIKE 'fixture-%'");
     audit.record(AuditService.EVENT_FIXTURE_RESET, "SYSTEM", "test-support", "Fixture", "all", "RESET", "SUCCESS", null, null);
     return ResponseEntity.ok(Map.of("status", "RESET"));
+  }
+
+  @PostMapping("/identities:link")
+  @Transactional
+  public ResponseEntity<Map<String, Object>> linkIdentity(@RequestBody IdentityLinkRequest request) {
+    if (request == null || request.subject() == null || !request.subject().matches("^[A-Za-z0-9._:-]{8,128}$")) {
+      return ResponseEntity.badRequest().body(Map.of("status", "REJECTED", "reason", "INVALID_SUBJECT"));
+    }
+    if (!List.of("customer.alice", "customer.bob").contains(request.logicalRef())) {
+      return ResponseEntity.badRequest().body(Map.of("status", "REJECTED", "reason", "INVALID_LOGICAL_REF"));
+    }
+    String prefix = request.logicalRef().replace("customer.", "fixture-") + "%";
+    List<Long> clientIds = jdbc.query(
+        "SELECT fineract_client_id FROM customer_identity WHERE subject LIKE ? ORDER BY created_at DESC LIMIT 1",
+        (rs, n) -> rs.getLong(1), prefix);
+    if (clientIds.isEmpty()) return ResponseEntity.notFound().build();
+    jdbc.update("DELETE FROM customer_identity WHERE fineract_client_id = ? AND subject LIKE 'fixture-%'", clientIds.get(0));
+    jdbc.update("""
+        INSERT INTO customer_identity(subject, fineract_client_id) VALUES (?, ?)
+        ON CONFLICT (subject) DO UPDATE SET fineract_client_id = EXCLUDED.fineract_client_id
+        """, request.subject(), clientIds.get(0));
+    audit.record(AuditService.EVENT_FIXTURE_SEEDED, "SYSTEM", "test-support", "CustomerIdentity",
+        request.logicalRef(), "LINK", "SUCCESS", null, Map.of("logicalRef", request.logicalRef()));
+    return ResponseEntity.ok(Map.of("status", "LINKED", "logicalRef", request.logicalRef()));
   }
 
   @GetMapping("/fixtures/{logicalRef}")

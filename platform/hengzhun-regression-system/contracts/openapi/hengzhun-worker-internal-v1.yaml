@@ -1,8 +1,8 @@
 openapi: 3.0.3
 info:
   title: 衡准 Worker 内部接口
-  version: 1.0.0
-  description: 仅供本机 Playwright Worker 领取和完成 SQLite 持久化任务，不导入 Coze/HiAgent。
+  version: 1.1.0
+  description: 仅供本机 Playwright/Midscene Worker 领取和完成 SQLite 持久化任务，不导入 Coze/HiAgent。
 servers:
   - url: http://127.0.0.1:18788
 security:
@@ -50,6 +50,65 @@ paths:
         '401': {$ref: '#/components/responses/Problem'}
         '403': {$ref: '#/components/responses/Problem'}
         '409': {$ref: '#/components/responses/Problem'}
+  /internal/worker/authoring:claim:
+    post:
+      operationId: workerClaimAuthoringAction
+      summary: 领取一个受三动作窗口约束的作者化动作
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: {$ref: '#/components/schemas/WorkerClaimRequest'}
+      responses:
+        '200':
+          description: 已领取单动作租约或当前队列为空
+          content:
+            application/json:
+              schema: {type: object, additionalProperties: true}
+        '401': {$ref: '#/components/responses/Problem'}
+        '403': {$ref: '#/components/responses/Problem'}
+  /internal/worker/authoring/{taskId}/actions:complete:
+    post:
+      operationId: workerCompleteAuthoringAction
+      summary: 提交 Playwright 独立验证后的作者化动作结果
+      parameters:
+        - name: taskId
+          in: path
+          required: true
+          schema: {type: string, minLength: 8, maxLength: 80}
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: {$ref: '#/components/schemas/AuthoringActionCompletionRequest'}
+      responses:
+        '200':
+          description: 动作状态与游标已原子处理
+          content:
+            application/json:
+              schema: {type: object, additionalProperties: true}
+        '400': {$ref: '#/components/responses/Problem'}
+        '401': {$ref: '#/components/responses/Problem'}
+        '403': {$ref: '#/components/responses/Problem'}
+        '409': {$ref: '#/components/responses/Problem'}
+  /internal/worker/midscene-capabilities:record:
+    post:
+      operationId: workerRecordMidsceneCapability
+      summary: 记录 PLAT-V014 原子动作稳定性门禁结果
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: {$ref: '#/components/schemas/MidsceneCapabilityRequest'}
+      responses:
+        '200':
+          description: 动作能力已按零失败规则更新
+          content:
+            application/json:
+              schema: {type: object, additionalProperties: true}
+        '400': {$ref: '#/components/responses/Problem'}
+        '401': {$ref: '#/components/responses/Problem'}
+        '403': {$ref: '#/components/responses/Problem'}
 components:
   securitySchemes:
     workerBearer: {type: http, scheme: bearer, bearerFormat: opaque-worker-token}
@@ -87,6 +146,36 @@ components:
           type: array
           maxItems: 8
           items: {$ref: '#/components/schemas/WorkerEvidence'}
+    AuthoringActionCompletionRequest:
+      type: object
+      additionalProperties: false
+      required: [workerId, slotId, outcome, summary, pageState, verification]
+      properties:
+        workerId: {type: string, minLength: 3, maxLength: 128, pattern: '^[A-Za-z0-9._:-]+$'}
+        slotId: {type: string, minLength: 8, maxLength: 80}
+        outcome: {type: string, enum: [VERIFIED_PASSED, FAILED, AMBIGUOUS]}
+        summary: {type: string, minLength: 1, maxLength: 1000}
+        pageState: {type: object, additionalProperties: true}
+        verification:
+          type: object
+          additionalProperties: false
+          required: [dom, url, request, business]
+          properties:
+            dom: {type: boolean}
+            url: {type: boolean}
+            request: {type: boolean}
+            business: {type: boolean}
+    MidsceneCapabilityRequest:
+      type: object
+      additionalProperties: false
+      required: [actionType, viewportCount, attemptCount, failureCount, falseSuccessCount, verificationRef]
+      properties:
+        actionType: {type: string, enum: [LOCATE, INPUT, TAP, SCROLL]}
+        viewportCount: {type: integer, minimum: 0}
+        attemptCount: {type: integer, minimum: 0}
+        failureCount: {type: integer, minimum: 0}
+        falseSuccessCount: {type: integer, minimum: 0}
+        verificationRef: {type: string, minLength: 8, maxLength: 256}
   responses:
     Problem:
       description: 受控问题响应

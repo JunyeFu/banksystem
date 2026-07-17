@@ -3,8 +3,8 @@ pluginName: 衡准回归 Harness
 registration: PUBLIC_UI_OPENAPI_IMPORT
 authentication: BEARER_TOKEN
 openapi: ../contracts/openapi/hengzhun-harness-v1.yaml
-status: I3_IMPORTED_DRAFT_PUBLIC_EDITOR_BLOCKED
-statusDetail: 七工具契约和 Harness 真实调用已验证；兼容 Coze 0.5.1 的单一 200 响应与无 additionalProperties 契约已通过公开 UI 导入。资源库可见插件，但公开编辑页显示“无法查看智能体”，尚不能调试、发布或绑定 Agent。
+status: HISTORICAL_I3_VERIFIED_CURRENT_UI_ABSENT
+statusDetail: I3 结果文件保留当时七工具公开 UI 调用证据；2026-07-17 I4 收口复核时，当前 Coze 0.5.1 资源库插件筛选为空，Agent 添加插件搜索无结果，公开创建入口也没有插件类型。重新公开导入和绑定前不得宣称当前可用；I4 仍只允许复用相同七个公开工具，不增加私有接口。
 cozeCompatibility:
   documentedSuccessStatus: 200
   additionalPropertiesAllowed: false

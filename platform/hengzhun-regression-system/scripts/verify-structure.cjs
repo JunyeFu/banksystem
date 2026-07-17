@@ -34,6 +34,19 @@ const requiredFiles = [
   'coze/agents/hengzhun-i3-regression-agent.md',
   'coze/knowledge/i3-login-profile-runtime-rules.md',
   'coze/workflows/i3-first-vertical.yaml',
+  'harness/migrations/003_i4_midscene_authoring.sql',
+  'harness/migrations/004_i4_capability_failures.sql',
+  'harness/migrations/005_i4_action_target_refs.sql',
+  'worker/src/account-ownership.cjs', 'worker/src/auth-rejection-recovery.cjs',
+  'runtime/midscene-authoring-worker.cjs', 'runtime/midscene-plat-v014.cjs',
+  'scripts/prepare-i4.ps1', 'scripts/start-i4.ps1', 'scripts/stop-i4.ps1',
+  'scripts/stop-authoring-worker.ps1', 'scripts/verify-i4.ps1',
+  'scripts/verify-i4-live.ps1', 'scripts/verify-i4-authoring-live.ps1',
+  'scripts/verify-i4-midscene.ps1', 'scripts/verify-i4-results.cjs',
+  'tests/i4/authoring-window.test.cjs',
+  'coze/agents/hengzhun-i4-regression-agent.md',
+  'coze/knowledge/i4-three-case-authoring-runtime-rules.md',
+  'coze/workflows/i4-three-cases-authoring.yaml',
   'tests/i2/database.test.cjs', 'tests/i2/output-budget.test.cjs',
   'tests/i2/harness-api.test.cjs',
   'tests/conformance/results/PLAT-V001.json',
@@ -46,7 +59,8 @@ const requiredFiles = [
   'tests/conformance/results/PLAT-V005.json',
   'tests/conformance/results/PLAT-V008.json',
   'tests/conformance/results/PLAT-V011.json',
-  'tests/conformance/results/PLAT-V012.json'
+  'tests/conformance/results/PLAT-V012.json',
+  'tests/conformance/results/PLAT-V014.json'
 ];
 const failures = [];
 

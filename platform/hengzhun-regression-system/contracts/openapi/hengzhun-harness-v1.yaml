@@ -1,7 +1,7 @@
 openapi: 3.0.3
 info:
   title: 衡准回归 Harness
-  version: 1.2.0
+  version: 1.3.0
   description: >-
     Coze/HiAgent 公开 OpenAPI 插件使用的七工具安全边界。为兼容 Coze Studio 0.5.1，
     七个操作统一使用 POST JSON body，Operation 内不使用 Parameter 或 Schema 引用。
@@ -39,6 +39,9 @@ paths:
                 summary: {type: string, minLength: 1, maxLength: 1000}
                 riskLevel: {type: string, enum: [LOW, MEDIUM, HIGH]}
                 route: {type: string, minLength: 1, maxLength: 512}
+                executionProfile:
+                  type: string
+                  enum: [LOGIN_PROFILE, ACCOUNT_OWNERSHIP, AUTH_REJECTION_RECOVERY]
                 steps:
                   type: array
                   minItems: 1
@@ -54,6 +57,19 @@ paths:
                   minItems: 1
                   maxItems: 50
                   items: {type: string, minLength: 1, maxLength: 500}
+                authoringActions:
+                  type: array
+                  minItems: 1
+                  maxItems: 50
+                  items:
+                    type: object
+                    required: [actionType, prompt, targetRef, riskLevel]
+                    properties:
+                      actionType: {type: string, enum: [LOCATE, INPUT, TAP, SCROLL]}
+                      prompt: {type: string, minLength: 1, maxLength: 500}
+                      targetRef: {type: string, enum: [PAGE, LOGIN_USERNAME, LOGIN_SSO_TAB, LOGIN_SUBMIT]}
+                      valueRef: {type: string, enum: [SYNTHETIC_TEXT]}
+                      riskLevel: {type: string, enum: [LOW, MEDIUM, HIGH]}
                 credentialAlias: {type: string, minLength: 1, maxLength: 128}
                 knowledgeRetrieval:
                   type: object
@@ -150,10 +166,11 @@ paths:
             application/json:
               schema:
                 type: object
-                required: [taskId, planId, status, planStatus, caseId, caseVersion, replayed]
+                required: [taskId, planId, scriptId, status, planStatus, caseId, caseVersion, replayed]
                 properties:
                   taskId: {type: string}
                   planId: {type: string}
+                  scriptId: {type: string}
                   status: {type: string}
                   planStatus: {type: string}
                   caseId: {type: string}
@@ -304,7 +321,7 @@ paths:
                 confirmationRef: {type: string, minLength: 1, maxLength: 160}
       responses:
         '200':
-          description: 决策已审计记录；I3 不自动激活脚本或恢复调度
+          description: 决策已审计记录；I4 的脚本批准会激活已通过 Playwright 验证的候选脚本
           content:
             application/json:
               schema:
@@ -316,7 +333,7 @@ paths:
                   targetId: {type: string}
                   status: {type: string, enum: [RECORDED]}
                   version: {type: integer}
-                  effect: {type: string, enum: [DEFERRED_TO_FUTURE_BATCH]}
+                  effect: {type: string, enum: [DEFERRED_TO_FUTURE_BATCH, SCRIPT_VALIDATED_AND_PLAN_READY, SCRIPT_RETIRED]}
                   replayed: {type: boolean}
 components:
   securitySchemes:

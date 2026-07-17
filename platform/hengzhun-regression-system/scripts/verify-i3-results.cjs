@@ -38,8 +38,9 @@ if (failures.length) {
   process.exitCode = 2;
 } else {
   console.log(JSON.stringify({
-    status: 'HENGZHUN_I3_RESULTS_VERIFIED',
-    runtimeGatesClosed: ['PLAT-V004', 'PLAT-V011', 'PLAT-V012'],
-    publicPlatformGateOpen: []
+    status: 'HENGZHUN_I3_HISTORICAL_RESULTS_VERIFIED',
+    historicalGatesClosedAtEvidenceTime: ['PLAT-V004', 'PLAT-V011', 'PLAT-V012'],
+    currentPlatformConfigurationAsserted: false,
+    currentPlatformConfigurationGateOpen: ['HARNESS_PLUGIN_PUBLIC_UI_PRESENCE']
   }, null, 2));
 }

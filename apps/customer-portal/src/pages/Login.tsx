@@ -79,8 +79,8 @@ export function Login(): JSX.Element {
         <section className="bank-card login-card">
           <h1 data-testid="login-title">{loginMode === 'password' ? '账号密码登录' : '统一身份认证登录'}</h1><p>欢迎使用{productBrand.bank.customerPortalName}</p>
           <div className="login-tabs">
-            <button type="button" className={loginMode === 'password' ? 'active' : ''} onClick={() => { setLoginMode('password'); setError(undefined); }}>账号密码登录</button>
-            <button type="button" className={loginMode === 'sso' ? 'active' : ''} onClick={() => { setLoginMode('sso'); setError(undefined); setPassword(''); }}>统一身份认证登录</button>
+            <button type="button" data-testid="login-password-tab" className={loginMode === 'password' ? 'active' : ''} onClick={() => { setLoginMode('password'); setError(undefined); }}>账号密码登录</button>
+            <button type="button" data-testid="login-sso-tab" className={loginMode === 'sso' ? 'active' : ''} onClick={() => { setLoginMode('sso'); setError(undefined); setPassword(''); }}>统一身份认证登录</button>
           </div>
           {loginMode === 'password' ? <>
             <label htmlFor="login-username">用户名 / 手机号</label><Input id="login-username" data-testid="login-username" size="large" value={username} onChange={(event) => setUsername(event.target.value)} autoComplete="username" placeholder="请输入用户名或手机号" prefix={<UserOutlined aria-hidden="true" />} />

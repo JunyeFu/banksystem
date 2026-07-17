@@ -19,6 +19,7 @@ COPY package.json package-lock.json ./
 RUN npm ci --omit=dev && npm cache clean --force
 COPY --from=build /app/dist ./dist
 COPY harness/migrations ./harness/migrations
+COPY worker/src/login-profile.cjs worker/src/account-ownership.cjs worker/src/auth-rejection-recovery.cjs ./worker/src/
 
 USER node
 EXPOSE 18788

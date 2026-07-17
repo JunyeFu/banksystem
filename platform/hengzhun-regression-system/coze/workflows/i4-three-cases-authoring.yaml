@@ -1,0 +1,31 @@
+schemaVersion: 1
+name: hengzhun_i4_three_cases_authoring
+displayName: Hengzhun I4 three-case and authoring flow
+purpose: Public-UI reproduction checklist; not a private Coze import format.
+runtimeKnowledgeAuthority: COZE_KNOWLEDGE_BASE
+inputs:
+  - {name: request, type: string, required: true, maxLength: 2000}
+  - {name: namespace, type: string, required: true}
+state:
+  durableKeys: [namespace, caseId, caseVersion, planId, scriptId, taskId, runId, runVersion, resultArtifactId]
+nodes:
+  - {id: start, type: start}
+  - {id: knowledge, type: knowledge_retrieval, source: Hengzhun-I4-runtime-rules, query: "{{request}}"}
+  - {id: normalize, type: skill, skill: natural-language-case-structuring, inputs: [request, knowledge]}
+  - {id: create_case, type: plugin, operationId: case_create_draft}
+  - {id: get_case, type: plugin, operationId: case_get}
+  - {id: route, type: skill, skill: execution-route-selection, inputs: [get_case]}
+  - {id: compile, type: plugin, operationId: plan_compile}
+  - {id: wait_authoring, type: plugin_loop, operationId: task_get, when: "compile.planStatus == AUTHORING_REQUIRED", until: "status == WAITING_USER"}
+  - {id: user_decision, type: user_confirmation, when: "wait_authoring.progress == 100 && wait_authoring.errorCode == null"}
+  - {id: activate, type: plugin, operationId: decision_submit, when: "user_decision exists"}
+  - {id: submit_run, type: plugin, operationId: run_submit, when: "compile.planStatus == READY || activate.effect == SCRIPT_VALIDATED_AND_PLAN_READY"}
+  - {id: poll_run, type: plugin_loop, operationId: task_get, until: "status in [SUCCEEDED, FAILED]"}
+  - {id: artifact, type: plugin, operationId: artifact_get_metadata, when: "poll_run.resultArtifactId != null"}
+  - {id: explain, type: skill, skill: regression-result-explanation}
+  - {id: end, type: end}
+constraints:
+  publicPluginOperations: 7
+  automaticScriptActivation: false
+  repositoryKnowledgeFallback: false
+  privatePlatformApi: false

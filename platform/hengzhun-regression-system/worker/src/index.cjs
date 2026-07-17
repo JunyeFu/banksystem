@@ -1,5 +1,13 @@
 const os = require('node:os');
 const { executeLoginProfile } = require('./login-profile.cjs');
+const { executeAccountOwnership } = require('./account-ownership.cjs');
+const { executeAuthRejectionRecovery } = require('./auth-rejection-recovery.cjs');
+
+const executors = new Map([
+  ['worker/src/login-profile.cjs', executeLoginProfile],
+  ['worker/src/account-ownership.cjs', executeAccountOwnership],
+  ['worker/src/auth-rejection-recovery.cjs', executeAuthRejectionRecovery]
+]);
 
 const harnessUrl = (process.env.HENGZHUN_HARNESS_URL || 'http://127.0.0.1:18788').replace(/\/$/, '');
 const workerToken = process.env.HENGZHUN_WORKER_TOKEN;
@@ -56,7 +64,9 @@ async function runOnce() {
   if (task.status === 'EMPTY') return false;
   process.stdout.write(JSON.stringify({ event: 'claimed', taskId: task.taskId, runId: task.runId }) + '\n');
   try {
-    const result = await executeLoginProfile(task);
+    const executor = executors.get(task.execution?.scriptPath);
+    if (!executor) throw Object.assign(new Error('脚本不在已验证执行白名单中。'), { code: 'SCRIPT_NOT_ALLOWLISTED', category: 'ENVIRONMENT' });
+    const result = await executor(task);
     const completed = await post(`/internal/worker/tasks/${encodeURIComponent(task.taskId)}:complete`, {
       workerId,
       ...result

@@ -88,9 +88,9 @@ I1 当前第一步的退出条件：目录结构校验通过、产品目录内�
 
 I3 退出前必须关闭 `PLAT-V004` 七工具真实调用、`PLAT-V011` 会话中断恢复和 `PLAT-V012` 首版知识检索审计链。
 
-2026-07-17 完成状态：I3 已关闭退出门禁。Harness/Worker 使用唯一 `regression_platform.sqlite`、独立 Worker Bearer 通道、租约重领、凭据别名、Fixture 命名空间和全新 BrowserContext；固定 Playwright 案例在真实门户完成账号密码登录，页眉姓名/头像与个人资料一致性断言为 `PASSED`，报告/遮罩截图/日志三类证据齐全且只暴露脱敏元数据与 Hash。
+2026-07-17 当次完成状态：I3 在验收时关闭退出门禁。Harness/Worker 使用唯一 `regression_platform.sqlite`、独立 Worker Bearer 通道、租约重领、凭据别名、Fixture 命名空间和全新 BrowserContext；固定 Playwright 案例在真实门户完成账号密码登录，页眉姓名/头像与个人资料一致性断言为 `PASSED`，报告/遮罩截图/日志三类证据齐全且只暴露脱敏元数据与 Hash。
 
-Coze Studio 0.5.1 已通过公开 UI 完成七工具插件导入、调试、发布、Agent 绑定与 Agent 发布。MiMo v2.5 通过单目录内、Bearer 保护且不暴露宿主端口的兼容网关接入；网关只把上游非流式 OpenAI 响应转换为 Coze 所需 SSE，并对可安全重试的模型传输故障重试，不承接 Harness 领域状态。Knowledge Base 已绑定并设置自动检索，真实命中规则与引用；七工具在同一发布 Agent 的恢复会话中逐一真实调用，最终运行 `PASSED`、决策 `RECORDED/APPROVE`。`PLAT-V004`、`PLAT-V011`、`PLAT-V012` 均已关闭，I3 完成；三个 `.skill` 的 Coze 直接上传限制仍属于 I1 的既有平台差异，不反向阻塞 I3。
+Coze Studio 0.5.1 在当次验收中通过公开 UI 完成七工具插件导入、调试、发布、Agent 绑定与 Agent 发布。MiMo v2.5 通过单目录内、Bearer 保护且不暴露宿主端口的兼容网关接入；网关只把上游非流式 OpenAI 响应转换为 Coze 所需 SSE，并对可安全重试的模型传输故障重试，不承接 Harness 领域状态。Knowledge Base 当次已绑定并设置自动检索，真实命中规则与引用；七工具在同一发布 Agent 的恢复会话中逐一真实调用，最终运行 `PASSED`、决策 `RECORDED/APPROVE`。`PLAT-V004`、`PLAT-V011`、`PLAT-V012` 是历史时点证据；当前资源是否仍存在必须重新以公开 UI 核对，三个 `.skill` 的 Coze 直接上传限制仍属于 I1 的既有平台差异。
 
 ### I4：三案例与 Midscene
 
@@ -99,6 +99,8 @@ Coze Studio 0.5.1 已通过公开 UI 完成七工具插件导入、调试、发�
 - 高风险动作仅允许 Midscene 定位，必须由 Playwright 完成 DOM/ARIA 唯一性检查和提交；首批低风险案例不强行制造资金写入。
 - 已验证脚本标记为 `SCRIPT_VALIDATED`，未经验证不得进入正式回归。
 - 只有通过 `PLAT-V014` 稳定性门禁的 Midscene 原子动作才能进入正式 LOW/MEDIUM 路由；开放式 `aiAct` 不得因模型自报成功而放行。
+
+2026-07-17 实施状态：I4 本机运行面已落地。三条 Playwright 案例均以独立 BrowserContext、Fixture 隔离和脱敏证据通过；完整计划、三动作窗口、单活动租约、Playwright 独立事实验证、`WAITING_USER` 与人工激活门禁均已验证。`PLAT-V014` 五视口实测中 `INPUT`、`TAP`、`SCROLL` 各 10/10 通过，允许进入受控 LOW/MEDIUM 作者化；`LOCATE` 为 8/10 且出现一次错误自报成功，已标记 `DEGRADED` 并强制 `PLAYWRIGHT_ONLY`，高风险路线同样退化为纯 Playwright。当前 Coze Studio 0.5.1 公开资源库未显示历史 Harness 插件，公开创建入口也没有插件类型；I4 Agent 仅为草稿，知识导入源已就绪但未绑定，故平台唯一入口门禁仍开放。重新通过公开 UI 导入、绑定并发布七工具插件前不得进入 I5，也不得宣称 I4 完整完成。
 
 ### I5：实习增强能力
 

@@ -4,4 +4,4 @@
 
 首版三个 Skill 与七工具 Harness 插件的登记见 `skill-catalog.yaml` 和 `plugin-catalog.yaml`。I3 Agent、Knowledge Base 与 Workflow 的可复现配置分别位于 `agents/`、`knowledge/` 和 `workflows/`。当前登记状态不等于平台已安装、调试或发布，真实结论只由 `tests/conformance/` 对应的公开界面证据给出。
 
-当前公开界面状态：I3 Agent 已写入主控 Prompt、绑定 Knowledge Base 但未发布；Knowledge Base 已处理为 929 Bytes、2 个分段；Workflow 已创建只有开始/结束节点的草稿；Harness 插件已通过公开 OpenAPI 导入并出现在资源库。Coze Studio 0.5.1 的插件公开编辑页随后显示“无法查看智能体”，使插件无法调试、发布或绑定 Agent。因此 Harness 七工具的本机真实调用通过仍不能替代 Coze Agent 的七工具真实调用证据。
+当前公开界面事实以 `public-ui-configuration.yaml` 和一致性结果为准：I3 结果文件保留当时七工具调用与知识检索证据，但 2026-07-17 I4 收口复核时，当前资源库插件筛选为空，Agent 插件搜索无结果，公开创建入口也没有插件类型，说明平台配置已经漂移。I4 Agent 草稿已创建，Knowledge/Workflow 导入源已就绪，但插件和知识库尚未绑定，不能发布或冒充唯一入口可用。禁止使用私有 API、数据库直写或容器挂载绕过该阻塞。

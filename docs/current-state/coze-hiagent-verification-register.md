@@ -38,7 +38,7 @@ owner: project-owner
 | HiAgent 插件超时 | `REFERENCE_VERIFIED` | 同一份 [`插件.md`](../../knowledge-sources/imported/hiagent-2.5.1/2.5.1帮助文档/用户指南/插件.md) 明确为 1～30 分钟，默认 1 分钟 | 这是 HiAgent 2.5.1 边界，不是 Coze 实测值；项目长任务仍采用异步协议 |
 | HiAgent Object 参数嵌套 | `REFERENCE_VERIFIED` | 同一份 [`插件.md`](../../knowledge-sources/imported/hiagent-2.5.1/2.5.1帮助文档/用户指南/插件.md) 明确只支持两级嵌套 | Harness OpenAPI 首版不得设计超过两级的必需输入结构 |
 | HiAgent 插件输出平台上限 | `REFERENCE_VERIFIED` | HiAgent 2.5.1 [`插件异常说明`](../../knowledge-sources/imported/hiagent-2.5.1/2.5.1帮助文档/常见问题/异常问题/插件.md) 记录 `2097152` 字节，即 2 MiB | Harness 仍执行 L0～L3 分级预算和 128 KiB 应用硬上限 |
-| MiMo v2.5 与 Midscene 原子输入 | `PARTIALLY_VERIFIED` | 1024×768 下原子 `aiInput` 连续 3/3 通过；开放式 `aiAct` 曾出现错误落点、错误自报成功和重规划耗尽 | 只证明登录页原子输入；完整作者化稳定性仍由 `PLAT-V014` 门禁 |
+| MiMo v2.5 与 Midscene 原子作者化 | `PARTIALLY_VERIFIED` | `PLAT-V014` 在五个视口、每视口两次的实测中，`INPUT`、`TAP`、`SCROLL` 各 10/10 通过；`LOCATE` 为 8/10，并出现两次失败和一次错误自报成功 | 只允许前三种已验证动作进入受控 LOW/MEDIUM 作者化；`LOCATE` 和所有依赖它的高风险路线强制 `PLAYWRIGHT_ONLY` |
 
 ## 3. 待验证项
 
@@ -113,9 +113,9 @@ I2 已完成 TypeScript/Node Harness、唯一 `regression_platform.sqlite`、七
 
 I2 Harness 侧退出门禁已关闭。平台侧剩余事实没有被改写为成功：`PLAT-V004` 全量关闭仍是 I3 的硬门禁。
 
-## 9. 2026-07-17 I3 真实执行结论
+## 9. 2026-07-17 I3 当次真实执行结论
 
-I3 已完成运行时与 Coze 公开平台闭环。固定 Playwright Worker 在门户执行合成账号密码登录，真实断言页眉姓名、头像与个人资料一致；最终运行 `PASSED`，报告/遮罩截图/日志三类证据完整，决策为 `RECORDED/APPROVE`。Coze 仅通过公开界面完成插件导入、调试、发布、Agent 绑定和 Agent 发布，没有使用私有管理 API、数据库直写或容器挂载发布。
+I3 在当次验收中完成运行时与 Coze 公开平台闭环。固定 Playwright Worker 在门户执行合成账号密码登录，真实断言页眉姓名、头像与个人资料一致；最终运行 `PASSED`，报告/遮罩截图/日志三类证据完整，决策为 `RECORDED/APPROVE`。Coze 当次仅通过公开界面完成插件导入、调试、发布、Agent 绑定和 Agent 发布，没有使用私有管理 API、数据库直写或容器挂载发布。本节是历史时点证据，不声明当前资源仍存在。
 
 | ID | 当前状态 | 真实结论 | 可提交证据 |
 |---|---|---|---|
@@ -125,8 +125,21 @@ I3 已完成运行时与 Coze 公开平台闭环。固定 Playwright Worker 在�
 
 Coze 0.5.1 OpenAPI 的实测兼容条件仍是：每个操作只文档化 HTTP 200，Schema 不使用 `additionalProperties`，严格请求校验由 Zod fail-closed 执行。外部 MiMo v2.5 当前接口的原生流式请求不稳定，单目录内新增 Bearer 保护的兼容网关，将非流式 OpenAI 响应转换为 Coze 所需 SSE；网关不承接 Harness 领域状态，也不构成第二个 Agent。
 
-`PLAT-V004`、`PLAT-V011`、`PLAT-V012` 已关闭，I3 完成。I4 只有在单独启动并满足 `PLAT-V014` 时才能把 Midscene 动作纳入正式路由。
+`PLAT-V004`、`PLAT-V011`、`PLAT-V012` 是 2026-07-17 当时的 I3 验收记录。I4 只有在单独启动并满足 `PLAT-V014` 时才能把对应 Midscene 原子动作纳入作者化路由。
 
-## 10. 来源边界
+## 10. 2026-07-17 I4 真实执行结论与平台漂移
+
+I4 三条确定性 Playwright 案例全部成功，完整计划与三动作窗口保存在唯一 SQLite，作者化任务完成三步后停在 `WAITING_USER`，未自动激活脚本。`PLAT-V014` 结论为 `PARTIALLY_VERIFIED`：只有 `INPUT`、`TAP`、`SCROLL` 满足零失败、零错误自报成功门禁，`LOCATE` 已降级且不能推进 Midscene 路由。
+
+| ID/范围 | 当前状态 | 真实结论 | 可提交证据 |
+|---|---|---|---|
+| `PLAT-V014` | `PARTIALLY_VERIFIED` | 五视口共 40 次原子模型动作；三类动作 10/10，`LOCATE` 8/10 且一次错误自报成功；失败动作没有获准进入正式路线 | `tests/conformance/results/PLAT-V014.json` |
+| I4 三案例 | `RUNTIME_VERIFIED` | 登录资料一致性、账户归属、鉴权拒绝与恢复均为 `SUCCEEDED`，独立 BrowserContext 和 Fixture 隔离成立 | `docs/evidence/platform/hengzhun-i4-three-case-midscene-2026-07-17.md` |
+| I4 作者化 | `RUNTIME_VERIFIED` | 完整计划、previous/current/next、游标门禁和人工激活成立；任务终态为 `WAITING_USER` | 同上 |
+| Coze I4 唯一入口 | `BLOCKED_CURRENT_UI` | 当前公开资源库不存在 Harness 插件；Agent 插件搜索无结果，公开创建入口只提供智能体和应用 | 同上 |
+
+当前平台复核不删除历史 I3 证据，但证明现有 Coze 配置已发生漂移。只有重新通过公开 UI 导入、调试、发布并绑定七工具插件后，I4 才能关闭平台出口门禁并进入 I5。
+
+## 11. 来源边界
 
 本登记册的待验证主张来自用户提供的 Coze/HiAgent 调研材料，但该材料不作为权威证据入库。HiAgent 已有依据只引用仓库中的 2.5.1 本地帮助文档；Coze 数字限制、云端网络要求和产品行为在真实验证前一律保持 `PENDING`。

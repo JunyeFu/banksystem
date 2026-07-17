@@ -189,4 +189,4 @@ async function executeLoginProfile(task, environment = process.env) {
   }
 }
 
-module.exports = { executeLoginProfile, resolveCredential, credentialEnvironmentName };
+module.exports = { executeLoginProfile, resolveCredential, credentialEnvironmentName, artifact, sha256 };

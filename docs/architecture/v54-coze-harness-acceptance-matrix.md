@@ -23,7 +23,7 @@ owner: project-owner
 | 工具输出预算 | L0/L1/L2/L3 分别执行 8/16/64/128 KiB 单次上限；按 UTF-8 JSON 压缩前字节计量；Harness 绝对上限 128 KiB；超限时分页或转 Artifact，不能安全降级则返回 `OUTPUT_BUDGET_EXCEEDED` | 各等级边界值与越界契约测试、UTF-8 多字节测试、分页完整性测试、Artifact 降级测试、128 KiB 全局门禁负测 |
 | SQLite 权威状态 | `regression_platform.sqlite` 是回归领域唯一事实来源；使用 WAL、外键、单写入队列、备份与 `integrity_check` | 迁移、并发负测、备份恢复与完整性检查 |
 | Fixture 隔离 | 每个运行均携带 `namespace + runId`，只经 Test Support API Seed/Reset，禁止直写银行数据库 | Test Support 契约、隔离并发测试、清理证据 |
-| Midscene 风险路由 | Midscene 使用 Harness 三动作窗口；高风险动作只定位，Playwright 完成 DOM/ARIA 校验与提交 | 低/中/高风险案例、窗口与租约日志 |
+| Midscene 风险路由 | Midscene 使用 Harness 三动作窗口；只有逐动作通过 `PLAT-V014` 的能力才可进入 LOW/MEDIUM 作者化。动作未验证或已降级时使用纯 Playwright；高风险动作原则上只允许已验证的 Midscene 定位并由 Playwright 完成 DOM/ARIA 校验与提交，若定位能力降级则同样使用纯 Playwright | 原子能力门禁、低/中/高风险案例、窗口与租约日志、失败动作未获准路由的负证据 |
 | 输入与模型安全 | 外部模型只接收本机脱敏最小上下文；视频仅本机拆帧，Coze仅接收 Artifact ID；内网版使用本机视觉模型 | 脱敏负测、Artifact 传递记录、网络边界检查 |
 | 脚本验证 | 脚本包通过静态门禁、隔离 Worker、独立 BrowserContext、业务断言与证据 Hash 验证 | 三条银行案例的验证报告 |
 | 定时回归 | Harness Schedule 仅执行 `SCRIPT_VALIDATED` Playwright 脚本，正确处理互斥、misfire、补跑与失败暂停 | 调度、断网恢复、失败暂停和无 LLM 执行证据 |
