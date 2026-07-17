@@ -127,7 +127,7 @@ Coze 0.5.1 OpenAPI 的实测兼容条件仍是：每个操作只文档化 HTTP 2
 
 `PLAT-V004`、`PLAT-V011`、`PLAT-V012` 是 2026-07-17 当时的 I3 验收记录。I4 只有在单独启动并满足 `PLAT-V014` 时才能把对应 Midscene 原子动作纳入作者化路由。
 
-## 10. 2026-07-17 I4 真实执行结论与平台漂移
+## 10. 2026-07-17 I4 真实执行结论与平台闭环
 
 I4 三条确定性 Playwright 案例全部成功，完整计划与三动作窗口保存在唯一 SQLite，作者化任务完成三步后停在 `WAITING_USER`，未自动激活脚本。`PLAT-V014` 结论为 `PARTIALLY_VERIFIED`：只有 `INPUT`、`TAP`、`SCROLL` 满足零失败、零错误自报成功门禁，`LOCATE` 已降级且不能推进 Midscene 路由。
 
@@ -136,9 +136,9 @@ I4 三条确定性 Playwright 案例全部成功，完整计划与三动作窗�
 | `PLAT-V014` | `PARTIALLY_VERIFIED` | 五视口共 40 次原子模型动作；三类动作 10/10，`LOCATE` 8/10 且一次错误自报成功；失败动作没有获准进入正式路线 | `tests/conformance/results/PLAT-V014.json` |
 | I4 三案例 | `RUNTIME_VERIFIED` | 登录资料一致性、账户归属、鉴权拒绝与恢复均为 `SUCCEEDED`，独立 BrowserContext 和 Fixture 隔离成立 | `docs/evidence/platform/hengzhun-i4-three-case-midscene-2026-07-17.md` |
 | I4 作者化 | `RUNTIME_VERIFIED` | 完整计划、previous/current/next、游标门禁和人工激活成立；任务终态为 `WAITING_USER` | 同上 |
-| Coze I4 唯一入口 | `BLOCKED_CURRENT_UI` | 当前公开资源库不存在 Harness 插件；Agent 插件搜索无结果，公开创建入口只提供智能体和应用 | 同上 |
+| Coze I4 唯一入口 | `RUNTIME_VERIFIED` | 公开界面完成七工具插件导入/调试/发布、知识库绑定、Agent 绑定与发布；自然语言案例经中断恢复后返回 `SUCCEEDED` 和脱敏证据元数据 | 同上 |
 
-当前平台复核不删除历史 I3 证据，但证明现有 Coze 配置已发生漂移。只有重新通过公开 UI 导入、调试、发布并绑定七工具插件后，I4 才能关闭平台出口门禁并进入 I5。
+此前发现的平台漂移已通过公开界面修复，没有使用 Coze 私有管理 API、平台数据库直写或容器挂载发布。正式 `LOGIN_PROFILE` 运行固定 `environment=local`；后台任务在 MiMo provider 504 后继续执行且没有重复提交，随后使用同一 `taskId` 恢复 `task_get` 与 `artifact_get_metadata`，证明轻量引用恢复链成立。非业务“用户问题建议”已关闭，避免回归结论生成后再触发一次无关模型调用。I4 平台出口门禁关闭，可以进入 I5；MiMo 单轮延迟与偶发 504 仍作为运行风险保留。
 
 ## 11. 来源边界
 

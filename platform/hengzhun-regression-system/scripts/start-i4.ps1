@@ -15,9 +15,11 @@ $env:MIDSCENE_MODEL_NAME = $env:MIMO_MODEL_NAME
 $env:MIDSCENE_MODEL_BASE_URL = $env:MIMO_MODEL_BASE_URL
 $env:MIDSCENE_MODEL_API_KEY = $env:MIMO_MODEL_API_KEY
 $env:MIDSCENE_MODEL_FAMILY = 'xiaomi-mimo'
-$env:MIDSCENE_MODEL_TIMEOUT = '60000'
-$env:MIDSCENE_INSIGHT_MODEL_TIMEOUT = '60000'
-$env:MIDSCENE_PLANNING_MODEL_TIMEOUT = '60000'
+# MiMo v2.5 can exceed 60 seconds on visual localization. Keep Midscene's
+# bounded retry behavior, but allow each attempt enough time to complete.
+$env:MIDSCENE_MODEL_TIMEOUT = '120000'
+$env:MIDSCENE_INSIGHT_MODEL_TIMEOUT = '120000'
+$env:MIDSCENE_PLANNING_MODEL_TIMEOUT = '120000'
 $env:MIDSCENE_DANGEROUSLY_PRINT_ALL_CONFIG = 'false'
 $authoringOut = Join-Path $root '.data\logs\authoring-worker.stdout.log'
 $authoringErr = Join-Path $root '.data\logs\authoring-worker.stderr.log'

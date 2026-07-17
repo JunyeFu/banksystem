@@ -42,13 +42,16 @@ $plan = Invoke-Harness '/plans:compile' @{
 }
 
 $task = $null
-for ($i = 0; $i -lt 240; $i++) {
+# Three visual actions can each consume two bounded 120-second model attempts.
+# Keep the verifier above that worst-case execution window without changing the
+# asynchronous Harness contract.
+for ($i = 0; $i -lt 600; $i++) {
     $task = Invoke-Harness '/tasks:get' @{namespace=$namespace;taskId=$plan.taskId}
     if ($task.status -in @('WAITING_USER','FAILED')) { break }
     Start-Sleep -Seconds 2
 }
 if ($task.status -ne 'WAITING_USER' -or -not $task.userActionRequired -or $task.progress -ne 100 -or $task.errorCode) {
-    throw "Authoring task did not stop at explicit user confirmation: $($task.status)"
+    throw "Authoring task did not stop at explicit user confirmation: status=$($task.status), progress=$($task.progress), userActionRequired=$($task.userActionRequired), errorCode=$($task.errorCode)"
 }
 
 $safe = [ordered]@{

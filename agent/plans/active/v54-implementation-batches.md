@@ -100,7 +100,9 @@ Coze Studio 0.5.1 在当次验收中通过公开 UI 完成七工具插件导入�
 - 已验证脚本标记为 `SCRIPT_VALIDATED`，未经验证不得进入正式回归。
 - 只有通过 `PLAT-V014` 稳定性门禁的 Midscene 原子动作才能进入正式 LOW/MEDIUM 路由；开放式 `aiAct` 不得因模型自报成功而放行。
 
-2026-07-17 实施状态：I4 本机运行面已落地。三条 Playwright 案例均以独立 BrowserContext、Fixture 隔离和脱敏证据通过；完整计划、三动作窗口、单活动租约、Playwright 独立事实验证、`WAITING_USER` 与人工激活门禁均已验证。`PLAT-V014` 五视口实测中 `INPUT`、`TAP`、`SCROLL` 各 10/10 通过，允许进入受控 LOW/MEDIUM 作者化；`LOCATE` 为 8/10 且出现一次错误自报成功，已标记 `DEGRADED` 并强制 `PLAYWRIGHT_ONLY`，高风险路线同样退化为纯 Playwright。当前 Coze Studio 0.5.1 公开资源库未显示历史 Harness 插件，公开创建入口也没有插件类型；I4 Agent 仅为草稿，知识导入源已就绪但未绑定，故平台唯一入口门禁仍开放。重新通过公开 UI 导入、绑定并发布七工具插件前不得进入 I5，也不得宣称 I4 完整完成。
+2026-07-17 完成状态：I4 本机运行面与 Coze 唯一入口均已落地。三条 Playwright 案例均以独立 BrowserContext、Fixture 隔离和脱敏证据通过；完整计划、三动作窗口、单活动租约、Playwright 独立事实验证、`WAITING_USER` 与人工激活门禁均已验证。`PLAT-V014` 五视口实测中 `INPUT`、`TAP`、`SCROLL` 各 10/10 通过，允许进入受控 LOW/MEDIUM 作者化；`LOCATE` 为 8/10 且出现一次错误自报成功，已标记 `DEGRADED` 并强制 `PLAYWRIGHT_ONLY`，高风险路线同样退化为纯 Playwright。
+
+Coze Studio 0.5.1 已仅通过公开界面完成七工具 OpenAPI 插件导入、逐工具调试、发布、Agent 绑定、知识库绑定与 Agent 发布。`LOGIN_PROFILE` 从自然语言知识检索开始，真实完成 `case_create_draft -> case_get -> plan_compile -> run_submit`；MiMo 在工具返回后的规划轮发生一次 provider 504，但 Harness 任务未中断、未重复提交，恢复会话按原 `taskId` 完成 `task_get -> artifact_get_metadata` 并返回 `SUCCEEDED`、脱敏断言和 `REDACTED` 报告元数据。`run_submit.environment` 已固定为 `local`，非业务“用户问题建议”已关闭以避免额外模型调用。I4 退出门禁关闭，可以进入 I5；MiMo 规划延迟保留为非阻塞运行风险。
 
 ### I5：实习增强能力
 

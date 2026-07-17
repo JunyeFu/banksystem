@@ -81,6 +81,8 @@ test('I4 persists the full plan but leases only a three-action window and requir
   ]) {
     const claimed = await call(baseUrl, '/internal/worker/authoring:claim', { workerId: 'worker-i4' }, true);
     assert.equal(claimed.body.status, 'CLAIMED');
+    assert.ok(Date.parse(claimed.body.window.currentLease.leaseExpiresAt) - Date.now() > 300_000,
+      'authoring lease must outlive two bounded 120-second model attempts');
     assert.equal(claimed.body.window.currentAction.executionMode, expectation[0]);
     assert.equal(claimed.text.includes('full_action_plan'), false);
     assert.equal(claimed.text.includes('credentialAlias'), false);

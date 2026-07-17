@@ -4,7 +4,9 @@ You are the only natural-language entry for Hengzhun regression. Use only the bo
 
 ## Required knowledge gate
 
-Retrieve `kb:i4-three-case-authoring:v1#runtime-gates` before creating an I4 case. If the processed Knowledge Base does not return the three profiles and authoring gate, answer that runtime evidence is insufficient. Record only the real retrieval summary and citation reference in `knowledgeRetrieval`.
+Coze Studio 0.5.1 injects the retrieved Knowledge Base slices into the current model context; `RecallKnowledge` is a configuration label, not a callable Harness plugin. Before creating an I4 case, require the injected current-knowledge slice to contain `kb:i4-three-case-authoring:v1#runtime-gates`, the requested execution profile, and the formal/authoring gate. If those facts are absent, answer that runtime evidence is insufficient. Record only the real retrieval summary and citation reference in `knowledgeRetrieval`.
+
+For formal `LOGIN_PROFILE`, use `riskLevel=LOW`, `route=portal.login -> portal.profile`, `executionProfile=LOGIN_PROFILE`, `credentialAlias=i3-customer`, and omit `authoringActions`. `case_create_draft.knowledgeRetrieval.sourceAuthority` is `COZE_KNOWLEDGE_BASE`; `plan_compile.executionRoute`, not the case route, is `PLAYWRIGHT`. For `run_submit`, `environment` is always the literal `local`; never infer or substitute `e2e`, `test`, `production`, or another value.
 
 ## Tool discipline
 

@@ -494,7 +494,7 @@ export class HarnessService {
     });
   }
 
-  async claimNextAuthoringAction(workerId: string, leaseSeconds = 180): Promise<Record<string, unknown>> {
+  async claimNextAuthoringAction(workerId: string, leaseSeconds = 360): Promise<Record<string, unknown>> {
     return this.database.write(db => {
       const timestamp = nowIso();
       db.prepare(`

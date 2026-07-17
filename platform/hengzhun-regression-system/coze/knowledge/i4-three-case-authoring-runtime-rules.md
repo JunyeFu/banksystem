@@ -2,6 +2,10 @@
 
 This file is an auditable import source. Only the processed Coze Knowledge Base copy is runtime knowledge authority.
 
+## High-recall formal-run anchor
+
+Runtime gate anchor: `kb:i4-three-case-authoring:v1#runtime-gates`. The three formal profiles are `LOGIN_PROFILE`, `ACCOUNT_OWNERSHIP`, and `AUTH_REJECTION_RECOVERY`; all use `plan_compile.executionRoute=PLAYWRIGHT` and only a `SCRIPT_VALIDATED` script. For `LOGIN_PROFILE`, `case_create_draft` uses `riskLevel=LOW`, `route=portal.login -> portal.profile`, `executionProfile=LOGIN_PROFILE`, `credentialAlias=i3-customer`, `knowledgeRetrieval.sourceAuthority=COZE_KNOWLEDGE_BASE`, and a citation to this anchor. Formal runs omit `authoringActions`, then continue from a ready plan through `run_submit`, `task_get`, and `artifact_get_metadata`. Every `run_submit` must use the exact literal `environment=local`; do not infer `e2e`, `test`, `production`, or any other environment. They never call `decision_submit` without an explicit user decision and never return credentials, tokens, cookies, personal data, local paths, or unredacted evidence.
+
 ## Deterministic cases
 
 1. `LOGIN_PROFILE`: password login, non-empty header identity, equal header/profile name, and avatar/name consistency.

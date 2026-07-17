@@ -131,8 +131,19 @@ async function main() {
     do {
       const claim = await post('/internal/worker/authoring:claim', { workerId });
       if (claim.status === 'CLAIMED') {
-        const result = await executeClaim(browser, claim);
-        process.stdout.write(JSON.stringify({ event: 'authoring_action_completed', taskId: claim.taskId, status: result.status }) + '\n');
+        try {
+          const result = await executeClaim(browser, claim);
+          process.stdout.write(JSON.stringify({ event: 'authoring_action_completed', taskId: claim.taskId, status: result.status }) + '\n');
+        } catch (error) {
+          process.stderr.write(JSON.stringify({
+            event: 'authoring_claim_failed',
+            taskId: claim.taskId,
+            errorClass: error instanceof Error ? error.name : 'UnknownError',
+            recovery: once ? 'EXIT' : 'LEASE_RECLAIM'
+          }) + '\n');
+          if (once) throw error;
+          await new Promise(resolve => setTimeout(resolve, 2000));
+        }
       }
       if (once) break;
       await new Promise(resolve => setTimeout(resolve, claim.status === 'CLAIMED' ? 250 : 1500));
