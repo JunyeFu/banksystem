@@ -40,7 +40,7 @@ if (failures.length) {
   console.log(JSON.stringify({
     status: 'HENGZHUN_I3_HISTORICAL_RESULTS_VERIFIED',
     historicalGatesClosedAtEvidenceTime: ['PLAT-V004', 'PLAT-V011', 'PLAT-V012'],
-    currentPlatformConfigurationAsserted: false,
-    currentPlatformConfigurationGateOpen: ['HARNESS_PLUGIN_PUBLIC_UI_PRESENCE']
+    currentPlatformConfigurationAssertedByHistoricalResult: false,
+    currentPlatformEvidenceAuthority: 'docs/evidence/platform/hengzhun-i5-import-repair-2026-07-17.md'
   }, null, 2));
 }

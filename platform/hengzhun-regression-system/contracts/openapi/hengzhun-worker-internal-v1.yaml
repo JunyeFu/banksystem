@@ -1,7 +1,7 @@
 openapi: 3.0.3
 info:
   title: 衡准 Worker 内部接口
-  version: 1.1.0
+  version: 1.2.0
   description: 仅供本机 Playwright/Midscene Worker 领取和完成 SQLite 持久化任务，不导入 Coze/HiAgent。
 servers:
   - url: http://127.0.0.1:18788
@@ -109,6 +109,47 @@ paths:
         '400': {$ref: '#/components/responses/Problem'}
         '401': {$ref: '#/components/responses/Problem'}
         '403': {$ref: '#/components/responses/Problem'}
+  /internal/worker/repairs:claim:
+    post:
+      operationId: workerClaimRepairValidation
+      summary: 领取一个隔离修复候选验证租约
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: {$ref: '#/components/schemas/WorkerClaimRequest'}
+      responses:
+        '200':
+          description: 返回白名单脚本、受控配置和全新浏览器上下文隔离要求，或队列为空
+          content:
+            application/json:
+              schema: {type: object, additionalProperties: true}
+        '401': {$ref: '#/components/responses/Problem'}
+        '403': {$ref: '#/components/responses/Problem'}
+  /internal/worker/repairs/{jobId}:complete:
+    post:
+      operationId: workerCompleteRepairValidation
+      summary: 提交隔离 Playwright 候选验证结果
+      parameters:
+        - name: jobId
+          in: path
+          required: true
+          schema: {type: string, minLength: 8, maxLength: 80}
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: {$ref: '#/components/schemas/WorkerCompletionRequest'}
+      responses:
+        '200':
+          description: 候选进入 WAITING_USER 或 VALIDATION_FAILED；不会自动激活脚本
+          content:
+            application/json:
+              schema: {type: object, additionalProperties: true}
+        '400': {$ref: '#/components/responses/Problem'}
+        '401': {$ref: '#/components/responses/Problem'}
+        '403': {$ref: '#/components/responses/Problem'}
+        '409': {$ref: '#/components/responses/Problem'}
 components:
   securitySchemes:
     workerBearer: {type: http, scheme: bearer, bearerFormat: opaque-worker-token}

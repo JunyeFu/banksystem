@@ -7,9 +7,11 @@ import { asHarnessError, HarnessError } from './errors';
 import { OutputLevel, serializeWithinBudget } from './output-budget';
 import {
   caseCreateDraftSchema,
+  caseImportSubmitSchema,
   decisionSubmitSchema,
   namespaceSchema,
   planCompileSchema,
+  repairCandidateCreateSchema,
   runSubmitSchema,
   validationIssues
 } from './schemas';
@@ -41,6 +43,8 @@ const workerCompletionSchema = z.object({
     metadata: z.record(z.string(), z.unknown()).optional()
   }).strict()).max(8)
 }).strict();
+
+const repairWorkerCompletionSchema = workerCompletionSchema;
 
 const authoringActionCompletionSchema = z.object({
   workerId: z.string().trim().min(3).max(128).regex(/^[A-Za-z0-9._:-]+$/),
@@ -80,6 +84,14 @@ const pluginTaskGetSchema = z.object({
 const pluginArtifactGetSchema = z.object({
   namespace: namespaceSchema,
   artifactId: pluginReferenceSchema
+}).strict();
+const pluginFailureGetSchema = z.object({
+  namespace: namespaceSchema,
+  incidentId: pluginReferenceSchema
+}).strict();
+const pluginRepairCandidateGetSchema = z.object({
+  namespace: namespaceSchema,
+  candidateId: pluginReferenceSchema
 }).strict();
 
 export interface HarnessApplicationOptions {
@@ -199,6 +211,17 @@ export async function createHarnessApplication(options: HarnessApplicationOption
         const input = workerClaimSchema.parse(await readJson(request));
         return sendJson(response, 200, await service.claimNextAuthoringAction(input.workerId), 'L1', requestId);
       }
+      if (request.method === 'POST' && url.pathname === '/internal/worker/repairs:claim') {
+        authorizeWorker(request.headers.authorization, workerToken);
+        const input = workerClaimSchema.parse(await readJson(request));
+        return sendJson(response, 200, await service.claimNextRepairValidation(input.workerId), 'L1', requestId);
+      }
+      const repairCompleteMatch = url.pathname.match(/^\/internal\/worker\/repairs\/([^/]+):complete$/);
+      if (request.method === 'POST' && repairCompleteMatch) {
+        authorizeWorker(request.headers.authorization, workerToken);
+        const input = repairWorkerCompletionSchema.parse(await readJson(request, MAX_WORKER_REQUEST_BYTES));
+        return sendJson(response, 200, await service.completeRepairValidation(decodeURIComponent(repairCompleteMatch[1] as string), input), 'L1', requestId);
+      }
       const authoringCompleteMatch = url.pathname.match(/^\/internal\/worker\/authoring\/([^/]+)\/actions:complete$/);
       if (request.method === 'POST' && authoringCompleteMatch) {
         authorizeWorker(request.headers.authorization, workerToken);
@@ -219,7 +242,14 @@ export async function createHarnessApplication(options: HarnessApplicationOption
 
       let authorization: SecurityResult;
       try {
-        authorization = authorizeRequest(request.headers.authorization, request.socket.remoteAddress, security);
+        authorization = authorizeRequest(
+          request.headers.authorization,
+          typeof request.headers['x-hengzhun-service-token'] === 'string'
+            ? request.headers['x-hengzhun-service-token']
+            : undefined,
+          request.socket.remoteAddress,
+          security
+        );
         fingerprint = authorization.credentialFingerprint;
         await database.write(db => {
           db.prepare(`
@@ -235,7 +265,12 @@ export async function createHarnessApplication(options: HarnessApplicationOption
             VALUES (?, 'REJECTED', ?, ?, ?, ?, ?)
           `).run(
             opaqueId('sec'), authError.errorCode, remoteAddressForAudit(request.socket.remoteAddress),
-            tokenFingerprintFromHeader(request.headers.authorization) ?? null, requestId, nowIso()
+            tokenFingerprintFromHeader(request.headers.authorization)
+              ?? (typeof request.headers['x-hengzhun-service-token'] === 'string'
+                ? credentialFingerprint(request.headers['x-hengzhun-service-token'])
+                : null),
+            requestId,
+            nowIso()
           );
         });
         throw authError;
@@ -246,6 +281,11 @@ export async function createHarnessApplication(options: HarnessApplicationOption
         const input = caseCreateDraftSchema.parse(await readJson(request));
         const result = await service.createCaseDraft(input, context);
         return sendJson(response, result.status, result.response, 'L1', requestId);
+      }
+      if (request.method === 'POST' && url.pathname === '/v1/plugin/cases:import') {
+        const input = caseImportSubmitSchema.parse(await readJson(request));
+        const result = await service.importCases(input, context);
+        return sendJson(response, result.status, result.response, 'L2', requestId);
       }
       if (request.method === 'POST' && url.pathname === '/v1/plugin/cases:get') {
         const input = pluginCaseGetSchema.parse(await readJson(request));
@@ -269,6 +309,19 @@ export async function createHarnessApplication(options: HarnessApplicationOption
         const input = pluginArtifactGetSchema.parse(await readJson(request));
         return sendJson(response, 200, service.getArtifactMetadata(input.namespace, input.artifactId), 'L3', requestId);
       }
+      if (request.method === 'POST' && url.pathname === '/v1/plugin/failures:get') {
+        const input = pluginFailureGetSchema.parse(await readJson(request));
+        return sendJson(response, 200, omitNullValues(service.getFailureIncident(input.namespace, input.incidentId)), 'L2', requestId);
+      }
+      if (request.method === 'POST' && url.pathname === '/v1/plugin/repairs:create-candidate') {
+        const input = repairCandidateCreateSchema.parse(await readJson(request));
+        const result = await service.createRepairCandidate(input, context);
+        return sendJson(response, result.status, result.response, 'L2', requestId);
+      }
+      if (request.method === 'POST' && url.pathname === '/v1/plugin/repairs:get-candidate') {
+        const input = pluginRepairCandidateGetSchema.parse(await readJson(request));
+        return sendJson(response, 200, omitNullValues(service.getRepairCandidate(input.namespace, input.candidateId)), 'L2', requestId);
+      }
       if (request.method === 'POST' && url.pathname === '/v1/plugin/decisions:submit') {
         const input = decisionSubmitSchema.parse(await readJson(request));
         const result = await service.submitDecision(input, context);
@@ -279,6 +332,11 @@ export async function createHarnessApplication(options: HarnessApplicationOption
         const input = caseCreateDraftSchema.parse(await readJson(request));
         const result = await service.createCaseDraft(input, context);
         return sendJson(response, result.status, result.response, 'L1', requestId);
+      }
+      if (request.method === 'POST' && url.pathname === '/v1/cases/imports') {
+        const input = caseImportSubmitSchema.parse(await readJson(request));
+        const result = await service.importCases(input, context);
+        return sendJson(response, result.status, result.response, 'L2', requestId);
       }
       const caseMatch = url.pathname.match(/^\/v1\/cases\/([^/]+)$/);
       if (request.method === 'GET' && caseMatch) {

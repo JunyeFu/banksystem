@@ -15,11 +15,22 @@ function New-RandomValue([int]$Bytes = 48) {
 
 function Set-EnvValue([System.Collections.Generic.List[string]]$Lines, [string]$Name, [string]$Value, [bool]$PreserveExisting = $true) {
     $pattern = '^\s*' + [Regex]::Escape($Name) + '='
-    for ($index = 0; $index -lt $Lines.Count; $index++) {
+    $firstIndex = -1
+    for ($index = 0; $index -lt $Lines.Count;) {
         if ($Lines[$index] -match $pattern) {
-            if (-not $PreserveExisting) { $Lines[$index] = $Name + '=' + $Value }
-            return
+            if ($firstIndex -lt 0) {
+                $firstIndex = $index
+                $index++
+            } else {
+                $Lines.RemoveAt($index)
+            }
+        } else {
+            $index++
         }
+    }
+    if ($firstIndex -ge 0) {
+        if (-not $PreserveExisting) { $Lines[$firstIndex] = $Name + '=' + $Value }
+        return
     }
     $Lines.Add($Name + '=' + $Value)
 }

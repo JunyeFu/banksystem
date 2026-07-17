@@ -4,6 +4,7 @@ title: 衡准 I4 三案例与 Midscene 作者化验收证据
 document_type: evidence
 domain: platform
 status: verified
+authority: evidence
 version: 1.2
 effective_date: 2026-07-17
 owner: 傅钧烨

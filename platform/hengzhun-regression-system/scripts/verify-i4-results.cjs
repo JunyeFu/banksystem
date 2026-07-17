@@ -53,7 +53,8 @@ if (failures.length) {
 } else {
   console.log(JSON.stringify({
     status: 'HENGZHUN_I4_RESULTS_VERIFIED',
-    platformGate: 'PARTIALLY_VERIFIED',
+    midsceneActionAdmission: 'PARTIALLY_VERIFIED',
+    i4ExitGate: 'CLOSED_WITH_PLAYWRIGHT_FALLBACK',
     admittedMidsceneActions: ['INPUT', 'TAP', 'SCROLL'],
     degradedActions: ['LOCATE'],
     locateFallback: 'PLAYWRIGHT_ONLY'

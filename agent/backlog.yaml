@@ -3,7 +3,7 @@ project: banksystem
 root: D:\Agent\banksystem
 defaultBranch: main
 statusSource: agent/backlog.yaml
-updatedAt: '2026-07-16T00:00:00+08:00'
+updatedAt: '2026-07-17T18:00:00+08:00'
 
 allowedStatuses: [PROPOSED, READY, IN_PROGRESS, BLOCKED, REVIEW, DONE, CANCELLED]
 
@@ -100,7 +100,7 @@ tracks:
         status: IN_PROGRESS
         owner: 傅钧烨
         dependsOn: []
-        evidence: [docs/evidence/platform/hengzhun-i1-platform-baseline-2026-07-16.md, docs/evidence/platform/hengzhun-i2-safe-kernel-2026-07-16.md, docs/evidence/platform/hengzhun-i4-three-case-midscene-2026-07-17.md, platform/hengzhun-regression-system/tests/conformance/status.yaml]
+        evidence: [docs/evidence/platform/hengzhun-i1-platform-baseline-2026-07-16.md, docs/evidence/platform/hengzhun-i2-safe-kernel-2026-07-16.md, docs/evidence/platform/hengzhun-i4-three-case-midscene-2026-07-17.md, docs/evidence/platform/hengzhun-i5-import-repair-2026-07-17.md, platform/hengzhun-regression-system/tests/conformance/status.yaml]
         allowedPaths: [platform/**, contracts/**, tests/**, docs/architecture/**, docs/current-state/**, docs/evidence/**, documents/**, rag/**, agent/**, infra/**, scripts/platform/**]
         acceptance:
           - Platform runtime, Coze deployment, Harness OpenAPI, SQLite, Artifact and Worker foundations may start while unrelated frontend defects remain open.

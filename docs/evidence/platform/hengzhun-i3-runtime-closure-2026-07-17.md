@@ -1,3 +1,15 @@
+---
+id: EVIDENCE-HENGZHUN-I3-20260717
+title: 衡准 I3 纵向闭环完成证据
+document_type: evidence
+domain: platform
+status: verified
+authority: evidence
+version: 1.0
+effective_date: 2026-07-17
+owner: 傅钧烨
+---
+
 # 衡准 I3 纵向闭环完成证据
 
 日期：2026-07-17

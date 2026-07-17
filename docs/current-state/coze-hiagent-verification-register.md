@@ -140,6 +140,20 @@ I4 三条确定性 Playwright 案例全部成功，完整计划与三动作窗�
 
 此前发现的平台漂移已通过公开界面修复，没有使用 Coze 私有管理 API、平台数据库直写或容器挂载发布。正式 `LOGIN_PROFILE` 运行固定 `environment=local`；后台任务在 MiMo provider 504 后继续执行且没有重复提交，随后使用同一 `taskId` 恢复 `task_get` 与 `artifact_get_metadata`，证明轻量引用恢复链成立。非业务“用户问题建议”已关闭，避免回归结论生成后再触发一次无关模型调用。I4 平台出口门禁关闭，可以进入 I5；MiMo 单轮延迟与偶发 504 仍作为运行风险保留。
 
-## 11. 来源边界
+## 11. 2026-07-17 I5 完整闭环结论
+
+I5 已通过十一工具静态契约、SQLite 迁移、24 项 I2-I5 自动测试和真实门户浏览器闭环。结构化导入、七类失败事故、定位器白名单诊断、隔离修复候选、`WAITING_USER` 和显式版本化激活均成立；激活后的正式 Playwright 复跑为 `SUCCEEDED`。初始定位器失败由受控 Worker 刺激产生并明确标注为合成输入，候选验证与激活后复跑使用真实固定 Chromium。
+
+| ID/范围 | 当前状态 | 真实结论 | 可提交证据 |
+|---|---|---|---|
+| I5 结构化导入 | `RUNTIME_VERIFIED` | `HENGZHUN_JSON_V1` 整批校验、原子写入、批内引用唯一和失败零写入通过 | `docs/evidence/platform/hengzhun-i5-import-repair-2026-07-17.md` |
+| I5 失败分类 | `RUNTIME_VERIFIED` | Harness 将受控定位器故障记录为 SQLite 事故并分类 `LOCATOR`；模型不能覆盖 | 同上 |
+| I5 隔离候选 | `RUNTIME_VERIFIED` | 白名单选择器覆盖在独立 Worker 租约和 BrowserContext 中通过，确认前正式脚本仍为版本 1 | 同上 |
+| I5 人工激活 | `RUNTIME_VERIFIED` | 显式确认后候选 `ACTIVE`、脚本版本 2，激活后正式复跑成功 | 同上 |
+| Coze I5 唯一入口 | `RUNTIME_VERIFIED` | 公开界面发布十一工具插件 v0.0.7、I5 Knowledge Base 与 Agent；自然语言批准改变 SQLite 状态，公开工具回查 `ACTIVE/version 4`。一次旧版本重复批准被 409 拒绝 | 同上 |
+
+因此 I5 本机运行门禁与平台出口门禁均已关闭。Coze 公开适配使用静态 `X-Hengzhun-Service-Token`，规范 OpenAPI 与未来 HiAgent 仍使用 `Authorization: Bearer`；两条路径均由 Harness 校验，凭据不进入对话、证据或仓库。观察到 Coze 在一次批准交互后尝试用旧版本重复调用，Harness 的乐观并发控制返回 `TARGET_VERSION_CONFLICT`，没有发生重复激活。该模型侧行为作为 I6 重试治理风险保留。
+
+## 12. 来源边界
 
 本登记册的待验证主张来自用户提供的 Coze/HiAgent 调研材料，但该材料不作为权威证据入库。HiAgent 已有依据只引用仓库中的 2.5.1 本地帮助文档；Coze 数字限制、云端网络要求和产品行为在真实验证前一律保持 `PENDING`。

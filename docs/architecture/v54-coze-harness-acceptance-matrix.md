@@ -5,7 +5,7 @@ document_type: reference
 domain: architecture
 status: accepted
 authority: normative
-version: 1.3
+version: 1.4
 effective_date: 2026-07-15
 owner: project-owner
 ---
@@ -20,6 +20,8 @@ owner: project-owner
 | Coze 唯一入口 | 用户只能通过自托管 Coze Studio Agent/Workflow 提交作者化、导入、诊断和恢复任务 | Agent/Workflow 配置标识、HTTP Plugin 调用记录 |
 | 平台能力一致性 | 当前批次依赖的 `PLAT-Vxxx` 均已由目标版本真实平台或明确官方依据关闭；模型回答、附件文本和单张截图不能独立关闭 | [`平台能力待验证登记册`](../current-state/coze-hiagent-verification-register.md)、conformance 用例、脱敏结果清单和证据 Hash |
 | Harness 工具边界 | HTTP OpenAPI Plugin 使用服务令牌和内网 allowlist；所有工具具有版本化请求/响应、幂等键、任务 ID 和审计 | OpenAPI、鉴权负测、任务状态与审计证据 |
+| 结构化案例导入 | 只接受版本化规范格式；批次内引用唯一，任一项不合法时整批不写入；禁止凭据、脚本源码、命令和本机路径 | 导入正负契约测试、SQLite 批次/项目记录、幂等与原子性证据 |
+| 失败分类 | Harness 根据 Worker 错误类别、代码和证据确定性映射到环境、认证、契约、定位器、断言、模型或工具；模型不得覆盖 | 失败运行、事故记录、分类负测和受控证据引用 |
 | 工具输出预算 | L0/L1/L2/L3 分别执行 8/16/64/128 KiB 单次上限；按 UTF-8 JSON 压缩前字节计量；Harness 绝对上限 128 KiB；超限时分页或转 Artifact，不能安全降级则返回 `OUTPUT_BUDGET_EXCEEDED` | 各等级边界值与越界契约测试、UTF-8 多字节测试、分页完整性测试、Artifact 降级测试、128 KiB 全局门禁负测 |
 | SQLite 权威状态 | `regression_platform.sqlite` 是回归领域唯一事实来源；使用 WAL、外键、单写入队列、备份与 `integrity_check` | 迁移、并发负测、备份恢复与完整性检查 |
 | Fixture 隔离 | 每个运行均携带 `namespace + runId`，只经 Test Support API Seed/Reset，禁止直写银行数据库 | Test Support 契约、隔离并发测试、清理证据 |

@@ -52,6 +52,21 @@ async function executeLoginProfile(task, environment = process.env) {
   const portalBaseUrl = (environment.HENGZHUN_PORTAL_BASE_URL || 'http://127.0.0.1:18082').replace(/\/$/, '');
   const network = [];
   const steps = [];
+  const selectorOverrides = task.execution?.selectorOverrides || {};
+  const locator = (targetRef, fallback) => selectorOverrides[targetRef]
+    ? page.locator(selectorOverrides[targetRef])
+    : fallback();
+  const atTarget = async (targetRef, operation) => {
+    try {
+      return await operation();
+    } catch (error) {
+      if (error?.name === 'TimeoutError') {
+        error.code = `${targetRef}_LOCATOR_NOT_FOUND`;
+        error.category = 'TEST_FAILURE';
+      }
+      throw error;
+    }
+  };
   const browser = await chromium.launch({ executablePath, headless: true });
   const context = await browser.newContext({
     locale: 'zh-CN',
@@ -72,14 +87,14 @@ async function executeLoginProfile(task, environment = process.env) {
   try {
     await page.goto(`${portalBaseUrl}/portal/login`, { waitUntil: 'domcontentloaded', timeout: 30000 });
     steps.push({ step: 'portal-login-opened', passed: true });
-    await page.getByTestId('login-username').fill(credential.username);
-    await page.getByTestId('login-password').fill(credential.password);
-    await page.getByTestId('login-submit').click();
-    await page.getByTestId('customer-profile-name').waitFor({ state: 'visible', timeout: 30000 });
+    await atTarget('LOGIN_USERNAME', () => locator('LOGIN_USERNAME', () => page.getByTestId('login-username')).fill(credential.username));
+    await atTarget('LOGIN_PASSWORD', () => locator('LOGIN_PASSWORD', () => page.getByTestId('login-password')).fill(credential.password));
+    await atTarget('LOGIN_SUBMIT', () => locator('LOGIN_SUBMIT', () => page.getByTestId('login-submit')).click());
+    await atTarget('PROFILE_NAME', () => locator('PROFILE_NAME', () => page.getByTestId('customer-profile-name')).waitFor({ state: 'visible', timeout: 30000 }));
     steps.push({ step: 'portal-password-login', passed: true });
 
-    await page.getByRole('link', { name: '个人资料', exact: true }).click();
-    await page.getByTestId('profile-display-name').waitFor({ state: 'visible', timeout: 30000 });
+    await atTarget('PROFILE_LINK', () => locator('PROFILE_LINK', () => page.getByRole('link', { name: '个人资料', exact: true })).click());
+    await atTarget('PROFILE_DISPLAY_NAME', () => locator('PROFILE_DISPLAY_NAME', () => page.getByTestId('profile-display-name')).waitFor({ state: 'visible', timeout: 30000 }));
     await page.waitForFunction(() => {
       const header = document.querySelector('[data-testid="customer-profile-name"]')?.textContent?.trim();
       const profile = document.querySelector('[data-testid="profile-display-name"]')?.textContent?.trim();
@@ -119,6 +134,7 @@ async function executeLoginProfile(task, environment = process.env) {
       sourceCommit: environment.HENGZHUN_SOURCE_COMMIT || 'unknown',
       contractSha256: fs.existsSync(contractPath) ? sha256(fs.readFileSync(contractPath)) : null,
       scriptSha256: sha256(fs.readFileSync(__filename)),
+      selectorConfigurationHash: sha256(JSON.stringify(selectorOverrides)),
       assertions,
       identityEvidence: {
         displayNameSha256: sha256(headerName),

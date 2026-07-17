@@ -57,6 +57,7 @@ export function loadSecurityConfig(environment: NodeJS.ProcessEnv = process.env)
 
 export function authorizeRequest(
   authorizationHeader: string | undefined,
+  compatibilityTokenHeader: string | undefined,
   remoteAddressValue: string | undefined,
   config: SecurityConfig
 ): SecurityResult {
@@ -65,7 +66,8 @@ export function authorizeRequest(
     throw new HarnessError(403, 'CLIENT_NOT_ALLOWED', 'AUTHORIZATION', '调用方网络地址不在允许范围内。');
   }
   const prefix = 'Bearer ';
-  const suppliedToken = authorizationHeader?.startsWith(prefix) ? authorizationHeader.slice(prefix.length) : '';
+  const bearerToken = authorizationHeader?.startsWith(prefix) ? authorizationHeader.slice(prefix.length) : '';
+  const suppliedToken = bearerToken || compatibilityTokenHeader || '';
   const fingerprint = credentialFingerprint(suppliedToken);
   if (!suppliedToken || !safeEqual(suppliedToken, config.serviceToken)) {
     throw new HarnessError(401, 'INVALID_SERVICE_TOKEN', 'AUTHENTICATION', '服务令牌无效。');

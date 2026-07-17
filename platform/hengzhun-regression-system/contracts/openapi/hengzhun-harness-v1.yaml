@@ -1,10 +1,10 @@
 openapi: 3.0.3
 info:
   title: 衡准回归 Harness
-  version: 1.3.0
+  version: 1.4.0
   description: >-
-    Coze/HiAgent 公开 OpenAPI 插件使用的七工具安全边界。为兼容 Coze Studio 0.5.1，
-    七个操作统一使用 POST JSON body，Operation 内不使用 Parameter 或 Schema 引用。
+    Coze/HiAgent 公开 OpenAPI 插件使用的十一工具安全边界。为兼容 Coze Studio 0.5.1，
+    所有操作统一使用 POST JSON body，Operation 内不使用 Parameter 或 Schema 引用。
     所有长任务立即返回 taskId，不返回凭据、文件字节、完整日志、截图或本机绝对路径。
 servers:
   - url: http://hengzhun-harness:18788
@@ -135,6 +135,68 @@ paths:
                   definition: {type: object}
                   contentHash: {type: string}
                   updatedAt: {type: string}
+  /v1/plugin/cases:import:
+    post:
+      operationId: case_import_submit
+      summary: 原子导入衡准结构化 JSON 案例批次
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [namespace, idempotencyKey, sourceFormat, sourceRef, cases]
+              properties:
+                namespace: {type: string, pattern: '^[a-z0-9][a-z0-9._-]{2,63}$'}
+                idempotencyKey: {type: string, minLength: 8, maxLength: 128, pattern: '^[A-Za-z0-9._:-]+$'}
+                actorRef: {type: string, minLength: 1, maxLength: 128, default: coze-agent}
+                sourceFormat: {type: string, enum: [HENGZHUN_JSON_V1]}
+                sourceRef: {type: string, minLength: 1, maxLength: 256}
+                cases:
+                  type: array
+                  minItems: 1
+                  maxItems: 50
+                  items:
+                    type: object
+                    required: [externalCaseRef, title, objective, summary, riskLevel, route, executionProfile, steps, assertions]
+                    properties:
+                      externalCaseRef: {type: string, minLength: 1, maxLength: 128}
+                      title: {type: string, minLength: 1, maxLength: 160}
+                      objective: {type: string, minLength: 1, maxLength: 2000}
+                      summary: {type: string, minLength: 1, maxLength: 1000}
+                      riskLevel: {type: string, enum: [LOW, MEDIUM, HIGH]}
+                      route: {type: string, minLength: 1, maxLength: 512}
+                      executionProfile: {type: string, enum: [LOGIN_PROFILE, ACCOUNT_OWNERSHIP, AUTH_REJECTION_RECOVERY]}
+                      steps:
+                        type: array
+                        minItems: 1
+                        maxItems: 50
+                        items:
+                          type: object
+                          required: [action, expected]
+                          properties:
+                            action: {type: string, minLength: 1, maxLength: 500}
+                            expected: {type: string, minLength: 1, maxLength: 500}
+                      assertions:
+                        type: array
+                        minItems: 1
+                        maxItems: 50
+                        items: {type: string, minLength: 1, maxLength: 500}
+      responses:
+        '200':
+          description: 整批校验通过并原子导入；任一项不合法时整批不写入
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [batchId, status, itemCount, sourceHash, imported, replayed]
+                properties:
+                  batchId: {type: string}
+                  status: {type: string, enum: [IMPORTED]}
+                  itemCount: {type: integer, minimum: 1, maximum: 50}
+                  sourceHash: {type: string, minLength: 64, maxLength: 64}
+                  imported: {type: array, items: {type: object}}
+                  replayed: {type: boolean}
   /v1/plugin/plans:compile:
     post:
       operationId: plan_compile
@@ -166,7 +228,7 @@ paths:
             application/json:
               schema:
                 type: object
-                required: [taskId, planId, scriptId, status, planStatus, caseId, caseVersion, replayed]
+                required: [taskId, planId, scriptId, status, planStatus, caseId, caseVersion, planVersion, replayed]
                 properties:
                   taskId: {type: string}
                   planId: {type: string}
@@ -175,6 +237,7 @@ paths:
                   planStatus: {type: string}
                   caseId: {type: string}
                   caseVersion: {type: integer}
+                  planVersion: {type: integer, minimum: 1}
                   replayed: {type: boolean}
   /v1/plugin/runs:submit:
     post:
@@ -295,7 +358,7 @@ paths:
   /v1/plugin/decisions:submit:
     post:
       operationId: decision_submit
-      summary: 记录脚本激活或运行恢复决定
+      summary: 记录脚本激活、修复候选激活或运行恢复决定
       requestBody:
         required: true
         content:
@@ -313,7 +376,7 @@ paths:
                   minLength: 8
                   maxLength: 128
                   pattern: '^[A-Za-z0-9._:-]+$'
-                targetType: {type: string, enum: [SCRIPT_ACTIVATION, RUN_RECOVERY]}
+                targetType: {type: string, enum: [SCRIPT_ACTIVATION, RUN_RECOVERY, REPAIR_CANDIDATE_ACTIVATION]}
                 targetId: {type: string, minLength: 8, maxLength: 80}
                 expectedVersion: {type: integer, minimum: 1}
                 choice: {type: string, enum: [APPROVE, REJECT, RETRY, CANCEL]}
@@ -321,7 +384,7 @@ paths:
                 confirmationRef: {type: string, minLength: 1, maxLength: 160}
       responses:
         '200':
-          description: 决策已审计记录；I4 的脚本批准会激活已通过 Playwright 验证的候选脚本
+          description: 决策已审计记录；修复候选仅在隔离验证通过且版本一致时可由用户激活
           content:
             application/json:
               schema:
@@ -333,8 +396,116 @@ paths:
                   targetId: {type: string}
                   status: {type: string, enum: [RECORDED]}
                   version: {type: integer}
-                  effect: {type: string, enum: [DEFERRED_TO_FUTURE_BATCH, SCRIPT_VALIDATED_AND_PLAN_READY, SCRIPT_RETIRED]}
+                  effect: {type: string, enum: [DEFERRED_TO_FUTURE_BATCH, SCRIPT_VALIDATED_AND_PLAN_READY, SCRIPT_RETIRED, REPAIR_CANDIDATE_ACTIVATED, REPAIR_CANDIDATE_REJECTED]}
                   replayed: {type: boolean}
+  /v1/plugin/failures:get:
+    post:
+      operationId: failure_get
+      summary: 获取失败分类、诊断状态和修复候选短摘要
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [namespace, incidentId]
+              properties:
+                namespace: {type: string, pattern: '^[a-z0-9][a-z0-9._-]{2,63}$'}
+                incidentId: {type: string, minLength: 8, maxLength: 80}
+      responses:
+        '200':
+          description: 不返回日志正文、凭据或本机路径
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [incidentId, runId, caseId, scriptId, scriptVersion, classification, reasonCode, summary, diagnosticStatus, version, updatedAt]
+                properties:
+                  incidentId: {type: string}
+                  runId: {type: string}
+                  caseId: {type: string}
+                  scriptId: {type: string}
+                  scriptVersion: {type: integer}
+                  classification: {type: string, enum: [ENVIRONMENT, AUTHENTICATION, CONTRACT, LOCATOR, ASSERTION, MODEL, TOOL]}
+                  reasonCode: {type: string}
+                  summary: {type: string}
+                  evidenceArtifactId: {type: string}
+                  diagnosticStatus: {type: string, enum: [CLASSIFIED, DIAGNOSED, CANDIDATE_READY, RESOLVED, UNRESOLVED]}
+                  diagnosis: {type: object}
+                  version: {type: integer}
+                  candidate: {type: object}
+                  updatedAt: {type: string}
+  /v1/plugin/repairs:create-candidate:
+    post:
+      operationId: repair_candidate_create
+      summary: 为已分类的定位器事故生成受控修复候选并排队隔离验证
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [namespace, idempotencyKey, incidentId, credentialAlias]
+              properties:
+                namespace: {type: string, pattern: '^[a-z0-9][a-z0-9._-]{2,63}$'}
+                idempotencyKey: {type: string, minLength: 8, maxLength: 128, pattern: '^[A-Za-z0-9._:-]+$'}
+                incidentId: {type: string, minLength: 8, maxLength: 80}
+                credentialAlias: {type: string, minLength: 1, maxLength: 128}
+      responses:
+        '200':
+          description: 候选仅排队验证，不激活正式脚本
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [candidateId, status, version, replayed]
+                properties:
+                  candidateId: {type: string}
+                  jobId: {type: string}
+                  status: {type: string, enum: [VALIDATION_QUEUED, VALIDATING, WAITING_USER, ACTIVE]}
+                  version: {type: integer}
+                  riskLevel: {type: string, enum: [MEDIUM]}
+                  diagnosis: {type: object}
+                  activationRequired: {type: boolean}
+                  reused: {type: boolean}
+                  replayed: {type: boolean}
+  /v1/plugin/repairs:get-candidate:
+    post:
+      operationId: repair_candidate_get
+      summary: 获取候选差异、隔离验证结果和待确认版本
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [namespace, candidateId]
+              properties:
+                namespace: {type: string, pattern: '^[a-z0-9][a-z0-9._-]{2,63}$'}
+                candidateId: {type: string, minLength: 8, maxLength: 80}
+      responses:
+        '200':
+          description: 仅返回白名单补丁和受控验证元数据
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [candidateId, incidentId, scriptId, baseScriptVersion, candidateScriptVersion, patchType, patch, patchHash, riskLevel, status, version, validation, activationRequired, updatedAt]
+                properties:
+                  candidateId: {type: string}
+                  incidentId: {type: string}
+                  scriptId: {type: string}
+                  baseScriptVersion: {type: integer}
+                  candidateScriptVersion: {type: integer}
+                  patchType: {type: string, enum: [LOCATOR_OVERRIDE]}
+                  patch: {type: object}
+                  patchHash: {type: string, minLength: 64, maxLength: 64}
+                  riskLevel: {type: string, enum: [LOW, MEDIUM, HIGH]}
+                  status: {type: string, enum: [VALIDATION_QUEUED, VALIDATING, WAITING_USER, ACTIVE, REJECTED, VALIDATION_FAILED]}
+                  version: {type: integer}
+                  validation: {type: object}
+                  activationRequired: {type: boolean}
+                  updatedAt: {type: string}
 components:
   securitySchemes:
     bearerAuth:

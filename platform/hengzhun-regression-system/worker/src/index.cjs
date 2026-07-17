@@ -79,10 +79,54 @@ async function runOnce() {
   return true;
 }
 
+async function runRepairOnce() {
+  const job = await post('/internal/worker/repairs:claim', { workerId });
+  if (job.status === 'EMPTY') return false;
+  process.stdout.write(JSON.stringify({ event: 'repair_claimed', jobId: job.jobId, candidateId: job.candidateId }) + '\n');
+  try {
+    const executor = executors.get(job.execution?.scriptPath);
+    if (!executor) throw Object.assign(new Error('候选脚本不在执行白名单中。'), { code: 'SCRIPT_NOT_ALLOWLISTED', category: 'ENVIRONMENT' });
+    const result = await executor({ ...job, taskId: job.jobId });
+    const completed = await post(`/internal/worker/repairs/${encodeURIComponent(job.jobId)}:complete`, {
+      workerId,
+      ...result
+    });
+    process.stdout.write(JSON.stringify({ event: 'repair_completed', jobId: job.jobId, status: completed.status }) + '\n');
+  } catch (error) {
+    const category = error.category === 'TEST_FAILURE' ? 'TEST_FAILURE' : 'ENVIRONMENT';
+    const evidence = Array.isArray(error.evidence) ? error.evidence : [{
+      artifactType: 'DIAGNOSTIC',
+      mediaType: 'application/json',
+      redactionStatus: 'REDACTED',
+      extension: 'json',
+      base64Content: Buffer.from(JSON.stringify({
+        schemaVersion: 'i5-repair-diagnostic-v1',
+        jobId: job.jobId,
+        candidateId: job.candidateId,
+        errorCode: error.code || 'REPAIR_VALIDATION_FAILED',
+        errorCategory: category
+      }, null, 2)).toString('base64'),
+      metadata: { containsCredentials: false, isolatedValidation: true }
+    }];
+    const completed = await post(`/internal/worker/repairs/${encodeURIComponent(job.jobId)}:complete`, {
+      workerId,
+      outcome: category === 'TEST_FAILURE' ? 'FAILED' : 'BLOCKED',
+      summary: category === 'TEST_FAILURE' ? '修复候选未通过隔离回归验证。' : '修复候选验证被本机环境阻断。',
+      errorCode: error.code || 'REPAIR_VALIDATION_FAILED',
+      errorCategory: category,
+      retryable: category === 'ENVIRONMENT',
+      userActionRequired: true,
+      evidence
+    });
+    process.stdout.write(JSON.stringify({ event: 'repair_completed', jobId: job.jobId, status: completed.status }) + '\n');
+  }
+  return true;
+}
+
 async function main() {
   const once = process.argv.includes('--once');
   do {
-    const worked = await runOnce();
+    const worked = await runRepairOnce() || await runOnce();
     if (once) return;
     await new Promise(resolve => setTimeout(resolve, worked ? 250 : 1500));
   } while (true);

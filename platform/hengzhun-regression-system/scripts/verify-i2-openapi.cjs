@@ -11,8 +11,9 @@ const text = fs.readFileSync(openapiPath, 'utf8');
 const document = YAML.parse(text);
 const failures = [];
 const expected = [
-  'case_create_draft', 'case_get', 'plan_compile', 'run_submit',
-  'task_get', 'artifact_get_metadata', 'decision_submit'
+  'case_create_draft', 'case_get', 'case_import_submit', 'plan_compile', 'run_submit',
+  'task_get', 'artifact_get_metadata', 'decision_submit', 'failure_get',
+  'repair_candidate_create', 'repair_candidate_get'
 ];
 const operations = [];
 

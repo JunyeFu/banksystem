@@ -67,6 +67,37 @@ test('PLAT-V005 rejects missing, wrong and rotated tokens without leaking creden
   assert.ok(events.every(event => !JSON.stringify(event).includes(token) && !JSON.stringify(event).includes(retiredToken)));
 });
 
+test('PLAT-V005 accepts the scoped Coze compatibility token header without weakening Bearer authentication', async t => {
+  const { application, baseUrl } = await startTemporaryHarness(t);
+  const accepted = await fetch(baseUrl + '/v1/plugin/tasks:get', {
+    method: 'POST',
+    headers: {
+      'content-type': 'application/json',
+      'x-hengzhun-service-token': token
+    },
+    body: JSON.stringify({ namespace: 'demo-local', taskId: 'task-any' })
+  });
+  assert.equal(accepted.status, 404);
+
+  const rejected = await fetch(baseUrl + '/v1/plugin/tasks:get', {
+    method: 'POST',
+    headers: {
+      'content-type': 'application/json',
+      'x-hengzhun-service-token': retiredToken
+    },
+    body: JSON.stringify({ namespace: 'demo-local', taskId: 'task-any' })
+  });
+  assert.equal(rejected.status, 401);
+  assert.equal(JSON.parse(await rejected.text()).errorCode, 'INVALID_SERVICE_TOKEN');
+
+  const events = application.database.connection.prepare(
+    'SELECT outcome, credential_fingerprint FROM security_events ORDER BY sequence'
+  ).all();
+  assert.equal(events.filter(event => event.outcome === 'ACCEPTED').length, 1);
+  assert.equal(events.filter(event => event.outcome === 'REJECTED').length, 1);
+  assert.ok(events.every(event => !JSON.stringify(event).includes(token) && !JSON.stringify(event).includes(retiredToken)));
+});
+
 test('seven-tool contract persists authoritative state and enforces idempotency/namespace isolation', async t => {
   const { application, baseUrl, root } = await startTemporaryHarness(t);
   const namespace = 'demo-local';

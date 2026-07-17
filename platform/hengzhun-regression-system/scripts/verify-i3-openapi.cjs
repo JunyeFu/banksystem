@@ -23,8 +23,12 @@ const workerContract = parse(workerPath);
 const publicOperations = Object.values(publicContract.document.paths ?? {}).flatMap(pathItem =>
   Object.entries(pathItem ?? {}).filter(([method]) => ['get', 'post'].includes(method)).map(([, operation]) => operation.operationId).filter(Boolean)
 );
-const expectedPublic = ['case_create_draft', 'case_get', 'plan_compile', 'run_submit', 'task_get', 'artifact_get_metadata', 'decision_submit'];
-if (JSON.stringify(publicOperations.sort()) !== JSON.stringify(expectedPublic.sort())) failures.push('public contract must expose exactly seven operations');
+const expectedPublic = [
+  'case_create_draft', 'case_get', 'case_import_submit', 'plan_compile', 'run_submit',
+  'task_get', 'artifact_get_metadata', 'decision_submit', 'failure_get',
+  'repair_candidate_create', 'repair_candidate_get'
+];
+if (JSON.stringify(publicOperations.sort()) !== JSON.stringify(expectedPublic.sort())) failures.push('public contract must expose exactly eleven operations');
 if (publicContract.document.components?.securitySchemes?.bearerAuth?.scheme !== 'bearer') failures.push('public Bearer authentication is missing');
 for (const [route, pathItem] of Object.entries(publicContract.document.paths ?? {})) {
   for (const [method, operation] of Object.entries(pathItem ?? {})) {
@@ -48,9 +52,10 @@ const workerOperations = Object.values(workerContract.document.paths ?? {}).flat
 );
 const expectedWorker = [
   'workerClaimTask', 'workerCompleteTask', 'workerClaimAuthoringAction',
-  'workerCompleteAuthoringAction', 'workerRecordMidsceneCapability'
+  'workerCompleteAuthoringAction', 'workerRecordMidsceneCapability',
+  'workerClaimRepairValidation', 'workerCompleteRepairValidation'
 ];
-if (JSON.stringify(workerOperations.sort()) !== JSON.stringify(expectedWorker.sort())) failures.push('worker contract must expose the five deterministic run/authoring operations');
+if (JSON.stringify(workerOperations.sort()) !== JSON.stringify(expectedWorker.sort())) failures.push('worker contract must expose the seven deterministic run/authoring/repair operations');
 if (workerContract.document.components?.securitySchemes?.workerBearer?.scheme !== 'bearer') failures.push('worker Bearer authentication is missing');
 
 if (failures.length) {

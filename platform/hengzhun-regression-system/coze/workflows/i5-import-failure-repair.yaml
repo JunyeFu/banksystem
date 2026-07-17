@@ -1,0 +1,29 @@
+schemaVersion: 1
+name: hengzhun_i5_import_failure_repair
+displayName: Hengzhun I5 import, failure and repair flow
+purpose: Public-UI reproduction checklist; not a private Coze import format.
+runtimeKnowledgeAuthority: COZE_KNOWLEDGE_BASE
+inputs:
+  - {name: request, type: string, required: true, maxLength: 2000}
+  - {name: namespace, type: string, required: true}
+state:
+  durableKeys: [namespace, batchId, caseId, planId, taskId, runId, incidentId, candidateId, candidateVersion, decisionId]
+nodes:
+  - {id: start, type: start}
+  - {id: knowledge, type: knowledge_retrieval, source: Hengzhun-I5-runtime-rules, query: "{{request}}"}
+  - {id: route, type: condition, choices: [single_case, structured_import, inspect_failure, repair_failure]}
+  - {id: import, type: plugin, operationId: case_import_submit, when: "route == structured_import"}
+  - {id: get_failure, type: plugin, operationId: failure_get, when: "incidentId exists"}
+  - {id: create_candidate, type: plugin, operationId: repair_candidate_create, when: "get_failure.classification == LOCATOR"}
+  - {id: poll_candidate, type: plugin_loop, operationId: repair_candidate_get, until: "status in [WAITING_USER, VALIDATION_FAILED, REJECTED, ACTIVE]"}
+  - {id: user_decision, type: user_confirmation, when: "poll_candidate.status == WAITING_USER"}
+  - {id: activate, type: plugin, operationId: decision_submit, when: "user_decision exists"}
+  - {id: verify_effect, type: plugin, operationId: repair_candidate_get, when: "activate exists"}
+  - {id: explain, type: skill, skill: regression-result-explanation}
+  - {id: end, type: end}
+constraints:
+  publicPluginOperations: 11
+  automaticCandidateCreationForNonLocator: false
+  automaticScriptActivation: false
+  repositoryKnowledgeFallback: false
+  privatePlatformApi: false

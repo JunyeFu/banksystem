@@ -22,6 +22,6 @@ skills:
     name: 回归结果解释
     source: skills/explain-regression-result
     package: packages/hengzhun-explain-regression-result.skill
-    packageBytes: 1200
-    packageSha256: d4271de51d42c54fddd870a6e9bcfd308551af53a4ce11d16b8dbd5040dc1b64
+    packageBytes: 1574
+    packageSha256: b7ef41d61b54bd5d4c4b6ebcc604a2d876007124fc6b28bd8e2efbb6f17e1628
     status: PACKAGED_PUBLIC_UI_INSTALL_NOT_VERIFIED

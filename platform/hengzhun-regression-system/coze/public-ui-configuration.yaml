@@ -63,7 +63,7 @@ i3:
   plugin:
     name: 衡准回归 Harness
     openapi: ../contracts/openapi/hengzhun-harness-v1.yaml
-    status: HISTORICAL_I3_VERIFIED_CURRENT_UI_ABSENT
+    status: I4_PUBLIC_UI_PUBLISHED
   acceptance:
     runtimeSevenToolCalls: VERIFIED
     publicAgentSevenToolCalls: VERIFIED_WITH_RECOVERY_SESSIONS
@@ -75,11 +75,13 @@ i4:
   agent:
     name: 衡准-I4-回归主控
     promptSource: agents/hengzhun-i4-regression-agent.md
-    status: DRAFT_CREATED_PLUGIN_AND_KNOWLEDGE_NOT_BOUND
+    status: PUBLISHED
+    agentId: '7663383450732199936'
   knowledgeBase:
     name: 衡准-I4-三案例与作者化运行规则
     source: knowledge/i4-three-case-authoring-runtime-rules.md
-    status: IMPORT_SOURCE_READY_NOT_IMPORTED
+    status: PUBLISHED_BOUND
+    knowledgeBaseId: '7663399245482819584'
   workflow:
     name: hengzhun_i4_three_cases_authoring
     source: workflows/i4-three-cases-authoring.yaml
@@ -88,11 +90,48 @@ i4:
     reuse: 衡准回归 Harness
     publicOperationCount: 7
     newPublicOperationCount: 0
-    currentStatus: ABSENT_FROM_PUBLIC_RESOURCE_LIBRARY
-    blocker: 当前公开创建入口不提供插件类型，禁止用私有 API、数据库或容器挂载绕过
+    pluginId: '7663393319640104960'
+    currentStatus: PUBLISHED
   acceptance:
     threeDeterministicCases: RUNTIME_VERIFIED
     threeActionWindow: RUNTIME_VERIFIED
     explicitActivationGate: RUNTIME_VERIFIED
-    platformConfigurationPublished: false
-    platformExitGate: OPEN
+    platformConfigurationPublished: true
+    platformExitGate: CLOSED
+i5:
+  agent:
+    name: 衡准-I5-回归主控
+    promptSource: agents/hengzhun-i5-regression-agent.md
+    status: PUBLISHED
+    agentId: '7663383450732199936'
+  knowledgeBase:
+    name: 衡准-I5-导入失败诊断与修复规则
+    source: knowledge/i5-import-failure-repair-runtime-rules.md
+    status: PUBLISHED_BOUND
+    knowledgeBaseId: '7663445954883747840'
+    processingEvidence: 1372_BYTES_2_SEGMENTS
+  workflow:
+    name: hengzhun_i5_import_failure_repair
+    source: workflows/i5-import-failure-repair.yaml
+    status: REPRODUCTION_CHECKLIST_READY
+  plugin:
+    reuse: 衡准回归 Harness
+    publicOperationCount: 11
+    previousPublishedOperationCount: 7
+    pluginId: '7663393319640104960'
+    publishedVersion: v0.0.7
+    currentStatus: PUBLISHED_BOUND
+    canonicalAuthentication: AUTHORIZATION_BEARER
+    cozeCompatibilityAuthentication: X_HENGZHUN_SERVICE_TOKEN
+  acceptance:
+    structuredImport: RUNTIME_TESTED
+    deterministicFailureClassification: RUNTIME_TESTED
+    isolatedRepairCandidate: RUNTIME_TESTED
+    explicitActivationGate: RUNTIME_TESTED
+    naturalLanguageApproval: VERIFIED
+    duplicateApprovalRejected: HTTP_409_TARGET_VERSION_CONFLICT
+    authoritativeCandidateState: ACTIVE_VERSION_4
+    authoritativeIncidentState: RESOLVED_VERSION_4
+    readBackViaRepairCandidateGet: VERIFIED
+    platformConfigurationPublished: true
+    platformExitGate: CLOSED

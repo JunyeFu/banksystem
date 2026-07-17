@@ -27,7 +27,7 @@ owner: project-owner
 | ID | 优先级 | 缺口 | 当前证据 | 完成判定 | 建议归属 |
 |---|---|---|---|---|---|
 | GAP-001 | P0 | 首批三个被测案例尚未全部形成案例级冻结证据 | `FE-DEFECT-001` 仍为 `IN_PROGRESS`，但平台基础不再等待其整体完成；只需为登录/个人资料、账户列表/详情、安全拒绝/恢复分别补齐页面、API、角色、Fixture 与定位器证据 | 三条首批案例逐条通过案例门禁；某案例未通过只阻塞该案例，不阻塞 Harness 基础或其他案例 | `FE-DEFECT-003`、`FE-DEFECT-005`、`COZE-HARNESS-CORE-001` |
-| GAP-002 | P0 | Coze/Harness 回归执行核心尚未形成纵向闭环 | `COZE-HARNESS-CORE-001` 为 `IN_PROGRESS`；I1 机器基础已完成，I2 已落地 TypeScript Harness、唯一 SQLite 产品库、七工具契约、安全/审计/幂等、Artifact 元数据和输出预算。当前剩余主缺口是 Coze 公开 Plugin 真实导入/发布、Playwright Worker 和首个银行纵向案例 | Coze 公开 Plugin、Harness、SQLite 权威状态、Fixture 隔离、Midscene 风险路由、独立 Playwright 验证形成三案例闭环；平台失败项按兼容路径关闭 | `COZE-HARNESS-CORE-001` |
+| GAP-002 | P0 | I5 已关闭；I6 调度与离线交付尚未形成闭环 | I1-I5 已形成 Coze 唯一入口、三案例、Midscene 风险路由、结构化导入、七类失败事故、隔离修复和人工激活闭环。Coze 十一工具 v0.0.7、I5 Knowledge Base 与 Agent 已公开发布；自然语言批准和 `ACTIVE/version 4` 回查与 SQLite 一致 | I6 完成确定性 Schedule、断网重启、misfire/补跑、封闭内网复制部署和只运行已验证 Playwright 的正式调度验收 | `COZE-HARNESS-CORE-001` |
 | GAP-004 | P1 | 演示运行态已经恢复，但缺少与平台批次绑定的可重复冻结证据 | 2026-07-16 Keycloak、Bank Channel Service、Customer Portal 和 Gateway 容器均为 healthy；旧“全部端口无监听”审计已过期 | 为首批案例固定启动、健康、认证入口、Gateway 路由和重启复验命令，输出同一时间的脱敏证据 | I0 被测基线冻结 |
 | GAP-005 | P1 | 银行核心全量回归与若干业务闭环仅部分验证 | E2E-001—E2E-014 未全部自动化/执行；贷款生命周期、账户冻结/关闭/到期为 `PARTIALLY_VERIFIED` | 全量回归、账务平衡、对账、恢复和关键异常路径在冻结环境可重复通过 | 银行核心发布验收批次 |
 | GAP-006 | P1 | 转账状态机文档与机器契约不一致 | 状态机仍为 `RECEIVED -> PENDING_REVIEW -> PROCESSING -> POSTED`；OpenAPI/AsyncAPI 使用 `CREATED -> VALIDATING -> ... -> SETTLED` | 选定唯一状态词表；状态机、OpenAPI、AsyncAPI、Liquibase、测试、页面文案和证据全部一致 | 新建状态机契约收敛任务 |

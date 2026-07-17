@@ -108,6 +108,8 @@ Coze Studio 0.5.1 已仅通过公开界面完成七工具 OpenAPI 插件导入�
 
 按价值顺序追加：结构化案例导入、失败分类、脚本失效诊断、隔离修复候选、Coze 人工确认激活。本机视频拆帧和语言修复在基础闭环稳定后加入。
 
+2026-07-17 当前状态：I5 已完成。`HENGZHUN_JSON_V1` 批次通过整批严格校验后原子写入唯一 `regression_platform.sqlite`；失败运行自动形成七类事故；首版定位器事故只允许白名单 `LOCATOR_OVERRIDE`，并由独立 Worker 租约和全新 BrowserContext 完成 Playwright 验证。候选验证通过后保持 `WAITING_USER`，未自动修改正式脚本；显式决策后脚本版本从 1 激活到 2，随后真实门户正式复跑 `SUCCEEDED`，报告证据为 `REDACTED`。Coze 公开界面已发布十一工具插件 v0.0.7、I5 Knowledge Base 和主控 Agent；自然语言批准改变 SQLite 权威状态，公开工具回查为候选 `ACTIVE/version 4`、事故 `RESOLVED/version 4`。重复旧版本批准被 409 拒绝。I5 退出门禁关闭，下一批进入 I6。
+
 ### I6：调度、离线与后续扩展
 
 - Harness Schedule 只执行 `SCRIPT_VALIDATED` Playwright 脚本，正式定时运行不调用 LLM、Midscene 或视觉模型。

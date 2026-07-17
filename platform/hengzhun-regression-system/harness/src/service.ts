@@ -3,7 +3,14 @@ import path from 'node:path';
 import { ArtifactStore } from './artifact-store';
 import { HarnessDatabase } from './database';
 import { HarnessError } from './errors';
-import type { CaseCreateDraftInput, DecisionSubmitInput, PlanCompileInput, RunSubmitInput } from './schemas';
+import type {
+  CaseCreateDraftInput,
+  CaseImportSubmitInput,
+  DecisionSubmitInput,
+  PlanCompileInput,
+  RepairCandidateCreateInput,
+  RunSubmitInput
+} from './schemas';
 import { canonicalJson, nowIso, opaqueId, requestHash, sha256 } from './utils';
 
 interface RequestContext {
@@ -45,6 +52,27 @@ export interface WorkerCompletionInput {
 
 type ExecutionProfile = 'LOGIN_PROFILE' | 'ACCOUNT_OWNERSHIP' | 'AUTH_REJECTION_RECOVERY';
 type AuthoringActionType = 'LOCATE' | 'INPUT' | 'TAP' | 'SCROLL';
+type FailureClassification = 'ENVIRONMENT' | 'AUTHENTICATION' | 'CONTRACT' | 'LOCATOR' | 'ASSERTION' | 'MODEL' | 'TOOL';
+
+const LOCATOR_REPAIRS: Record<string, { targetRef: string; selector: string }> = {
+  LOGIN_USERNAME_LOCATOR_NOT_FOUND: { targetRef: 'LOGIN_USERNAME', selector: '[data-testid="login-username"]' },
+  LOGIN_PASSWORD_LOCATOR_NOT_FOUND: { targetRef: 'LOGIN_PASSWORD', selector: '[data-testid="login-password"]' },
+  LOGIN_SUBMIT_LOCATOR_NOT_FOUND: { targetRef: 'LOGIN_SUBMIT', selector: '[data-testid="login-submit"]' },
+  PROFILE_NAME_LOCATOR_NOT_FOUND: { targetRef: 'PROFILE_NAME', selector: '[data-testid="customer-profile-name"]' },
+  PROFILE_LINK_LOCATOR_NOT_FOUND: { targetRef: 'PROFILE_LINK', selector: 'a[href="/portal/profile"]' },
+  PROFILE_DISPLAY_NAME_LOCATOR_NOT_FOUND: { targetRef: 'PROFILE_DISPLAY_NAME', selector: '[data-testid="profile-display-name"]' }
+};
+
+function classifyFailure(errorCategory?: string, errorCode?: string): FailureClassification {
+  const code = String(errorCode ?? '').toUpperCase();
+  if (errorCategory === 'ENVIRONMENT') return 'ENVIRONMENT';
+  if (/AUTH|CREDENTIAL|LOGIN_REJECTED/.test(code)) return 'AUTHENTICATION';
+  if (/CONTRACT|SCHEMA|HTTP_4\d\d/.test(code)) return 'CONTRACT';
+  if (/LOCATOR|SELECTOR|ELEMENT_NOT_FOUND/.test(code)) return 'LOCATOR';
+  if (/ASSERTION|MISMATCH|TEST_FAILURE/.test(code) || errorCategory === 'TEST_FAILURE') return 'ASSERTION';
+  if (/MODEL|MIDSCENE|LLM/.test(code)) return 'MODEL';
+  return 'TOOL';
+}
 
 const SCRIPT_CATALOG: Record<ExecutionProfile, string> = {
   LOGIN_PROFILE: 'worker/src/login-profile.cjs',
@@ -238,6 +266,52 @@ export class HarnessService {
     });
   }
 
+  async importCases(input: CaseImportSubmitInput, context: RequestContext): Promise<IdempotentResult> {
+    return this.idempotent(input.namespace, 'case_import_submit', input.idempotencyKey, input, context, (db, timestamp) => {
+      const batchId = opaqueId('import');
+      const sourceHash = sha256(canonicalJson({ sourceFormat: input.sourceFormat, sourceRef: input.sourceRef, cases: input.cases }));
+      db.prepare(`
+        INSERT INTO case_import_batches(batch_id, namespace, source_format, source_ref, source_hash, item_count, status, created_at)
+        VALUES (?, ?, ?, ?, ?, ?, 'IMPORTED', ?)
+      `).run(batchId, input.namespace, input.sourceFormat, input.sourceRef, sourceHash, input.cases.length, timestamp);
+      const insertItem = db.prepare(`
+        INSERT INTO case_import_items(batch_id, item_ordinal, external_case_ref, case_id, content_hash)
+        VALUES (?, ?, ?, ?, ?)
+      `);
+      const imported = input.cases.map((item, index) => {
+        const caseId = opaqueId('case');
+        const definition = {
+          objective: item.objective,
+          route: item.route,
+          executionProfile: item.executionProfile,
+          steps: item.steps,
+          assertions: item.assertions,
+          authoringActions: [],
+          credentialAlias: null,
+          import: { batchId, externalCaseRef: item.externalCaseRef, sourceFormat: input.sourceFormat }
+        };
+        const definitionJson = canonicalJson(definition);
+        const contentHash = sha256(definitionJson);
+        db.prepare(`
+          INSERT INTO cases(case_id, namespace, current_version, status, title, summary, risk_level, created_at, updated_at)
+          VALUES (?, ?, 1, 'VALIDATED', ?, ?, ?, ?, ?)
+        `).run(caseId, input.namespace, item.title, item.summary, item.riskLevel, timestamp, timestamp);
+        db.prepare(`
+          INSERT INTO case_versions(case_id, version, definition_json, content_hash, created_by, created_at)
+          VALUES (?, 1, ?, ?, ?, ?)
+        `).run(caseId, definitionJson, contentHash, input.actorRef, timestamp);
+        insertItem.run(batchId, index + 1, item.externalCaseRef, caseId, contentHash);
+        return { externalCaseRef: item.externalCaseRef, caseId, version: 1, status: 'VALIDATED' };
+      });
+      return {
+        status: 200,
+        objectType: 'CASE_IMPORT_BATCH',
+        objectId: batchId,
+        response: { batchId, status: 'IMPORTED', itemCount: imported.length, sourceHash, imported }
+      };
+    });
+  }
+
   getCase(namespace: string, caseId: string): Record<string, unknown> {
     return this.database.read(db => {
       const row = db.prepare(`
@@ -328,13 +402,19 @@ export class HarnessService {
       const fullActionPlan = planStatus === 'AUTHORING_REQUIRED'
         ? { schemaVersion: 'i4-action-plan-v1', caseId, caseVersion: input.expectedCaseVersion, actions: authoringActions }
         : null;
+      const planVersionRow = db.prepare(`
+        SELECT COALESCE(MAX(version), 0) + 1 AS next_version
+        FROM plans
+        WHERE namespace = ? AND case_id = ? AND case_version = ?
+      `).get(input.namespace, caseId, input.expectedCaseVersion) as { next_version: number };
+      const planVersion = planVersionRow.next_version;
       db.prepare(`
         INSERT INTO plans(
           plan_id, namespace, case_id, case_version, version, status, summary_json,
           content_hash, created_at, script_id, full_action_plan_json
-        ) VALUES (?, ?, ?, ?, 1, ?, ?, ?, ?, ?, ?)
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
       `).run(
-        planId, input.namespace, caseId, input.expectedCaseVersion, planStatus,
+        planId, input.namespace, caseId, input.expectedCaseVersion, planVersion, planStatus,
         canonicalJson(summary), sha256(canonicalJson({ summary, fullActionPlan })), timestamp,
         scriptId, fullActionPlan ? canonicalJson(fullActionPlan) : null
       );
@@ -374,7 +454,8 @@ export class HarnessService {
           status: planStatus === 'READY' ? 'SUCCEEDED' : 'QUEUED',
           planStatus,
           caseId,
-          caseVersion: input.expectedCaseVersion
+          caseVersion: input.expectedCaseVersion,
+          planVersion
         }
       };
     });
@@ -384,7 +465,8 @@ export class HarnessService {
     return this.idempotent(input.namespace, 'run_submit', input.idempotencyKey, input, context, (db, timestamp) => {
       const plan = db.prepare(`
         SELECT p.status, p.case_id, p.case_version, p.script_id, c.current_version,
-               s.status AS script_status, sv.relative_path AS script_path
+               s.status AS script_status, sv.relative_path AS script_path,
+               sv.configuration_json AS script_configuration
         FROM plans p
         JOIN cases c ON c.case_id = p.case_id
         LEFT JOIN scripts s ON s.script_id = p.script_id
@@ -393,6 +475,7 @@ export class HarnessService {
       `).get(input.namespace, input.planId) as {
         status: string; case_id: string; case_version: number; current_version: number;
         script_id: string | null; script_status: string | null; script_path: string | null;
+        script_configuration: string | null;
       } | undefined;
       if (!plan || plan.case_id !== input.caseId) throw new HarnessError(404, 'PLAN_NOT_FOUND', 'DOMAIN', '执行计划不存在。');
       if (plan.case_version !== input.expectedCaseVersion || plan.current_version !== input.expectedCaseVersion) {
@@ -410,7 +493,8 @@ export class HarnessService {
         credentialAlias: input.credentialAlias,
         fixtureNamespace,
         scriptId: plan.script_id,
-        scriptPath: plan.script_path
+        scriptPath: plan.script_path,
+        selectorOverrides: plan.script_configuration ? JSON.parse(plan.script_configuration) : {}
       });
       db.prepare(`
         INSERT INTO tasks(task_id, namespace, task_type, status, progress, case_id, run_id, payload_json, version, created_at, updated_at)
@@ -671,9 +755,17 @@ export class HarnessService {
 
   async completeRun(taskId: string, input: WorkerCompletionInput): Promise<Record<string, unknown>> {
     const task = this.database.read(db => db.prepare(`
-      SELECT namespace, run_id, status, lease_owner FROM tasks
-      WHERE task_id = ? AND task_type = 'RUN_EXECUTE'
-    `).get(taskId) as { namespace: string; run_id: string; status: string; lease_owner: string | null } | undefined);
+      SELECT t.namespace, t.run_id, t.case_id, t.status, t.lease_owner,
+             p.script_id, s.current_version AS script_version
+      FROM tasks t
+      JOIN runs r ON r.task_id = t.task_id
+      JOIN plans p ON p.plan_id = r.plan_id
+      JOIN scripts s ON s.script_id = p.script_id
+      WHERE t.task_id = ? AND t.task_type = 'RUN_EXECUTE'
+    `).get(taskId) as {
+      namespace: string; run_id: string; case_id: string; status: string; lease_owner: string | null;
+      script_id: string; script_version: number;
+    } | undefined);
     if (!task) throw new HarnessError(404, 'WORKER_TASK_NOT_FOUND', 'DOMAIN', 'Worker 任务不存在。');
     if (task.status !== 'RUNNING' || task.lease_owner !== input.workerId) {
       throw new HarnessError(409, 'WORKER_LEASE_CONFLICT', 'CONCURRENCY', 'Worker 租约已失效。', false, true);
@@ -699,6 +791,7 @@ export class HarnessService {
     const resultArtifact = artifacts.find(item => item.type === 'REPORT') ?? artifacts[0];
     const timestamp = nowIso();
     const taskStatus = input.outcome === 'PASSED' ? 'SUCCEEDED' : 'FAILED';
+    let incidentId: string | undefined;
     await this.database.write(db => {
       db.prepare(`
         UPDATE tasks SET status = ?, progress = 100, result_summary = ?, result_artifact_id = ?,
@@ -724,6 +817,29 @@ export class HarnessService {
         input.outcome === 'PASSED' ? 'SUCCEEDED' : 'FAILED', opaqueId('worker'),
         JSON.stringify({ outcome: input.outcome, artifactIds: artifacts.map(item => item.artifactId) }), timestamp
       );
+      if (input.outcome !== 'PASSED') {
+        const existing = db.prepare('SELECT incident_id FROM failure_incidents WHERE run_id = ?')
+          .get(task.run_id) as { incident_id: string } | undefined;
+        incidentId = existing?.incident_id ?? opaqueId('incident');
+        if (!existing) {
+          const classification = classifyFailure(input.errorCategory, input.errorCode);
+          db.prepare(`
+            INSERT INTO failure_incidents(
+              incident_id, namespace, run_id, case_id, script_id, script_version,
+              classification, reason_code, summary, evidence_artifact_id,
+              diagnostic_status, version, created_at, updated_at
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'CLASSIFIED', 1, ?, ?)
+          `).run(
+            incidentId, task.namespace, task.run_id, task.case_id, task.script_id, task.script_version,
+            classification, input.errorCode ?? 'WORKER_EXECUTION_FAILED', input.summary,
+            resultArtifact?.artifactId ?? null, timestamp, timestamp
+          );
+          if (classification === 'LOCATOR') {
+            db.prepare(`UPDATE scripts SET status = 'VALIDATING', updated_at = ? WHERE script_id = ? AND status = 'SCRIPT_VALIDATED'`)
+              .run(timestamp, task.script_id);
+          }
+        }
+      }
     });
     return {
       taskId,
@@ -731,15 +847,303 @@ export class HarnessService {
       status: taskStatus,
       outcome: input.outcome,
       resultArtifactId: resultArtifact?.artifactId ?? null,
-      artifactIds: artifacts.map(item => item.artifactId)
+      artifactIds: artifacts.map(item => item.artifactId),
+      ...(incidentId ? { incidentId } : {})
     };
+  }
+
+  getFailureIncident(namespace: string, incidentId: string): Record<string, unknown> {
+    return this.database.read(db => {
+      const row = db.prepare(`
+        SELECT fi.*, rc.candidate_id, rc.status AS candidate_status, rc.version AS candidate_version
+        FROM failure_incidents fi
+        LEFT JOIN repair_candidates rc ON rc.incident_id = fi.incident_id
+        WHERE fi.namespace = ? AND fi.incident_id = ?
+        ORDER BY rc.created_at DESC LIMIT 1
+      `).get(namespace, incidentId) as Record<string, unknown> | undefined;
+      if (!row) throw new HarnessError(404, 'FAILURE_INCIDENT_NOT_FOUND', 'DOMAIN', '失败事故不存在。');
+      return {
+        incidentId: row.incident_id,
+        runId: row.run_id,
+        caseId: row.case_id,
+        scriptId: row.script_id,
+        scriptVersion: row.script_version,
+        classification: row.classification,
+        reasonCode: row.reason_code,
+        summary: row.summary,
+        evidenceArtifactId: row.evidence_artifact_id,
+        diagnosticStatus: row.diagnostic_status,
+        diagnosis: row.diagnosis_json ? JSON.parse(String(row.diagnosis_json)) : null,
+        version: row.version,
+        candidate: row.candidate_id ? {
+          candidateId: row.candidate_id,
+          status: row.candidate_status,
+          version: row.candidate_version
+        } : null,
+        updatedAt: row.updated_at
+      };
+    });
+  }
+
+  async createRepairCandidate(input: RepairCandidateCreateInput, context: RequestContext): Promise<IdempotentResult> {
+    return this.idempotent(input.namespace, 'repair_candidate_create', input.idempotencyKey, input, context, (db, timestamp) => {
+      const incident = db.prepare(`
+        SELECT fi.*, s.current_version, sv.relative_path, sv.sha256 AS source_sha256
+        FROM failure_incidents fi
+        JOIN scripts s ON s.script_id = fi.script_id
+        JOIN script_versions sv ON sv.script_id = s.script_id AND sv.version = s.current_version
+        WHERE fi.namespace = ? AND fi.incident_id = ?
+      `).get(input.namespace, input.incidentId) as Record<string, unknown> | undefined;
+      if (!incident) throw new HarnessError(404, 'FAILURE_INCIDENT_NOT_FOUND', 'DOMAIN', '失败事故不存在。');
+      if (incident.classification !== 'LOCATOR') {
+        throw new HarnessError(409, 'REPAIR_CLASSIFICATION_UNSUPPORTED', 'DOMAIN', '首版隔离修复只接受已分类的定位器失效。', false, true);
+      }
+      if (Number(incident.current_version) !== Number(incident.script_version)) {
+        throw new HarnessError(409, 'SCRIPT_VERSION_CONFLICT', 'CONCURRENCY', '事故对应的脚本版本已不是当前版本。', false, true, { currentVersion: incident.current_version });
+      }
+      const existing = db.prepare(`
+        SELECT candidate_id, status, version FROM repair_candidates
+        WHERE incident_id = ? AND status IN ('VALIDATION_QUEUED', 'VALIDATING', 'WAITING_USER', 'ACTIVE')
+        ORDER BY created_at DESC LIMIT 1
+      `).get(input.incidentId) as { candidate_id: string; status: string; version: number } | undefined;
+      if (existing) {
+        return {
+          status: 200,
+          objectType: 'REPAIR_CANDIDATE',
+          objectId: existing.candidate_id,
+          response: { candidateId: existing.candidate_id, status: existing.status, version: existing.version, reused: true }
+        };
+      }
+      const repair = LOCATOR_REPAIRS[String(incident.reason_code)];
+      if (!repair) {
+        db.prepare(`
+          UPDATE failure_incidents SET diagnostic_status = 'UNRESOLVED', diagnosis_json = ?,
+            version = version + 1, updated_at = ? WHERE incident_id = ?
+        `).run(canonicalJson({ outcome: 'NO_ALLOWLISTED_REPAIR', reasonCode: incident.reason_code }), timestamp, input.incidentId);
+        throw new HarnessError(409, 'REPAIR_TEMPLATE_UNAVAILABLE', 'DOMAIN', '没有与该失败代码匹配的受控修复模板。', false, true);
+      }
+      const candidateId = opaqueId('candidate');
+      const jobId = opaqueId('repairjob');
+      const allocated = db.prepare(`
+        SELECT MAX(version_value) AS maximum FROM (
+          SELECT version AS version_value FROM script_versions WHERE script_id = ?
+          UNION ALL
+          SELECT candidate_script_version AS version_value FROM repair_candidates WHERE script_id = ?
+        )
+      `).get(incident.script_id, incident.script_id) as { maximum: number | null };
+      const candidateScriptVersion = Number(allocated.maximum ?? incident.current_version) + 1;
+      const patch = {
+        schemaVersion: 'i5-locator-override-v1',
+        targetRef: repair.targetRef,
+        selectorOverrides: { [repair.targetRef]: repair.selector },
+        diagnosisCode: incident.reason_code
+      };
+      const patchJson = canonicalJson(patch);
+      const diagnosis = {
+        classification: 'LOCATOR',
+        reasonCode: incident.reason_code,
+        strategy: 'ALLOWLISTED_LOCATOR_OVERRIDE',
+        targetRef: repair.targetRef,
+        requiresIsolatedValidation: true,
+        requiresUserActivation: true
+      };
+      db.prepare(`
+        INSERT INTO repair_candidates(
+          candidate_id, namespace, incident_id, script_id, base_script_version,
+          candidate_script_version, patch_type, patch_json, patch_hash, risk_level,
+          status, version, created_at, updated_at
+        ) VALUES (?, ?, ?, ?, ?, ?, 'LOCATOR_OVERRIDE', ?, ?, 'MEDIUM', 'VALIDATION_QUEUED', 1, ?, ?)
+      `).run(
+        candidateId, input.namespace, input.incidentId, incident.script_id, incident.current_version,
+        candidateScriptVersion, patchJson, sha256(patchJson), timestamp, timestamp
+      );
+      db.prepare(`
+        INSERT INTO repair_validation_jobs(job_id, namespace, candidate_id, status, credential_alias, created_at, updated_at)
+        VALUES (?, ?, ?, 'QUEUED', ?, ?, ?)
+      `).run(jobId, input.namespace, candidateId, input.credentialAlias, timestamp, timestamp);
+      db.prepare(`
+        UPDATE failure_incidents SET diagnostic_status = 'DIAGNOSED', diagnosis_json = ?,
+          version = version + 1, updated_at = ? WHERE incident_id = ?
+      `).run(canonicalJson(diagnosis), timestamp, input.incidentId);
+      return {
+        status: 200,
+        objectType: 'REPAIR_CANDIDATE',
+        objectId: candidateId,
+        response: {
+          candidateId,
+          jobId,
+          status: 'VALIDATION_QUEUED',
+          version: 1,
+          riskLevel: 'MEDIUM',
+          diagnosis,
+          activationRequired: true
+        }
+      };
+    });
+  }
+
+  async claimNextRepairValidation(workerId: string, leaseSeconds = 300): Promise<Record<string, unknown>> {
+    return this.database.write(db => {
+      const timestamp = nowIso();
+      db.prepare(`
+        UPDATE repair_validation_jobs SET status = 'QUEUED', lease_owner = NULL, lease_expires_at = NULL, updated_at = ?
+        WHERE status = 'RUNNING' AND lease_expires_at IS NOT NULL AND lease_expires_at < ?
+      `).run(timestamp, timestamp);
+      db.prepare(`
+        UPDATE repair_candidates SET status = 'VALIDATION_QUEUED', version = version + 1, updated_at = ?
+        WHERE status = 'VALIDATING' AND candidate_id IN (
+          SELECT candidate_id FROM repair_validation_jobs WHERE status = 'QUEUED'
+        )
+      `).run(timestamp);
+      const row = db.prepare(`
+        SELECT j.job_id, j.namespace, j.candidate_id, j.credential_alias,
+               rc.patch_json, rc.patch_hash, rc.script_id, rc.base_script_version,
+               fi.run_id, fi.case_id, r.case_version, p.plan_id,
+               sv.relative_path
+        FROM repair_validation_jobs j
+        JOIN repair_candidates rc ON rc.candidate_id = j.candidate_id
+        JOIN failure_incidents fi ON fi.incident_id = rc.incident_id
+        JOIN runs r ON r.run_id = fi.run_id
+        JOIN plans p ON p.plan_id = r.plan_id
+        JOIN script_versions sv ON sv.script_id = rc.script_id AND sv.version = rc.base_script_version
+        WHERE j.status = 'QUEUED'
+        ORDER BY j.created_at ASC LIMIT 1
+      `).get() as Record<string, unknown> | undefined;
+      if (!row) return { status: 'EMPTY' };
+      const leaseExpiresAt = new Date(Date.now() + leaseSeconds * 1000).toISOString();
+      db.prepare(`
+        UPDATE repair_validation_jobs SET status = 'RUNNING', lease_owner = ?, lease_expires_at = ?,
+          attempt_count = attempt_count + 1, updated_at = ? WHERE job_id = ? AND status = 'QUEUED'
+      `).run(workerId, leaseExpiresAt, timestamp, row.job_id);
+      db.prepare(`UPDATE repair_candidates SET status = 'VALIDATING', version = version + 1, updated_at = ? WHERE candidate_id = ?`)
+        .run(timestamp, row.candidate_id);
+      const patch = JSON.parse(String(row.patch_json)) as { selectorOverrides: Record<string, string> };
+      return {
+        status: 'CLAIMED',
+        jobId: row.job_id,
+        candidateId: row.candidate_id,
+        namespace: row.namespace,
+        runId: row.run_id,
+        caseId: row.case_id,
+        caseVersion: row.case_version,
+        planId: row.plan_id,
+        execution: {
+          credentialAlias: row.credential_alias,
+          fixtureNamespace: `repair-${String(row.candidate_id).slice(-20)}`,
+          scriptId: row.script_id,
+          scriptPath: row.relative_path,
+          selectorOverrides: patch.selectorOverrides,
+          isolationMode: 'FRESH_BROWSER_CONTEXT_NO_COMMIT'
+        },
+        patchHash: row.patch_hash,
+        leaseExpiresAt
+      };
+    });
+  }
+
+  async completeRepairValidation(jobId: string, input: WorkerCompletionInput): Promise<Record<string, unknown>> {
+    const job = this.database.read(db => db.prepare(`
+      SELECT j.*, rc.candidate_id, rc.incident_id, fi.run_id
+      FROM repair_validation_jobs j
+      JOIN repair_candidates rc ON rc.candidate_id = j.candidate_id
+      JOIN failure_incidents fi ON fi.incident_id = rc.incident_id
+      WHERE j.job_id = ?
+    `).get(jobId) as Record<string, unknown> | undefined);
+    if (!job) throw new HarnessError(404, 'REPAIR_JOB_NOT_FOUND', 'DOMAIN', '修复验证任务不存在。');
+    if (job.status !== 'RUNNING' || job.lease_owner !== input.workerId || String(job.lease_expires_at) < nowIso()) {
+      throw new HarnessError(409, 'REPAIR_JOB_LEASE_CONFLICT', 'CONCURRENCY', '修复验证租约已失效。', false, true);
+    }
+    if (input.outcome === 'PASSED' && input.evidence.length < 3) {
+      throw new HarnessError(400, 'REPAIR_EVIDENCE_INCOMPLETE', 'EVIDENCE', '候选通过必须包含报告、截图和日志。');
+    }
+    const artifacts: Record<string, unknown>[] = [];
+    for (const evidence of input.evidence) {
+      artifacts.push(await this.artifacts.create({
+        namespace: String(job.namespace),
+        runId: String(job.run_id),
+        artifactType: evidence.artifactType,
+        mediaType: evidence.mediaType,
+        redactionStatus: evidence.redactionStatus,
+        extension: evidence.extension,
+        content: Buffer.from(evidence.base64Content, 'base64'),
+        metadata: { ...evidence.metadata, repairCandidateId: job.candidate_id, isolatedValidation: true }
+      }));
+    }
+    const resultArtifact = artifacts.find(item => item.type === 'REPORT') ?? artifacts[0];
+    const passed = input.outcome === 'PASSED';
+    const timestamp = nowIso();
+    await this.database.write(db => {
+      db.prepare(`
+        UPDATE repair_validation_jobs SET status = ?, summary = ?, lease_owner = NULL,
+          lease_expires_at = NULL, completed_at = ?, updated_at = ? WHERE job_id = ?
+      `).run(passed ? 'PASSED' : 'FAILED', input.summary, timestamp, timestamp, jobId);
+      db.prepare(`
+        UPDATE repair_candidates SET status = ?, validation_artifact_id = ?,
+          version = version + 1, updated_at = ? WHERE candidate_id = ?
+      `).run(passed ? 'WAITING_USER' : 'VALIDATION_FAILED', resultArtifact?.artifactId ?? null, timestamp, job.candidate_id);
+      db.prepare(`
+        UPDATE failure_incidents SET diagnostic_status = ?, version = version + 1, updated_at = ? WHERE incident_id = ?
+      `).run(passed ? 'CANDIDATE_READY' : 'UNRESOLVED', timestamp, job.incident_id);
+      db.prepare(`
+        INSERT INTO audit_events(
+          event_id, namespace, run_id, actor_type, action, object_type, object_id,
+          outcome, correlation_id, details_json, created_at
+        ) VALUES (?, ?, ?, 'WORKER', 'repair.validate', 'REPAIR_CANDIDATE', ?, ?, ?, ?, ?)
+      `).run(
+        opaqueId('evt'), job.namespace, job.run_id, job.candidate_id,
+        passed ? 'SUCCEEDED' : 'FAILED', opaqueId('worker'),
+        canonicalJson({ jobId, artifactIds: artifacts.map(item => item.artifactId), isolated: true }), timestamp
+      );
+    });
+    return {
+      jobId,
+      candidateId: job.candidate_id,
+      status: passed ? 'WAITING_USER' : 'VALIDATION_FAILED',
+      activationRequired: passed,
+      resultArtifactId: resultArtifact?.artifactId ?? null
+    };
+  }
+
+  getRepairCandidate(namespace: string, candidateId: string): Record<string, unknown> {
+    return this.database.read(db => {
+      const row = db.prepare(`
+        SELECT rc.*, j.job_id, j.status AS validation_status, j.summary AS validation_summary
+        FROM repair_candidates rc
+        JOIN repair_validation_jobs j ON j.candidate_id = rc.candidate_id
+        WHERE rc.namespace = ? AND rc.candidate_id = ?
+      `).get(namespace, candidateId) as Record<string, unknown> | undefined;
+      if (!row) throw new HarnessError(404, 'REPAIR_CANDIDATE_NOT_FOUND', 'DOMAIN', '修复候选不存在。');
+      return {
+        candidateId: row.candidate_id,
+        incidentId: row.incident_id,
+        scriptId: row.script_id,
+        baseScriptVersion: row.base_script_version,
+        candidateScriptVersion: row.candidate_script_version,
+        patchType: row.patch_type,
+        patch: JSON.parse(String(row.patch_json)),
+        patchHash: row.patch_hash,
+        riskLevel: row.risk_level,
+        status: row.status,
+        version: row.version,
+        validation: {
+          jobId: row.job_id,
+          status: row.validation_status,
+          summary: row.validation_summary,
+          artifactId: row.validation_artifact_id
+        },
+        activationRequired: row.status === 'WAITING_USER',
+        updatedAt: row.updated_at
+      };
+    });
   }
 
   getTask(namespace: string, taskId: string): Record<string, unknown> {
     return this.database.read(db => {
       const row = db.prepare(`
-        SELECT t.*, r.version AS run_version
-        FROM tasks t LEFT JOIN runs r ON r.run_id = t.run_id
+        SELECT t.*, r.version AS run_version, fi.incident_id, fi.classification AS failure_classification
+        FROM tasks t
+        LEFT JOIN runs r ON r.run_id = t.run_id
+        LEFT JOIN failure_incidents fi ON fi.run_id = t.run_id
         WHERE t.namespace = ? AND t.task_id = ?
       `).get(namespace, taskId) as Record<string, unknown> | undefined;
       if (!row) throw new HarnessError(404, 'TASK_NOT_FOUND', 'DOMAIN', '任务不存在。');
@@ -756,6 +1160,8 @@ export class HarnessService {
         resultArtifactId: row.result_artifact_id,
         errorCode: row.error_code,
         errorCategory: row.error_category,
+        incidentId: row.incident_id,
+        failureClassification: row.failure_classification,
         retryable: Boolean(row.retryable),
         userActionRequired: Boolean(row.user_action_required),
         updatedAt: row.updated_at
@@ -788,14 +1194,92 @@ export class HarnessService {
       let currentVersion: number | undefined;
       if (input.targetType === 'RUN_RECOVERY') {
         currentVersion = (db.prepare('SELECT version FROM runs WHERE namespace = ? AND run_id = ?').get(input.namespace, input.targetId) as { version: number } | undefined)?.version;
-      } else {
+      } else if (input.targetType === 'SCRIPT_ACTIVATION') {
         currentVersion = (db.prepare('SELECT current_version AS version FROM scripts WHERE namespace = ? AND script_id = ?').get(input.namespace, input.targetId) as { version: number } | undefined)?.version;
+      } else {
+        currentVersion = (db.prepare('SELECT version FROM repair_candidates WHERE namespace = ? AND candidate_id = ?').get(input.namespace, input.targetId) as { version: number } | undefined)?.version;
       }
       if (currentVersion === undefined) throw new HarnessError(404, 'DECISION_TARGET_NOT_FOUND', 'DOMAIN', '决策目标不存在。');
       if (currentVersion !== input.expectedVersion) {
         throw new HarnessError(409, 'TARGET_VERSION_CONFLICT', 'CONCURRENCY', '决策目标版本已变化。', false, true, { currentVersion });
       }
       const decisionId = opaqueId('decision');
+      if (input.targetType === 'REPAIR_CANDIDATE_ACTIVATION') {
+        if (input.choice !== 'APPROVE' && input.choice !== 'REJECT') {
+          throw new HarnessError(400, 'REPAIR_DECISION_CHOICE_INVALID', 'CONTRACT', '修复候选只接受 APPROVE 或 REJECT。');
+        }
+        const candidate = db.prepare(`
+          SELECT rc.*, sv.relative_path, COALESCE(sv.source_sha256, sv.sha256) AS base_sha256
+          FROM repair_candidates rc
+          JOIN script_versions sv ON sv.script_id = rc.script_id AND sv.version = rc.base_script_version
+          WHERE rc.namespace = ? AND rc.candidate_id = ?
+        `).get(input.namespace, input.targetId) as Record<string, unknown>;
+        if (candidate.status !== 'WAITING_USER') {
+          throw new HarnessError(409, 'REPAIR_CANDIDATE_NOT_APPROVABLE', 'DOMAIN', '修复候选尚未通过隔离验证或已完成决策。', false, true);
+        }
+        db.prepare(`
+          INSERT INTO repair_activation_decisions(
+            decision_id, namespace, candidate_id, expected_version, choice, reason,
+            confirmation_ref, status, created_at
+          ) VALUES (?, ?, ?, ?, ?, ?, ?, 'RECORDED', ?)
+        `).run(
+          decisionId, input.namespace, input.targetId, input.expectedVersion,
+          input.choice, input.reason, input.confirmationRef, timestamp
+        );
+        let effect: string;
+        if (input.choice === 'APPROVE') {
+          const script = db.prepare('SELECT current_version FROM scripts WHERE script_id = ?')
+            .get(candidate.script_id) as { current_version: number };
+          if (script.current_version !== Number(candidate.base_script_version)) {
+            throw new HarnessError(409, 'SCRIPT_VERSION_CONFLICT', 'CONCURRENCY', '激活前正式脚本版本已变化。', false, true, { currentVersion: script.current_version });
+          }
+          const sourcePath = path.join(this.productRoot, ...String(candidate.relative_path).split('/'));
+          if (!fs.existsSync(sourcePath)) {
+            throw new HarnessError(409, 'CANDIDATE_SCRIPT_UNAVAILABLE', 'ENVIRONMENT', '候选依赖的基础脚本制品不存在。', false, true);
+          }
+          const sourceSha256 = sha256(fs.readFileSync(sourcePath));
+          if (sourceSha256 !== candidate.base_sha256) {
+            throw new HarnessError(409, 'SCRIPT_SOURCE_DRIFT', 'CONCURRENCY', '基础脚本文件 Hash 已变化，候选必须重新验证。', false, true);
+          }
+          const configurationJson = canonicalJson((JSON.parse(String(candidate.patch_json)) as { selectorOverrides: Record<string, string> }).selectorOverrides);
+          const compositeSha256 = sha256(canonicalJson({ sourceSha256, configuration: JSON.parse(configurationJson) }));
+          db.prepare(`
+            INSERT INTO script_versions(
+              script_id, version, relative_path, sha256, validation_status, created_at,
+              configuration_json, source_sha256
+            ) VALUES (?, ?, ?, ?, 'PASSED', ?, ?, ?)
+          `).run(
+            candidate.script_id, candidate.candidate_script_version, candidate.relative_path,
+            compositeSha256, timestamp, configurationJson, sourceSha256
+          );
+          db.prepare(`UPDATE scripts SET current_version = ?, status = 'SCRIPT_VALIDATED', updated_at = ? WHERE script_id = ?`)
+            .run(candidate.candidate_script_version, timestamp, candidate.script_id);
+          db.prepare(`UPDATE repair_candidates SET status = 'ACTIVE', version = version + 1, updated_at = ? WHERE candidate_id = ?`)
+            .run(timestamp, input.targetId);
+          db.prepare(`UPDATE failure_incidents SET diagnostic_status = 'RESOLVED', version = version + 1, updated_at = ? WHERE incident_id = ?`)
+            .run(timestamp, candidate.incident_id);
+          effect = 'REPAIR_CANDIDATE_ACTIVATED';
+        } else {
+          db.prepare(`UPDATE repair_candidates SET status = 'REJECTED', version = version + 1, updated_at = ? WHERE candidate_id = ?`)
+            .run(timestamp, input.targetId);
+          db.prepare(`UPDATE failure_incidents SET diagnostic_status = 'DIAGNOSED', version = version + 1, updated_at = ? WHERE incident_id = ?`)
+            .run(timestamp, candidate.incident_id);
+          effect = 'REPAIR_CANDIDATE_REJECTED';
+        }
+        return {
+          status: 200,
+          objectType: 'DECISION',
+          objectId: decisionId,
+          response: {
+            decisionId,
+            targetType: input.targetType,
+            targetId: input.targetId,
+            status: 'RECORDED',
+            version: 1,
+            effect
+          }
+        };
+      }
       db.prepare(`
         INSERT INTO decisions(
           decision_id, namespace, target_type, target_id, expected_version, choice,
