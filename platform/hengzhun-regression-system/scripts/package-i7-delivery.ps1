@@ -20,7 +20,7 @@ if ($LASTEXITCODE -ne 0) { throw "DELIVERY_OFFLINE_PACKAGE_FAILED" }
 $PackageDirectory = [string]($PackageOutput | Select-Object -Last 1)
 if (-not (Test-Path -LiteralPath $PackageDirectory)) { throw "DELIVERY_PACKAGE_PATH_INVALID" }
 
-$Acceptance = Join-Path $PackageDirectory "delivery-acceptance.json"
+$Acceptance = Join-Path $ProductRoot (".data\delivery-runs\" + $Version + "\delivery-acceptance.json")
 & $Node (Join-Path $PSScriptRoot "verify-i7-delivery.cjs") --require-clean --record --package-dir $PackageDirectory --output $Acceptance
 if ($LASTEXITCODE -ne 0) { throw "DELIVERY_ACCEPTANCE_FAILED" }
 
@@ -37,4 +37,5 @@ if (-not $SkipRestore) {
   version = $Version
   packageDirectory = $PackageDirectory
   restoreDirectory = $RestoreDirectory
+  acceptancePath = $Acceptance
 } | ConvertTo-Json -Compress | Write-Output

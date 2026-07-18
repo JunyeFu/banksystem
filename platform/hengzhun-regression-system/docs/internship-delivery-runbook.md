@@ -24,7 +24,7 @@ npm.cmd run package:i7:delivery -- -Version internship-20260718
 5. 在全新目录恢复产品、SQLite、Artifact/Evidence 并加载镜像；
 6. 对恢复后的 SQLite 执行 `integrity_check` 和 schema version 检查。
 
-结果只写入 Git 忽略的 `.data/delivery-packages/`、`.data/delivery-restores/` 和 `.data/delivery-runs/`。`delivery-acceptance.json` 只含提交、版本、计数、状态和外部待验证声明，不包含凭据或业务数据。
+结果只写入 Git 忽略的 `.data/delivery-packages/`、`.data/delivery-restores/` 和 `.data/delivery-runs/`。`delivery-acceptance.json` 放在包外的 `.data/delivery-runs/<version>/`，避免形成未纳入 Manifest 的包内文件；它只含提交、版本、计数、状态和外部待验证声明，不包含凭据或业务数据。
 
 ## 演示顺序
 

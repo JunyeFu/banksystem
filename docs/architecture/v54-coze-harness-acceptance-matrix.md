@@ -32,3 +32,4 @@ owner: project-owner
 | 修复激活 | Coze 可诊断、Harness 可隔离验证；正式脚本激活与 Schedule 恢复必须人工确认 | 修复候选、隔离验证、人工确认审计 |
 | 衡准排除 | 不创建或改造衡准 UI；若已有路由可访问，只能是只读且不得支持 Coze 或控制 Harness | 范围审查与路由/权限负测 |
 | 内网迁移 | 提供版本化离线包、镜像 tar、清单、SQLite/Artifact/Evidence 备份和恢复演练 | 离线包清单与恢复演练报告 |
+| 实习交付冻结 | 从干净提交一键执行 I1—I7 验收，生成脱敏机器记录，并以三张固定镜像在全新目录恢复；目标 HiAgent 外部主张保持待验证 | `config/internship-delivery-freeze.json`、I7 自动测试与交付证据 |

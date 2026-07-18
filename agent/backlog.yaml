@@ -3,7 +3,7 @@ project: banksystem
 root: D:\Agent\banksystem
 defaultBranch: main
 statusSource: agent/backlog.yaml
-updatedAt: '2026-07-19T00:30:00+08:00'
+updatedAt: '2026-07-19T00:45:00+08:00'
 
 allowedStatuses: [PROPOSED, READY, IN_PROGRESS, BLOCKED, REVIEW, DONE, CANCELLED]
 
@@ -112,7 +112,7 @@ tracks:
           - 衡准 UI implementation is excluded.
       - id: HENGZHUN-DELIVERY-001
         title: Hengzhun internship delivery freeze and reproducible acceptance
-        status: IN_PROGRESS
+        status: DONE
         owner: 傅钧烨
         dependsOn: [COZE-HARNESS-CORE-001]
         evidence: [docs/evidence/platform/hengzhun-i7-internship-delivery-2026-07-18.md]

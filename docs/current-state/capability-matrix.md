@@ -43,13 +43,13 @@ Customer graphical password-login qualification and its local-demo/production bo
 | Capability | Current status | Evidence/qualification |
 |---|---|---|
 | Dedicated Node/Playwright/Midscene runtime | VERIFIED | `platform/hengzhun-regression-system/runtime` now contains the product-local verified copy of Node 20.20.2, Playwright/Test/Core 1.59.1, Midscene Web/CLI 1.10.5, Chromium revision 1217 and FFmpeg revision 1011; legacy `platform/runtime` is retained temporarily as rollback source |
-| Hengzhun single-directory product skeleton | PARTIALLY_VERIFIED | Product root, module boundaries, `.data` isolation, structure verifier, fixed-runtime verifier and compatibility-test registry pass; Harness, Worker, OpenAPI and Coze public-interface registration remain unimplemented or not run |
-| RegressionCase, Fixture, Baseline and human-success evidence | PARTIAL / PLANNED | Existing contracts and test assets exist; v5.4 full workflow is not yet implemented end to end |
-| Repository development RAG | PARTIAL | Project RAG exists for development, audit and Codex maintenance only; it is not a delivered runtime knowledge source |
-| Coze runtime knowledge base | PLANNED | Coze Knowledge Base is the confirmed sole runtime authority; its ingestion, versioning, retrieval and audit integration are not implemented in this repository |
-| Coze Agent orchestration plus Harness tools | PLANNED | Latest responsibility boundary is documented; no complete Coze-to-Harness runtime chain has been implemented |
-| Midscene visual Agent plus Playwright fact collection | POC / PARTIAL | Dedicated-runtime MiMo v2.5 page understanding, assertion and visual location pass, with 0.9606 IoU against the Playwright DOM box; Harness three-action-window integration and repeatability qualification are not complete |
-| Independent Playwright script validation | PLANNED | Required by v5.4; current final regression is not equivalent |
-| Scheduled regression and automatic failure pause | PLANNED | Banking EOD/recovery exists; v5.4 script Schedule/FailureIncident loop is separate |
-| Reverse recovery with exactly two options | PLANNED | v5.4 target; not claimed as implemented in the current banking services |
+| Hengzhun single-directory product skeleton | VERIFIED | Product root, module boundaries, `.data` isolation, fixed runtime, Harness, Worker, Model Gateway, OpenAPI, Coze public configuration and I1—I7 verifier are present and pass |
+| RegressionCase, Fixture, Baseline and human-success evidence | VERIFIED | I4 三条低风险案例使用独立 BrowserContext、Fixture 隔离和脱敏证据通过；正式脚本需 `SCRIPT_VALIDATED` |
+| Repository development RAG | VERIFIED / DEVELOPMENT_ONLY | 开发 RAG 可重复构建与验证；它不属于交付系统运行时知识源 |
+| Coze runtime knowledge base | VERIFIED_FOR_DEMO | I3/I4/I6 的 Knowledge Base 已经公开绑定并完成自动/全文检索与真实命中；长期失效与权限治理仍由 GAP-008 跟踪 |
+| Coze Agent orchestration plus Harness tools | VERIFIED_FOR_DEMO | Coze 公开 Agent 已完成 I3 执行、I5 人工激活及 I6 自然语言调度闭环；Harness v0.0.10 共 14 个工具 |
+| Midscene visual Agent plus Playwright fact collection | PARTIALLY_VERIFIED_WITH_FALLBACK | `INPUT/TAP/SCROLL` 通过五视口门禁；`LOCATE` 降级并强制 Playwright-only，所有事实仍由 Playwright 独立验证 |
+| Independent Playwright script validation | VERIFIED | 三案例脚本、隔离 Worker、独立 BrowserContext、断言和证据 Hash 已通过，未验证脚本不能正式执行 |
+| Scheduled regression and automatic failure pause | VERIFIED | I6 验证互斥、misfire、补跑、重启去重、有限重试、最终失败暂停和人工恢复；正式调度不调用模型 |
+| Reverse recovery with exactly two options | VERIFIED | 修复候选与 Schedule 恢复均由 Harness 保持版本化状态并要求 Coze 用户显式二选一，旧版本重复决策被拒绝 |
 | Hengzhun observability frontend | DEFERRED | Legacy UI assets and browser fixtures exist but are outside the approved read-only boundary; they are not current capability evidence and must not be extended until `HZ-OBSERVABILITY-001` is resumed |
