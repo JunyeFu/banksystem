@@ -101,20 +101,26 @@ test('gateway rejects missing client authentication and exposes only safe health
 });
 
 test('gateway normalizes a complete MiMo pseudo tool block into a structured tool call', async () => {
+  let receivedBody;
   const upstream = http.createServer((_request, response) => {
-    response.writeHead(200, { 'content-type': 'application/json' });
-    response.end(JSON.stringify({
-      id: 'chatcmpl-pseudo',
-      model: 'mimo-v2.5',
-      choices: [{
-        index: 0,
-        message: {
-          role: 'assistant',
-          content: '<tool_call><function=case_get><parameter=namespace>coze-i3-agent</parameter><parameter=caseId>case-safe</parameter></tool_call>',
-        },
-        finish_reason: 'stop',
-      }],
-    }));
+    const chunks = [];
+    _request.on('data', chunk => chunks.push(chunk));
+    _request.on('end', () => {
+      receivedBody = JSON.parse(Buffer.concat(chunks).toString('utf8'));
+      response.writeHead(200, { 'content-type': 'application/json' });
+      response.end(JSON.stringify({
+        id: 'chatcmpl-pseudo',
+        model: 'mimo-v2.5',
+        choices: [{
+          index: 0,
+          message: {
+            role: 'assistant',
+            content: '<tool_call><function=case_get><parameter=namespace>coze-i3-agent</parameter><parameter=caseId>case-safe</parameter></tool_call>',
+          },
+          finish_reason: 'stop',
+        }],
+      }));
+    });
   });
   const upstreamPort = await listen(upstream);
   const gateway = createModelGatewayServer({
@@ -150,6 +156,10 @@ test('gateway normalizes a complete MiMo pseudo tool block into a structured too
     assert.equal(call.function.name, 'case_get');
     assert.deepEqual(JSON.parse(call.function.arguments), { namespace: 'coze-i3-agent', caseId: 'case-safe' });
     assert.equal(completion.choices[0].message.content, null);
+    assert.equal(receivedBody.messages[0].role, 'system');
+    assert.match(receivedBody.messages[0].content, /never simulate, infer, or guess/i);
+    assert.match(receivedBody.messages[0].content, /<tool_call><function=TOOL_NAME>/);
+    assert.deepEqual(receivedBody.messages.slice(1), [{ role: 'user', content: 'get case' }]);
   } finally {
     await close(gateway);
     await close(upstream);

@@ -162,12 +162,12 @@ I6 本机运行面已完成十四工具静态契约、SQLite schema version 8、
 |---|---|---|---|
 | I6 确定性调度 | `RUNTIME_VERIFIED` | 五字段 Cron、IANA 时区、`local + fixtureScope` 互斥、`SKIP/RUN_ONCE`、重启去重、失败暂停和版本化恢复通过 | `docs/evidence/platform/hengzhun-i6-scheduling-offline-2026-07-18.md` |
 | I6 离线交付 | `RUNTIME_VERIFIED` | 镜像包、Hash、SBOM、SQLite/Artifact/Evidence 备份与干净目录恢复通过；凭据仍由目标环境现场注入 | 同上 |
-| Coze I6 插件 | `PUBLIC_UI_PUBLISHED` | Harness 插件 v0.0.9 的十四工具逐项公开试运行通过 | 同上 |
-| Coze I6 唯一入口 | `REVIEW` | I6 Agent 与 Knowledge Base 已发布和绑定，但自然语言 `schedule_create`、`schedule_get` 均返回 `Internal Server Error`，没有取得 Agent 调用 Harness 的闭环证据 | 同上 |
+| Coze I6 插件 | `PUBLIC_UI_PUBLISHED` | Harness 插件 v0.0.10 的十四工具在修订输出 Schema 后逐项重新通过公开试运行 | 同上 |
+| Coze I6 唯一入口 | `RUNTIME_VERIFIED` | I6 Agent 与完成处理的全文检索 Knowledge Base 已发布和绑定；自然语言创建、查询、显式停用和再次查询均返回 Harness 真实状态，Schedule 从 `ACTIVE/version 1` 变为 `DISABLED/version 2` | 同上 |
 | `PLAT-V007` | `PENDING` | 目标租户容量、并发和退避限制尚无目标环境证据 | 本登记册 |
 | `PLAT-V010` | `PENDING` | 目标 HiAgent 的域名、TLS、DNS、私网路由和鉴权尚无实际环境证据 | 本登记册 |
 
-因此 I6 本机运行门禁关闭，Coze 平台出口门禁不关闭。插件逐工具通过只能证明契约与工具层可用，不能证明知识检索、Agent 规划和自然语言调度链路成功；后续必须先定位 Coze 内部错误，再执行“创建、查询、显式停用”的真实自然语言闭环。
+因此 I6 本机运行门禁和 Coze 演示平台出口门禁均已关闭。初次内部错误已定位为模型工具协议提示缺失和 `schedule_get` 空响应 Schema，修复后完整自然语言闭环通过。`PLAT-V007` 与 `PLAT-V010` 仍是目标 HiAgent 环境的容量和迁移网络验证，不得据此宣称云端目标环境已经就绪，也不反向阻塞本机 I6 完成。
 
 ## 13. 来源边界
 

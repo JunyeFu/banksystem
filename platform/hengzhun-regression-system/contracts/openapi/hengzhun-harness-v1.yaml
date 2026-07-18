@@ -566,7 +566,29 @@ paths:
           description: 调度短摘要
           content:
             application/json:
-              schema: {type: object}
+              schema:
+                type: object
+                required: [scheduleId, caseId, caseVersion, planId, cronExpression, timezone, environment, fixtureScope, misfirePolicy, misfireGraceSeconds, maxRetries, status, executionCount, version, updatedAt]
+                properties:
+                  scheduleId: {type: string}
+                  caseId: {type: string}
+                  caseVersion: {type: integer}
+                  planId: {type: string}
+                  cronExpression: {type: string}
+                  timezone: {type: string}
+                  environment: {type: string, enum: [local]}
+                  fixtureScope: {type: string}
+                  misfirePolicy: {type: string, enum: [SKIP, RUN_ONCE]}
+                  misfireGraceSeconds: {type: integer}
+                  maxRetries: {type: integer}
+                  status: {type: string, enum: [ACTIVE, PAUSED_FAILURE, DISABLED]}
+                  nextFireAt: {type: string}
+                  lastEvaluatedAt: {type: string}
+                  pausedIncidentId: {type: string}
+                  executionCount: {type: integer}
+                  lastExecutionStatus: {type: string}
+                  version: {type: integer}
+                  updatedAt: {type: string}
   /v1/plugin/schedules:disable:
     post:
       operationId: schedule_disable
@@ -589,7 +611,15 @@ paths:
           description: 调度已停用
           content:
             application/json:
-              schema: {type: object}
+              schema:
+                type: object
+                required: [scheduleId, status, version, reason, replayed]
+                properties:
+                  scheduleId: {type: string}
+                  status: {type: string, enum: [DISABLED]}
+                  version: {type: integer}
+                  reason: {type: string}
+                  replayed: {type: boolean}
 components:
   securitySchemes:
     bearerAuth:

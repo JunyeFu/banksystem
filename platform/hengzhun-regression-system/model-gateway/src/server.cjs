@@ -6,6 +6,12 @@ const { randomUUID, timingSafeEqual } = require('node:crypto');
 const DEFAULT_BODY_LIMIT_BYTES = 4 * 1024 * 1024;
 const DEFAULT_UPSTREAM_TIMEOUT_MS = 45000;
 const DEFAULT_UPSTREAM_ATTEMPTS = 3;
+const TOOL_PROTOCOL_INSTRUCTION = [
+  'When a tool call is required, never simulate, infer, or guess the tool result.',
+  'Return exactly one tool call and no prose using this format:',
+  '<tool_call><function=TOOL_NAME><parameter=PARAMETER_NAME>VALUE</parameter></tool_call>.',
+  'Use only a provided tool name and include every required parameter exactly once.',
+].join(' ');
 
 function logSafe(event, details = {}) {
   process.stdout.write(JSON.stringify({ event, ...details }) + '\n');
@@ -129,6 +135,13 @@ function normalizePseudoToolCall(completion, requestedTools) {
   return completion;
 }
 
+function injectToolProtocol(messages, requestedTools) {
+  if (!Array.isArray(messages) || !Array.isArray(requestedTools) || requestedTools.length === 0) {
+    return messages;
+  }
+  return [{ role: 'system', content: TOOL_PROTOCOL_INSTRUCTION }, ...messages];
+}
+
 function normalizeBaseUrl(value) {
   return String(value || '').replace(/\/+$/, '').replace(/\/chat\/completions$/, '');
 }
@@ -169,11 +182,15 @@ function createModelGatewayServer(options = {}) {
       const minimumOutputTokens = Number(options.minimumOutputTokens || process.env.MIMO_MODEL_MIN_OUTPUT_TOKENS || 2048);
       const upstreamRequest = {
         ...requested,
+        messages: injectToolProtocol(requested.messages, requested.tools),
         model: upstreamModel,
         stream: false,
         max_tokens: Math.max(Number(requested.max_tokens) || 0, minimumOutputTokens),
         temperature: Math.min(Number(requested.temperature) || 0.2, 0.3),
       };
+      if (Array.isArray(requested.tools) && requested.tools.length > 0) {
+        logSafe('gateway.tool_protocol.injected', { toolCount: requested.tools.length });
+      }
       delete upstreamRequest.stream_options;
       let upstreamResponse;
       let lastError;
