@@ -39,18 +39,19 @@ I7 已完成实习交付范围冻结、一键 I1—I7 验收、脱敏机器记�
 正式命令：
 
 ```powershell
-npm.cmd run package:i7:delivery -- -Version internship-20260718-i7-9fd30bf
+npm.cmd run package:i7:delivery -- -Version internship-20260718-i7-37aceed
 ```
 
 验收事实：
 
-- 源提交：`9fd30bfb5d537dd596d624b51b06e22bf72d495c`，生成时受跟踪工作区干净；
-- 包版本：`internship-20260718-i7-9fd30bf`；
+- 源提交：`37aceedf4cd90d0475eda126a7be6e0162228e53`，生成时受跟踪工作区干净；
+- 包版本：`internship-20260718-i7-37aceed`；
 - Manifest：`hengzhun-offline-manifest-v1`，数据库引擎 `sqlite`，`secretMaterialIncluded=false`；
 - 三张固定镜像齐全：Harness、Model Gateway、Conformance；
 - 清单包含 8 个文件，总字节数 `1078602394`，覆盖产品归档、镜像归档、SQLite 备份、Artifact/Evidence 归档、SBOM、镜像元数据和恢复脚本；
 - 全部 Hash 通过，三张镜像在恢复流程中成功加载；
 - 全新目录中的 SQLite `integrity_check` 通过，schema version 为 8。
+- 包目录不存在 Manifest 之外的额外文件；机器验收记录已独立写入包外 `.data/delivery-runs/internship-20260718-i7-37aceed/`。
 
 生成包、恢复目录和机器验收记录均位于 Git 忽略的 `.data/`，不作为源码提交。
 

@@ -127,7 +127,7 @@ Coze Studio 0.5.1 已仅通过公开界面完成七工具 OpenAPI 插件导入�
 
 I7 退出条件：`npm run verify` 覆盖 I1—I7 并通过；正式离线交付包与当前源提交一致；三张镜像齐全；全新目录恢复后的 SQLite 完整性与 schema version 通过；交付记录不含敏感信息；当前状态、缺口登记、证据和 Backlog 一致。
 
-2026-07-18 完成状态：I7 已关闭。提交 `9fd30bf` 通过 I1—I7 全量验证；正式包 `internship-20260718-i7-9fd30bf` 绑定该干净提交，包含三张固定镜像、产品归档、SQLite/Artifact/Evidence 备份、CycloneDX SBOM 和 Hash 清单。共 8 个清单文件、1078602394 字节，在全新目录完成 Hash 复验、三镜像加载和 SQLite schema 8 完整性检查。机器验收记录未包含凭据或业务数据。`PLAT-V007`、`PLAT-V010` 与云端 HiAgent 生产就绪继续保留为目标环境待验证项。
+2026-07-18 完成状态：I7 已关闭。提交 `37aceed` 通过 I1—I7 全量验证；正式包 `internship-20260718-i7-37aceed` 绑定该干净提交，包含三张固定镜像、产品归档、SQLite/Artifact/Evidence 备份、CycloneDX SBOM 和 Hash 清单。共 8 个清单文件、1078602394 字节，在全新目录完成 Hash 复验、三镜像加载和 SQLite schema 8 完整性检查；包目录不存在 Manifest 外文件，机器验收记录独立保存在包外且未包含凭据或业务数据。`PLAT-V007`、`PLAT-V010` 与云端 HiAgent 生产就绪继续保留为目标环境待验证项。
 
 ## 明确不阻塞当前开工的事项
 
