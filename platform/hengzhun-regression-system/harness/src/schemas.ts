@@ -95,10 +95,35 @@ export const repairCandidateCreateSchema = z.object({
   credentialAlias: boundedText(128)
 }).strict();
 
+export const scheduleCreateSchema = z.object({
+  namespace: namespaceSchema,
+  idempotencyKey: idempotencyKeySchema,
+  caseId: boundedText(80),
+  expectedCaseVersion: z.number().int().positive(),
+  planId: boundedText(80),
+  credentialAlias: boundedText(128),
+  cronExpression: boundedText(128),
+  timezone: boundedText(80),
+  environment: z.literal('local'),
+  fixtureScope: boundedText(128).regex(/^[A-Za-z0-9._:-]+$/),
+  misfirePolicy: z.enum(['SKIP', 'RUN_ONCE']).default('RUN_ONCE'),
+  misfireGraceSeconds: z.number().int().min(0).max(86400).default(300),
+  maxRetries: z.number().int().min(0).max(5).default(1)
+}).strict();
+
+export const scheduleGetSchema = z.object({ namespace: namespaceSchema, scheduleId: boundedText(80) }).strict();
+export const scheduleDisableSchema = z.object({
+  namespace: namespaceSchema,
+  idempotencyKey: idempotencyKeySchema,
+  scheduleId: boundedText(80),
+  expectedVersion: z.number().int().positive(),
+  reason: boundedText(1000)
+}).strict();
+
 export const decisionSubmitSchema = z.object({
   namespace: namespaceSchema,
   idempotencyKey: idempotencyKeySchema,
-  targetType: z.enum(['SCRIPT_ACTIVATION', 'RUN_RECOVERY', 'REPAIR_CANDIDATE_ACTIVATION']),
+  targetType: z.enum(['SCRIPT_ACTIVATION', 'RUN_RECOVERY', 'REPAIR_CANDIDATE_ACTIVATION', 'SCHEDULE_RECOVERY']),
   targetId: boundedText(80),
   expectedVersion: z.number().int().positive(),
   choice: z.enum(['APPROVE', 'REJECT', 'RETRY', 'CANCEL']),
@@ -111,6 +136,8 @@ export type PlanCompileInput = z.infer<typeof planCompileSchema>;
 export type RunSubmitInput = z.infer<typeof runSubmitSchema>;
 export type CaseImportSubmitInput = z.infer<typeof caseImportSubmitSchema>;
 export type RepairCandidateCreateInput = z.infer<typeof repairCandidateCreateSchema>;
+export type ScheduleCreateInput = z.infer<typeof scheduleCreateSchema>;
+export type ScheduleDisableInput = z.infer<typeof scheduleDisableSchema>;
 export type DecisionSubmitInput = z.infer<typeof decisionSubmitSchema>;
 
 export function validationIssues(error: z.ZodError): Array<{ path: string; code: string; message: string }> {

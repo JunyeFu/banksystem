@@ -9,8 +9,11 @@ import type {
   DecisionSubmitInput,
   PlanCompileInput,
   RepairCandidateCreateInput,
-  RunSubmitInput
+  RunSubmitInput,
+  ScheduleCreateInput,
+  ScheduleDisableInput
 } from './schemas';
+import { nextCronOccurrence, parseCron, validateTimeZone } from './cron';
 import { canonicalJson, nowIso, opaqueId, requestHash, sha256 } from './utils';
 
 interface RequestContext {
@@ -85,6 +88,69 @@ export class HarnessService {
 
   constructor(readonly database: HarnessDatabase, artifactRoot: string, readonly productRoot: string) {
     this.artifacts = new ArtifactStore(database, artifactRoot);
+  }
+
+  private validatedPlan(db: import('better-sqlite3').Database, namespace: string, planId: string, caseId: string, expectedCaseVersion: number): {
+    case_id: string; case_version: number; script_id: string; script_path: string; script_configuration: string | null;
+  } {
+    const plan = db.prepare(`
+      SELECT p.status, p.case_id, p.case_version, p.script_id, c.current_version,
+             s.status AS script_status, sv.relative_path AS script_path,
+             sv.configuration_json AS script_configuration
+      FROM plans p
+      JOIN cases c ON c.case_id = p.case_id
+      LEFT JOIN scripts s ON s.script_id = p.script_id
+      LEFT JOIN script_versions sv ON sv.script_id = s.script_id AND sv.version = s.current_version
+      WHERE p.namespace = ? AND p.plan_id = ?
+    `).get(namespace, planId) as Record<string, unknown> | undefined;
+    if (!plan || plan.case_id !== caseId) throw new HarnessError(404, 'PLAN_NOT_FOUND', 'DOMAIN', '执行计划不存在。');
+    if (Number(plan.case_version) !== expectedCaseVersion || Number(plan.current_version) !== expectedCaseVersion) {
+      throw new HarnessError(409, 'CASE_VERSION_CONFLICT', 'CONCURRENCY', '案例或计划版本已变化。', false, true);
+    }
+    if (plan.status !== 'READY') throw new HarnessError(409, 'PLAN_NOT_RUNNABLE', 'DOMAIN', '计划当前不可执行。', false, true);
+    if (!plan.script_id || plan.script_status !== 'SCRIPT_VALIDATED' || !plan.script_path) {
+      throw new HarnessError(409, 'SCRIPT_NOT_VALIDATED', 'DOMAIN', '正式回归只能执行 SCRIPT_VALIDATED 脚本。', false, true);
+    }
+    return {
+      case_id: String(plan.case_id), case_version: Number(plan.case_version), script_id: String(plan.script_id),
+      script_path: String(plan.script_path), script_configuration: plan.script_configuration ? String(plan.script_configuration) : null
+    };
+  }
+
+  private enqueueRun(db: import('better-sqlite3').Database, input: {
+    namespace: string; caseId: string; caseVersion: number; planId: string; environment: 'local';
+    credentialAlias: string; fixtureScope?: string; scheduleId?: string; scheduleExecutionId?: string;
+  }, plan: { script_id: string; script_path: string; script_configuration: string | null }, timestamp: string): { runId: string; taskId: string } {
+    const runId = opaqueId('run');
+    const taskId = opaqueId('task');
+    const fixtureNamespace = `fx-${sha256(`${input.namespace}:${runId}`).slice(0, 20)}`;
+    const payload = canonicalJson({
+      executionEngine: 'PLAYWRIGHT',
+      formalRegression: true,
+      environment: input.environment,
+      credentialAlias: input.credentialAlias,
+      fixtureNamespace,
+      fixtureScope: input.fixtureScope ?? fixtureNamespace,
+      scriptId: plan.script_id,
+      scriptPath: plan.script_path,
+      selectorOverrides: plan.script_configuration ? JSON.parse(plan.script_configuration) : {}
+    });
+    db.prepare(`
+      INSERT INTO tasks(task_id, namespace, task_type, status, progress, case_id, run_id, payload_json, version, created_at, updated_at)
+      VALUES (?, ?, 'RUN_EXECUTE', 'QUEUED', 0, ?, ?, ?, 1, ?, ?)
+    `).run(taskId, input.namespace, input.caseId, runId, payload, timestamp, timestamp);
+    db.prepare(`
+      INSERT INTO runs(
+        run_id, namespace, case_id, case_version, plan_id, task_id, status,
+        credential_alias, fixture_namespace, environment, fixture_scope,
+        origin_schedule_id, schedule_execution_id, version, created_at
+      ) VALUES (?, ?, ?, ?, ?, ?, 'QUEUED', ?, ?, ?, ?, ?, ?, 1, ?)
+    `).run(
+      runId, input.namespace, input.caseId, input.caseVersion, input.planId, taskId,
+      input.credentialAlias, fixtureNamespace, input.environment, input.fixtureScope ?? fixtureNamespace,
+      input.scheduleId ?? null, input.scheduleExecutionId ?? null, timestamp
+    );
+    return { runId, taskId };
   }
 
   private executionProfile(definition: Record<string, unknown>): ExecutionProfile | undefined {
@@ -463,47 +529,11 @@ export class HarnessService {
 
   async submitRun(input: RunSubmitInput, context: RequestContext): Promise<IdempotentResult> {
     return this.idempotent(input.namespace, 'run_submit', input.idempotencyKey, input, context, (db, timestamp) => {
-      const plan = db.prepare(`
-        SELECT p.status, p.case_id, p.case_version, p.script_id, c.current_version,
-               s.status AS script_status, sv.relative_path AS script_path,
-               sv.configuration_json AS script_configuration
-        FROM plans p
-        JOIN cases c ON c.case_id = p.case_id
-        LEFT JOIN scripts s ON s.script_id = p.script_id
-        LEFT JOIN script_versions sv ON sv.script_id = s.script_id AND sv.version = s.current_version
-        WHERE p.namespace = ? AND p.plan_id = ?
-      `).get(input.namespace, input.planId) as {
-        status: string; case_id: string; case_version: number; current_version: number;
-        script_id: string | null; script_status: string | null; script_path: string | null;
-        script_configuration: string | null;
-      } | undefined;
-      if (!plan || plan.case_id !== input.caseId) throw new HarnessError(404, 'PLAN_NOT_FOUND', 'DOMAIN', '执行计划不存在。');
-      if (plan.case_version !== input.expectedCaseVersion || plan.current_version !== input.expectedCaseVersion) {
-        throw new HarnessError(409, 'CASE_VERSION_CONFLICT', 'CONCURRENCY', '案例或计划版本已变化。', false, true);
-      }
-      if (plan.status !== 'READY') throw new HarnessError(409, 'PLAN_NOT_RUNNABLE', 'DOMAIN', '计划当前不可执行。', false, true);
-      if (!plan.script_id || plan.script_status !== 'SCRIPT_VALIDATED' || !plan.script_path) {
-        throw new HarnessError(409, 'SCRIPT_NOT_VALIDATED', 'DOMAIN', '正式回归只能执行 SCRIPT_VALIDATED 脚本。', false, true);
-      }
-      const runId = opaqueId('run');
-      const taskId = opaqueId('task');
-      const fixtureNamespace = `fx-${sha256(`${input.namespace}:${runId}`).slice(0, 20)}`;
-      const payload = canonicalJson({
-        environment: input.environment,
-        credentialAlias: input.credentialAlias,
-        fixtureNamespace,
-        scriptId: plan.script_id,
-        scriptPath: plan.script_path,
-        selectorOverrides: plan.script_configuration ? JSON.parse(plan.script_configuration) : {}
-      });
-      db.prepare(`
-        INSERT INTO tasks(task_id, namespace, task_type, status, progress, case_id, run_id, payload_json, version, created_at, updated_at)
-        VALUES (?, ?, 'RUN_EXECUTE', 'QUEUED', 0, ?, ?, ?, 1, ?, ?)
-      `).run(taskId, input.namespace, input.caseId, runId, payload, timestamp, timestamp);
-      db.prepare(`
-        INSERT INTO runs(run_id, namespace, case_id, case_version, plan_id, task_id, status, credential_alias, fixture_namespace, version, created_at)
-        VALUES (?, ?, ?, ?, ?, ?, 'QUEUED', ?, ?, 1, ?)
-      `).run(runId, input.namespace, input.caseId, input.expectedCaseVersion, input.planId, taskId, input.credentialAlias, fixtureNamespace, timestamp);
+      const plan = this.validatedPlan(db, input.namespace, input.planId, input.caseId, input.expectedCaseVersion);
+      const { runId, taskId } = this.enqueueRun(db, {
+        namespace: input.namespace, caseId: input.caseId, caseVersion: input.expectedCaseVersion,
+        planId: input.planId, environment: input.environment, credentialAlias: input.credentialAlias
+      }, plan, timestamp);
       return {
         status: 200,
         objectType: 'RUN',
@@ -512,6 +542,127 @@ export class HarnessService {
         taskId,
         response: { taskId, runId, status: 'QUEUED', namespace: input.namespace, caseId: input.caseId }
       };
+    });
+  }
+
+  async createSchedule(input: ScheduleCreateInput, context: RequestContext): Promise<IdempotentResult> {
+    try {
+      parseCron(input.cronExpression);
+      validateTimeZone(input.timezone);
+    } catch (error) {
+      throw new HarnessError(400, String((error as Error).message), 'CONTRACT', 'Cron 表达式或 IANA 时区无效。');
+    }
+    return this.idempotent(input.namespace, 'schedule_create', input.idempotencyKey, input, context, (db, timestamp) => {
+      this.validatedPlan(db, input.namespace, input.planId, input.caseId, input.expectedCaseVersion);
+      const scheduleId = opaqueId('schedule');
+      const nextFireAt = nextCronOccurrence(input.cronExpression, input.timezone, new Date(timestamp)).toISOString();
+      db.prepare(`
+        INSERT INTO schedules(
+          schedule_id, namespace, case_id, case_version, plan_id, credential_alias,
+          cron_expression, timezone, environment, fixture_scope, misfire_policy,
+          misfire_grace_seconds, max_retries, status, next_fire_at, version, created_at, updated_at
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'ACTIVE', ?, 1, ?, ?)
+      `).run(
+        scheduleId, input.namespace, input.caseId, input.expectedCaseVersion, input.planId,
+        input.credentialAlias, input.cronExpression, input.timezone, input.environment,
+        input.fixtureScope, input.misfirePolicy, input.misfireGraceSeconds, input.maxRetries,
+        nextFireAt, timestamp, timestamp
+      );
+      return {
+        status: 200, objectType: 'SCHEDULE', objectId: scheduleId,
+        response: { scheduleId, status: 'ACTIVE', version: 1, nextFireAt, cronExpression: input.cronExpression, timezone: input.timezone }
+      };
+    });
+  }
+
+  getSchedule(namespace: string, scheduleId: string): Record<string, unknown> {
+    return this.database.read(db => {
+      const row = db.prepare(`
+        SELECT s.*,
+          (SELECT COUNT(*) FROM schedule_executions e WHERE e.schedule_id = s.schedule_id) AS execution_count,
+          (SELECT status FROM schedule_executions e WHERE e.schedule_id = s.schedule_id ORDER BY scheduled_for DESC LIMIT 1) AS last_execution_status
+        FROM schedules s WHERE s.namespace = ? AND s.schedule_id = ?
+      `).get(namespace, scheduleId) as Record<string, unknown> | undefined;
+      if (!row) throw new HarnessError(404, 'SCHEDULE_NOT_FOUND', 'DOMAIN', '调度不存在。');
+      return {
+        scheduleId: row.schedule_id, caseId: row.case_id, caseVersion: row.case_version, planId: row.plan_id,
+        cronExpression: row.cron_expression, timezone: row.timezone, environment: row.environment,
+        fixtureScope: row.fixture_scope, misfirePolicy: row.misfire_policy,
+        misfireGraceSeconds: row.misfire_grace_seconds, maxRetries: row.max_retries,
+        status: row.status, nextFireAt: row.next_fire_at, lastEvaluatedAt: row.last_evaluated_at,
+        pausedIncidentId: row.paused_incident_id, executionCount: row.execution_count,
+        lastExecutionStatus: row.last_execution_status, version: row.version, updatedAt: row.updated_at
+      };
+    });
+  }
+
+  async disableSchedule(input: ScheduleDisableInput, context: RequestContext): Promise<IdempotentResult> {
+    return this.idempotent(input.namespace, 'schedule_disable', input.idempotencyKey, input, context, (db, timestamp) => {
+      const row = db.prepare('SELECT version, status FROM schedules WHERE namespace = ? AND schedule_id = ?')
+        .get(input.namespace, input.scheduleId) as { version: number; status: string } | undefined;
+      if (!row) throw new HarnessError(404, 'SCHEDULE_NOT_FOUND', 'DOMAIN', '调度不存在。');
+      if (row.version !== input.expectedVersion) throw new HarnessError(409, 'TARGET_VERSION_CONFLICT', 'CONCURRENCY', '调度版本已变化。', false, true, { currentVersion: row.version });
+      if (row.status !== 'DISABLED') db.prepare(`UPDATE schedules SET status = 'DISABLED', version = version + 1, updated_at = ? WHERE schedule_id = ?`)
+        .run(timestamp, input.scheduleId);
+      return { status: 200, objectType: 'SCHEDULE', objectId: input.scheduleId,
+        response: { scheduleId: input.scheduleId, status: 'DISABLED', version: row.status === 'DISABLED' ? row.version : row.version + 1, reason: input.reason } };
+    });
+  }
+
+  async tickSchedules(now = new Date()): Promise<Record<string, number>> {
+    return this.database.write(db => {
+      const due = db.prepare(`SELECT * FROM schedules WHERE status = 'ACTIVE' AND next_fire_at <= ? ORDER BY next_fire_at`)
+        .all(now.toISOString()) as Array<Record<string, unknown>>;
+      const counters = { evaluated: due.length, queued: 0, skippedMisfire: 0, skippedMutex: 0 };
+      for (const schedule of due) {
+        const occurrences: Date[] = [];
+        let occurrence = new Date(String(schedule.next_fire_at));
+        while (occurrence <= now && occurrences.length < 600_000) {
+          occurrences.push(occurrence);
+          occurrence = nextCronOccurrence(String(schedule.cron_expression), String(schedule.timezone), occurrence);
+        }
+        const runOnceIndex = schedule.misfire_policy === 'RUN_ONCE' ? occurrences.length - 1 : -1;
+        occurrences.forEach((scheduledFor, index) => {
+          const scheduledIso = scheduledFor.toISOString();
+          const existing = db.prepare('SELECT execution_id FROM schedule_executions WHERE schedule_id = ? AND scheduled_for = ?')
+            .get(schedule.schedule_id, scheduledIso) as { execution_id: string } | undefined;
+          if (existing) return;
+          const lateSeconds = Math.max(0, (now.getTime() - scheduledFor.getTime()) / 1000);
+          const misfired = lateSeconds > Number(schedule.misfire_grace_seconds);
+          if (misfired && (schedule.misfire_policy === 'SKIP' || index !== runOnceIndex)) {
+            db.prepare(`INSERT INTO schedule_executions(execution_id, schedule_id, namespace, scheduled_for, status, reason_code, created_at, updated_at, completed_at)
+              VALUES (?, ?, ?, ?, 'SKIPPED_MISFIRE', 'MISFIRE_POLICY', ?, ?, ?)`)
+              .run(opaqueId('execution'), schedule.schedule_id, schedule.namespace, scheduledIso, now.toISOString(), now.toISOString(), now.toISOString());
+            counters.skippedMisfire += 1;
+            return;
+          }
+          const locked = db.prepare(`SELECT run_id FROM runs WHERE environment = ? AND fixture_scope = ? AND status IN ('QUEUED', 'RUNNING') LIMIT 1`)
+            .get(schedule.environment, schedule.fixture_scope) as { run_id: string } | undefined;
+          if (locked) {
+            db.prepare(`INSERT INTO schedule_executions(execution_id, schedule_id, namespace, scheduled_for, status, reason_code, created_at, updated_at, completed_at)
+              VALUES (?, ?, ?, ?, 'SKIPPED_MUTEX', 'ENVIRONMENT_FIXTURE_SCOPE_BUSY', ?, ?, ?)`)
+              .run(opaqueId('execution'), schedule.schedule_id, schedule.namespace, scheduledIso, now.toISOString(), now.toISOString(), now.toISOString());
+            counters.skippedMutex += 1;
+            return;
+          }
+          const executionId = opaqueId('execution');
+          db.prepare(`INSERT INTO schedule_executions(execution_id, schedule_id, namespace, scheduled_for, status, created_at, updated_at)
+            VALUES (?, ?, ?, ?, 'PENDING', ?, ?)`)
+            .run(executionId, schedule.schedule_id, schedule.namespace, scheduledIso, now.toISOString(), now.toISOString());
+          const plan = this.validatedPlan(db, String(schedule.namespace), String(schedule.plan_id), String(schedule.case_id), Number(schedule.case_version));
+          const run = this.enqueueRun(db, {
+            namespace: String(schedule.namespace), caseId: String(schedule.case_id), caseVersion: Number(schedule.case_version),
+            planId: String(schedule.plan_id), environment: 'local', credentialAlias: String(schedule.credential_alias),
+            fixtureScope: String(schedule.fixture_scope), scheduleId: String(schedule.schedule_id), scheduleExecutionId: executionId
+          }, plan, now.toISOString());
+          db.prepare(`UPDATE schedule_executions SET status = 'QUEUED', run_id = ?, task_id = ?, updated_at = ? WHERE execution_id = ?`)
+            .run(run.runId, run.taskId, now.toISOString(), executionId);
+          counters.queued += 1;
+        });
+        db.prepare(`UPDATE schedules SET next_fire_at = ?, last_evaluated_at = ?, updated_at = ? WHERE schedule_id = ?`)
+          .run(occurrence.toISOString(), now.toISOString(), now.toISOString(), schedule.schedule_id);
+      }
+      return counters;
     });
   }
 
@@ -555,6 +706,11 @@ export class HarnessService {
       db.prepare(`
         UPDATE runs SET status = 'RUNNING', version = version + 1,
             started_at = COALESCE(started_at, ?) WHERE run_id = ?
+      `).run(timestamp, row.run_id);
+      db.prepare(`
+        UPDATE schedule_executions SET status = 'RUNNING', updated_at = ?
+        WHERE execution_id = (SELECT schedule_execution_id FROM runs WHERE run_id = ?)
+          AND status IN ('QUEUED', 'RETRY_QUEUED')
       `).run(timestamp, row.run_id);
       db.prepare(`
         INSERT INTO audit_events(
@@ -756,15 +912,20 @@ export class HarnessService {
   async completeRun(taskId: string, input: WorkerCompletionInput): Promise<Record<string, unknown>> {
     const task = this.database.read(db => db.prepare(`
       SELECT t.namespace, t.run_id, t.case_id, t.status, t.lease_owner,
-             p.script_id, s.current_version AS script_version
+             p.script_id, s.current_version AS script_version,
+             r.origin_schedule_id, r.schedule_execution_id,
+             sc.max_retries, se.retry_count
       FROM tasks t
       JOIN runs r ON r.task_id = t.task_id
       JOIN plans p ON p.plan_id = r.plan_id
       JOIN scripts s ON s.script_id = p.script_id
+      LEFT JOIN schedules sc ON sc.schedule_id = r.origin_schedule_id
+      LEFT JOIN schedule_executions se ON se.execution_id = r.schedule_execution_id
       WHERE t.task_id = ? AND t.task_type = 'RUN_EXECUTE'
     `).get(taskId) as {
       namespace: string; run_id: string; case_id: string; status: string; lease_owner: string | null;
-      script_id: string; script_version: number;
+      script_id: string; script_version: number; origin_schedule_id: string | null;
+      schedule_execution_id: string | null; max_retries: number | null; retry_count: number | null;
     } | undefined);
     if (!task) throw new HarnessError(404, 'WORKER_TASK_NOT_FOUND', 'DOMAIN', 'Worker 任务不存在。');
     if (task.status !== 'RUNNING' || task.lease_owner !== input.workerId) {
@@ -790,6 +951,37 @@ export class HarnessService {
     }
     const resultArtifact = artifacts.find(item => item.type === 'REPORT') ?? artifacts[0];
     const timestamp = nowIso();
+    const scheduledRetry = input.outcome !== 'PASSED'
+      && input.errorCategory === 'ENVIRONMENT'
+      && input.retryable === true
+      && task.origin_schedule_id !== null
+      && Number(task.retry_count ?? 0) < Number(task.max_retries ?? 0);
+    if (scheduledRetry) {
+      await this.database.write(db => {
+        db.prepare(`
+          UPDATE tasks SET status = 'QUEUED', progress = 0, result_summary = ?, result_artifact_id = ?,
+            error_code = ?, error_category = ?, retryable = 1, user_action_required = 0,
+            lease_owner = NULL, lease_expires_at = NULL, version = version + 1, updated_at = ?, completed_at = NULL
+          WHERE task_id = ?
+        `).run(input.summary, resultArtifact?.artifactId ?? null, input.errorCode ?? 'TRANSIENT_ENVIRONMENT_FAILURE', input.errorCategory, timestamp, taskId);
+        db.prepare(`UPDATE runs SET status = 'QUEUED', version = version + 1, completed_at = NULL WHERE run_id = ?`).run(task.run_id);
+        db.prepare(`
+          UPDATE schedule_executions SET status = 'RETRY_QUEUED', retry_count = retry_count + 1,
+            reason_code = ?, updated_at = ? WHERE execution_id = ?
+        `).run(input.errorCode ?? 'TRANSIENT_ENVIRONMENT_FAILURE', timestamp, task.schedule_execution_id);
+        db.prepare(`
+          INSERT INTO audit_events(event_id, namespace, run_id, task_id, actor_type, action, object_type,
+            object_id, outcome, correlation_id, details_json, created_at)
+          VALUES (?, ?, ?, ?, 'HARNESS', 'schedule.retry', 'RUN', ?, 'ACCEPTED', ?, ?, ?)
+        `).run(opaqueId('evt'), task.namespace, task.run_id, taskId, task.run_id, opaqueId('scheduler'),
+          JSON.stringify({ retryCount: Number(task.retry_count ?? 0) + 1, maxRetries: task.max_retries }), timestamp);
+      });
+      return {
+        taskId, runId: task.run_id, status: 'QUEUED', outcome: input.outcome,
+        retryScheduled: true, retryCount: Number(task.retry_count ?? 0) + 1,
+        artifactIds: artifacts.map(item => item.artifactId)
+      };
+    }
     const taskStatus = input.outcome === 'PASSED' ? 'SUCCEEDED' : 'FAILED';
     let incidentId: string | undefined;
     await this.database.write(db => {
@@ -807,6 +999,12 @@ export class HarnessService {
       db.prepare(`
         UPDATE runs SET status = ?, version = version + 1, completed_at = ? WHERE run_id = ?
       `).run(input.outcome, timestamp, task.run_id);
+      if (task.schedule_execution_id) {
+        db.prepare(`
+          UPDATE schedule_executions SET status = ?, reason_code = ?, updated_at = ?, completed_at = ?
+          WHERE execution_id = ?
+        `).run(input.outcome === 'PASSED' ? 'SUCCEEDED' : 'FAILED', input.errorCode ?? null, timestamp, timestamp, task.schedule_execution_id);
+      }
       db.prepare(`
         INSERT INTO audit_events(
           event_id, namespace, run_id, task_id, actor_type, action, object_type,
@@ -838,6 +1036,12 @@ export class HarnessService {
             db.prepare(`UPDATE scripts SET status = 'VALIDATING', updated_at = ? WHERE script_id = ? AND status = 'SCRIPT_VALIDATED'`)
               .run(timestamp, task.script_id);
           }
+        }
+        if (task.origin_schedule_id && incidentId) {
+          db.prepare(`
+            UPDATE schedules SET status = 'PAUSED_FAILURE', paused_incident_id = ?,
+              version = version + 1, updated_at = ? WHERE schedule_id = ? AND status = 'ACTIVE'
+          `).run(incidentId, timestamp, task.origin_schedule_id);
         }
       }
     });
@@ -1196,6 +1400,8 @@ export class HarnessService {
         currentVersion = (db.prepare('SELECT version FROM runs WHERE namespace = ? AND run_id = ?').get(input.namespace, input.targetId) as { version: number } | undefined)?.version;
       } else if (input.targetType === 'SCRIPT_ACTIVATION') {
         currentVersion = (db.prepare('SELECT current_version AS version FROM scripts WHERE namespace = ? AND script_id = ?').get(input.namespace, input.targetId) as { version: number } | undefined)?.version;
+      } else if (input.targetType === 'SCHEDULE_RECOVERY') {
+        currentVersion = (db.prepare('SELECT version FROM schedules WHERE namespace = ? AND schedule_id = ?').get(input.namespace, input.targetId) as { version: number } | undefined)?.version;
       } else {
         currentVersion = (db.prepare('SELECT version FROM repair_candidates WHERE namespace = ? AND candidate_id = ?').get(input.namespace, input.targetId) as { version: number } | undefined)?.version;
       }
@@ -1204,6 +1410,38 @@ export class HarnessService {
         throw new HarnessError(409, 'TARGET_VERSION_CONFLICT', 'CONCURRENCY', '决策目标版本已变化。', false, true, { currentVersion });
       }
       const decisionId = opaqueId('decision');
+      if (input.targetType === 'SCHEDULE_RECOVERY') {
+        if (input.choice !== 'APPROVE' && input.choice !== 'REJECT') {
+          throw new HarnessError(400, 'SCHEDULE_RECOVERY_CHOICE_INVALID', 'CONTRACT', '调度恢复只接受 APPROVE 或 REJECT。');
+        }
+        const schedule = db.prepare('SELECT * FROM schedules WHERE namespace = ? AND schedule_id = ?')
+          .get(input.namespace, input.targetId) as Record<string, unknown>;
+        if (schedule.status !== 'PAUSED_FAILURE') {
+          throw new HarnessError(409, 'SCHEDULE_NOT_PAUSED', 'DOMAIN', '只有因失败暂停的调度可以执行恢复决策。', false, true);
+        }
+        db.prepare(`
+          INSERT INTO schedule_recovery_decisions(
+            decision_id, namespace, schedule_id, expected_version, choice, reason,
+            confirmation_ref, status, created_at
+          ) VALUES (?, ?, ?, ?, ?, ?, ?, 'RECORDED', ?)
+        `).run(decisionId, input.namespace, input.targetId, input.expectedVersion, input.choice, input.reason, input.confirmationRef, timestamp);
+        let effect = 'SCHEDULE_REMAINS_PAUSED';
+        if (input.choice === 'APPROVE') {
+          const nextFireAt = nextCronOccurrence(String(schedule.cron_expression), String(schedule.timezone), new Date(timestamp)).toISOString();
+          db.prepare(`
+            UPDATE schedules SET status = 'ACTIVE', paused_incident_id = NULL, next_fire_at = ?,
+              version = version + 1, updated_at = ? WHERE schedule_id = ?
+          `).run(nextFireAt, timestamp, input.targetId);
+          effect = 'SCHEDULE_RESUMED';
+        }
+        return {
+          status: 200, objectType: 'DECISION', objectId: decisionId,
+          response: {
+            decisionId, targetType: input.targetType, targetId: input.targetId, status: 'RECORDED', version: 1,
+            effect, scheduleVersion: input.choice === 'APPROVE' ? input.expectedVersion + 1 : input.expectedVersion
+          }
+        };
+      }
       if (input.targetType === 'REPAIR_CANDIDATE_ACTIVATION') {
         if (input.choice !== 'APPROVE' && input.choice !== 'REJECT') {
           throw new HarnessError(400, 'REPAIR_DECISION_CHOICE_INVALID', 'CONTRACT', '修复候选只接受 APPROVE 或 REJECT。');

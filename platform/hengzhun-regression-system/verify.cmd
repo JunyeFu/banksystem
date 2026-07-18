@@ -49,5 +49,8 @@ if errorlevel 1 exit /b %ERRORLEVEL%
 call "%PRODUCT_ROOT%runtime\node-v20.20.2-win-x64\npm.cmd" run verify:i5:results
 if errorlevel 1 exit /b %ERRORLEVEL%
 
-echo HENGZHUN_I1_I2_I3_I4_I5_RUNTIME_BASELINE_VERIFIED_I5_PUBLIC_PLATFORM_CONFIGURATION_GATE_CLOSED
+call "%PRODUCT_ROOT%runtime\node-v20.20.2-win-x64\npm.cmd" run test:i6
+if errorlevel 1 exit /b %ERRORLEVEL%
+
+echo HENGZHUN_I1_I2_I3_I4_I5_I6_RUNTIME_BASELINE_VERIFIED
 exit /b 0

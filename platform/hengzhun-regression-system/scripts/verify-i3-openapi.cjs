@@ -28,7 +28,8 @@ const expectedPublic = [
   'task_get', 'artifact_get_metadata', 'decision_submit', 'failure_get',
   'repair_candidate_create', 'repair_candidate_get'
 ];
-if (JSON.stringify(publicOperations.sort()) !== JSON.stringify(expectedPublic.sort())) failures.push('public contract must expose exactly eleven operations');
+const missingPublicOperations = expectedPublic.filter(operationId => !publicOperations.includes(operationId));
+if (missingPublicOperations.length > 0) failures.push(`public contract is missing I3 operations: ${missingPublicOperations.join(', ')}`);
 if (publicContract.document.components?.securitySchemes?.bearerAuth?.scheme !== 'bearer') failures.push('public Bearer authentication is missing');
 for (const [route, pathItem] of Object.entries(publicContract.document.paths ?? {})) {
   for (const [method, operation] of Object.entries(pathItem ?? {})) {

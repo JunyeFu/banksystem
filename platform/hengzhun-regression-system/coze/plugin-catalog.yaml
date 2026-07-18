@@ -3,12 +3,12 @@ pluginName: 衡准回归 Harness
 registration: PUBLIC_UI_OPENAPI_IMPORT
 authentication: BEARER_TOKEN
 openapi: ../contracts/openapi/hengzhun-harness-v1.yaml
-status: I5_PUBLIC_UI_PUBLISHED_AND_CALLED
-statusDetail: Coze Studio 0.5.1 已通过公开界面把同一插件更新至 v0.0.7 十一工具，绑定到 I5 Agent 并发布。自然语言批准真实改变 SQLite 权威状态，随后 repair_candidate_get 回查 ACTIVE/version 4；一次使用旧版本的重复批准被 Harness 以 409 安全拒绝。
+status: I6_PUBLIC_UI_PUBLISHED_AGENT_LOOP_REVIEW
+statusDetail: 本地 OpenAPI 与 Coze Studio 公开发布版均为十四工具，插件 v0.0.9 已逐工具调试通过；I6 Agent 自然语言调度返回 Internal Server Error，平台出口仍处于 REVIEW。
 platformRegistration:
   pluginId: '7663393319640104960'
-  publishedVersion: v0.0.7
-  operationCount: 11
+  publishedVersion: v0.0.9
+  operationCount: 14
   canonicalAuthentication: AUTHORIZATION_BEARER
   cozeCompatibilityAuthentication: X_HENGZHUN_SERVICE_TOKEN
 cozeCompatibility:
@@ -33,3 +33,6 @@ tools:
   - failure_get
   - repair_candidate_create
   - repair_candidate_get
+  - schedule_create
+  - schedule_get
+  - schedule_disable

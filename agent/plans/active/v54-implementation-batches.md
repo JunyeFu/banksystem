@@ -116,6 +116,8 @@ Coze Studio 0.5.1 已仅通过公开界面完成七工具 OpenAPI 插件导入�
 - 完成互斥、misfire、补跑、失败暂停、备份恢复和离线迁移包。
 - 再逐步增加转账、贷款、日终、审批等银行案例。
 
+2026-07-18 当前状态：I6 本机运行面已完成，平台出口仍处于 `REVIEW`。Harness 已用 SQLite migration 8 落地五字段 Cron、IANA 时区、`local + fixtureScope` 互斥、`SKIP/RUN_ONCE` misfire、租约恢复、瞬态故障有限重试、最终失败暂停和版本化人工恢复；14 工具 OpenAPI、I6 单元/集成测试、非 root Harness 镜像、完整镜像离线包、Hash/SBOM、SQLite/Artifact/Evidence 备份及干净目录恢复均通过。Coze 公开界面已发布 Harness 插件 `v0.0.9`，14 工具逐项调试通过，并新建发布“衡准-I6-调度主控”与 I6 Knowledge Base。首次自然语言调度调用由 Coze 返回 `Internal Server Error`，没有取得真实 `schedule_create/get/disable` Agent 闭环证据；因此不得将 Coze I6 唯一入口标记完成。`PLAT-V007` 容量与 `PLAT-V010` 目标 HiAgent 网络仍须在实际目标环境验证，银行扩展案例尚未开始。
+
 ## 明确不阻塞当前开工的事项
 
 - `FE-DEFECT-001`、`FE-DEFECT-004`、`FE-DEFECT-006` 的全量完成；

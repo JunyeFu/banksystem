@@ -13,6 +13,9 @@ import {
   planCompileSchema,
   repairCandidateCreateSchema,
   runSubmitSchema,
+  scheduleCreateSchema,
+  scheduleDisableSchema,
+  scheduleGetSchema,
   validationIssues
 } from './schemas';
 import { authorizeRequest, loadSecurityConfig, remoteAddressForAudit, SecurityConfig, SecurityResult } from './security';
@@ -102,6 +105,7 @@ export interface HarnessApplicationOptions {
   artifactRoot?: string;
   security?: SecurityConfig;
   workerToken?: string;
+  schedulerIntervalMs?: number;
 }
 
 export interface HarnessApplication {
@@ -186,6 +190,16 @@ export async function createHarnessApplication(options: HarnessApplicationOption
   const service = new HarnessService(database, options.artifactRoot ?? path.join(options.productRoot, '.data', 'artifacts'), options.productRoot);
   const security = options.security ?? loadSecurityConfig();
   const workerToken = options.workerToken ?? process.env.HENGZHUN_WORKER_TOKEN;
+  const schedulerIntervalMs = options.schedulerIntervalMs ?? 15_000;
+  let schedulerRunning = false;
+  const schedulerTick = async () => {
+    if (schedulerRunning) return;
+    schedulerRunning = true;
+    try { await service.tickSchedules(); } finally { schedulerRunning = false; }
+  };
+  await schedulerTick();
+  const scheduler = schedulerIntervalMs > 0 ? setInterval(() => void schedulerTick().catch(() => undefined), schedulerIntervalMs) : undefined;
+  scheduler?.unref();
 
   const handler: http.RequestListener = async (request, response) => {
     const requestId = opaqueId('req');
@@ -196,7 +210,7 @@ export async function createHarnessApplication(options: HarnessApplicationOption
         return sendJson(response, 200, {
           status: 'ok',
           service: 'hengzhun-harness',
-          version: '1.0.0',
+          version: '1.1.0',
           database: { engine: 'sqlite', quickCheck: database.quickCheck() }
         }, 'L0', requestId);
       }
@@ -327,6 +341,20 @@ export async function createHarnessApplication(options: HarnessApplicationOption
         const result = await service.submitDecision(input, context);
         return sendJson(response, result.status, result.response, 'L1', requestId);
       }
+      if (request.method === 'POST' && url.pathname === '/v1/plugin/schedules:create') {
+        const input = scheduleCreateSchema.parse(await readJson(request));
+        const result = await service.createSchedule(input, context);
+        return sendJson(response, result.status, result.response, 'L1', requestId);
+      }
+      if (request.method === 'POST' && url.pathname === '/v1/plugin/schedules:get') {
+        const input = scheduleGetSchema.parse(await readJson(request));
+        return sendJson(response, 200, omitNullValues(service.getSchedule(input.namespace, input.scheduleId)), 'L1', requestId);
+      }
+      if (request.method === 'POST' && url.pathname === '/v1/plugin/schedules:disable') {
+        const input = scheduleDisableSchema.parse(await readJson(request));
+        const result = await service.disableSchedule(input, context);
+        return sendJson(response, result.status, result.response, 'L1', requestId);
+      }
 
       if (request.method === 'POST' && url.pathname === '/v1/cases/drafts') {
         const input = caseCreateDraftSchema.parse(await readJson(request));
@@ -388,7 +416,11 @@ export async function createHarnessApplication(options: HarnessApplicationOption
     handler,
     service,
     database,
-    close: () => database.close()
+    close: async () => {
+      if (scheduler) clearInterval(scheduler);
+      while (schedulerRunning) await new Promise(resolve => setTimeout(resolve, 5));
+      await database.close();
+    }
   };
 }
 

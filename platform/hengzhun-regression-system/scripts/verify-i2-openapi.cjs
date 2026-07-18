@@ -13,7 +13,8 @@ const failures = [];
 const expected = [
   'case_create_draft', 'case_get', 'case_import_submit', 'plan_compile', 'run_submit',
   'task_get', 'artifact_get_metadata', 'decision_submit', 'failure_get',
-  'repair_candidate_create', 'repair_candidate_get'
+  'repair_candidate_create', 'repair_candidate_get', 'schedule_create',
+  'schedule_get', 'schedule_disable'
 ];
 const operations = [];
 

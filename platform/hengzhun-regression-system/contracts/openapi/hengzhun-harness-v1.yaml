@@ -358,7 +358,7 @@ paths:
   /v1/plugin/decisions:submit:
     post:
       operationId: decision_submit
-      summary: 记录脚本激活、修复候选激活或运行恢复决定
+      summary: 记录脚本激活、修复候选激活、运行恢复或调度恢复决定
       requestBody:
         required: true
         content:
@@ -376,7 +376,7 @@ paths:
                   minLength: 8
                   maxLength: 128
                   pattern: '^[A-Za-z0-9._:-]+$'
-                targetType: {type: string, enum: [SCRIPT_ACTIVATION, RUN_RECOVERY, REPAIR_CANDIDATE_ACTIVATION]}
+                targetType: {type: string, enum: [SCRIPT_ACTIVATION, RUN_RECOVERY, REPAIR_CANDIDATE_ACTIVATION, SCHEDULE_RECOVERY]}
                 targetId: {type: string, minLength: 8, maxLength: 80}
                 expectedVersion: {type: integer, minimum: 1}
                 choice: {type: string, enum: [APPROVE, REJECT, RETRY, CANCEL]}
@@ -396,7 +396,7 @@ paths:
                   targetId: {type: string}
                   status: {type: string, enum: [RECORDED]}
                   version: {type: integer}
-                  effect: {type: string, enum: [DEFERRED_TO_FUTURE_BATCH, SCRIPT_VALIDATED_AND_PLAN_READY, SCRIPT_RETIRED, REPAIR_CANDIDATE_ACTIVATED, REPAIR_CANDIDATE_REJECTED]}
+                  effect: {type: string, enum: [DEFERRED_TO_FUTURE_BATCH, SCRIPT_VALIDATED_AND_PLAN_READY, SCRIPT_RETIRED, REPAIR_CANDIDATE_ACTIVATED, REPAIR_CANDIDATE_REJECTED, SCHEDULE_RESUMED, SCHEDULE_REMAINS_PAUSED]}
                   replayed: {type: boolean}
   /v1/plugin/failures:get:
     post:
@@ -506,6 +506,90 @@ paths:
                   validation: {type: object}
                   activationRequired: {type: boolean}
                   updatedAt: {type: string}
+  /v1/plugin/schedules:create:
+    post:
+      operationId: schedule_create
+      summary: 创建只执行已验证 Playwright 脚本的确定性调度
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [namespace, idempotencyKey, caseId, expectedCaseVersion, planId, credentialAlias, cronExpression, timezone, environment, fixtureScope]
+              properties:
+                namespace: {type: string, pattern: '^[a-z0-9][a-z0-9._-]{2,63}$'}
+                idempotencyKey: {type: string, minLength: 8, maxLength: 128, pattern: '^[A-Za-z0-9._:-]+$'}
+                caseId: {type: string, minLength: 8, maxLength: 80}
+                expectedCaseVersion: {type: integer, minimum: 1}
+                planId: {type: string, minLength: 8, maxLength: 80}
+                credentialAlias: {type: string, minLength: 1, maxLength: 128}
+                cronExpression: {type: string, minLength: 1, maxLength: 128, example: '0 9 * * 1-5'}
+                timezone: {type: string, minLength: 1, maxLength: 80, example: Asia/Shanghai}
+                environment: {type: string, enum: [local]}
+                fixtureScope: {type: string, minLength: 1, maxLength: 128, pattern: '^[A-Za-z0-9._:-]+$'}
+                misfirePolicy: {type: string, enum: [SKIP, RUN_ONCE], default: RUN_ONCE}
+                misfireGraceSeconds: {type: integer, minimum: 0, maximum: 86400, default: 300}
+                maxRetries: {type: integer, minimum: 0, maximum: 5, default: 1}
+      responses:
+        '200':
+          description: 调度已创建
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [scheduleId, status, version, nextFireAt, cronExpression, timezone, replayed]
+                properties:
+                  scheduleId: {type: string}
+                  status: {type: string, enum: [ACTIVE]}
+                  version: {type: integer}
+                  nextFireAt: {type: string}
+                  cronExpression: {type: string}
+                  timezone: {type: string}
+                  replayed: {type: boolean}
+  /v1/plugin/schedules:get:
+    post:
+      operationId: schedule_get
+      summary: 查询调度、下次触发和最近执行状态
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [namespace, scheduleId]
+              properties:
+                namespace: {type: string, pattern: '^[a-z0-9][a-z0-9._-]{2,63}$'}
+                scheduleId: {type: string, minLength: 8, maxLength: 80}
+      responses:
+        '200':
+          description: 调度短摘要
+          content:
+            application/json:
+              schema: {type: object}
+  /v1/plugin/schedules:disable:
+    post:
+      operationId: schedule_disable
+      summary: 按版本显式停用调度
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [namespace, idempotencyKey, scheduleId, expectedVersion, reason]
+              properties:
+                namespace: {type: string, pattern: '^[a-z0-9][a-z0-9._-]{2,63}$'}
+                idempotencyKey: {type: string, minLength: 8, maxLength: 128, pattern: '^[A-Za-z0-9._:-]+$'}
+                scheduleId: {type: string, minLength: 8, maxLength: 80}
+                expectedVersion: {type: integer, minimum: 1}
+                reason: {type: string, minLength: 1, maxLength: 1000}
+      responses:
+        '200':
+          description: 调度已停用
+          content:
+            application/json:
+              schema: {type: object}
 components:
   securitySchemes:
     bearerAuth:

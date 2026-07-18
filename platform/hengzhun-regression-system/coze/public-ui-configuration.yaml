@@ -135,3 +135,33 @@ i5:
     readBackViaRepairCandidateGet: VERIFIED
     platformConfigurationPublished: true
     platformExitGate: CLOSED
+i6:
+  agent:
+    name: 衡准-I6-调度主控
+    promptSource: agents/hengzhun-i6-regression-agent.md
+    status: PUBLISHED_AGENT_LOOP_REVIEW
+    agentId: '7663830455396859904'
+  knowledgeBase:
+    name: 衡准-I6-调度与离线规则知识库
+    source: knowledge/i6-schedule-offline-runtime-rules.md
+    status: UPLOADED_BOUND_PROCESSING_NOT_EXIT_PROOF
+    knowledgeBaseId: '7663832211321257984'
+  workflow:
+    name: hengzhun_i6_deterministic_scheduling
+    source: workflows/i6-deterministic-scheduling.yaml
+    status: REPRODUCTION_CHECKLIST_READY
+  plugin:
+    reuse: 衡准回归 Harness
+    localOperationCount: 14
+    currentPublishedOperationCount: 14
+    pluginId: '7663393319640104960'
+    currentPublishedVersion: v0.0.9
+    status: PUBLISHED_ALL_TOOLS_DEBUGGED
+  acceptance:
+    deterministicScheduler: RUNTIME_TESTED
+    restartRecovery: RUNTIME_TESTED
+    misfireAndCatchup: RUNTIME_TESTED
+    failurePauseAndConfirmedRecovery: RUNTIME_TESTED
+    offlineRestoreWithoutImages: REHEARSED
+    publicPlatformNaturalLanguageScheduling: FAILED_INTERNAL_SERVER_ERROR
+    platformExitGate: REVIEW

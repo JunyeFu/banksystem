@@ -154,6 +154,21 @@ I5 已通过十一工具静态契约、SQLite 迁移、24 项 I2-I5 自动测试
 
 因此 I5 本机运行门禁与平台出口门禁均已关闭。Coze 公开适配使用静态 `X-Hengzhun-Service-Token`，规范 OpenAPI 与未来 HiAgent 仍使用 `Authorization: Bearer`；两条路径均由 Harness 校验，凭据不进入对话、证据或仓库。观察到 Coze 在一次批准交互后尝试用旧版本重复调用，Harness 的乐观并发控制返回 `TARGET_VERSION_CONFLICT`，没有发生重复激活。该模型侧行为作为 I6 重试治理风险保留。
 
-## 12. 来源边界
+## 12. 2026-07-18 I6 调度、离线交付与平台出口结论
+
+I6 本机运行面已完成十四工具静态契约、SQLite schema version 8、确定性调度、重启恢复、misfire、互斥、有限重试、最终失败暂停和版本化人工恢复。正式 Schedule 只接受已验证的 Playwright 脚本；定时执行不调用 LLM、Midscene 或视觉模型。包含三张固定标签镜像的离线包已完成 Hash、CycloneDX SBOM、SQLite 在线备份、Artifact/Evidence 归档、全新目录恢复、镜像加载和数据库完整性复验。
+
+| ID/范围 | 当前状态 | 真实结论 | 可提交证据 |
+|---|---|---|---|
+| I6 确定性调度 | `RUNTIME_VERIFIED` | 五字段 Cron、IANA 时区、`local + fixtureScope` 互斥、`SKIP/RUN_ONCE`、重启去重、失败暂停和版本化恢复通过 | `docs/evidence/platform/hengzhun-i6-scheduling-offline-2026-07-18.md` |
+| I6 离线交付 | `RUNTIME_VERIFIED` | 镜像包、Hash、SBOM、SQLite/Artifact/Evidence 备份与干净目录恢复通过；凭据仍由目标环境现场注入 | 同上 |
+| Coze I6 插件 | `PUBLIC_UI_PUBLISHED` | Harness 插件 v0.0.9 的十四工具逐项公开试运行通过 | 同上 |
+| Coze I6 唯一入口 | `REVIEW` | I6 Agent 与 Knowledge Base 已发布和绑定，但自然语言 `schedule_create`、`schedule_get` 均返回 `Internal Server Error`，没有取得 Agent 调用 Harness 的闭环证据 | 同上 |
+| `PLAT-V007` | `PENDING` | 目标租户容量、并发和退避限制尚无目标环境证据 | 本登记册 |
+| `PLAT-V010` | `PENDING` | 目标 HiAgent 的域名、TLS、DNS、私网路由和鉴权尚无实际环境证据 | 本登记册 |
+
+因此 I6 本机运行门禁关闭，Coze 平台出口门禁不关闭。插件逐工具通过只能证明契约与工具层可用，不能证明知识检索、Agent 规划和自然语言调度链路成功；后续必须先定位 Coze 内部错误，再执行“创建、查询、显式停用”的真实自然语言闭环。
+
+## 13. 来源边界
 
 本登记册的待验证主张来自用户提供的 Coze/HiAgent 调研材料，但该材料不作为权威证据入库。HiAgent 已有依据只引用仓库中的 2.5.1 本地帮助文档；Coze 数字限制、云端网络要求和产品行为在真实验证前一律保持 `PENDING`。
