@@ -52,5 +52,11 @@ if errorlevel 1 exit /b %ERRORLEVEL%
 call "%PRODUCT_ROOT%runtime\node-v20.20.2-win-x64\npm.cmd" run test:i6
 if errorlevel 1 exit /b %ERRORLEVEL%
 
-echo HENGZHUN_I1_I2_I3_I4_I5_I6_RUNTIME_BASELINE_VERIFIED
+call "%PRODUCT_ROOT%runtime\node-v20.20.2-win-x64\npm.cmd" run test:i7
+if errorlevel 1 exit /b %ERRORLEVEL%
+
+"%NODE%" "%PRODUCT_ROOT%scripts\verify-i7-delivery.cjs" --check
+if errorlevel 1 exit /b %ERRORLEVEL%
+
+echo HENGZHUN_I1_I2_I3_I4_I5_I6_I7_INTERNSHIP_DELIVERY_BASELINE_VERIFIED
 exit /b 0

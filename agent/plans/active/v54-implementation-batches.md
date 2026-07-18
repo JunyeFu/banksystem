@@ -118,6 +118,15 @@ Coze Studio 0.5.1 已仅通过公开界面完成七工具 OpenAPI 插件导入�
 
 2026-07-18 完成状态：I6 本机运行面、离线交付和 Coze 唯一入口均已完成。Harness 已用 SQLite migration 8 落地五字段 Cron、IANA 时区、`local + fixtureScope` 互斥、`SKIP/RUN_ONCE` misfire、租约恢复、瞬态故障有限重试、最终失败暂停和版本化人工恢复；14 工具 OpenAPI、I6 单元/集成测试、非 root Harness 镜像、完整镜像离线包、Hash/SBOM、SQLite/Artifact/Evidence 备份及干净目录恢复均通过。修复模型工具协议提示和 `schedule_get` 输出 Schema 后，Coze 公开界面已发布 Harness 插件 `v0.0.10`，14 工具逐项重新调试通过，“衡准-I6-调度主控”完成自然语言创建、查询、显式停用和再次查询的真实闭环。`PLAT-V007` 容量与 `PLAT-V010` 目标 HiAgent 网络仍须在实际目标环境验证，不能据此宣称云端迁移完成；银行扩展案例尚未开始。
 
+### I7：实习交付冻结与可复现验收
+
+- 冻结实习提交范围为 Coze 唯一入口、Harness/SQLite、Playwright/Midscene 风险路由、确定性调度、脱敏证据和离线交付；不扩建银行业务或衡准 UI。
+- 建立一键 I1—I7 验收和机器可读交付记录；记录只能包含提交、版本、计数、状态、Hash/清单引用和明确的外部待验证项。
+- 正式交付必须从干净提交生成，包含三张固定镜像、产品归档、SQLite 在线备份、Artifact/Evidence、SBOM 和 Hash，并在全新目录完成恢复复验。
+- `PLAT-V007` 和 `PLAT-V010` 只能在目标租户/HiAgent 环境关闭；本机验收必须明确保留这些边界。
+
+I7 退出条件：`npm run verify` 覆盖 I1—I7 并通过；正式离线交付包与当前源提交一致；三张镜像齐全；全新目录恢复后的 SQLite 完整性与 schema version 通过；交付记录不含敏感信息；当前状态、缺口登记、证据和 Backlog 一致。
+
 ## 明确不阻塞当前开工的事项
 
 - `FE-DEFECT-001`、`FE-DEFECT-004`、`FE-DEFECT-006` 的全量完成；

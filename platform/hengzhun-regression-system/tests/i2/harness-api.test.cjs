@@ -39,6 +39,7 @@ async function request(baseUrl, pathname, options = {}) {
     headers: {
       authorization: `Bearer ${token}`,
       'content-type': 'application/json',
+      connection: 'close',
       ...(options.headers || {})
     }
   });
@@ -48,13 +49,13 @@ async function request(baseUrl, pathname, options = {}) {
 
 test('PLAT-V005 rejects missing, wrong and rotated tokens without leaking credentials', async t => {
   const { application, baseUrl } = await startTemporaryHarness(t);
-  const health = await fetch(baseUrl + '/health');
+  const health = await fetch(baseUrl + '/health', { headers: { connection: 'close' } });
   assert.equal(health.status, 200);
   assert.equal((await health.json()).database.engine, 'sqlite');
 
   for (const authorization of [undefined, 'Bearer wrong-token', `Bearer ${retiredToken}`]) {
     const response = await fetch(baseUrl + '/v1/tasks/task-any?namespace=demo-local', {
-      headers: authorization ? { authorization } : {}
+      headers: { connection: 'close', ...(authorization ? { authorization } : {}) }
     });
     assert.equal(response.status, 401);
     const text = await response.text();
@@ -73,6 +74,7 @@ test('PLAT-V005 accepts the scoped Coze compatibility token header without weake
     method: 'POST',
     headers: {
       'content-type': 'application/json',
+      connection: 'close',
       'x-hengzhun-service-token': token
     },
     body: JSON.stringify({ namespace: 'demo-local', taskId: 'task-any' })
@@ -83,6 +85,7 @@ test('PLAT-V005 accepts the scoped Coze compatibility token header without weake
     method: 'POST',
     headers: {
       'content-type': 'application/json',
+      connection: 'close',
       'x-hengzhun-service-token': retiredToken
     },
     body: JSON.stringify({ namespace: 'demo-local', taskId: 'task-any' })
