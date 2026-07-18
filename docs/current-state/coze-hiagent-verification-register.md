@@ -1,18 +1,20 @@
 ---
 id: DOC-STATE-COZE-HIAGENT-VERIFICATION
-title: Coze 模拟 HiAgent 平台能力待验证登记册
+title: 本机 Coze 验证与 HiAgent 移交登记册
 document_type: register
 domain: current-state
 status: verified
 authority: evidence
-version: 1.2
-effective_date: 2026-07-16
+version: 1.3
+effective_date: 2026-07-18
 owner: project-owner
 ---
 
-# Coze 模拟 HiAgent 平台能力待验证登记册
+# 本机 Coze 验证与 HiAgent 移交登记册
 
 > 本登记册固化平台能力的证据状态和验证门禁。它不把用户提供的调研文本、模型回答、营销描述或推测写成平台事实；实施顺序仍以 [`../../agent/plans/active/v54-implementation-batches.md`](../../agent/plans/active/v54-implementation-batches.md) 为唯一权威，任务状态仍以 [`../../agent/backlog.yaml`](../../agent/backlog.yaml) 为唯一来源。
+
+> 2026-07-18 边界确认：本对话只负责本机 Coze 演示系统。HiAgent 提取、适配、注册和目标环境验收由未来新对话接管；本登记册保留兼容依据和移交项，但不再把 HiAgent 目标环境工作列为当前对话的退出门禁。
 
 ## 1. 状态定义
 
@@ -24,6 +26,7 @@ owner: project-owner
 | `FAIL` | 已按规定执行，但目标主张在当前平台/版本不成立 | 依赖该主张的实现必须改用兼容路径或收缩范围 |
 | `BLOCKED` | 已准备测试条件，但外部平台入口或前置能力使真实运行无法继续 | 不得推断结果；无依赖的本机实现可继续 |
 | `PENDING` | 只有用户提供材料、调研结论、模型回答或设计假设 | 依赖该能力的批次不得完成验收 |
+| `HANDOFF` | 已确认不属于当前本机对话，随 HiAgent 工作移交未来新对话 | 不阻塞本机 I1—I7；只能由新对话在目标环境重新激活和验证 |
 | `EXCLUDED` | 超出 HiAgent 2.5.1 已证明边界、违反安全规则或不属于当前版本 | 当前实现禁止依赖，不作为待验证能力偷渡 |
 
 状态变更必须同时记录验证日期、平台版本、验证人、证据引用和失败影响。截图只能辅助证明界面状态；工具真实调用、输入输出和副作用必须由脱敏运行记录证明。
@@ -50,7 +53,7 @@ owner: project-owner
 | `PLAT-V004` | P0 / I2-I3 | 七个 Harness 工具可由一个 OpenAPI 文件无损导入、发布和真实调用 | 对 `case_create_draft`、`case_get`、`plan_compile`、`run_submit`、`task_get`、`decision_submit`、`artifact_get_metadata` 逐一执行合成数据契约测试 | 工具名、方法、路径、输入/输出 Schema、错误响应和同一服务地址全部正确；Harness 请求日志证明结果来自真实端点而非平台示例或 Mock | 未通过的工具不得进入 I3；修订契约后重新导入并全量复验 |
 | `PLAT-V005` | P0 / I2 | Coze 能按公开配置向 Harness 注入 Bearer Token，且不会在对话、日志和错误中泄露 | 使用一次有效令牌、缺失令牌、错误令牌和已轮换令牌调用只读端点 | 有效调用成功；三类负测稳定拒绝；所有证据只含指纹或脱敏值 | 鉴权链未通过则禁止 Coze 连接真实 Harness |
 | `PLAT-V006` | P1 / I1-I3 | Coze 当前版本中插件节点、HTTP 节点、工作流和对话的实际超时、异常处理与重试行为符合可用配置 | 在 1、30、60、120 秒等安全延迟档运行合成异步任务，记录平台配置和实际中断点；不执行银行操作 | 得到当前版本的可重复测量表；Harness 在最短实测窗口内返回 `taskId`，不依赖长同步调用 | 缩短同步受理窗口并调整轮询；不阻塞 Harness 异步内核开发 |
-| `PLAT-V007` | P2 / I6 | Coze 当前租户/版本的 QPS、QPM、并发和退避限制足够支撑演示 | 优先读取租户控制台或官方配置；只做低强度、可停止的合成并发验证，不对云平台压测 | 保存配额界面/官方依据和低于配额的成功运行；形成 Harness 限流参数 | 降低并发、增加队列和退避；只阻塞调度与容量验收 |
+| `PLAT-V007` | P2 / HiAgent handoff | 未来目标 HiAgent 租户的 QPS、QPM、并发和退避限制足够支撑迁移后的演示 | 新对话优先读取目标租户控制台或官方配置；只做低强度、可停止的合成并发验证，不对平台压测 | 保存目标租户配额界面/官方依据和低于配额的成功运行；形成 Harness 限流参数 | 降低并发、增加队列和退避；只阻塞 HiAgent 容量声明 |
 | `PLAT-V008` | P1 / I2-I3 | Coze 节点、工作流、变量和知识分段的数据大小限制与 Harness 128 KiB 输出预算兼容 | 对 L0～L3 边界值执行 UTF-8 多字节、分页和 Artifact 降级测试；平台最大值优先以官方依据确认 | 128 KiB 以内的 L3 合规响应可用；越界在 Harness 内被拦截，不依赖 Coze 截断 | 下调对应等级上限；禁止把平台可能截断当作正常分页 |
 | `PLAT-V009` | P0 / I1 | 自托管 Coze 容器能通过受控本机网络访问 Harness，且无需公网、内网穿透或暴露银行内部端口 | 使用 Docker DNS/受控主机名访问 Harness 健康与回显端点，执行 allowlist 正负测试 | Coze 到 Harness 成功；其他容器或非允许路径失败；网络图与端口证据脱敏 | 重设本机网络方案；I1 不得以公网穿透替代 |
 | `PLAT-V010` | P2 / I6 | 未来云端 HiAgent 对 Harness 地址的域名/IP、TLS、私网连接和可达性要求 | 在实际目标 HiAgent 版本和部署网络中检查公开配置并调用合成端点 | 得到目标版本的地址格式、证书、DNS、路由和鉴权证据；不以 Coze 云规则代替 | 调整迁移拓扑；不反向阻塞本机 I1～I4 |
@@ -84,7 +87,8 @@ owner: project-owner
 | I2 | `PLAT-V005`、`PLAT-V008` 的 Harness 侧边界测试；`PLAT-V004` 至少完成可导入契约验证 |
 | I3 | `PLAT-V004` 七工具全量调用、`PLAT-V011` 会话恢复、`PLAT-V012` 首版知识链 |
 | I4 | `PLAT-V014` 所有进入正式路由的 Midscene 动作 |
-| I6 | `PLAT-V007` 容量边界和 `PLAT-V010` 云端迁移网络 |
+| I6 | 本机确定性调度、离线交付和 Coze 自然语言调度闭环；`PLAT-V007`、`PLAT-V010` 不属于本机退出条件 |
+| HiAgent 新对话 | 重新激活并验证 `PLAT-V007` 目标租户容量和 `PLAT-V010` 目标 HiAgent 网络 |
 
 ## 7. 2026-07-16 I1 真实执行结论
 
@@ -164,16 +168,16 @@ I6 本机运行面已完成十四工具静态契约、SQLite schema version 8、
 | I6 离线交付 | `RUNTIME_VERIFIED` | 镜像包、Hash、SBOM、SQLite/Artifact/Evidence 备份与干净目录恢复通过；凭据仍由目标环境现场注入 | 同上 |
 | Coze I6 插件 | `PUBLIC_UI_PUBLISHED` | Harness 插件 v0.0.10 的十四工具在修订输出 Schema 后逐项重新通过公开试运行 | 同上 |
 | Coze I6 唯一入口 | `RUNTIME_VERIFIED` | I6 Agent 与完成处理的全文检索 Knowledge Base 已发布和绑定；自然语言创建、查询、显式停用和再次查询均返回 Harness 真实状态，Schedule 从 `ACTIVE/version 1` 变为 `DISABLED/version 2` | 同上 |
-| `PLAT-V007` | `PENDING` | 目标租户容量、并发和退避限制尚无目标环境证据 | 本登记册 |
-| `PLAT-V010` | `PENDING` | 目标 HiAgent 的域名、TLS、DNS、私网路由和鉴权尚无实际环境证据 | 本登记册 |
+| `PLAT-V007` | `HANDOFF` | 目标租户容量、并发和退避限制尚无目标环境证据；已移交未来 HiAgent 对话 | 本登记册 |
+| `PLAT-V010` | `HANDOFF` | 目标 HiAgent 的域名、TLS、DNS、私网路由和鉴权尚无实际环境证据；已移交未来 HiAgent 对话 | 本登记册 |
 
-因此 I6 本机运行门禁和 Coze 演示平台出口门禁均已关闭。初次内部错误已定位为模型工具协议提示缺失和 `schedule_get` 空响应 Schema，修复后完整自然语言闭环通过。`PLAT-V007` 与 `PLAT-V010` 仍是目标 HiAgent 环境的容量和迁移网络验证，不得据此宣称云端目标环境已经就绪，也不反向阻塞本机 I6 完成。
+因此 I6 本机运行门禁和 Coze 演示平台出口门禁均已关闭。初次内部错误已定位为模型工具协议提示缺失和 `schedule_get` 空响应 Schema，修复后完整自然语言闭环通过。`PLAT-V007` 与 `PLAT-V010` 没有目标 HiAgent 环境证据，已移交未来新对话；不得据此宣称云端目标环境已经就绪，也不反向阻塞本机 I6 完成。
 
 ## 13. 2026-07-18 I7 实习交付冻结结论
 
 I7 从干净提交 `37aceed` 生成正式三镜像离线包，执行 I1—I7 全量验证，并在全新目录完成 Hash、镜像加载和 SQLite schema 8 完整性复验。交付记录只保存提交、版本、计数、状态与外部待验证声明，并置于 Manifest 管辖的包目录之外。
 
-该结果关闭本机实习交付门禁，但不关闭 `PLAT-V007` 和 `PLAT-V010`；目标租户容量、DNS、TLS、路由、鉴权和云端 HiAgent 生产就绪仍必须在实际环境验证。
+该结果关闭本机实习交付门禁。`PLAT-V007` 和 `PLAT-V010` 已标记 `HANDOFF`，不再属于当前对话剩余工作；未来新对话必须在实际 HiAgent 环境重新激活并验证目标租户容量、DNS、TLS、路由、鉴权和生产就绪。
 
 ## 14. 来源边界
 

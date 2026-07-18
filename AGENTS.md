@@ -4,6 +4,7 @@
 
 - Product: “复兴”智能数字银行 and “衡准”自动化回归测试平台.
 - Stack: Java 21 / Spring Boot / React TypeScript Vite / PostgreSQL（既有银行核心）/ SQLite（回归平台及后续本机新增组件）/ Keycloak / ActiveMQ / Docker.
+- Current conversation delivery boundary: implement and verify only the local Coze/Harness/Playwright/Midscene demonstration system. HiAgent extraction, target-platform adaptation, registration, networking, capacity and acceptance belong to a separate future conversation and must not be performed or claimed here.
 - Current capability claims must be verified against `docs/current-state/capability-matrix.md`, tests, contracts, and live runtime evidence.
 - Target designs and historical plans must never be described as implemented without evidence.
 
@@ -35,6 +36,7 @@
 - `rag/index/` is generated and disposable; edit `rag/config/` or source documents instead.
 - `agent/backlog.yaml` is the only task-status source. `agent/runs/` is disposable runtime state.
 - `agent/plans/active/v54-implementation-batches.md` is the only implementation-order source. The internship delivery prioritizes the Coze/Harness regression platform; platform foundations start immediately, while bank frontend work is limited to per-case readiness and does not act as a global prerequisite.
+- Local Coze evidence proves only the local demonstration. HiAgent-facing Skill/OpenAPI/configuration/runbook artifacts are handoff inputs, not proof of HiAgent installation or runtime readiness. `PLAT-V007` and `PLAT-V010` are transferred to the future HiAgent conversation and do not reopen or block the completed local I1-I7 sequence.
 - All other files are auxiliary to implementation order and may define only parameters, interfaces, architecture, technical choices, code-level design, verification methods, or evidence.
 - Stable decisions use ADRs. Active plans live in `agent/plans/active/`; accepted evidence lives in `docs/evidence/`.
 - Follow nested `AGENTS.md` files for `apps/`, `services/`, `contracts/`, and `tests/`.

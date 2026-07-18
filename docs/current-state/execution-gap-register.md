@@ -52,9 +52,9 @@ GAP-006、GAP-005 和未被首批案例使用的银行缺陷继续后置，不�
 | ID | 关闭日期 | 关闭证据 | 剩余边界 |
 |---|---|---|---|
 | GAP-001 | 2026-07-17 | I4 三条低风险案例均以独立 BrowserContext、Fixture 隔离和脱敏证据通过 | 银行前端整体与持久客户独立复验仍由 GAP-011/FE 任务跟踪 |
-| GAP-002 | 2026-07-18 | I6 确定性调度、失败暂停/恢复和 Coze 自然语言创建/查询/停用闭环通过 | 目标租户容量与 HiAgent 网络仍为 `PLAT-V007`、`PLAT-V010` |
+| GAP-002 | 2026-07-18 | I6 确定性调度、失败暂停/恢复和 Coze 自然语言创建/查询/停用闭环通过 | 目标租户容量与 HiAgent 网络以 `PLAT-V007`、`PLAT-V010` 移交未来新对话 |
 | GAP-003 | 2026-07-16 | `platform/runtime/verify-runtime.cmd` 在专属 Node v20.20.2 下验证 Playwright/Test/Core 1.59.1、Midscene Web/CLI 1.10.5、Chromium 147.0.7727.15 revision 1217 和 FFmpeg revision 1011 全绿；MiMo v2.5 使用 `xiaomi-mimo` family 完成门户 Playwright/Midscene 联合冒烟，视觉框与 DOM 框 IoU 为 0.9606 | 运行时持续由固定版本门禁保护 |
-| GAP-009 | 2026-07-18 | I6/I7 已生成三镜像离线包、Hash、SBOM、SQLite/Artifact/Evidence 备份，并在全新目录恢复通过 | 目标内网的现场配置和 HiAgent 网络仍需实际环境验证 |
+| GAP-009 | 2026-07-18 | I6/I7 已生成三镜像离线包、Hash、SBOM、SQLite/Artifact/Evidence 备份，并在全新目录恢复通过 | 目标内网现场配置和 HiAgent 网络验证已移交未来新对话 |
 
 I1 骨架证据见 [`../evidence/platform/hengzhun-i1-skeleton-2026-07-16.md`](../evidence/platform/hengzhun-i1-skeleton-2026-07-16.md)，机器基线与公开界面实测见 [`../evidence/platform/hengzhun-i1-platform-baseline-2026-07-16.md`](../evidence/platform/hengzhun-i1-platform-baseline-2026-07-16.md)，I2 安全内核见 [`../evidence/platform/hengzhun-i2-safe-kernel-2026-07-16.md`](../evidence/platform/hengzhun-i2-safe-kernel-2026-07-16.md)，I7 交付冻结见 [`../evidence/platform/hengzhun-i7-internship-delivery-2026-07-18.md`](../evidence/platform/hengzhun-i7-internship-delivery-2026-07-18.md)。
 

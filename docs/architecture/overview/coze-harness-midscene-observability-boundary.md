@@ -5,8 +5,8 @@ document_type: reference
 domain: architecture
 status: accepted
 authority: normative
-version: 1.6
-effective_date: 2026-07-15
+version: 1.7
+effective_date: 2026-07-18
 owner: project-owner
 ---
 
@@ -25,6 +25,7 @@ owner: project-owner
 7. **复兴银行是被测目标系统。** Coze 与 Midscene 不直接获得银行内部凭据、数据库、Shell 或任意网络能力；所有实际操作通过 Harness 受控工具和正式/Test Support 接口完成。
 8. **Harness 的 SQLite `regression_platform` 数据库是回归测试领域唯一事实来源。** 案例版本、完整行动计划、脚本版本、基线、运行、调度、事故、修复候选、激活决定、审批记录和证据元数据只以该数据库为权威；Coze 只保存 Agent 配置、会话和 Workflow 编排状态。SQLite 文件是本机受管运行态，不入库，使用 WAL、外键、单写入队列和完整性校验。
 9. **Coze Knowledge Base 是运行时唯一知识权威。** 已交付系统中的 Coze Agent、Harness、Midscene 和衡准不得检索、同步或回退到仓库 `docs/`、`rag/` 或其索引；这些文件仅用于项目开发、审计和 Codex维护。
+10. **本对话只交付本机演示系统。** 当前实现和验收止于本机 Coze、Harness、SQLite、Playwright、Midscene 与复兴银行；HiAgent 不在本机部署，也不在本对话配置或验收。面向 HiAgent 的 Skill、OpenAPI、配置清单、契约和手册只是未来新对话的提取输入。
 
 Coze 中为对话或 Workflow 暂存的业务对象只是缓存或引用，不得成为第二份权威数据。Coze 对测试领域状态的读取和变更必须调用 Harness 的版本化、幂等工具；衡准只读取 Harness 提供的查询模型或观测投影。禁止 Coze、Harness 和衡准之间双写同一业务实体。
 
@@ -165,3 +166,7 @@ Coze 的 Skill 制品兼容、OpenAPI Schema 支持、超时/配额/数据大小
 ### Q9 SQLite 统一存储（已确认）
 
 所有新建 Harness、衡准和回归平台持久化统一使用本机 SQLite。`regression_platform.sqlite` 是唯一回归领域事实来源，采用 WAL、外键、`busy_timeout`、单写入队列、迁移前备份和 `PRAGMA integrity_check`。不允许多个容器/进程绕过 Harness 并发写同一文件；数据库文件、WAL/SHM 文件与备份均为运行态，禁止入库。该决定不替换既有 Fineract/Mifos 和银行渠道 PostgreSQL 核心依赖。
+
+### Q10 对话与 HiAgent 移交边界（已确认）
+
+当前对话只继续维护和验收本机演示系统，不执行 HiAgent 账户登录、平台配置、资源注册、网络接入、容量测量或目标环境发布。未来新对话必须从当前已提交实现中提取兼容制品，在实际 HiAgent 环境重新验证能力交集；不得把 Coze 运行证据直接转换为 HiAgent 完成证明。`PLAT-V007` 与 `PLAT-V010` 随 HiAgent 工作一并移交，不属于本机 I1—I7 的未完成项。
