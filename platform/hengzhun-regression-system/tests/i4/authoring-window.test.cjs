@@ -42,7 +42,7 @@ async function call(baseUrl, pathname, body, worker = false) {
   return { response, text, body: JSON.parse(text) };
 }
 
-test('I4 persists the full plan but leases only a three-action window and requires Playwright verification', async t => {
+test('I4 persists the full plan while I8 claims a governed single-action envelope and requires Playwright verification', async t => {
   const { application, baseUrl } = await fixture(t);
   for (const actionType of ['LOCATE', 'INPUT', 'TAP', 'SCROLL']) {
     const capability = await call(baseUrl, '/internal/worker/midscene-capabilities:record', {
@@ -79,17 +79,22 @@ test('I4 persists the full plan but leases only a three-action window and requir
     ['MIDSCENE_EXECUTE_PLAYWRIGHT_VERIFY', false],
     ['MIDSCENE_LOCATE_PLAYWRIGHT_EXECUTE', true]
   ]) {
-    const claimed = await call(baseUrl, '/internal/worker/authoring:claim', { workerId: 'worker-i4' }, true);
+    const claimed = await call(baseUrl, '/internal/worker/authoring:claim', {
+      workerId: 'worker-i4', visualContext: { viewportWidth: 1024, viewportHeight: 520, tokenizerId: 'mimo-v2.5-conservative-v1' }
+    }, true);
     assert.equal(claimed.body.status, 'CLAIMED');
-    assert.ok(Date.parse(claimed.body.window.currentLease.leaseExpiresAt) - Date.now() > 300_000,
+    assert.ok(Date.parse(claimed.body.contextEnvelope.lease.expiresAt) - Date.now() > 300_000,
       'authoring lease must outlive two bounded 120-second model attempts');
-    assert.equal(claimed.body.window.currentAction.executionMode, expectation[0]);
+    assert.equal(claimed.body.contextEnvelope.currentAction.executionMode, expectation[0]);
     assert.equal(claimed.text.includes('full_action_plan'), false);
     assert.equal(claimed.text.includes('credentialAlias'), false);
-    assert.equal(Object.hasOwn(claimed.body.window, 'currentAction'), true);
-    assert.equal(Object.hasOwn(claimed.body.window, 'nextActionPreview'), true);
+    assert.equal(claimed.body.contextEnvelope.contextLevel, 'CTX-L1');
+    assert.equal(claimed.body.contextEnvelope.previousActionSummary, null);
+    assert.equal(claimed.body.contextEnvelope.nextActionPreview, null);
     const completed = await call(baseUrl, `/internal/worker/authoring/${compiled.body.taskId}/actions:complete`, {
       workerId: 'worker-i4', slotId: claimed.body.slotId, outcome: 'VERIFIED_PASSED',
+      contextAuditId: claimed.body.contextAuditId, contextEnvelopeHash: claimed.body.contextEnvelopeHash,
+      modelUsage: { status: expectation[0] === 'PLAYWRIGHT_ONLY' ? 'NOT_INVOKED' : 'NOT_EXPOSED' },
       summary: 'Playwright 独立验证通过。', pageState: { route: '/portal/accounts', redacted: true },
       verification: { dom: true, url: true, request: true, business: true }
     }, true);
@@ -134,10 +139,14 @@ test('I4 degrades unverified Midscene actions to Playwright-only and never advan
     namespace, idempotencyKey: 'i4-plan-compile-0002', caseId: created.body.caseId,
     expectedCaseVersion: 1, executionRoute: 'AUTHORING_REQUIRED'
   });
-  const claimed = await call(baseUrl, '/internal/worker/authoring:claim', { workerId: 'worker-i4' }, true);
-  assert.equal(claimed.body.window.currentAction.executionMode, 'PLAYWRIGHT_ONLY');
+  const claimed = await call(baseUrl, '/internal/worker/authoring:claim', {
+    workerId: 'worker-i4', visualContext: { viewportWidth: 1024, viewportHeight: 520, tokenizerId: 'mimo-v2.5-conservative-v1' }
+  }, true);
+  assert.equal(claimed.body.contextEnvelope.currentAction.executionMode, 'PLAYWRIGHT_ONLY');
   const completed = await call(baseUrl, `/internal/worker/authoring/${compiled.body.taskId}/actions:complete`, {
     workerId: 'worker-i4', slotId: claimed.body.slotId, outcome: 'AMBIGUOUS', summary: '候选元素不唯一。',
+    contextAuditId: claimed.body.contextAuditId, contextEnvelopeHash: claimed.body.contextEnvelopeHash,
+    modelUsage: { status: 'NOT_INVOKED' },
     pageState: { redacted: true }, verification: { dom: false, url: true, request: true, business: true }
   }, true);
   assert.equal(completed.body.cursorAdvanced, false);

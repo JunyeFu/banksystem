@@ -5,8 +5,8 @@ document_type: reference
 domain: current-state
 status: verified
 authority: evidence
-version: 1.4
-effective_date: 2026-07-16
+version: 1.7
+effective_date: 2026-07-20
 owner: project-owner
 ---
 
@@ -43,11 +43,18 @@ Customer graphical password-login qualification and its local-demo/production bo
 | Capability | Current status | Evidence/qualification |
 |---|---|---|
 | Dedicated Node/Playwright/Midscene runtime | VERIFIED | `platform/hengzhun-regression-system/runtime` now contains the product-local verified copy of Node 20.20.2, Playwright/Test/Core 1.59.1, Midscene Web/CLI 1.10.5, Chromium revision 1217 and FFmpeg revision 1011; legacy `platform/runtime` is retained temporarily as rollback source |
-| Hengzhun single-directory product skeleton | VERIFIED | Product root, module boundaries, `.data` isolation, fixed runtime, Harness, Worker, Model Gateway, OpenAPI, Coze public configuration and I1—I7 verifier are present and pass |
+| Hengzhun I0-I7 single-directory product skeleton | VERIFIED_HISTORICAL | Product root, module boundaries, `.data` isolation, fixed runtime, Harness, Worker, Model Gateway, OpenAPI, Coze public configuration and I1-I7 verifier are present and pass; this does not prove the I8 Flowise target is implemented |
 | RegressionCase, Fixture, Baseline and human-success evidence | VERIFIED | I4 三条低风险案例使用独立 BrowserContext、Fixture 隔离和脱敏证据通过；正式脚本需 `SCRIPT_VALIDATED` |
-| Repository development RAG | VERIFIED / DEVELOPMENT_ONLY | 开发 RAG 可重复构建与验证；它不属于交付系统运行时知识源 |
-| Coze runtime knowledge base | VERIFIED_FOR_DEMO | I3/I4/I6 的 Knowledge Base 已经公开绑定并完成自动/全文检索与真实命中；长期失效与权限治理仍由 GAP-008 跟踪 |
-| Coze Agent orchestration plus Harness tools | VERIFIED_FOR_DEMO | Coze 公开 Agent 已完成 I3 执行、I5 人工激活及 I6 自然语言调度闭环；Harness v0.0.10 共 14 个工具 |
+| Repository development RAG | NOT_BUILT / DEVELOPMENT_ONLY | 当前 `rag/index/manifest.json` 不存在；开发索引可按需重建，但不属于产品目录、运行时、验收或交付前置条件 |
+| Coze runtime knowledge base | VERIFIED_HISTORICAL_DEMO | I3/I4/I6 的 Knowledge Base 历史演示证据保留；I8 不继续扩展 Coze |
+| Coze Agent orchestration plus Harness tools | VERIFIED_HISTORICAL_DEMO | Coze 公开 Agent 已完成 I3/I5/I6 历史闭环；该证据不证明 Flowise 或 HiAgent 当前可用 |
+| Flowise Windows technical probe | VERIFIED_PROBE_ONLY | Flowise 3.0.12、Bundled Node 20.20.2、SQLite、MiMo v2.5、MCP、Human Input、平台知识查询、流程导出和整目录复制重启通过隔离探针；只授权 I8 实现，不是产品验收 |
+| I8 Flowise deterministic authoring system | IN_PROGRESS / STAGE2_IMPLEMENTED | 阶段1上下文内核和阶段2 Agentflow/MCP/Harness交接已完成；阶段3 DSL/Builder及后续脚本闭环尚未实现 |
+| I8 Flowise Agentflow artifact | VERIFIED_STAGE2_ARTIFACT | Flowise 3.0.12节点类可加载；唯一用户输入为案例描述；知识、结构化、澄清、Human Input、MCP和回显均有HiAgent映射；未做真实Agentflow发布/MiMo对话 |
+| I8 MCP control channel | VERIFIED_I8_STAGE2_LOCAL | Bearer Streamable HTTP、14工具白名单、3项ACTIVE、11项失败关闭；真实Flowise 3.0.12 MCPToolkit已贯通Harness/SQLite，不能外推为HiAgent网络已通 |
+| I8 case-to-intent handoff | VERIFIED_I8_STAGE2 | migration 010、严格Schema、幂等、Hash、不可变源字段、人工APPROVE/REJECT及`AWAITING_STAGE3`最小状态查询通过测试 |
+| Harness governed action context | VERIFIED_I8_STAGE1 | migration 009、严格Envelope、Hash、单动作租约、不可变预算审计和L1→L2→L3通过自动测试；历史SQLite游标和Playwright推进继续有效 |
+| Controller-to-visual sliding context | PARTIALLY_IMPLEMENTED_STAGE2 | Worker已消费完整获批Envelope，Flowise阶段2已交接结构化IntentPlan；阶段3尚未生成ExecutableActionPlan，真实MiMo视觉E2E仍未运行，usage未公开时只记录`NOT_EXPOSED` |
 | Midscene visual Agent plus Playwright fact collection | PARTIALLY_VERIFIED_WITH_FALLBACK | `INPUT/TAP/SCROLL` 通过五视口门禁；`LOCATE` 降级并强制 Playwright-only，所有事实仍由 Playwright 独立验证 |
 | Independent Playwright script validation | VERIFIED | 三案例脚本、隔离 Worker、独立 BrowserContext、断言和证据 Hash 已通过，未验证脚本不能正式执行 |
 | Scheduled regression and automatic failure pause | VERIFIED | I6 验证互斥、misfire、补跑、重启去重、有限重试、最终失败暂停和人工恢复；正式调度不调用模型 |

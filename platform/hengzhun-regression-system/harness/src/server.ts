@@ -18,6 +18,8 @@ import {
   scheduleGetSchema,
   validationIssues
 } from './schemas';
+import { modelUsageSchema } from './context-envelope';
+import { i8AuthoringGetSchema, i8AuthoringSubmitSchema, i8CasePrepareSchema } from './i8/stage2-schemas';
 import { authorizeRequest, loadSecurityConfig, remoteAddressForAudit, SecurityConfig, SecurityResult } from './security';
 import { HarnessService } from './service';
 import { credentialFingerprint, nowIso, opaqueId } from './utils';
@@ -27,6 +29,14 @@ const MAX_WORKER_REQUEST_BYTES = 8 * 1024 * 1024;
 
 const workerClaimSchema = z.object({
   workerId: z.string().trim().min(3).max(128).regex(/^[A-Za-z0-9._:-]+$/)
+}).strict();
+
+const authoringWorkerClaimSchema = workerClaimSchema.extend({
+  visualContext: z.object({
+    viewportWidth: z.number().int().min(320).max(16_384),
+    viewportHeight: z.number().int().min(240).max(16_384),
+    tokenizerId: z.string().trim().min(1).max(160).regex(/^[A-Za-z0-9._:/-]+$/)
+  }).strict()
 }).strict();
 
 const workerCompletionSchema = z.object({
@@ -54,6 +64,9 @@ const authoringActionCompletionSchema = z.object({
   slotId: z.string().trim().min(8).max(80),
   outcome: z.enum(['VERIFIED_PASSED', 'FAILED', 'AMBIGUOUS']),
   summary: z.string().trim().min(1).max(1000),
+  contextAuditId: z.string().trim().min(8).max(80),
+  contextEnvelopeHash: z.string().regex(/^[0-9a-f]{64}$/),
+  modelUsage: modelUsageSchema,
   pageState: z.record(z.string(), z.unknown()),
   verification: z.object({
     dom: z.boolean(),
@@ -222,8 +235,8 @@ export async function createHarnessApplication(options: HarnessApplicationOption
       }
       if (request.method === 'POST' && url.pathname === '/internal/worker/authoring:claim') {
         authorizeWorker(request.headers.authorization, workerToken);
-        const input = workerClaimSchema.parse(await readJson(request));
-        return sendJson(response, 200, await service.claimNextAuthoringAction(input.workerId), 'L1', requestId);
+        const input = authoringWorkerClaimSchema.parse(await readJson(request));
+        return sendJson(response, 200, await service.claimNextAuthoringAction(input.workerId, input.visualContext), 'L1', requestId);
       }
       if (request.method === 'POST' && url.pathname === '/internal/worker/repairs:claim') {
         authorizeWorker(request.headers.authorization, workerToken);
@@ -290,7 +303,25 @@ export async function createHarnessApplication(options: HarnessApplicationOption
         throw authError;
       }
 
-      const context = { requestId, credentialFingerprint: fingerprint };
+      const context = {
+        requestId,
+        credentialFingerprint: fingerprint,
+        actorType: url.pathname.startsWith('/v1/i8/') ? 'SYSTEM' as const : 'COZE' as const
+      };
+      if (request.method === 'POST' && url.pathname === '/v1/i8/cases:prepare') {
+        const input = i8CasePrepareSchema.parse(await readJson(request));
+        const result = await service.prepareI8Case(input, context);
+        return sendJson(response, result.status, result.response, 'L1', requestId);
+      }
+      if (request.method === 'POST' && url.pathname === '/v1/i8/authoring:submit') {
+        const input = i8AuthoringSubmitSchema.parse(await readJson(request));
+        const result = await service.submitI8Authoring(input, context);
+        return sendJson(response, result.status, result.response, 'L1', requestId);
+      }
+      if (request.method === 'POST' && url.pathname === '/v1/i8/authoring:get') {
+        const input = i8AuthoringGetSchema.parse(await readJson(request));
+        return sendJson(response, 200, service.getI8Authoring(input.namespace, input.preparationId), 'L0', requestId);
+      }
       if (request.method === 'POST' && url.pathname === '/v1/plugin/cases:create-draft') {
         const input = caseCreateDraftSchema.parse(await readJson(request));
         const result = await service.createCaseDraft(input, context);

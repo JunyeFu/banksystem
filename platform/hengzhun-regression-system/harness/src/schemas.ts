@@ -4,6 +4,71 @@ export const namespaceSchema = z.string().regex(/^[a-z0-9][a-z0-9._-]{2,63}$/);
 export const idempotencyKeySchema = z.string().min(8).max(128).regex(/^[A-Za-z0-9._:-]+$/);
 const boundedText = (maximum: number) => z.string().trim().min(1).max(maximum);
 
+export const knowledgeSnapshotRefSchema = z.object({
+  knowledgeSnapshotId: boundedText(80),
+  sourceVersion: boundedText(80),
+  contentHash: z.string().regex(/^[0-9a-f]{64}$/),
+  citationIds: z.array(boundedText(160)).min(1).max(50)
+}).strict();
+
+export const regressionCaseDraftSchema = z.object({
+  schemaVersion: z.literal('i8-regression-case-draft-v1'),
+  title: boundedText(160),
+  objective: boundedText(2000),
+  summary: boundedText(1000),
+  riskLevel: z.enum(['LOW', 'MEDIUM', 'HIGH']),
+  route: boundedText(512),
+  preconditions: z.array(boundedText(500)).max(50),
+  steps: z.array(z.object({ action: boundedText(500), expected: boundedText(500) }).strict()).min(1).max(50),
+  assertions: z.array(boundedText(500)).min(1).max(50),
+  knowledgeSnapshot: knowledgeSnapshotRefSchema
+}).strict();
+
+export const acceptanceSummarySchema = z.object({
+  schemaVersion: z.literal('i8-acceptance-summary-v1'),
+  caseTitle: boundedText(160),
+  objective: boundedText(1000),
+  stepCount: z.number().int().positive().max(50),
+  assertionCount: z.number().int().positive().max(50),
+  riskLevel: z.enum(['LOW', 'MEDIUM', 'HIGH']),
+  clarificationRequired: z.boolean(),
+  clarificationQuestions: z.array(boundedText(500)).max(10)
+}).strict();
+
+export const intentPlanSchema = z.object({
+  schemaVersion: z.literal('i8-intent-plan-v1'),
+  caseId: boundedText(80),
+  caseVersion: z.number().int().positive(),
+  route: boundedText(512),
+  steps: z.array(z.object({
+    intentStepId: boundedText(80),
+    action: boundedText(500),
+    expected: boundedText(500),
+    riskLevel: z.enum(['LOW', 'MEDIUM', 'HIGH'])
+  }).strict()).min(1).max(50),
+  assertions: z.array(boundedText(500)).min(1).max(50)
+}).strict();
+
+export const executableActionPlanSchema = z.object({
+  schemaVersion: z.literal('i8-executable-action-plan-v1'),
+  planId: boundedText(80),
+  caseId: boundedText(80),
+  caseVersion: z.number().int().positive(),
+  actions: z.array(z.object({
+    actionId: boundedText(80),
+    ordinal: z.number().int().positive(),
+    actionType: z.enum(['LOCATE', 'INPUT', 'TAP', 'SCROLL']),
+    prompt: boundedText(500),
+    targetRef: z.enum(['PAGE', 'LOGIN_USERNAME', 'LOGIN_SSO_TAB', 'LOGIN_SUBMIT']),
+    valueRef: z.enum(['SYNTHETIC_TEXT']).optional(),
+    riskLevel: z.enum(['LOW', 'MEDIUM', 'HIGH']),
+    preconditions: z.array(boundedText(500)).max(20),
+    invariants: z.array(boundedText(500)).min(1).max(20),
+    postconditions: z.array(boundedText(500)).min(1).max(20),
+    sourceIntentStepId: boundedText(80)
+  }).strict()).min(1).max(50)
+}).strict();
+
 const structuredCaseSchema = z.object({
   externalCaseRef: boundedText(128),
   title: boundedText(160),
@@ -139,6 +204,7 @@ export type RepairCandidateCreateInput = z.infer<typeof repairCandidateCreateSch
 export type ScheduleCreateInput = z.infer<typeof scheduleCreateSchema>;
 export type ScheduleDisableInput = z.infer<typeof scheduleDisableSchema>;
 export type DecisionSubmitInput = z.infer<typeof decisionSubmitSchema>;
+
 
 export function validationIssues(error: z.ZodError): Array<{ path: string; code: string; message: string }> {
   return error.issues.map(issue => ({

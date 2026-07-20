@@ -5,11 +5,16 @@ const os = require('node:os');
 const fs = require('node:fs');
 const { chromium } = require('playwright');
 const { PlaywrightAgent } = require('@midscene/web/playwright');
+const { actionContextEnvelopeSchema, buildMidscenePrompt } = require('../dist/harness/src/context-envelope.js');
+const { canonicalJson, sha256 } = require('../dist/harness/src/utils.js');
 
 const productRoot = path.resolve(__dirname, '..');
 const manifest = JSON.parse(fs.readFileSync(path.join(productRoot, 'config', 'demo-runtime-freeze.json'), 'utf8'));
 const harnessUrl = (process.env.HENGZHUN_HARNESS_URL || 'http://127.0.0.1:18788').replace(/\/$/, '');
 const portal = new URL(process.env.HENGZHUN_PORTAL_BASE_URL || 'http://127.0.0.1:18082');
+const safeModelName = /^[A-Za-z0-9._:/-]{1,160}$/.test(process.env.MIDSCENE_MODEL_NAME || '')
+  ? process.env.MIDSCENE_MODEL_NAME
+  : 'mimo-v2.5';
 const workerToken = process.env.HENGZHUN_WORKER_TOKEN;
 const workerId = process.env.HENGZHUN_AUTHORING_WORKER_ID || `authoring-${os.hostname().toLowerCase().replace(/[^a-z0-9-]/g, '-')}`;
 const once = process.argv.includes('--once');
@@ -66,23 +71,30 @@ async function playwrightAction(page, action, marker) {
 
 async function executeClaim(browser, claim) {
   const { page, tokenRequests } = await sessionFor(browser, claim.planId);
-  const action = claim.window.currentAction;
+  const contextEnvelope = actionContextEnvelopeSchema.parse(claim.contextEnvelope);
+  const envelopeHash = claim.contextEnvelopeHash;
+  if (sha256(canonicalJson(contextEnvelope)) !== envelopeHash) throw new Error('ACTION_CONTEXT_HASH_MISMATCH');
+  const action = contextEnvelope.currentAction;
   const target = locatorFor(page, action.targetRef);
   const beforeScroll = await page.evaluate(() => window.scrollY);
   const marker = `i4-${claim.actionId.slice(-12)}`;
   let locatedCenter;
   let agent;
+  let modelInvoked = false;
   try {
     if (action.riskLevel === 'HIGH') throw new Error('HIGH_RISK_REQUIRES_DEDICATED_FIXTURE');
     if (action.executionMode === 'MIDSCENE_EXECUTE_PLAYWRIGHT_VERIFY') {
       agent = new PlaywrightAgent(page);
-      if (action.actionType === 'LOCATE') locatedCenter = (await agent.aiLocate(action.prompt)).center;
-      else if (action.actionType === 'INPUT') await agent.aiInput(action.prompt, { value: marker, mode: 'replace' });
-      else if (action.actionType === 'TAP') await agent.aiTap(action.prompt);
-      else await agent.aiScroll(undefined, { direction: 'down', scrollType: 'once', distance: 180 });
+      const visualPrompt = buildMidscenePrompt(contextEnvelope);
+      modelInvoked = true;
+      if (action.actionType === 'LOCATE') locatedCenter = (await agent.aiLocate(visualPrompt)).center;
+      else if (action.actionType === 'INPUT') await agent.aiInput(visualPrompt, { value: marker, mode: 'replace' });
+      else if (action.actionType === 'TAP') await agent.aiTap(visualPrompt);
+      else await agent.aiScroll(visualPrompt, { direction: 'down', scrollType: 'once', distance: 180 });
     } else if (action.executionMode === 'MIDSCENE_LOCATE_PLAYWRIGHT_EXECUTE') {
       agent = new PlaywrightAgent(page);
-      locatedCenter = (await agent.aiLocate(action.prompt)).center;
+      modelInvoked = true;
+      locatedCenter = (await agent.aiLocate(buildMidscenePrompt(contextEnvelope))).center;
       const box = await target.boundingBox();
       if (!centerInside(locatedCenter, box)) throw new Error('MIDSCENE_LOCATE_AMBIGUOUS');
       await playwrightAction(page, action, marker);
@@ -107,12 +119,22 @@ async function executeClaim(browser, claim) {
     const passed = Object.values(verification).every(Boolean);
     return post(`/internal/worker/authoring/${encodeURIComponent(claim.taskId)}/actions:complete`, {
       workerId, slotId: claim.slotId, outcome: passed ? 'VERIFIED_PASSED' : 'AMBIGUOUS',
+      contextAuditId: claim.contextAuditId, contextEnvelopeHash: envelopeHash,
+      modelUsage: {
+        status: modelInvoked ? 'NOT_EXPOSED' : 'NOT_INVOKED',
+        ...(modelInvoked ? { provider: 'mimo', model: safeModelName } : {})
+      },
       summary: passed ? 'Midscene 动作已由 Playwright 独立验证。' : 'Playwright 独立验证未形成唯一通过结论。',
       pageState: { route: currentUrl.pathname, targetRef: action.targetRef, redacted: true }, verification
     });
   } catch (error) {
     return post(`/internal/worker/authoring/${encodeURIComponent(claim.taskId)}/actions:complete`, {
       workerId, slotId: claim.slotId, outcome: 'FAILED',
+      contextAuditId: claim.contextAuditId, contextEnvelopeHash: envelopeHash,
+      modelUsage: {
+        status: modelInvoked ? 'NOT_EXPOSED' : 'NOT_INVOKED',
+        ...(modelInvoked ? { provider: 'mimo', model: safeModelName } : {})
+      },
       summary: `作者化动作失败：${error instanceof Error ? error.name : 'UnknownError'}。`,
       pageState: { route: new URL(page.url()).pathname, targetRef: action.targetRef, redacted: true },
       verification: { dom: false, url: true, request: tokenRequests.length === 0, business: false }
@@ -129,7 +151,10 @@ async function main() {
   const browser = await chromium.launch({ headless: true, executablePath: path.join(__dirname, manifest.chromium.executable) });
   try {
     do {
-      const claim = await post('/internal/worker/authoring:claim', { workerId });
+      const claim = await post('/internal/worker/authoring:claim', {
+        workerId,
+        visualContext: { viewportWidth: 1024, viewportHeight: 520, tokenizerId: 'mimo-v2.5-conservative-v1' }
+      });
       if (claim.status === 'CLAIMED') {
         try {
           const result = await executeClaim(browser, claim);

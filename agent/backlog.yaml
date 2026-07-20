@@ -3,7 +3,7 @@ project: banksystem
 root: D:\Agent\banksystem
 defaultBranch: main
 statusSource: agent/backlog.yaml
-updatedAt: '2026-07-19T01:05:00+08:00'
+updatedAt: '2026-07-20T16:54:52+08:00'
 
 allowedStatuses: [PROPOSED, READY, IN_PROGRESS, BLOCKED, REVIEW, DONE, CANCELLED]
 
@@ -123,6 +123,33 @@ tracks:
           - A clean source commit produces a complete three-image offline package and restores it into a fresh directory.
           - SQLite integrity, schema version, package hashes, SBOM and source commit binding are verified.
           - This conversation stops at the verified local demonstration; target-tenant capacity and target-HiAgent networking are handed off to a separate future conversation.
+      - id: HENGZHUN-I8-FLOWISE-001
+        title: Flowise and SQLite deterministic regression completion
+        status: IN_PROGRESS
+        owner: 傅钧烨
+        dependsOn: [HENGZHUN-DELIVERY-001]
+        evidence: [docs/evidence/platform/hengzhun-i8-stage2-agentflow-mcp-2026-07-20.md]
+        allowedPaths: [platform/hengzhun-regression-system/**, docs/architecture/**, docs/control/**, docs/design/regression-platform/**, docs/current-state/**, docs/evidence/platform/**, agent/**]
+        acceptance:
+          - Flowise 3.0.12 on bundled Node 20.20.2 is the only personal and office computer Agent platform; all platform-external operations use authenticated MCP tools.
+          - Flowise handles natural language, semantic retrieval, case normalization, minimal clarification, intent planning, human input and result explanation; local tools handle authoritative state, deterministic execution, scripts, evidence and audit.
+          - Visual LLM requests enforce a 16000-token total window with at most 12000 input tokens and at least 4000 reserved output tokens; controller LLM requests enforce a 1000000-token total window with at most 967232 input tokens and at least 32768 reserved output tokens, without broadening data authorization.
+          - Harness emits a strict ActionContextEnvelope, defaults to CTX-L1 and upgrades to CTX-L2/CTX-L3 only by deterministic insufficiency rules; the Worker demonstrably passes the complete governed envelope rather than only currentAction.prompt to the visual model adapter.
+          - Migration 009 and audit records persist consumer, context level, estimated and provider-reported token usage, image estimate, tokenizer, budget decision and redaction profile reference without secret content; deterministic over-budget paths return the frozen visual/controller error codes.
+          - Flowise platform knowledge, Flowise database.sqlite and Harness regression_platform.sqlite have separate authority, permissions, backup and restore paths with no domain-state or knowledge-body dual writes; repository RAG is development-only and no RAG subsystem exists in the product.
+          - A plain-language login/profile consistency case produces a deterministic Playwright candidate through the limited DSL and passes the six-run StabilityCertificate gate.
+          - Candidate preview, explicit activation, exact-version recurring and one-time schedules, offline result inbox and bounded repair all pass contract, migration, integration and browser E2E tests.
+          - Every Flowise capability used by the portable definition has an evidenced HiAgent mapping; Flowise success is not reported as HiAgent success.
+      - id: HENGZHUN-POST-I8-INPUTS-001
+        title: External case adapters and video-case authoring extensions
+        status: PROPOSED
+        owner: 傅钧烨
+        dependsOn: [HENGZHUN-I8-FLOWISE-001]
+        allowedPaths: [platform/hengzhun-regression-system/**, contracts/**, docs/architecture/**, docs/control/**, docs/design/regression-platform/**, docs/evidence/platform/**, agent/**]
+        acceptance:
+          - Playwright, Selenium, Cypress, Postman and Gherkin imports preserve source, version, normalized intent and unsupported semantics without executing untrusted source directly.
+          - Video inputs are processed locally into redacted, reviewable action candidates and never sent to the Agent platform as raw sensitive media.
+          - Imported or video-derived candidates pass the same Harness, Midscene, deterministic Builder, six-run Playwright stability and explicit-activation gates as natural-language cases.
       - id: HZ-OBSERVABILITY-001
         title: Hengzhun read-only observability implementation
         status: BLOCKED

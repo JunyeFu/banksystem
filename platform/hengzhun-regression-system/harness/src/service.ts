@@ -3,6 +3,13 @@ import path from 'node:path';
 import { ArtifactStore } from './artifact-store';
 import { HarnessDatabase } from './database';
 import { HarnessError } from './errors';
+import {
+  buildActionContextEnvelope,
+  estimateImageTokens,
+  MODEL_CONTEXT_POLICIES,
+  type ContextLevel,
+  type ModelUsage
+} from './context-envelope';
 import type {
   CaseCreateDraftInput,
   CaseImportSubmitInput,
@@ -13,12 +20,14 @@ import type {
   ScheduleCreateInput,
   ScheduleDisableInput
 } from './schemas';
+import type { I8AuthoringSubmitInput, I8CasePrepareInput } from './i8/stage2-schemas';
 import { nextCronOccurrence, parseCron, validateTimeZone } from './cron';
 import { canonicalJson, nowIso, opaqueId, requestHash, sha256 } from './utils';
 
 interface RequestContext {
   requestId: string;
   credentialFingerprint?: string;
+  actorType?: 'COZE' | 'SYSTEM';
 }
 
 interface IdempotentResult {
@@ -219,10 +228,10 @@ export class HarnessService {
       INSERT INTO audit_events(
         event_id, namespace, run_id, task_id, actor_type, action, object_type,
         object_id, outcome, correlation_id, credential_fingerprint, details_json, created_at
-      ) VALUES (?, ?, ?, ?, 'COZE', ?, ?, ?, ?, ?, ?, ?, ?)
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `).run(
       opaqueId('evt'), input.namespace, input.runId ?? null, input.taskId ?? null,
-      input.action, input.objectType, input.objectId, input.outcome, context.requestId,
+      context.actorType ?? 'COZE', input.action, input.objectType, input.objectId, input.outcome, context.requestId,
       context.credentialFingerprint ?? null, JSON.stringify(input.details ?? {}), nowIso()
     );
   }
@@ -397,6 +406,158 @@ export class HarnessService {
         riskLevel: row.risk_level,
         definition: JSON.parse(String(row.definition_json)),
         contentHash: row.content_hash,
+        updatedAt: row.updated_at
+      };
+    });
+  }
+
+  async prepareI8Case(input: I8CasePrepareInput, context: RequestContext): Promise<IdempotentResult> {
+    return this.idempotent(input.namespace, 'i8_case_prepare', input.idempotencyKey, input, context, (db, timestamp) => {
+      const caseId = opaqueId('case');
+      const preparationId = opaqueId('prep');
+      const version = 1;
+      const definition = {
+        schemaVersion: input.draft.schemaVersion,
+        objective: input.draft.objective,
+        route: input.draft.route,
+        executionProfile: null,
+        steps: input.draft.steps,
+        assertions: input.draft.assertions,
+        authoringActions: [],
+        credentialAlias: null,
+        sourceDescriptionHash: sha256(input.caseDescription),
+        knowledgeSnapshot: input.draft.knowledgeSnapshot
+      };
+      const definitionJson = canonicalJson(definition);
+      const definitionHash = sha256(definitionJson);
+      db.prepare(`
+        INSERT INTO cases(case_id, namespace, current_version, status, title, summary, risk_level, created_at, updated_at)
+        VALUES (?, ?, 1, 'VALIDATED', ?, ?, ?, ?, ?)
+      `).run(caseId, input.namespace, input.draft.title, input.draft.summary, input.draft.riskLevel, timestamp, timestamp);
+      db.prepare(`
+        INSERT INTO case_versions(case_id, version, definition_json, content_hash, created_by, created_at)
+        VALUES (?, 1, ?, ?, ?, ?)
+      `).run(caseId, definitionJson, definitionHash, input.actorRef, timestamp);
+      db.prepare(`
+        INSERT INTO i8_case_preparations(
+          preparation_id, namespace, case_id, case_version, source_description_hash,
+          knowledge_snapshot_json, acceptance_summary_json, status, version, created_at, updated_at
+        ) VALUES (?, ?, ?, 1, ?, ?, ?, 'PREPARED', 1, ?, ?)
+      `).run(
+        preparationId,
+        input.namespace,
+        caseId,
+        sha256(input.caseDescription),
+        canonicalJson(input.draft.knowledgeSnapshot),
+        canonicalJson(input.acceptanceSummary),
+        timestamp,
+        timestamp
+      );
+      return {
+        status: 200,
+        objectType: 'I8_CASE_PREPARATION',
+        objectId: preparationId,
+        response: {
+          preparationId,
+          version: 1,
+          status: 'PREPARED',
+          caseId,
+          caseVersion: version,
+          caseContentHash: definitionHash,
+          knowledgeSnapshotId: input.draft.knowledgeSnapshot.knowledgeSnapshotId,
+          knowledgeContentHash: input.draft.knowledgeSnapshot.contentHash,
+          acceptanceSummary: input.acceptanceSummary,
+          nextAction: 'HUMAN_CONFIRMATION_REQUIRED'
+        }
+      };
+    });
+  }
+
+  async submitI8Authoring(input: I8AuthoringSubmitInput, context: RequestContext): Promise<IdempotentResult> {
+    return this.idempotent(input.namespace, 'i8_authoring_submit', input.idempotencyKey, input, context, (db, timestamp) => {
+      const row = db.prepare(`
+        SELECT preparation_id, case_id, case_version, status, version
+        FROM i8_case_preparations
+        WHERE namespace = ? AND preparation_id = ?
+      `).get(input.namespace, input.preparationId) as {
+        preparation_id: string; case_id: string; case_version: number; status: string; version: number;
+      } | undefined;
+      if (!row) throw new HarnessError(404, 'I8_PREPARATION_NOT_FOUND', 'DOMAIN', 'I8 案例准备记录不存在。');
+      if (row.version !== input.expectedVersion) {
+        throw new HarnessError(409, 'I8_PREPARATION_VERSION_CONFLICT', 'CONCURRENCY', 'I8 案例准备版本已变化。', false, true, { currentVersion: row.version });
+      }
+      if (row.status !== 'PREPARED') {
+        throw new HarnessError(409, 'I8_PREPARATION_NOT_CONFIRMABLE', 'DOMAIN', 'I8 案例准备记录当前不可确认。', false, true, { currentStatus: row.status });
+      }
+      const nextVersion = row.version + 1;
+      if (input.confirmation.choice === 'REJECT') {
+        db.prepare(`
+          UPDATE i8_case_preparations
+          SET status = 'REJECTED', confirmation_ref = ?, version = ?, updated_at = ?
+          WHERE preparation_id = ? AND version = ?
+        `).run(input.confirmation.confirmationRef, nextVersion, timestamp, row.preparation_id, row.version);
+        return {
+          status: 200,
+          objectType: 'I8_CASE_PREPARATION',
+          objectId: row.preparation_id,
+          response: { preparationId: row.preparation_id, version: nextVersion, status: 'REJECTED', nextAction: 'NONE' }
+        };
+      }
+      const intentPlan = input.intentPlan as NonNullable<I8AuthoringSubmitInput['intentPlan']>;
+      if (intentPlan.caseId !== row.case_id || intentPlan.caseVersion !== row.case_version) {
+        throw new HarnessError(409, 'I8_INTENT_CASE_MISMATCH', 'CONTRACT', 'IntentPlan 与已准备案例版本不一致。');
+      }
+      const intentJson = canonicalJson(intentPlan);
+      const intentHash = sha256(intentJson);
+      db.prepare(`
+        UPDATE i8_case_preparations
+        SET intent_plan_json = ?, intent_plan_hash = ?, status = 'AWAITING_STAGE3',
+            confirmation_ref = ?, version = ?, updated_at = ?
+        WHERE preparation_id = ? AND version = ?
+      `).run(intentJson, intentHash, input.confirmation.confirmationRef, nextVersion, timestamp, row.preparation_id, row.version);
+      return {
+        status: 202,
+        objectType: 'I8_CASE_PREPARATION',
+        objectId: row.preparation_id,
+        response: {
+          preparationId: row.preparation_id,
+          version: nextVersion,
+          status: 'AWAITING_STAGE3',
+          caseId: row.case_id,
+          caseVersion: row.case_version,
+          intentPlanHash: intentHash,
+          nextAction: 'EXECUTABLE_PLAN_COMPILER_REQUIRED'
+        }
+      };
+    });
+  }
+
+  getI8Authoring(namespace: string, preparationId: string): Record<string, unknown> {
+    return this.database.read(db => {
+      const row = db.prepare(`
+        SELECT p.preparation_id, p.case_id, p.case_version, p.status, p.version,
+               p.acceptance_summary_json, p.intent_plan_hash, p.updated_at,
+               c.title, c.risk_level
+        FROM i8_case_preparations p
+        JOIN cases c ON c.case_id = p.case_id
+        WHERE p.namespace = ? AND p.preparation_id = ?
+      `).get(namespace, preparationId) as Record<string, unknown> | undefined;
+      if (!row) throw new HarnessError(404, 'I8_PREPARATION_NOT_FOUND', 'DOMAIN', 'I8 案例准备记录不存在。');
+      return {
+        preparationId: row.preparation_id,
+        version: row.version,
+        status: row.status,
+        caseId: row.case_id,
+        caseVersion: row.case_version,
+        caseTitle: row.title,
+        riskLevel: row.risk_level,
+        acceptanceSummary: JSON.parse(String(row.acceptance_summary_json)),
+        ...(row.intent_plan_hash ? { intentPlanHash: row.intent_plan_hash } : {}),
+        nextAction: row.status === 'PREPARED'
+          ? 'HUMAN_CONFIRMATION_REQUIRED'
+          : row.status === 'AWAITING_STAGE3'
+            ? 'EXECUTABLE_PLAN_COMPILER_REQUIRED'
+            : 'NONE',
         updatedAt: row.updated_at
       };
     });
@@ -734,7 +895,11 @@ export class HarnessService {
     });
   }
 
-  async claimNextAuthoringAction(workerId: string, leaseSeconds = 360): Promise<Record<string, unknown>> {
+  async claimNextAuthoringAction(workerId: string, visualContext?: {
+    viewportWidth: number;
+    viewportHeight: number;
+    tokenizerId: string;
+  }, leaseSeconds = 360): Promise<Record<string, unknown>> {
     return this.database.write(db => {
       const timestamp = nowIso();
       db.prepare(`
@@ -750,8 +915,9 @@ export class HarnessService {
       const row = db.prepare(`
         SELECT ap.plan_id, ap.task_id, ap.script_id, ap.cursor_ordinal, ap.previous_action_summary_json,
                ap.last_observation_json, ap.current_page_state_json,
-               p.case_id, p.case_version, p.summary_json,
+               p.namespace, p.case_id, p.case_version, p.summary_json,
                current.action_id, current.action_type, current.prompt, current.target_ref, current.value_ref, current.risk_level,
+               current.context_level, current.context_upgrade_reason_code,
                next.action_type AS next_type, next.prompt AS next_prompt,
                cap.status AS capability_status, locate_cap.status AS locate_capability_status
         FROM action_plans ap
@@ -770,20 +936,77 @@ export class HarnessService {
       `).get() as Record<string, unknown> | undefined;
       if (!row) return { status: 'EMPTY' };
       const slotId = opaqueId('slot');
+      const contextAuditId = opaqueId('ctxaudit');
       const leaseExpiresAt = new Date(Date.now() + leaseSeconds * 1000).toISOString();
       const risk = String(row.risk_level);
       const capability = String(row.capability_status ?? 'UNVERIFIED');
       const locateCapability = String(row.locate_capability_status ?? 'UNVERIFIED');
-      const executionMode = risk !== 'HIGH' && capability === 'VERIFIED'
+      const executionMode: 'MIDSCENE_EXECUTE_PLAYWRIGHT_VERIFY' | 'MIDSCENE_LOCATE_PLAYWRIGHT_EXECUTE' | 'PLAYWRIGHT_ONLY' = risk !== 'HIGH' && capability === 'VERIFIED'
         ? 'MIDSCENE_EXECUTE_PLAYWRIGHT_VERIFY'
         : locateCapability === 'VERIFIED'
           ? 'MIDSCENE_LOCATE_PLAYWRIGHT_EXECUTE'
           : 'PLAYWRIGHT_ONLY';
+      const contextLevel = String(row.context_level ?? 'CTX-L1') as ContextLevel;
+      const globalExecutionSummary = JSON.parse(String(row.summary_json)) as Record<string, unknown>;
+      const executionProfile = ['LOGIN_PROFILE', 'ACCOUNT_OWNERSHIP', 'AUTH_REJECTION_RECOVERY']
+        .includes(String(globalExecutionSummary.executionProfile))
+        ? globalExecutionSummary.executionProfile as ExecutionProfile
+        : null;
+      const assertionCount = typeof globalExecutionSummary.assertionCount === 'number'
+        ? globalExecutionSummary.assertionCount
+        : null;
+      const currentAction = {
+        actionType: row.action_type as AuthoringActionType,
+        prompt: String(row.prompt),
+        targetRef: row.target_ref as 'PAGE' | 'LOGIN_USERNAME' | 'LOGIN_SSO_TAB' | 'LOGIN_SUBMIT',
+        valueRef: row.value_ref ? row.value_ref as 'SYNTHETIC_TEXT' : null,
+        riskLevel: row.risk_level as 'LOW' | 'MEDIUM' | 'HIGH',
+        executionMode
+      };
+      const contextEnvelope = buildActionContextEnvelope({
+        contextLevel,
+        tokenizerId: visualContext?.tokenizerId ?? 'mimo-v2.5-conservative-v1',
+        imageTokenEstimate: estimateImageTokens(visualContext?.viewportWidth ?? 1024, visualContext?.viewportHeight ?? 520),
+        workerId,
+        slotId,
+        leaseExpiresAt,
+        currentAction,
+        previousActionSummary: row.previous_action_summary_json ? JSON.parse(String(row.previous_action_summary_json)) : null,
+        nextActionPreview: row.next_type ? { actionType: row.next_type as AuthoringActionType, prompt: String(row.next_prompt) } : null,
+        recentFacts: row.last_observation_json ? JSON.parse(String(row.last_observation_json)) : null,
+        currentPageState: row.current_page_state_json ? JSON.parse(String(row.current_page_state_json)) : null,
+        minimalDependencyCone: {
+          caseId: String(row.case_id),
+          caseVersion: Number(row.case_version),
+          executionProfile,
+          assertionCount
+        }
+      });
+      const contextEnvelopeHash = sha256(canonicalJson(contextEnvelope));
       db.prepare(`
         INSERT INTO action_execution_slots(
-          slot_id, plan_id, task_id, action_id, lease_owner, lease_expires_at, status, version, created_at, updated_at
-        ) VALUES (?, ?, ?, ?, ?, ?, 'ACTIVE', 1, ?, ?)
-      `).run(slotId, row.plan_id, row.task_id, row.action_id, workerId, leaseExpiresAt, timestamp, timestamp);
+          slot_id, plan_id, task_id, action_id, lease_owner, lease_expires_at, status, version,
+          created_at, updated_at, context_level, context_envelope_hash
+        ) VALUES (?, ?, ?, ?, ?, ?, 'ACTIVE', 1, ?, ?, ?, ?)
+      `).run(
+        slotId, row.plan_id, row.task_id, row.action_id, workerId, leaseExpiresAt,
+        timestamp, timestamp, contextEnvelope.contextLevel, contextEnvelopeHash
+      );
+      db.prepare(`
+        INSERT INTO context_budget_audits(
+          audit_id, namespace, plan_id, task_id, action_id, slot_id, consumer_type, context_level,
+          model_context_limit_tokens, input_budget_tokens, reserved_output_tokens, estimated_input_tokens,
+          image_token_estimate, tokenizer_id, budget_decision, redaction_profile_id,
+          context_envelope_hash, upgrade_reason_code, created_at
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      `).run(
+        contextAuditId, row.namespace, row.plan_id, row.task_id, row.action_id, slotId,
+        contextEnvelope.consumerType, contextEnvelope.contextLevel, contextEnvelope.modelContextLimitTokens,
+        contextEnvelope.inputBudgetTokens, contextEnvelope.reservedOutputTokens,
+        contextEnvelope.estimatedInputTokens, contextEnvelope.imageTokenEstimate, contextEnvelope.tokenizerId,
+        contextEnvelope.budgetDecision, contextEnvelope.redactionProfileId, contextEnvelopeHash,
+        row.context_upgrade_reason_code ?? null, timestamp
+      );
       db.prepare(`UPDATE action_plan_items SET status = 'RUNNING', updated_at = ? WHERE action_id = ?`)
         .run(timestamp, row.action_id);
       db.prepare(`UPDATE action_plans SET status = 'RUNNING', version = version + 1, updated_at = ? WHERE plan_id = ?`)
@@ -797,22 +1020,9 @@ export class HarnessService {
         scriptId: row.script_id,
         slotId,
         actionId: row.action_id,
-        window: {
-          globalExecutionSummary: JSON.parse(String(row.summary_json)),
-          previousActionSummary: row.previous_action_summary_json ? JSON.parse(String(row.previous_action_summary_json)) : null,
-          currentAction: {
-            actionType: row.action_type,
-            prompt: row.prompt,
-            targetRef: row.target_ref,
-            valueRef: row.value_ref,
-            riskLevel: row.risk_level,
-            executionMode
-          },
-          nextActionPreview: row.next_type ? { actionType: row.next_type, prompt: row.next_prompt } : null,
-          lastObservation: row.last_observation_json ? JSON.parse(String(row.last_observation_json)) : null,
-          currentPageState: row.current_page_state_json ? JSON.parse(String(row.current_page_state_json)) : null,
-          currentLease: { slotId, leaseExpiresAt }
-        }
+        contextAuditId,
+        contextEnvelopeHash,
+        contextEnvelope
       };
     });
   }
@@ -824,37 +1034,90 @@ export class HarnessService {
     summary: string;
     pageState: Record<string, unknown>;
     verification: { dom: boolean; url: boolean; request: boolean; business: boolean };
+    contextAuditId: string;
+    contextEnvelopeHash: string;
+    modelUsage: ModelUsage;
   }): Promise<Record<string, unknown>> {
     return this.database.write(db => {
       const timestamp = nowIso();
       const slot = db.prepare(`
-        SELECT s.*, i.ordinal, i.action_type, ap.cursor_ordinal, ap.script_id
+        SELECT s.*, i.ordinal, i.action_type, i.context_level AS item_context_level,
+               ap.cursor_ordinal, ap.script_id, a.audit_id, a.budget_decision, a.completed_at AS audit_completed_at
         FROM action_execution_slots s
         JOIN action_plan_items i ON i.action_id = s.action_id
         JOIN action_plans ap ON ap.plan_id = s.plan_id
+        JOIN context_budget_audits a ON a.slot_id = s.slot_id
         WHERE s.slot_id = ? AND s.task_id = ?
       `).get(input.slotId, taskId) as Record<string, unknown> | undefined;
       if (!slot) throw new HarnessError(404, 'ACTION_SLOT_NOT_FOUND', 'DOMAIN', '动作租约不存在。');
       if (slot.status !== 'ACTIVE' || slot.lease_owner !== input.workerId || String(slot.lease_expires_at) < timestamp) {
         throw new HarnessError(409, 'ACTION_LEASE_CONFLICT', 'CONCURRENCY', '动作租约已失效。', false, true);
       }
+      if (slot.audit_id !== input.contextAuditId || slot.context_envelope_hash !== input.contextEnvelopeHash) {
+        throw new HarnessError(409, 'ACTION_CONTEXT_AUDIT_CONFLICT', 'CONCURRENCY', '动作上下文审计引用与租约不一致。', false, true);
+      }
+      if (slot.audit_completed_at) {
+        throw new HarnessError(409, 'ACTION_CONTEXT_USAGE_ALREADY_RECORDED', 'CONCURRENCY', '动作上下文用量已经完成记录。');
+      }
       const deterministicVerified = Object.values(input.verification).every(Boolean);
       if (input.outcome === 'VERIFIED_PASSED' && !deterministicVerified) {
         throw new HarnessError(400, 'PLAYWRIGHT_VERIFICATION_REQUIRED', 'EVIDENCE', 'Midscene 动作必须由 Playwright 独立验证。');
       }
-      const itemStatus = input.outcome;
+      const usage = input.modelUsage;
+      db.prepare(`
+        UPDATE context_budget_audits
+        SET usage_status = ?, provider_ref = ?, model_ref = ?, actual_input_tokens = ?,
+            actual_output_tokens = ?, actual_total_tokens = ?, completed_at = ?
+        WHERE audit_id = ? AND completed_at IS NULL
+      `).run(
+        usage.status, usage.provider ?? null, usage.model ?? null, usage.inputTokens ?? null,
+        usage.outputTokens ?? null, usage.totalTokens ?? null, timestamp, input.contextAuditId
+      );
+      const usageExceeded = usage.status === 'PROVIDER_REPORTED'
+        && (Number(usage.inputTokens) > MODEL_CONTEXT_POLICIES.VISION_LLM.inputBudgetTokens
+          || Number(usage.totalTokens) > MODEL_CONTEXT_POLICIES.VISION_LLM.modelContextLimitTokens);
+      const effectiveOutcome = usageExceeded ? 'FAILED' : input.outcome;
+      if (effectiveOutcome === 'AMBIGUOUS'
+        && usage.status !== 'NOT_INVOKED'
+        && slot.budget_decision === 'ALLOW'
+        && slot.item_context_level !== 'CTX-L3') {
+        const nextContextLevel: ContextLevel = slot.item_context_level === 'CTX-L1' ? 'CTX-L2' : 'CTX-L3';
+        db.prepare(`
+          UPDATE action_plan_items
+          SET status = 'PENDING', context_level = ?, context_upgrade_reason_code = 'MIDSCENE_ACTION_AMBIGUOUS',
+              verification_json = ?, updated_at = ?
+          WHERE action_id = ?
+        `).run(nextContextLevel, canonicalJson(input.verification), timestamp, slot.action_id);
+        db.prepare(`UPDATE action_execution_slots SET status = 'FAILED', version = version + 1, updated_at = ? WHERE slot_id = ?`)
+          .run(timestamp, input.slotId);
+        db.prepare(`UPDATE action_plans SET status = 'RUNNING', version = version + 1, updated_at = ? WHERE plan_id = ?`)
+          .run(timestamp, slot.plan_id);
+        db.prepare(`
+          UPDATE tasks SET status = 'QUEUED', result_summary = ?, error_code = NULL, error_category = NULL,
+            user_action_required = 0, version = version + 1, updated_at = ? WHERE task_id = ?
+        `).run(`视觉候选存在歧义，已按确定性规则升级到 ${nextContextLevel}。`, timestamp, taskId);
+        return {
+          taskId, planId: slot.plan_id, status: 'QUEUED', cursorAdvanced: false,
+          contextUpgraded: true, nextContextLevel
+        };
+      }
+      const itemStatus = effectiveOutcome;
       db.prepare(`UPDATE action_plan_items SET status = ?, verification_json = ?, updated_at = ? WHERE action_id = ?`)
         .run(itemStatus, canonicalJson(input.verification), timestamp, slot.action_id);
       db.prepare(`UPDATE action_execution_slots SET status = ?, version = version + 1, updated_at = ? WHERE slot_id = ?`)
-        .run(input.outcome === 'VERIFIED_PASSED' ? 'COMPLETED' : 'FAILED', timestamp, input.slotId);
-      if (input.outcome !== 'VERIFIED_PASSED') {
+        .run(effectiveOutcome === 'VERIFIED_PASSED' ? 'COMPLETED' : 'FAILED', timestamp, input.slotId);
+      if (effectiveOutcome !== 'VERIFIED_PASSED') {
         db.prepare(`UPDATE action_plans SET status = 'WAITING_USER', version = version + 1, updated_at = ? WHERE plan_id = ?`)
           .run(timestamp, slot.plan_id);
         db.prepare(`
           UPDATE tasks SET status = 'WAITING_USER', progress = 0, result_summary = ?, error_code = ?,
             error_category = 'TEST_FAILURE', user_action_required = 1, version = version + 1, updated_at = ?
           WHERE task_id = ?
-        `).run(input.summary, input.outcome === 'AMBIGUOUS' ? 'MIDSCENE_ACTION_AMBIGUOUS' : 'MIDSCENE_ACTION_FAILED', timestamp, taskId);
+        `).run(
+          usageExceeded ? '视觉模型实际用量超过16K硬上限。' : input.summary,
+          usageExceeded ? 'VISION_CONTEXT_BUDGET_EXCEEDED' : effectiveOutcome === 'AMBIGUOUS' ? 'MIDSCENE_ACTION_AMBIGUOUS' : 'MIDSCENE_ACTION_FAILED',
+          timestamp, taskId
+        );
         return { taskId, planId: slot.plan_id, status: 'WAITING_USER', cursorAdvanced: false };
       }
       const remaining = db.prepare(`

@@ -6,7 +6,7 @@ const path = require('node:path');
 
 const productRoot = path.resolve(__dirname, '..');
 const requiredDirectories = [
-  'coze', 'harness', 'worker', 'model-gateway', 'runtime', 'contracts', 'tests',
+  'coze', 'flowise', 'mcp', 'harness', 'worker', 'model-gateway', 'runtime', 'contracts', 'tests',
   'scripts', 'docs', 'config', '.data'
 ];
 const requiredFiles = [
@@ -44,6 +44,19 @@ const requiredFiles = [
   'scripts/verify-i4-live.ps1', 'scripts/verify-i4-authoring-live.ps1',
   'scripts/verify-i4-midscene.ps1', 'scripts/verify-i4-results.cjs',
   'tests/i4/authoring-window.test.cjs',
+  'harness/src/context-envelope.ts',
+  'harness/migrations/009_i8_context_budget.sql',
+  'tests/i8/context-envelope.test.cjs',
+  'harness/migrations/010_i8_agentflow_handoff.sql',
+  'harness/src/i8/stage2-schemas.ts',
+  'mcp/src/server.cjs',
+  'contracts/mcp/hengzhun-i8.json',
+  'flowise/i8/agentflow-v2.json',
+  'flowise/i8/deployment-manifest.json',
+  'flowise/i8/hiagent-capability-map.yaml',
+  'flowise/i8/knowledge/portal-login-consistency.md',
+  'tests/i8/stage2-agentflow-mcp.test.cjs',
+  'scripts/verify-i8-stage2.ps1',
   'coze/agents/hengzhun-i4-regression-agent.md',
   'coze/knowledge/i4-three-case-authoring-runtime-rules.md',
   'coze/workflows/i4-three-cases-authoring.yaml',
@@ -89,6 +102,8 @@ try {
   if (packageJson.name !== 'hengzhun-regression-system') failures.push('unexpected package name');
   if (packageJson.private !== true) failures.push('package must remain private');
   if (packageJson.engines?.node !== '20.20.2') failures.push('Node engine must be frozen at 20.20.2');
+  if (!packageJson.scripts?.['verify:i8:stage1']) failures.push('I8 stage1 verification command is missing');
+  if (!packageJson.scripts?.['verify:i8:stage2']) failures.push('I8 stage2 verification command is missing');
 } catch (error) {
   failures.push(`package.json: ${error.message}`);
 }
@@ -103,7 +118,7 @@ if (failures.length > 0) {
     productRoot,
     requiredDirectories,
     runtimeDataRoot: '.data',
-    runtimeKnowledgeAuthority: 'Coze Knowledge Base',
+    currentKnowledgeAuthority: 'Flowise platform knowledge artifact; live import must be verified separately',
     implementationOrderAuthority: 'agent/plans/active/v54-implementation-batches.md'
   }, null, 2));
 }

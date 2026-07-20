@@ -1,0 +1,99 @@
+{
+  "description": "衡准 I8 阶段2：一句自然语言案例描述，经平台知识、结构化、最小澄清、人工确认和MCP提交进入Harness。",
+  "usecases": ["Regression Testing", "Human In The Loop"],
+  "nodes": [
+    {
+      "id": "startAgentflow_i8",
+      "position": {"x": 0, "y": 200},
+      "type": "customNode",
+      "data": {"id":"startAgentflow_i8","label":"自然语言案例","name":"startAgentflow","version":1.1,"type":"Start","baseClasses":["Start"],"category":"Agent Flows","inputs":{"startInputType":"chatInput","startEphemeralMemory":true,"startPersistState":false,"startState":[]}}
+    },
+    {
+      "id": "retrieverAgentflow_i8",
+      "position": {"x": 340, "y": 200},
+      "type": "customNode",
+      "data": {"id":"retrieverAgentflow_i8","label":"查询已发布业务知识","name":"retrieverAgentflow","version":1,"type":"Retriever","baseClasses":["Retriever"],"category":"Agent Flows","inputs":{"retrieverKnowledgeDocumentStores":"{{$vars.HENGZHUN_KNOWLEDGE_STORE}}","retrieverQuery":"{{$flow.input}}","outputFormat":"textWithMetadata"}}
+    },
+    {
+      "id": "llmAgentflow_structure",
+      "position": {"x": 680, "y": 200},
+      "type": "customNode",
+      "data": {"id":"llmAgentflow_structure","label":"结构化案例与验收摘要","name":"llmAgentflow","version":1.1,"type":"LLM","baseClasses":["LLM"],"category":"Agent Flows","inputs":{"llmModel":"chatOpenAI","llmMessages":[{"role":"system","content":"你是衡准主控。用户只提供案例描述。只依据输入和已发布知识生成严格JSON字符串，不生成定位器、Playwright源码、路径、SQL、Shell、端口、凭据或幂等参数。draftJson必须符合i8-regression-case-draft-v1，acceptanceSummaryJson必须符合i8-acceptance-summary-v1。只有角色不明确、期望互斥或高风险业务写入时clarificationRequired=true，并且只给一个业务问题。"},{"role":"user","content":"案例描述：{{$flow.input}}\n知识：{{retrieverAgentflow_i8.output}}"}],"llmEnableMemory":false,"llmReturnResponseAs":"userMessage","llmStructuredOutput":[{"key":"draftJson","type":"string","description":"严格RegressionCaseDraft JSON"},{"key":"acceptanceSummaryJson","type":"string","description":"严格AcceptanceSummary JSON"},{"key":"clarificationRequired","type":"boolean","description":"是否需要最小业务澄清"},{"key":"clarificationQuestion","type":"string","description":"至多一个业务澄清问题"}],"llmUpdateState":[],"llmModelConfig":{"modelName":"mimo-v2.5","temperature":0,"streaming":false,"maxTokens":32768,"basepath":"{{$vars.MIMO_BASE_URL}}","strictToolCalling":true,"llmModel":"chatOpenAI"}}}
+    },
+    {
+      "id": "conditionAgentflow_clarify",
+      "position": {"x": 1020, "y": 200},
+      "type": "customNode",
+      "data": {"id":"conditionAgentflow_clarify","label":"是否需要澄清","name":"conditionAgentflow","version":1,"type":"Condition","baseClasses":["Condition"],"category":"Agent Flows","inputs":{"conditions":[{"type":"boolean","value1":"{{llmAgentflow_structure.output.clarificationRequired}}","operation":"equal","value2":true}]},"outputAnchors":[{"label":"需要澄清","name":"0"},{"label":"无需澄清","name":"1"}]}
+    },
+    {
+      "id": "humanInputAgentflow_clarify",
+      "position": {"x": 1360, "y": 20},
+      "type": "customNode",
+      "data": {"id":"humanInputAgentflow_clarify","label":"最小业务澄清","name":"humanInputAgentflow","version":1,"type":"HumanInput","baseClasses":["HumanInput"],"category":"Agent Flows","inputs":{"humanInputDescriptionType":"fixed","humanInputDescription":"{{llmAgentflow_structure.output.clarificationQuestion}}","humanInputEnableFeedback":true},"outputAnchors":[{"label":"继续","name":"proceed"},{"label":"拒绝","name":"reject"}]}
+    },
+    {
+      "id": "loopAgentflow_clarify",
+      "position": {"x": 1700, "y": 20},
+      "type": "customNode",
+      "data": {"id":"loopAgentflow_clarify","label":"带澄清结果重新结构化","name":"loopAgentflow","version":1,"type":"Loop","baseClasses":["Loop"],"category":"Agent Flows","inputs":{"loopBackToNode":"llmAgentflow_structure-结构化案例与验收摘要","maxLoopCount":2}}
+    },
+    {
+      "id": "humanInputAgentflow_confirm",
+      "position": {"x": 1360, "y": 380},
+      "type": "customNode",
+      "data": {"id":"humanInputAgentflow_confirm","label":"确认案例摘要","name":"humanInputAgentflow","version":1,"type":"HumanInput","baseClasses":["HumanInput"],"category":"Agent Flows","inputs":{"humanInputDescriptionType":"fixed","humanInputDescription":"请确认以下案例草案后再写入衡准：{{llmAgentflow_structure.output.acceptanceSummaryJson}}","humanInputEnableFeedback":true},"outputAnchors":[{"label":"批准","name":"proceed"},{"label":"拒绝","name":"reject"}]}
+    },
+    {
+      "id": "toolAgentflow_prepare",
+      "position": {"x": 1700, "y": 380},
+      "type": "customNode",
+      "data": {"id":"toolAgentflow_prepare","label":"MCP准备案例","name":"toolAgentflow","version":1.2,"type":"Tool","baseClasses":["Tool"],"category":"Agent Flows","inputs":{"toolAgentflowSelectedTool":"customMCP","toolInputArgs":[{"inputArgName":"caseDescription","inputArgValue":"{{$flow.input}}"},{"inputArgName":"draftJson","inputArgValue":"{{llmAgentflow_structure.output.draftJson}}"},{"inputArgName":"acceptanceSummaryJson","inputArgValue":"{{llmAgentflow_structure.output.acceptanceSummaryJson}}"},{"inputArgName":"sessionRef","inputArgValue":"{{$flow.sessionId}}"}],"toolUpdateState":[],"toolAgentflowSelectedToolConfig":{"toolAgentflowSelectedTool":"customMCP","mcpServerConfig":"{\"url\":\"http://127.0.0.1:18789/mcp\",\"headers\":{\"Authorization\":\"Bearer {{$vars.HENGZHUN_MCP_TOKEN}}\"}}","mcpActions":["case_prepare"]}}}
+    },
+    {
+      "id": "llmAgentflow_intent",
+      "position": {"x": 2040, "y": 380},
+      "type": "customNode",
+      "data": {"id":"llmAgentflow_intent","label":"形成IntentPlan","name":"llmAgentflow","version":1.1,"type":"LLM","baseClasses":["LLM"],"category":"Agent Flows","inputs":{"llmModel":"chatOpenAI","llmMessages":[{"role":"system","content":"根据已确认草案和MCP文本返回生成严格i8-intent-plan-v1 JSON字符串，并原样提取preparationId与version。MCP文本可能是content数组包装；只读取其中text JSON，不补造ID。只能描述业务动作和期望，不得生成定位器、代码、路径、SQL、Shell、URL、凭据或可执行脚本。"},{"role":"user","content":"草案：{{llmAgentflow_structure.output.draftJson}}\n准备结果：{{toolAgentflow_prepare.output}}"}],"llmEnableMemory":false,"llmReturnResponseAs":"userMessage","llmStructuredOutput":[{"key":"preparationId","type":"string","description":"从MCP准备结果原样提取"},{"key":"preparationVersion","type":"number","description":"从MCP准备结果version原样提取"},{"key":"intentPlanJson","type":"string","description":"严格IntentPlan JSON"}],"llmUpdateState":[],"llmModelConfig":{"modelName":"mimo-v2.5","temperature":0,"streaming":false,"maxTokens":32768,"basepath":"{{$vars.MIMO_BASE_URL}}","strictToolCalling":true,"llmModel":"chatOpenAI"}}}
+    },
+    {
+      "id": "toolAgentflow_submit",
+      "position": {"x": 2380, "y": 380},
+      "type": "customNode",
+      "data": {"id":"toolAgentflow_submit","label":"MCP提交作者化意图","name":"toolAgentflow","version":1.2,"type":"Tool","baseClasses":["Tool"],"category":"Agent Flows","inputs":{"toolAgentflowSelectedTool":"customMCP","toolInputArgs":[{"inputArgName":"preparationId","inputArgValue":"{{llmAgentflow_intent.output.preparationId}}"},{"inputArgName":"expectedVersion","inputArgValue":"{{llmAgentflow_intent.output.preparationVersion}}"},{"inputArgName":"choice","inputArgValue":"APPROVE"},{"inputArgName":"confirmationRef","inputArgValue":"{{$flow.sessionId}}"},{"inputArgName":"reason","inputArgValue":"用户已在Human Input节点明确批准案例摘要"},{"inputArgName":"intentPlanJson","inputArgValue":"{{llmAgentflow_intent.output.intentPlanJson}}"},{"inputArgName":"sessionRef","inputArgValue":"{{$flow.sessionId}}"}],"toolUpdateState":[],"toolAgentflowSelectedToolConfig":{"toolAgentflowSelectedTool":"customMCP","mcpServerConfig":"{\"url\":\"http://127.0.0.1:18789/mcp\",\"headers\":{\"Authorization\":\"Bearer {{$vars.HENGZHUN_MCP_TOKEN}}\"}}","mcpActions":["authoring_submit"]}}}
+    },
+    {
+      "id": "toolAgentflow_get",
+      "position": {"x": 2720, "y": 380},
+      "type": "customNode",
+      "data": {"id":"toolAgentflow_get","label":"MCP查询权威状态","name":"toolAgentflow","version":1.2,"type":"Tool","baseClasses":["Tool"],"category":"Agent Flows","inputs":{"toolAgentflowSelectedTool":"customMCP","toolInputArgs":[{"inputArgName":"preparationId","inputArgValue":"{{llmAgentflow_intent.output.preparationId}}"}],"toolUpdateState":[],"toolAgentflowSelectedToolConfig":{"toolAgentflowSelectedTool":"customMCP","mcpServerConfig":"{\"url\":\"http://127.0.0.1:18789/mcp\",\"headers\":{\"Authorization\":\"Bearer {{$vars.HENGZHUN_MCP_TOKEN}}\"}}","mcpActions":["authoring_get"]}}}
+    },
+    {
+      "id": "directReplyAgentflow_result",
+      "position": {"x": 3060, "y": 380},
+      "type": "customNode",
+      "data": {"id":"directReplyAgentflow_result","label":"返回阶段2结果","name":"directReplyAgentflow","version":1,"type":"DirectReply","baseClasses":["DirectReply"],"category":"Agent Flows","inputs":{"directReplyMessage":"案例已完成结构化、知识快照绑定和人工确认，并通过MCP写入Harness。当前权威状态：{{toolAgentflow_get.output}}。下一步由I8阶段3执行计划编译器继续处理。"}}
+    },
+    {
+      "id": "directReplyAgentflow_rejected",
+      "position": {"x": 1700, "y": 740},
+      "type": "customNode",
+      "data": {"id":"directReplyAgentflow_rejected","label":"用户拒绝","name":"directReplyAgentflow","version":1,"type":"DirectReply","baseClasses":["DirectReply"],"category":"Agent Flows","inputs":{"directReplyMessage":"本次案例未获用户确认，未通过MCP写入衡准权威状态。"}}
+    }
+  ],
+  "edges": [
+    {"id":"e01","source":"startAgentflow_i8","sourceHandle":"startAgentflow_i8-output-startAgentflow","target":"retrieverAgentflow_i8","targetHandle":"retrieverAgentflow_i8"},
+    {"id":"e02","source":"retrieverAgentflow_i8","sourceHandle":"retrieverAgentflow_i8-output-retrieverAgentflow","target":"llmAgentflow_structure","targetHandle":"llmAgentflow_structure"},
+    {"id":"e03","source":"llmAgentflow_structure","sourceHandle":"llmAgentflow_structure-output-llmAgentflow","target":"conditionAgentflow_clarify","targetHandle":"conditionAgentflow_clarify"},
+    {"id":"e04","source":"conditionAgentflow_clarify","sourceHandle":"conditionAgentflow_clarify-output-0","target":"humanInputAgentflow_clarify","targetHandle":"humanInputAgentflow_clarify"},
+    {"id":"e05","source":"humanInputAgentflow_clarify","sourceHandle":"humanInputAgentflow_clarify-output-0","target":"loopAgentflow_clarify","targetHandle":"loopAgentflow_clarify"},
+    {"id":"e06","source":"conditionAgentflow_clarify","sourceHandle":"conditionAgentflow_clarify-output-1","target":"humanInputAgentflow_confirm","targetHandle":"humanInputAgentflow_confirm"},
+    {"id":"e07","source":"humanInputAgentflow_confirm","sourceHandle":"humanInputAgentflow_confirm-output-0","target":"toolAgentflow_prepare","targetHandle":"toolAgentflow_prepare"},
+    {"id":"e08","source":"humanInputAgentflow_confirm","sourceHandle":"humanInputAgentflow_confirm-output-1","target":"directReplyAgentflow_rejected","targetHandle":"directReplyAgentflow_rejected"},
+    {"id":"e09","source":"humanInputAgentflow_clarify","sourceHandle":"humanInputAgentflow_clarify-output-1","target":"directReplyAgentflow_rejected","targetHandle":"directReplyAgentflow_rejected"},
+    {"id":"e10","source":"toolAgentflow_prepare","sourceHandle":"toolAgentflow_prepare-output-toolAgentflow","target":"llmAgentflow_intent","targetHandle":"llmAgentflow_intent"},
+    {"id":"e11","source":"llmAgentflow_intent","sourceHandle":"llmAgentflow_intent-output-llmAgentflow","target":"toolAgentflow_submit","targetHandle":"toolAgentflow_submit"},
+    {"id":"e12","source":"toolAgentflow_submit","sourceHandle":"toolAgentflow_submit-output-toolAgentflow","target":"toolAgentflow_get","targetHandle":"toolAgentflow_get"},
+    {"id":"e13","source":"toolAgentflow_get","sourceHandle":"toolAgentflow_get-output-toolAgentflow","target":"directReplyAgentflow_result","targetHandle":"directReplyAgentflow_result"}
+  ]
+}
