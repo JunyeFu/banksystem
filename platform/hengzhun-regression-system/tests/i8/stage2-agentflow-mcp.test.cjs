@@ -271,6 +271,6 @@ test('Flowise MCP client reaches the authenticated 14-tool server and active too
   const candidate = parseFlowiseMcpText(candidateText)
   assert.equal(candidate.status, 'EXECUTABLE_PLAN_READY')
   assert.equal(candidate.nextAction, 'AUTHORING_WORKER_REQUIRED')
-  const deferred = await toolkit.tools.find((tool) => tool.name === 'schedule_create').invoke({})
+  const deferred = await toolkit.tools.find((tool) => tool.name === 'failure_get').invoke({ requestRef: 'stage2-deferred-check' })
   assert.equal(parseFlowiseMcpText(deferred).errorCode, 'I8_STAGE_CAPABILITY_NOT_AVAILABLE')
 })

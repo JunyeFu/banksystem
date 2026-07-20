@@ -37,6 +37,7 @@ import type {
   I8CandidatePreviewInput,
   I8RunSubmitInput
 } from './i8/stage5-schemas';
+import type { I8ResultInboxListInput, I8ScheduleCreateInput } from './i8/stage6-schemas';
 import { nextCronOccurrence, parseCron, validateTimeZone } from './cron';
 import { canonicalJson, nowIso, opaqueId, requestHash, sha256 } from './utils';
 
@@ -116,11 +117,13 @@ export class HarnessService {
   }
 
   private validatedPlan(db: import('better-sqlite3').Database, namespace: string, planId: string, caseId: string, expectedCaseVersion: number): {
-    case_id: string; case_version: number; script_id: string; script_path: string; script_configuration: string | null;
+    case_id: string; case_version: number; script_id: string; script_version: number; script_sha256: string;
+    script_path: string; script_configuration: string | null;
   } {
     const plan = db.prepare(`
       SELECT p.status, p.case_id, p.case_version, p.script_id, c.current_version,
-             s.status AS script_status, sv.relative_path AS script_path,
+             s.status AS script_status, s.current_version AS script_version,
+             sv.sha256 AS script_sha256, sv.relative_path AS script_path,
              sv.configuration_json AS script_configuration
       FROM plans p
       JOIN cases c ON c.case_id = p.case_id
@@ -138,14 +141,45 @@ export class HarnessService {
     }
     return {
       case_id: String(plan.case_id), case_version: Number(plan.case_version), script_id: String(plan.script_id),
+      script_version: Number(plan.script_version), script_sha256: String(plan.script_sha256),
       script_path: String(plan.script_path), script_configuration: plan.script_configuration ? String(plan.script_configuration) : null
+    };
+  }
+
+  private validatedScheduledPlan(db: import('better-sqlite3').Database, schedule: Record<string, unknown>): {
+    script_id: string; script_version: number; script_sha256: string; script_path: string; script_configuration: string | null;
+  } {
+    const row = db.prepare(`
+      SELECT p.status AS plan_status, s.status AS script_status, sv.validation_status,
+             sv.relative_path AS script_path,
+             sv.configuration_json AS script_configuration, sv.sha256 AS actual_sha256
+      FROM plans p
+      JOIN scripts s ON s.script_id = p.script_id
+      JOIN script_versions sv ON sv.script_id = s.script_id AND sv.version = ?
+      WHERE p.namespace = ? AND p.plan_id = ? AND p.case_id = ? AND p.case_version = ?
+        AND p.script_id = ?
+    `).get(
+      Number(schedule.script_version), String(schedule.namespace), String(schedule.plan_id),
+      String(schedule.case_id), Number(schedule.case_version), String(schedule.script_id)
+    ) as Record<string, unknown> | undefined;
+    if (!row || row.plan_status !== 'READY' || row.script_status === 'RETIRED'
+      || row.validation_status !== 'PASSED' || !row.script_path) {
+      throw new HarnessError(409, 'SCHEDULED_SCRIPT_VERSION_UNAVAILABLE', 'DOMAIN', '调度绑定的精确脚本版本不可执行。', false, true);
+    }
+    if (String(row.actual_sha256) !== String(schedule.script_sha256)) {
+      throw new HarnessError(409, 'SCHEDULED_SCRIPT_HASH_CONFLICT', 'EVIDENCE', '调度绑定脚本的 Hash 已变化。', false, true);
+    }
+    return {
+      script_id: String(schedule.script_id), script_version: Number(schedule.script_version),
+      script_sha256: String(schedule.script_sha256), script_path: String(row.script_path),
+      script_configuration: row.script_configuration ? String(row.script_configuration) : null
     };
   }
 
   private enqueueRun(db: import('better-sqlite3').Database, input: {
     namespace: string; caseId: string; caseVersion: number; planId: string; environment: 'local';
     credentialAlias: string; fixtureScope?: string; scheduleId?: string; scheduleExecutionId?: string;
-  }, plan: { script_id: string; script_path: string; script_configuration: string | null }, timestamp: string): { runId: string; taskId: string } {
+  }, plan: { script_id: string; script_version: number; script_sha256: string; script_path: string; script_configuration: string | null }, timestamp: string): { runId: string; taskId: string } {
     const runId = opaqueId('run');
     const taskId = opaqueId('task');
     const fixtureNamespace = `fx-${sha256(`${input.namespace}:${runId}`).slice(0, 20)}`;
@@ -166,6 +200,8 @@ export class HarnessService {
       fixtureNamespace,
       fixtureScope: input.fixtureScope ?? fixtureNamespace,
       scriptId: plan.script_id,
+      scriptVersion: plan.script_version,
+      scriptHash: plan.script_sha256,
       scriptPath: plan.script_path,
       ...(i8Candidate ? { candidate: i8Candidate } : { selectorOverrides: scriptConfiguration })
     });
@@ -1537,6 +1573,108 @@ export class HarnessService {
     });
   }
 
+  async createI8Schedule(input: I8ScheduleCreateInput, context: RequestContext): Promise<IdempotentResult> {
+    try {
+      validateTimeZone(input.timezone);
+      if (input.scheduleType === 'RECURRING') parseCron(String(input.cronExpression));
+    } catch (error) {
+      throw new HarnessError(400, String((error as Error).message), 'CONTRACT', '规范化调度时间或 IANA 时区无效。');
+    }
+    return this.idempotent(input.namespace, 'i8_schedule_create', input.idempotencyKey, input, context, (db, timestamp) => {
+      if (input.scheduleType === 'ONE_TIME' && new Date(String(input.runAt)).getTime() <= new Date(timestamp).getTime()) {
+        throw new HarnessError(409, 'ONE_TIME_RUN_AT_NOT_FUTURE', 'DOMAIN', '一次性运行时间必须晚于当前时间。', false, true);
+      }
+      const confirmed = db.prepare('SELECT schedule_id FROM schedules WHERE namespace = ? AND confirmation_ref = ?')
+        .get(input.namespace, input.confirmationRef) as { schedule_id: string } | undefined;
+      if (confirmed) {
+        throw new HarnessError(409, 'I8_SCHEDULE_CONFIRMATION_ALREADY_USED', 'CONCURRENCY', '该人工确认已创建过调度。', false, true, { scheduleId: confirmed.schedule_id });
+      }
+      const row = db.prepare(`
+        SELECT p.preparation_id, p.case_id, p.case_version, c.candidate_id, c.status AS candidate_status,
+               c.script_id, c.script_version, c.script_sha256, d.activated_plan_id
+        FROM i8_executable_plans p
+        JOIN i8_script_candidates c ON c.executable_plan_id = p.executable_plan_id
+        JOIN i8_script_delivery_decisions d ON d.candidate_id = c.candidate_id AND d.choice = 'ACTIVATE'
+        WHERE p.namespace = ? AND p.preparation_id = ?
+        ORDER BY d.created_at DESC LIMIT 1
+      `).get(input.namespace, input.preparationId) as Record<string, unknown> | undefined;
+      if (!row || row.candidate_status !== 'SCRIPT_VALIDATED' || !row.activated_plan_id) {
+        throw new HarnessError(409, 'I8_SCRIPT_NOT_ACTIVATED', 'DOMAIN', '调度只接受已明确激活的持证脚本。', false, true);
+      }
+      const plan = this.validatedPlan(db, input.namespace, String(row.activated_plan_id), String(row.case_id), Number(row.case_version));
+      if (plan.script_id !== row.script_id || plan.script_version !== Number(row.script_version) || plan.script_sha256 !== row.script_sha256) {
+        throw new HarnessError(409, 'I8_ACTIVATED_SCRIPT_VERSION_CONFLICT', 'CONCURRENCY', '当前正式计划与已确认脚本版本不一致。', false, true);
+      }
+      const scheduleId = opaqueId('schedule');
+      const nextFireAt = input.scheduleType === 'RECURRING'
+        ? nextCronOccurrence(String(input.cronExpression), input.timezone, new Date(timestamp)).toISOString()
+        : new Date(String(input.runAt)).toISOString();
+      const fixtureScope = `i8:${input.preparationId}`;
+      db.prepare(`
+        INSERT INTO schedules(
+          schedule_id, namespace, case_id, case_version, plan_id, credential_alias,
+          cron_expression, timezone, environment, fixture_scope, misfire_policy,
+          misfire_grace_seconds, max_retries, status, next_fire_at, version, created_at, updated_at,
+          schedule_type, run_at, script_id, script_version, script_sha256, one_time_state, confirmation_ref
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'local', ?, ?, ?, ?, 'ACTIVE', ?, 1, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      `).run(
+        scheduleId, input.namespace, row.case_id, row.case_version, row.activated_plan_id,
+        input.credentialAlias, input.cronExpression ?? '0 0 1 1 *', input.timezone, fixtureScope,
+        input.misfirePolicy, input.misfireGraceSeconds, input.maxRetries, nextFireAt, timestamp, timestamp,
+        input.scheduleType, input.runAt ? new Date(input.runAt).toISOString() : null,
+        row.script_id, row.script_version, row.script_sha256,
+        input.scheduleType === 'ONE_TIME' ? 'PENDING' : null, input.confirmationRef
+      );
+      return {
+        status: 201,
+        objectType: 'SCHEDULE',
+        objectId: scheduleId,
+        response: {
+          scheduleId, status: 'ACTIVE', scheduleType: input.scheduleType, timezone: input.timezone,
+          ...(input.scheduleType === 'RECURRING' ? { cronExpression: input.cronExpression } : { runAt: new Date(String(input.runAt)).toISOString() }),
+          nextFireAt, caseId: row.case_id, caseVersion: row.case_version, planId: row.activated_plan_id,
+          scriptId: row.script_id, scriptVersion: row.script_version, scriptHash: row.script_sha256,
+          misfirePolicy: input.misfirePolicy, misfireGraceSeconds: input.misfireGraceSeconds,
+          maxRetries: input.maxRetries, confirmationRef: input.confirmationRef
+        }
+      };
+    });
+  }
+
+  async listI8ResultInbox(input: I8ResultInboxListInput): Promise<Record<string, unknown>> {
+    return this.database.write(db => {
+      const timestamp = nowIso();
+      let acknowledgedCount = 0;
+      if (input.acknowledgeInboxIds.length > 0) {
+        const placeholders = input.acknowledgeInboxIds.map(() => '?').join(',');
+        acknowledgedCount = db.prepare(`UPDATE result_inbox_items SET delivery_status = 'READ', read_at = ?
+          WHERE namespace = ? AND inbox_id IN (${placeholders}) AND delivery_status = 'UNREAD'`)
+          .run(timestamp, input.namespace, ...input.acknowledgeInboxIds).changes;
+      }
+      const cursor = input.cursor ? Number(input.cursor.slice(4)) : Number.MAX_SAFE_INTEGER;
+      const rows = db.prepare(`
+        SELECT * FROM result_inbox_items
+        WHERE namespace = ? AND sequence < ? ${input.unreadOnly ? "AND delivery_status = 'UNREAD'" : ''}
+        ORDER BY sequence DESC LIMIT ?
+      `).all(input.namespace, cursor, input.limit + 1) as Array<Record<string, unknown>>;
+      const page = rows.slice(0, input.limit);
+      return {
+        items: page.map(row => ({
+          inboxId: row.inbox_id, runId: row.run_id, taskId: row.task_id,
+          ...(row.schedule_id ? { scheduleId: row.schedule_id, scheduleType: row.schedule_type } : { executionMode: 'ON_DEMAND' }),
+          caseId: row.case_id, caseVersion: row.case_version, planId: row.plan_id,
+          scriptId: row.script_id, scriptVersion: row.script_version, outcome: row.outcome,
+          summary: row.summary, artifact: JSON.parse(String(row.artifact_metadata_json)),
+          status: row.delivery_status, readAt: row.read_at, createdAt: row.created_at
+        })),
+        ...(rows.length > input.limit && page.length > 0 ? { nextCursor: `seq:${page[page.length - 1]?.sequence}` } : {}),
+        unreadCount: (db.prepare("SELECT COUNT(*) count FROM result_inbox_items WHERE namespace = ? AND delivery_status = 'UNREAD'")
+          .get(input.namespace) as { count: number }).count,
+        acknowledgedCount
+      };
+    });
+  }
+
   async createSchedule(input: ScheduleCreateInput, context: RequestContext): Promise<IdempotentResult> {
     try {
       parseCron(input.cronExpression);
@@ -1545,20 +1683,21 @@ export class HarnessService {
       throw new HarnessError(400, String((error as Error).message), 'CONTRACT', 'Cron 表达式或 IANA 时区无效。');
     }
     return this.idempotent(input.namespace, 'schedule_create', input.idempotencyKey, input, context, (db, timestamp) => {
-      this.validatedPlan(db, input.namespace, input.planId, input.caseId, input.expectedCaseVersion);
+      const plan = this.validatedPlan(db, input.namespace, input.planId, input.caseId, input.expectedCaseVersion);
       const scheduleId = opaqueId('schedule');
       const nextFireAt = nextCronOccurrence(input.cronExpression, input.timezone, new Date(timestamp)).toISOString();
       db.prepare(`
         INSERT INTO schedules(
           schedule_id, namespace, case_id, case_version, plan_id, credential_alias,
           cron_expression, timezone, environment, fixture_scope, misfire_policy,
-          misfire_grace_seconds, max_retries, status, next_fire_at, version, created_at, updated_at
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'ACTIVE', ?, 1, ?, ?)
+          misfire_grace_seconds, max_retries, status, next_fire_at, version, created_at, updated_at,
+          schedule_type, script_id, script_version, script_sha256
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'ACTIVE', ?, 1, ?, ?, 'RECURRING', ?, ?, ?)
       `).run(
         scheduleId, input.namespace, input.caseId, input.expectedCaseVersion, input.planId,
         input.credentialAlias, input.cronExpression, input.timezone, input.environment,
         input.fixtureScope, input.misfirePolicy, input.misfireGraceSeconds, input.maxRetries,
-        nextFireAt, timestamp, timestamp
+        nextFireAt, timestamp, timestamp, plan.script_id, plan.script_version, plan.script_sha256
       );
       return {
         status: 200, objectType: 'SCHEDULE', objectId: scheduleId,
@@ -1588,6 +1727,31 @@ export class HarnessService {
     });
   }
 
+  getI8Schedule(namespace: string, scheduleId: string): Record<string, unknown> {
+    return this.database.read(db => {
+      const row = db.prepare(`
+        SELECT s.*,
+          (SELECT COUNT(*) FROM schedule_executions e WHERE e.schedule_id = s.schedule_id) AS execution_count,
+          (SELECT status FROM schedule_executions e WHERE e.schedule_id = s.schedule_id ORDER BY scheduled_for DESC LIMIT 1) AS last_execution_status
+        FROM schedules s WHERE s.namespace = ? AND s.schedule_id = ?
+      `).get(namespace, scheduleId) as Record<string, unknown> | undefined;
+      if (!row) throw new HarnessError(404, 'SCHEDULE_NOT_FOUND', 'DOMAIN', '调度不存在。');
+      return {
+        scheduleId: row.schedule_id, scheduleType: row.schedule_type,
+        caseId: row.case_id, caseVersion: row.case_version, planId: row.plan_id,
+        scriptId: row.script_id, scriptVersion: row.script_version, scriptHash: row.script_sha256,
+        ...(row.schedule_type === 'ONE_TIME' ? { runAt: row.run_at } : { cronExpression: row.cron_expression }),
+        timezone: row.timezone, environment: row.environment, fixtureScope: row.fixture_scope,
+        misfirePolicy: row.misfire_policy, misfireGraceSeconds: row.misfire_grace_seconds,
+        maxRetries: row.max_retries, status: row.status, oneTimeState: row.one_time_state,
+        completedAt: row.completed_at, nextFireAt: row.next_fire_at,
+        lastEvaluatedAt: row.last_evaluated_at, pausedIncidentId: row.paused_incident_id,
+        executionCount: row.execution_count, lastExecutionStatus: row.last_execution_status,
+        version: row.version, updatedAt: row.updated_at
+      };
+    });
+  }
+
   async disableSchedule(input: ScheduleDisableInput, context: RequestContext): Promise<IdempotentResult> {
     return this.idempotent(input.namespace, 'schedule_disable', input.idempotencyKey, input, context, (db, timestamp) => {
       const row = db.prepare('SELECT version, status FROM schedules WHERE namespace = ? AND schedule_id = ?')
@@ -1607,9 +1771,10 @@ export class HarnessService {
         .all(now.toISOString()) as Array<Record<string, unknown>>;
       const counters = { evaluated: due.length, queued: 0, skippedMisfire: 0, skippedMutex: 0 };
       for (const schedule of due) {
-        const occurrences: Date[] = [];
+        const oneTime = schedule.schedule_type === 'ONE_TIME';
+        const occurrences: Date[] = oneTime ? [new Date(String(schedule.next_fire_at))] : [];
         let occurrence = new Date(String(schedule.next_fire_at));
-        while (occurrence <= now && occurrences.length < 600_000) {
+        while (!oneTime && occurrence <= now && occurrences.length < 600_000) {
           occurrences.push(occurrence);
           occurrence = nextCronOccurrence(String(schedule.cron_expression), String(schedule.timezone), occurrence);
         }
@@ -1626,11 +1791,20 @@ export class HarnessService {
               VALUES (?, ?, ?, ?, 'SKIPPED_MISFIRE', 'MISFIRE_POLICY', ?, ?, ?)`)
               .run(opaqueId('execution'), schedule.schedule_id, schedule.namespace, scheduledIso, now.toISOString(), now.toISOString(), now.toISOString());
             counters.skippedMisfire += 1;
+            if (oneTime) {
+              db.prepare(`UPDATE schedules SET status = 'DISABLED', one_time_state = 'SKIPPED',
+                last_evaluated_at = ?, completed_at = ?, version = version + 1, updated_at = ? WHERE schedule_id = ?`)
+                .run(now.toISOString(), now.toISOString(), now.toISOString(), schedule.schedule_id);
+            }
             return;
           }
           const locked = db.prepare(`SELECT run_id FROM runs WHERE environment = ? AND fixture_scope = ? AND status IN ('QUEUED', 'RUNNING') LIMIT 1`)
             .get(schedule.environment, schedule.fixture_scope) as { run_id: string } | undefined;
           if (locked) {
+            if (oneTime) {
+              counters.skippedMutex += 1;
+              return;
+            }
             db.prepare(`INSERT INTO schedule_executions(execution_id, schedule_id, namespace, scheduled_for, status, reason_code, created_at, updated_at, completed_at)
               VALUES (?, ?, ?, ?, 'SKIPPED_MUTEX', 'ENVIRONMENT_FIXTURE_SCOPE_BUSY', ?, ?, ?)`)
               .run(opaqueId('execution'), schedule.schedule_id, schedule.namespace, scheduledIso, now.toISOString(), now.toISOString(), now.toISOString());
@@ -1641,7 +1815,7 @@ export class HarnessService {
           db.prepare(`INSERT INTO schedule_executions(execution_id, schedule_id, namespace, scheduled_for, status, created_at, updated_at)
             VALUES (?, ?, ?, ?, 'PENDING', ?, ?)`)
             .run(executionId, schedule.schedule_id, schedule.namespace, scheduledIso, now.toISOString(), now.toISOString());
-          const plan = this.validatedPlan(db, String(schedule.namespace), String(schedule.plan_id), String(schedule.case_id), Number(schedule.case_version));
+          const plan = this.validatedScheduledPlan(db, schedule);
           const run = this.enqueueRun(db, {
             namespace: String(schedule.namespace), caseId: String(schedule.case_id), caseVersion: Number(schedule.case_version),
             planId: String(schedule.plan_id), environment: 'local', credentialAlias: String(schedule.credential_alias),
@@ -1649,10 +1823,17 @@ export class HarnessService {
           }, plan, now.toISOString());
           db.prepare(`UPDATE schedule_executions SET status = 'QUEUED', run_id = ?, task_id = ?, updated_at = ? WHERE execution_id = ?`)
             .run(run.runId, run.taskId, now.toISOString(), executionId);
+          if (oneTime) {
+            db.prepare(`UPDATE schedules SET one_time_state = 'RUNNING', next_fire_at = '9999-12-31T23:59:59.999Z',
+              last_evaluated_at = ?, version = version + 1, updated_at = ? WHERE schedule_id = ?`)
+              .run(now.toISOString(), now.toISOString(), schedule.schedule_id);
+          }
           counters.queued += 1;
         });
-        db.prepare(`UPDATE schedules SET next_fire_at = ?, last_evaluated_at = ?, updated_at = ? WHERE schedule_id = ?`)
-          .run(occurrence.toISOString(), now.toISOString(), now.toISOString(), schedule.schedule_id);
+        if (!oneTime) {
+          db.prepare(`UPDATE schedules SET next_fire_at = ?, last_evaluated_at = ?, updated_at = ? WHERE schedule_id = ?`)
+            .run(occurrence.toISOString(), now.toISOString(), now.toISOString(), schedule.schedule_id);
+        }
       }
       return counters;
     });
@@ -2006,9 +2187,11 @@ export class HarnessService {
   async completeRun(taskId: string, input: WorkerCompletionInput): Promise<Record<string, unknown>> {
     const task = this.database.read(db => db.prepare(`
       SELECT t.namespace, t.run_id, t.case_id, t.status, t.lease_owner,
-             p.script_id, s.current_version AS script_version,
+             r.case_version, r.plan_id,
+             COALESCE(sc.script_id, p.script_id) AS script_id,
+             COALESCE(sc.script_version, json_extract(t.payload_json, '$.scriptVersion'), s.current_version) AS script_version,
              r.origin_schedule_id, r.schedule_execution_id,
-             sc.max_retries, se.retry_count
+             sc.max_retries, sc.schedule_type, se.retry_count
       FROM tasks t
       JOIN runs r ON r.task_id = t.task_id
       JOIN plans p ON p.plan_id = r.plan_id
@@ -2018,7 +2201,8 @@ export class HarnessService {
       WHERE t.task_id = ? AND t.task_type = 'RUN_EXECUTE'
     `).get(taskId) as {
       namespace: string; run_id: string; case_id: string; status: string; lease_owner: string | null;
-      script_id: string; script_version: number; origin_schedule_id: string | null;
+      case_version: number; plan_id: string; script_id: string; script_version: number; origin_schedule_id: string | null;
+      schedule_type: 'RECURRING' | 'ONE_TIME' | null;
       schedule_execution_id: string | null; max_retries: number | null; retry_count: number | null;
     } | undefined);
     if (!task) throw new HarnessError(404, 'WORKER_TASK_NOT_FOUND', 'DOMAIN', 'Worker 任务不存在。');
@@ -2099,6 +2283,31 @@ export class HarnessService {
           WHERE execution_id = ?
         `).run(input.outcome === 'PASSED' ? 'SUCCEEDED' : 'FAILED', input.errorCode ?? null, timestamp, timestamp, task.schedule_execution_id);
       }
+      const artifactMetadata = resultArtifact ? canonicalJson({
+        artifactId: resultArtifact.artifactId,
+        type: resultArtifact.type,
+        sha256: resultArtifact.sha256,
+        byteSize: resultArtifact.byteSize,
+        mediaType: resultArtifact.mediaType,
+        redactionStatus: resultArtifact.redactionStatus
+      }) : canonicalJson({ available: false });
+      db.prepare(`
+        INSERT OR IGNORE INTO result_inbox_items(
+          inbox_id, namespace, run_id, task_id, schedule_id, schedule_type,
+          case_id, case_version, plan_id, script_id, script_version, outcome,
+          summary, result_artifact_id, artifact_metadata_json, delivery_status, created_at
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'UNREAD', ?)
+      `).run(
+        opaqueId('inbox'), task.namespace, task.run_id, taskId, task.origin_schedule_id,
+        task.schedule_type, task.case_id, task.case_version, task.plan_id, task.script_id,
+        task.script_version, input.outcome, input.summary, resultArtifact?.artifactId ?? null,
+        artifactMetadata, timestamp
+      );
+      if (task.origin_schedule_id && task.schedule_type === 'ONE_TIME') {
+        db.prepare(`UPDATE schedules SET status = 'DISABLED', one_time_state = ?, completed_at = ?,
+          version = version + 1, updated_at = ? WHERE schedule_id = ?`)
+          .run(input.outcome === 'PASSED' ? 'SUCCEEDED' : 'FAILED', timestamp, timestamp, task.origin_schedule_id);
+      }
       db.prepare(`
         INSERT INTO audit_events(
           event_id, namespace, run_id, task_id, actor_type, action, object_type,
@@ -2131,7 +2340,7 @@ export class HarnessService {
               .run(timestamp, task.script_id);
           }
         }
-        if (task.origin_schedule_id && incidentId) {
+        if (task.origin_schedule_id && incidentId && task.schedule_type !== 'ONE_TIME') {
           db.prepare(`
             UPDATE schedules SET status = 'PAUSED_FAILURE', paused_incident_id = ?,
               version = version + 1, updated_at = ? WHERE schedule_id = ? AND status = 'ACTIVE'

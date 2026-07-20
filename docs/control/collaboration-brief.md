@@ -42,12 +42,12 @@ I0—I7 的 Coze 演示是冻结的历史证据；当前唯一新增阶段是 I8
 
 ## 3. 当前真实状态
 
-- `HENGZHUN-I8-FLOWISE-001`：`IN_PROGRESS`；阶段1至阶段5已完成，下一步为阶段6精确版本调度、一次性`runAt`与离线结果收件箱。
+- `HENGZHUN-I8-FLOWISE-001`：`IN_PROGRESS`；阶段1至阶段6已完成，下一步为阶段7限域反向诊断与修复闭环。
 - Flowise Windows 隔离探针：通过，但仅证明技术可行。
 - 当前产品结构校验：保留 Coze 历史目录，同时要求 `flowise/`、`mcp/` 和 Flowise 平台知识制品；不再把 Coze Knowledge 写成 I8 当前权威。
 - 历史 I4 Harness 已实现 SQLite 游标、单动作租约和“上一摘要/当前动作/下一预览”状态窗口，`npm.cmd run test:i4` 当前为 3/3 通过。
 - I8 阶段1已让 Worker 以强类型 `ActionContextEnvelope` 为唯一视觉上下文，完成 `CTX-L1→L2→L3` 歧义升级、视觉16K/12K门禁、主控1M预算函数、图像/token预估、migration 009和不可变预算审计。
-- 阶段2已落地一句自然语言输入的 Agentflow 制品、migration 010和MCP交接；阶段3落地有限DSL、确定性Builder和受控候选；阶段4落地2视口×3次稳定性证书。阶段5新增migration 013、持证Hash复核预览、完整行分页、一次性下载、`SAVE_ONLY/ACTIVATE/REJECT`不可变决策、精确版本激活及纯Playwright按需正式执行；真实复兴银行门户已完成六次签证后预览、激活和正式复跑。MCP当前8项ACTIVE、阶段6—7的6项失败关闭；真实 Agentflow 发布、MiMo 对话和 HiAgent 运行仍未验收，不得由本机浏览器证据代替。
+- 阶段2已落地一句自然语言输入的 Agentflow 制品、migration 010和MCP交接；阶段3落地有限DSL、确定性Builder和受控候选；阶段4落地2视口×3次稳定性证书；阶段5落地持证交付、精确激活和纯Playwright按需执行。阶段6新增migration 014、精确版本/Hash调度、`RECURRING`与`ONE_TIME runAt`、终态自动停用和SQLite离线结果收件箱；真实固定Chromium已证明脚本`current_version`变化后旧调度仍运行冻结版本。MCP当前11项ACTIVE、阶段7的3项失败关闭；真实 Agentflow 发布、MiMo 对话和 HiAgent 运行仍未验收，不得由本机浏览器证据代替。
 - HiAgent MCP 注册、网络可达性、容量和真实 Workflow 映射：测试环境待验证。
 - 开发 RAG 索引：`NOT_BUILT`，不影响产品。
 - 外部案例/视频输入：`PROPOSED`，依赖 I8。

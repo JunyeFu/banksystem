@@ -235,9 +235,11 @@ I8 阶段3进一步落地 migration 011、严格 `ExecutableActionPlan`、10操�
 
 I8 阶段4进一步落地 migration 012、固定两个视口各3次、每样本全新BrowserContext/空storage state/独立Fixture、候选与运行时指纹、脱敏证据Hash回验和不可变`StabilityCertificate`。常驻Worker已进入稳定性Claim/Completion循环；固定Chromium对合成门户和真实复兴银行门户均完成6/6。真实门户曾暴露异步资料加载竞态，生成器现以冻结超时等待可见，而不是瞬时`isVisible`误判。
 
-I8 阶段5进一步落地 migration 013、持证候选Hash复核、16KiB完整行分页预览、5分钟一次性下载授权、`SAVE_ONLY/ACTIVATE/REJECT`不可变决策、精确版本激活和纯Playwright按需执行。ACTIVATE不会隐式创建Run或Schedule；只有用户另行选择运行时，常驻Worker才执行受控候选。MCP累计8项活跃、6项后续能力失败关闭；真实复兴银行门户已完成签证后预览、激活和正式复跑。
+I8 阶段5进一步落地 migration 013、持证候选Hash复核、16KiB完整行分页预览、5分钟一次性下载授权、`SAVE_ONLY/ACTIVATE/REJECT`不可变决策、精确版本激活和纯Playwright按需执行。ACTIVATE不会隐式创建Run或Schedule；只有用户另行选择运行时，常驻Worker才执行受控候选。真实复兴银行门户已完成签证后预览、激活和正式复跑。
 
-尚未完成的是运行中 Agentflow 发布、真实 MiMo 主控对话、阶段6—7调度/离线收件箱/修复以及 HiAgent 目标环境验收。因此只能声明“阶段5本机代码、集成和真实门户浏览器验证完成”，不能声明“I8全部完成”或“HiAgent已验收”。追踪见 `AUD-009...AUD-033`。
+I8 阶段6进一步落地 migration 014：历史周期调度回填创建时实际脚本身份，无法安全回填时禁用；新调度冻结`caseVersion + planId + scriptId + scriptVersion + scriptHash`，执行时读取精确`script_versions`而不跟随`current_version`。`RECURRING`使用五字段Cron，`ONE_TIME`使用带偏移`runAt`并在成功或最终失败后自动停用。每个正式Run终态幂等写入不可删除的SQLite结果收件箱；Agent可分页获取未读项并确认已读，响应不含本机路径或凭据。MCP累计11项活跃、阶段7三项失败关闭；阶段6固定Chromium专项实际完成一次调度纯Playwright回归。
+
+尚未完成的是运行中 Agentflow 发布、真实 MiMo 主控对话、阶段7限域修复以及 HiAgent 目标环境验收。因此只能声明“阶段6本机代码、集成和固定Chromium验证完成”，不能声明“I8全部完成”或“HiAgent已验收”。追踪见 `AUD-009...AUD-038`。
 
 ## 9. HiAgent 迁移约束
 

@@ -27,6 +27,7 @@ import {
 } from './i8/stage3-schemas';
 import { i8StabilityCompletionSchema } from './i8/stage4-schemas';
 import { i8CandidateDecisionSchema, i8CandidatePreviewSchema, i8RunSubmitSchema, i8TaskGetSchema } from './i8/stage5-schemas';
+import { i8ResultInboxListSchema, i8ScheduleCreateSchema, i8ScheduleGetSchema } from './i8/stage6-schemas';
 import { authorizeRequest, loadSecurityConfig, remoteAddressForAudit, SecurityConfig, SecurityResult } from './security';
 import { HarnessService } from './service';
 import { credentialFingerprint, nowIso, opaqueId } from './utils';
@@ -393,6 +394,19 @@ export async function createHarnessApplication(options: HarnessApplicationOption
       if (request.method === 'POST' && url.pathname === '/v1/i8/tasks:get') {
         const input = i8TaskGetSchema.parse(await readJson(request));
         return sendJson(response, 200, omitNullValues(service.getTask(input.namespace, input.taskId)), 'L0', requestId);
+      }
+      if (request.method === 'POST' && url.pathname === '/v1/i8/schedules:create') {
+        const input = i8ScheduleCreateSchema.parse(await readJson(request));
+        const result = await service.createI8Schedule(input, context);
+        return sendJson(response, result.status, result.response, 'L1', requestId);
+      }
+      if (request.method === 'POST' && url.pathname === '/v1/i8/schedules:get') {
+        const input = i8ScheduleGetSchema.parse(await readJson(request));
+        return sendJson(response, 200, omitNullValues(service.getI8Schedule(input.namespace, input.scheduleId)), 'L1', requestId);
+      }
+      if (request.method === 'POST' && url.pathname === '/v1/i8/results:inbox-list') {
+        const input = i8ResultInboxListSchema.parse(await readJson(request));
+        return sendJson(response, 200, await service.listI8ResultInbox(input), 'L2', requestId);
       }
       if (request.method === 'POST' && url.pathname === '/v1/plugin/cases:create-draft') {
         const input = caseCreateDraftSchema.parse(await readJson(request));

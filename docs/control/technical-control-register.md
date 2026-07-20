@@ -90,8 +90,13 @@ owner: project-owner
 | `AUD-031` | 保存、激活和拒绝语义可能混淆，或激活隐式触发运行/调度 | `CLOSED_STAGE5`：不可变决策只接受`SAVE_ONLY/ACTIVATE/REJECT`；精确版本并发门禁，ACTIVATE不创建Run或Schedule |
 | `AUD-032` | 正式回归可能运行未激活版本、任意路径或再次调用模型 | `CLOSED_STAGE5`：`run_submit`只接受已激活持证候选，任务携带受控相对目录和双Hash；常驻Worker以纯Playwright固定Chromium执行并阻断外部来源 |
 | `AUD-033` | 阶段5工具启用可能连带提前开放调度/修复或冒充Flowise/HiAgent验收 | `CLOSED_STAGE5_EVIDENCE_BOUNDARY`：MCP只启用8项，阶段6—7六项稳定失败关闭；Flowise续办制品已冻结但运行发布、MiMo和HiAgent仍单独未验证 |
+| `AUD-034` | 旧调度只绑定plan并在执行时追随scripts.current_version | `CLOSED_STAGE6`：migration 014回填scriptId/version/Hash，执行按精确script_versions复核；不能回填的历史调度自动禁用 |
+| `AUD-035` | 一次性自然语言时间可能被伪装成Cron或在重启后重复运行 | `CLOSED_STAGE6`：ONE_TIME只接受带偏移runAt；唯一execution和RUNNING状态阻止重复，成功/最终失败自动停用 |
+| `AUD-036` | 用户可能被迫提供Cron、凭据或技术版本，或未确认即创建调度 | `CLOSED_STAGE6`：Flowise结构化LLM规范化并回显，Human Input确认后调用一次；MCP/Harness注入credential、Fixture和精确版本 |
+| `AUD-037` | Agent离线或会话中断可能丢失正式运行结果 | `CLOSED_STAGE6`：所有正式Run终态按namespace+runId幂等写入不可删除SQLite收件箱，支持分页、未读筛选和确认已读 |
+| `AUD-038` | 调度/收件箱开放可能连带开放阶段7修复或泄露Artifact路径 | `CLOSED_STAGE6_EVIDENCE_BOUNDARY`：MCP仅11项ACTIVE、阶段7三项失败关闭；收件箱只返回脱敏摘要与Artifact元数据，不返回relativePath |
 
-`AUD-009...AUD-013` 完成阶段1，`AUD-014...AUD-018` 完成阶段2，`AUD-019...AUD-023` 完成阶段3，`AUD-024...AUD-027` 完成阶段4，`AUD-028...AUD-033` 完成阶段5受控交付、精确激活和按需执行边界。阶段6才允许实现精确版本调度和离线收件箱；不得把本机证据写成Flowise真实Agentflow、MiMo或HiAgent证据。
+`AUD-009...AUD-013` 完成阶段1，`AUD-014...AUD-018` 完成阶段2，`AUD-019...AUD-023` 完成阶段3，`AUD-024...AUD-027` 完成阶段4，`AUD-028...AUD-033` 完成阶段5，`AUD-034...AUD-038` 完成阶段6精确版本调度、一次性运行和离线收件箱边界。阶段7才允许实现限域诊断/修复；不得把本机证据写成Flowise真实Agentflow、MiMo或HiAgent证据。
 
 ### 2.4 仍未验证但不得遗忘
 

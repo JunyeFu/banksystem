@@ -58,8 +58,8 @@ if errorlevel 1 exit /b %ERRORLEVEL%
 "%NODE%" "%PRODUCT_ROOT%scripts\verify-i7-delivery.cjs" --check
 if errorlevel 1 exit /b %ERRORLEVEL%
 
-call "%PRODUCT_ROOT%runtime\node-v20.20.2-win-x64\npm.cmd" run verify:i8:stage5
+call "%PRODUCT_ROOT%runtime\node-v20.20.2-win-x64\npm.cmd" run verify:i8:stage6
 if errorlevel 1 exit /b %ERRORLEVEL%
 
-echo HENGZHUN_I1_I2_I3_I4_I5_I6_I7_AND_I8_STAGE5_VERIFIED
+echo HENGZHUN_I1_I2_I3_I4_I5_I6_I7_AND_I8_STAGE6_VERIFIED
 exit /b 0

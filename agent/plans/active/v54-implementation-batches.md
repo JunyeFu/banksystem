@@ -152,7 +152,7 @@ Playwright 对浏览器事实和正式回归结果负责，不接受 Midscene �
 - 只有候选取得 `StabilityCertificate`、用户明确激活且证据完整时才展示调度选项；`FAILED`、未激活、证据不完整或脚本版本漂移时禁止创建调度。
 - 用户选择 `ON_DEMAND` 不得调用任何调度写工具；选择 `RECURRING` 或 `ONE_TIME` 后，主控必须先回显规范化配置并获得最终确认，再执行一次幂等创建。
 - 调度创建后必须回查并向用户返回 `scheduleId`、类型、状态、绑定版本、下次/计划执行时间、时区和脱敏配置摘要。
-- 当前 Harness 已实现五字段 Cron 的 `RECURRING` 调度，但尚未实现 `ONE_TIME runAt`，也未完整固定 `scriptVersion`；在对应契约、SQLite migration、状态机、工具和测试落地前，主控必须将这两项标记为未实现，不得用 Cron 或模型记忆模拟。
+- Harness 阶段6已同时实现五字段 Cron `RECURRING` 与带时区 `ONE_TIME runAt`，并冻结`caseVersion + planId + scriptId + scriptVersion + scriptHash`；旧周期调度经migration 014回填实际版本，不能安全回填时自动禁用。主控仍必须先回显规范化时间并取得人工确认，不得让用户编写Cron或用模型记忆代替Schedule状态。
 - 正式调度执行只运行已验证 Playwright 脚本，禁止调用 Midscene、主控 LLM 或视觉模型；失败后进入事故与人工恢复流程，不得自动作者化或自动激活修复。
 
 定期或定时任务由本地 Harness Schedule 触发本地纯 Playwright Worker。运行结果必须持久化为可恢复的 `runId / taskId / resultArtifactId`：用户对话仍在线时由 Workflow 轮询并返回；用户离线时由 Harness 保存，用户下次进入主控对话或查询 `scheduleId` 时返回最近运行状态、断言摘要和脱敏证据元数据。不得依赖 Agent 会话持续存活，也不得因为无法主动推送而丢失结果。
@@ -226,7 +226,7 @@ Playwright 对浏览器事实和正式回归结果负责，不接受 Midscene �
 
 - 当前已经实现：Harness/SQLite 层的完整计划游标、上一动作摘要/当前动作/下一动作预览状态窗口、单动作租约、Playwright 逐动作验证、三条预置 Playwright 脚本正式执行、脱敏 Artifact 元数据和历史 Coze 主控对话结果摘要。`npm.cmd run test:i4` 当前 3/3 通过。
 - 当前视觉消费限制：历史 Midscene Worker 只把 `currentAction.prompt` 交给模型；上一动作摘要、下一动作预览、最近观察和页面状态虽然由 Harness 返回，却未构造成受预算治理的 `ActionContextEnvelope` 送入视觉模型。因此“三动作状态窗口已实现”不得表述为“视觉 LLM 滑动上下文已实现”。
-- 当前尚未实现：普通案例描述到完整工具参数的无提示自然语言 Workflow、Script Package Builder 真实生成新的 Playwright 源码包、逐阶段 `StepFailureEnvelope` 与限域 LLM 修复、候选源码受控预览、生成脚本的隔离完整回归与激活后按新版本正式执行、一次性 `ONE_TIME runAt` 调度、调度对精确 `scriptVersion` 的完整绑定，以及定期运行结果在后续对话中的完整恢复交付。
+- 当前尚未实现：运行中Flowise Agentflow发布与真实MiMo主控对话、逐阶段`StepFailureEnvelope`与限域LLM修复，以及目标HiAgent迁移验收。确定性Builder、持证预览/激活/正式执行、一次性`ONE_TIME runAt`、精确`scriptVersion`调度绑定和后续对话离线结果恢复已分别由阶段3—6完成本机实现与验证。
 - 在上述缺口关闭前，所有现有 I4/I5 “作者化完成”证据只证明原子动作门禁、预置脚本验证或定位器配置候选，不证明“Midscene 已生成新的 Playwright 脚本”。
 - 后续任何脚本作者化开发必须先按本节补齐 Workflow 输入契约、消息 Schema、SQLite 状态、三动作窗口、生成器、Worker 白名单、纯 Playwright 隔离验证、逐步骤限域修复、人工激活、调度版本绑定和 Agent 平台结果查询链，再扩展视频案例或更大范围自动修复。
 
@@ -366,6 +366,8 @@ I8 内部实现顺序固定为：
 2026-07-20 阶段4完成状态：第4项已完成代码、常驻Worker接入和真实浏览器验收。migration 012冻结批次、六个验证样本与不可变`StabilityCertificate`；样本严格为1440×900和390×844两个视口各1—3次，每次使用全新BrowserContext、空storage state和独立Fixture。Worker复核候选/manifest/运行时Hash，输出脱敏报告、PNG截图和步骤日志并验证文件Hash；任何一次失败均整批失败、不重试、不签证。`verify:i8:stage4`覆盖阶段1—4与内部OpenAPI，真实复兴银行门户另以固定Chromium完成6/6并签发证书。阶段4未实现脚本预览、下载、保存、激活或调度；第5项受控交付与人工选择是下一步。
 
 2026-07-20 阶段5完成状态：第5项已完成代码、本机集成和真实门户验收。migration 013冻结不可变交付决策及短时一次性下载授权；只有`StabilityCertificate=PASSED`且候选、manifest、脚本Hash复核一致时才能按完整行分页预览或下载。用户可明确`SAVE_ONLY / ACTIVATE / REJECT`；激活原子绑定精确`caseVersion + executablePlanVersion + scriptId + scriptVersion + scriptHash`，保留旧版本且不自动运行、不创建调度。激活后可另行提交一次按需回归，常驻Worker只用固定Chromium和纯Playwright执行已激活候选，结果可由`task_get`查询。MCP现有8项ACTIVE、阶段6—7的6项继续失败关闭；Flowise阶段5续办制品只使用MCP、条件、人工确认、结构化LLM和直接回复。`verify:i8:stage5`累计25/25通过，真实复兴银行门户完成六次签证、预览、精确激活和正式复跑。阶段5没有实现周期/一次性调度或离线收件箱；第6项是下一步。
+
+2026-07-20 阶段6完成状态：第6项已完成代码、本机集成和真实固定Chromium验收。migration 014为历史调度回填并冻结`scriptId + scriptVersion + scriptHash`，无法确定身份的旧调度自动禁用；新调度同时支持五字段Cron的`RECURRING`和带偏移`runAt`的`ONE_TIME`。执行时按冻结版本及Hash读取`script_versions`，即使`current_version`变化也不跟随；一次性调度终态自动停用。每个正式Run终态以`namespace + runId`幂等写入不可删除的SQLite收件箱，可分页读取、未读筛选和确认已读，只返回脱敏摘要与Artifact元数据。Flowise阶段6制品由主控LLM规范化自然语言时间、回显并经Human Input确认，用户不接触Cron、凭据或技术版本。MCP现有11项ACTIVE，阶段7的3项继续失败关闭；`verify:i8:stage6`与真实Playwright调度专项均通过。阶段7限域反向修复是下一步；真实Flowise发布/MiMo对话和HiAgent仍未验收。
 
 I8 退出条件全部为硬门禁：
 

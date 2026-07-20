@@ -164,11 +164,13 @@ test('activated candidate executes once through pure Playwright and task result 
   assert.equal(task.body.status, 'SUCCEEDED'); assert.equal(task.body.outcome, 'PASSED')
 })
 
-test('stage5 MCP and Flowise manifests activate only eight governed tools', () => {
+test('stage5 MCP and Flowise manifests preserve all eight stage5 governed tools after later stages activate', () => {
   const contract = JSON.parse(fs.readFileSync(path.join(productRoot, 'contracts', 'mcp', 'hengzhun-i8.json'), 'utf8'))
   const manifest = JSON.parse(fs.readFileSync(path.join(productRoot, 'flowise', 'i8', 'deployment-manifest.json'), 'utf8'))
   const continuation = JSON.parse(fs.readFileSync(path.join(productRoot, 'flowise', 'i8', manifest.stage5ContinuationArtifact), 'utf8'))
-  assert.equal(contract.activeStage, 5); assert.equal(contract.tools.filter(tool => tool.status === 'ACTIVE').length, 8); assert.equal(contract.tools.filter(tool => tool.status === 'DEFERRED_FAIL_CLOSED').length, 6)
+  assert.ok(contract.activeStage >= 5)
+  const stage5Tools = contract.tools.filter(tool => tool.stage <= 5)
+  assert.equal(stage5Tools.length, 8); assert.equal(stage5Tools.every(tool => tool.status === 'ACTIVE'), true)
   assert.deepEqual(manifest.activeMcpTools, contract.tools.filter(tool => tool.status === 'ACTIVE').map(tool => tool.name))
   assert.equal(continuation.entryContract.userTechnicalInputRequired, false)
   assert.deepEqual(continuation.nodes.filter(node => node.semantic === 'mcp_tool').map(node => node.tool), ['candidate_get', 'candidate_preview', 'candidate_decide', 'run_submit', 'task_get'])

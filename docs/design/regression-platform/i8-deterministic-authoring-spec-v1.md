@@ -517,3 +517,14 @@ I8 方案本身已冻结；以下是外部验收风险，不改变实现选择�
 - `run_submit`只接受已ACTIVATE的精确候选；任务只携带受控候选ID、相对目录、script/manifest Hash与凭据别名。常驻Worker通过`i8-formal-runner.cjs`执行纯Playwright，不调用Midscene或LLM。
 - `task_get`只返回最小任务、Run结果和错误元数据。Flowise阶段5续办制品由控制器状态注入`preparationId`，用户不输入技术ID；仍需真实平台导入/发布验证。
 - `verify:i8:stage5`累计25/25；`verify:i8:stage5:live`在真实复兴银行门户完成6次签证、预览、精确激活及正式复跑。此证据不包含阶段6调度/收件箱，也不证明真实MiMo、Flowise发布或HiAgent运行。
+
+## 20. 阶段6实现记录（2026-07-20）
+
+- migration 014为`schedules`增加`schedule_type/run_at/script_id/script_version/script_sha256/one_time_state/completed_at`。历史调度按当时计划的实际脚本版本回填；身份不完整即`DISABLED`。
+- `RECURRING`继续使用五字段Cron与IANA时区；`ONE_TIME`只接受带偏移且未来的`runAt`。一次性执行进入`RUNNING`后不重复投递，成功或最终失败自动`DISABLED`并保留终态。
+- 调度执行通过冻结的`scriptId + scriptVersion + scriptHash`读取`script_versions`，Hash冲突失败关闭；`scripts.current_version`后续变化不会迁移旧调度。
+- `result_inbox_items`以`namespace + run_id`唯一。每个按需/调度正式Run仅在最终终态写入一次，重试中不提前投递；记录不可删除，身份与结果不可改，只允许`UNREAD→READ`。
+- 收件箱按SQLite序号倒序分页，可筛未读和确认已读；对Agent只输出断言摘要与脱敏Artifact类型、Hash、大小、媒体类型和脱敏状态，不输出文件路径。
+- Flowise阶段6制品只使用结构化LLM、条件、Human Input、MCP和直接回复。用户输入自然语言时间；主控回显类型、Asia/Shanghai时间、Cron或runAt、misfire、宽限和重试，确认后才幂等创建。ON_DEMAND不调用调度写工具。
+- MCP 6.0.0共14项冻结工具，其中11项ACTIVE；`failure_get/repair_propose/decision_submit`继续稳定失败关闭至阶段7。
+- `verify:i8:stage6`覆盖阶段1—6；`verify:i8:stage6:live`使用固定Chromium实际执行ONE_TIME调度，并在主动制造`current_version`漂移后证明运行仍绑定旧版本。此证据仍不证明真实Flowise发布、MiMo对话或HiAgent运行。

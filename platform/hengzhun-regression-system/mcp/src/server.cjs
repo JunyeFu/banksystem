@@ -91,12 +91,10 @@ function parseJsonArgument(value, errorCode) {
   }
 }
 
-const deferredTools = [
-  'schedule_create', 'schedule_get', 'result_inbox_list', 'failure_get', 'repair_propose', 'decision_submit'
-]
+const deferredTools = ['failure_get', 'repair_propose', 'decision_submit']
 
 function createServer() {
-  const server = new McpServer({ name: 'hengzhun-i8-regression', version: '5.0.0' })
+  const server = new McpServer({ name: 'hengzhun-i8-regression', version: '6.0.0' })
 
   server.registerTool('case_prepare', {
     description: '将自然语言案例的已澄清结构化草案和知识快照提交给衡准权威状态库。',
@@ -240,6 +238,51 @@ function createServer() {
     inputSchema: { taskId: safeRef }
   }, async ({ taskId }) => callHarness('/v1/i8/tasks:get', { namespace, taskId }))
 
+  server.registerTool('schedule_create', {
+    description: '在用户确认规范化时间后，为已激活候选创建精确绑定脚本版本的周期或一次性回归。用户不提供技术版本和凭据。',
+    inputSchema: {
+      preparationId: safeRef,
+      scheduleType: z.enum(['RECURRING', 'ONE_TIME']),
+      cronExpression: z.string().trim().min(9).max(128).optional(),
+      runAt: z.string().datetime({ offset: true }).optional(),
+      timezone: z.string().trim().min(1).max(80).default('Asia/Shanghai'),
+      misfirePolicy: z.enum(['SKIP', 'RUN_ONCE']).default('RUN_ONCE'),
+      misfireGraceSeconds: z.number().int().min(0).max(86400).default(300),
+      maxRetries: z.number().int().min(0).max(5).default(1),
+      confirmationRef: safeRef,
+      sessionRef: safeRef
+    }
+  }, async ({ preparationId, scheduleType, cronExpression, runAt, timezone, misfirePolicy, misfireGraceSeconds, maxRetries, confirmationRef, sessionRef }) => {
+    const business = { preparationId, scheduleType, cronExpression, runAt, timezone, misfirePolicy, misfireGraceSeconds, maxRetries, confirmationRef }
+    return callHarness('/v1/i8/schedules:create', {
+      namespace, idempotencyKey: idempotencyKey('schedule_create', sessionRef, business),
+      preparationId, scheduleType, ...(cronExpression ? { cronExpression } : {}), ...(runAt ? { runAt } : {}),
+      timezone, misfirePolicy, misfireGraceSeconds, maxRetries, confirmationRef,
+      credentialAlias: 'i3-customer'
+    })
+  })
+
+  server.registerTool('schedule_get', {
+    description: '读取调度状态及其精确绑定的案例、计划和脚本版本。',
+    inputSchema: { scheduleId: safeRef }
+  }, async ({ scheduleId }) => callHarness('/v1/i8/schedules:get', { namespace, scheduleId }))
+
+  server.registerTool('result_inbox_list', {
+    description: '分页读取正式运行的离线结果收件箱，并可显式确认已读；只返回脱敏摘要和制品元数据。',
+    inputSchema: {
+      cursor: z.string().regex(/^seq:\d+$/).optional(),
+      limit: z.number().int().min(1).max(20).default(10),
+      unreadOnly: z.boolean().default(false),
+      acknowledgeInboxIds: z.array(safeRef).max(50).default([])
+    }
+  }, async ({ cursor, limit, unreadOnly, acknowledgeInboxIds }) => {
+    const result = await requestHarness('/v1/i8/results:inbox-list', {
+      namespace, ...(cursor ? { cursor } : {}), limit, unreadOnly, acknowledgeInboxIds
+    })
+    if (!result.response.ok) return textResult({ errorCode: result.body.errorCode || 'I8_RESULT_INBOX_FAILED', status: result.response.status }, true)
+    return textResult(result.body, false, 16 * 1024)
+  })
+
   for (const toolName of deferredTools) {
     server.registerTool(toolName, {
       description: `${toolName} 已冻结名称和边界，但要到 I8 后续阶段实现。`,
@@ -254,7 +297,7 @@ function createServer() {
 }
 
 const app = createMcpExpressApp()
-app.get('/health', (_request, response) => response.json({ status: 'ok', service: 'hengzhun-i8-mcp', version: '5.0.0' }))
+app.get('/health', (_request, response) => response.json({ status: 'ok', service: 'hengzhun-i8-mcp', version: '6.0.0' }))
 app.use('/mcp', (request, response, next) => {
   if (!authorized(request.headers.authorization)) {
     response.status(401).json({ jsonrpc: '2.0', error: { code: -32001, message: 'Unauthorized' }, id: null })
