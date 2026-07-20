@@ -52,6 +52,7 @@ const requiredFiles = [
   'mcp/src/server.cjs',
   'contracts/mcp/hengzhun-i8.json',
   'flowise/i8/agentflow-v2.json',
+  'flowise/i8/stage5-delivery-agentflow-v1.json',
   'flowise/i8/deployment-manifest.json',
   'flowise/i8/hiagent-capability-map.yaml',
   'flowise/i8/knowledge/portal-login-consistency.md',
@@ -69,6 +70,12 @@ const requiredFiles = [
   'tests/i8/stage4-stability-certificate.test.cjs',
   'scripts/verify-i8-stage4.ps1',
   'scripts/verify-i8-stage4-live.ps1', 'scripts/verify-i8-stage4-live.cjs',
+  'harness/migrations/013_i8_controlled_delivery.sql',
+  'harness/src/i8/stage5-schemas.ts',
+  'worker/src/i8-formal-runner.cjs',
+  'tests/i8/stage5-controlled-delivery.test.cjs',
+  'scripts/verify-i8-stage5.ps1',
+  'scripts/verify-i8-stage5-live.ps1',
   'coze/agents/hengzhun-i4-regression-agent.md',
   'coze/knowledge/i4-three-case-authoring-runtime-rules.md',
   'coze/workflows/i4-three-cases-authoring.yaml',
@@ -118,6 +125,7 @@ try {
   if (!packageJson.scripts?.['verify:i8:stage2']) failures.push('I8 stage2 verification command is missing');
   if (!packageJson.scripts?.['verify:i8:stage3']) failures.push('I8 stage3 verification command is missing');
   if (!packageJson.scripts?.['verify:i8:stage4']) failures.push('I8 stage4 verification command is missing');
+  if (!packageJson.scripts?.['verify:i8:stage5']) failures.push('I8 stage5 verification command is missing');
 } catch (error) {
   failures.push(`package.json: ${error.message}`);
 }

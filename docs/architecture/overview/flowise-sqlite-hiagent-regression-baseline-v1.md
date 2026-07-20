@@ -223,7 +223,7 @@ Flowise 检索
 - 视觉模型默认 `CTX-L1`，只有确定性消歧规则才能升级 `CTX-L2` 或裁剪后的 `CTX-L3`。主控即使有 1M 容量，也不得读取完整仓库、SQLite、其他案例、秘密或无关历史。
 - Harness 必须按消费者独立预估和记录 token 预算。视觉上下文无法压入 16K 时不得静默删除安全字段，必须返回 `VISION_CONTEXT_BUDGET_EXCEEDED` 并转纯 Playwright、重新规划或人工处理；主控超限返回 `CONTROLLER_CONTEXT_BUDGET_EXCEEDED`。
 
-### 8.3 当前实现边界（2026-07-20 阶段4落地后）
+### 8.3 当前实现边界（2026-07-20 阶段5落地后）
 
 当前 I0—I7 历史代码仅实现了 Harness/SQLite 层的滑动状态：完整计划持久化、游标、上一动作摘要、当前动作、下一动作预览、最近观察、页面状态、单动作租约，以及 Playwright 验证成功后推进。历史 `test:i4` 当前 3/3 通过。
 
@@ -235,7 +235,9 @@ I8 阶段3进一步落地 migration 011、严格 `ExecutableActionPlan`、10操�
 
 I8 阶段4进一步落地 migration 012、固定两个视口各3次、每样本全新BrowserContext/空storage state/独立Fixture、候选与运行时指纹、脱敏证据Hash回验和不可变`StabilityCertificate`。常驻Worker已进入稳定性Claim/Completion循环；固定Chromium对合成门户和真实复兴银行门户均完成6/6。真实门户曾暴露异步资料加载竞态，生成器现以冻结超时等待可见，而不是瞬时`isVisible`误判。
 
-尚未完成的是运行中 Agentflow 发布、真实 MiMo 主控对话、阶段5—7脚本交付/激活/调度/修复以及 HiAgent 目标环境验收。因此只能声明“阶段4本机代码、集成和真实门户浏览器验证完成”，不能声明“主控—视觉—脚本完整闭环”或“HiAgent已验收”。追踪见 `AUD-009...AUD-027`。
+I8 阶段5进一步落地 migration 013、持证候选Hash复核、16KiB完整行分页预览、5分钟一次性下载授权、`SAVE_ONLY/ACTIVATE/REJECT`不可变决策、精确版本激活和纯Playwright按需执行。ACTIVATE不会隐式创建Run或Schedule；只有用户另行选择运行时，常驻Worker才执行受控候选。MCP累计8项活跃、6项后续能力失败关闭；真实复兴银行门户已完成签证后预览、激活和正式复跑。
+
+尚未完成的是运行中 Agentflow 发布、真实 MiMo 主控对话、阶段6—7调度/离线收件箱/修复以及 HiAgent 目标环境验收。因此只能声明“阶段5本机代码、集成和真实门户浏览器验证完成”，不能声明“I8全部完成”或“HiAgent已验收”。追踪见 `AUD-009...AUD-033`。
 
 ## 9. HiAgent 迁移约束
 

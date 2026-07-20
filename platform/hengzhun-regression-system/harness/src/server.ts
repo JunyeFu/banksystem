@@ -26,6 +26,7 @@ import {
   i8CandidateGetSchema
 } from './i8/stage3-schemas';
 import { i8StabilityCompletionSchema } from './i8/stage4-schemas';
+import { i8CandidateDecisionSchema, i8CandidatePreviewSchema, i8RunSubmitSchema, i8TaskGetSchema } from './i8/stage5-schemas';
 import { authorizeRequest, loadSecurityConfig, remoteAddressForAudit, SecurityConfig, SecurityResult } from './security';
 import { HarnessService } from './service';
 import { credentialFingerprint, nowIso, opaqueId } from './utils';
@@ -234,6 +235,22 @@ export async function createHarnessApplication(options: HarnessApplicationOption
         }, 'L0', requestId);
       }
 
+      const i8DownloadMatch = url.pathname.match(/^\/v1\/i8\/downloads\/(download_[0-9a-f-]{36})$/);
+      if (request.method === 'GET' && i8DownloadMatch) {
+        const download = await service.consumeI8Download(i8DownloadMatch[1] as string);
+        const content = download.content as Buffer;
+        response.writeHead(200, {
+          'content-type': String(download.mediaType),
+          'content-disposition': `attachment; filename="${String(download.filename).replace(/[^A-Za-z0-9._-]/g, '_')}"`,
+          'content-length': content.byteLength,
+          'cache-control': 'no-store',
+          'x-content-type-options': 'nosniff',
+          'x-content-sha256': String(download.sha256),
+          'x-request-id': requestId
+        });
+        return response.end(content);
+      }
+
       if (request.method === 'POST' && url.pathname === '/internal/worker/tasks:claim') {
         authorizeWorker(request.headers.authorization, workerToken);
         const input = workerClaimSchema.parse(await readJson(request));
@@ -358,6 +375,24 @@ export async function createHarnessApplication(options: HarnessApplicationOption
       if (request.method === 'POST' && url.pathname === '/v1/i8/candidates:get') {
         const input = i8CandidateGetSchema.parse(await readJson(request));
         return sendJson(response, 200, service.getI8Candidate(input.namespace, input.preparationId), 'L1', requestId);
+      }
+      if (request.method === 'POST' && url.pathname === '/v1/i8/candidates:preview') {
+        const input = i8CandidatePreviewSchema.parse(await readJson(request));
+        return sendJson(response, 200, await service.previewI8Candidate(input, context), 'L2', requestId);
+      }
+      if (request.method === 'POST' && url.pathname === '/v1/i8/candidates:decide') {
+        const input = i8CandidateDecisionSchema.parse(await readJson(request));
+        const result = await service.decideI8Candidate(input, context);
+        return sendJson(response, result.status, result.response, 'L1', requestId);
+      }
+      if (request.method === 'POST' && url.pathname === '/v1/i8/runs:submit') {
+        const input = i8RunSubmitSchema.parse(await readJson(request));
+        const result = await service.submitI8Run(input, context);
+        return sendJson(response, result.status, result.response, 'L1', requestId);
+      }
+      if (request.method === 'POST' && url.pathname === '/v1/i8/tasks:get') {
+        const input = i8TaskGetSchema.parse(await readJson(request));
+        return sendJson(response, 200, omitNullValues(service.getTask(input.namespace, input.taskId)), 'L0', requestId);
       }
       if (request.method === 'POST' && url.pathname === '/v1/plugin/cases:create-draft') {
         const input = caseCreateDraftSchema.parse(await readJson(request));

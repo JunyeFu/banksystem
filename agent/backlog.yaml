@@ -3,7 +3,7 @@ project: banksystem
 root: D:\Agent\banksystem
 defaultBranch: main
 statusSource: agent/backlog.yaml
-updatedAt: '2026-07-20T16:54:52+08:00'
+updatedAt: '2026-07-20T21:24:13+08:00'
 
 allowedStatuses: [PROPOSED, READY, IN_PROGRESS, BLOCKED, REVIEW, DONE, CANCELLED]
 
@@ -128,7 +128,7 @@ tracks:
         status: IN_PROGRESS
         owner: 傅钧烨
         dependsOn: [HENGZHUN-DELIVERY-001]
-        evidence: [docs/evidence/platform/hengzhun-i8-stage2-agentflow-mcp-2026-07-20.md, docs/evidence/platform/hengzhun-i8-stage3-deterministic-builder-2026-07-20.md, docs/evidence/platform/hengzhun-i8-stage4-stability-certificate-2026-07-20.md]
+        evidence: [docs/evidence/platform/hengzhun-i8-stage2-agentflow-mcp-2026-07-20.md, docs/evidence/platform/hengzhun-i8-stage3-deterministic-builder-2026-07-20.md, docs/evidence/platform/hengzhun-i8-stage4-stability-certificate-2026-07-20.md, docs/evidence/platform/hengzhun-i8-stage5-controlled-delivery-2026-07-20.md]
         allowedPaths: [platform/hengzhun-regression-system/**, docs/architecture/**, docs/control/**, docs/design/regression-platform/**, docs/current-state/**, docs/evidence/platform/**, agent/**]
         acceptance:
           - Flowise 3.0.12 on bundled Node 20.20.2 is the only personal and office computer Agent platform; all platform-external operations use authenticated MCP tools.

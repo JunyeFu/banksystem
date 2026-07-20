@@ -8,7 +8,7 @@ I1 的单目录产品边界、固定运行时、结构校验、合成一致性�
 
 I5 已完成结构化案例导入、七类失败分类、定位器脚本失效诊断、白名单修复候选、隔离 Playwright 验证和人工确认激活。Coze Studio 0.5.1 已仅通过公开界面发布十一工具插件 v0.0.7、I5 Knowledge Base 与主控 Agent；自然语言批准真实改变 SQLite 权威状态，`repair_candidate_get` 回查为 `ACTIVE/version 4`，关联事故为 `RESOLVED/version 4`。使用旧版本的重复批准被 409 安全拒绝，没有发生第二次状态变更。
 
-I8 当前处于实施中。阶段1已完成受控上下文内核；阶段2已完成一句自然语言输入的Flowise Agentflow制品和Harness交接；阶段3已完成确定性Builder和受控候选；阶段4已完成migration 012、固定2视口×3次、全新BrowserContext/独立Fixture、运行时与证据Hash及不可变稳定性证书，常驻Worker已接入，真实复兴银行门户由固定Chromium完成6/6。真实Flowise 3.0.12 MCP Client已贯通Harness/SQLite且现有4项工具ACTIVE、10项失败关闭；尚未发布运行中Agentflow、完成真实MiMo对话或实现阶段5—7交付/激活/调度/修复闭环。
+I8 当前处于实施中。阶段1—4已完成上下文内核、Agentflow/MCP交接、确定性Builder和6次稳定性证书；阶段5已完成migration 013、持证分页预览、一次性下载、SAVE_ONLY/ACTIVATE/REJECT、精确版本激活及纯Playwright按需执行。真实复兴银行门户已完成6次签证后预览、激活和正式复跑。MCP现有8项工具ACTIVE、阶段6—7的6项失败关闭；尚未发布运行中Agentflow、完成真实MiMo对话或实现阶段6—7调度/收件箱/修复闭环。
 
 ## 目录职责
 
@@ -44,3 +44,5 @@ I8 阶段2执行 `npm.cmd run verify:i8:stage2`，覆盖阶段1回归、migratio
 I8 阶段3执行 `npm.cmd run verify:i8:stage3`，覆盖阶段1/2回归、migration 011、严格执行计划、有限DSL、确定性Builder、来源链/Hash、候选持久化、Flowise `candidate_get` 和Worker篡改/危险能力拒绝。该门禁使用受控Fake Page验证执行契约，不替代阶段4真实Chromium稳定性验证。
 
 I8 阶段4执行 `npm.cmd run verify:i8:stage4`，覆盖阶段1—4回归、migration 012、固定六样本、真实内置Chromium、失败不重试/不签证、证据Hash和常驻Worker轮询契约。已启动复兴银行本机演示栈时，可再执行 `npm.cmd run verify:i8:stage4:live` 完成真实门户6/6验收；脚本从忽略的运行时配置读取凭据且不输出凭据。
+
+I8 阶段5执行 `npm.cmd run verify:i8:stage5`，覆盖阶段1—5累计回归、migration 013、持证Hash复核、分页/一次性下载、三种人工决策、并发版本冲突、激活不自动运行、按需纯Playwright执行和8/6 MCP门禁。演示栈启动时执行`npm.cmd run verify:i8:stage5:live`，会对真实门户完成六次签证、预览、精确激活和正式复跑；不创建任何调度。

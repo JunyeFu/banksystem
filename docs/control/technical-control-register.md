@@ -84,8 +84,14 @@ owner: project-owner
 | `AUD-025` | 稳定性样本可能复用认证、Fixture或以重试替换失败 | `CLOSED_STAGE4`：migration 012固定2视口×3序列、独立Fixture；每次新建空storage state BrowserContext；任一失败整批失败且无重试任务 |
 | `AUD-026` | 候选、运行时或证据在签证前后可能漂移 | `CLOSED_STAGE4`：Worker复核候选/manifest Hash，绑定运行时指纹、断言集Hash、证据形状Hash并回验文件Hash/长度；证书及终态受不可变触发器保护 |
 | `AUD-027` | 阶段4能力可能仅存在于专项脚本而未进入常驻运行链 | `CLOSED_STAGE4`：常驻Worker轮询稳定性Claim、真实执行并回传Completion；环境级启动失败保持租约超时失败关闭，不伪造证书 |
+| `AUD-028` | 未持证或签证后被篡改的候选可能被提前展示或交付 | `CLOSED_STAGE5`：预览和下载前重新复核证书状态、候选/manifest/脚本身份及Hash；未持证或不一致均失败关闭 |
+| `AUD-029` | 大脚本预览可能越过输出预算、截断行或泄露本机路径/凭据 | `CLOSED_STAGE5`：按完整行分页并限制16KiB工具输出；响应不含绝对路径、凭据、Cookie或storage state |
+| `AUD-030` | 下载链接可能长期复用或绕过审计 | `CLOSED_STAGE5`：只发5分钟一次性随机授权，SQLite仅保存Token Hash；使用、过期及候选下载均审计，终态不可变 |
+| `AUD-031` | 保存、激活和拒绝语义可能混淆，或激活隐式触发运行/调度 | `CLOSED_STAGE5`：不可变决策只接受`SAVE_ONLY/ACTIVATE/REJECT`；精确版本并发门禁，ACTIVATE不创建Run或Schedule |
+| `AUD-032` | 正式回归可能运行未激活版本、任意路径或再次调用模型 | `CLOSED_STAGE5`：`run_submit`只接受已激活持证候选，任务携带受控相对目录和双Hash；常驻Worker以纯Playwright固定Chromium执行并阻断外部来源 |
+| `AUD-033` | 阶段5工具启用可能连带提前开放调度/修复或冒充Flowise/HiAgent验收 | `CLOSED_STAGE5_EVIDENCE_BOUNDARY`：MCP只启用8项，阶段6—7六项稳定失败关闭；Flowise续办制品已冻结但运行发布、MiMo和HiAgent仍单独未验证 |
 
-`AUD-009...AUD-013` 完成阶段1，`AUD-014...AUD-018` 完成阶段2代码与本机集成边界，`AUD-019...AUD-023` 完成阶段3确定性Builder与受控Worker执行边界，`AUD-024...AUD-027` 完成阶段4真实浏览器稳定性与证书边界。阶段5只能交付已持有有效证书且Hash一致的候选；不得提前调度，也不得把本机证据写成Flowise真实Agentflow、MiMo或HiAgent证据。
+`AUD-009...AUD-013` 完成阶段1，`AUD-014...AUD-018` 完成阶段2，`AUD-019...AUD-023` 完成阶段3，`AUD-024...AUD-027` 完成阶段4，`AUD-028...AUD-033` 完成阶段5受控交付、精确激活和按需执行边界。阶段6才允许实现精确版本调度和离线收件箱；不得把本机证据写成Flowise真实Agentflow、MiMo或HiAgent证据。
 
 ### 2.4 仍未验证但不得遗忘
 

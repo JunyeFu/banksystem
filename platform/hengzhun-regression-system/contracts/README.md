@@ -8,4 +8,4 @@
 
 `openapi/hengzhun-worker-internal-v1.yaml` 1.5.0 在阶段1作者化和阶段3候选构建契约基础上，新增阶段4稳定性Claim/Completion、固定六样本、证据描述和运行时指纹Schema，共11项内部操作。它只供受控本机Worker，不导入Agent平台，也不暴露凭据、SQLite或任意执行能力。
 
-`mcp/hengzhun-i8.json` 3.0.0 冻结I8的14个Agent平台业务工具名和阶段状态。阶段3启用`case_prepare`、`authoring_submit`、`authoring_get`、`candidate_get`，其余10项必须返回`I8_STAGE_CAPABILITY_NOT_AVAILABLE`，不得用占位成功冒充后续阶段能力。
+`mcp/hengzhun-i8.json` 5.0.0 冻结I8的14个Agent平台业务工具名和阶段状态。阶段5累计启用`case_prepare`、`authoring_submit`、`authoring_get`、`candidate_get`、`candidate_preview`、`candidate_decide`、`run_submit`、`task_get`；阶段6—7其余6项必须返回`I8_STAGE_CAPABILITY_NOT_AVAILABLE`，不得用占位成功冒充后续能力。

@@ -11,3 +11,5 @@ I8 阶段2由 `tests/i8/stage2-agentflow-mcp.test.cjs` 覆盖：migration 010、
 I8 阶段3由 `tests/i8/stage3-deterministic-builder.test.cjs` 覆盖：migration 011、严格ExecutableActionPlan、10操作有限DSL、确定性Builder、相同输入字节一致、候选SQLite/文件落地、来源链/Hash以及Worker受控执行和篡改拒绝。Worker使用Fake Page验证Playwright调用契约，尚不证明真实Chromium在两个视口各连续3次稳定通过。
 
 I8 阶段4由 `tests/i8/stage4-stability-certificate.test.cjs` 覆盖：migration 012不可变权威、固定1440×900/390×844各3次、真实内置Chromium、全新BrowserContext、独立Fixture、证据/运行时Hash、6/6签证、单样本失败整批拒绝且无重试，以及常驻Worker轮询接入。`verify:i8:stage4:live`另对真实复兴银行门户执行相同六样本，不能替代Flowise Agentflow、MiMo或HiAgent验收。
+
+I8 阶段5由 `tests/i8/stage5-controlled-delivery.test.cjs` 覆盖：migration 013不可变决策、持证Hash复核、完整行分页、5分钟一次性下载、SAVE_ONLY/ACTIVATE/REJECT、并发旧版本拒绝、激活零副作用、受控候选任务负载、真实内置Chromium纯Playwright正式执行和任务结果查询。`verify:i8:stage5:live`另对真实复兴银行门户完成签证、预览、精确激活和正式复跑；不证明Flowise发布、MiMo、HiAgent或阶段6调度。

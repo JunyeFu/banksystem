@@ -170,7 +170,7 @@ test('real bundled Chromium passes two fixed viewports three times and issues on
   assert.equal(candidate.body.stability.status, 'PASSED')
   assert.equal(candidate.body.stability.passedRuns, 6)
   assert.equal(candidate.body.stability.certificate.validationRunIds.length, 6)
-  assert.equal(candidate.body.nextAction, 'I8_STAGE5_DELIVERY_REQUIRED')
+  assert.equal(candidate.body.nextAction, 'HUMAN_DELIVERY_DECISION_REQUIRED')
   assert.equal(application.database.connection.prepare('SELECT COUNT(*) AS count FROM i8_stability_certificates').get().count, 1)
   assert.throws(() => application.database.connection.prepare('DELETE FROM i8_stability_certificates').run(), /I8_STABILITY_CERTIFICATE_IMMUTABLE/)
 })

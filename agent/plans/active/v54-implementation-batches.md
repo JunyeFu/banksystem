@@ -365,6 +365,8 @@ I8 内部实现顺序固定为：
 
 2026-07-20 阶段4完成状态：第4项已完成代码、常驻Worker接入和真实浏览器验收。migration 012冻结批次、六个验证样本与不可变`StabilityCertificate`；样本严格为1440×900和390×844两个视口各1—3次，每次使用全新BrowserContext、空storage state和独立Fixture。Worker复核候选/manifest/运行时Hash，输出脱敏报告、PNG截图和步骤日志并验证文件Hash；任何一次失败均整批失败、不重试、不签证。`verify:i8:stage4`覆盖阶段1—4与内部OpenAPI，真实复兴银行门户另以固定Chromium完成6/6并签发证书。阶段4未实现脚本预览、下载、保存、激活或调度；第5项受控交付与人工选择是下一步。
 
+2026-07-20 阶段5完成状态：第5项已完成代码、本机集成和真实门户验收。migration 013冻结不可变交付决策及短时一次性下载授权；只有`StabilityCertificate=PASSED`且候选、manifest、脚本Hash复核一致时才能按完整行分页预览或下载。用户可明确`SAVE_ONLY / ACTIVATE / REJECT`；激活原子绑定精确`caseVersion + executablePlanVersion + scriptId + scriptVersion + scriptHash`，保留旧版本且不自动运行、不创建调度。激活后可另行提交一次按需回归，常驻Worker只用固定Chromium和纯Playwright执行已激活候选，结果可由`task_get`查询。MCP现有8项ACTIVE、阶段6—7的6项继续失败关闭；Flowise阶段5续办制品只使用MCP、条件、人工确认、结构化LLM和直接回复。`verify:i8:stage5`累计25/25通过，真实复兴银行门户完成六次签证、预览、精确激活和正式复跑。阶段5没有实现周期/一次性调度或离线收件箱；第6项是下一步。
+
 I8 退出条件全部为硬门禁：
 
 - 普通用户只输入案例描述即可完成首个登录/资料一致性案例的结构化、作者化、脚本生成和稳定性验证；

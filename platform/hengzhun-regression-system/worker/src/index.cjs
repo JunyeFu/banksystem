@@ -4,6 +4,7 @@ const { executeLoginProfile } = require('./login-profile.cjs');
 const { executeAccountOwnership } = require('./account-ownership.cjs');
 const { executeAuthRejectionRecovery } = require('./auth-rejection-recovery.cjs');
 const { executeStabilityBatch } = require('./i8-stability-runner.cjs');
+const { executeI8FormalRun } = require('./i8-formal-runner.cjs');
 
 const executors = new Map([
   ['worker/src/login-profile.cjs', executeLoginProfile],
@@ -66,7 +67,7 @@ async function runOnce() {
   if (task.status === 'EMPTY') return false;
   process.stdout.write(JSON.stringify({ event: 'claimed', taskId: task.taskId, runId: task.runId }) + '\n');
   try {
-    const executor = executors.get(task.execution?.scriptPath);
+    const executor = task.execution?.candidate ? executeI8FormalRun : executors.get(task.execution?.scriptPath);
     if (!executor) throw Object.assign(new Error('脚本不在已验证执行白名单中。'), { code: 'SCRIPT_NOT_ALLOWLISTED', category: 'ENVIRONMENT' });
     const result = await executor(task);
     const completed = await post(`/internal/worker/tasks/${encodeURIComponent(task.taskId)}:complete`, {

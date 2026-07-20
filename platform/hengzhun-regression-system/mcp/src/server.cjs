@@ -44,9 +44,9 @@ function authorized(value) {
   return actual.length === expected.length && crypto.timingSafeEqual(actual, expected)
 }
 
-function textResult(value, isError = false) {
+function textResult(value, isError = false, maxBytes = 8 * 1024) {
   const text = stableJson(value)
-  if (Buffer.byteLength(text, 'utf8') > 8 * 1024) {
+  if (Buffer.byteLength(text, 'utf8') > maxBytes) {
     return { isError: true, content: [{ type: 'text', text: stableJson({ errorCode: 'MCP_OUTPUT_BUDGET_EXCEEDED' }) }] }
   }
   return { ...(isError ? { isError: true } : {}), content: [{ type: 'text', text }] }
@@ -92,12 +92,11 @@ function parseJsonArgument(value, errorCode) {
 }
 
 const deferredTools = [
-  'candidate_preview', 'candidate_decide', 'run_submit', 'task_get',
   'schedule_create', 'schedule_get', 'result_inbox_list', 'failure_get', 'repair_propose', 'decision_submit'
 ]
 
 function createServer() {
-  const server = new McpServer({ name: 'hengzhun-i8-regression', version: '3.0.0' })
+  const server = new McpServer({ name: 'hengzhun-i8-regression', version: '5.0.0' })
 
   server.registerTool('case_prepare', {
     description: '将自然语言案例的已澄清结构化草案和知识快照提交给衡准权威状态库。',
@@ -167,6 +166,11 @@ function createServer() {
       sessionRef: safeRef
     }
   }, async ({ preparationId, sessionRef }) => {
+    const existing = await requestHarness('/v1/i8/candidates:get', { namespace, preparationId })
+    if (existing.response.ok) return textResult(existing.body)
+    if (existing.response.status !== 404) {
+      return textResult({ errorCode: existing.body.errorCode || 'I8_CANDIDATE_STATUS_UNAVAILABLE', status: existing.response.status }, true)
+    }
     const current = await requestHarness('/v1/i8/authoring:get', { namespace, preparationId })
     if (!current.response.ok || !Number.isInteger(current.body.version)) {
       return textResult({ errorCode: current.body.errorCode || 'I8_PREPARATION_VERSION_UNAVAILABLE', status: current.response.status }, true)
@@ -178,6 +182,63 @@ function createServer() {
       expectedPreparationVersion: current.body.version
     })
   })
+
+  server.registerTool('candidate_preview', {
+    description: '仅预览已取得稳定性证书且Hash复核通过的候选脚本；按完整行分页，下载链接为短时一次性授权。',
+    inputSchema: {
+      preparationId: safeRef,
+      cursor: z.string().regex(/^line:\d+$/).optional(),
+      limit: z.number().int().min(1).max(100).optional(),
+      includeDownload: z.boolean().optional()
+    }
+  }, async ({ preparationId, cursor, limit, includeDownload }) => {
+    const current = await requestHarness('/v1/i8/candidates:get', { namespace, preparationId })
+    if (!current.response.ok || !current.body.candidate?.candidateId) {
+      return textResult({ errorCode: current.body.errorCode || 'I8_CANDIDATE_UNAVAILABLE', status: current.response.status }, true)
+    }
+    const preview = await requestHarness('/v1/i8/candidates:preview', {
+      namespace, candidateId: current.body.candidate.candidateId, ...(cursor ? { cursor } : {}), ...(limit ? { limit } : {}), includeDownload: includeDownload === true
+    })
+    if (!preview.response.ok) return textResult({ errorCode: preview.body.errorCode || 'I8_PREVIEW_FAILED', status: preview.response.status }, true)
+    if (preview.body.download?.href) preview.body.download.href = new URL(preview.body.download.href, harnessUrl).toString()
+    return textResult(preview.body, false, 16 * 1024)
+  })
+
+  server.registerTool('candidate_decide', {
+    description: '对已持证候选执行SAVE_ONLY、ACTIVATE或REJECT；ACTIVATE只激活精确版本且不自动运行。',
+    inputSchema: {
+      preparationId: safeRef,
+      choice: z.enum(['SAVE_ONLY', 'ACTIVATE', 'REJECT']),
+      confirmationRef: safeRef,
+      reason: z.string().trim().min(1).max(1000),
+      sessionRef: safeRef
+    }
+  }, async ({ preparationId, choice, confirmationRef, reason, sessionRef }) => {
+    const current = await requestHarness('/v1/i8/candidates:get', { namespace, preparationId })
+    const candidate = current.body.candidate
+    if (!current.response.ok || !candidate?.candidateId || !Number.isInteger(candidate.version)) {
+      return textResult({ errorCode: current.body.errorCode || 'I8_CANDIDATE_VERSION_UNAVAILABLE', status: current.response.status }, true)
+    }
+    const business = { candidateId: candidate.candidateId, expectedCandidateVersion: candidate.version, choice, confirmationRef, reason }
+    return callHarness('/v1/i8/candidates:decide', {
+      namespace, idempotencyKey: idempotencyKey('candidate_decide', sessionRef, business), ...business
+    })
+  })
+
+  server.registerTool('run_submit', {
+    description: '仅对已明确激活的精确脚本版本提交一次按需纯Playwright回归。',
+    inputSchema: { preparationId: safeRef, sessionRef: safeRef }
+  }, async ({ preparationId, sessionRef }) => callHarness('/v1/i8/runs:submit', {
+    namespace,
+    idempotencyKey: idempotencyKey('run_submit', sessionRef, { preparationId }),
+    preparationId,
+    credentialAlias: 'i3-customer'
+  }))
+
+  server.registerTool('task_get', {
+    description: '读取按需回归任务的最小脱敏状态与结果摘要。',
+    inputSchema: { taskId: safeRef }
+  }, async ({ taskId }) => callHarness('/v1/i8/tasks:get', { namespace, taskId }))
 
   for (const toolName of deferredTools) {
     server.registerTool(toolName, {
@@ -193,7 +254,7 @@ function createServer() {
 }
 
 const app = createMcpExpressApp()
-app.get('/health', (_request, response) => response.json({ status: 'ok', service: 'hengzhun-i8-mcp', version: '3.0.0' }))
+app.get('/health', (_request, response) => response.json({ status: 'ok', service: 'hengzhun-i8-mcp', version: '5.0.0' }))
 app.use('/mcp', (request, response, next) => {
   if (!authorized(request.headers.authorization)) {
     response.status(401).json({ jsonrpc: '2.0', error: { code: -32001, message: 'Unauthorized' }, id: null })

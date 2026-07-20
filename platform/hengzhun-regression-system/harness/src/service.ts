@@ -32,6 +32,11 @@ import {
   i8StabilityCompletionSchema,
   type I8StabilityCompletionInput
 } from './i8/stage4-schemas';
+import type {
+  I8CandidateDecisionInput,
+  I8CandidatePreviewInput,
+  I8RunSubmitInput
+} from './i8/stage5-schemas';
 import { nextCronOccurrence, parseCron, validateTimeZone } from './cron';
 import { canonicalJson, nowIso, opaqueId, requestHash, sha256 } from './utils';
 
@@ -144,6 +149,15 @@ export class HarnessService {
     const runId = opaqueId('run');
     const taskId = opaqueId('task');
     const fixtureNamespace = `fx-${sha256(`${input.namespace}:${runId}`).slice(0, 20)}`;
+    const scriptConfiguration = plan.script_configuration ? JSON.parse(plan.script_configuration) as Record<string, unknown> : {};
+    const i8Candidate = scriptConfiguration.mode === 'I8_CANDIDATE'
+      ? {
+          candidateId: String(scriptConfiguration.candidateId),
+          relativeDirectory: String(scriptConfiguration.relativeDirectory),
+          scriptHash: String(scriptConfiguration.scriptHash),
+          manifestHash: String(scriptConfiguration.manifestHash)
+        }
+      : undefined;
     const payload = canonicalJson({
       executionEngine: 'PLAYWRIGHT',
       formalRegression: true,
@@ -153,7 +167,7 @@ export class HarnessService {
       fixtureScope: input.fixtureScope ?? fixtureNamespace,
       scriptId: plan.script_id,
       scriptPath: plan.script_path,
-      selectorOverrides: plan.script_configuration ? JSON.parse(plan.script_configuration) : {}
+      ...(i8Candidate ? { candidate: i8Candidate } : { selectorOverrides: scriptConfiguration })
     });
     db.prepare(`
       INSERT INTO tasks(task_id, namespace, task_type, status, progress, case_id, run_id, payload_json, version, created_at, updated_at)
@@ -219,6 +233,56 @@ export class HarnessService {
     if (!row || row.status !== 'ACTIVE') {
       throw new HarnessError(403, 'NAMESPACE_NOT_ACTIVE', 'AUTHORIZATION', '命名空间不可用。');
     }
+  }
+
+  private verifiedI8Candidate(
+    db: import('better-sqlite3').Database,
+    namespace: string,
+    candidateId: string
+  ): Record<string, unknown> & { scriptSource: string; scriptRelativePath: string } {
+    const row = db.prepare(`
+      SELECT c.*, p.case_id, p.case_version, p.version AS executable_plan_version,
+             prep.acceptance_summary_json,
+             cert.certificate_id, cert.status AS certificate_status, cert.script_sha256 AS certificate_script_sha256
+      FROM i8_script_candidates c
+      JOIN i8_executable_plans p ON p.executable_plan_id = c.executable_plan_id
+      JOIN i8_case_preparations prep ON prep.preparation_id = p.preparation_id
+      LEFT JOIN i8_stability_certificates cert ON cert.candidate_id = c.candidate_id
+      WHERE c.namespace = ? AND c.candidate_id = ?
+    `).get(namespace, candidateId) as Record<string, unknown> | undefined;
+    if (!row) throw new HarnessError(404, 'I8_CANDIDATE_NOT_FOUND', 'DOMAIN', '候选脚本不存在。');
+    if (!row.certificate_id || row.certificate_status !== 'PASSED' || row.certificate_script_sha256 !== row.script_sha256) {
+      throw new HarnessError(409, 'I8_STABILITY_CERTIFICATE_REQUIRED', 'DOMAIN', '只有持有有效稳定性证书的候选才能交付。', false, true);
+    }
+    const candidateRoot = path.resolve(this.productRoot, '.data', 'candidates');
+    const directory = path.resolve(this.productRoot, ...String(row.relative_directory).split('/'));
+    if (!directory.startsWith(`${candidateRoot}${path.sep}`)) {
+      throw new HarnessError(409, 'I8_CANDIDATE_DIRECTORY_INVALID', 'EVIDENCE', '候选目录越过受管边界。', false, true);
+    }
+    const scriptPath = path.join(directory, 'script.cjs');
+    const manifestPath = path.join(directory, 'manifest.json');
+    if (!fs.existsSync(scriptPath) || !fs.existsSync(manifestPath)) {
+      throw new HarnessError(409, 'I8_CANDIDATE_PACKAGE_MISSING', 'EVIDENCE', '候选脚本包不完整。', false, true);
+    }
+    const scriptBytes = fs.readFileSync(scriptPath);
+    const manifestText = fs.readFileSync(manifestPath, 'utf8');
+    let manifest: Record<string, unknown>;
+    try {
+      manifest = JSON.parse(manifestText) as Record<string, unknown>;
+    } catch {
+      throw new HarnessError(409, 'I8_CANDIDATE_MANIFEST_INVALID', 'EVIDENCE', '候选清单无法解析。', false, true);
+    }
+    if (sha256(scriptBytes) !== row.script_sha256 || sha256(canonicalJson(manifest)) !== row.manifest_sha256) {
+      throw new HarnessError(409, 'I8_CANDIDATE_PACKAGE_HASH_MISMATCH', 'EVIDENCE', '候选脚本包Hash不匹配。', false, true);
+    }
+    if (manifest.candidateId !== row.candidate_id || manifest.scriptId !== row.script_id || manifest.scriptVersion !== row.script_version) {
+      throw new HarnessError(409, 'I8_CANDIDATE_PACKAGE_IDENTITY_MISMATCH', 'EVIDENCE', '候选脚本包身份不匹配。', false, true);
+    }
+    return {
+      ...row,
+      scriptSource: scriptBytes.toString('utf8'),
+      scriptRelativePath: `${String(row.relative_directory)}/script.cjs`
+    };
   }
 
   private audit(
@@ -661,6 +725,10 @@ export class HarnessService {
                b.batch_id AS stability_batch_id, b.status AS stability_status, b.error_code AS stability_error_code,
                cert.certificate_id, cert.runtime_fingerprint, cert.viewport_set_json, cert.validation_run_ids_json,
                cert.assertion_set_hash, cert.evidence_set_hash, cert.issued_at,
+               (SELECT d.choice FROM i8_script_delivery_decisions d WHERE d.candidate_id = c.candidate_id ORDER BY d.created_at DESC LIMIT 1) AS delivery_choice,
+               (SELECT d.effect FROM i8_script_delivery_decisions d WHERE d.candidate_id = c.candidate_id ORDER BY d.created_at DESC LIMIT 1) AS delivery_effect,
+               (SELECT d.activated_plan_id FROM i8_script_delivery_decisions d WHERE d.candidate_id = c.candidate_id ORDER BY d.created_at DESC LIMIT 1) AS activated_plan_id,
+               (SELECT d.created_at FROM i8_script_delivery_decisions d WHERE d.candidate_id = c.candidate_id ORDER BY d.created_at DESC LIMIT 1) AS delivery_created_at,
                (SELECT COUNT(*) FROM i8_stability_validation_runs r WHERE r.batch_id = b.batch_id AND r.status = 'PASSED') AS stability_passed_runs,
                (SELECT COUNT(*) FROM i8_stability_validation_runs r WHERE r.batch_id = b.batch_id AND r.status = 'FAILED') AS stability_failed_runs
         FROM i8_executable_plans p
@@ -711,10 +779,24 @@ export class HarnessService {
                 issuedAt: row.issued_at
               }
             } : {})
-          }
+          },
+          ...(row.delivery_choice ? {
+            delivery: {
+              choice: row.delivery_choice,
+              effect: row.delivery_effect,
+              ...(row.activated_plan_id ? { planId: row.activated_plan_id } : {}),
+              decidedAt: row.delivery_created_at
+            }
+          } : {})
         } : {}),
-        nextAction: row.certificate_id
-          ? 'I8_STAGE5_DELIVERY_REQUIRED'
+        nextAction: row.candidate_status === 'SCRIPT_VALIDATED'
+          ? 'ON_DEMAND_RUN_AVAILABLE'
+          : row.candidate_status === 'SAVED'
+            ? 'ACTIVATE_OR_REJECT_AVAILABLE'
+            : row.candidate_status === 'REJECTED'
+              ? 'NONE'
+              : row.certificate_id
+                ? 'HUMAN_DELIVERY_DECISION_REQUIRED'
           : row.stability_status === 'FAILED'
             ? 'CANDIDATE_REPAIR_REQUIRED'
             : row.candidate_id
@@ -1018,6 +1100,296 @@ export class HarnessService {
         passedRuns: input.runs.filter(run => run.outcome === 'PASSED').length,
         failedRuns: input.runs.filter(run => run.outcome === 'FAILED').length,
         ...(certificateId ? { certificateId, nextAction: 'I8_STAGE5_DELIVERY_REQUIRED' } : { errorCode, nextAction: 'CANDIDATE_REPAIR_REQUIRED' })
+      };
+    });
+  }
+
+  async previewI8Candidate(input: I8CandidatePreviewInput, context: RequestContext): Promise<Record<string, unknown>> {
+    return this.database.write(db => {
+      const timestamp = nowIso();
+      this.ensureNamespace(db, input.namespace, timestamp);
+      const candidate = this.verifiedI8Candidate(db, input.namespace, input.candidateId);
+      const lines = candidate.scriptSource.replace(/\r\n/g, '\n').split('\n');
+      const startIndex = input.cursor ? Number(input.cursor.slice('line:'.length)) : 0;
+      if (!Number.isSafeInteger(startIndex) || startIndex < 0 || startIndex > lines.length) {
+        throw new HarnessError(400, 'I8_PREVIEW_CURSOR_INVALID', 'CONTRACT', '脚本预览游标无效。');
+      }
+      const selected: string[] = [];
+      for (let index = startIndex; index < lines.length && selected.length < input.limit; index += 1) {
+        const trial = [...selected, lines[index] as string];
+        const trialBody = {
+          candidateId: candidate.candidate_id,
+          scriptHash: candidate.script_sha256,
+          startLine: startIndex + 1,
+          endLine: startIndex + trial.length,
+          lines: trial,
+          nextCursor: startIndex + trial.length < lines.length ? `line:${startIndex + trial.length}` : null
+        };
+        if (Buffer.byteLength(JSON.stringify(trialBody), 'utf8') > 15 * 1024) {
+          if (selected.length === 0) throw new HarnessError(413, 'OUTPUT_BUDGET_EXCEEDED', 'CONTRACT', '单行脚本超过安全预览预算。');
+          break;
+        }
+        selected.push(lines[index] as string);
+      }
+      let download: Record<string, unknown> | undefined;
+      if (input.includeDownload) {
+        const token = opaqueId('download');
+        const grantId = opaqueId('grant');
+        const expiresAt = new Date(Date.parse(timestamp) + 5 * 60 * 1000).toISOString();
+        db.prepare(`
+          INSERT INTO i8_script_download_grants(
+            grant_id, namespace, candidate_id, certificate_id, token_sha256,
+            script_sha256, status, expires_at, created_at
+          ) VALUES (?, ?, ?, ?, ?, ?, 'ACTIVE', ?, ?)
+        `).run(
+          grantId, input.namespace, candidate.candidate_id, candidate.certificate_id,
+          sha256(token), candidate.script_sha256, expiresAt, timestamp
+        );
+        download = {
+          grantId,
+          href: `/v1/i8/downloads/${token}`,
+          filename: `hengzhun-${candidate.script_id}-v${candidate.script_version}.cjs`,
+          mediaType: 'text/javascript; charset=utf-8',
+          sha256: candidate.script_sha256,
+          expiresAt,
+          oneTime: true
+        };
+      }
+      this.audit(db, context, {
+        namespace: input.namespace,
+        action: input.includeDownload ? 'i8_candidate_preview_and_download_grant' : 'i8_candidate_preview',
+        objectType: 'I8_SCRIPT_CANDIDATE',
+        objectId: input.candidateId,
+        outcome: 'ACCEPTED',
+        details: { startLine: startIndex + 1, lineCount: selected.length, downloadGranted: input.includeDownload }
+      });
+      const endIndex = startIndex + selected.length;
+      return {
+        candidateId: candidate.candidate_id,
+        caseId: candidate.case_id,
+        caseVersion: candidate.case_version,
+        executablePlanId: candidate.executable_plan_id,
+        executablePlanVersion: candidate.executable_plan_version,
+        scriptId: candidate.script_id,
+        scriptVersion: candidate.script_version,
+        scriptHash: candidate.script_sha256,
+        generatorVersion: candidate.generator_version,
+        certificate: {
+          certificateId: candidate.certificate_id,
+          status: 'PASSED',
+          assertionSummary: JSON.parse(String(candidate.acceptance_summary_json)),
+          evidenceHash: candidate.manifest_sha256
+        },
+        startLine: selected.length > 0 ? startIndex + 1 : 0,
+        endLine: selected.length > 0 ? endIndex : 0,
+        lines: selected,
+        nextCursor: endIndex < lines.length ? `line:${endIndex}` : null,
+        ...(download ? { download } : {})
+      };
+    });
+  }
+
+  async consumeI8Download(token: string): Promise<{ filename: string; mediaType: string; sha256: string; content: Buffer }> {
+    const result = await this.database.write(db => {
+      const timestamp = nowIso();
+      const tokenHash = sha256(token);
+      const grant = db.prepare(`
+        SELECT * FROM i8_script_download_grants WHERE token_sha256 = ?
+      `).get(tokenHash) as Record<string, unknown> | undefined;
+      if (!grant || grant.status !== 'ACTIVE') return { state: 'UNAVAILABLE' as const };
+      if (String(grant.expires_at) <= timestamp) {
+        db.prepare(`UPDATE i8_script_download_grants SET status = 'EXPIRED' WHERE grant_id = ? AND status = 'ACTIVE'`).run(grant.grant_id);
+        return { state: 'EXPIRED' as const };
+      }
+      const candidate = this.verifiedI8Candidate(db, String(grant.namespace), String(grant.candidate_id));
+      if (candidate.script_sha256 !== grant.script_sha256 || candidate.certificate_id !== grant.certificate_id) {
+        throw new HarnessError(409, 'I8_DOWNLOAD_BINDING_MISMATCH', 'EVIDENCE', '下载授权绑定已失效。', false, true);
+      }
+      db.prepare(`UPDATE i8_script_download_grants SET status = 'USED', used_at = ? WHERE grant_id = ? AND status = 'ACTIVE'`)
+        .run(timestamp, grant.grant_id);
+      this.audit(db, { requestId: `download:${grant.grant_id}`, actorType: 'SYSTEM' }, {
+        namespace: String(grant.namespace),
+        action: 'i8_candidate_download',
+        objectType: 'I8_SCRIPT_CANDIDATE',
+        objectId: String(grant.candidate_id),
+        outcome: 'ACCEPTED',
+        details: { grantId: grant.grant_id, scriptHash: grant.script_sha256 }
+      });
+      return {
+        state: 'READY' as const,
+        filename: `hengzhun-${candidate.script_id}-v${candidate.script_version}.cjs`,
+        mediaType: 'text/javascript; charset=utf-8',
+        sha256: String(candidate.script_sha256),
+        content: Buffer.from(candidate.scriptSource, 'utf8')
+      };
+    });
+    if (result.state === 'EXPIRED') throw new HarnessError(410, 'I8_DOWNLOAD_GRANT_EXPIRED', 'AUTHORIZATION', '下载授权已过期。');
+    if (result.state === 'UNAVAILABLE') throw new HarnessError(404, 'I8_DOWNLOAD_GRANT_UNAVAILABLE', 'AUTHORIZATION', '下载授权不存在或已使用。');
+    return result;
+  }
+
+  async decideI8Candidate(input: I8CandidateDecisionInput, context: RequestContext): Promise<IdempotentResult> {
+    return this.idempotent(input.namespace, 'i8_candidate_decide', input.idempotencyKey, input, context, (db, timestamp) => {
+      const candidate = this.verifiedI8Candidate(db, input.namespace, input.candidateId);
+      if (Number(candidate.version) !== input.expectedCandidateVersion) {
+        throw new HarnessError(409, 'I8_CANDIDATE_VERSION_CONFLICT', 'CONCURRENCY', '候选版本已变化。', false, true, { currentVersion: candidate.version });
+      }
+      if (!['STABILITY_CERTIFIED', 'SAVED'].includes(String(candidate.status))) {
+        throw new HarnessError(409, 'I8_CANDIDATE_DECISION_NOT_ALLOWED', 'DOMAIN', '候选当前状态不接受交付决定。', false, true);
+      }
+      if (candidate.status === 'SAVED' && input.choice === 'SAVE_ONLY') {
+        throw new HarnessError(409, 'I8_CANDIDATE_ALREADY_SAVED', 'DOMAIN', '候选已经保存。', false, true);
+      }
+      let effect: 'CANDIDATE_SAVED' | 'SCRIPT_VERSION_ACTIVATED' | 'CANDIDATE_REJECTED';
+      let nextStatus: 'SAVED' | 'SCRIPT_VALIDATED' | 'REJECTED';
+      let activatedPlanId: string | undefined;
+      if (input.choice === 'SAVE_ONLY') {
+        effect = 'CANDIDATE_SAVED';
+        nextStatus = 'SAVED';
+      } else if (input.choice === 'REJECT') {
+        effect = 'CANDIDATE_REJECTED';
+        nextStatus = 'REJECTED';
+      } else {
+        effect = 'SCRIPT_VERSION_ACTIVATED';
+        nextStatus = 'SCRIPT_VALIDATED';
+        const existingScript = db.prepare('SELECT namespace, case_id FROM scripts WHERE script_id = ?')
+          .get(candidate.script_id) as { namespace: string; case_id: string } | undefined;
+        if (existingScript && (existingScript.namespace !== input.namespace || existingScript.case_id !== candidate.case_id)) {
+          throw new HarnessError(409, 'I8_SCRIPT_ID_CONFLICT', 'CONCURRENCY', '脚本标识已绑定其他案例。', false, true);
+        }
+        if (!existingScript) {
+          db.prepare(`
+            INSERT INTO scripts(script_id, namespace, case_id, current_version, status, created_at, updated_at)
+            VALUES (?, ?, ?, ?, 'SCRIPT_VALIDATED', ?, ?)
+          `).run(candidate.script_id, input.namespace, candidate.case_id, candidate.script_version, timestamp, timestamp);
+        }
+        const configuration = canonicalJson({
+          mode: 'I8_CANDIDATE',
+          candidateId: candidate.candidate_id,
+          relativeDirectory: candidate.relative_directory,
+          scriptHash: candidate.script_sha256,
+          manifestHash: candidate.manifest_sha256
+        });
+        const existingVersion = db.prepare('SELECT sha256, relative_path FROM script_versions WHERE script_id = ? AND version = ?')
+          .get(candidate.script_id, candidate.script_version) as { sha256: string; relative_path: string } | undefined;
+        if (existingVersion && (existingVersion.sha256 !== candidate.script_sha256 || existingVersion.relative_path !== candidate.scriptRelativePath)) {
+          throw new HarnessError(409, 'I8_SCRIPT_VERSION_CONFLICT', 'CONCURRENCY', '脚本版本已绑定不同内容。', false, true);
+        }
+        if (!existingVersion) {
+          db.prepare(`
+            INSERT INTO script_versions(
+              script_id, version, relative_path, sha256, validation_status,
+              configuration_json, source_sha256, created_at
+            ) VALUES (?, ?, ?, ?, 'PASSED', ?, ?, ?)
+          `).run(
+            candidate.script_id, candidate.script_version, candidate.scriptRelativePath,
+            candidate.script_sha256, configuration, candidate.script_sha256, timestamp
+          );
+        }
+        db.prepare(`UPDATE scripts SET current_version = ?, status = 'SCRIPT_VALIDATED', updated_at = ? WHERE script_id = ?`)
+          .run(candidate.script_version, timestamp, candidate.script_id);
+        activatedPlanId = `plan_i8_${sha256(String(candidate.executable_plan_id)).slice(0, 40)}`;
+        const summary = canonicalJson({
+          source: 'I8_DETERMINISTIC_BUILDER',
+          candidateId: candidate.candidate_id,
+          certificateId: candidate.certificate_id,
+          scriptHash: candidate.script_sha256,
+          formalRegression: true
+        });
+        const existingPlan = db.prepare('SELECT content_hash, script_id FROM plans WHERE plan_id = ?')
+          .get(activatedPlanId) as { content_hash: string; script_id: string } | undefined;
+        const contentHash = sha256(summary);
+        if (existingPlan && (existingPlan.content_hash !== contentHash || existingPlan.script_id !== candidate.script_id)) {
+          throw new HarnessError(409, 'I8_ACTIVATED_PLAN_CONFLICT', 'CONCURRENCY', '正式计划已绑定不同脚本。', false, true);
+        }
+        if (!existingPlan) {
+          db.prepare(`
+            INSERT INTO plans(
+              plan_id, namespace, case_id, case_version, version, status, summary_json,
+              content_hash, created_at, script_id, full_action_plan_json
+            ) VALUES (?, ?, ?, ?, ?, 'READY', ?, ?, ?, ?, NULL)
+          `).run(
+            activatedPlanId, input.namespace, candidate.case_id, candidate.case_version,
+            candidate.executable_plan_version, summary, contentHash, timestamp, candidate.script_id
+          );
+        }
+      }
+      const decisionId = opaqueId('delivery');
+      db.prepare(`
+        INSERT INTO i8_script_delivery_decisions(
+          decision_id, namespace, candidate_id, certificate_id, expected_candidate_version,
+          choice, reason, confirmation_ref, effect, case_version, executable_plan_id,
+          executable_plan_version, activated_plan_id, script_id, script_version, script_sha256, created_at
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      `).run(
+        decisionId, input.namespace, candidate.candidate_id, candidate.certificate_id,
+        input.expectedCandidateVersion, input.choice, input.reason, input.confirmationRef,
+        effect, candidate.case_version, candidate.executable_plan_id, candidate.executable_plan_version,
+        activatedPlanId ?? null, candidate.script_id, candidate.script_version, candidate.script_sha256, timestamp
+      );
+      db.prepare(`UPDATE i8_script_candidates SET status = ?, version = version + 1, updated_at = ? WHERE candidate_id = ?`)
+        .run(nextStatus, timestamp, candidate.candidate_id);
+      return {
+        status: 200,
+        objectType: 'I8_SCRIPT_DELIVERY_DECISION',
+        objectId: decisionId,
+        response: {
+          decisionId,
+          candidateId: candidate.candidate_id,
+          choice: input.choice,
+          effect,
+          status: nextStatus,
+          candidateVersion: input.expectedCandidateVersion + 1,
+          scriptId: candidate.script_id,
+          scriptVersion: candidate.script_version,
+          scriptHash: candidate.script_sha256,
+          ...(activatedPlanId ? { planId: activatedPlanId, nextAction: 'ON_DEMAND_RUN_AVAILABLE' } : { nextAction: nextStatus === 'SAVED' ? 'ACTIVATE_OR_REJECT_AVAILABLE' : 'NONE' })
+        }
+      };
+    });
+  }
+
+  async submitI8Run(input: I8RunSubmitInput, context: RequestContext): Promise<IdempotentResult> {
+    return this.idempotent(input.namespace, 'i8_run_submit', input.idempotencyKey, input, context, (db, timestamp) => {
+      const row = db.prepare(`
+        SELECT p.preparation_id, p.case_id, p.case_version, c.candidate_id, c.status AS candidate_status,
+               c.script_id, c.script_version, c.script_sha256, d.activated_plan_id
+        FROM i8_executable_plans p
+        JOIN i8_script_candidates c ON c.executable_plan_id = p.executable_plan_id
+        JOIN i8_script_delivery_decisions d ON d.candidate_id = c.candidate_id AND d.choice = 'ACTIVATE'
+        WHERE p.namespace = ? AND p.preparation_id = ?
+        ORDER BY d.created_at DESC LIMIT 1
+      `).get(input.namespace, input.preparationId) as Record<string, unknown> | undefined;
+      if (!row || row.candidate_status !== 'SCRIPT_VALIDATED' || !row.activated_plan_id) {
+        throw new HarnessError(409, 'I8_SCRIPT_NOT_ACTIVATED', 'DOMAIN', '按需运行只接受已明确激活的持证脚本。', false, true);
+      }
+      const plan = this.validatedPlan(db, input.namespace, String(row.activated_plan_id), String(row.case_id), Number(row.case_version));
+      const { runId, taskId } = this.enqueueRun(db, {
+        namespace: input.namespace,
+        caseId: String(row.case_id),
+        caseVersion: Number(row.case_version),
+        planId: String(row.activated_plan_id),
+        environment: 'local',
+        credentialAlias: input.credentialAlias
+      }, plan, timestamp);
+      return {
+        status: 202,
+        objectType: 'RUN',
+        objectId: runId,
+        runId,
+        taskId,
+        response: {
+          taskId,
+          runId,
+          status: 'QUEUED',
+          candidateId: row.candidate_id,
+          caseId: row.case_id,
+          caseVersion: row.case_version,
+          planId: row.activated_plan_id,
+          scriptId: row.script_id,
+          scriptVersion: row.script_version,
+          scriptHash: row.script_sha256
+        }
       };
     });
   }
@@ -2066,7 +2438,7 @@ export class HarnessService {
   getTask(namespace: string, taskId: string): Record<string, unknown> {
     return this.database.read(db => {
       const row = db.prepare(`
-        SELECT t.*, r.version AS run_version, fi.incident_id, fi.classification AS failure_classification
+        SELECT t.*, r.version AS run_version, r.status AS run_status, fi.incident_id, fi.classification AS failure_classification
         FROM tasks t
         LEFT JOIN runs r ON r.run_id = t.run_id
         LEFT JOIN failure_incidents fi ON fi.run_id = t.run_id
@@ -2082,6 +2454,7 @@ export class HarnessService {
         progress: row.progress,
         version: row.version,
         runVersion: row.run_version,
+        outcome: row.run_status === 'PASSED' || row.run_status === 'FAILED' || row.run_status === 'BLOCKED' ? row.run_status : null,
         summary: row.result_summary,
         resultArtifactId: row.result_artifact_id,
         errorCode: row.error_code,

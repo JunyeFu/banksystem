@@ -8,6 +8,7 @@ const path = require('node:path')
 const { startHarness } = require('../dist/harness/src/server.js')
 const { I8_CONTROLLED_CATALOG } = require('../dist/harness/src/i8/script-package-builder.js')
 const { executeStabilityBatch } = require('../worker/src/i8-stability-runner.cjs')
+const { executeI8FormalRun } = require('../worker/src/i8-formal-runner.cjs')
 
 const productRoot = path.resolve(__dirname, '..')
 const serviceToken = process.env.HENGZHUN_SERVICE_TOKEN
@@ -70,6 +71,34 @@ async function main() {
     const completed = await post(harnessUrl, `/internal/worker/i8/stability/${encodeURIComponent(stabilityClaim.batchId)}:complete`, completion, workerToken)
     if (completed.status !== 'STABILITY_CERTIFIED' || completed.passedRuns !== 6) throw new Error(`I8_STAGE4_LIVE_NOT_CERTIFIED_${completed.errorCode || 'UNKNOWN'}`)
     const candidate = await post(harnessUrl, '/v1/i8/candidates:get', { namespace, preparationId: prepared.preparationId })
+    if (process.env.HENGZHUN_I8_STAGE5_LIVE === '1') {
+      const preview = await post(harnessUrl, '/v1/i8/candidates:preview', { namespace, candidateId: candidate.candidate.candidateId, cursor: 'line:0', limit: 40, includeDownload: false })
+      if (!Array.isArray(preview.lines) || preview.lines.length === 0 || preview.scriptHash !== candidate.candidate.scriptHash) throw new Error('I8_STAGE5_LIVE_PREVIEW_INVALID')
+      const activated = await post(harnessUrl, '/v1/i8/candidates:decide', {
+        namespace, idempotencyKey: `live-activate-${namespace}`, candidateId: candidate.candidate.candidateId,
+        expectedCandidateVersion: candidate.candidate.version, choice: 'ACTIVATE', confirmationRef: `live-stage5-confirm-${namespace}`,
+        reason: '本机真实门户阶段5受控交付验收'
+      })
+      if (activated.status !== 'SCRIPT_VALIDATED' || activated.scriptHash !== preview.scriptHash) throw new Error('I8_STAGE5_LIVE_ACTIVATION_INVALID')
+      const submitted = await post(harnessUrl, '/v1/i8/runs:submit', { namespace, idempotencyKey: `live-run-${namespace}`, preparationId: prepared.preparationId, credentialAlias: 'i3-customer' })
+      const runClaim = await post(harnessUrl, '/internal/worker/tasks:claim', { workerId: 'i8-stage5-live-worker' }, workerToken)
+      const formal = await executeI8FormalRun(runClaim, process.env, { productRoot: root, runtimeProductRoot: productRoot })
+      await post(harnessUrl, `/internal/worker/tasks/${encodeURIComponent(runClaim.taskId)}:complete`, { workerId: 'i8-stage5-live-worker', ...formal }, workerToken)
+      const task = await post(harnessUrl, '/v1/i8/tasks:get', { namespace, taskId: submitted.taskId })
+      if (formal.outcome !== 'PASSED' || task.status !== 'SUCCEEDED' || task.outcome !== 'PASSED') throw new Error('I8_STAGE5_LIVE_FORMAL_RUN_FAILED')
+      const stage5Summary = {
+        schemaVersion: 'i8-stage5-live-summary-v1', status: 'PASSED', executedAt: new Date().toISOString(),
+        portalOrigin: new URL(process.env.HENGZHUN_PORTAL_BASE_URL).origin, candidateId: candidate.candidate.candidateId,
+        certificateId: candidate.stability.certificate.certificateId, scriptHash: preview.scriptHash, decision: activated.effect,
+        planId: activated.planId, taskId: submitted.taskId, runId: submitted.runId, formalOutcome: task.outcome,
+        evidenceRoot: '.data/artifacts (ignored, redacted)'
+      }
+      const stage5Output = path.join(productRoot, '.data', 'evidence', 'i8-stage5-live-summary.json')
+      fs.mkdirSync(path.dirname(stage5Output), { recursive: true })
+      fs.writeFileSync(stage5Output, JSON.stringify(stage5Summary, null, 2), 'utf8')
+      process.stdout.write(JSON.stringify({ status: 'HENGZHUN_I8_STAGE5_REAL_PORTAL_VERIFIED', certificateIssued: true, exactVersionActivated: true, formalPlaywrightPassed: true }) + '\n')
+      return
+    }
     const summary = {
       schemaVersion: 'i8-stage4-live-summary-v1', status: 'PASSED', executedAt: new Date().toISOString(),
       portalOrigin: new URL(process.env.HENGZHUN_PORTAL_BASE_URL).origin,

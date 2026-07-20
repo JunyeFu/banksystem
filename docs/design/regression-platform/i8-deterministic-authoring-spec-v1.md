@@ -508,3 +508,12 @@ I8 方案本身已冻结；以下是外部验收风险，不改变实现选择�
 - 被测门户或接口契约变化会产生事故，不允许通过弱化断言掩盖。
 
 这些风险只决定运行状态和是否能关闭目标环境门禁，不授权改变本规格中的安全、确定性和人工确认规则。
+
+## 19. 阶段5实现记录（2026-07-20）
+
+- migration 013新增`i8_script_delivery_decisions`和`i8_script_download_grants`；决策不可更新/删除，下载授权只允许`ACTIVE→USED/EXPIRED`。
+- `candidate_preview`只读取有效持证且双Hash复核通过的候选，按完整行分页，单次MCP输出最大16KiB；可选下载授权5分钟有效、一次使用、数据库只保存Token Hash。
+- `candidate_decide`冻结`SAVE_ONLY / ACTIVATE / REJECT`。ACTIVATE原子建立精确脚本版本和READY计划，保留历史版本，但不创建Run、Task、Schedule。
+- `run_submit`只接受已ACTIVATE的精确候选；任务只携带受控候选ID、相对目录、script/manifest Hash与凭据别名。常驻Worker通过`i8-formal-runner.cjs`执行纯Playwright，不调用Midscene或LLM。
+- `task_get`只返回最小任务、Run结果和错误元数据。Flowise阶段5续办制品由控制器状态注入`preparationId`，用户不输入技术ID；仍需真实平台导入/发布验证。
+- `verify:i8:stage5`累计25/25；`verify:i8:stage5:live`在真实复兴银行门户完成6次签证、预览、精确激活及正式复跑。此证据不包含阶段6调度/收件箱，也不证明真实MiMo、Flowise发布或HiAgent运行。
