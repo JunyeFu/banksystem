@@ -208,7 +208,7 @@ test('worker candidate runner executes only a hash-verified package and rejects 
     ['customer-profile-name', '张三'], ['customer-profile-avatar', '张'], ['profile-display-name', '张三'], ['profile-avatar', '张']
   ])
   const locator = value => ({
-    async fill() {}, async click() {}, async selectOption() {}, async isVisible() { return true }, async innerText() { return values.get(value) || '' }
+    async fill() {}, async click() {}, async selectOption() {}, async waitFor() {}, async innerText() { return values.get(value) || '' }
   })
   let waitForUrlCall = 0
   const page = {

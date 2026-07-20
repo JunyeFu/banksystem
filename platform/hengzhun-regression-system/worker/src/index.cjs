@@ -1,7 +1,9 @@
 const os = require('node:os');
+const path = require('node:path');
 const { executeLoginProfile } = require('./login-profile.cjs');
 const { executeAccountOwnership } = require('./account-ownership.cjs');
 const { executeAuthRejectionRecovery } = require('./auth-rejection-recovery.cjs');
+const { executeStabilityBatch } = require('./i8-stability-runner.cjs');
 
 const executors = new Map([
   ['worker/src/login-profile.cjs', executeLoginProfile],
@@ -123,10 +125,34 @@ async function runRepairOnce() {
   return true;
 }
 
+async function runI8StabilityOnce() {
+  const claim = await post('/internal/worker/i8/stability:claim', { workerId });
+  if (claim.status === 'EMPTY') return false;
+  process.stdout.write(JSON.stringify({ event: 'i8_stability_claimed', batchId: claim.batchId, candidateId: claim.candidateId }) + '\n');
+  try {
+    const productRoot = path.resolve(__dirname, '..', '..');
+    const completion = await executeStabilityBatch(claim, {
+      productRoot,
+      runtimeProductRoot: productRoot,
+      workerId,
+      environment: process.env
+    });
+    const completed = await post(`/internal/worker/i8/stability/${encodeURIComponent(claim.batchId)}:complete`, completion);
+    process.stdout.write(JSON.stringify({ event: 'i8_stability_completed', batchId: claim.batchId, status: completed.status }) + '\n');
+  } catch (error) {
+    process.stderr.write(JSON.stringify({
+      event: 'i8_stability_blocked',
+      batchId: claim.batchId,
+      errorCode: error.code || 'I8_STABILITY_EXECUTION_FAILED'
+    }) + '\n');
+  }
+  return true;
+}
+
 async function main() {
   const once = process.argv.includes('--once');
   do {
-    const worked = await runRepairOnce() || await runOnce();
+    const worked = await runRepairOnce() || await runI8StabilityOnce() || await runOnce();
     if (once) return;
     await new Promise(resolve => setTimeout(resolve, worked ? 250 : 1500));
   } while (true);

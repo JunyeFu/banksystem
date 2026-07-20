@@ -1,7 +1,7 @@
 openapi: 3.0.3
 info:
   title: 衡准 Worker 内部接口
-  version: 1.4.0
+  version: 1.5.0
   description: 仅供本机 Playwright/Midscene Worker 领取和完成 SQLite 持久化任务，不导入 Flowise/HiAgent。
 servers:
   - url: http://127.0.0.1:18788
@@ -190,6 +190,50 @@ paths:
       responses:
         '200':
           description: 验证事实和候选元数据已原子写入
+          content:
+            application/json:
+              schema: {type: object, additionalProperties: true}
+        '400': {$ref: '#/components/responses/Problem'}
+        '401': {$ref: '#/components/responses/Problem'}
+        '403': {$ref: '#/components/responses/Problem'}
+        '409': {$ref: '#/components/responses/Problem'}
+  /internal/worker/i8/stability:claim:
+    post:
+      operationId: workerClaimI8Stability
+      summary: 领取固定2视口各3次的稳定性验证批次
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: {$ref: '#/components/schemas/WorkerClaimRequest'}
+      responses:
+        '200':
+          description: 已领取六次稳定性样本或当前队列为空
+          content:
+            application/json:
+              schema:
+                oneOf:
+                  - {$ref: '#/components/schemas/I8StabilityClaimResponse'}
+                  - {$ref: '#/components/schemas/EmptyClaimResponse'}
+        '401': {$ref: '#/components/responses/Problem'}
+        '403': {$ref: '#/components/responses/Problem'}
+  /internal/worker/i8/stability/{batchId}:complete:
+    post:
+      operationId: workerCompleteI8Stability
+      summary: 原子提交六次真实Chromium验证结果并按硬门禁签发证书
+      parameters:
+        - name: batchId
+          in: path
+          required: true
+          schema: {type: string, minLength: 8, maxLength: 80}
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: {$ref: '#/components/schemas/I8StabilityCompletionRequest'}
+      responses:
+        '200':
+          description: 六次全通过时签发证书；任一次失败时整批失败且不重试
           content:
             application/json:
               schema: {type: object, additionalProperties: true}
@@ -530,6 +574,86 @@ components:
           maxItems: 100
           items: {$ref: '#/components/schemas/I8VerifiedActionRecord'}
       additionalProperties: false
+    I8StabilityRunSpec:
+      type: object
+      additionalProperties: false
+      required: [validationRunId, viewportId, viewportWidth, viewportHeight, sequenceNo, fixtureRef]
+      properties:
+        validationRunId: {type: string, minLength: 3, maxLength: 160}
+        viewportId: {type: string, enum: [DESKTOP_1440X900, NARROW_390X844]}
+        viewportWidth: {type: integer, enum: [1440, 390]}
+        viewportHeight: {type: integer, enum: [900, 844]}
+        sequenceNo: {type: integer, minimum: 1, maximum: 3}
+        fixtureRef: {type: string, minLength: 3, maxLength: 160}
+    I8StabilityClaimResponse:
+      type: object
+      additionalProperties: false
+      required: [status, batchId, namespace, candidateId, scriptVersion, caseVersion, executablePlanVersion, relativeDirectory, scriptHash, manifestHash, credentialAlias, leaseOwner, leaseExpiresAt, runs]
+      properties:
+        status: {type: string, enum: [CLAIMED]}
+        batchId: {type: string, minLength: 8, maxLength: 80}
+        namespace: {type: string, minLength: 3, maxLength: 64}
+        candidateId: {type: string, pattern: '^candidate_[0-9a-f]{40}$'}
+        scriptVersion: {type: integer, minimum: 1}
+        caseVersion: {type: integer, minimum: 1}
+        executablePlanVersion: {type: integer, minimum: 1}
+        relativeDirectory: {type: string, pattern: '^\\.data/candidates/[a-z0-9][a-z0-9._-]{2,63}/candidate_[0-9a-f]{40}$'}
+        scriptHash: {type: string, pattern: '^[0-9a-f]{64}$'}
+        manifestHash: {type: string, pattern: '^[0-9a-f]{64}$'}
+        credentialAlias: {type: string, enum: [i3-customer]}
+        leaseOwner: {type: string, minLength: 3, maxLength: 128}
+        leaseExpiresAt: {type: string, format: date-time}
+        runs:
+          type: array
+          minItems: 6
+          maxItems: 6
+          items: {$ref: '#/components/schemas/I8StabilityRunSpec'}
+    I8StabilityEvidence:
+      type: object
+      additionalProperties: false
+      required: [artifactType, mediaType, redactionStatus, relativePath, sha256, byteLength]
+      properties:
+        artifactType: {type: string, enum: [REPORT, SCREENSHOT, LOG]}
+        mediaType: {type: string, enum: [application/json, image/png, 'text/plain; charset=utf-8']}
+        redactionStatus: {type: string, enum: [REDACTED]}
+        relativePath: {type: string, minLength: 20, maxLength: 500}
+        sha256: {type: string, pattern: '^[0-9a-f]{64}$'}
+        byteLength: {type: integer, minimum: 1, maximum: 8388608}
+    I8StabilityRunResult:
+      type: object
+      additionalProperties: false
+      required: [validationRunId, viewportId, viewportWidth, viewportHeight, sequenceNo, fixtureRef, outcome, durationMs, assertionSetHash, evidenceSetHash, evidence]
+      properties:
+        validationRunId: {type: string, minLength: 3, maxLength: 160}
+        viewportId: {type: string, enum: [DESKTOP_1440X900, NARROW_390X844]}
+        viewportWidth: {type: integer, enum: [1440, 390]}
+        viewportHeight: {type: integer, enum: [900, 844]}
+        sequenceNo: {type: integer, minimum: 1, maximum: 3}
+        fixtureRef: {type: string, minLength: 3, maxLength: 160}
+        outcome: {type: string, enum: [PASSED, FAILED]}
+        durationMs: {type: integer, minimum: 0, maximum: 600000}
+        assertionSetHash: {type: string, pattern: '^[0-9a-f]{64}$'}
+        evidenceSetHash: {type: string, pattern: '^[0-9a-f]{64}$'}
+        evidence:
+          type: array
+          minItems: 3
+          maxItems: 3
+          items: {$ref: '#/components/schemas/I8StabilityEvidence'}
+        errorCode: {type: string, minLength: 3, maxLength: 160}
+    I8StabilityCompletionRequest:
+      type: object
+      additionalProperties: false
+      required: [workerId, candidateId, scriptHash, runtimeFingerprint, runs]
+      properties:
+        workerId: {type: string, minLength: 3, maxLength: 128}
+        candidateId: {type: string, pattern: '^candidate_[0-9a-f]{40}$'}
+        scriptHash: {type: string, pattern: '^[0-9a-f]{64}$'}
+        runtimeFingerprint: {type: string, pattern: '^[0-9a-f]{64}$'}
+        runs:
+          type: array
+          minItems: 6
+          maxItems: 6
+          items: {$ref: '#/components/schemas/I8StabilityRunResult'}
   responses:
     Problem:
       description: 受控问题响应

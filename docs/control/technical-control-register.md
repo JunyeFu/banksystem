@@ -80,8 +80,12 @@ owner: project-owner
 | `AUD-021` | SQLite候选来源字段被修改会破坏审计链 | `CLOSED_STAGE3`：migration 011保存执行计划、构建任务、动作事实和候选，并以不可变/禁止删除触发器保护来源与Hash字段 |
 | `AUD-022` | Worker可能执行路径逃逸、篡改包或危险Node能力 | `CLOSED_STAGE3_LOCAL`：只允许受控候选目录和固定模块契约，执行前复核manifest/脚本Hash并拒绝路径逃逸、动态加载、文件/进程/命令能力 |
 | `AUD-023` | 普通用户或Agent可能伪造技术并发版本调用候选编译 | `CLOSED_STAGE3`：`candidate_get`只接收业务准备引用；MCP先调用`authoring_get`并由受控服务注入当前版本，Flowise不接触该参数 |
+| `AUD-024` | 合成同步页面会掩盖真实门户异步加载竞态 | `CLOSED_STAGE4`：`expectVisible`改为冻结30秒上限内等待可见并携带非敏感目标错误码；真实复兴银行门户完成6/6 |
+| `AUD-025` | 稳定性样本可能复用认证、Fixture或以重试替换失败 | `CLOSED_STAGE4`：migration 012固定2视口×3序列、独立Fixture；每次新建空storage state BrowserContext；任一失败整批失败且无重试任务 |
+| `AUD-026` | 候选、运行时或证据在签证前后可能漂移 | `CLOSED_STAGE4`：Worker复核候选/manifest Hash，绑定运行时指纹、断言集Hash、证据形状Hash并回验文件Hash/长度；证书及终态受不可变触发器保护 |
+| `AUD-027` | 阶段4能力可能仅存在于专项脚本而未进入常驻运行链 | `CLOSED_STAGE4`：常驻Worker轮询稳定性Claim、真实执行并回传Completion；环境级启动失败保持租约超时失败关闭，不伪造证书 |
 
-`AUD-009...AUD-013` 完成阶段1，`AUD-014...AUD-018` 完成阶段2代码与本机集成边界，`AUD-019...AUD-023` 完成阶段3确定性Builder与受控Worker执行边界。阶段4只能读取阶段3生成且Hash一致的候选，执行两个视口各3次的真实Chromium稳定性验证；不得把Fake Page契约测试写成浏览器证据，不得提前生成证书、激活或调度候选，也不得把本机证据写成HiAgent证据。
+`AUD-009...AUD-013` 完成阶段1，`AUD-014...AUD-018` 完成阶段2代码与本机集成边界，`AUD-019...AUD-023` 完成阶段3确定性Builder与受控Worker执行边界，`AUD-024...AUD-027` 完成阶段4真实浏览器稳定性与证书边界。阶段5只能交付已持有有效证书且Hash一致的候选；不得提前调度，也不得把本机证据写成Flowise真实Agentflow、MiMo或HiAgent证据。
 
 ### 2.4 仍未验证但不得遗忘
 

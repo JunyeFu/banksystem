@@ -27,6 +27,11 @@ import {
   type I8CandidateCompileInput
 } from './i8/stage3-schemas';
 import { buildCandidatePackage, compileExecutableActionPlan } from './i8/script-package-builder';
+import {
+  I8_STABILITY_VIEWPORTS,
+  i8StabilityCompletionSchema,
+  type I8StabilityCompletionInput
+} from './i8/stage4-schemas';
 import { nextCronOccurrence, parseCron, validateTimeZone } from './cron';
 import { canonicalJson, nowIso, opaqueId, requestHash, sha256 } from './utils';
 
@@ -652,10 +657,17 @@ export class HarnessService {
         SELECT p.executable_plan_id, p.plan_hash, p.status AS plan_status, p.version AS plan_version,
                j.job_id, j.status AS job_status, j.error_code,
                c.candidate_id, c.script_id, c.script_version, c.dsl_hash, c.generator_version,
-               c.script_sha256, c.manifest_sha256, c.source_chain_hash, c.status AS candidate_status, c.version AS candidate_version
+               c.script_sha256, c.manifest_sha256, c.source_chain_hash, c.status AS candidate_status, c.version AS candidate_version,
+               b.batch_id AS stability_batch_id, b.status AS stability_status, b.error_code AS stability_error_code,
+               cert.certificate_id, cert.runtime_fingerprint, cert.viewport_set_json, cert.validation_run_ids_json,
+               cert.assertion_set_hash, cert.evidence_set_hash, cert.issued_at,
+               (SELECT COUNT(*) FROM i8_stability_validation_runs r WHERE r.batch_id = b.batch_id AND r.status = 'PASSED') AS stability_passed_runs,
+               (SELECT COUNT(*) FROM i8_stability_validation_runs r WHERE r.batch_id = b.batch_id AND r.status = 'FAILED') AS stability_failed_runs
         FROM i8_executable_plans p
         JOIN i8_candidate_build_jobs j ON j.executable_plan_id = p.executable_plan_id
         LEFT JOIN i8_script_candidates c ON c.executable_plan_id = p.executable_plan_id
+        LEFT JOIN i8_stability_batches b ON b.candidate_id = c.candidate_id
+        LEFT JOIN i8_stability_certificates cert ON cert.candidate_id = c.candidate_id
         WHERE p.namespace = ? AND p.preparation_id = ?
       `).get(namespace, preparationId) as Record<string, unknown> | undefined;
       if (!row) throw new HarnessError(404, 'I8_EXECUTABLE_PLAN_NOT_FOUND', 'DOMAIN', '阶段3可执行计划不存在。');
@@ -678,9 +690,36 @@ export class HarnessService {
             sourceChainHash: row.source_chain_hash,
             status: row.candidate_status,
             version: row.candidate_version
+          },
+          stability: {
+            batchId: row.stability_batch_id,
+            status: row.stability_status,
+            passedRuns: Number(row.stability_passed_runs ?? 0),
+            failedRuns: Number(row.stability_failed_runs ?? 0),
+            requiredRuns: 6,
+            viewportSet: ['1440x900', '390x844'],
+            ...(row.stability_error_code ? { errorCode: row.stability_error_code } : {}),
+            ...(row.certificate_id ? {
+              certificate: {
+                certificateId: row.certificate_id,
+                runtimeFingerprint: row.runtime_fingerprint,
+                viewportSet: JSON.parse(String(row.viewport_set_json)),
+                validationRunIds: JSON.parse(String(row.validation_run_ids_json)),
+                assertionSetHash: row.assertion_set_hash,
+                evidenceSetHash: row.evidence_set_hash,
+                status: 'PASSED',
+                issuedAt: row.issued_at
+              }
+            } : {})
           }
         } : {}),
-        nextAction: row.candidate_id ? 'I8_STAGE4_STABILITY_REQUIRED' : row.job_status === 'FAILED' ? 'AUTHORING_REVIEW_REQUIRED' : 'AUTHORING_WORKER_REQUIRED'
+        nextAction: row.certificate_id
+          ? 'I8_STAGE5_DELIVERY_REQUIRED'
+          : row.stability_status === 'FAILED'
+            ? 'CANDIDATE_REPAIR_REQUIRED'
+            : row.candidate_id
+              ? 'STABILITY_WORKER_REQUIRED'
+              : row.job_status === 'FAILED' ? 'AUTHORING_REVIEW_REQUIRED' : 'AUTHORING_WORKER_REQUIRED'
       };
     });
   }
@@ -795,6 +834,33 @@ export class HarnessService {
         .run(timestamp, timestamp, jobId);
       db.prepare(`UPDATE i8_executable_plans SET status = 'CANDIDATE_GENERATED', version = version + 1, updated_at = ? WHERE executable_plan_id = ?`)
         .run(timestamp, job.executable_plan_id);
+      const candidateSuffix = candidate.candidateId.slice('candidate_'.length);
+      const batchId = `stability_${candidateSuffix}`;
+      db.prepare(`
+        INSERT INTO i8_stability_batches(batch_id, namespace, candidate_id, status, version, created_at, updated_at)
+        VALUES (?, ?, ?, 'QUEUED', 1, ?, ?)
+      `).run(batchId, job.namespace, candidate.candidateId, timestamp, timestamp);
+      const insertStabilityRun = db.prepare(`
+        INSERT INTO i8_stability_validation_runs(
+          validation_run_id, batch_id, candidate_id, viewport_id, viewport_width, viewport_height,
+          sequence_no, fixture_ref, status, created_at
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'QUEUED', ?)
+      `);
+      for (const viewport of I8_STABILITY_VIEWPORTS) {
+        for (let sequence = 1; sequence <= 3; sequence += 1) {
+          insertStabilityRun.run(
+            `validation_${candidateSuffix}_${viewport.suffix}_${sequence}`,
+            batchId,
+            candidate.candidateId,
+            viewport.viewportId,
+            viewport.width,
+            viewport.height,
+            sequence,
+            `fixture_${candidateSuffix}_${viewport.suffix}_${sequence}`,
+            timestamp
+          );
+        }
+      }
       this.audit(db, { requestId: `worker:${jobId}`, actorType: 'SYSTEM' }, {
         namespace: String(job.namespace), action: 'i8_candidate_build', objectType: 'I8_SCRIPT_CANDIDATE',
         objectId: candidate.candidateId, outcome: 'SUCCEEDED', details: { jobId, scriptHash: candidate.scriptHash, manifestHash: candidate.manifestHash }
@@ -811,6 +877,149 @@ export class HarnessService {
       sourceChainHash: candidate.sourceChainHash,
       nextAction: 'I8_STAGE4_STABILITY_REQUIRED'
     };
+  }
+
+  async claimNextI8Stability(workerId: string): Promise<Record<string, unknown>> {
+    return this.database.write(db => {
+      const timestamp = nowIso();
+      const expired = db.prepare(`SELECT batch_id, candidate_id FROM i8_stability_batches WHERE status = 'RUNNING' AND lease_expires_at < ?`).all(timestamp) as Array<{batch_id: string; candidate_id: string}>;
+      for (const item of expired) {
+        db.prepare(`UPDATE i8_stability_validation_runs SET status = 'FAILED', error_code = 'STABILITY_WORKER_LEASE_EXPIRED', completed_at = ? WHERE batch_id = ? AND status IN ('QUEUED', 'RUNNING')`)
+          .run(timestamp, item.batch_id);
+        db.prepare(`UPDATE i8_stability_batches SET status = 'FAILED', error_code = 'STABILITY_WORKER_LEASE_EXPIRED', lease_owner = NULL, lease_expires_at = NULL, version = version + 1, completed_at = ?, updated_at = ? WHERE batch_id = ?`)
+          .run(timestamp, timestamp, item.batch_id);
+        db.prepare(`UPDATE i8_script_candidates SET status = 'VALIDATION_FAILED', version = version + 1, updated_at = ? WHERE candidate_id = ?`)
+          .run(timestamp, item.candidate_id);
+      }
+      const row = db.prepare(`
+        SELECT b.batch_id, b.namespace, b.candidate_id, c.relative_directory, c.script_sha256, c.manifest_sha256,
+               c.script_version, p.case_version, p.version AS executable_plan_version
+        FROM i8_stability_batches b
+        JOIN i8_script_candidates c ON c.candidate_id = b.candidate_id
+        JOIN i8_executable_plans p ON p.executable_plan_id = c.executable_plan_id
+        WHERE b.status = 'QUEUED'
+        ORDER BY b.created_at, b.batch_id LIMIT 1
+      `).get() as Record<string, unknown> | undefined;
+      if (!row) return { status: 'EMPTY' };
+      const leaseExpiresAt = new Date(Date.now() + 10 * 60_000).toISOString();
+      db.prepare(`UPDATE i8_stability_batches SET status = 'RUNNING', lease_owner = ?, lease_expires_at = ?, version = version + 1, updated_at = ? WHERE batch_id = ? AND status = 'QUEUED'`)
+        .run(workerId, leaseExpiresAt, timestamp, row.batch_id);
+      db.prepare(`UPDATE i8_stability_validation_runs SET status = 'RUNNING' WHERE batch_id = ? AND status = 'QUEUED'`).run(row.batch_id);
+      db.prepare(`UPDATE i8_script_candidates SET status = 'VALIDATING', version = version + 1, updated_at = ? WHERE candidate_id = ? AND status = 'GENERATED'`)
+        .run(timestamp, row.candidate_id);
+      const runs = db.prepare(`
+        SELECT validation_run_id, viewport_id, viewport_width, viewport_height, sequence_no, fixture_ref
+        FROM i8_stability_validation_runs WHERE batch_id = ?
+        ORDER BY CASE viewport_id WHEN 'DESKTOP_1440X900' THEN 1 ELSE 2 END, sequence_no
+      `).all(row.batch_id) as Array<Record<string, unknown>>;
+      if (runs.length !== 6) throw new HarnessError(500, 'I8_STABILITY_RUN_SET_CORRUPT', 'EVIDENCE', '稳定性六次样本集合不完整。');
+      return {
+        status: 'CLAIMED',
+        batchId: row.batch_id,
+        namespace: row.namespace,
+        candidateId: row.candidate_id,
+        scriptVersion: row.script_version,
+        caseVersion: row.case_version,
+        executablePlanVersion: row.executable_plan_version,
+        relativeDirectory: row.relative_directory,
+        scriptHash: row.script_sha256,
+        manifestHash: row.manifest_sha256,
+        credentialAlias: 'i3-customer',
+        leaseOwner: workerId,
+        leaseExpiresAt,
+        runs: runs.map(run => ({
+          validationRunId: run.validation_run_id,
+          viewportId: run.viewport_id,
+          viewportWidth: run.viewport_width,
+          viewportHeight: run.viewport_height,
+          sequenceNo: run.sequence_no,
+          fixtureRef: run.fixture_ref
+        }))
+      };
+    });
+  }
+
+  async completeI8Stability(batchId: string, inputValue: I8StabilityCompletionInput): Promise<Record<string, unknown>> {
+    const input = i8StabilityCompletionSchema.parse(inputValue);
+    const snapshot = this.database.read(db => db.prepare(`
+      SELECT b.*, c.script_sha256, c.namespace, p.case_version, p.version AS executable_plan_version
+      FROM i8_stability_batches b
+      JOIN i8_script_candidates c ON c.candidate_id = b.candidate_id
+      JOIN i8_executable_plans p ON p.executable_plan_id = c.executable_plan_id
+      WHERE b.batch_id = ?
+    `).get(batchId) as Record<string, unknown> | undefined);
+    if (!snapshot) throw new HarnessError(404, 'I8_STABILITY_BATCH_NOT_FOUND', 'DOMAIN', '稳定性验证批次不存在。');
+    if (snapshot.status === 'PASSED' || snapshot.status === 'FAILED') {
+      return { batchId, candidateId: snapshot.candidate_id, status: snapshot.status, replayed: true };
+    }
+    if (snapshot.status !== 'RUNNING' || snapshot.lease_owner !== input.workerId) throw new HarnessError(409, 'I8_STABILITY_LEASE_INVALID', 'CONCURRENCY', '稳定性验证租约无效。', false, true);
+    if (snapshot.candidate_id !== input.candidateId || snapshot.script_sha256 !== input.scriptHash) throw new HarnessError(409, 'I8_STABILITY_CANDIDATE_MISMATCH', 'CONCURRENCY', '稳定性结果与候选脚本不匹配。', false, true);
+    const expectedRuns = this.database.read(db => db.prepare(`SELECT * FROM i8_stability_validation_runs WHERE batch_id = ?`).all(batchId) as Array<Record<string, unknown>>);
+    const expectedById = new Map(expectedRuns.map(run => [String(run.validation_run_id), run]));
+    if (expectedById.size !== 6) throw new HarnessError(500, 'I8_STABILITY_RUN_SET_CORRUPT', 'EVIDENCE', '稳定性六次样本集合不完整。');
+    const stabilityRoot = path.resolve(this.productRoot, '.data', 'stability');
+    for (const result of input.runs) {
+      const expected = expectedById.get(result.validationRunId);
+      if (!expected || expected.viewport_id !== result.viewportId || Number(expected.viewport_width) !== result.viewportWidth || Number(expected.viewport_height) !== result.viewportHeight || Number(expected.sequence_no) !== result.sequenceNo || expected.fixture_ref !== result.fixtureRef) {
+        throw new HarnessError(409, 'I8_STABILITY_RUN_IDENTITY_MISMATCH', 'CONTRACT', 'Worker返回的稳定性样本身份不匹配。', false, true);
+      }
+      for (const artifact of result.evidence) {
+        const resolved = path.resolve(this.productRoot, ...artifact.relativePath.split('/'));
+        if (!resolved.startsWith(`${stabilityRoot}${path.sep}`) || !fs.existsSync(resolved)) throw new HarnessError(409, 'I8_STABILITY_EVIDENCE_MISSING', 'EVIDENCE', '稳定性证据文件缺失或越界。', false, true);
+        const bytes = fs.readFileSync(resolved);
+        if (bytes.byteLength !== artifact.byteLength || sha256(bytes) !== artifact.sha256) throw new HarnessError(409, 'I8_STABILITY_EVIDENCE_HASH_MISMATCH', 'EVIDENCE', '稳定性证据Hash不匹配。', false, true);
+      }
+    }
+    const allPassed = input.runs.every(run => run.outcome === 'PASSED');
+    const assertionHashes = new Set(input.runs.map(run => run.assertionSetHash));
+    const evidenceHashes = new Set(input.runs.map(run => run.evidenceSetHash));
+    const consistent = assertionHashes.size === 1 && evidenceHashes.size === 1;
+    const passed = allPassed && consistent;
+    const errorCode = passed ? undefined : !allPassed
+      ? input.runs.find(run => run.outcome === 'FAILED')?.errorCode ?? 'STABILITY_SAMPLE_FAILED'
+      : assertionHashes.size !== 1 ? 'STABILITY_ASSERTION_SET_DRIFT' : 'STABILITY_EVIDENCE_SET_DRIFT';
+    return this.database.write(db => {
+      const timestamp = nowIso();
+      const current = db.prepare('SELECT status, lease_owner FROM i8_stability_batches WHERE batch_id = ?').get(batchId) as {status: string; lease_owner: string | null};
+      if (current.status !== 'RUNNING' || current.lease_owner !== input.workerId) throw new HarnessError(409, 'I8_STABILITY_LEASE_INVALID', 'CONCURRENCY', '写入稳定性结果前租约已变化。', false, true);
+      const updateRun = db.prepare(`UPDATE i8_stability_validation_runs SET status = ?, duration_ms = ?, assertion_set_hash = ?, evidence_set_hash = ?, evidence_json = ?, error_code = ?, completed_at = ? WHERE validation_run_id = ? AND batch_id = ? AND status = 'RUNNING'`);
+      for (const run of input.runs) {
+        updateRun.run(run.outcome, run.durationMs, run.assertionSetHash, run.evidenceSetHash, canonicalJson(run.evidence), run.errorCode ?? null, timestamp, run.validationRunId, batchId);
+      }
+      let certificateId: string | undefined;
+      if (passed) {
+        certificateId = `certificate_${sha256(canonicalJson({ candidateId: input.candidateId, scriptHash: input.scriptHash, runtimeFingerprint: input.runtimeFingerprint })).slice(0, 40)}`;
+        const runIds = input.runs.map(run => run.validationRunId);
+        db.prepare(`
+          INSERT INTO i8_stability_certificates(
+            certificate_id, namespace, candidate_id, batch_id, script_sha256, case_version,
+            executable_plan_version, runtime_fingerprint, viewport_set_json, validation_run_ids_json,
+            assertion_set_hash, evidence_set_hash, status, issued_at
+          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'PASSED', ?)
+        `).run(
+          certificateId, snapshot.namespace, input.candidateId, batchId, input.scriptHash,
+          snapshot.case_version, snapshot.executable_plan_version, input.runtimeFingerprint,
+          canonicalJson(I8_STABILITY_VIEWPORTS.map(viewport => ({ viewportId: viewport.viewportId, width: viewport.width, height: viewport.height, consecutivePasses: 3 }))),
+          canonicalJson(runIds), [...assertionHashes][0], [...evidenceHashes][0], timestamp
+        );
+      }
+      db.prepare(`UPDATE i8_stability_batches SET status = ?, lease_owner = NULL, lease_expires_at = NULL, runtime_fingerprint = ?, assertion_set_hash = ?, evidence_set_hash = ?, error_code = ?, version = version + 1, completed_at = ?, updated_at = ? WHERE batch_id = ?`)
+        .run(passed ? 'PASSED' : 'FAILED', input.runtimeFingerprint, assertionHashes.size === 1 ? [...assertionHashes][0] : null, evidenceHashes.size === 1 ? [...evidenceHashes][0] : null, errorCode ?? null, timestamp, timestamp, batchId);
+      db.prepare(`UPDATE i8_script_candidates SET status = ?, version = version + 1, updated_at = ? WHERE candidate_id = ?`)
+        .run(passed ? 'STABILITY_CERTIFIED' : 'VALIDATION_FAILED', timestamp, input.candidateId);
+      this.audit(db, { requestId: `worker:${batchId}`, actorType: 'SYSTEM' }, {
+        namespace: String(snapshot.namespace), action: 'i8_stability_complete', objectType: 'I8_STABILITY_BATCH', objectId: batchId,
+        outcome: passed ? 'SUCCEEDED' : 'REJECTED', details: { candidateId: input.candidateId, runCount: 6, certificateId: certificateId ?? null, errorCode: errorCode ?? null }
+      });
+      return {
+        batchId,
+        candidateId: input.candidateId,
+        status: passed ? 'STABILITY_CERTIFIED' : 'VALIDATION_FAILED',
+        passedRuns: input.runs.filter(run => run.outcome === 'PASSED').length,
+        failedRuns: input.runs.filter(run => run.outcome === 'FAILED').length,
+        ...(certificateId ? { certificateId, nextAction: 'I8_STAGE5_DELIVERY_REQUIRED' } : { errorCode, nextAction: 'CANDIDATE_REPAIR_REQUIRED' })
+      };
+    });
   }
 
   async compilePlan(caseId: string, input: PlanCompileInput, context: RequestContext): Promise<IdempotentResult> {

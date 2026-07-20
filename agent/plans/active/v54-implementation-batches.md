@@ -363,6 +363,8 @@ I8 内部实现顺序固定为：
 
 2026-07-20 阶段3完成状态：第3项已完成代码与本机集成验证。migration 011、严格 `ExecutableActionPlan`、10操作有限 DSL、仅 `ROLE/LABEL/TEST_ID` 定位器、确定性 Script Package Builder、候选版本/Hash/来源链、不可变 SQLite 记录、文件 Hash 复核和 Worker 白名单执行已经落地。相同规范化输入生成字节一致脚本与相同 Hash；`candidate_get` 不接收用户提供的并发版本，而由 MCP 查询 Harness 后注入受控版本。`verify:i8:stage3` 15/15，Worker 测试通过受控 Playwright Page 契约并拒绝篡改包。阶段3没有运行真实 Chromium、没有生成 `StabilityCertificate`，也没有激活或调度候选；第4项六次真实浏览器稳定性门禁是下一步。
 
+2026-07-20 阶段4完成状态：第4项已完成代码、常驻Worker接入和真实浏览器验收。migration 012冻结批次、六个验证样本与不可变`StabilityCertificate`；样本严格为1440×900和390×844两个视口各1—3次，每次使用全新BrowserContext、空storage state和独立Fixture。Worker复核候选/manifest/运行时Hash，输出脱敏报告、PNG截图和步骤日志并验证文件Hash；任何一次失败均整批失败、不重试、不签证。`verify:i8:stage4`覆盖阶段1—4与内部OpenAPI，真实复兴银行门户另以固定Chromium完成6/6并签发证书。阶段4未实现脚本预览、下载、保存、激活或调度；第5项受控交付与人工选择是下一步。
+
 I8 退出条件全部为硬门禁：
 
 - 普通用户只输入案例描述即可完成首个登录/资料一致性案例的结构化、作者化、脚本生成和稳定性验证；

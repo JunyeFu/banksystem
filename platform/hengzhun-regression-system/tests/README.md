@@ -9,3 +9,5 @@ I8 阶段1由 `tests/i8/context-envelope.test.cjs` 覆盖：版本化严格领�
 I8 阶段2由 `tests/i8/stage2-agentflow-mcp.test.cjs` 覆盖：migration 010、案例到IntentPlan交接、Flowise 3.0.12节点加载、唯一自然语言输入、禁止Code/HTTP/SQLite绕行、Bearer MCP、14工具白名单，以及真实Flowise MCP Client→Harness→SQLite。阶段3启用`candidate_get`后当前为4项ACTIVE/10项失败关闭。它不调用MiMo，也不证明Agentflow已在UI发布或HiAgent已部署。
 
 I8 阶段3由 `tests/i8/stage3-deterministic-builder.test.cjs` 覆盖：migration 011、严格ExecutableActionPlan、10操作有限DSL、确定性Builder、相同输入字节一致、候选SQLite/文件落地、来源链/Hash以及Worker受控执行和篡改拒绝。Worker使用Fake Page验证Playwright调用契约，尚不证明真实Chromium在两个视口各连续3次稳定通过。
+
+I8 阶段4由 `tests/i8/stage4-stability-certificate.test.cjs` 覆盖：migration 012不可变权威、固定1440×900/390×844各3次、真实内置Chromium、全新BrowserContext、独立Fixture、证据/运行时Hash、6/6签证、单样本失败整批拒绝且无重试，以及常驻Worker轮询接入。`verify:i8:stage4:live`另对真实复兴银行门户执行相同六样本，不能替代Flowise Agentflow、MiMo或HiAgent验收。

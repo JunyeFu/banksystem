@@ -255,6 +255,19 @@ I8 第一步必须在任何 Flowise Agentflow 接入前完成：
 
 `verify:i8:stage3` 当前15/15。该验证以受控Fake Page证明Playwright调用契约和篡改拒绝，不证明真实Chromium稳定性。候选保持`GENERATED`，下一动作固定为`I8_STAGE4_STABILITY_REQUIRED`；阶段3不得生成`StabilityCertificate`、激活或调度候选。真实Agentflow/MiMo/HiAgent边界与阶段2相同，仍未验收。
 
+#### 5.5.5 阶段4稳定性证书实现记录
+
+2026-07-20 阶段4状态为 `IMPLEMENTED_AND_REAL_PORTAL_VERIFIED`：
+
+- migration 012新增不可变稳定性批次、固定六个验证样本和证书表，终态与证书禁止修改或删除；
+- 视口冻结为1440×900与390×844，各按序执行3次；六个样本使用独立Fixture，每次创建全新BrowserContext并验证初始storage state为空；
+- Worker执行前复核候选脚本、manifest和运行时指纹，执行后生成脱敏报告、有效PNG截图与步骤日志，并由Harness复核相对路径、长度和SHA-256；
+- 只有六次全部通过且候选Hash、运行时指纹、断言集Hash、证据形状Hash一致时才签发不可变`StabilityCertificate`；任何失败均整批`VALIDATION_FAILED`，不创建替代样本、不重试、不签证；
+- 常驻Worker已轮询阶段4Claim并回传Completion；专项测试使用内置Chromium对合成门户验证成功/失败分支，实机门禁使用同一内置Chromium对真实复兴银行门户完成6/6；
+- 真实门户异步加载曾暴露瞬时可见性误判，生成模板现使用冻结30秒上限的`waitFor visible`，错误码只携带非敏感语义目标。
+
+阶段4没有实现脚本预览、下载、`SAVE_ONLY / ACTIVATE`、定时或修复；候选的下一动作固定进入阶段5。真实Flowise Agentflow发布、MiMo主控对话和HiAgent运行仍未验收。
+
 ## 6. Midscene 与 Playwright 执行协议
 
 1. Midscene 在作者化 BrowserContext 中读取当前 `ActionContextEnvelope` 和截图，输出 `VisualCandidate`。

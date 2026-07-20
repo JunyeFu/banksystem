@@ -63,6 +63,12 @@ const requiredFiles = [
   'worker/src/i8-candidate-runner.cjs',
   'tests/i8/stage3-deterministic-builder.test.cjs',
   'scripts/verify-i8-stage3.ps1',
+  'harness/migrations/012_i8_stability_certificate.sql',
+  'harness/src/i8/stage4-schemas.ts',
+  'worker/src/i8-stability-runner.cjs',
+  'tests/i8/stage4-stability-certificate.test.cjs',
+  'scripts/verify-i8-stage4.ps1',
+  'scripts/verify-i8-stage4-live.ps1', 'scripts/verify-i8-stage4-live.cjs',
   'coze/agents/hengzhun-i4-regression-agent.md',
   'coze/knowledge/i4-three-case-authoring-runtime-rules.md',
   'coze/workflows/i4-three-cases-authoring.yaml',
@@ -111,6 +117,7 @@ try {
   if (!packageJson.scripts?.['verify:i8:stage1']) failures.push('I8 stage1 verification command is missing');
   if (!packageJson.scripts?.['verify:i8:stage2']) failures.push('I8 stage2 verification command is missing');
   if (!packageJson.scripts?.['verify:i8:stage3']) failures.push('I8 stage3 verification command is missing');
+  if (!packageJson.scripts?.['verify:i8:stage4']) failures.push('I8 stage4 verification command is missing');
 } catch (error) {
   failures.push(`package.json: ${error.message}`);
 }
