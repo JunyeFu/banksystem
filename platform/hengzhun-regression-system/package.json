@@ -11,7 +11,7 @@
     "build": "runtime\\node-v20.20.2-win-x64\\node.exe node_modules\\typescript\\bin\\tsc",
     "start:harness": "runtime\\node-v20.20.2-win-x64\\node.exe dist\\harness\\src\\index.js",
     "start:worker": "runtime\\node-v20.20.2-win-x64\\node.exe worker\\src\\index.cjs",
-    "test:i2": "runtime\\node-v20.20.2-win-x64\\node.exe --test tests\\i2\\database.test.cjs tests\\i2\\output-budget.test.cjs tests\\i2\\harness-api.test.cjs",
+    "test:i2": "runtime\\node-v20.20.2-win-x64\\node.exe --test tests\\i2\\database.test.cjs tests\\i2\\output-budget.test.cjs tests\\i2\\harness-api.test.cjs tests\\i2\\dockerfile-contract.test.cjs",
     "test:i3": "runtime\\node-v20.20.2-win-x64\\node.exe --test tests\\i3\\model-gateway.test.cjs tests\\i3\\vertical-closure.test.cjs",
     "test:i4": "npm run build && runtime\\node-v20.20.2-win-x64\\node.exe --test tests\\i4\\authoring-window.test.cjs",
     "test:i5": "npm run build && runtime\\node-v20.20.2-win-x64\\node.exe --test tests\\i5\\i5-repair-loop.test.cjs",
