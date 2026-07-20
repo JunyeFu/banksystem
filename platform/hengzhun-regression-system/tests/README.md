@@ -6,4 +6,6 @@
 
 I8 阶段1由 `tests/i8/context-envelope.test.cjs` 覆盖：版本化严格领域Schema、migration 009、不可变上下文预算审计、`CTX-L1→L2→L3`、视觉16K/12K、主控1M、提供方usage超限失败关闭和Worker OpenAPI。该测试不调用真实MiMo或Flowise，不能作为二者的运行证据。
 
-I8 阶段2由 `tests/i8/stage2-agentflow-mcp.test.cjs` 覆盖：migration 010、案例到IntentPlan交接、Flowise 3.0.12节点加载、唯一自然语言输入、禁止Code/HTTP/SQLite绕行、Bearer MCP、14工具白名单、3项ACTIVE/11项失败关闭，以及真实Flowise MCP Client→Harness→SQLite。它不调用MiMo，也不证明Agentflow已在UI发布或HiAgent已部署。
+I8 阶段2由 `tests/i8/stage2-agentflow-mcp.test.cjs` 覆盖：migration 010、案例到IntentPlan交接、Flowise 3.0.12节点加载、唯一自然语言输入、禁止Code/HTTP/SQLite绕行、Bearer MCP、14工具白名单，以及真实Flowise MCP Client→Harness→SQLite。阶段3启用`candidate_get`后当前为4项ACTIVE/10项失败关闭。它不调用MiMo，也不证明Agentflow已在UI发布或HiAgent已部署。
+
+I8 阶段3由 `tests/i8/stage3-deterministic-builder.test.cjs` 覆盖：migration 011、严格ExecutableActionPlan、10操作有限DSL、确定性Builder、相同输入字节一致、候选SQLite/文件落地、来源链/Hash以及Worker受控执行和篡改拒绝。Worker使用Fake Page验证Playwright调用契约，尚不证明真实Chromium在两个视口各连续3次稳定通过。

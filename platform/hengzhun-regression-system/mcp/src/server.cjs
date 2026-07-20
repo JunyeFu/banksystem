@@ -52,7 +52,7 @@ function textResult(value, isError = false) {
   return { ...(isError ? { isError: true } : {}), content: [{ type: 'text', text }] }
 }
 
-async function callHarness(route, payload) {
+async function requestHarness(route, payload) {
   const response = await fetch(new URL(route, harnessUrl), {
     method: 'POST',
     headers: {
@@ -64,6 +64,11 @@ async function callHarness(route, payload) {
     signal: AbortSignal.timeout(30_000)
   })
   const body = await response.json().catch(() => ({ errorCode: 'HARNESS_RESPONSE_INVALID' }))
+  return { response, body }
+}
+
+async function callHarness(route, payload) {
+  const { response, body } = await requestHarness(route, payload)
   if (!response.ok) {
     return textResult({
       errorCode: typeof body.errorCode === 'string' ? body.errorCode : 'HARNESS_REQUEST_FAILED',
@@ -87,12 +92,12 @@ function parseJsonArgument(value, errorCode) {
 }
 
 const deferredTools = [
-  'candidate_get', 'candidate_preview', 'candidate_decide', 'run_submit', 'task_get',
+  'candidate_preview', 'candidate_decide', 'run_submit', 'task_get',
   'schedule_create', 'schedule_get', 'result_inbox_list', 'failure_get', 'repair_propose', 'decision_submit'
 ]
 
 function createServer() {
-  const server = new McpServer({ name: 'hengzhun-i8-regression', version: '2.0.0' })
+  const server = new McpServer({ name: 'hengzhun-i8-regression', version: '3.0.0' })
 
   server.registerTool('case_prepare', {
     description: '将自然语言案例的已澄清结构化草案和知识快照提交给衡准权威状态库。',
@@ -155,6 +160,25 @@ function createServer() {
     inputSchema: { preparationId: safeRef }
   }, async ({ preparationId }) => callHarness('/v1/i8/authoring:get', { namespace, preparationId }))
 
+  server.registerTool('candidate_get', {
+    description: '从已确认 IntentPlan 确定性编译阶段3计划，或读取当前候选生成状态；技术参数由 MCP 注入。',
+    inputSchema: {
+      preparationId: safeRef,
+      sessionRef: safeRef
+    }
+  }, async ({ preparationId, sessionRef }) => {
+    const current = await requestHarness('/v1/i8/authoring:get', { namespace, preparationId })
+    if (!current.response.ok || !Number.isInteger(current.body.version)) {
+      return textResult({ errorCode: current.body.errorCode || 'I8_PREPARATION_VERSION_UNAVAILABLE', status: current.response.status }, true)
+    }
+    return callHarness('/v1/i8/candidates:compile', {
+      namespace,
+      idempotencyKey: idempotencyKey('candidate_get', sessionRef, { preparationId, expectedPreparationVersion: current.body.version }),
+      preparationId,
+      expectedPreparationVersion: current.body.version
+    })
+  })
+
   for (const toolName of deferredTools) {
     server.registerTool(toolName, {
       description: `${toolName} 已冻结名称和边界，但要到 I8 后续阶段实现。`,
@@ -169,7 +193,7 @@ function createServer() {
 }
 
 const app = createMcpExpressApp()
-app.get('/health', (_request, response) => response.json({ status: 'ok', service: 'hengzhun-i8-mcp', version: '2.0.0' }))
+app.get('/health', (_request, response) => response.json({ status: 'ok', service: 'hengzhun-i8-mcp', version: '3.0.0' }))
 app.use('/mcp', (request, response, next) => {
   if (!authorized(request.headers.authorization)) {
     response.status(401).json({ jsonrpc: '2.0', error: { code: -32001, message: 'Unauthorized' }, id: null })

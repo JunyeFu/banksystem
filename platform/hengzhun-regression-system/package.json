@@ -21,6 +21,8 @@
     "verify:i8:stage1": "npm run test:i8:stage1 && runtime\\node-v20.20.2-win-x64\\node.exe scripts\\verify-i3-openapi.cjs",
     "test:i8:stage2": "runtime\\node-v20.20.2-win-x64\\node.exe node_modules\\typescript\\bin\\tsc && runtime\\node-v20.20.2-win-x64\\node.exe --test tests\\i8\\context-envelope.test.cjs tests\\i8\\stage2-agentflow-mcp.test.cjs",
     "verify:i8:stage2": "powershell.exe -NoProfile -ExecutionPolicy Bypass -File scripts\\verify-i8-stage2.ps1",
+    "test:i8:stage3": "runtime\\node-v20.20.2-win-x64\\node.exe node_modules\\typescript\\bin\\tsc && runtime\\node-v20.20.2-win-x64\\node.exe --test tests\\i8\\stage3-deterministic-builder.test.cjs",
+    "verify:i8:stage3": "powershell.exe -NoProfile -ExecutionPolicy Bypass -File scripts\\verify-i8-stage3.ps1",
     "start:i8:mcp": "runtime\\node-v20.20.2-win-x64\\node.exe mcp\\src\\server.cjs",
     "verify:i7:delivery": "runtime\\node-v20.20.2-win-x64\\node.exe scripts\\verify-i7-delivery.cjs --record",
     "package:i7:delivery": "powershell.exe -NoProfile -ExecutionPolicy Bypass -File scripts\\package-i7-delivery.ps1",

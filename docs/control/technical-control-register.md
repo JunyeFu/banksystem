@@ -75,8 +75,13 @@ owner: project-owner
 | `AUD-016` | MCP 全量工具若提前暴露会伪造后续阶段能力 | `CLOSED_STAGE2`：14工具名称冻结，只有3项阶段2工具 ACTIVE；其余11项稳定返回 `I8_STAGE_CAPABILITY_NOT_AVAILABLE` |
 | `AUD-017` | Flowise 平台状态与 Harness 领域状态可能双写 | `CLOSED_STAGE2`：migration 010 只保存描述Hash、知识快照引用、验收摘要、IntentPlan和确认状态；Flowise只保存会话/平台资源，MCP查询Harness最小状态 |
 | `AUD-018` | Flowise 制品可加载不等于平台或HiAgent已运行 | `CLOSED_STAGE2_EVIDENCE_BOUNDARY`：真实 Flowise 3.0.12 MCP Client集成已通过；Agentflow发布、真实MiMo对话和HiAgent运行继续单独标记未验证 |
+| `AUD-019` | 模型输出若直接成为脚本会形成任意代码执行面 | `CLOSED_STAGE3`：只接受严格 `ExecutableActionPlan` 和10操作有限DSL；Builder使用仓库内固定模板，拒绝未知操作、字段和定位器 |
+| `AUD-020` | 候选脚本可能无法重建或因重试产生不同内容 | `CLOSED_STAGE3`：固定生成器版本、规范化输入、DSL Hash、来源链Hash和脚本Hash；同输入生成字节一致脚本 |
+| `AUD-021` | SQLite候选来源字段被修改会破坏审计链 | `CLOSED_STAGE3`：migration 011保存执行计划、构建任务、动作事实和候选，并以不可变/禁止删除触发器保护来源与Hash字段 |
+| `AUD-022` | Worker可能执行路径逃逸、篡改包或危险Node能力 | `CLOSED_STAGE3_LOCAL`：只允许受控候选目录和固定模块契约，执行前复核manifest/脚本Hash并拒绝路径逃逸、动态加载、文件/进程/命令能力 |
+| `AUD-023` | 普通用户或Agent可能伪造技术并发版本调用候选编译 | `CLOSED_STAGE3`：`candidate_get`只接收业务准备引用；MCP先调用`authoring_get`并由受控服务注入当前版本，Flowise不接触该参数 |
 
-`AUD-009...AUD-013` 完成阶段1，`AUD-014...AUD-018` 完成阶段2代码与本机集成边界。阶段3只能从 `AWAITING_STAGE3` 读取获批 IntentPlan，实现有限 DSL 与确定性 Builder；不得恢复宽松对象、绕过 MCP、提前启用后续工具或把本机证据写成 HiAgent 证据。
+`AUD-009...AUD-013` 完成阶段1，`AUD-014...AUD-018` 完成阶段2代码与本机集成边界，`AUD-019...AUD-023` 完成阶段3确定性Builder与受控Worker执行边界。阶段4只能读取阶段3生成且Hash一致的候选，执行两个视口各3次的真实Chromium稳定性验证；不得把Fake Page契约测试写成浏览器证据，不得提前生成证书、激活或调度候选，也不得把本机证据写成HiAgent证据。
 
 ### 2.4 仍未验证但不得遗忘
 

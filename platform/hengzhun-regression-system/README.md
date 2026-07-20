@@ -8,7 +8,7 @@ I1 的单目录产品边界、固定运行时、结构校验、合成一致性�
 
 I5 已完成结构化案例导入、七类失败分类、定位器脚本失效诊断、白名单修复候选、隔离 Playwright 验证和人工确认激活。Coze Studio 0.5.1 已仅通过公开界面发布十一工具插件 v0.0.7、I5 Knowledge Base 与主控 Agent；自然语言批准真实改变 SQLite 权威状态，`repair_candidate_get` 回查为 `ACTIVE/version 4`，关联事故为 `RESOLVED/version 4`。使用旧版本的重复批准被 409 安全拒绝，没有发生第二次状态变更。
 
-I8 当前处于实施中。阶段1已完成受控上下文内核；阶段2已完成一句自然语言输入的Flowise Agentflow制品、平台知识/HiAgent映射、migration 010、三项Harness交接操作和Bearer MCP 14工具白名单。真实Flowise 3.0.12 MCP Client已贯通Harness/SQLite，但尚未发布运行中Agentflow或完成真实MiMo对话，阶段3 DSL/Builder也未开始。
+I8 当前处于实施中。阶段1已完成受控上下文内核；阶段2已完成一句自然语言输入的Flowise Agentflow制品和Harness交接；阶段3已完成migration 011、严格执行计划、10操作有限DSL、确定性Builder、候选版本/Hash/来源链、不可变SQLite记录和Worker白名单执行。真实Flowise 3.0.12 MCP Client已贯通Harness/SQLite且现有4项工具ACTIVE、10项失败关闭；尚未发布运行中Agentflow、完成真实MiMo对话或执行阶段4六次真实Chromium稳定性门禁。
 
 ## 目录职责
 
@@ -40,3 +40,5 @@ I8 当前处于实施中。阶段1已完成受控上下文内核；阶段2已完
 I8 阶段1执行 `npm.cmd run verify:i8:stage1`，覆盖严格Schema、migration 009、CTX升级、视觉/主控预算、usage超限失败关闭、Worker契约和I4兼容回归。
 
 I8 阶段2执行 `npm.cmd run verify:i8:stage2`，覆盖阶段1回归、migration 010、准备/确认/查询状态、Flowise 3.0.12节点兼容、Agentflow禁止节点、MCP认证、14工具白名单和真实Flowise MCP Client到Harness/SQLite集成。
+
+I8 阶段3执行 `npm.cmd run verify:i8:stage3`，覆盖阶段1/2回归、migration 011、严格执行计划、有限DSL、确定性Builder、来源链/Hash、候选持久化、Flowise `candidate_get` 和Worker篡改/危险能力拒绝。该门禁使用受控Fake Page验证执行契约，不替代阶段4真实Chromium稳定性验证。

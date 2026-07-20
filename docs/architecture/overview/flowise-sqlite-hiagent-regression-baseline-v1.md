@@ -223,7 +223,7 @@ Flowise 检索
 - 视觉模型默认 `CTX-L1`，只有确定性消歧规则才能升级 `CTX-L2` 或裁剪后的 `CTX-L3`。主控即使有 1M 容量，也不得读取完整仓库、SQLite、其他案例、秘密或无关历史。
 - Harness 必须按消费者独立预估和记录 token 预算。视觉上下文无法压入 16K 时不得静默删除安全字段，必须返回 `VISION_CONTEXT_BUDGET_EXCEEDED` 并转纯 Playwright、重新规划或人工处理；主控超限返回 `CONTROLLER_CONTEXT_BUDGET_EXCEEDED`。
 
-### 8.3 当前实现边界（2026-07-20 阶段2落地后）
+### 8.3 当前实现边界（2026-07-20 阶段3落地后）
 
 当前 I0—I7 历史代码仅实现了 Harness/SQLite 层的滑动状态：完整计划持久化、游标、上一动作摘要、当前动作、下一动作预览、最近观察、页面状态、单动作租约，以及 Playwright 验证成功后推进。历史 `test:i4` 当前 3/3 通过。
 
@@ -231,7 +231,9 @@ I8 阶段1已经以 migration 009、严格 `ActionContextEnvelope`、不可变 `
 
 I8 阶段2进一步落地了可迁移 Agentflow、Flowise 平台知识制品、HiAgent能力映射、Bearer MCP 14工具白名单、migration 010 和 `PREPARED→REJECTED/AWAITING_STAGE3` 权威交接。真实 Flowise 3.0.12 MCP Client 已调用三项活跃工具并贯通 Harness/SQLite；其余11项按阶段失败关闭。
 
-尚未完成的是运行中 Agentflow 发布、真实 MiMo 主控对话、阶段3 ExecutableActionPlan/DSL/Builder以及后续脚本闭环。因此只能声明“阶段2本机代码与集成验证完成”，不能声明“主控—视觉—脚本完整闭环”或“HiAgent已验收”。追踪见 `AUD-009...AUD-018`。
+I8 阶段3进一步落地 migration 011、严格 `ExecutableActionPlan`、10操作有限DSL、确定性Builder、候选版本/Hash/来源链、不可变SQLite记录以及Worker目录/Hash/能力白名单。MCP现启用`candidate_get`，由服务端注入受控并发版本，累计4项活跃、10项失败关闭。
+
+尚未完成的是运行中 Agentflow 发布、真实 MiMo 主控对话、真实 Chromium 两视口各3次稳定性验证以及后续脚本交付闭环。因此只能声明“阶段3本机代码与集成验证完成”，Fake Page执行契约不能冒充浏览器证据，不能声明“主控—视觉—脚本完整闭环”或“HiAgent已验收”。追踪见 `AUD-009...AUD-023`。
 
 ## 9. HiAgent 迁移约束
 

@@ -42,12 +42,12 @@ I0—I7 的 Coze 演示是冻结的历史证据；当前唯一新增阶段是 I8
 
 ## 3. 当前真实状态
 
-- `HENGZHUN-I8-FLOWISE-001`：`IN_PROGRESS`；阶段1、阶段2代码与集成测试已完成，阶段3尚未开始。
+- `HENGZHUN-I8-FLOWISE-001`：`IN_PROGRESS`；阶段1至阶段3代码与本机集成测试已完成，下一步为阶段4六次真实浏览器稳定性门禁。
 - Flowise Windows 隔离探针：通过，但仅证明技术可行。
 - 当前产品结构校验：保留 Coze 历史目录，同时要求 `flowise/`、`mcp/` 和 Flowise 平台知识制品；不再把 Coze Knowledge 写成 I8 当前权威。
 - 历史 I4 Harness 已实现 SQLite 游标、单动作租约和“上一摘要/当前动作/下一预览”状态窗口，`npm.cmd run test:i4` 当前为 3/3 通过。
 - I8 阶段1已让 Worker 以强类型 `ActionContextEnvelope` 为唯一视觉上下文，完成 `CTX-L1→L2→L3` 歧义升级、视觉16K/12K门禁、主控1M预算函数、图像/token预估、migration 009和不可变预算审计。
-- 阶段2已落地一句自然语言输入的 Agentflow 制品、migration 010、三项 Harness 交接操作、14工具 Bearer MCP 白名单和 HiAgent 映射；Flowise 3.0.12 `MCPToolkit` 已真实贯通 MCP→Harness→SQLite。真实 Agentflow 发布、MiMo 对话和 HiAgent 运行仍未验收，不得由制品或集成测试代替。
+- 阶段2已落地一句自然语言输入的 Agentflow 制品、migration 010、三项 Harness 交接操作、14工具 Bearer MCP 白名单和 HiAgent 映射；阶段3新增 migration 011、严格执行计划、10操作有限DSL、确定性Builder、不可变候选来源链、Worker Hash/白名单校验，并启用第4项MCP工具 `candidate_get`。Flowise 3.0.12 `MCPToolkit` 已真实贯通 MCP→Harness→SQLite；当前为4项ACTIVE、10项失败关闭。真实 Agentflow 发布、MiMo 对话、真实Chromium六次稳定性和 HiAgent 运行仍未验收，不得由制品或集成测试代替。
 - HiAgent MCP 注册、网络可达性、容量和真实 Workflow 映射：测试环境待验证。
 - 开发 RAG 索引：`NOT_BUILT`，不影响产品。
 - 外部案例/视频输入：`PROPOSED`，依赖 I8。

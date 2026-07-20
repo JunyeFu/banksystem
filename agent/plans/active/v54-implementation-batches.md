@@ -359,7 +359,9 @@ I8 内部实现顺序固定为：
 
 2026-07-20 阶段1完成状态：第1项已完成代码与自动测试落地。强类型领域 Schema、migration 009、`ActionContextEnvelope`、不可变预算审计、L1→L2→L3 歧义升级、视觉16K/12K与主控1M预算函数、图像token预估、确定性错误码、Worker完整Envelope消费和Worker OpenAPI 1.3.0均已实现；`verify:i8:stage1` 9/9、I2—I6历史回归32/32通过。真实MiMo usage当前按接口能力记录为`NOT_EXPOSED`，Flowise主控交接和真实模型E2E属于第2项及后续门禁，不能由阶段1证据代替。
 
-2026-07-20 阶段2完成状态：第2项已完成代码、制品和本机集成验证。`flowise/i8/agentflow-v2.json` 只接收 Chat Input 案例描述，平台知识、结构化 LLM、最小澄清、Human Input、MCP 与结果回显均有 HiAgent 语义映射；没有 Code、HTTP、数据库、文件或 Shell 节点。migration 010 与 Harness 实现 `PREPARED → REJECTED/AWAITING_STAGE3` 权威交接，MCP Server 以 Bearer、固定 namespace、确定性幂等、8 KiB 输出门禁注册14工具，其中阶段2仅启用 `case_prepare / authoring_submit / authoring_get`，其余稳定失败关闭。`verify:i8:stage2` 11/11，并使用 Flowise 3.0.12 的真实 `MCPToolkit` 验证 MCP→Harness→SQLite；当前进程未注入 MiMo 密钥且未发布运行中 Agentflow，因此不能声明真实 MiMo 对话或 HiAgent 运行验收。第3项 DSL/Builder 尚未开始。
+2026-07-20 阶段2完成状态：第2项已完成代码、制品和本机集成验证。`flowise/i8/agentflow-v2.json` 只接收 Chat Input 案例描述，平台知识、结构化 LLM、最小澄清、Human Input、MCP 与结果回显均有 HiAgent 语义映射；没有 Code、HTTP、数据库、文件或 Shell 节点。migration 010 与 Harness 实现 `PREPARED → REJECTED/AWAITING_STAGE3` 权威交接，MCP Server 以 Bearer、固定 namespace、确定性幂等、8 KiB 输出门禁注册14工具，其中阶段2启用 `case_prepare / authoring_submit / authoring_get`。阶段3在此基础上启用 `candidate_get`，其余10项稳定失败关闭。阶段2及阶段3累计验证使用 Flowise 3.0.12 的真实 `MCPToolkit` 贯通 MCP→Harness→SQLite；当前进程未注入 MiMo 密钥且未发布运行中 Agentflow，因此不能声明真实 MiMo 对话或 HiAgent 运行验收。
+
+2026-07-20 阶段3完成状态：第3项已完成代码与本机集成验证。migration 011、严格 `ExecutableActionPlan`、10操作有限 DSL、仅 `ROLE/LABEL/TEST_ID` 定位器、确定性 Script Package Builder、候选版本/Hash/来源链、不可变 SQLite 记录、文件 Hash 复核和 Worker 白名单执行已经落地。相同规范化输入生成字节一致脚本与相同 Hash；`candidate_get` 不接收用户提供的并发版本，而由 MCP 查询 Harness 后注入受控版本。`verify:i8:stage3` 15/15，Worker 测试通过受控 Playwright Page 契约并拒绝篡改包。阶段3没有运行真实 Chromium、没有生成 `StabilityCertificate`，也没有激活或调度候选；第4项六次真实浏览器稳定性门禁是下一步。
 
 I8 退出条件全部为硬门禁：
 

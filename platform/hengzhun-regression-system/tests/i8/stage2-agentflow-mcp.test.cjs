@@ -176,7 +176,7 @@ test('Flowise 3.0.12 artifact uses only mapped nodes, chat input and MCP for ext
   assert.equal(flow.nodes.some((node) => ['customFunctionAgentflow', 'httpAgentflow'].includes(node.data.name)), false)
   assert.equal(JSON.stringify(flow).includes('$flow.state.preparation'), false)
   const tools = flow.nodes.filter((node) => node.data.name === 'toolAgentflow')
-  assert.deepEqual(tools.flatMap((node) => node.data.inputs.toolAgentflowSelectedToolConfig.mcpActions).sort(), ['authoring_get', 'authoring_submit', 'case_prepare'])
+  assert.deepEqual(tools.flatMap((node) => node.data.inputs.toolAgentflowSelectedToolConfig.mcpActions).sort(), ['authoring_get', 'authoring_submit', 'candidate_get', 'case_prepare'])
   for (const node of tools) {
     assert.equal(node.data.inputs.toolAgentflowSelectedTool, 'customMCP')
     assert.match(node.data.inputs.toolAgentflowSelectedToolConfig.mcpServerConfig, /^\{"url":"http:\/\/127\.0\.0\.1:18789\/mcp"/)
@@ -264,6 +264,13 @@ test('Flowise MCP client reaches the authenticated 14-tool server and active too
   assert.equal(parseFlowiseMcpText(submitText).status, 'AWAITING_STAGE3')
   const getText = await toolkit.tools.find((tool) => tool.name === 'authoring_get').invoke({ preparationId: prepared.preparationId })
   assert.equal(parseFlowiseMcpText(getText).nextAction, 'EXECUTABLE_PLAN_COMPILER_REQUIRED')
-  const deferred = await toolkit.tools.find((tool) => tool.name === 'candidate_get').invoke({})
+  const candidateText = await toolkit.tools.find((tool) => tool.name === 'candidate_get').invoke({
+    preparationId: prepared.preparationId,
+    sessionRef: 'flowise-stage3-session-01'
+  })
+  const candidate = parseFlowiseMcpText(candidateText)
+  assert.equal(candidate.status, 'EXECUTABLE_PLAN_READY')
+  assert.equal(candidate.nextAction, 'AUTHORING_WORKER_REQUIRED')
+  const deferred = await toolkit.tools.find((tool) => tool.name === 'candidate_preview').invoke({})
   assert.equal(parseFlowiseMcpText(deferred).errorCode, 'I8_STAGE_CAPABILITY_NOT_AVAILABLE')
 })

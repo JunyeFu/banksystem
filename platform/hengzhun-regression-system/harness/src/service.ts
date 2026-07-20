@@ -21,6 +21,12 @@ import type {
   ScheduleDisableInput
 } from './schemas';
 import type { I8AuthoringSubmitInput, I8CasePrepareInput } from './i8/stage2-schemas';
+import {
+  i8CandidateBuildCompletionSchema,
+  type I8CandidateBuildCompletionInput,
+  type I8CandidateCompileInput
+} from './i8/stage3-schemas';
+import { buildCandidatePackage, compileExecutableActionPlan } from './i8/script-package-builder';
 import { nextCronOccurrence, parseCron, validateTimeZone } from './cron';
 import { canonicalJson, nowIso, opaqueId, requestHash, sha256 } from './utils';
 
@@ -561,6 +567,250 @@ export class HarnessService {
         updatedAt: row.updated_at
       };
     });
+  }
+
+  async compileI8Candidate(input: I8CandidateCompileInput, context: RequestContext): Promise<IdempotentResult> {
+    return this.idempotent(input.namespace, 'i8_candidate_compile', input.idempotencyKey, input, context, (db, timestamp) => {
+      const preparation = db.prepare(`
+        SELECT preparation_id, case_id, case_version, status, version, intent_plan_json, intent_plan_hash
+        FROM i8_case_preparations
+        WHERE namespace = ? AND preparation_id = ?
+      `).get(input.namespace, input.preparationId) as Record<string, unknown> | undefined;
+      if (!preparation) throw new HarnessError(404, 'I8_PREPARATION_NOT_FOUND', 'DOMAIN', 'I8 案例准备记录不存在。');
+      if (Number(preparation.version) !== input.expectedPreparationVersion) {
+        throw new HarnessError(409, 'I8_PREPARATION_VERSION_CONFLICT', 'CONCURRENCY', 'I8 案例准备版本已变化。', false, true, { currentVersion: preparation.version });
+      }
+      if (preparation.status !== 'AWAITING_STAGE3' || !preparation.intent_plan_json || !preparation.intent_plan_hash) {
+        throw new HarnessError(409, 'I8_INTENT_PLAN_NOT_READY', 'DOMAIN', '只有已确认的 IntentPlan 才能进入阶段3。', false, true);
+      }
+      const existing = db.prepare(`
+        SELECT p.executable_plan_id, p.plan_hash, p.status, p.version, j.job_id, j.status AS job_status
+        FROM i8_executable_plans p
+        JOIN i8_candidate_build_jobs j ON j.executable_plan_id = p.executable_plan_id
+        WHERE p.namespace = ? AND p.preparation_id = ?
+      `).get(input.namespace, input.preparationId) as Record<string, unknown> | undefined;
+      if (existing) {
+        return {
+          status: 200,
+          objectType: 'I8_EXECUTABLE_PLAN',
+          objectId: String(existing.executable_plan_id),
+          response: {
+            preparationId: input.preparationId,
+            executablePlanId: existing.executable_plan_id,
+            planHash: existing.plan_hash,
+            status: existing.status,
+            version: existing.version,
+            jobId: existing.job_id,
+            jobStatus: existing.job_status,
+            nextAction: existing.status === 'CANDIDATE_GENERATED' ? 'CANDIDATE_AVAILABLE' : 'AUTHORING_WORKER_REQUIRED'
+          }
+        };
+      }
+      let plan;
+      try {
+        plan = compileExecutableActionPlan(JSON.parse(String(preparation.intent_plan_json)), String(preparation.intent_plan_hash));
+      } catch (error) {
+        throw new HarnessError(409, error instanceof Error ? error.message : 'I8_EXECUTABLE_PLAN_REJECTED', 'CONTRACT', 'IntentPlan 无法编译为受控可执行计划。', false, true);
+      }
+      const planJson = canonicalJson(plan);
+      const planHash = sha256(planJson);
+      const jobId = opaqueId('buildjob');
+      db.prepare(`
+        INSERT INTO i8_executable_plans(
+          executable_plan_id, namespace, preparation_id, case_id, case_version,
+          intent_plan_hash, plan_json, plan_hash, status, version, created_at, updated_at
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'EXECUTABLE_PLAN_READY', 1, ?, ?)
+      `).run(
+        plan.executablePlanId, input.namespace, input.preparationId, preparation.case_id,
+        preparation.case_version, preparation.intent_plan_hash, planJson, planHash, timestamp, timestamp
+      );
+      db.prepare(`
+        INSERT INTO i8_candidate_build_jobs(job_id, namespace, executable_plan_id, status, version, created_at, updated_at)
+        VALUES (?, ?, ?, 'QUEUED', 1, ?, ?)
+      `).run(jobId, input.namespace, plan.executablePlanId, timestamp, timestamp);
+      return {
+        status: 202,
+        objectType: 'I8_EXECUTABLE_PLAN',
+        objectId: plan.executablePlanId,
+        response: {
+          preparationId: input.preparationId,
+          executablePlanId: plan.executablePlanId,
+          planHash,
+          status: 'EXECUTABLE_PLAN_READY',
+          version: 1,
+          jobId,
+          jobStatus: 'QUEUED',
+          nextAction: 'AUTHORING_WORKER_REQUIRED'
+        }
+      };
+    });
+  }
+
+  getI8Candidate(namespace: string, preparationId: string): Record<string, unknown> {
+    return this.database.read(db => {
+      const row = db.prepare(`
+        SELECT p.executable_plan_id, p.plan_hash, p.status AS plan_status, p.version AS plan_version,
+               j.job_id, j.status AS job_status, j.error_code,
+               c.candidate_id, c.script_id, c.script_version, c.dsl_hash, c.generator_version,
+               c.script_sha256, c.manifest_sha256, c.source_chain_hash, c.status AS candidate_status, c.version AS candidate_version
+        FROM i8_executable_plans p
+        JOIN i8_candidate_build_jobs j ON j.executable_plan_id = p.executable_plan_id
+        LEFT JOIN i8_script_candidates c ON c.executable_plan_id = p.executable_plan_id
+        WHERE p.namespace = ? AND p.preparation_id = ?
+      `).get(namespace, preparationId) as Record<string, unknown> | undefined;
+      if (!row) throw new HarnessError(404, 'I8_EXECUTABLE_PLAN_NOT_FOUND', 'DOMAIN', '阶段3可执行计划不存在。');
+      return {
+        preparationId,
+        executablePlanId: row.executable_plan_id,
+        planHash: row.plan_hash,
+        status: row.plan_status,
+        version: row.plan_version,
+        job: { jobId: row.job_id, status: row.job_status, ...(row.error_code ? { errorCode: row.error_code } : {}) },
+        ...(row.candidate_id ? {
+          candidate: {
+            candidateId: row.candidate_id,
+            scriptId: row.script_id,
+            scriptVersion: row.script_version,
+            dslHash: row.dsl_hash,
+            generatorVersion: row.generator_version,
+            scriptHash: row.script_sha256,
+            manifestHash: row.manifest_sha256,
+            sourceChainHash: row.source_chain_hash,
+            status: row.candidate_status,
+            version: row.candidate_version
+          }
+        } : {}),
+        nextAction: row.candidate_id ? 'I8_STAGE4_STABILITY_REQUIRED' : row.job_status === 'FAILED' ? 'AUTHORING_REVIEW_REQUIRED' : 'AUTHORING_WORKER_REQUIRED'
+      };
+    });
+  }
+
+  async claimNextI8CandidateBuild(workerId: string): Promise<Record<string, unknown>> {
+    return this.database.write(db => {
+      const timestamp = nowIso();
+      db.prepare(`
+        UPDATE i8_candidate_build_jobs
+        SET status = 'QUEUED', lease_owner = NULL, lease_expires_at = NULL, version = version + 1, updated_at = ?
+        WHERE status = 'RUNNING' AND lease_expires_at IS NOT NULL AND lease_expires_at < ?
+      `).run(timestamp, timestamp);
+      const row = db.prepare(`
+        SELECT j.job_id, j.namespace, j.executable_plan_id, p.plan_json, p.plan_hash
+        FROM i8_candidate_build_jobs j
+        JOIN i8_executable_plans p ON p.executable_plan_id = j.executable_plan_id
+        WHERE j.status = 'QUEUED'
+        ORDER BY j.created_at LIMIT 1
+      `).get() as Record<string, unknown> | undefined;
+      if (!row) return { status: 'EMPTY' };
+      const leaseExpiresAt = new Date(Date.now() + 120_000).toISOString();
+      db.prepare(`
+        UPDATE i8_candidate_build_jobs
+        SET status = 'RUNNING', lease_owner = ?, lease_expires_at = ?, attempt_count = attempt_count + 1,
+            version = version + 1, updated_at = ?
+        WHERE job_id = ? AND status = 'QUEUED'
+      `).run(workerId, leaseExpiresAt, timestamp, row.job_id);
+      db.prepare(`UPDATE i8_executable_plans SET status = 'AUTHORING', version = version + 1, updated_at = ? WHERE executable_plan_id = ?`)
+        .run(timestamp, row.executable_plan_id);
+      return {
+        status: 'CLAIMED',
+        jobId: row.job_id,
+        namespace: row.namespace,
+        executablePlanId: row.executable_plan_id,
+        planHash: row.plan_hash,
+        plan: JSON.parse(String(row.plan_json)),
+        leaseExpiresAt
+      };
+    });
+  }
+
+  async completeI8CandidateBuild(jobId: string, inputValue: I8CandidateBuildCompletionInput): Promise<Record<string, unknown>> {
+    const input = i8CandidateBuildCompletionSchema.parse(inputValue);
+    const job = this.database.read(db => db.prepare(`
+      SELECT j.*, p.plan_json, p.plan_hash, p.case_id, p.case_version, p.executable_plan_id
+      FROM i8_candidate_build_jobs j
+      JOIN i8_executable_plans p ON p.executable_plan_id = j.executable_plan_id
+      WHERE j.job_id = ?
+    `).get(jobId) as Record<string, unknown> | undefined);
+    if (!job) throw new HarnessError(404, 'I8_CANDIDATE_JOB_NOT_FOUND', 'DOMAIN', '阶段3候选构建作业不存在。');
+    if (job.status === 'COMPLETED') return this.getI8Candidate(String(job.namespace), this.database.read(db => String((db.prepare('SELECT preparation_id FROM i8_executable_plans WHERE executable_plan_id = ?').get(job.executable_plan_id) as { preparation_id: string }).preparation_id)));
+    if (job.status !== 'RUNNING' || job.lease_owner !== input.workerId) throw new HarnessError(409, 'I8_CANDIDATE_JOB_LEASE_INVALID', 'CONCURRENCY', '候选构建作业租约无效。', false, true);
+    if (job.plan_hash !== input.planHash) throw new HarnessError(409, 'I8_EXECUTABLE_PLAN_HASH_MISMATCH', 'CONCURRENCY', 'Worker 返回的计划 Hash 不匹配。', false, true);
+    if (input.outcome === 'FAILED') {
+      await this.database.write(db => {
+        const timestamp = nowIso();
+        db.prepare(`UPDATE i8_candidate_build_jobs SET status = 'FAILED', error_code = ?, lease_owner = NULL, lease_expires_at = NULL, version = version + 1, completed_at = ?, updated_at = ? WHERE job_id = ?`)
+          .run(input.errorCode, timestamp, timestamp, jobId);
+        db.prepare(`UPDATE i8_executable_plans SET status = 'FAILED', version = version + 1, updated_at = ? WHERE executable_plan_id = ?`)
+          .run(timestamp, job.executable_plan_id);
+      });
+      return { jobId, status: 'FAILED', errorCode: input.errorCode, nextAction: 'AUTHORING_REVIEW_REQUIRED' };
+    }
+    let candidate;
+    try {
+      candidate = buildCandidatePackage(JSON.parse(String(job.plan_json)), input.verifiedActionRecords, String(job.created_at));
+    } catch (error) {
+      throw new HarnessError(409, error instanceof Error ? error.message : 'I8_CANDIDATE_BUILD_REJECTED', 'CONTRACT', 'Playwright 验证事实无法生成受控候选脚本。', false, true);
+    }
+    const relativeDirectory = `.data/candidates/${String(job.namespace)}/${candidate.candidateId}`;
+    const directory = path.join(this.productRoot, ...relativeDirectory.split('/'));
+    const candidateRoot = path.resolve(this.productRoot, '.data', 'candidates');
+    const resolvedDirectory = path.resolve(directory);
+    if (!resolvedDirectory.startsWith(`${candidateRoot}${path.sep}`)) throw new HarnessError(500, 'I8_CANDIDATE_DIRECTORY_INVALID', 'ENVIRONMENT', '候选目录越过受管根目录。');
+    fs.mkdirSync(resolvedDirectory, { recursive: true });
+    const scriptPath = path.join(resolvedDirectory, 'script.cjs');
+    const manifestPath = path.join(resolvedDirectory, 'manifest.json');
+    const manifestJson = canonicalJson(candidate.manifest);
+    for (const [target, content] of [[scriptPath, candidate.scriptSource], [manifestPath, manifestJson]] as const) {
+      if (fs.existsSync(target)) {
+        if (fs.readFileSync(target, 'utf8') !== content) throw new HarnessError(409, 'I8_CANDIDATE_FILE_CONFLICT', 'CONCURRENCY', '候选文件已存在但内容不同。', false, true);
+      } else {
+        const temporary = `${target}.${process.pid}.tmp`;
+        fs.writeFileSync(temporary, content, { encoding: 'utf8', flag: 'wx' });
+        fs.renameSync(temporary, target);
+      }
+    }
+    await this.database.write(db => {
+      const timestamp = nowIso();
+      const current = db.prepare('SELECT status, lease_owner FROM i8_candidate_build_jobs WHERE job_id = ?').get(jobId) as { status: string; lease_owner: string | null };
+      if (current.status !== 'RUNNING' || current.lease_owner !== input.workerId) throw new HarnessError(409, 'I8_CANDIDATE_JOB_LEASE_INVALID', 'CONCURRENCY', '写入候选前作业租约已变化。', false, true);
+      const insertRecord = db.prepare(`
+        INSERT INTO i8_verified_action_records(record_id, namespace, executable_plan_id, action_id, ordinal, record_json, record_hash, created_at)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+      `);
+      for (const record of input.verifiedActionRecords) {
+        const recordJson = canonicalJson(record);
+        insertRecord.run(opaqueId('fact'), job.namespace, job.executable_plan_id, record.actionId, record.ordinal, recordJson, sha256(recordJson), timestamp);
+      }
+      db.prepare(`
+        INSERT INTO i8_script_candidates(
+          candidate_id, namespace, executable_plan_id, script_id, script_version, dsl_version, dsl_json, dsl_hash,
+          generator_version, relative_directory, script_sha256, manifest_json, manifest_sha256, source_chain_hash,
+          status, version, created_at, updated_at
+        ) VALUES (?, ?, ?, ?, ?, 'HENGZHUN_DSL_V1', ?, ?, ?, ?, ?, ?, ?, ?, 'GENERATED', 1, ?, ?)
+      `).run(
+        candidate.candidateId, job.namespace, job.executable_plan_id, candidate.scriptId, candidate.scriptVersion,
+        canonicalJson(candidate.dsl), candidate.dslHash, 'hengzhun-script-package-builder-1.0.0', relativeDirectory,
+        candidate.scriptHash, manifestJson, candidate.manifestHash, candidate.sourceChainHash, timestamp, timestamp
+      );
+      db.prepare(`UPDATE i8_candidate_build_jobs SET status = 'COMPLETED', lease_owner = NULL, lease_expires_at = NULL, version = version + 1, completed_at = ?, updated_at = ? WHERE job_id = ?`)
+        .run(timestamp, timestamp, jobId);
+      db.prepare(`UPDATE i8_executable_plans SET status = 'CANDIDATE_GENERATED', version = version + 1, updated_at = ? WHERE executable_plan_id = ?`)
+        .run(timestamp, job.executable_plan_id);
+      this.audit(db, { requestId: `worker:${jobId}`, actorType: 'SYSTEM' }, {
+        namespace: String(job.namespace), action: 'i8_candidate_build', objectType: 'I8_SCRIPT_CANDIDATE',
+        objectId: candidate.candidateId, outcome: 'SUCCEEDED', details: { jobId, scriptHash: candidate.scriptHash, manifestHash: candidate.manifestHash }
+      });
+    });
+    return {
+      jobId,
+      status: 'CANDIDATE_GENERATED',
+      candidateId: candidate.candidateId,
+      scriptId: candidate.scriptId,
+      scriptVersion: candidate.scriptVersion,
+      scriptHash: candidate.scriptHash,
+      manifestHash: candidate.manifestHash,
+      sourceChainHash: candidate.sourceChainHash,
+      nextAction: 'I8_STAGE4_STABILITY_REQUIRED'
+    };
   }
 
   async compilePlan(caseId: string, input: PlanCompileInput, context: RequestContext): Promise<IdempotentResult> {

@@ -1,5 +1,5 @@
 {
-  "description": "衡准 I8 阶段2：一句自然语言案例描述，经平台知识、结构化、最小澄清、人工确认和MCP提交进入Harness。",
+  "description": "衡准 I8 阶段3：一句自然语言案例描述，经平台知识、结构化、最小澄清、人工确认和MCP提交后，由Harness确定性编译可执行计划。",
   "usecases": ["Regression Testing", "Human In The Loop"],
   "nodes": [
     {
@@ -69,10 +69,16 @@
       "data": {"id":"toolAgentflow_get","label":"MCP查询权威状态","name":"toolAgentflow","version":1.2,"type":"Tool","baseClasses":["Tool"],"category":"Agent Flows","inputs":{"toolAgentflowSelectedTool":"customMCP","toolInputArgs":[{"inputArgName":"preparationId","inputArgValue":"{{llmAgentflow_intent.output.preparationId}}"}],"toolUpdateState":[],"toolAgentflowSelectedToolConfig":{"toolAgentflowSelectedTool":"customMCP","mcpServerConfig":"{\"url\":\"http://127.0.0.1:18789/mcp\",\"headers\":{\"Authorization\":\"Bearer {{$vars.HENGZHUN_MCP_TOKEN}}\"}}","mcpActions":["authoring_get"]}}}
     },
     {
-      "id": "directReplyAgentflow_result",
+      "id": "toolAgentflow_candidate",
       "position": {"x": 3060, "y": 380},
       "type": "customNode",
-      "data": {"id":"directReplyAgentflow_result","label":"返回阶段2结果","name":"directReplyAgentflow","version":1,"type":"DirectReply","baseClasses":["DirectReply"],"category":"Agent Flows","inputs":{"directReplyMessage":"案例已完成结构化、知识快照绑定和人工确认，并通过MCP写入Harness。当前权威状态：{{toolAgentflow_get.output}}。下一步由I8阶段3执行计划编译器继续处理。"}}
+      "data": {"id":"toolAgentflow_candidate","label":"MCP确定性编译计划","name":"toolAgentflow","version":1.2,"type":"Tool","baseClasses":["Tool"],"category":"Agent Flows","inputs":{"toolAgentflowSelectedTool":"customMCP","toolInputArgs":[{"inputArgName":"preparationId","inputArgValue":"{{llmAgentflow_intent.output.preparationId}}"},{"inputArgName":"sessionRef","inputArgValue":"{{$flow.sessionId}}"}],"toolUpdateState":[],"toolAgentflowSelectedToolConfig":{"toolAgentflowSelectedTool":"customMCP","mcpServerConfig":"{\"url\":\"http://127.0.0.1:18789/mcp\",\"headers\":{\"Authorization\":\"Bearer {{$vars.HENGZHUN_MCP_TOKEN}}\"}}","mcpActions":["candidate_get"]}}}
+    },
+    {
+      "id": "directReplyAgentflow_result",
+      "position": {"x": 3400, "y": 380},
+      "type": "customNode",
+      "data": {"id":"directReplyAgentflow_result","label":"返回阶段3结果","name":"directReplyAgentflow","version":1,"type":"DirectReply","baseClasses":["DirectReply"],"category":"Agent Flows","inputs":{"directReplyMessage":"案例已完成结构化、知识快照绑定、人工确认和确定性执行计划编译。作者化状态：{{toolAgentflow_get.output}}。候选编译状态：{{toolAgentflow_candidate.output}}。后续由本地受控Worker完成Playwright事实验证和候选包生成。"}}
     },
     {
       "id": "directReplyAgentflow_rejected",
@@ -94,6 +100,7 @@
     {"id":"e10","source":"toolAgentflow_prepare","sourceHandle":"toolAgentflow_prepare-output-toolAgentflow","target":"llmAgentflow_intent","targetHandle":"llmAgentflow_intent"},
     {"id":"e11","source":"llmAgentflow_intent","sourceHandle":"llmAgentflow_intent-output-llmAgentflow","target":"toolAgentflow_submit","targetHandle":"toolAgentflow_submit"},
     {"id":"e12","source":"toolAgentflow_submit","sourceHandle":"toolAgentflow_submit-output-toolAgentflow","target":"toolAgentflow_get","targetHandle":"toolAgentflow_get"},
-    {"id":"e13","source":"toolAgentflow_get","sourceHandle":"toolAgentflow_get-output-toolAgentflow","target":"directReplyAgentflow_result","targetHandle":"directReplyAgentflow_result"}
+    {"id":"e13","source":"toolAgentflow_get","sourceHandle":"toolAgentflow_get-output-toolAgentflow","target":"toolAgentflow_candidate","targetHandle":"toolAgentflow_candidate"},
+    {"id":"e14","source":"toolAgentflow_candidate","sourceHandle":"toolAgentflow_candidate-output-toolAgentflow","target":"directReplyAgentflow_result","targetHandle":"directReplyAgentflow_result"}
   ]
 }

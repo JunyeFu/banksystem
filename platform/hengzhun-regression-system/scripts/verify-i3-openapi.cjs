@@ -54,9 +54,10 @@ const workerOperations = Object.values(workerContract.document.paths ?? {}).flat
 const expectedWorker = [
   'workerClaimTask', 'workerCompleteTask', 'workerClaimAuthoringAction',
   'workerCompleteAuthoringAction', 'workerRecordMidsceneCapability',
-  'workerClaimRepairValidation', 'workerCompleteRepairValidation'
+  'workerClaimRepairValidation', 'workerCompleteRepairValidation',
+  'workerClaimI8CandidateBuild', 'workerCompleteI8CandidateBuild'
 ];
-if (JSON.stringify(workerOperations.sort()) !== JSON.stringify(expectedWorker.sort())) failures.push('worker contract must expose the seven deterministic run/authoring/repair operations');
+if (JSON.stringify(workerOperations.sort()) !== JSON.stringify(expectedWorker.sort())) failures.push('worker contract must expose the nine deterministic run/authoring/repair/I8 builder operations');
 if (workerContract.document.components?.securitySchemes?.workerBearer?.scheme !== 'bearer') failures.push('worker Bearer authentication is missing');
 
 if (failures.length) {
@@ -69,6 +70,6 @@ if (failures.length) {
     publicOperationCount: publicOperations.length,
     workerOperationCount: workerOperations.length,
     separateWorkerChannel: true,
-    authoringOperationCount: 3
+    authoringOperationCount: 5
   }, null, 2));
 }

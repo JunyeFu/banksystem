@@ -57,6 +57,12 @@ const requiredFiles = [
   'flowise/i8/knowledge/portal-login-consistency.md',
   'tests/i8/stage2-agentflow-mcp.test.cjs',
   'scripts/verify-i8-stage2.ps1',
+  'harness/migrations/011_i8_deterministic_builder.sql',
+  'harness/src/i8/stage3-schemas.ts',
+  'harness/src/i8/script-package-builder.ts',
+  'worker/src/i8-candidate-runner.cjs',
+  'tests/i8/stage3-deterministic-builder.test.cjs',
+  'scripts/verify-i8-stage3.ps1',
   'coze/agents/hengzhun-i4-regression-agent.md',
   'coze/knowledge/i4-three-case-authoring-runtime-rules.md',
   'coze/workflows/i4-three-cases-authoring.yaml',
@@ -104,6 +110,7 @@ try {
   if (packageJson.engines?.node !== '20.20.2') failures.push('Node engine must be frozen at 20.20.2');
   if (!packageJson.scripts?.['verify:i8:stage1']) failures.push('I8 stage1 verification command is missing');
   if (!packageJson.scripts?.['verify:i8:stage2']) failures.push('I8 stage2 verification command is missing');
+  if (!packageJson.scripts?.['verify:i8:stage3']) failures.push('I8 stage3 verification command is missing');
 } catch (error) {
   failures.push(`package.json: ${error.message}`);
 }

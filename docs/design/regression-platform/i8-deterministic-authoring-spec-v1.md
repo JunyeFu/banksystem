@@ -240,7 +240,20 @@ I8 第一步必须在任何 Flowise Agentflow 接入前完成：
 - `harness/migrations/010_i8_agentflow_handoff.sql`、`harness/src/i8/stage2-schemas.ts`：案例准备、知识快照引用、验收摘要、人工确认、IntentPlan Hash 与 `AWAITING_STAGE3` 权威状态；
 - `tests/i8/stage2-agentflow-mcp.test.cjs`：migration、Schema、状态机、Flowise节点兼容、禁止节点、认证、14工具以及真实 Flowise MCP Client→Harness→SQLite 集成。
 
-阶段2状态为 `IMPLEMENTED_AND_LOCAL_INTEGRATION_VERIFIED`。`verify:i8:stage2` 当前11/11。当前进程未注入MiMo密钥且未把Agentflow发布到运行中的Flowise，所以不得声明真实主控模型对话已验收；HiAgent映射制品也不证明目标环境注册、网络或运行成功。阶段3从`AWAITING_STAGE3`开始，负责有限DSL和确定性Builder。
+阶段2状态为 `IMPLEMENTED_AND_LOCAL_INTEGRATION_VERIFIED`。`verify:i8:stage2` 当前11/11。当前进程未注入MiMo密钥且未把Agentflow发布到运行中的Flowise，所以不得声明真实主控模型对话已验收；HiAgent映射制品也不证明目标环境注册、网络或运行成功。
+
+#### 5.5.4 阶段3确定性Builder实现记录
+
+2026-07-20 阶段3状态为 `IMPLEMENTED_AND_LOCAL_INTEGRATION_VERIFIED`，从阶段2的`AWAITING_STAGE3`获批IntentPlan开始，已完成：
+
+- migration 011新增执行计划、候选构建任务、Playwright动作事实和脚本候选表，以触发器保护来源/Hash不可变并禁止删除；
+- 严格`ExecutableActionPlan`、`VerifiedActionRecord`和`HENGZHUN_DSL_V1` Schema，只允许本文7.1的10种操作与`ROLE/LABEL/TEST_ID`三种定位器；
+- 固定模板`Script Package Builder`，记录case/plan/DSL/generator/source-chain Hash，相同规范化输入生成字节一致脚本；
+- 候选文件只写入`.data/candidates/<namespace>/candidate_<id>`，SQLite只保存受控相对引用和Hash；
+- Worker执行前复核manifest与脚本Hash，拒绝目录逃逸、动态模块、`eval/Function`、文件/进程/命令能力和任意运行时安装；
+- MCP第4项活跃工具`candidate_get`只接收业务准备引用；MCP先读取`authoring_get`并注入当前受控版本，普通用户、Flowise和主控LLM均不提供技术并发参数。
+
+`verify:i8:stage3` 当前15/15。该验证以受控Fake Page证明Playwright调用契约和篡改拒绝，不证明真实Chromium稳定性。候选保持`GENERATED`，下一动作固定为`I8_STAGE4_STABILITY_REQUIRED`；阶段3不得生成`StabilityCertificate`、激活或调度候选。真实Agentflow/MiMo/HiAgent边界与阶段2相同，仍未验收。
 
 ## 6. Midscene 与 Playwright 执行协议
 

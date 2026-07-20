@@ -20,6 +20,11 @@ import {
 } from './schemas';
 import { modelUsageSchema } from './context-envelope';
 import { i8AuthoringGetSchema, i8AuthoringSubmitSchema, i8CasePrepareSchema } from './i8/stage2-schemas';
+import {
+  i8CandidateBuildCompletionSchema,
+  i8CandidateCompileSchema,
+  i8CandidateGetSchema
+} from './i8/stage3-schemas';
 import { authorizeRequest, loadSecurityConfig, remoteAddressForAudit, SecurityConfig, SecurityResult } from './security';
 import { HarnessService } from './service';
 import { credentialFingerprint, nowIso, opaqueId } from './utils';
@@ -243,6 +248,17 @@ export async function createHarnessApplication(options: HarnessApplicationOption
         const input = workerClaimSchema.parse(await readJson(request));
         return sendJson(response, 200, await service.claimNextRepairValidation(input.workerId), 'L1', requestId);
       }
+      if (request.method === 'POST' && url.pathname === '/internal/worker/i8/candidates:claim') {
+        authorizeWorker(request.headers.authorization, workerToken);
+        const input = workerClaimSchema.parse(await readJson(request));
+        return sendJson(response, 200, await service.claimNextI8CandidateBuild(input.workerId), 'L2', requestId);
+      }
+      const i8CandidateCompleteMatch = url.pathname.match(/^\/internal\/worker\/i8\/candidates\/([^/]+):complete$/);
+      if (request.method === 'POST' && i8CandidateCompleteMatch) {
+        authorizeWorker(request.headers.authorization, workerToken);
+        const input = i8CandidateBuildCompletionSchema.parse(await readJson(request, MAX_WORKER_REQUEST_BYTES));
+        return sendJson(response, 200, await service.completeI8CandidateBuild(decodeURIComponent(i8CandidateCompleteMatch[1] as string), input), 'L2', requestId);
+      }
       const repairCompleteMatch = url.pathname.match(/^\/internal\/worker\/repairs\/([^/]+):complete$/);
       if (request.method === 'POST' && repairCompleteMatch) {
         authorizeWorker(request.headers.authorization, workerToken);
@@ -321,6 +337,15 @@ export async function createHarnessApplication(options: HarnessApplicationOption
       if (request.method === 'POST' && url.pathname === '/v1/i8/authoring:get') {
         const input = i8AuthoringGetSchema.parse(await readJson(request));
         return sendJson(response, 200, service.getI8Authoring(input.namespace, input.preparationId), 'L0', requestId);
+      }
+      if (request.method === 'POST' && url.pathname === '/v1/i8/candidates:compile') {
+        const input = i8CandidateCompileSchema.parse(await readJson(request));
+        const result = await service.compileI8Candidate(input, context);
+        return sendJson(response, result.status, result.response, 'L1', requestId);
+      }
+      if (request.method === 'POST' && url.pathname === '/v1/i8/candidates:get') {
+        const input = i8CandidateGetSchema.parse(await readJson(request));
+        return sendJson(response, 200, service.getI8Candidate(input.namespace, input.preparationId), 'L1', requestId);
       }
       if (request.method === 'POST' && url.pathname === '/v1/plugin/cases:create-draft') {
         const input = caseCreateDraftSchema.parse(await readJson(request));
