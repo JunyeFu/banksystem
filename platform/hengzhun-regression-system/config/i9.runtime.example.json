@@ -18,5 +18,9 @@
     "mcpToken": "HENGZHUN_MCP_TOKEN",
     "workerToken": "HENGZHUN_WORKER_TOKEN",
     "mimoApiKey": "MIMO_API_KEY"
+  },
+  "lifecycle": {
+    "startupTimeoutSeconds": 90,
+    "workerHeartbeatMaxAgeSeconds": 10
   }
 }

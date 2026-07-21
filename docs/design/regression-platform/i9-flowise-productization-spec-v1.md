@@ -95,6 +95,8 @@ platform/hengzhun-regression-system/
 
 退出：一键启动后四项健康，一键停止后只清理由本产品启动的进程；重启后SQLite完整。
 
+状态（2026-07-21）：`VERIFIED_I9_P2`。产品自有生命周期入口、四项PID/健康检查、端口和弱Token失败关闭、幂等启动、部分失败清理、反序停止及双SQLite重启`quick_check`已由`verify:i9:stage2`和`verify:i9:stage2:live`通过。P3前不注册平台知识、模型或MCP连接。
+
 ### P3 平台SQLite、知识与配置导入
 
 - Flowise平台数据库固定在`.data/flowise/database.sqlite`，不得与`regression_platform.sqlite`合并。

@@ -1,4 +1,5 @@
 const os = require('node:os');
+const fs = require('node:fs');
 const path = require('node:path');
 const { executeLoginProfile } = require('./login-profile.cjs');
 const { executeAccountOwnership } = require('./account-ownership.cjs');
@@ -15,6 +16,17 @@ const executors = new Map([
 const harnessUrl = (process.env.HENGZHUN_HARNESS_URL || 'http://127.0.0.1:18788').replace(/\/$/, '');
 const workerToken = process.env.HENGZHUN_WORKER_TOKEN;
 const workerId = process.env.HENGZHUN_WORKER_ID || `worker-${os.hostname().toLowerCase().replace(/[^a-z0-9-]/g, '-')}`;
+const healthFile = process.env.HENGZHUN_WORKER_HEALTH_FILE;
+const stopFile = process.env.HENGZHUN_STOP_FILE;
+
+function writeHealth(status, errorCode) {
+  if (!healthFile) return;
+  const target = path.resolve(healthFile);
+  fs.mkdirSync(path.dirname(target), { recursive: true });
+  const temporary = `${target}.${process.pid}.tmp`;
+  fs.writeFileSync(temporary, JSON.stringify({ schemaVersion: 'hengzhun-worker-health-v1', service: 'worker', status, pid: process.pid, workerId, updatedAt: new Date().toISOString(), ...(errorCode ? { errorCode } : {}) }));
+  fs.renameSync(temporary, target);
+}
 
 if (!workerToken || workerToken.length < 32) {
   process.stderr.write(JSON.stringify({ event: 'startup_failed', errorCode: 'WORKER_TOKEN_MISSING' }) + '\n');
@@ -167,14 +179,18 @@ async function runI8RepairStabilityOnce() {
 
 async function main() {
   const once = process.argv.includes('--once');
+  writeHealth('HEALTHY');
   do {
+    if (stopFile && fs.existsSync(stopFile)) { writeHealth('STOPPED'); return; }
     const worked = await runI8RepairStabilityOnce() || await runRepairOnce() || await runI8StabilityOnce() || await runOnce();
+    writeHealth('HEALTHY');
     if (once) return;
-    await new Promise(resolve => setTimeout(resolve, worked ? 250 : 1500));
+    await new Promise(resolve => setTimeout(resolve, worked ? 250 : 500));
   } while (true);
 }
 
 main().catch(error => {
+  writeHealth('FAILED', 'WORKER_LOOP_FAILED');
   process.stderr.write(JSON.stringify({ event: 'worker_failed', errorCode: 'WORKER_LOOP_FAILED', message: error.message }) + '\n');
   process.exitCode = 1;
 });

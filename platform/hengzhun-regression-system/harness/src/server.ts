@@ -285,11 +285,13 @@ export async function createHarnessApplication(options: HarnessApplicationOption
         return sendJson(response, 200, await service.claimNextI8Stability(input.workerId), 'L2', requestId);
       }
       if (request.method === 'POST' && url.pathname === '/internal/worker/i8/repairs/stability:claim') {
+        authorizeWorker(request.headers.authorization, workerToken);
         const input = workerClaimSchema.parse(await readJson(request));
         return sendJson(response, 200, await service.claimNextI8RepairStability(input.workerId), 'L2', requestId);
       }
       const i8RepairStabilityCompleteMatch = url.pathname.match(/^\/internal\/worker\/i8\/repairs\/stability\/([^/]+):complete$/);
       if (request.method === 'POST' && i8RepairStabilityCompleteMatch) {
+        authorizeWorker(request.headers.authorization, workerToken);
         const input = i8StabilityCompletionSchema.parse(await readJson(request, MAX_WORKER_REQUEST_BYTES));
         return sendJson(response, 200, await service.completeI8RepairStability(decodeURIComponent(i8RepairStabilityCompleteMatch[1] as string), input), 'L2', requestId);
       }

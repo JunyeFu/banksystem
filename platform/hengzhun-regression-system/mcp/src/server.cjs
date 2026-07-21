@@ -1,6 +1,7 @@
 'use strict'
 
 const crypto = require('node:crypto')
+const fs = require('node:fs')
 const path = require('node:path')
 
 const productRoot = path.resolve(__dirname, '..', '..')
@@ -336,4 +337,13 @@ app.post('/mcp', async (request, response) => {
   }
 })
 
-app.listen(port, host, () => process.stdout.write(`hengzhun-i8-mcp listening on ${host}:${port}\n`))
+const httpServer = app.listen(port, host, () => process.stdout.write(`hengzhun-i8-mcp listening on ${host}:${port}\n`))
+const stopFile = process.env.HENGZHUN_STOP_FILE
+if (stopFile) {
+  const stopPoller = setInterval(() => {
+    if (!fs.existsSync(stopFile)) return
+    clearInterval(stopPoller)
+    httpServer.close(() => process.exit(0))
+  }, 250)
+  stopPoller.unref()
+}
