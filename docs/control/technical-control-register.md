@@ -5,8 +5,8 @@ document_type: how-to
 domain: governance
 status: accepted
 authority: normative
-version: 1.3
-effective_date: 2026-07-20
+version: 1.4
+effective_date: 2026-07-21
 owner: project-owner
 ---
 
@@ -23,7 +23,7 @@ owner: project-owner
 | 3 | 唯一实施顺序 | 全局阶段、先后、入口和退出 | 复制任务状态 |
 | 4 | `agent/backlog.yaml` | 状态、依赖、允许路径、验收 | 建立另一套阶段编号 |
 | 5 | 当前架构基线、Accepted ADR/决策 | 系统边界和取舍 | 声称已经实现 |
-| 6 | I8 实施规格、`contracts/` | 对象、Schema、状态机、DSL、MCP、测试 | 改写项目级先后 |
+| 6 | I8/I9 实施规格、`contracts/` | 对象、Schema、状态机、DSL、MCP、测试 | 改写项目级先后 |
 | 7 | 能力矩阵、证据 | 已证明/未证明状态 | 用历史证据证明新平台 |
 | 8 | 调研、历史、正式文书 | 背景和外部依据 | 覆盖以上权威 |
 
@@ -34,6 +34,7 @@ owner: project-owner
 - [任务状态源](../../agent/backlog.yaml)
 - [Flowise/SQLite/HiAgent 架构基线](../architecture/overview/flowise-sqlite-hiagent-regression-baseline-v1.md)
 - [I8 实施规格](../design/regression-platform/i8-deterministic-authoring-spec-v1.md)
+- [I9 Flowise 产品化规格](../design/regression-platform/i9-flowise-productization-spec-v1.md)
 - [当前能力矩阵](../current-state/capability-matrix.md)
 
 ## 2. 本轮控制文档审计结论
@@ -100,25 +101,33 @@ owner: project-owner
 | `AUD-041` | 主控LLM可能借修复提交完整源码或扩大工具能力 | `CLOSED_STAGE7_PATCH_ALLOWLIST`：严格Schema只允许目标映射、固定等待、受控参数、步骤顺序和不弱化断言；未知字段、源码、任意选择器和第四候选均拒绝 |
 | `AUD-042` | 修复候选可能绕过稳定性门禁或自动替换正式脚本 | `CLOSED_STAGE7_CERTIFICATE_AND_HUMAN_GATE`：每候选独立ID/版本/来源链/Hash，必须重新2视口×3次并取得新证书；仅显式ACTIVATE生效，不自动运行或迁移既有调度 |
 | `AUD-043` | 修复激活后阶段5/6仍可能误选旧脚本版本 | `CLOSED_STAGE7_VERSION_HANDOFF`：`run_submit`和新建Schedule优先选择已激活修复版本并复核计划/脚本Hash；既有Schedule保持冻结版本，迁移必须由用户另行创建或明确操作 |
-| `AUD-044` | 本机Stage7自动测试可能被误报为Flowise/MiMo/HiAgent完成 | `OPEN_EXTERNAL_RUNTIME_EVIDENCE`：本机只证明Harness/MCP/Worker/SQLite闭环；真实Agentflow发布、MiMo主控对话、固定Chromium阶段7复验和HiAgent目标环境分别保留门禁 |
+| `AUD-044` | 本机Stage7自动测试可能被误报为Flowise/MiMo/HiAgent完成 | `OPEN_EXTERNAL_RUNTIME_EVIDENCE`：本机已证明Harness/MCP/Worker/SQLite闭环及固定Chromium阶段7修复候选6/6；真实Agentflow发布、MiMo主控对话和HiAgent目标环境分别保留门禁 |
+| `AUD-045` | 隔离探针或未跟踪目录可能被正式产品运行依赖 | `OPEN_I9_P1`：正式 Flowise 运行时必须收编到产品目录，冻结版本与 Hash；不得依赖 `probes/`、全局 Node、WSL、Docker 或运行时下载 |
+| `AUD-046` | 缺少四服务统一启停、状态和正式 URL | `OPEN_I9_P2`：Flowise、Harness、MCP、Worker 必须由产品自有命令准备、启动、停止和检查；端口冲突、弱 Token、缺配置和异常退出均失败关闭 |
+| `AUD-047` | Flowise 平台 SQLite、平台知识与 Harness 事实可能越权或双写 | `OPEN_I9_P3`：只经公开导入/界面初始化平台资源，禁止直接修改 Flowise 内部数据库；两类 SQLite 分别备份、恢复和验真 |
+| `AUD-048` | Agentflow/MCP 制品存在可能被误报为 MiMo 与十四工具已经真实连通 | `OPEN_I9_P4`：MiMo 主控、十四工具、输出预算、超时、Human Input 续办、会话恢复和错误传播必须逐项留下真实调用证据 |
+| `AUD-049` | 可加载 Agentflow JSON 不等于已经发布且重启可恢复 | `OPEN_I9_P5`：正式 Agentflow 必须通过公开流程导入、发布、导出并记录 Hash；重启后无需临时手工状态即可恢复 |
+| `AUD-050` | 本机引擎测试可能被误报为用户自然语言正反向闭环 | `OPEN_I9_P6_P7`：正向脚本生成/验证/交付/运行/调度与反向事故/候选/复验/激活必须分别在真实 Flowise 对话中验收 |
+| `AUD-051` | 单机复制或探针恢复可能被误报为可便携交付 | `OPEN_I9_P8`：不含凭据的交付包必须在干净目录和第二台 Windows 10/11 x64 电脑完成解压启动、备份恢复和核心 E2E |
+| `AUD-052` | Flowise、Coze、HiAgent 分支可能在迁移时互相覆盖 | `OPEN_I9_RELEASE`：I9 P8 通过后才把 Flowise 版冻结到 `main`；保留 `coze`，再从该基线新建 `hiagent`，禁止自动 merge、删分支或 force push |
 
-`AUD-009...AUD-013` 完成阶段1，`AUD-014...AUD-018` 完成阶段2，`AUD-019...AUD-023` 完成阶段3，`AUD-024...AUD-027` 完成阶段4，`AUD-028...AUD-033` 完成阶段5，`AUD-034...AUD-038` 完成阶段6，`AUD-039...AUD-043` 完成阶段7本机限域诊断/修复闭环；`AUD-044`继续约束外部运行证据。不得把本机证据写成Flowise真实Agentflow、MiMo或HiAgent证据。
+`AUD-009...AUD-043` 已关闭 I8 七阶段本机引擎，`AUD-044` 继续约束外部运行证据；`AUD-045...AUD-052` 分别构成 I9 P1—P8 与发布分支硬门禁。不得把本机引擎、隔离探针或静态制品写成 Flowise 真实 Agentflow、MiMo、便携交付或 HiAgent 证据。
 
 ### 2.4 仍未验证但不得遗忘
 
 | 风险 ID | 未验证项 | 对当前工作的影响 |
 |---|---|---|
-| `EXT-001` | HiAgent 目标服务器能否注册并访问衡准 MCP | 不阻塞本机 I8 实现；阻塞 HiAgent 迁移验收 |
-| `EXT-002` | Flowise 每个已用节点、变量、Human Input、Knowledge、MCP 语义是否逐项等价于目标 HiAgent | 无映射证据的能力必须失败关闭 |
-| `EXT-003` | 第二台真实 Windows 电脑的整目录便携恢复 | 阻塞“办公电脑可无缝传播”验收 |
-| `EXT-004` | MiMo v2.5 长时间 Midscene 作者化稳定性 | 可使作者化失败，不影响已验证 Playwright 正式回归 |
+| `EXT-001` | HiAgent 目标服务器能否注册并访问衡准 MCP | 不阻塞本机 I9；阻塞后续 HiAgent 迁移验收 |
+| `EXT-002` | Flowise 每个已用节点、变量、Human Input、Knowledge、MCP 语义是否逐项等价于目标 HiAgent | 阻塞 I9 P5 发布；无映射证据的能力必须失败关闭 |
+| `EXT-003` | 第二台真实 Windows 电脑的整目录便携恢复 | 阻塞 I9 P8 与“办公电脑可无缝传播”验收 |
+| `EXT-004` | MiMo v2.5 长时间 Midscene 作者化稳定性 | 阻塞 I9 P6/P7 相应案例通过，不影响已验证 Playwright 正式回归 |
 
 ## 3. 冻结需求登记
 
 ### `HZ-C01` 产品与交付目标
 
 - 衡准自动化回归闭环是实习交付主体。
-- 复兴银行是本机被测系统和作品集，不在 I8 扩展全部银行业务。
+- 复兴银行是本机被测系统和作品集，不在 I9 扩展全部银行业务。
 - 首个纵向案例固定为门户账号密码登录后，右上角姓名/头像与个人资料一致。
 
 ### `HZ-C02` 三环境迁移链
@@ -241,8 +250,8 @@ Agent 平台只负责自然语言接收、平台知识查询、案例结构化�
 
 ### `HZ-C16` 延期但保留的产品需求
 
-- I8 完成后：Playwright、Selenium、Cypress、Postman、Gherkin 等外部案例适配。
-- I8 完成后：本地视频拆解为可审阅动作候选，原始敏感视频不上传 Agent 平台。
+- I9 完成后：Playwright、Selenium、Cypress、Postman、Gherkin 等外部案例适配。
+- I9 完成后：本地视频拆解为可审阅动作候选，原始敏感视频不上传 Agent 平台。
 - 所有导入候选仍走相同 Harness/Midscene/Builder/六次 Playwright/人工激活链。
 - 衡准图形界面保持延期且只读观测，不成为 Agent、知识或控制后台。
 
@@ -306,7 +315,7 @@ DecisionDelta
 2. 如改变全局先后，更新唯一实施顺序；
 3. 如改变任务状态/依赖/验收，更新 Backlog；
 4. 如改变系统边界，更新架构基线和决策登记册；
-5. 如改变代码契约，更新 I8 规格和 `contracts/`；
+5. 如改变代码契约，更新对应 I8/I9 规格和 `contracts/`；
 6. 如改变已实现事实，必须先有测试/运行证据，再更新能力矩阵；
 7. 更新简明控制卡的一句话、控制项或真实状态；
 8. 更新相关索引，运行校验。

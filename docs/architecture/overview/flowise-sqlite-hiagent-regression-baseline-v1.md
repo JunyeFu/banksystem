@@ -5,8 +5,8 @@ document_type: architecture-baseline
 domain: regression-platform
 status: accepted
 authority: normative
-version: 1.4
-effective_date: 2026-07-20
+version: 1.5
+effective_date: 2026-07-21
 owner: project-owner
 supersedes:
   - DOC-ARCH-HENGZHUN-DIFY-HIAGENT-PORTABLE-V1
@@ -20,11 +20,11 @@ supersedes:
 
 ## 1. 当前目标
 
-I8 使用 Windows 原生 Flowise 3.0.12 作为个人电脑和办公电脑上的唯一自然语言入口与主控 Workflow，使用 SQLite 作为 Flowise 平台数据库和衡准回归领域数据库，使用 MCP 作为 Flowise/HiAgent 访问平台外工具的唯一通道。
+I8 已完成平台中立的确定性本机引擎。当前 I9 使用 Windows 原生 Flowise 3.0.12 作为个人电脑和办公电脑上的唯一自然语言入口与主控 Workflow，使用 SQLite 作为 Flowise 平台数据库和衡准回归领域数据库，使用 MCP 作为 Flowise/HiAgent 访问平台外工具的唯一通道。
 
 测试环境服务器最终用 HiAgent 替换 Flowise 主控。只有能映射到 HiAgent 已证明能力的 Flowise 节点、变量、人工确认、知识检索和 MCP 调用才能进入正式 Workflow。
 
-Flowise Windows 隔离探针已经证明 Windows 原生启动、Flowise SQLite、MiMo v2.5、MCP、Human Input、知识检索、流程导出和整目录复制重启可行；这只授权进入集成设计，不等于 I8 已完成。
+Flowise Windows 隔离探针已经证明 Windows 原生启动、Flowise SQLite、MiMo v2.5、MCP、Human Input、知识检索、流程导出和整目录复制重启可行；这只授权 I9 P1 正式运行时收编，不等于产品已经可用。
 
 ## 2. 固定调用链
 
@@ -241,7 +241,7 @@ I8 阶段6进一步落地 migration 014：历史周期调度回填创建时实�
 
 I8 阶段7进一步落地 migration 015：正式失败确定性分类为十一类并生成脱敏`StepFailureEnvelope`；默认CTX-L1，修复稳定性失败后只携带相邻失败摘要升级到L2/L3。补丁严格限制为受控目标映射、固定等待、受控参数、步骤顺序和不弱化断言；最多3个候选，每个都有独立版本、来源链和Hash并重新执行2视口×3次纯Playwright门禁。持证候选仍需用户显式ACTIVATE；随后用户另行提交按需运行或新建调度时精确选择修复版本，既有调度不自动迁移。MCP 7.0.0的14项工具全部ACTIVE，但无任意文件、Shell、浏览器或URL能力。
 
-尚未完成的是运行中 Agentflow 发布、真实 MiMo 主控对话、阶段7固定Chromium复验以及 HiAgent 目标环境验收。因此只能声明“阶段7本机代码与自动化闭环完成”，不能声明“I8全部完成”或“HiAgent已验收”。追踪见 `AUD-009...AUD-044`。
+I8 的 migration 009—015、14 项 MCP 工具、确定性 Builder、固定 Chromium 阶段7修复候选 6/6、受控交付、精确版本运行/调度、离线收件箱和限域修复已经完成。尚未完成的是正式 Flowise 运行时收编、运行中 Agentflow 发布、真实 MiMo 主控对话、真实正反向平台对话、第二台 Windows 电脑便携恢复和 HiAgent 目标环境验收；前五项统一由 I9 P1—P8 关闭，最后一项在后续 HiAgent 分支独立验收。不得把 I8 引擎完成写成 Flowise 或 HiAgent 已可用。追踪见 `AUD-009...AUD-052`。
 
 ## 9. HiAgent 迁移约束
 

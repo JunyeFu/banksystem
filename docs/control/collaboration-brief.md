@@ -5,8 +5,8 @@ document_type: reference
 domain: governance
 status: accepted
 authority: normative
-version: 1.3
-effective_date: 2026-07-20
+version: 1.4
+effective_date: 2026-07-21
 owner: project-owner
 ---
 
@@ -16,7 +16,7 @@ owner: project-owner
 
 ## 1. 当前一句话
 
-I0—I7 的 Coze 演示是冻结的历史证据；当前唯一新增阶段是 I8：在 Windows 10/11 x64 上以免安装 Flowise 3.0.12 为个人/办公电脑主控，以 MCP 为唯一平台外工具通道，以 Harness SQLite 为回归事实源，通过 Midscene 受控作者化、确定性 Builder 和纯 Playwright 六次稳定性验证形成可由用户明确激活和调度的脚本，并保证所有 Flowise 能力均有 HiAgent 等价证据。
+I0—I7的Coze演示是冻结历史，I8七阶段本机确定性引擎已经关闭；当前唯一新增阶段是I9：把I8制品装配成Windows原生、免安装、可打开、可真实对话、可复制的Flowise 3.0.12产品，并在正向/反向真实闭环及第二台电脑便携恢复全部通过后，才允许声明Flowise平台可用并进入HiAgent迁移。
 
 ## 2. 每轮必须保持的控制项
 
@@ -42,15 +42,16 @@ I0—I7 的 Coze 演示是冻结的历史证据；当前唯一新增阶段是 I8
 
 ## 3. 当前真实状态
 
-- `HENGZHUN-I8-FLOWISE-001`：`IN_PROGRESS`；阶段1至阶段7本机实现已完成，下一门禁为累计/真实浏览器复验和真实 Flowise Agentflow 发布，随后才允许进入 HiAgent 迁移验收。
+- `HENGZHUN-I8-FLOWISE-001`：`DONE`；七阶段确定性引擎、MCP、Worker和真实Chromium门禁已完成。
+- `HENGZHUN-I9-FLOWISE-PRODUCT-001`：`IN_PROGRESS`；当前从P1正式运行时收编开始，严格按P1—P8顺序推进。
 - Flowise Windows 隔离探针：通过，但仅证明技术可行。
-- 当前产品结构校验：保留 Coze 历史目录，同时要求 `flowise/`、`mcp/` 和 Flowise 平台知识制品；不再把 Coze Knowledge 写成 I8 当前权威。
+- 当前产品结构校验：保留 Coze 历史目录，同时要求 `flowise/`、`mcp/` 和 Flowise 平台知识制品；不再把 Coze Knowledge 写成 I9 当前权威。
 - 历史 I4 Harness 已实现 SQLite 游标、单动作租约和“上一摘要/当前动作/下一预览”状态窗口，`npm.cmd run test:i4` 当前为 3/3 通过。
 - I8 阶段1已让 Worker 以强类型 `ActionContextEnvelope` 为唯一视觉上下文，完成 `CTX-L1→L2→L3` 歧义升级、视觉16K/12K门禁、主控1M预算函数、图像/token预估、migration 009和不可变预算审计。
-- 阶段2已落地一句自然语言输入的 Agentflow 制品、migration 010和MCP交接；阶段3落地有限DSL、确定性Builder和受控候选；阶段4落地2视口×3次稳定性证书；阶段5落地持证交付、精确激活和纯Playwright按需执行；阶段6落地精确版本调度和SQLite离线结果收件箱。阶段7新增migration 015、十一类事故、分级`StepFailureEnvelope`、三次限额的`ScriptPatchProposal`、每候选重新六次签证、显式激活及修复版本按需运行/新调度绑定。MCP 7.0.0共14项ACTIVE；既有调度不自动迁移，正式运行不调用LLM/Midscene。真实 Agentflow 发布、MiMo 对话和 HiAgent 运行仍未验收，不得由本机测试证据代替。
+- I8 migration 009—015、MCP 7.0.0十四工具、Builder、Worker、六次签证、受控交付、精确调度、结果收件箱和限域修复均已验证。I9尚未开始正式Flowise运行时收编，因此当前仍没有可打开的正式Flowise产品URL；技术探针和制品不可冒充平台可用。HiAgent运行仍未验收。
 - HiAgent MCP 注册、网络可达性、容量和真实 Workflow 映射：测试环境待验证。
 - 开发 RAG 索引：`NOT_BUILT`，不影响产品。
-- 外部案例/视频输入：`PROPOSED`，依赖 I8。
+- 外部案例/视频输入：`PROPOSED`，依赖已完成的 I8 引擎，但受 I9 退出门禁延后。
 
 ## 4. 多轮对话更新协议
 
@@ -69,7 +70,7 @@ I0—I7 的 Coze 演示是冻结的历史证据；当前唯一新增阶段是 I8
 | 项目阶段、先后、入口/退出门禁 | 唯一实施顺序 |
 | 任务状态、依赖、允许路径、验收项 | `agent/backlog.yaml` |
 | 平台、数据、工具、信任边界 | 当前架构基线和决策登记册 |
-| Schema、状态机、DSL、MCP、测试细节 | I8 实施规格与 `contracts/` |
+| Schema、状态机、DSL、MCP、测试细节 | I8/I9 实施规格与 `contracts/` |
 | 已实现/未实现事实 | 能力矩阵与证据 |
 | 稳定跨任务仓库规则 | `AGENTS.md` |
 | 控制项解释、追踪和变更影响 | 完整技术控制登记册 |

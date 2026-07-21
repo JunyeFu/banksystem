@@ -124,22 +124,39 @@ tracks:
           - SQLite integrity, schema version, package hashes, SBOM and source commit binding are verified.
           - This conversation stops at the verified local demonstration; target-tenant capacity and target-HiAgent networking are handed off to a separate future conversation.
       - id: HENGZHUN-I8-FLOWISE-001
-        title: Flowise and SQLite deterministic regression completion
-        status: IN_PROGRESS
+        title: Platform-neutral deterministic regression engine completion
+        status: DONE
         owner: 傅钧烨
         dependsOn: [HENGZHUN-DELIVERY-001]
         evidence: [docs/evidence/platform/hengzhun-i8-stage2-agentflow-mcp-2026-07-20.md, docs/evidence/platform/hengzhun-i8-stage3-deterministic-builder-2026-07-20.md, docs/evidence/platform/hengzhun-i8-stage4-stability-certificate-2026-07-20.md, docs/evidence/platform/hengzhun-i8-stage5-controlled-delivery-2026-07-20.md, docs/evidence/platform/hengzhun-i8-stage6-scheduling-inbox-2026-07-20.md, docs/evidence/platform/hengzhun-i8-stage7-restricted-repair-2026-07-21.md]
         allowedPaths: [platform/hengzhun-regression-system/**, docs/architecture/**, docs/control/**, docs/design/regression-platform/**, docs/current-state/**, docs/evidence/platform/**, agent/**]
         acceptance:
-          - Flowise 3.0.12 on bundled Node 20.20.2 is the only personal and office computer Agent platform; all platform-external operations use authenticated MCP tools.
-          - Flowise handles natural language, semantic retrieval, case normalization, minimal clarification, intent planning, human input and result explanation; local tools handle authoritative state, deterministic execution, scripts, evidence and audit.
+          - Portable Flowise artifacts target Flowise 3.0.12 on bundled Node 20.20.2; all declared platform-external operations use authenticated MCP tools and real platform publication is deferred to I9.
+          - The artifact contract assigns natural language, semantic retrieval, case normalization, minimal clarification, intent planning, human input and result explanation to the Agent platform; local tools own authoritative state, deterministic execution, scripts, evidence and audit.
           - Visual LLM requests enforce a 16000-token total window with at most 12000 input tokens and at least 4000 reserved output tokens; controller LLM requests enforce a 1000000-token total window with at most 967232 input tokens and at least 32768 reserved output tokens, without broadening data authorization.
           - Harness emits a strict ActionContextEnvelope, defaults to CTX-L1 and upgrades to CTX-L2/CTX-L3 only by deterministic insufficiency rules; the Worker demonstrably passes the complete governed envelope rather than only currentAction.prompt to the visual model adapter.
           - Migration 009 and audit records persist consumer, context level, estimated and provider-reported token usage, image estimate, tokenizer, budget decision and redaction profile reference without secret content; deterministic over-budget paths return the frozen visual/controller error codes.
           - Flowise platform knowledge, Flowise database.sqlite and Harness regression_platform.sqlite have separate authority, permissions, backup and restore paths with no domain-state or knowledge-body dual writes; repository RAG is development-only and no RAG subsystem exists in the product.
           - A plain-language login/profile consistency case produces a deterministic Playwright candidate through the limited DSL and passes the six-run StabilityCertificate gate.
           - Candidate preview, explicit activation, exact-version recurring and one-time schedules, offline result inbox and bounded repair all pass contract, migration, integration and browser E2E tests.
-          - Every Flowise capability used by the portable definition has an evidenced HiAgent mapping; Flowise success is not reported as HiAgent success.
+          - Every Flowise capability declared by the portable definition has an evidenced HiAgent mapping; local artifact or engine success is not reported as Flowise publication or HiAgent success.
+      - id: HENGZHUN-I9-FLOWISE-PRODUCT-001
+        title: Flowise portable productization and real conversational acceptance
+        status: IN_PROGRESS
+        owner: 傅钧烨
+        dependsOn: [HENGZHUN-I8-FLOWISE-001]
+        evidence: []
+        allowedPaths: [platform/hengzhun-regression-system/**, docs/architecture/**, docs/control/**, docs/design/regression-platform/**, docs/current-state/**, docs/evidence/platform/**, agent/**, D:/Agent/全局端口注册表.md]
+        acceptance:
+          - Bundled Flowise 3.0.12, Node 20.20.2 and all runtime dependencies start on Windows 10/11 x64 without WSL, Docker, global Node or runtime downloads.
+          - One product-owned command prepares, starts, stops and reports Flowise, Harness, MCP and Worker without relying on untracked probes; all runtime state stays under .data.
+          - Flowise platform SQLite, platform knowledge and Harness regression SQLite preserve separate authority, backup and restore paths; no direct Flowise database mutation bypasses public registration or import.
+          - MiMo v2.5 and all 14 authenticated MCP tools work through a published Agentflow that uses only HiAgent-mapped capabilities.
+          - One plain-language case completes the real forward conversation through six-run validation, preview, activation and user-selected on-demand or scheduled execution.
+          - One controlled regression failure completes the real reverse conversation through classification, bounded repair, a new six-run certificate, explicit activation and user-selected rerun or repaired schedule.
+          - Restart and session continuation preserve governed state and expose deterministic errors without leaking secrets, local paths or unredacted evidence.
+          - A secret-free portable archive with hashes, SBOM, backup and restore evidence works from a clean directory and a second Windows computer.
+          - After all gates pass, the verified Flowise version is frozen on main before any hiagent migration branch work; coze remains preserved and no branch is auto-merged or force-updated.
       - id: HENGZHUN-POST-I8-INPUTS-001
         title: External case adapters and video-case authoring extensions
         status: PROPOSED

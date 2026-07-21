@@ -1,0 +1,167 @@
+---
+id: DESIGN-HENGZHUN-I9-FLOWISE-PRODUCTIZATION-001
+title: 衡准I9 Flowise正式产品化与便携交付规格
+document_type: design
+domain: regression-platform
+status: accepted
+authority: normative
+version: 1.0
+effective_date: 2026-07-21
+owner: 傅钧烨
+---
+
+# 衡准I9 Flowise正式产品化与便携交付规格
+
+> 本文是I9代码级辅助规格，只解释参数、目录、门禁和验收方法，不拥有项目实施顺序或任务状态。实施先后只看[`agent/plans/active/v54-implementation-batches.md`](../../../agent/plans/active/v54-implementation-batches.md)，状态只看[`agent/backlog.yaml`](../../../agent/backlog.yaml)。
+
+## 1. 目标与事实起点
+
+I8已经完成Harness、SQLite、MCP、Worker、Builder、Playwright和可迁移Flowise制品，但当前没有正式Flowise产品运行时、监听端口、已发布Agentflow或真实MiMo主控对话。I9负责把这些经过验证的组件装配为Windows原生、免安装、可打开、可对话、可复制的产品。
+
+I9不重新设计I8领域状态，不扩展任意代码生成，不把探针冒充产品，不用Flowise独有能力突破HiAgent边界。
+
+## 2. 固定系统边界
+
+```text
+用户
+→ Flowise 3.0.12 Agentflow（唯一自然语言入口）
+→ 认证MCP（唯一平台外工具通道）
+→ Harness / SQLite（领域事实与状态机）
+→ Worker / Builder / Midscene / Playwright（受控本机执行）
+→ 复兴银行（被测系统）
+```
+
+- Flowise负责会话、平台知识、结构化LLM、最小澄清、Human Input、条件、循环、MCP调用和回复。
+- Harness负责鉴权、幂等、版本、任务、修复、证书、调度、证据元数据和审计。
+- Worker负责固定运行时内的本机执行；正式回归只运行纯Playwright。
+- MiMo是主控/视觉模型供应能力，不是领域状态权威。
+- `.data/`是唯一运行态根目录，不入库、不进便携源代码清单。
+
+## 3. 支持平台与依赖
+
+- 操作系统：Windows 10/11 x64。
+- Flowise：3.0.12，版本和依赖锁定。
+- Node：产品自带20.20.2，不使用全局Node。
+- 浏览器：产品自带Chromium revision 1217。
+- 数据库：Flowise平台SQLite与Harness SQLite；职责分离。
+- 禁止依赖：WSL、Docker、全局npm、运行时联网下载、系统级数据库服务。
+- 密钥只从本机未跟踪配置或进程环境读取；归档只包含模板和变量名。
+
+## 4. 产品目录增量
+
+```text
+platform/hengzhun-regression-system/
+├── flowise/
+│   ├── app/                  # 固定Flowise应用运行时
+│   ├── artifacts/            # 可导入Agentflow、知识和连接清单
+│   └── manifests/            # 版本、Hash和HiAgent映射
+├── scripts/
+│   ├── prepare-i9.ps1
+│   ├── start-i9.ps1
+│   ├── stop-i9.ps1
+│   ├── status-i9.ps1
+│   ├── export-i9.ps1
+│   └── verify-i9*.ps1
+├── tests/i9/
+├── config/i9.example.env
+└── .data/
+    ├── flowise/              # Flowise SQLite、日志和平台运行态
+    ├── sqlite/               # Harness权威SQLite
+    ├── pids/                 # 受控进程记录
+    └── artifacts/            # 脱敏运行证据
+```
+
+`probes/flowise/`只能作为来源证据；正式脚本、依赖或运行时不得引用该目录。
+
+## 5. 八阶段详细门禁
+
+### P1 产品化基线与运行时收编
+
+- 记录I8基线提交、Flowise/Node/Chromium版本、依赖锁文件和目录Hash。
+- 把Flowise及必需依赖复制到产品拥有的正式目录，验证入口文件可由自带Node解析。
+- 在`D:\Agent\全局端口注册表.md`登记Flowise、Harness、MCP端口；启动前检测同协议占用。
+- 配置Schema只允许回环监听、相对运行目录和变量引用，不保存秘密值。
+
+退出：断网条件下可完成静态依赖检查；产品文件不引用`probes/`、WSL、Docker或全局Node。
+
+### P2 四服务便携启停与健康门禁
+
+- 启动顺序：Harness → MCP → Worker → Flowise；停止顺序反向。
+- 每个服务有独立健康检查、启动超时、PID归属和安全停止。
+- 不终止未知占用进程；端口冲突时返回确定性错误。
+- 重复启动必须幂等，部分失败必须清理本轮已启动进程。
+
+退出：一键启动后四项健康，一键停止后只清理由本产品启动的进程；重启后SQLite完整。
+
+### P3 平台SQLite、知识与配置导入
+
+- Flowise平台数据库固定在`.data/flowise/database.sqlite`，不得与`regression_platform.sqlite`合并。
+- 通过Flowise公开支持的界面、导入或正式API建立平台知识、模型连接和MCP连接；禁止直接写内部表。
+- 知识制品包含来源、版本、内容Hash和引用ID；Harness只保存`KnowledgeSnapshotRef`。
+- 备份和恢复分别覆盖两套SQLite，恢复后做完整性与职责边界检查。
+
+退出：知识检索可返回固定引用；领域状态只存在Harness SQLite；平台资源重建不依赖开发RAG。
+
+### P4 MiMo主控与14工具真实连通
+
+- MiMo连接只引用环境变量，日志和错误响应不得回显密钥。
+- 14项MCP工具逐项执行真实最小任务，验证Bearer、namespace、幂等和输出预算。
+- 验证Human Input暂停/恢复、循环上限、工具超时和错误传播。
+- 主控总窗口1M，输入最多967232、保留输出32768；视觉总窗口16K，输入最多12K、保留输出4K。
+
+退出：14项工具真实调用通过；无Code、HTTP、数据库、文件、Shell、浏览器或任意URL节点绕过MCP。
+
+### P5 Agentflow正式导入、发布与恢复
+
+- 把I8分段制品装配为一份正向主流程和一份反向续办流程，使用共享状态契约而非复制领域状态。
+- 节点只允许：输入、知识检索、结构化LLM、条件、循环、Human Input、MCP、直接回复。
+- 导出发布版本、节点清单、环境引用、Hash和HiAgent映射清单。
+- 重启Flowise后用新会话和续办会话分别验证发布状态。
+
+退出：用户能从正式Flowise URL打开已发布流程；重启后流程、知识引用和人工续办仍可用。
+
+### P6 正向自然语言全链路
+
+- 输入只包含案例自然语言，不要求技术ID、Cron、凭据别名或提示工程指令。
+- 覆盖案例结构化、澄清、确认、候选生成、固定Chromium 6/6、预览、激活、按需或调度选择及结果回复。
+- 每次状态变化通过MCP回查Harness，不以Flowise记忆冒充事实。
+
+退出：首个登录/资料一致性案例在真实Flowise对话中完整通过，证据脱敏且可追溯。
+
+### P7 反向失败与限域恢复
+
+- 用受控定位器变更制造正式失败，不修改Harness安全规则。
+- Flowise只接收`StepFailureEnvelope`，按L1/L2/L3和三次上限生成白名单补丁。
+- 新候选重新执行固定Chromium 6/6，用户独立决定激活、复跑和是否创建修复版调度。
+- 旧调度不静默迁移；正式运行期间不调用LLM或Midscene。
+
+退出：真实反向对话完成且无自动激活、无项目源码修改、无断言弱化、无秘密或绝对路径泄漏。
+
+### P8 便携交付与主线冻结
+
+- 从干净提交生成产品归档、配置模板、Hash清单、CycloneDX SBOM、两套SQLite备份说明和机器验收记录。
+- 在当前电脑全新目录断网恢复；再在第二台Windows 10/11 x64电脑验证解压、配置、启动、正向最小回归、停止和重启。
+- 归档扫描拒绝`.env`、Token、账号密码、运行数据库、日志、缓存、PID、Worker产物和未脱敏Artifact正文。
+- 完成后冻结最新Flowise版到`main`；`coze`保留，`hiagent`从冻结基线建立且不自动合并。
+
+退出：两台电脑证据均通过，源提交、归档Hash和运行版本一致。
+
+## 6. 验证层级
+
+| 层级 | 必须验证 |
+|---|---|
+| Structure | 正式目录、依赖锁、无`probes/`运行引用、无敏感文件 |
+| Process | 启停幂等、PID归属、端口冲突、部分失败清理、健康检查 |
+| Platform | Flowise SQLite、知识、模型、MCP、Agentflow导入发布和重启恢复 |
+| Contract | 14工具、鉴权、幂等、预算、超时、错误码、HiAgent节点映射 |
+| Forward E2E | 一句自然语言到脚本、6/6、预览、激活、运行/调度和回复 |
+| Reverse E2E | 失败、CTX、补丁、6/6、人工激活、复跑/修复版调度 |
+| Portability | 干净目录、断网、第二电脑、备份恢复、Hash与SBOM |
+
+## 7. 状态声明规则
+
+- P1—P4通过：只能称“Flowise运行底座可用”。
+- P5通过：只能称“正式Agentflow已发布”。
+- P6—P7通过：可称“本机Flowise自动化回归闭环可用”。
+- P8通过：才可称“Flowise版衡准可便携交付”。
+- 任何Flowise证据都不能称为“HiAgent已验收”。

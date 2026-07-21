@@ -10,7 +10,7 @@
 - `agent/backlog.yaml` 只记录任务状态、依赖、允许路径和验收标准，不复制批次顺序。
 - `docs/`、`documents/`、`rag/`、`contracts/` 与其他 `agent/plans/active/` 文件只补充参数、接口、架构、技术方案、代码设计、验证方法或证据，不得建立第二套全局阶段编号或排期。
 - 某个缺口报告、运行手册或测试案例中的“步骤”只约束该项操作，不构成项目实施顺序；若与本文件冲突，以本文件为准。
-- I0—I7 是已经完成并冻结的 Coze/Harness 历史实施序列，不得改写其历史证据。2026-07-20 起唯一后续阶段为 I8；I8 使用 Windows 原生 Flowise 3.0.12 作为个人/办公电脑主控、SQLite 作为平台和回归领域持久化、MCP 作为唯一平台外工具通道，并只实现能够映射到 HiAgent 已证明能力交集的内容。
+- I0—I7 是已经完成并冻结的 Coze/Harness 历史实施序列，不得改写其历史证据。I8 已于 2026-07-21 关闭为平台中立的确定性本机引擎；当前唯一新增阶段为 I9。I9 使用 Windows 原生 Flowise 3.0.12 作为个人/办公电脑主控，把 I8 引擎装配为正式产品，并只实现能够映射到 HiAgent 已证明能力交集的内容。
 
 ## 当前交付目标
 
@@ -19,13 +19,14 @@
 ## 环境交接边界
 
 - **I0—I7 只证明历史本机 Coze 演示。** 其范围止于当时的 Coze Studio、Harness、SQLite、Playwright、Midscene、复兴银行、脱敏证据和离线恢复。
-- **I8 个人电脑阶段使用 Flowise。** 本阶段实现 Flowise Agentflow、Flowise 平台知识库、SQLite 结构化执行知识库、MCP、确定性作者化内核和便携制品，不继续扩展 Coze 或 Dify 专用资源，不在产品中建设 RAG 子系统。
+- **I8 已完成平台中立的本机引擎。** 确定性作者化内核、SQLite 回归事实、MCP、Builder、Worker、精确版本运行/调度和限域修复均已验证，但不等于运行中的 Flowise 产品。
+- **I9 个人电脑阶段正式使用 Flowise。** 本阶段实现正式 Agentflow 发布、Flowise 平台知识、平台 SQLite、MiMo 主控、真实正反向对话和便携交付；不继续扩展 Coze 或 Dify 专用资源，不在产品中建设 RAG 子系统。
 - **办公电脑阶段重新恢复 Flowise。** 只从同源定义和便携包重建，不复制个人电脑凭据、会话、平台数据库或缓存。
 - **HiAgent 由测试环境阶段独立验收。** 从当前实现提取 MCP 契约、Workflow 映射、知识制品、运行手册和脱敏证据后，在实际 HiAgent 环境重新注册、调试、发布和验收。
 - **证据不得互相冒充。** 本机 Coze 成功不证明 HiAgent 已安装、可访问或可运行；未来 HiAgent 成功也不改写本机演示的历史验收事实。
 - **外部门禁已移交。** `PLAT-V007` 目标租户容量和 `PLAT-V010` 目标 HiAgent 网络不属于当前对话剩余工作，不阻塞已完成的 I1—I7；它们只在未来 HiAgent 对话中重新进入执行状态。
 - **当前仓库只保留迁移输入。** 不在本机项目中保存 HiAgent 凭据、会话、平台数据库或运行态；所有目标环境敏感配置由新对话在现场安全注入。
-- **I8 是当前唯一新增阶段。** 详细冻结实现规格见 [`docs/design/regression-platform/i8-deterministic-authoring-spec-v1.md`](../../../docs/design/regression-platform/i8-deterministic-authoring-spec-v1.md)。该规格只展开 I8 的数据结构、代码边界和验收，不拥有全局排期权；若与本文件冲突，以本文件为准。
+- **I9 是当前唯一新增阶段。** I8 的已完成引擎规格见 [`docs/design/regression-platform/i8-deterministic-authoring-spec-v1.md`](../../../docs/design/regression-platform/i8-deterministic-authoring-spec-v1.md)，I9 的产品化规格见 [`docs/design/regression-platform/i9-flowise-productization-spec-v1.md`](../../../docs/design/regression-platform/i9-flowise-productization-spec-v1.md)。两份规格只展开参数、代码边界和验收，不拥有全局排期权；若与本文件冲突，以本文件为准。
 
 ## Midscene 与 Playwright 强制协作契约
 
@@ -232,9 +233,9 @@ Playwright 对浏览器事实和正式回归结果负责，不接受 Midscene �
 
 ## 并行轨道与门槛
 
-I8 期间两条轨道并行：
+I8 历史实施期间形成的两条轨道在 I9 继续适用：
 
-- **平台轨道按 I8 开工**：建设 Flowise 可迁移 Agentflow、Flowise 平台知识库、双 SQLite 隔离、MCP、Harness 确定性作者化、Script Package Builder、Worker 和证据链。仓库 RAG 只服务开发，不进入产品。它不依赖 `FE-DEFECT-001` 全部完成，也不得使用 HiAgent 无等价证据的 Flowise 专有能力。
+- **平台轨道按 I9 产品化**：把 I8 已完成的 MCP、Harness 确定性作者化、Script Package Builder、Worker 和证据链装配进正式 Flowise Agentflow、平台知识和双 SQLite 隔离。仓库 RAG 只服务开发，不进入产品。它不依赖 `FE-DEFECT-001` 全部完成，也不得使用 HiAgent 无等价证据的 Flowise 专有能力。
 - **被测系统轨道按案例收敛**：只修复首批案例实际经过的页面、API、角色、Fixture、稳定定位器和错误恢复。未被首批案例使用的前端缺陷不得阻塞平台基础建设。
 
 每个银行案例只有在接入 Harness 执行前才需要通过自己的案例门禁：
@@ -343,7 +344,7 @@ I7 退出条件：`npm run verify` 覆盖 I1—I7 并通过；正式离线交付
 
 2026-07-18 完成状态：I7 已关闭。提交 `37aceed` 通过 I1—I7 全量验证；正式包 `internship-20260718-i7-37aceed` 绑定该干净提交，包含三张固定镜像、产品归档、SQLite/Artifact/Evidence 备份、CycloneDX SBOM 和 Hash 清单。共 8 个清单文件、1078602394 字节，在全新目录完成 Hash 复验、三镜像加载和 SQLite schema 8 完整性检查；包目录不存在 Manifest 外文件，机器验收记录独立保存在包外且未包含凭据或业务数据。本机演示序列在此结束；`PLAT-V007`、`PLAT-V010` 与云端 HiAgent 生产就绪已移交未来 HiAgent 对话。
 
-### I8：平台中立的确定性脚本作者化闭环（当前唯一新增阶段）
+### I8：平台中立的确定性脚本作者化闭环（本机引擎已完成）
 
 I8 不延续 Coze 或 Dify 专用实现。个人/办公电脑入口使用 Windows 原生 Flowise 3.0.12，平台外工具只通过 MCP。Flowise Agentflow 负责自然语言、语义知识检索、案例结构化、最小澄清、意图规划、人工确认和结果解释；本地 MCP/Harness/Builder/Midscene/Playwright 负责鉴权、权威状态、确定性执行、证据和审计。详细职责见 [`docs/architecture/overview/flowise-sqlite-hiagent-regression-baseline-v1.md`](../../../docs/architecture/overview/flowise-sqlite-hiagent-regression-baseline-v1.md)，代码级规格见 [`docs/design/regression-platform/i8-deterministic-authoring-spec-v1.md`](../../../docs/design/regression-platform/i8-deterministic-authoring-spec-v1.md)。
 
@@ -371,17 +372,45 @@ I8 内部实现顺序固定为：
 
 2026-07-21 阶段7完成状态：第7项已完成本机代码、迁移、契约、Worker接入和自动化闭环验证。migration 015冻结十一类事故、`CTX-L1→CTX-L2→CTX-L3`最小失败封装、最多3个版本化修复提案、独立2视口×3次稳定性批次/证书及不可变人工决定。`ScriptPatchProposal`只接受受控目标映射、固定等待、受控动作参数、步骤顺序和不弱化断言实现；每个候选生成独立ID、版本、来源链与Hash，禁止完整源码、运行时自修补、自动激活和修改被测项目。失败稳定性验证按相邻证据升级上下文，第三次后稳定拒绝第四候选；持证候选只有经用户`ACTIVATE`才成为精确脚本版本。后续用户显式调用`run_submit`或新建调度时会选择已激活修复版本，既有调度不自动迁移。MCP 7.0.0的14项工具全部ACTIVE，Flowise阶段7制品仍只使用HiAgent可映射节点。真实Flowise发布、MiMo主控对话、HiAgent目标环境和本机固定Chromium阶段7重跑仍是独立外部/运行环境门禁，不得由自动化测试冒充。
 
-I8 退出条件全部为硬门禁：
+I8 本机引擎退出条件全部为硬门禁：
 
-- 普通用户只输入案例描述即可完成首个登录/资料一致性案例的结构化、作者化、脚本生成和稳定性验证；
+- 严格Schema、可迁移Agentflow制品和MCP契约能够表达普通用户只输入案例描述的完整链路；真实平台对话由I9验收；
 - 新生成的脚本不是 `SCRIPT_CATALOG` 预置脚本副本，来源链可由计划版本、DSL、生成器版本和 Hash 重建；
 - 3 次 × 2 视口验证全部通过，任一失败都不得生成 `StabilityCertificate`；
-- 用户在对话中看到人类可读验收摘要、受控脚本预览和真实验证结果，并可明确保存、激活、按需或调度；
+- Harness/MCP能够返回人类可读验收摘要、受控脚本预览和真实验证结果，并支持明确保存、激活、按需或调度；真实Flowise界面交互由I9验收；
 - 正向链路、正式回归失败反向链路、版本绑定、一次性执行和离线结果恢复均有契约测试、SQLite 迁移测试、Worker 集成测试和真实浏览器 E2E；
-- Flowise 未使用任何无 HiAgent 等价证据的专有能力，Flowise 成功不冒充 HiAgent 已验证；
+- Flowise同源制品未声明任何无HiAgent等价证据的专有能力，本机成功不冒充Flowise发布或HiAgent已验证；
 - `npm.cmd run verify`、文档校验和 I8 专项验证全部通过，且证据不含凭据、绝对路径、未脱敏截图或完整敏感日志。
 
-在 I8 退出前，不开始视频案例、任意代码生成、跨项目自动修复、衡准 UI 扩建或新增银行高风险业务案例。
+2026-07-21 I8本机引擎关闭结论：migration 009—015、14项MCP工具、确定性Builder、2视口×3次稳定性门禁、受控交付、精确版本运行/调度、离线收件箱和限域反向修复已完成。`verify:i8:stage7`累计32/32通过，固定Chromium阶段7修复候选6/6通过，全量`verify.cmd`和文档校验通过。真实Flowise运行时、Agentflow发布、MiMo主控对话和第二台电脑便携恢复不再伪装为I8已完成证据，统一进入I9。
+
+### I9：Flowise正式产品化、真实对话闭环与便携交付（当前唯一新增阶段）
+
+I9只把I8已经验证的本机引擎接入可打开、可对话、可迁移的正式Flowise产品，不重写Harness领域规则，不扩大LLM权限，不使用HiAgent没有等价证据的Flowise能力。详细参数和代码级门禁见 [`docs/design/regression-platform/i9-flowise-productization-spec-v1.md`](../../../docs/design/regression-platform/i9-flowise-productization-spec-v1.md)。
+
+I9内部实现顺序固定为8个阶段：
+
+1. **产品化基线与运行时收编**：冻结I8提交、探针结论和Flowise 3.0.12/Node 20.20.2版本；把经验证的Windows原生Flowise依赖收编到产品目录，禁止正式运行依赖未跟踪`probes/`、全局Node、WSL或Docker；登记正式端口和目录边界。
+2. **四服务便携启停与健康门禁**：实现Flowise、Harness、MCP、Worker的一键准备/启动/停止/状态检查和异常退出清理；固定只监听本机回环地址，运行态只写`.data/`，重复启动、端口占用、缺配置和弱Token均失败关闭。
+3. **平台SQLite、知识与配置导入**：初始化Flowise自己的`database.sqlite`，通过Flowise公开支持的导入/界面流程建立平台知识、模型连接、MCP连接和环境变量引用；只保存知识正文于Flowise知识层，Harness SQLite继续独占回归事实，禁止直接修改Flowise内部数据库绕过注册。
+4. **MiMo主控与14工具真实连通**：配置MiMo v2.5主控模型和认证MCP，逐项验证14工具调用、输出预算、超时、人工确认续办、会话恢复和错误传播；Flowise不得直连Shell、文件、SQLite、浏览器、凭据或任意URL。
+5. **正式Agentflow导入、发布与重启恢复**：把I8阶段2—7同源制品装配为真实可发布Agentflow；只使用有HiAgent映射证据的输入、知识检索、结构化LLM、条件、循环、Human Input、MCP和直接回复节点；导出同源定义和Hash，重启后仍可恢复且不依赖手工临时状态。
+6. **正向自然语言全链路验收**：用户只输入门户登录与资料一致性案例描述；真实Flowise完成结构化、最小澄清、人工确认、Builder候选、真实Chromium 6/6、脚本预览、显式激活、按需运行或新调度，并把结果返回同一对话。
+7. **反向失败、限域修复与恢复验收**：主动制造受控脚本失效，真实Flowise展示十一类事故和最小CTX上下文，生成白名单补丁候选，经新的真实Chromium 6/6和用户激活后再由用户独立选择复跑或创建修复版调度；不得自动修改项目、自动激活或静默迁移旧调度。
+8. **免安装便携交付与主线冻结**：生成不含凭据的完整目录包、Hash、SBOM、配置模板、备份/恢复和机器可读验收记录；在干净新目录及第二台Windows 10/11 x64电脑完成解压即用复验。通过后把最新Flowise版冻结到`main`，保留`coze`，再从该基线新建`hiagent`迁移分支；不得自动merge、删除分支或force push。
+
+I9退出条件全部为硬门禁：
+
+- 一个正式入口命令能在干净Windows目录启动四服务，健康检查全部通过，并给出可打开的Flowise URL；
+- 平台外能力100%经认证MCP，Flowise实际使用节点100%存在HiAgent映射证据；
+- 正向和反向两条真实Flowise对话链均完成，涉及候选脚本的门禁均由固定Chromium完成2视口×3次；
+- Flowise重启、会话续办、SQLite备份恢复、端口冲突、缺配置和错误传播均有自动测试或真实证据；
+- 便携包在当前电脑干净目录及第二台受支持Windows电脑通过，安装过程不要求WSL、Docker、全局Node或联网下载运行依赖；
+- 不提交`.env`、Token、账号密码、Flowise运行数据库、日志、缓存、Worker产物或Artifact正文；
+- `npm.cmd run verify`、I9专项验证、真实浏览器E2E、文档校验和`git diff --check`全部通过；
+- 只有I9全部通过后才允许声明“Flowise平台可以使用”，随后才进入HiAgent迁移。
+
+在I9退出前，不开始视频案例、任意代码生成、跨项目自动修复、衡准UI扩建或新增银行高风险业务案例。
 
 ## 明确不阻塞当前开工的事项
 
@@ -391,7 +420,7 @@ I8 退出条件全部为硬门禁：
 - 视频导入、五类外部适配器、跨项目自动修复和新增高风险银行案例；
 - 衡准任何页面、投影、路由迁移或写控制。
 
-上述事项可能阻塞对应扩展功能，但不得反向阻塞 I8 的确定性作者化闭环。
+上述事项可能阻塞对应扩展功能，但不得反向阻塞 I9 的 Flowise 产品化闭环。
 
 ## 排除范围
 
@@ -402,6 +431,7 @@ I8 退出条件全部为硬门禁：
 - [`docs/architecture/overview/coze-harness-midscene-observability-boundary.md`](../../../docs/architecture/overview/coze-harness-midscene-observability-boundary.md)
 - [`docs/architecture/overview/flowise-sqlite-hiagent-regression-baseline-v1.md`](../../../docs/architecture/overview/flowise-sqlite-hiagent-regression-baseline-v1.md)
 - [`docs/design/regression-platform/i8-deterministic-authoring-spec-v1.md`](../../../docs/design/regression-platform/i8-deterministic-authoring-spec-v1.md)
+- [`docs/design/regression-platform/i9-flowise-productization-spec-v1.md`](../../../docs/design/regression-platform/i9-flowise-productization-spec-v1.md)
 - [`docs/architecture/v54-coze-harness-acceptance-matrix.md`](../../../docs/architecture/v54-coze-harness-acceptance-matrix.md)
 - [`docs/current-state/coze-hiagent-verification-register.md`](../../../docs/current-state/coze-hiagent-verification-register.md)
 - [`contracts/openapi/test-support-api.yaml`](../../../contracts/openapi/test-support-api.yaml)
