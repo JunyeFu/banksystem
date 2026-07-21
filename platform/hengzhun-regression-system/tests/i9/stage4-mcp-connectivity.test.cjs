@@ -228,4 +228,5 @@ test('portable Flowise definitions freeze Human Input, loop limits and prohibit 
   assert.equal(controller.visualContext.maximumInputTokens + controller.visualContext.reservedOutputTokens, 16384)
   assert.equal(controller.mcp.toolCount, 14)
   assert.equal(controller.apiKeyVariable, 'MIMO_API_KEY')
+  assert.equal(controller.responseFormat, 'json_object')
 })

@@ -15,6 +15,7 @@ if (!apiKey || apiKey.length < 24) {
   process.exit(3)
 }
 assert.equal(profile.modelName, 'mimo-v2.5')
+assert.equal(profile.responseFormat, 'json_object')
 assert.equal(profile.controllerContext.maximumInputTokens + profile.controllerContext.reservedOutputTokens, profile.controllerContext.totalTokens)
 assert.equal(profile.visualContext.maximumInputTokens + profile.visualContext.reservedOutputTokens, profile.visualContext.totalTokens)
 
@@ -30,7 +31,8 @@ async function main() {
     timeout: 60_000,
     configuration: { baseURL: profile.baseUrl }
   })
-  const response = await model.invoke([
+  const jsonModel = model.withConfig({ response_format: { type: profile.responseFormat } })
+  const response = await jsonModel.invoke([
     ['system', '你是衡准自动化回归测试主控。只返回一行严格JSON，不使用Markdown，不调用工具。'],
     ['human', '将“客户登录后核对页眉姓名头像与个人资料一致”分类。只返回 {"route":"AUTHORING","riskLevel":"LOW"}。']
   ])

@@ -6,6 +6,7 @@
   "modelName": "mimo-v2.5",
   "baseUrl": "https://api.xiaomimimo.com/v1",
   "apiKeyVariable": "MIMO_API_KEY",
+  "responseFormat": "json_object",
   "controllerContext": {
     "totalTokens": 1000000,
     "maximumInputTokens": 967232,
