@@ -388,7 +388,7 @@ I8 本机引擎退出条件全部为硬门禁：
 
 I9只把I8已经验证的本机引擎接入可打开、可对话、可迁移的正式Flowise产品，不重写Harness领域规则，不扩大LLM权限，不使用HiAgent没有等价证据的Flowise能力。详细参数和代码级门禁见 [`docs/design/regression-platform/i9-flowise-productization-spec-v1.md`](../../../docs/design/regression-platform/i9-flowise-productization-spec-v1.md)。
 
-I9内部实现顺序固定为8个阶段：
+I9内部实现顺序固定为9个阶段：
 
 1. **产品化基线与运行时收编**：冻结I8提交、探针结论和Flowise 3.0.12/Node 20.20.2版本；把经验证的Windows原生Flowise依赖收编到产品目录，禁止正式运行依赖未跟踪`probes/`、全局Node、WSL或Docker；登记正式端口和目录边界。
 2. **四服务便携启停与健康门禁**：实现Flowise、Harness、MCP、Worker的一键准备/启动/停止/状态检查和异常退出清理；固定只监听本机回环地址，运行态只写`.data/`，重复启动、端口占用、缺配置和弱Token均失败关闭。
@@ -397,7 +397,8 @@ I9内部实现顺序固定为8个阶段：
 5. **正式Agentflow导入、发布与重启恢复**：把I8阶段2—7同源制品装配为真实可发布Agentflow；只使用有HiAgent映射证据的输入、知识检索、结构化LLM、条件、循环、Human Input、MCP和直接回复节点；导出同源定义和Hash，重启后仍可恢复且不依赖手工临时状态。
 6. **正向自然语言全链路验收**：用户只输入门户登录与资料一致性案例描述；真实Flowise完成结构化、最小澄清、人工确认、Builder候选、真实Chromium 6/6、脚本预览、显式激活、按需运行或新调度，并把结果返回同一对话。
 7. **反向失败、限域修复与恢复验收**：主动制造受控脚本失效，真实Flowise展示十一类事故和最小CTX上下文，生成白名单补丁候选，经新的真实Chromium 6/6和用户激活后再由用户独立选择复跑或创建修复版调度；不得自动修改项目、自动激活或静默迁移旧调度。
-8. **免安装便携交付与主线冻结**：生成不含凭据的完整目录包、Hash、SBOM、配置模板、备份/恢复和机器可读验收记录；在干净新目录及第二台Windows 10/11 x64电脑完成解压即用复验。通过后把最新Flowise版冻结到`main`，保留`coze`，再从该基线新建`hiagent`迁移分支；不得自动merge、删除分支或force push。
+8. **便携候选与跨电脑验收**：从干净提交生成不含凭据的临时候选目录、Hash、SBOM、配置模板、备份/恢复说明和机器可读验收记录；在当前电脑干净目录及第二台Windows 10/11 x64电脑完成解压即用复验。该阶段证明可迁移性，但候选目录不是最终提交文件夹。
+9. **最终可压缩提交文件夹**：从P8已通过的冻结提交可复现地生成`platform/hengzhun-regression-system/.release/hengzhun-regression-system-windows-x64/`；目录内必须自带运行依赖、`README`、配置模板、启动/停止/状态入口、许可证、SBOM、Hash清单和脱敏验收摘要，且不含源码开发资料、探针、`.git`、`.env`、秘密、运行数据库、日志、缓存、PID、Worker产物或Artifact正文。该文件夹无需人工增删即可直接压缩提交，压缩前后清单与Hash必须一致。P9通过后才把最新Flowise版冻结到`main`，保留`coze`，再从该基线新建`hiagent`迁移分支；不得自动merge、删除分支或force push。
 
 I9退出条件全部为硬门禁：
 
@@ -405,7 +406,8 @@ I9退出条件全部为硬门禁：
 - 平台外能力100%经认证MCP，Flowise实际使用节点100%存在HiAgent映射证据；
 - 正向和反向两条真实Flowise对话链均完成，涉及候选脚本的门禁均由固定Chromium完成2视口×3次；
 - Flowise重启、会话续办、SQLite备份恢复、端口冲突、缺配置和错误传播均有自动测试或真实证据；
-- 便携包在当前电脑干净目录及第二台受支持Windows电脑通过，安装过程不要求WSL、Docker、全局Node或联网下载运行依赖；
+- P8便携候选在当前电脑干净目录及第二台受支持Windows电脑通过，安装过程不要求WSL、Docker、全局Node或联网下载运行依赖；
+- P9最终提交文件夹可由冻结提交重复生成，内容白名单、秘密扫描、运行态扫描、绝对路径扫描、Hash清单和压缩往返校验全部通过，且无需人工整理即可提交；
 - 不提交`.env`、Token、账号密码、Flowise运行数据库、日志、缓存、Worker产物或Artifact正文；
 - `npm.cmd run verify`、I9专项验证、真实浏览器E2E、文档校验和`git diff --check`全部通过；
 - 只有I9全部通过后才允许声明“Flowise平台可以使用”，随后才进入HiAgent迁移。

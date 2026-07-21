@@ -5,7 +5,7 @@ document_type: how-to
 domain: governance
 status: accepted
 authority: normative
-version: 1.4
+version: 1.5
 effective_date: 2026-07-21
 owner: project-owner
 ---
@@ -108,10 +108,11 @@ owner: project-owner
 | `AUD-048` | Agentflow/MCP 制品存在可能被误报为 MiMo 与十四工具已经真实连通 | `OPEN_I9_P4`：MiMo 主控、十四工具、输出预算、超时、Human Input 续办、会话恢复和错误传播必须逐项留下真实调用证据 |
 | `AUD-049` | 可加载 Agentflow JSON 不等于已经发布且重启可恢复 | `OPEN_I9_P5`：正式 Agentflow 必须通过公开流程导入、发布、导出并记录 Hash；重启后无需临时手工状态即可恢复 |
 | `AUD-050` | 本机引擎测试可能被误报为用户自然语言正反向闭环 | `OPEN_I9_P6_P7`：正向脚本生成/验证/交付/运行/调度与反向事故/候选/复验/激活必须分别在真实 Flowise 对话中验收 |
-| `AUD-051` | 单机复制或探针恢复可能被误报为可便携交付 | `OPEN_I9_P8`：不含凭据的交付包必须在干净目录和第二台 Windows 10/11 x64 电脑完成解压启动、备份恢复和核心 E2E |
-| `AUD-052` | Flowise、Coze、HiAgent 分支可能在迁移时互相覆盖 | `OPEN_I9_RELEASE`：I9 P8 通过后才把 Flowise 版冻结到 `main`；保留 `coze`，再从该基线新建 `hiagent`，禁止自动 merge、删分支或 force push |
+| `AUD-051` | 单机复制或探针恢复可能被误报为已通过便携验收 | `OPEN_I9_P8`：临时候选必须在干净目录和第二台 Windows 10/11 x64 电脑完成解压启动、备份恢复和核心 E2E；候选不冒充最终提交文件夹 |
+| `AUD-052` | 已验证候选仍可能夹带运行态、秘密或依赖人工整理 | `OPEN_I9_P9`：最终`.release/hengzhun-regression-system-windows-x64/`必须从冻结提交可复现生成，采用内容白名单并通过秘密、运行态、绝对路径、压缩往返Hash和离线启动检查 |
+| `AUD-053` | Flowise、Coze、HiAgent 分支可能在迁移时互相覆盖 | `OPEN_I9_RELEASE`：I9 P9 通过后才把 Flowise 版冻结到 `main`；保留 `coze`，再从该基线新建 `hiagent`，禁止自动 merge、删分支或 force push |
 
-`AUD-009...AUD-043` 已关闭 I8 七阶段本机引擎，`AUD-044` 继续约束外部运行证据；`AUD-045...AUD-052` 分别构成 I9 P1—P8 与发布分支硬门禁。不得把本机引擎、隔离探针或静态制品写成 Flowise 真实 Agentflow、MiMo、便携交付或 HiAgent 证据。
+`AUD-009...AUD-043` 已关闭 I8 七阶段本机引擎，`AUD-044` 继续约束外部运行证据；`AUD-045...AUD-053` 分别构成 I9 P1—P9 与发布分支硬门禁。不得把本机引擎、隔离探针、静态制品或P8临时候选写成 Flowise 真实 Agentflow、最终提交文件夹或 HiAgent 证据。
 
 ### 2.4 仍未验证但不得遗忘
 
@@ -119,7 +120,7 @@ owner: project-owner
 |---|---|---|
 | `EXT-001` | HiAgent 目标服务器能否注册并访问衡准 MCP | 不阻塞本机 I9；阻塞后续 HiAgent 迁移验收 |
 | `EXT-002` | Flowise 每个已用节点、变量、Human Input、Knowledge、MCP 语义是否逐项等价于目标 HiAgent | 阻塞 I9 P5 发布；无映射证据的能力必须失败关闭 |
-| `EXT-003` | 第二台真实 Windows 电脑的整目录便携恢复 | 阻塞 I9 P8 与“办公电脑可无缝传播”验收 |
+| `EXT-003` | 第二台真实 Windows 电脑的整目录便携恢复 | 阻塞 I9 P8；P8未通过时不得生成P9最终提交文件夹 |
 | `EXT-004` | MiMo v2.5 长时间 Midscene 作者化稳定性 | 阻塞 I9 P6/P7 相应案例通过，不影响已验证 Playwright 正式回归 |
 
 ## 3. 冻结需求登记

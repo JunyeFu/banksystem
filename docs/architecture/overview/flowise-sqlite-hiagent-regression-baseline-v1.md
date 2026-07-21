@@ -5,7 +5,7 @@ document_type: architecture-baseline
 domain: regression-platform
 status: accepted
 authority: normative
-version: 1.5
+version: 1.6
 effective_date: 2026-07-21
 owner: project-owner
 supersedes:
@@ -241,7 +241,7 @@ I8 阶段6进一步落地 migration 014：历史周期调度回填创建时实�
 
 I8 阶段7进一步落地 migration 015：正式失败确定性分类为十一类并生成脱敏`StepFailureEnvelope`；默认CTX-L1，修复稳定性失败后只携带相邻失败摘要升级到L2/L3。补丁严格限制为受控目标映射、固定等待、受控参数、步骤顺序和不弱化断言；最多3个候选，每个都有独立版本、来源链和Hash并重新执行2视口×3次纯Playwright门禁。持证候选仍需用户显式ACTIVATE；随后用户另行提交按需运行或新建调度时精确选择修复版本，既有调度不自动迁移。MCP 7.0.0的14项工具全部ACTIVE，但无任意文件、Shell、浏览器或URL能力。
 
-I8 的 migration 009—015、14 项 MCP 工具、确定性 Builder、固定 Chromium 阶段7修复候选 6/6、受控交付、精确版本运行/调度、离线收件箱和限域修复已经完成。尚未完成的是正式 Flowise 运行时收编、运行中 Agentflow 发布、真实 MiMo 主控对话、真实正反向平台对话、第二台 Windows 电脑便携恢复和 HiAgent 目标环境验收；前五项统一由 I9 P1—P8 关闭，最后一项在后续 HiAgent 分支独立验收。不得把 I8 引擎完成写成 Flowise 或 HiAgent 已可用。追踪见 `AUD-009...AUD-052`。
+I8 的 migration 009—015、14 项 MCP 工具、确定性 Builder、固定 Chromium 阶段7修复候选 6/6、受控交付、精确版本运行/调度、离线收件箱和限域修复已经完成。尚未完成的是正式 Flowise 运行时收编、运行中 Agentflow 发布、真实 MiMo 主控对话、真实正反向平台对话、第二台 Windows 电脑便携恢复、最终可压缩提交文件夹和 HiAgent 目标环境验收；前六项统一由 I9 P1—P9 关闭，最后一项在后续 HiAgent 分支独立验收。不得把 I8 引擎、P8候选或静态制品写成 Flowise最终交付或 HiAgent 已可用。追踪见 `AUD-009...AUD-053`。
 
 ## 9. HiAgent 迁移约束
 

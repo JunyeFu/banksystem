@@ -156,7 +156,9 @@ tracks:
           - One controlled regression failure completes the real reverse conversation through classification, bounded repair, a new six-run certificate, explicit activation and user-selected rerun or repaired schedule.
           - Restart and session continuation preserve governed state and expose deterministic errors without leaking secrets, local paths or unredacted evidence.
           - A secret-free portable archive with hashes, SBOM, backup and restore evidence works from a clean directory and a second Windows computer.
-          - After all gates pass, the verified Flowise version is frozen on main before any hiagent migration branch work; coze remains preserved and no branch is auto-merged or force-updated.
+          - After cross-computer acceptance, a reproducible platform/hengzhun-regression-system/.release/hengzhun-regression-system-windows-x64 folder contains all runtime dependencies, README, configuration template, lifecycle entrypoints, licenses, SBOM, hashes and redacted acceptance summary, and can be compressed for submission without manual edits.
+          - The final submission folder and compressed archive exclude source-development material, probes, .git, .env, secrets, runtime databases, logs, caches, PIDs, worker outputs and artifact bodies; manifest and hashes survive compression round-trip verification.
+          - After P9 and all gates pass, the verified Flowise version is frozen on main before any hiagent migration branch work; coze remains preserved and no branch is auto-merged or force-updated.
       - id: HENGZHUN-POST-I8-INPUTS-001
         title: External case adapters and video-case authoring extensions
         status: PROPOSED

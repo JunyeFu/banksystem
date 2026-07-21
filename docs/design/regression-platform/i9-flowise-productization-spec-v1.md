@@ -5,7 +5,7 @@ document_type: design
 domain: regression-platform
 status: accepted
 authority: normative
-version: 1.0
+version: 1.1
 effective_date: 2026-07-21
 owner: 傅钧烨
 ---
@@ -73,7 +73,7 @@ platform/hengzhun-regression-system/
 
 `probes/flowise/`只能作为来源证据；正式脚本、依赖或运行时不得引用该目录。
 
-## 5. 八阶段详细门禁
+## 5. 九阶段详细门禁
 
 ### P1 产品化基线与运行时收编
 
@@ -137,14 +137,25 @@ platform/hengzhun-regression-system/
 
 退出：真实反向对话完成且无自动激活、无项目源码修改、无断言弱化、无秘密或绝对路径泄漏。
 
-### P8 便携交付与主线冻结
+### P8 便携候选与跨电脑验收
 
-- 从干净提交生成产品归档、配置模板、Hash清单、CycloneDX SBOM、两套SQLite备份说明和机器验收记录。
+- 从干净提交生成临时候选目录、配置模板、Hash清单、CycloneDX SBOM、两套SQLite备份说明和机器验收记录。
 - 在当前电脑全新目录断网恢复；再在第二台Windows 10/11 x64电脑验证解压、配置、启动、正向最小回归、停止和重启。
-- 归档扫描拒绝`.env`、Token、账号密码、运行数据库、日志、缓存、PID、Worker产物和未脱敏Artifact正文。
-- 完成后冻结最新Flowise版到`main`；`coze`保留，`hiagent`从冻结基线建立且不自动合并。
+- 候选扫描拒绝`.env`、Token、账号密码、运行数据库、日志、缓存、PID、Worker产物和未脱敏Artifact正文。
+- 候选只用于便携性验收，不作为最终提交目录；验收失败必须回到对应阶段修复后重新生成。
 
-退出：两台电脑证据均通过，源提交、归档Hash和运行版本一致。
+退出：两台电脑证据均通过，源提交、候选Hash和运行版本一致。
+
+### P9 最终可压缩提交文件夹
+
+- 从P8已通过的冻结提交可复现地生成`platform/hengzhun-regression-system/.release/hengzhun-regression-system-windows-x64/`，不得复制P8运行后的可变目录冒充最终制品。
+- 最终文件夹必须包含产品自带运行时、Flowise/Harness/MCP/Worker、默认空白数据目录结构、`README`、配置模板、启动/停止/状态入口、第三方许可证、CycloneDX SBOM、文件Hash清单和脱敏验收摘要。
+- 最终文件夹不得包含开发源码和文档、`probes/`、`.git/`、`.env`、Token、账号密码、平台或Harness运行数据库、日志、缓存、PID、Worker产物、浏览器用户数据、未脱敏截图或Artifact正文。
+- 生成过程必须使用明确内容白名单；压缩为ZIP后在全新临时目录解压，逐文件核对相对路径、大小和Hash，确认目录无需人工增删即可直接提交。
+- `.release/`及生成的ZIP是交付制品，不进入Git；Git只保存生成脚本、清单Schema、配置模板和验收规则。
+- P9通过后冻结最新Flowise版到`main`；`coze`保留，`hiagent`从冻结基线建立且不自动合并、删除或强制更新。
+
+退出：最终文件夹与ZIP均通过内容白名单、秘密扫描、运行态扫描、绝对路径扫描、Hash往返校验和离线启动冒烟；源提交、目录清单、ZIP Hash和版本完全可追溯。
 
 ## 6. 验证层级
 
@@ -157,11 +168,13 @@ platform/hengzhun-regression-system/
 | Forward E2E | 一句自然语言到脚本、6/6、预览、激活、运行/调度和回复 |
 | Reverse E2E | 失败、CTX、补丁、6/6、人工激活、复跑/修复版调度 |
 | Portability | 干净目录、断网、第二电脑、备份恢复、Hash与SBOM |
+| Submission folder | 可复现装配、内容白名单、秘密/运行态/绝对路径扫描、压缩往返Hash、离线启动冒烟 |
 
 ## 7. 状态声明规则
 
 - P1—P4通过：只能称“Flowise运行底座可用”。
 - P5通过：只能称“正式Agentflow已发布”。
 - P6—P7通过：可称“本机Flowise自动化回归闭环可用”。
-- P8通过：才可称“Flowise版衡准可便携交付”。
+- P8通过：可称“Flowise版衡准已通过跨电脑便携验收”。
+- P9通过：才可称“Flowise版衡准已形成可压缩提交文件夹”。
 - 任何Flowise证据都不能称为“HiAgent已验收”。

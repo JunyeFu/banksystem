@@ -5,7 +5,7 @@ document_type: reference
 domain: governance
 status: accepted
 authority: normative
-version: 1.4
+version: 1.5
 effective_date: 2026-07-21
 owner: project-owner
 ---
@@ -16,7 +16,7 @@ owner: project-owner
 
 ## 1. 当前一句话
 
-I0—I7的Coze演示是冻结历史，I8七阶段本机确定性引擎已经关闭；当前唯一新增阶段是I9：把I8制品装配成Windows原生、免安装、可打开、可真实对话、可复制的Flowise 3.0.12产品，并在正向/反向真实闭环及第二台电脑便携恢复全部通过后，才允许声明Flowise平台可用并进入HiAgent迁移。
+I0—I7的Coze演示是冻结历史，I8七阶段本机确定性引擎已经关闭；当前唯一新增阶段是I9：把I8制品装配成Windows原生、免安装、可打开、可真实对话、可复制的Flowise 3.0.12产品，完成正向/反向闭环和跨电脑便携验收后，再以P9生成无需人工整理即可直接压缩提交的最终文件夹，之后才进入HiAgent迁移。
 
 ## 2. 每轮必须保持的控制项
 
@@ -43,7 +43,7 @@ I0—I7的Coze演示是冻结历史，I8七阶段本机确定性引擎已经关�
 ## 3. 当前真实状态
 
 - `HENGZHUN-I8-FLOWISE-001`：`DONE`；七阶段确定性引擎、MCP、Worker和真实Chromium门禁已完成。
-- `HENGZHUN-I9-FLOWISE-PRODUCT-001`：`IN_PROGRESS`；当前从P1正式运行时收编开始，严格按P1—P8顺序推进。
+- `HENGZHUN-I9-FLOWISE-PRODUCT-001`：`IN_PROGRESS`；当前从P1正式运行时收编开始，严格按P1—P9顺序推进。
 - Flowise Windows 隔离探针：通过，但仅证明技术可行。
 - 当前产品结构校验：保留 Coze 历史目录，同时要求 `flowise/`、`mcp/` 和 Flowise 平台知识制品；不再把 Coze Knowledge 写成 I9 当前权威。
 - 历史 I4 Harness 已实现 SQLite 游标、单动作租约和“上一摘要/当前动作/下一预览”状态窗口，`npm.cmd run test:i4` 当前为 3/3 通过。
