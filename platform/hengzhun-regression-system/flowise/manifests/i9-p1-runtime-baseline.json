@@ -30,9 +30,9 @@
     "dependencyLockSha256": "3cc2128e633468729b8acdf6afb6a2cd3a9f8f43cfe4f8a7e024853d47bd24cd",
     "runtimeTree": {
       "algorithm": "sha256(sorted-posix-relative-path\\0byte-length\\0file-sha256\\n)",
-      "sha256": "7b92a8e4a4ff0e52c6428f43b571be39766c0430dbc5bdf5609200b8b81694a6",
+      "sha256": "2759821d293b4ef4de18e1034d399091291c0f791974e8f67268d66af0567543",
       "fileCount": 288538,
-      "totalBytes": 1966406537
+      "totalBytes": 1966409491
     }
   },
   "runtimePolicy": {
@@ -40,6 +40,8 @@
     "offlineStaticVerification": true,
     "bundledDependenciesOnly": true,
     "runtimeDataRoot": ".data",
-    "sourceEvidence": "FLOWISE_WINDOWS_PROBE_VERIFIED_2026_07_21"
+    "sourceEvidence": "FLOWISE_WINDOWS_PROBE_VERIFIED_2026_07_21",
+    "finalOverlayScript": "scripts/apply-i9-flowise-overlays.cjs",
+    "baselineSemantics": "final-governed-runtime-after-i9-overlays"
   }
 }

@@ -176,7 +176,10 @@ test('Flowise 3.0.12 artifact uses only mapped nodes, chat input and MCP for ext
   assert.equal(flow.nodes.some((node) => ['customFunctionAgentflow', 'httpAgentflow'].includes(node.data.name)), false)
   assert.equal(JSON.stringify(flow).includes('$flow.state.preparation'), false)
   const tools = flow.nodes.filter((node) => node.data.name === 'toolAgentflow')
-  assert.deepEqual(tools.flatMap((node) => node.data.inputs.toolAgentflowSelectedToolConfig.mcpActions).sort(), ['authoring_get', 'authoring_submit', 'candidate_get', 'case_prepare'])
+  const actions = tools.flatMap((node) => node.data.inputs.toolAgentflowSelectedToolConfig.mcpActions)
+  const stage2Required = ['authoring_get', 'authoring_submit', 'candidate_get', 'case_prepare']
+  assert.deepEqual([...new Set(actions.filter(action => stage2Required.includes(action)))].sort(), stage2Required)
+  assert.deepEqual(actions.filter(action => !manifest.activeMcpTools.includes(action)), [])
   for (const node of tools) {
     assert.equal(node.data.inputs.toolAgentflowSelectedTool, 'customMCP')
     assert.match(node.data.inputs.toolAgentflowSelectedToolConfig.mcpServerConfig, /^\{"url":"http:\/\/127\.0\.0\.1:18789\/mcp"/)

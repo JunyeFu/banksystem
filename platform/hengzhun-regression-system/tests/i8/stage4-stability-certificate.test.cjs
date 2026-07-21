@@ -196,5 +196,5 @@ test('the persistent worker polls and completes stage4 stability batches', () =>
   assert.match(source, /\/internal\/worker\/i8\/stability:claim/)
   assert.match(source, /executeStabilityBatch\(claim/)
   assert.match(source, /\/internal\/worker\/i8\/stability\/\$\{encodeURIComponent\(claim\.batchId\)\}:complete/)
-  assert.match(source, /runRepairOnce\(\) \|\| await runI8StabilityOnce\(\) \|\| await runOnce\(\)/)
+  assert.match(source, /runI8RepairStabilityOnce\(\) \|\| await runRepairOnce\(\) \|\| await runI8CandidateBuildOnce\(\) \|\| await runI8StabilityOnce\(\) \|\| await runOnce\(\)/)
 })

@@ -5,6 +5,7 @@ document_type: evidence
 domain: platform
 status: verified
 authority: informative
+version: 1.0
 effective_date: 2026-07-21
 owner: project-owner
 ---

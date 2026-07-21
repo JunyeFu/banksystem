@@ -101,28 +101,28 @@ owner: project-owner
 | `AUD-041` | 主控LLM可能借修复提交完整源码或扩大工具能力 | `CLOSED_STAGE7_PATCH_ALLOWLIST`：严格Schema只允许目标映射、固定等待、受控参数、步骤顺序和不弱化断言；未知字段、源码、任意选择器和第四候选均拒绝 |
 | `AUD-042` | 修复候选可能绕过稳定性门禁或自动替换正式脚本 | `CLOSED_STAGE7_CERTIFICATE_AND_HUMAN_GATE`：每候选独立ID/版本/来源链/Hash，必须重新2视口×3次并取得新证书；仅显式ACTIVATE生效，不自动运行或迁移既有调度 |
 | `AUD-043` | 修复激活后阶段5/6仍可能误选旧脚本版本 | `CLOSED_STAGE7_VERSION_HANDOFF`：`run_submit`和新建Schedule优先选择已激活修复版本并复核计划/脚本Hash；既有Schedule保持冻结版本，迁移必须由用户另行创建或明确操作 |
-| `AUD-044` | 本机Stage7自动测试可能被误报为Flowise/MiMo/HiAgent完成 | `OPEN_EXTERNAL_RUNTIME_EVIDENCE`：本机已证明Harness/MCP/Worker/SQLite闭环及固定Chromium阶段7修复候选6/6；真实Agentflow发布、MiMo主控对话和HiAgent目标环境分别保留门禁 |
+| `AUD-044` | 本机Stage7自动测试可能被误报为Flowise/MiMo/HiAgent完成 | `CLOSED_FLOWISE_OPEN_HIAGENT`：真实Flowise正反向对话、MiMo主控和本机目录验收已完成；任何本机证据仍不得写成HiAgent目标环境已安装、联网或验收 |
 | `AUD-045` | 隔离探针或未跟踪目录可能被正式产品运行依赖 | `CLOSED_I9_P1_RUNTIME_BASELINE`：正式Flowise 3.0.12运行树已收编到`flowise/app/`，Bundled Node 20.20.2、Chromium 1217、依赖锁与完整目录Hash已冻结并离线复算；配置和正式入口不依赖`probes/`、全局Node、WSL、Docker或运行时下载 |
 | `AUD-046` | 缺少四服务统一启停、状态和正式 URL | `CLOSED_I9_P2_LIFECYCLE`：产品自有命令已按固定顺序管理四服务，PID归属、独立健康、端口冲突、弱Token、幂等启动、部分失败清理、反序安全停止及双SQLite重启恢复均有真实证据；未知占用不终止 |
 | `AUD-047` | Flowise 平台 SQLite、平台知识与 Harness 事实可能越权或双写 | `CLOSED_I9_P3_PUBLIC_IMPORT_AND_DUAL_SQLITE`：平台知识与参数引用只经Flowise公开账户/导入/查询API装配；Harness migration 016只保存不可变快照引用。两库独立备份、停机恢复、Hash、`quick_check`、职责表与正文禁入均在隔离真实运行中通过 |
 | `AUD-048` | Agentflow/MCP 制品存在可能被误报为 MiMo 与十四工具已经真实连通 | `CLOSED_I9_P4_MIMO_AND_MCP`：Bundled Flowise MCP客户端已真实调用14/14工具并验证鉴权、幂等、预算、超时、安全错误、Human Input和循环；MiMo v2.5已经Flowise同源`@langchain/openai`适配器和JSON响应格式完成真实严格结构化调用，凭据未写入制品或输出 |
 | `AUD-049` | 可加载 Agentflow JSON 不等于已经发布且重启可恢复 | `CLOSED_I9_P5_PUBLICATION_AND_RESTART`：固定ID正式Agentflow已通过公开凭据、导入、更新、校验和导出API私有发布，校验0问题；停止四服务并从同一双SQLite重启后Flow ID、发布状态、定义Hash和导出Hash一致，无直接数据库写入或临时手工状态 |
 | `AUD-050` | 本机引擎测试可能被误报为用户自然语言正反向闭环 | `CLOSED_I9_P6_P7`：P6普通中文输入到脚本生成、6/6、预览、激活、按需纯Playwright运行及同会话回复已真实通过；P7受控定位器失效经`CTX-L1`、白名单提案、新6/6证书、独立激活和独立复跑完成37节点真实Flowise反向对话，修复版调度被明确拒绝且旧调度未迁移 |
-| `AUD-051` | 单机复制或探针恢复可能被误报为已通过便携验收 | `OPEN_I9_P8`：临时候选必须在干净目录和第二台 Windows 10/11 x64 电脑完成解压启动、备份恢复和核心 E2E；候选不冒充最终提交文件夹 |
-| `AUD-052` | 已验证候选仍可能夹带运行态、秘密或依赖人工整理 | `OPEN_I9_P9`：最终`.release/hengzhun-regression-system-windows-x64/`必须从冻结提交可复现生成，采用内容白名单并通过秘密、运行态、绝对路径、压缩往返Hash和离线启动检查 |
+| `AUD-051` | 单机复制或探针恢复可能被误报为已通过便携验收 | `CLOSED_LOCAL_I9_OPEN_OFFICE_RESTORE`：最终目录在当前电脑全新运行态完成准备、四服务、内置Chromium核心E2E、双SQLite恢复和重启5/5；第二台电脑证据明确移交办公电脑阶段，不由本机结果推断 |
+| `AUD-052` | 已验证候选仍可能夹带运行态、秘密或依赖人工整理 | `CLOSED_I9_P9_FOLDER_EXPORT`：冻结提交`0cff483`只生成一次最终未压缩目录，白名单、SBOM、6资产树、99核心文件、秘密/运行态/绝对路径扫描和独立Hash复算通过，未生成ZIP |
 | `AUD-053` | Flowise、Coze、HiAgent 分支可能在迁移时互相覆盖 | `OPEN_I9_RELEASE`：I9 P9 通过后才把 Flowise 版冻结到 `main`；保留 `coze`，再从该基线新建 `hiagent`，禁止自动 merge、删分支或 force push |
 | `AUD-054` | MiMo 的大窗口、报文扩展或原生工具能力可能生成无法迁移到 Qwen3.5/HiAgent 的实现 | `CLOSED_QWEN35_COMPATIBILITY_CEILING`：MiMo 仅作为当前提供方；控制器和视觉请求统一16K/12K/4K，报文固定为非思考、非流式 OpenAI Chat Completions 字符串消息与 JSON mode，MCP 由 Workflow 节点调用，模型原生工具与提供方扩展字段失败关闭 |
 
-`AUD-009...AUD-043` 已关闭 I8 七阶段本机引擎，`AUD-044` 继续约束外部运行证据；`AUD-045...AUD-050`已由I9 P1—P7关闭，`AUD-051...AUD-053`继续构成I9 P8—P9与发布分支硬门禁。不得把本机正反向对话、隔离验证、静态制品或P8临时候选写成最终提交文件夹或HiAgent证据。
+`AUD-009...AUD-043` 已关闭 I8 七阶段本机引擎；`AUD-044...AUD-052`已关闭本机Flowise I9并继续约束HiAgent/办公电脑证据边界；`AUD-053`只保留显式分支发布门禁。不得把本机正反向对话或最终目录写成第二台电脑或HiAgent证据。
 
 ### 2.4 仍未验证但不得遗忘
 
 | 风险 ID | 未验证项 | 对当前工作的影响 |
 |---|---|---|
 | `EXT-001` | HiAgent 目标服务器能否注册并访问衡准 MCP | 不阻塞本机 I9；阻塞后续 HiAgent 迁移验收 |
-| `EXT-002` | Flowise 每个已用节点、变量、Human Input、Knowledge、MCP 语义是否逐项等价于目标 HiAgent | 阻塞 I9 P5 发布；无映射证据的能力必须失败关闭 |
-| `EXT-003` | 第二台真实 Windows 电脑的整目录便携恢复 | 阻塞 I9 P8；P8未通过时不得生成P9最终提交文件夹 |
-| `EXT-004` | MiMo v2.5 长时间 Midscene 作者化稳定性 | 阻塞 I9 P6/P7 相应案例通过，不影响已验证 Playwright 正式回归 |
+| `EXT-002` | Flowise 每个已用节点、变量、Human Input、Knowledge、MCP 语义在真实HiAgent租户中的逐项等价 | 本机只完成映射证据；阻塞后续HiAgent迁移验收，不重开I9 |
+| `EXT-003` | 第二台真实 Windows 电脑的整目录便携恢复 | 移交办公电脑恢复阶段；不阻塞已完成的本机I9，但未取证前不得宣称跨电脑通过 |
+| `EXT-004` | MiMo v2.5 长时间 Midscene 作者化稳定性 | I9已完成受控案例验收；该项只约束后续扩大案例集与长期稳定性加固，不重开I9 |
 
 ## 3. 冻结需求登记
 

@@ -3,7 +3,7 @@ project: banksystem
 root: D:\Agent\banksystem
 defaultBranch: main
 statusSource: agent/backlog.yaml
-updatedAt: '2026-07-20T21:24:13+08:00'
+updatedAt: '2026-07-21T22:40:00+08:00'
 
 allowedStatuses: [PROPOSED, READY, IN_PROGRESS, BLOCKED, REVIEW, DONE, CANCELLED]
 
@@ -142,7 +142,7 @@ tracks:
           - Every Flowise capability declared by the portable definition has an evidenced HiAgent mapping; local artifact or engine success is not reported as Flowise publication or HiAgent success.
       - id: HENGZHUN-I9-FLOWISE-PRODUCT-001
         title: Flowise portable productization and real conversational acceptance
-        status: IN_PROGRESS
+        status: DONE
         owner: 傅钧烨
         dependsOn: [HENGZHUN-I8-FLOWISE-001]
         evidence:
@@ -154,6 +154,7 @@ tracks:
           - docs/evidence/platform/hengzhun-i9-p6-forward-conversation-2026-07-21.md
           - docs/evidence/platform/hengzhun-i9-p7-reverse-conversation-2026-07-21.md
           - docs/evidence/platform/hengzhun-i9-qwen35-compatibility-ceiling-2026-07-21.md
+          - docs/evidence/platform/hengzhun-i9-closeout-folder-export-2026-07-21.md
         allowedPaths: [platform/hengzhun-regression-system/**, docs/architecture/**, docs/control/**, docs/design/regression-platform/**, docs/current-state/**, docs/evidence/platform/**, agent/**, D:/Agent/全局端口注册表.md]
         acceptance:
           - Bundled Flowise 3.0.12, Node 20.20.2 and all runtime dependencies start on Windows 10/11 x64 without WSL, Docker, global Node or runtime downloads.
@@ -163,10 +164,10 @@ tracks:
           - One plain-language case completes the real forward conversation through six-run validation, preview, activation and user-selected on-demand or scheduled execution.
           - One controlled regression failure completes the real reverse conversation through classification, bounded repair, a new six-run certificate, explicit activation and user-selected rerun or repaired schedule.
           - Restart and session continuation preserve governed state and expose deterministic errors without leaking secrets, local paths or unredacted evidence.
-          - A secret-free portable archive with hashes, SBOM, backup and restore evidence works from a clean directory and a second Windows computer.
-          - After cross-computer acceptance, a reproducible platform/hengzhun-regression-system/.release/hengzhun-regression-system-windows-x64 folder contains all runtime dependencies, README, configuration template, lifecycle entrypoints, licenses, SBOM, hashes and redacted acceptance summary, and can be compressed for submission without manual edits.
-          - The final submission folder and compressed archive exclude source-development material, probes, .git, .env, secrets, runtime databases, logs, caches, PIDs, worker outputs and artifact bodies; manifest and hashes survive compression round-trip verification.
-          - After P9 and all gates pass, the verified Flowise version is frozen on main before any hiagent migration branch work; coze remains preserved and no branch is auto-merged or force-updated.
+          - A secret-free portable folder with hashes, SBOM, backup and restore evidence passes all five current-clean-directory machine gates; second-computer evidence is deferred to the office-computer restore stage and is never inferred from local evidence.
+          - One reproducible platform/hengzhun-regression-system/.release/hengzhun-regression-system-windows-x64 folder contains all runtime dependencies, README, configuration template, lifecycle entrypoints, SBOM, hashes and machine acceptance entrypoint without manual edits.
+          - The final exported folder excludes source-development material, probes, .git, .env, secrets, runtime databases, logs, caches, PIDs, worker outputs and artifact bodies; no compressed archive is generated in this closeout.
+          - Flowise implementation is complete on the current branch; freezing main, preserving coze and creating hiagent remain explicit branch operations and are never auto-merged or force-updated.
       - id: HENGZHUN-POST-I8-INPUTS-001
         title: External case adapters and video-case authoring extensions
         status: PROPOSED

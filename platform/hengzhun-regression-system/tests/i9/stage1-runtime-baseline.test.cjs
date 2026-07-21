@@ -47,5 +47,7 @@ test('manifest freezes the I8 baseline and exact runtime versions', () => {
     ffmpegRevision: '1011'
   })
   assert.equal(manifest.hashes.runtimeTree.fileCount, 288538)
-  assert.equal(manifest.hashes.runtimeTree.totalBytes, 1966406537)
+  assert.equal(manifest.hashes.runtimeTree.totalBytes, 1966409491)
+  assert.equal(manifest.runtimePolicy.finalOverlayScript, 'scripts/apply-i9-flowise-overlays.cjs')
+  assert.equal(manifest.runtimePolicy.baselineSemantics, 'final-governed-runtime-after-i9-overlays')
 })

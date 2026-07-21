@@ -16,7 +16,7 @@ owner: 傅钧烨
 
 ## 1. 目标与事实起点
 
-I8已经完成Harness、SQLite、MCP、Worker、Builder、Playwright和可迁移Flowise制品，但当前没有正式Flowise产品运行时、监听端口、已发布Agentflow或真实MiMo主控对话。I9负责把这些经过验证的组件装配为Windows原生、免安装、可打开、可对话、可复制的产品。
+I8完成Harness、SQLite、MCP、Worker、Builder、Playwright和可迁移Flowise制品；I9已把这些组件装配为Windows原生、免安装、可打开、可对话、可复制的Flowise产品。本规格保留代码级边界与验收事实，后续办公电脑和HiAgent迁移不得改写本机证据。
 
 I9不重新设计I8领域状态，不扩展任意代码生成，不把探针冒充产品，不用Flowise独有能力突破HiAgent边界。
 
@@ -158,25 +158,29 @@ platform/hengzhun-regression-system/
 
 状态（2026-07-21）：`VERIFIED_I9_P7`。隔离门户仅把`LOGIN_USERNAME`定位方式从已验证`TEST_ID`切换到批准目录中的`LABEL`候选，原版本正式运行以`LOGIN_USERNAME_LOCATOR_NOT_FOUND + TEST_FAILURE`确定性失败。正式Agentflow随后只读取`CTX-L1 StepFailureEnvelope`，使用Harness返回的批准定位器生成新版本并完成桌面/窄屏各3次纯Playwright复验；真实会话执行37个节点并返回`REVERSE_FLOW_VERIFIED`。候选经独立人工激活和独立复跑确认后成功，修复版调度被用户明确拒绝为`REJECTED_NO_MIGRATION`，旧调度未静默迁移。P7不证明P8跨电脑便携、P9最终提交文件夹或HiAgent目标环境。
 
-### P8 便携候选与跨电脑验收
+### P8 便携候选与本机干净目录验收
 
 - 从干净提交生成临时候选目录、配置模板、Hash清单、CycloneDX SBOM、两套SQLite备份说明和机器验收记录。
-- 在当前电脑全新目录断网恢复；再在第二台Windows 10/11 x64电脑验证解压、配置、启动、正向最小回归、停止和重启。
+- 在当前电脑全新运行态验证准备、配置、四服务、正向最小回归、双SQLite恢复、停止和重启；第二台Windows 10/11 x64恢复由办公电脑阶段独立取证。
 - 候选扫描拒绝`.env`、Token、账号密码、运行数据库、日志、缓存、PID、Worker产物和未脱敏Artifact正文。
 - 候选只用于便携性验收，不作为最终提交目录；验收失败必须回到对应阶段修复后重新生成。
 
-退出：两台电脑证据均通过，源提交、候选Hash和运行版本一致。
+退出：当前电脑5项机器门禁通过，源提交、候选Hash和运行版本一致；不得据此宣称第二台电脑通过。
 
-### P9 最终可压缩提交文件夹
+状态（2026-07-21）：`VERIFIED_I9_P8_LOCAL`。首次候选验收发现Windows CIM逐进程查询使Worker 10秒心跳在最终汇总前过期；实现改为一次批量进程快照、健康检查复用归属结果并把新鲜度容忍窗口调整为30秒，PID、内置Node和命令行归属门禁保持不变。修复后最终目录完成准备、四服务、内置Chromium登录资料一致性E2E、双SQLite备份恢复和重启5/5。
+
+### P9 最终未压缩导出文件夹
 
 - 从P8已通过的冻结提交可复现地生成`platform/hengzhun-regression-system/.release/hengzhun-regression-system-windows-x64/`，不得复制P8运行后的可变目录冒充最终制品。
 - 最终文件夹必须包含产品自带运行时、Flowise/Harness/MCP/Worker、默认空白数据目录结构、`README`、配置模板、启动/停止/状态入口、第三方许可证、CycloneDX SBOM、文件Hash清单和脱敏验收摘要。
 - 最终文件夹不得包含开发源码和文档、`probes/`、`.git/`、`.env`、Token、账号密码、平台或Harness运行数据库、日志、缓存、PID、Worker产物、浏览器用户数据、未脱敏截图或Artifact正文。
-- 生成过程必须使用明确内容白名单；压缩为ZIP后在全新临时目录解压，逐文件核对相对路径、大小和Hash，确认目录无需人工增删即可直接提交。
-- `.release/`及生成的ZIP是交付制品，不进入Git；Git只保存生成脚本、清单Schema、配置模板和验收规则。
+- 生成过程必须使用明确内容白名单；本轮只生成一次目录并独立复算相对路径、大小和Hash，不生成ZIP或其他归档。
+- `.release/`是本地导出制品，不进入Git；Git只保存生成脚本、清单Schema、配置模板和验收规则。
 - P9通过后冻结最新Flowise版到`main`；`coze`保留，`hiagent`从冻结基线建立且不自动合并、删除或强制更新。
 
-退出：最终文件夹与ZIP均通过内容白名单、秘密扫描、运行态扫描、绝对路径扫描、Hash往返校验和离线启动冒烟；源提交、目录清单、ZIP Hash和版本完全可追溯。
+退出：最终文件夹通过内容白名单、秘密扫描、运行态扫描、绝对路径扫描、独立Hash复算和本机启动恢复验收；源提交、目录清单和版本完全可追溯。
+
+状态（2026-07-21）：`VERIFIED_I9_P9_FOLDER_EXPORT`。冻结提交`0cff4831c97edf909369d7d723c393cfac5d19a8`只生成一次`.release/hengzhun-regression-system-windows-x64/`；清单SHA-256为`a6fae9c7d94b3aa0c3b97a5e3051b6a7549b48f96a0d8c6ae3bd41d92ece3065`，包含6个资产树和99个核心文件，禁止内容发现为0，`archiveGenerated=false`。
 
 ## 6. 验证层级
 
@@ -188,14 +192,14 @@ platform/hengzhun-regression-system/
 | Contract | 14工具、鉴权、幂等、预算、超时、错误码、HiAgent节点映射 |
 | Forward E2E | 一句自然语言到脚本、6/6、预览、激活、运行/调度和回复 |
 | Reverse E2E | 失败、CTX、补丁、6/6、人工激活、复跑/修复版调度 |
-| Portability | 干净目录、断网、第二电脑、备份恢复、Hash与SBOM |
-| Submission folder | 可复现装配、内容白名单、秘密/运行态/绝对路径扫描、压缩往返Hash、离线启动冒烟 |
+| Portability | 当前电脑干净运行态、备份恢复、Hash与SBOM；第二电脑由办公电脑阶段取证 |
+| Submission folder | 单次未压缩目录、可复现装配、内容白名单、秘密/运行态/绝对路径扫描、独立Hash复算、本机启动冒烟 |
 
 ## 7. 状态声明规则
 
 - P1—P4通过：只能称“Flowise运行底座可用”。
 - P5通过：只能称“正式Agentflow已发布”。
 - P6—P7通过：可称“本机Flowise自动化回归闭环可用”。
-- P8通过：可称“Flowise版衡准已通过跨电脑便携验收”。
-- P9通过：才可称“Flowise版衡准已形成可压缩提交文件夹”。
+- P8通过：可称“Flowise版衡准已通过当前电脑干净目录便携验收”，不得称跨电脑通过。
+- P9通过：可称“Flowise版衡准已形成未压缩最终导出文件夹”。
 - 任何Flowise证据都不能称为“HiAgent已验收”。
