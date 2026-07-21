@@ -1,6 +1,7 @@
 {
   "schemaVersion": "hengzhun-i9-p8-portability-policy-v1",
   "candidateName": "hengzhun-regression-system-windows-x64-p8",
+  "finalExportName": "hengzhun-regression-system-windows-x64",
   "platform": "win32-x64",
   "sourceCommitRequired": true,
   "trackedPrefixes": [
