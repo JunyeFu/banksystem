@@ -408,6 +408,8 @@ I9内部实现顺序固定为9个阶段：
 
 2026-07-21 P4关闭结论：Bundled Flowise 3.0.12的真实`MCPToolkit`已通过认证Streamable HTTP发现并调用14/14工具，成功链覆盖作者化、候选、预览、激活、运行、调度、收件箱、事故、修复和拒绝；Bearer拒绝、确定性幂等、16 KiB输出、100 ms测试超时转换、安全错误传播、Human Input和循环上限均已通过。`p4-controller-profile-v1.json`冻结1M主控与16K视觉窗口；MiMo v2.5已通过Flowise自带`@langchain/openai`适配器及`response_format=json_object`完成真实严格JSON请求，凭据只由忽略目录中的运行时变量映射到进程且执行后清除。`AUD-048`关闭，当前进入P5；尚不得声称Agentflow已经公开导入、发布或重启恢复。
 
+2026-07-21 P5关闭结论：固定ID的“衡准自动化回归主控”通过Flowise公开凭据、工作区导入、Chatflow更新、校验和工作区导出API完成装配与私有发布；MiMo凭据只经公开API加密保存，Flowise SQLite未被直接修改。I8阶段2—7四份同源制品Hash、HiAgent能力交集、正式FlowData Hash和导出Hash均冻结；真实校验为0问题。四服务停止后从同一隔离双SQLite重启，Flow ID、发布状态、定义Hash和导出Hash保持一致。`AUD-049`关闭，当前进入P6；尚不得声称普通用户正向自然语言对话已经完成。
+
 I9退出条件全部为硬门禁：
 
 - 一个正式入口命令能在干净Windows目录启动四服务，健康检查全部通过，并给出可打开的Flowise URL；

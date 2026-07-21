@@ -43,12 +43,12 @@ I0—I7的Coze演示是冻结历史，I8七阶段本机确定性引擎已经关�
 ## 3. 当前真实状态
 
 - `HENGZHUN-I8-FLOWISE-001`：`DONE`；七阶段确定性引擎、MCP、Worker和真实Chromium门禁已完成。
-- `HENGZHUN-I9-FLOWISE-PRODUCT-001`：`IN_PROGRESS`；P1—P4已验证，MiMo v2.5严格JSON调用与十四项认证MCP工具均已真实通过；当前进入P5，尚无已发布且重启可恢复的正式Agentflow。
+- `HENGZHUN-I9-FLOWISE-PRODUCT-001`：`IN_PROGRESS`；P1—P5已验证，MiMo、十四项MCP工具及正式Agentflow公开导入/私有发布/导出Hash/重启恢复均通过；当前进入P6，尚无用户正向自然语言对话验收。
 - Flowise Windows 隔离探针：通过，但仅证明技术可行。
 - 当前产品结构校验：保留 Coze 历史目录，同时要求 `flowise/`、`mcp/` 和 Flowise 平台知识制品；不再把 Coze Knowledge 写成 I9 当前权威。
 - 历史 I4 Harness 已实现 SQLite 游标、单动作租约和“上一摘要/当前动作/下一预览”状态窗口，`npm.cmd run test:i4` 当前为 3/3 通过。
 - I8 阶段1已让 Worker 以强类型 `ActionContextEnvelope` 为唯一视觉上下文，完成 `CTX-L1→L2→L3` 歧义升级、视觉16K/12K门禁、主控1M预算函数、图像/token预估、migration 009和不可变预算审计。
-- I8 migration 009—015、MCP 7.0.0十四工具、Builder、Worker、六次签证、受控交付、精确调度、结果收件箱和限域修复均已验证。I9 P4已由Bundled Flowise MCP客户端执行14/14工具，并验证鉴权、幂等、预算、超时、错误传播、Human Input和循环上限；MiMo v2.5也已通过Flowise同源适配器完成真实严格JSON调用。Agentflow公开导入、发布、导出Hash、重启恢复和HiAgent运行仍未验收。
+- I8 migration 009—015、MCP 7.0.0十四工具、Builder、Worker、六次签证、受控交付、精确调度、结果收件箱和限域修复均已验证。I9 P4完成MiMo与14/14工具连通；P5完成固定ID正式Agentflow的公开导入、公开API加密凭据、0问题校验、私有发布、导出Hash和停止/重启恢复。正向/反向真实对话、便携候选、最终提交文件夹和HiAgent运行仍未验收。
 - HiAgent MCP 注册、网络可达性、容量和真实 Workflow 映射：测试环境待验证。
 - 开发 RAG 索引：`NOT_BUILT`，不影响产品。
 - 外部案例/视频输入：`PROPOSED`，依赖已完成的 I8 引擎，但受 I9 退出门禁延后。

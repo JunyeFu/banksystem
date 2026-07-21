@@ -128,6 +128,8 @@ platform/hengzhun-regression-system/
 
 退出：用户能从正式Flowise URL打开已发布流程；重启后流程、知识引用和人工续办仍可用。
 
+状态（2026-07-21）：`VERIFIED_I9_P5`。`p5-agentflow-publication-v1.json`冻结固定Flow ID、I8阶段2—7四份同源制品Hash、HiAgent能力交集、私有发布策略和公开API路径；`i9-agentflow-publish.cjs`只通过Flowise公开凭据、工作区导入、Chatflow更新、校验和工作区导出API完成装配，MiMo凭据经公开API加密保存。正式FlowData校验0问题，定义Hash与导出Hash写入忽略目录证据。`verify:i9:stage5:live`停止四服务并从相同隔离双SQLite重启后再次导出，Flow ID、发布状态和两类Hash一致。P6前不得把发布成功写成正向对话已通过。
+
 ### P6 正向自然语言全链路
 
 - 输入只包含案例自然语言，不要求技术ID、Cron、凭据别名或提示工程指令。
