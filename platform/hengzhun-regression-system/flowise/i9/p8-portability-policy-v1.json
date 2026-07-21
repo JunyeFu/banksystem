@@ -10,12 +10,14 @@
     "flowise/i9",
     "flowise/manifests",
     "harness/migrations",
+    "harness/src",
     "mcp/src",
     "worker/src"
   ],
   "trackedFiles": [
     "package.json",
     "package-lock.json",
+    "tsconfig.json",
     "flowise/runtime-package.json",
     "flowise/runtime-package-lock.json",
     "scripts/prepare-i2.ps1",

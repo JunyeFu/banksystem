@@ -13,6 +13,8 @@ test('P8 policy packages only governed product/runtime surfaces and excludes dev
   const policy = JSON.parse(read('flowise/i9/p8-portability-policy-v1.json'))
   assert.equal(policy.sourceCommitRequired, true)
   for (const required of ['flowise/app', 'runtime/node-v20.20.2-win-x64', 'runtime/browsers', 'runtime/node_modules', 'node_modules', 'dist']) assert.ok(policy.runtimeTrees.includes(required))
+  assert.ok(policy.trackedPrefixes.includes('harness/src'))
+  assert.ok(policy.trackedFiles.includes('tsconfig.json'))
   for (const forbidden of ['.git', '.env', 'probes', 'tests', 'coze', 'rag']) assert.ok(policy.forbiddenPathSegments.includes(forbidden))
   assert.ok(policy.emptyRuntimeDirectories.every(item => item.startsWith('.data/') || item === 'acceptance/machine-records'))
 })
