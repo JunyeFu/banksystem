@@ -149,6 +149,7 @@ tracks:
           - docs/evidence/platform/hengzhun-i9-p1-runtime-baseline-2026-07-21.md
           - docs/evidence/platform/hengzhun-i9-p2-four-service-lifecycle-2026-07-21.md
           - docs/evidence/platform/hengzhun-i9-p3-platform-resources-sqlite-2026-07-21.md
+          - docs/evidence/platform/hengzhun-i9-p4-mcp-connectivity-2026-07-21.md
         allowedPaths: [platform/hengzhun-regression-system/**, docs/architecture/**, docs/control/**, docs/design/regression-platform/**, docs/current-state/**, docs/evidence/platform/**, agent/**, D:/Agent/全局端口注册表.md]
         acceptance:
           - Bundled Flowise 3.0.12, Node 20.20.2 and all runtime dependencies start on Windows 10/11 x64 without WSL, Docker, global Node or runtime downloads.

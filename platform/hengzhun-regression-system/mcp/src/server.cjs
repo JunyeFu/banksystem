@@ -18,12 +18,16 @@ const harnessToken = process.env.HENGZHUN_SERVICE_TOKEN
 const mcpToken = process.env.HENGZHUN_MCP_TOKEN
 const host = '127.0.0.1'
 const port = Number(process.env.HENGZHUN_MCP_PORT || 18789)
+const harnessTimeoutMs = process.env.NODE_ENV === 'test' && process.env.HENGZHUN_MCP_HARNESS_TIMEOUT_MS
+  ? Number(process.env.HENGZHUN_MCP_HARNESS_TIMEOUT_MS)
+  : 30_000
 const safeRef = z.string().trim().min(3).max(160).regex(/^[A-Za-z0-9._:-]+$/)
 
 if (!harnessToken) throw new Error('HENGZHUN_SERVICE_TOKEN_MISSING')
 if (!mcpToken || mcpToken.length < 24) throw new Error('HENGZHUN_MCP_TOKEN_MISSING_OR_WEAK')
 if (harnessUrl.protocol !== 'http:' || harnessUrl.hostname !== '127.0.0.1') throw new Error('HENGZHUN_HARNESS_URL_MUST_BE_LOOPBACK_HTTP')
 if (!Number.isInteger(port) || port < 1024 || port > 65535) throw new Error('HENGZHUN_MCP_PORT_INVALID')
+if (!Number.isInteger(harnessTimeoutMs) || harnessTimeoutMs < 50 || harnessTimeoutMs > 30_000) throw new Error('HENGZHUN_MCP_HARNESS_TIMEOUT_INVALID')
 
 function stableJson(value) {
   if (Array.isArray(value)) return `[${value.map(stableJson).join(',')}]`
@@ -54,18 +58,26 @@ function textResult(value, isError = false, maxBytes = 8 * 1024) {
 }
 
 async function requestHarness(route, payload) {
-  const response = await fetch(new URL(route, harnessUrl), {
-    method: 'POST',
-    headers: {
-      authorization: `Bearer ${harnessToken}`,
-      'content-type': 'application/json',
-      'x-correlation-id': `mcp-${digest(payload).slice(0, 24)}`
-    },
-    body: JSON.stringify(payload),
-    signal: AbortSignal.timeout(30_000)
-  })
-  const body = await response.json().catch(() => ({ errorCode: 'HARNESS_RESPONSE_INVALID' }))
-  return { response, body }
+  try {
+    const response = await fetch(new URL(route, harnessUrl), {
+      method: 'POST',
+      headers: {
+        authorization: `Bearer ${harnessToken}`,
+        'content-type': 'application/json',
+        'x-correlation-id': `mcp-${digest(payload).slice(0, 24)}`
+      },
+      body: JSON.stringify(payload),
+      signal: AbortSignal.timeout(harnessTimeoutMs)
+    })
+    const body = await response.json().catch(() => ({ errorCode: 'HARNESS_RESPONSE_INVALID' }))
+    return { response, body }
+  } catch (error) {
+    const timedOut = error?.name === 'TimeoutError' || error?.name === 'AbortError'
+    return {
+      response: { ok: false, status: timedOut ? 504 : 502 },
+      body: { errorCode: timedOut ? 'HARNESS_REQUEST_TIMEOUT' : 'HARNESS_TRANSPORT_FAILED', category: 'TOOL' }
+    }
+  }
 }
 
 async function callHarness(route, payload) {

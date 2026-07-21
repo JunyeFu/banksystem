@@ -406,6 +406,8 @@ I9内部实现顺序固定为9个阶段：
 
 2026-07-21 P3关闭结论：固定版本平台知识、MiMo/MCP连接参数与运行时秘密变量引用已通过Flowise公开账户、导入和查询API装配，未直接写Flowise内部表；固定引用、来源版本、内容Hash和引用ID均可回读。Harness migration 016只保存不可变`KnowledgeSnapshotRef`，不保存知识正文。两套SQLite通过SQLite在线备份API分别备份，并在停机门禁下恢复、`quick_check`和职责表边界复核通过。当前进入P4；P3没有注入MiMo密钥、没有调用模型或MCP工具，不得声称MiMo或十四工具已连通。
 
+2026-07-21 P4进行中：Bundled Flowise 3.0.12的真实`MCPToolkit`已通过认证Streamable HTTP发现并调用14/14工具，成功链覆盖作者化、候选、预览、激活、运行、调度、收件箱、事故、修复和拒绝；另已验证Bearer拒绝、确定性幂等、16 KiB输出、100 ms测试超时转换、安全错误传播、Human Input和循环上限。`p4-controller-profile-v1.json`冻结1M主控与16K视觉窗口。当前进程、仓库根`.env`和产品秘密目录均未提供`MIMO_API_KEY`，因此MiMo真实适配器调用尚未验收，P4与`AUD-048`保持打开，P5不得开始。
+
 I9退出条件全部为硬门禁：
 
 - 一个正式入口命令能在干净Windows目录启动四服务，健康检查全部通过，并给出可打开的Flowise URL；

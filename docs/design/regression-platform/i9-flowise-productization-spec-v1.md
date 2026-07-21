@@ -117,6 +117,8 @@ platform/hengzhun-regression-system/
 
 退出：14项工具真实调用通过；无Code、HTTP、数据库、文件、Shell、浏览器或任意URL节点绕过MCP。
 
+状态（2026-07-21）：`IN_PROGRESS_I9_P4_MCP_VERIFIED_MIMO_PENDING`。Bundled Flowise `MCPToolkit`已对14项认证工具逐项执行最小成功任务，并覆盖幂等、输出预算、确定性超时和安全错误；Human Input、循环上限、1M主控窗口及16K视觉窗口均由配置与自动测试冻结。`scripts/verify-i9-stage4-mimo.cjs`使用Flowise自带`@langchain/openai`适配器执行真实MiMo结构化请求，但本机当前没有可用`MIMO_API_KEY`环境引用，因此该外部验证未通过、P4未关闭。
+
 ### P5 Agentflow正式导入、发布与恢复
 
 - 把I8分段制品装配为一份正向主流程和一份反向续办流程，使用共享状态契约而非复制领域状态。

@@ -105,7 +105,7 @@ owner: project-owner
 | `AUD-045` | 隔离探针或未跟踪目录可能被正式产品运行依赖 | `CLOSED_I9_P1_RUNTIME_BASELINE`：正式Flowise 3.0.12运行树已收编到`flowise/app/`，Bundled Node 20.20.2、Chromium 1217、依赖锁与完整目录Hash已冻结并离线复算；配置和正式入口不依赖`probes/`、全局Node、WSL、Docker或运行时下载 |
 | `AUD-046` | 缺少四服务统一启停、状态和正式 URL | `CLOSED_I9_P2_LIFECYCLE`：产品自有命令已按固定顺序管理四服务，PID归属、独立健康、端口冲突、弱Token、幂等启动、部分失败清理、反序安全停止及双SQLite重启恢复均有真实证据；未知占用不终止 |
 | `AUD-047` | Flowise 平台 SQLite、平台知识与 Harness 事实可能越权或双写 | `CLOSED_I9_P3_PUBLIC_IMPORT_AND_DUAL_SQLITE`：平台知识与参数引用只经Flowise公开账户/导入/查询API装配；Harness migration 016只保存不可变快照引用。两库独立备份、停机恢复、Hash、`quick_check`、职责表与正文禁入均在隔离真实运行中通过 |
-| `AUD-048` | Agentflow/MCP 制品存在可能被误报为 MiMo 与十四工具已经真实连通 | `OPEN_I9_P4`：MiMo 主控、十四工具、输出预算、超时、Human Input 续办、会话恢复和错误传播必须逐项留下真实调用证据 |
+| `AUD-048` | Agentflow/MCP 制品存在可能被误报为 MiMo 与十四工具已经真实连通 | `OPEN_I9_P4_MIMO_PENDING`：Bundled Flowise MCP客户端已真实调用14/14工具，并验证鉴权、幂等、预算、超时、安全错误、Human Input和循环；当前缺少进程可用`MIMO_API_KEY`，Flowise同源MiMo适配器真实请求尚未通过，禁止关闭P4或开始P5 |
 | `AUD-049` | 可加载 Agentflow JSON 不等于已经发布且重启可恢复 | `OPEN_I9_P5`：正式 Agentflow 必须通过公开流程导入、发布、导出并记录 Hash；重启后无需临时手工状态即可恢复 |
 | `AUD-050` | 本机引擎测试可能被误报为用户自然语言正反向闭环 | `OPEN_I9_P6_P7`：正向脚本生成/验证/交付/运行/调度与反向事故/候选/复验/激活必须分别在真实 Flowise 对话中验收 |
 | `AUD-051` | 单机复制或探针恢复可能被误报为已通过便携验收 | `OPEN_I9_P8`：临时候选必须在干净目录和第二台 Windows 10/11 x64 电脑完成解压启动、备份恢复和核心 E2E；候选不冒充最终提交文件夹 |
