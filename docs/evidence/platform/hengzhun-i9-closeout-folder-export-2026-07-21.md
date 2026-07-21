@@ -14,9 +14,9 @@ owner: project-owner
 
 ## 结果
 
-I9 P1—P8八组自动化测试全部通过。最终产品从冻结提交`0cff4831c97edf909369d7d723c393cfac5d19a8`只导出一次到忽略目录`platform/hengzhun-regression-system/.release/hengzhun-regression-system-windows-x64/`，没有生成ZIP、7z、tar或其他归档。
+I9 P1—P8八组自动化测试全部通过。最终产品从冻结提交`3884b6d843a47f48ab4880d68589d411bde99969`导出为忽略目录中的唯一文件夹`platform/hengzhun-regression-system/.release/hengzhun-regression-system-windows-x64/`，没有生成ZIP、7z、tar或其他归档。
 
-导出清单SHA-256为`a6fae9c7d94b3aa0c3b97a5e3051b6a7549b48f96a0d8c6ae3bd41d92ece3065`。清单覆盖6个运行时资产树和99个核心文件；秘密、运行态、绝对用户路径与禁止目录发现数为0。元数据明确记录`finalSubmissionArtifact=true`与`archiveGenerated=false`。
+导出清单SHA-256为`3b088ec9f42d127c3b19f6f9ab97174a8476413164d83e960b75e043f8a0e7ae`。清单覆盖6个运行时资产树和99个核心文件；秘密、运行态、绝对用户路径与禁止目录发现数为0。元数据明确记录`finalSubmissionArtifact=true`与`archiveGenerated=false`。
 
 ## 当前电脑机器验收
 

@@ -180,7 +180,7 @@ platform/hengzhun-regression-system/
 
 退出：最终文件夹通过内容白名单、秘密扫描、运行态扫描、绝对路径扫描、独立Hash复算和本机启动恢复验收；源提交、目录清单和版本完全可追溯。
 
-状态（2026-07-21）：`VERIFIED_I9_P9_FOLDER_EXPORT`。冻结提交`0cff4831c97edf909369d7d723c393cfac5d19a8`只生成一次`.release/hengzhun-regression-system-windows-x64/`；清单SHA-256为`a6fae9c7d94b3aa0c3b97a5e3051b6a7549b48f96a0d8c6ae3bd41d92ece3065`，包含6个资产树和99个核心文件，禁止内容发现为0，`archiveGenerated=false`。
+状态（2026-07-21）：`VERIFIED_I9_P9_FOLDER_EXPORT`。冻结提交`3884b6d843a47f48ab4880d68589d411bde99969`生成唯一`.release/hengzhun-regression-system-windows-x64/`目录；清单SHA-256为`3b088ec9f42d127c3b19f6f9ab97174a8476413164d83e960b75e043f8a0e7ae`，包含6个资产树和99个核心文件，禁止内容发现为0，`archiveGenerated=false`。
 
 ## 6. 验证层级
 

@@ -109,7 +109,7 @@ owner: project-owner
 | `AUD-049` | 可加载 Agentflow JSON 不等于已经发布且重启可恢复 | `CLOSED_I9_P5_PUBLICATION_AND_RESTART`：固定ID正式Agentflow已通过公开凭据、导入、更新、校验和导出API私有发布，校验0问题；停止四服务并从同一双SQLite重启后Flow ID、发布状态、定义Hash和导出Hash一致，无直接数据库写入或临时手工状态 |
 | `AUD-050` | 本机引擎测试可能被误报为用户自然语言正反向闭环 | `CLOSED_I9_P6_P7`：P6普通中文输入到脚本生成、6/6、预览、激活、按需纯Playwright运行及同会话回复已真实通过；P7受控定位器失效经`CTX-L1`、白名单提案、新6/6证书、独立激活和独立复跑完成37节点真实Flowise反向对话，修复版调度被明确拒绝且旧调度未迁移 |
 | `AUD-051` | 单机复制或探针恢复可能被误报为已通过便携验收 | `CLOSED_LOCAL_I9_OPEN_OFFICE_RESTORE`：最终目录在当前电脑全新运行态完成准备、四服务、内置Chromium核心E2E、双SQLite恢复和重启5/5；第二台电脑证据明确移交办公电脑阶段，不由本机结果推断 |
-| `AUD-052` | 已验证候选仍可能夹带运行态、秘密或依赖人工整理 | `CLOSED_I9_P9_FOLDER_EXPORT`：冻结提交`0cff483`只生成一次最终未压缩目录，白名单、SBOM、6资产树、99核心文件、秘密/运行态/绝对路径扫描和独立Hash复算通过，未生成ZIP |
+| `AUD-052` | 已验证候选仍可能夹带运行态、秘密或依赖人工整理 | `CLOSED_I9_P9_FOLDER_EXPORT`：冻结提交`3884b6d`生成唯一最终未压缩目录，白名单、SBOM、6资产树、99核心文件、秘密/运行态/绝对路径扫描和独立Hash复算通过，未生成ZIP |
 | `AUD-053` | Flowise、Coze、HiAgent 分支可能在迁移时互相覆盖 | `OPEN_I9_RELEASE`：I9 P9 通过后才把 Flowise 版冻结到 `main`；保留 `coze`，再从该基线新建 `hiagent`，禁止自动 merge、删分支或 force push |
 | `AUD-054` | MiMo 的大窗口、报文扩展或原生工具能力可能生成无法迁移到 Qwen3.5/HiAgent 的实现 | `CLOSED_QWEN35_COMPATIBILITY_CEILING`：MiMo 仅作为当前提供方；控制器和视觉请求统一16K/12K/4K，报文固定为非思考、非流式 OpenAI Chat Completions 字符串消息与 JSON mode，MCP 由 Workflow 节点调用，模型原生工具与提供方扩展字段失败关闭 |
 

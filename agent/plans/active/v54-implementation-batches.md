@@ -414,7 +414,7 @@ I9内部实现顺序固定为9个阶段：
 
 2026-07-21 P7关闭结论：隔离门户以受控`LOGIN_USERNAME`定位器变更制造正式失效，Flowise只接收`CTX-L1 StepFailureEnvelope`并从Harness批准目录选择替代定位器；新脚本版本在桌面/窄屏各3次纯Playwright复验中6/6通过。真实反向会话执行37个节点并返回`REVERSE_FLOW_VERIFIED`，候选激活与复跑分别经过独立人工确认，修复版调度被明确拒绝为`REJECTED_NO_MIGRATION`且旧调度未迁移。MiMo全程受Qwen3.5的16K、字符串消息、非思考非流式JSON mode上限约束；当前进入P8，仍不得声称跨电脑便携、最终提交目录或HiAgent迁移已完成。
 
-2026-07-21 P8/P9与I9关闭结论：P1—P8八组自动化测试全部通过。首次候选机器验收暴露Windows CIM逐进程查询导致Worker 10秒心跳在最终汇总前过期；生命周期改为一次批量进程快照、复用归属结果并把新鲜度容忍窗口调整为30秒，仍保留内置Node、PID和命令行所有权门禁。冻结提交`0cff4831c97edf909369d7d723c393cfac5d19a8`随后只导出一次`.release/hengzhun-regression-system-windows-x64/`，未生成压缩包；清单SHA-256为`a6fae9c7d94b3aa0c3b97a5e3051b6a7549b48f96a0d8c6ae3bd41d92ece3065`，6个资产树、99个核心文件、0项禁止内容。最终目录在当前电脑全新运行态完成准备、四服务、内置Playwright/Chromium登录资料一致性E2E、双SQLite备份恢复和重启，共5/5硬门禁通过。I9本机范围关闭；第二台电脑恢复、`main/coze/hiagent`分支迁移和真实HiAgent验收继续保留为后续环境门禁。
+2026-07-21 P8/P9与I9关闭结论：P1—P8八组自动化测试全部通过。首次候选机器验收暴露Windows CIM逐进程查询导致Worker 10秒心跳在最终汇总前过期；生命周期改为一次批量进程快照、复用归属结果并把新鲜度容忍窗口调整为30秒，仍保留内置Node、PID和命令行所有权门禁。最终受控覆盖基线与全量入口收口到冻结提交`3884b6d843a47f48ab4880d68589d411bde99969`，随后导出唯一`.release/hengzhun-regression-system-windows-x64/`目录，未生成压缩包；清单SHA-256为`3b088ec9f42d127c3b19f6f9ab97174a8476413164d83e960b75e043f8a0e7ae`，6个资产树、99个核心文件、0项禁止内容。最终目录在当前电脑全新运行态完成准备、四服务、内置Playwright/Chromium登录资料一致性E2E、双SQLite备份恢复和重启，共5/5硬门禁通过。I9本机范围关闭；第二台电脑恢复、`main/coze/hiagent`分支迁移和真实HiAgent验收继续保留为后续环境门禁。
 
 I9退出条件全部为硬门禁：
 
