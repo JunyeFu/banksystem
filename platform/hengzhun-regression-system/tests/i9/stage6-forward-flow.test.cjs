@@ -20,7 +20,8 @@ test('P6 forward flow freezes natural-language, optional clarification plus four
     'llmAgentflow_runref', 'toolAgentflow_task', 'directReplyAgentflow_result'
   ]) assert.ok(ids.has(required), `missing node ${required}`)
   assert.equal(flow.nodes.find(node => node.id === 'startAgentflow_i8').data.inputs.startInputType, 'chatInput')
-  assert.equal(flow.nodes.filter(node => node.data.name === 'humanInputAgentflow').length, 5)
+  const humanIds = new Set(flow.nodes.filter(node => node.data.name === 'humanInputAgentflow').map(node => node.id))
+  for (const required of ['humanInputAgentflow_clarify', 'humanInputAgentflow_confirm', 'humanInputAgentflow_generation', 'humanInputAgentflow_activate', 'humanInputAgentflow_run']) assert.ok(humanIds.has(required))
   assert.equal(source.includes('intentPlanJson'), false)
   for (const forbidden of ['codeAgentflow', 'httpAgentflow', 'databaseAgentflow', 'fileAgentflow', 'shellAgentflow']) {
     assert.equal(source.includes(forbidden), false)

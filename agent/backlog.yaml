@@ -133,7 +133,7 @@ tracks:
         acceptance:
           - Portable Flowise artifacts target Flowise 3.0.12 on bundled Node 20.20.2; all declared platform-external operations use authenticated MCP tools and real platform publication is deferred to I9.
           - The artifact contract assigns natural language, semantic retrieval, case normalization, minimal clarification, intent planning, human input and result explanation to the Agent platform; local tools own authoritative state, deterministic execution, scripts, evidence and audit.
-          - Visual LLM requests enforce a 16000-token total window with at most 12000 input tokens and at least 4000 reserved output tokens; controller LLM requests enforce a 1000000-token total window with at most 967232 input tokens and at least 32768 reserved output tokens, without broadening data authorization.
+          - Visual and controller LLM requests both enforce a 16000-token total window with at most 12000 input tokens and at least 4000 reserved output tokens; MiMo v2.5 uses only the confirmed Qwen3.5-compatible non-thinking, non-streaming OpenAI Chat Completions JSON-string contract and never calls MCP natively.
           - Harness emits a strict ActionContextEnvelope, defaults to CTX-L1 and upgrades to CTX-L2/CTX-L3 only by deterministic insufficiency rules; the Worker demonstrably passes the complete governed envelope rather than only currentAction.prompt to the visual model adapter.
           - Migration 009 and audit records persist consumer, context level, estimated and provider-reported token usage, image estimate, tokenizer, budget decision and redaction profile reference without secret content; deterministic over-budget paths return the frozen visual/controller error codes.
           - Flowise platform knowledge, Flowise database.sqlite and Harness regression_platform.sqlite have separate authority, permissions, backup and restore paths with no domain-state or knowledge-body dual writes; repository RAG is development-only and no RAG subsystem exists in the product.
@@ -152,6 +152,8 @@ tracks:
           - docs/evidence/platform/hengzhun-i9-p4-mcp-connectivity-2026-07-21.md
           - docs/evidence/platform/hengzhun-i9-p5-agentflow-publication-2026-07-21.md
           - docs/evidence/platform/hengzhun-i9-p6-forward-conversation-2026-07-21.md
+          - docs/evidence/platform/hengzhun-i9-p7-reverse-conversation-2026-07-21.md
+          - docs/evidence/platform/hengzhun-i9-qwen35-compatibility-ceiling-2026-07-21.md
         allowedPaths: [platform/hengzhun-regression-system/**, docs/architecture/**, docs/control/**, docs/design/regression-platform/**, docs/current-state/**, docs/evidence/platform/**, agent/**, D:/Agent/全局端口注册表.md]
         acceptance:
           - Bundled Flowise 3.0.12, Node 20.20.2 and all runtime dependencies start on Windows 10/11 x64 without WSL, Docker, global Node or runtime downloads.

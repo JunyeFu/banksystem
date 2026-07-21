@@ -4,7 +4,7 @@
 
 平台能力只有在真实公开界面或真实调用证据满足门禁后才可标记通过；OpenAPI 本地校验不等于 Coze 已导入、发布或真实调用。结论必须结合对应 `results/PLAT-Vxxx.json` 的 `finding` 判断：I2 的 Harness 单测不能证明 Agent 发布，I3 的 `PLAT-V004`、`PLAT-V011`、`PLAT-V012` 则包含公开 UI、真实 Agent 调用和知识检索证据。
 
-I8 阶段1由 `tests/i8/context-envelope.test.cjs` 覆盖：版本化严格领域Schema、migration 009、不可变上下文预算审计、`CTX-L1→L2→L3`、视觉16K/12K、主控1M、提供方usage超限失败关闭和Worker OpenAPI。该测试不调用真实MiMo或Flowise，不能作为二者的运行证据。
+I8 阶段1由 `tests/i8/context-envelope.test.cjs` 覆盖：版本化严格领域Schema、migration 009、不可变上下文预算审计、`CTX-L1→L2→L3`、视觉与主控统一16K/12K/4K、提供方usage超限失败关闭和Worker OpenAPI。该测试不调用真实MiMo或Flowise，不能作为二者的运行证据。
 
 I8 阶段2由 `tests/i8/stage2-agentflow-mcp.test.cjs` 覆盖：migration 010、案例到IntentPlan交接、Flowise 3.0.12节点加载、唯一自然语言输入、禁止Code/HTTP/SQLite绕行、Bearer MCP、14工具白名单，以及真实Flowise MCP Client→Harness→SQLite。阶段3启用`candidate_get`后当前为4项ACTIVE/10项失败关闭。它不调用MiMo，也不证明Agentflow已在UI发布或HiAgent已部署。
 

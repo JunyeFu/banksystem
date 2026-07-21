@@ -8,6 +8,15 @@ const { artifact, resolveCredential, sha256 } = require('./login-profile.cjs');
 
 const EMPTY_SCREENSHOT = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=', 'base64');
 
+const LOCATOR_ERROR_CODES = Object.freeze([
+  ['login-username', 'LOGIN_USERNAME_LOCATOR_NOT_FOUND'],
+  ['login-password', 'LOGIN_PASSWORD_LOCATOR_NOT_FOUND'],
+  ['login-submit', 'LOGIN_SUBMIT_LOCATOR_NOT_FOUND'],
+  ['customer-profile-name', 'PROFILE_NAME_LOCATOR_NOT_FOUND'],
+  ['/portal/profile', 'PROFILE_LINK_LOCATOR_NOT_FOUND'],
+  ['profile-display-name', 'PROFILE_DISPLAY_NAME_LOCATOR_NOT_FOUND']
+]);
+
 function fail(code, message, category = 'ENVIRONMENT') {
   throw Object.assign(new Error(message), { code, category });
 }
@@ -73,6 +82,12 @@ async function executeI8FormalRun(task, environment = process.env, options = {})
       ? { outcome: 'PASSED', summary: '已激活脚本通过纯 Playwright 正式回归。', evidence }
       : { outcome: 'FAILED', summary: '已激活脚本正式回归断言失败。', errorCode: 'I8_FORMAL_ASSERTION_FAILED', errorCategory: 'TEST_FAILURE', retryable: false, userActionRequired: false, evidence };
   } catch (error) {
+    const errorMessage = String(error?.message || '');
+    const locatorFailure = LOCATOR_ERROR_CODES.find(([needle]) => errorMessage.includes(needle));
+    if (locatorFailure && (!error.code || error.name === 'TimeoutError')) {
+      error.code = locatorFailure[1];
+      error.category = 'TEST_FAILURE';
+    }
     const diagnostic = { schemaVersion: 'i8-formal-diagnostic-v1', taskId: task.taskId, runId: task.runId, candidateId: descriptor.candidateId, errorCode: error.code || 'I8_FORMAL_EXECUTION_FAILED' };
     error.evidence = [
       artifact('DIAGNOSTIC', 'application/json', 'REDACTED', 'json', JSON.stringify(diagnostic, null, 2), { containsCredentials: false }),

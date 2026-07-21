@@ -127,7 +127,7 @@ function buildFlowData(credentialId) {
         FLOWISE_CREDENTIAL_ID: credentialId,
         modelName: 'mimo-v2.5',
         basepath: connectionProfile.model.baseUrl,
-        maxTokens: 4096,
+        maxTokens: 4000,
         streaming: false,
         timeout: 60000
       }

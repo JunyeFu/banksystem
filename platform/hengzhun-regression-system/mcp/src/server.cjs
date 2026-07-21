@@ -363,16 +363,46 @@ function createServer() {
   })
 
   server.registerTool('failure_get', {
-    description: '读取确定性分类的事故与脱敏StepFailureEnvelope；默认只返回CTX-L1。',
-    inputSchema: { incidentId: safeRef }
-  }, async ({ incidentId }) => callHarness('/v1/i8/failures:get', { namespace, incidentId }))
+    description: '读取确定性分类的事故、脱敏StepFailureEnvelope和Harness批准的修复选项；可受控等待修复六轮复验终态。',
+    inputSchema: {
+      incidentId: safeRef,
+      waitForProposal: z.boolean().optional(),
+      waitTimeoutSeconds: z.number().int().min(1).max(180).optional()
+    }
+  }, async ({ incidentId, waitForProposal, waitTimeoutSeconds }) => {
+    let current = await requestHarness('/v1/i8/failures:get', { namespace, incidentId })
+    if (!current.response.ok) return textResult({ errorCode: current.body.errorCode || 'I8_FAILURE_INCIDENT_UNAVAILABLE', status: current.response.status }, true)
+    if (waitForProposal !== true) return textResult(current.body, false, 16 * 1024)
+    const deadline = Date.now() + (waitTimeoutSeconds ?? 120) * 1000
+    const terminal = new Set(['WAITING_USER', 'VALIDATION_FAILED'])
+    while (!terminal.has(current.body?.proposal?.status) && Date.now() < deadline) {
+      await new Promise(resolve => setTimeout(resolve, 750))
+      current = await requestHarness('/v1/i8/failures:get', { namespace, incidentId })
+      if (!current.response.ok) return textResult({ errorCode: current.body.errorCode || 'I8_FAILURE_INCIDENT_UNAVAILABLE', status: current.response.status }, true)
+    }
+    if (!terminal.has(current.body?.proposal?.status)) return textResult({ errorCode: 'I8_REPAIR_WAIT_TIMEOUT', status: current.body?.proposal?.status || 'UNKNOWN' }, true)
+    return textResult(current.body, false, 16 * 1024)
+  })
 
   server.registerTool('repair_propose', {
     description: '提交Schema受限的ScriptPatchProposal；禁止完整源码、项目文件、命令、任意URL和断言弱化。',
-    inputSchema: { incidentId: safeRef, patchJson: z.string().trim().min(2).max(16_000), sessionRef: safeRef }
-  }, async ({ incidentId, patchJson, sessionRef }) => {
+    inputSchema: {
+      incidentId: safeRef,
+      patchJson: jsonObjectArgument.optional(),
+      operationType: z.enum(['TARGET_MAPPING']).optional(),
+      targetRef: safeRef.optional(),
+      locatorKind: z.enum(['TEST_ID', 'LABEL', 'ROLE']).optional(),
+      locatorValue: z.string().trim().min(1).max(300).optional(),
+      rationale: z.string().trim().min(1).max(1000).optional(),
+      sessionRef: safeRef
+    }
+  }, async ({ incidentId, patchJson, operationType, targetRef, locatorKind, locatorValue, rationale, sessionRef }) => {
     try {
-      const patch = parseJsonArgument(patchJson, 'I8_PATCH_JSON_INVALID')
+      const patch = patchJson
+        ? parseJsonArgument(patchJson, 'I8_PATCH_JSON_INVALID')
+        : operationType && targetRef && locatorKind && locatorValue && rationale
+          ? { schemaVersion: 'i8-script-patch-proposal-v1', operations: [{ type: operationType, targetRef, locator: { kind: locatorKind, value: locatorValue } }], rationale }
+          : (() => { const error = new Error('I8_PATCH_FLAT_FIELDS_INVALID'); error.code = 'I8_PATCH_FLAT_FIELDS_INVALID'; throw error })()
       const current = await requestHarness('/v1/i8/failures:get', { namespace, incidentId })
       if (!current.response.ok || !current.body.failureEnvelope?.envelopeHash) return textResult({ errorCode: current.body.errorCode || 'I8_FAILURE_ENVELOPE_UNAVAILABLE', status: current.response.status }, true)
       const business = { incidentId, expectedEnvelopeHash: current.body.failureEnvelope.envelopeHash, patch }

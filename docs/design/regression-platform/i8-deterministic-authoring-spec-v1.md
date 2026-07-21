@@ -198,7 +198,7 @@ Harness 根据 `IntentPlan` 和受控探索事实编译 `ExecutableActionPlan`�
 - `budgetDecision: ALLOW | REDUCE | SPLIT | PLAYWRIGHT_ONLY | WAITING_USER`；
 - `redactionProfileId`。
 
-视觉 LLM 固定 `modelContextLimitTokens=16000`、`inputBudgetTokens=12000`、`reservedOutputTokens=4000`。主控 LLM 固定 `modelContextLimitTokens=1000000`、`inputBudgetTokens=967232`、`reservedOutputTokens=32768`。完整窗口包含提示、工具 Schema、消息、截图/图像 token 和输出。容量不授权扩大读取范围。
+视觉与主控 LLM 均固定 `modelContextLimitTokens=16000`、`inputBudgetTokens=12000`、`reservedOutputTokens=4000`。完整窗口包含提示、工具 Schema、消息、截图/图像 token 和输出。容量不授权扩大读取范围；MiMo运行设计还必须满足I9的Qwen3.5兼容上限。
 
 视觉包超过 12,000 输入 token 时按固定顺序处理：去除重复描述 → 使用更小截图/ROI → 只保留 Playwright 已验证事实 → 拆分当前动作 → 退化纯 Playwright/等待人工。禁止删除当前动作、不变量、风险、允许目标、租约或断言；仍超限返回 `VISION_CONTEXT_BUDGET_EXCEEDED`。主控超限时使用结构化摘要、分页或 Workflow 拆分，仍超限返回 `CONTROLLER_CONTEXT_BUDGET_EXCEEDED`。
 
@@ -221,7 +221,7 @@ I8 第一步必须在任何 Flowise Agentflow 接入前完成：
 
 2026-07-20 阶段1已完成以下代码落点：
 
-- `harness/src/context-envelope.ts`：严格 Envelope、模型 usage、16K/1M 策略、保守文本/图像估算、错误码和 Midscene 提示构造；
+- `harness/src/context-envelope.ts`：严格 Envelope、模型 usage、主控/视觉统一16K策略、保守文本/图像估算、错误码和 Midscene 提示构造；
 - `harness/migrations/009_i8_context_budget.sql`：动作 CTX、Envelope Hash 和不可变预算审计；
 - `harness/src/service.ts`：Claim 构造/Hash/审计，歧义时 L1→L2→L3，完成时校验租约/审计/Hash并写回usage；
 - `runtime/midscene-authoring-worker.cjs`：只消费严格 Envelope，模型路径传完整受控上下文，Playwright-only 明确不调用模型；
@@ -457,7 +457,7 @@ platform/hengzhun-regression-system/
 | Migration | 8→9、备份、历史调度绑定、未知版本禁用、回滚保护、完整性 |
 | Builder | 10 操作白名单、确定性输出、Hash、一致输入字节一致、禁用能力拒绝 |
 | MCP | 14 工具 Schema、鉴权、namespace、幂等、输出预算、无任意能力 |
-| Authoring | `CTX-L1/CTX-L2/CTX-L3` 最小上下文、视觉 16K/12K 输入门禁、主控 1M 门禁、租约、Midscene 歧义、Playwright 独立验证；断言 Worker/模型适配器实际收到完整 Envelope 而非仅 `currentAction.prompt` |
+| Authoring | `CTX-L1/CTX-L2/CTX-L3` 最小上下文、视觉与主控统一16K/12K输入门禁、租约、Midscene歧义、Playwright独立验证；断言 Worker/模型适配器实际收到完整Envelope而非仅`currentAction.prompt` |
 | Stability | 6 次通过发证、任一次失败不发证、Fixture/Context 隔离、证据一致 |
 | Delivery | 预览分页、Hash、SAVE_ONLY/ACTIVATE/REJECT、并发版本冲突 |
 | Scheduling | 精确版本绑定、自然语言规范化、周期、一次性、misfire、离线收件箱 |

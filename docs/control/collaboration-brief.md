@@ -5,7 +5,7 @@ document_type: reference
 domain: governance
 status: accepted
 authority: normative
-version: 1.5
+version: 1.7
 effective_date: 2026-07-21
 owner: project-owner
 ---
@@ -38,17 +38,18 @@ I0—I7的Coze演示是冻结历史，I8七阶段本机确定性引擎已经关�
 | `HZ-C14` | 失败修复限于当前消息包和白名单补丁，最多 3 次；不得修改项目源码、弱化断言或自动激活。 |
 | `HZ-C15` | 动作上下文叫 `CTX-L1...L3`；工具输出叫 `OUT-L0...L3`，绝对上限 128 KiB，二者不得混用。 |
 | `HZ-C16` | 外部案例导入和视频案例是已确认的延期需求，不是取消项；衡准图形界面继续保持延期只读观测。 |
-| `HZ-C17` | 视觉 LLM 完整窗口固定为 16,000 tokens，主控 LLM 固定为 1,000,000 tokens；容量上限不扩大数据访问权限。 |
+| `HZ-C17` | 视觉 LLM 与主控 LLM 的完整窗口都固定为 16,000 tokens：输入最多 12,000、输出保留 4,000；容量上限不扩大数据访问权限。 |
+| `HZ-C18` | 当前可运行 MiMo v2.5，但其报文和能力只能使用 Qwen3.5 已确认交集：OpenAI Chat Completions、字符串消息、非思考非流式 JSON mode；模型原生工具调用、并行工具、`reasoning_content`、开发者角色和多模态报文均禁用。 |
 
 ## 3. 当前真实状态
 
 - `HENGZHUN-I8-FLOWISE-001`：`DONE`；七阶段确定性引擎、MCP、Worker和真实Chromium门禁已完成。
-- `HENGZHUN-I9-FLOWISE-PRODUCT-001`：`IN_PROGRESS`；P1—P6已验证，普通中文案例到候选6/6、预览、激活、纯Playwright按需运行和同会话回复已真实通过；当前进入P7反向恢复。
+- `HENGZHUN-I9-FLOWISE-PRODUCT-001`：`IN_PROGRESS`；P1—P7已验证，正向自然语言闭环和受控失效后的反向限域恢复均已完成真实Flowise对话；当前进入P8便携候选与跨电脑验收。
 - Flowise Windows 隔离探针：通过，但仅证明技术可行。
 - 当前产品结构校验：保留 Coze 历史目录，同时要求 `flowise/`、`mcp/` 和 Flowise 平台知识制品；不再把 Coze Knowledge 写成 I9 当前权威。
 - 历史 I4 Harness 已实现 SQLite 游标、单动作租约和“上一摘要/当前动作/下一预览”状态窗口，`npm.cmd run test:i4` 当前为 3/3 通过。
-- I8 阶段1已让 Worker 以强类型 `ActionContextEnvelope` 为唯一视觉上下文，完成 `CTX-L1→L2→L3` 歧义升级、视觉16K/12K门禁、主控1M预算函数、图像/token预估、migration 009和不可变预算审计。
-- I8 migration 009—015、MCP 7.0.0十四工具、Builder、Worker、六次签证、受控交付、精确调度、结果收件箱和限域修复均已验证。I9 P4完成MiMo与14/14工具连通，P5完成正式Agentflow发布与重启恢复，P6完成真实正向Flowise对话。反向真实对话、便携候选、最终提交文件夹和HiAgent运行仍未验收。
+- I8 阶段1已让 Worker 以强类型 `ActionContextEnvelope` 为唯一视觉上下文，完成 `CTX-L1→L2→L3` 歧义升级；最新控制已把视觉与主控统一收紧为16K/12K门禁，保留图像/token预估、migration 009和不可变预算审计。
+- I8 migration 009—015、MCP 7.0.0十四工具、Builder、Worker、六次签证、受控交付、精确调度、结果收件箱和限域修复均已验证。I9 P4完成MiMo与14/14工具连通，P5完成正式Agentflow发布与重启恢复，P6完成真实正向Flowise对话，P7完成受控定位器失效、最小失败上下文、白名单修复、6/6复验、独立激活、独立复跑和拒绝静默迁移调度的真实反向对话。便携候选、最终提交文件夹和HiAgent运行仍未验收。
 - HiAgent MCP 注册、网络可达性、容量和真实 Workflow 映射：测试环境待验证。
 - 开发 RAG 索引：`NOT_BUILT`，不影响产品。
 - 外部案例/视频输入：`PROPOSED`，依赖已完成的 I8 引擎，但受 I9 退出门禁延后。

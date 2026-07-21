@@ -6,8 +6,9 @@
   "deployed": true,
   "isPublic": false,
   "primaryFlowDataPath": "flowise/i8/agentflow-v2.json",
+  "modelCapabilityEnvelope": "flowise/i9/qwen35-capability-envelope-v1.json",
   "sourceParts": [
-    {"path": "flowise/i8/agentflow-v2.json", "sha256": "ae04a67d9221beae3f3ba7d30c4f68f197f53ebc6a4c699f9f4797523d2ef7b9"},
+    {"path": "flowise/i8/agentflow-v2.json", "sha256": "ebe3ffd9450577db8a1a1a29d1bf45475e5f6d1342ac314c11b297e65553abb4"},
     {"path": "flowise/i8/stage5-delivery-agentflow-v1.json", "sha256": "9e946e8e892fb7c29db8e5f6d0d0567dbf50fc8c4108be9f445d05bf8df7d0e8"},
     {"path": "flowise/i8/stage6-scheduling-agentflow-v1.json", "sha256": "d057c4a254c9c939293e3f410444ff8d62cc378364b071dfa0cb0b34725d4084"},
     {"path": "flowise/i8/stage7-repair-agentflow-v1.json", "sha256": "567e427af85b4007ff6befc13ee043537a30369a3eb423df371ca03542b3e598"}

@@ -18,9 +18,9 @@ export const MODEL_CONTEXT_POLICIES = {
     reservedOutputTokens: 4_000
   },
   CONTROLLER_LLM: {
-    modelContextLimitTokens: 1_000_000,
-    inputBudgetTokens: 967_232,
-    reservedOutputTokens: 32_768
+    modelContextLimitTokens: 16_000,
+    inputBudgetTokens: 12_000,
+    reservedOutputTokens: 4_000
   }
 } as const;
 

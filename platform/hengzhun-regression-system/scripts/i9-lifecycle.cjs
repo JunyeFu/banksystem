@@ -74,7 +74,13 @@ function isOwned(record) {
 }
 
 function pidExists(pid) {
-  return processInfo(pid) !== null
+  if (!Number.isInteger(pid) || pid <= 0) return false
+  try {
+    process.kill(pid, 0)
+    return true
+  } catch (error) {
+    return error?.code === 'EPERM'
+  }
 }
 
 async function httpHealth(url, timeoutMs = 1500) {

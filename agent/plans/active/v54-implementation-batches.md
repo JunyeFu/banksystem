@@ -129,7 +129,7 @@ Playwright 对浏览器事实和正式回归结果负责，不接受 Midscene �
 
 任何阶段不得越级。特别禁止 `Midscene 动作通过 -> 直接 SCRIPT_VALIDATED`、`候选生成成功 -> 自动激活`、`单次 Playwright 通过 -> 稳定性通过`、`正式运行失败 -> 运行时调用 Midscene 修补后继续`、`脚本激活 -> 自动创建 Schedule`。稳定性验证已经是激活前的真实纯 Playwright 执行；激活后不再强制重复一次内容相同的“首次正式运行”，只有用户选择立即按需运行或创建调度时才产生新的正式 Run。
 
-动作上下文必须以 SQLite 中的 `ExecutableActionPlan + cursor + action lease + verified action record` 为权威。`CTX-L1` 只含当前动作完整定义、页面签名、不变量、风险、允许目标、Fixture 引用和最近事实观察；`CTX-L2` 增加上一动作脱敏结果和下一动作最小预览；`CTX-L3` 只在分支/修复需要时增加最小依赖锥，不得发送完整计划或完整对话。工具响应另用 `OUT-L0...OUT-L3` 预算，二者不得混称。视觉 LLM 完整窗口固定 16,000 tokens（输入最多 12,000、输出保留至少 4,000），主控 LLM 完整窗口固定 1,000,000 tokens（输入最多 967,232、输出保留至少 32,768）；窗口容量不得扩大数据授权。Midscene 输出后，Playwright 必须在受控页面状态中重放并验证，结果写回数据库后 Harness 才能推进游标；Agent 对话文本不得直接推进动作状态。
+动作上下文必须以 SQLite 中的 `ExecutableActionPlan + cursor + action lease + verified action record` 为权威。`CTX-L1` 只含当前动作完整定义、页面签名、不变量、风险、允许目标、Fixture 引用和最近事实观察；`CTX-L2` 增加上一动作脱敏结果和下一动作最小预览；`CTX-L3` 只在分支/修复需要时增加最小依赖锥，不得发送完整计划或完整对话。工具响应另用 `OUT-L0...OUT-L3` 预算，二者不得混称。视觉与主控 LLM 完整窗口均固定 16,000 tokens（输入最多 12,000、输出保留至少 4,000）；窗口容量不得扩大数据授权。MiMo v2.5只能使用Qwen3.5确认的OpenAI Chat Completions字符串消息、非思考非流式JSON mode能力，模型不得原生调用工具。Midscene 输出后，Playwright 必须在受控页面状态中重放并验证，结果写回数据库后 Harness 才能推进游标；Agent 对话文本不得直接推进动作状态。
 
 ### 6. 稳定性验证后的交付与调度选择
 
@@ -350,7 +350,7 @@ I8 不延续 Coze 或 Dify 专用实现。个人/办公电脑入口使用 Window
 
 I8 内部实现顺序固定为：
 
-1. 以 `AUD-009...AUD-013` 为基线，冻结 `RegressionCaseDraft`、`AcceptanceSummary`、`KnowledgeSnapshotRef`、`IntentPlan`、`ExecutableActionPlan` 和 `CTX-L1/CTX-L2/CTX-L3` `ActionContextEnvelope` 强类型 Schema；完成 migration 009、视觉16K/主控1M token预算字段与门禁、图像 token 估算、预算错误码/审计，并让 Worker 实际消费完整 Envelope。历史 I4 状态窗口只能作为游标/租约基础，不能代替本步骤。
+1. 以 `AUD-009...AUD-013/AUD-054` 为基线，冻结 `RegressionCaseDraft`、`AcceptanceSummary`、`KnowledgeSnapshotRef`、`IntentPlan`、`ExecutableActionPlan` 和 `CTX-L1/CTX-L2/CTX-L3` `ActionContextEnvelope` 强类型 Schema；完成 migration 009、视觉/主控统一16K token预算字段与门禁、图像 token 估算、预算错误码/审计，并让 Worker 实际消费完整 Envelope。历史 I4 状态窗口只能作为游标/租约基础，不能代替本步骤。
 2. 建立只接收自然语言案例描述的可迁移 Agentflow 定义；技术参数由 Flowise/Harness 生成，Flowise 外部调用全部经过 MCP。
 3. 实现有限 DSL、确定性 Script Package Builder、候选版本/Hash/来源追踪和 Worker 白名单执行。
 4. 实现 `StabilityCertificate`：两个视口各连续 3 次、共 6 次，新 BrowserContext、独立 Fixture、无残留认证、断言/证据一致。
@@ -358,7 +358,7 @@ I8 内部实现顺序固定为：
 6. 将 Schedule 精确绑定到 `caseVersion + planId + scriptId + scriptVersion`，再实现 `ONE_TIME runAt` 和离线结果收件箱；用户通过自然语言给出时间，系统回显规范化摘要，不要求用户编写 Cron。
 7. 实现分级 `StepFailureEnvelope`、十一类事故和受限 `ScriptPatchProposal`；每个修复候选都必须重新通过完整稳定性门禁，禁止运行时自修补、自动激活或修改被测项目代码。
 
-2026-07-20 阶段1完成状态：第1项已完成代码与自动测试落地。强类型领域 Schema、migration 009、`ActionContextEnvelope`、不可变预算审计、L1→L2→L3 歧义升级、视觉16K/12K与主控1M预算函数、图像token预估、确定性错误码、Worker完整Envelope消费和Worker OpenAPI 1.3.0均已实现；`verify:i8:stage1` 9/9、I2—I6历史回归32/32通过。真实MiMo usage当前按接口能力记录为`NOT_EXPOSED`，Flowise主控交接和真实模型E2E属于第2项及后续门禁，不能由阶段1证据代替。
+2026-07-21 阶段1兼容性更新：强类型领域Schema、migration 009、`ActionContextEnvelope`、不可变预算审计、L1→L2→L3歧义升级、图像token预估、确定性错误码、Worker完整Envelope消费和Worker OpenAPI 1.3.0均保留；主控预算由旧1M收紧为与视觉一致的16K/12K/4K。真实MiMo usage按接口能力记录，不能替代Qwen3.5兼容报文门禁。
 
 2026-07-20 阶段2完成状态：第2项已完成代码、制品和本机集成验证。`flowise/i8/agentflow-v2.json` 只接收 Chat Input 案例描述，平台知识、结构化 LLM、最小澄清、Human Input、MCP 与结果回显均有 HiAgent 语义映射；没有 Code、HTTP、数据库、文件或 Shell 节点。migration 010 与 Harness 实现 `PREPARED → REJECTED/AWAITING_STAGE3` 权威交接，MCP Server 以 Bearer、固定 namespace、确定性幂等、8 KiB 输出门禁注册14工具，其中阶段2启用 `case_prepare / authoring_submit / authoring_get`。阶段3在此基础上启用 `candidate_get`，其余10项稳定失败关闭。阶段2及阶段3累计验证使用 Flowise 3.0.12 的真实 `MCPToolkit` 贯通 MCP→Harness→SQLite；当前进程未注入 MiMo 密钥且未发布运行中 Agentflow，因此不能声明真实 MiMo 对话或 HiAgent 运行验收。
 
@@ -406,11 +406,13 @@ I9内部实现顺序固定为9个阶段：
 
 2026-07-21 P3关闭结论：固定版本平台知识、MiMo/MCP连接参数与运行时秘密变量引用已通过Flowise公开账户、导入和查询API装配，未直接写Flowise内部表；固定引用、来源版本、内容Hash和引用ID均可回读。Harness migration 016只保存不可变`KnowledgeSnapshotRef`，不保存知识正文。两套SQLite通过SQLite在线备份API分别备份，并在停机门禁下恢复、`quick_check`和职责表边界复核通过。当前进入P4；P3没有注入MiMo密钥、没有调用模型或MCP工具，不得声称MiMo或十四工具已连通。
 
-2026-07-21 P4关闭结论：Bundled Flowise 3.0.12的真实`MCPToolkit`已通过认证Streamable HTTP发现并调用14/14工具，成功链覆盖作者化、候选、预览、激活、运行、调度、收件箱、事故、修复和拒绝；Bearer拒绝、确定性幂等、16 KiB输出、100 ms测试超时转换、安全错误传播、Human Input和循环上限均已通过。`p4-controller-profile-v1.json`冻结1M主控与16K视觉窗口；MiMo v2.5已通过Flowise自带`@langchain/openai`适配器及`response_format=json_object`完成真实严格JSON请求，凭据只由忽略目录中的运行时变量映射到进程且执行后清除。`AUD-048`关闭，当前进入P5；尚不得声称Agentflow已经公开导入、发布或重启恢复。
+2026-07-21 P4兼容性更新：Bundled Flowise 3.0.12的真实`MCPToolkit`已通过认证Streamable HTTP发现并调用14/14工具，成功链覆盖作者化、候选、预览、激活、运行、调度、收件箱、事故、修复和拒绝；Bearer拒绝、确定性幂等、16 KiB输出、100 ms测试超时转换、安全错误传播、Human Input和循环上限均已通过。`p4-controller-profile-v1.json`把主控与视觉统一冻结为16K/12K/4K，`qwen35-capability-envelope-v1.json`限制MiMo只使用Qwen3.5兼容的非思考、非流式OpenAI JSON mode字符串报文；MCP只由Workflow节点调用。凭据仍只由忽略目录运行时变量映射且执行后清除。
 
 2026-07-21 P5关闭结论：固定ID的“衡准自动化回归主控”通过Flowise公开凭据、工作区导入、Chatflow更新、校验和工作区导出API完成装配与私有发布；MiMo凭据只经公开API加密保存，Flowise SQLite未被直接修改。I8阶段2—7四份同源制品Hash、HiAgent能力交集、正式FlowData Hash和导出Hash均冻结；真实校验为0问题。四服务停止后从同一隔离双SQLite重启，Flow ID、发布状态、定义Hash和导出Hash保持一致。`AUD-049`关闭，当前进入P6；尚不得声称普通用户正向自然语言对话已经完成。
 
 2026-07-21 P6关闭结论：普通用户只输入门户登录后姓名/头像与个人资料一致性案例，正式Flowise对话已经完成知识查询、结构化、人工确认、Harness事实写入、确定性Builder、固定Chromium 2视口×3次签证、脚本预览、显式激活、按需确认、纯Playwright正式运行和同会话终态回复。IntentPlan使用Flowise原生扁平结构化输出并由MCP重建严格对象；20个真实执行节点全部完成且任务返回`SUCCEEDED/PASSED`。当前进入P7；P6不得外推为反向修复、跨电脑便携或最终提交目录已完成。
+
+2026-07-21 P7关闭结论：隔离门户以受控`LOGIN_USERNAME`定位器变更制造正式失效，Flowise只接收`CTX-L1 StepFailureEnvelope`并从Harness批准目录选择替代定位器；新脚本版本在桌面/窄屏各3次纯Playwright复验中6/6通过。真实反向会话执行37个节点并返回`REVERSE_FLOW_VERIFIED`，候选激活与复跑分别经过独立人工确认，修复版调度被明确拒绝为`REJECTED_NO_MIGRATION`且旧调度未迁移。MiMo全程受Qwen3.5的16K、字符串消息、非思考非流式JSON mode上限约束；当前进入P8，仍不得声称跨电脑便携、最终提交目录或HiAgent迁移已完成。
 
 I9退出条件全部为硬门禁：
 

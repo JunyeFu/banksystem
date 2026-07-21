@@ -4,18 +4,23 @@
   "provider": "MiMo",
   "adapter": "@langchain/openai ChatOpenAI from bundled Flowise runtime",
   "modelName": "mimo-v2.5",
+  "compatibilityCeiling": "Qwen3.5",
+  "capabilityEnvelope": "flowise/i9/qwen35-capability-envelope-v1.json",
   "baseUrl": "https://api.xiaomimimo.com/v1",
   "apiKeyVariable": "MIMO_API_KEY",
   "responseFormat": "json_object",
+  "enableThinking": false,
+  "streaming": false,
+  "modelNativeToolCalling": false,
   "controllerContext": {
-    "totalTokens": 1000000,
-    "maximumInputTokens": 967232,
-    "reservedOutputTokens": 32768
+    "totalTokens": 16000,
+    "maximumInputTokens": 12000,
+    "reservedOutputTokens": 4000
   },
   "visualContext": {
-    "totalTokens": 16384,
-    "maximumInputTokens": 12288,
-    "reservedOutputTokens": 4096
+    "totalTokens": 16000,
+    "maximumInputTokens": 12000,
+    "reservedOutputTokens": 4000
   },
   "mcp": {
     "url": "http://127.0.0.1:18789/mcp",

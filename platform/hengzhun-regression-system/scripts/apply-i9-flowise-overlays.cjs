@@ -20,7 +20,8 @@ const structuredOutputMarker = 'I9_MIMO_JSON_MODE_STRUCTURED_OUTPUT'
 const customMcpMarker = 'I9_RUNTIME_MCP_TOKEN_OVERLAY'
 const localMcpAuthorizationMarker = 'I9_LOOPBACK_MCP_AUTHORIZATION_OVERLAY'
 const legacyMcpFailClosedMarker = 'I9_MCP_TOOL_ERROR_FAIL_CLOSED'
-const mcpFailClosedMarker = 'I9_MCP_TOOL_ERROR_FAIL_CLOSED_V2'
+const previousMcpFailClosedMarker = 'I9_MCP_TOOL_ERROR_FAIL_CLOSED_V2'
+const mcpFailClosedMarker = 'I9_MCP_TOOL_ERROR_FAIL_CLOSED_V3'
 
 const before = `                const [storeId, _] = knowledgeBase.documentStore.split(':');
                 const docStoreVectorInstanceFilePath = options.componentNodes['documentStoreVS'].filePath;
@@ -84,7 +85,7 @@ function applyStructuredOutputOverlay() {
   assert.ok(current.includes(patchPoint), 'I9_FLOWISE_STRUCTURED_OUTPUT_PATCH_POINT_MISSING')
   fs.writeFileSync(structuredOutputTarget, current.replace(
     patchPoint,
-    `// ${structuredOutputMarker}: MiMo v2.5 supports OpenAI JSON mode, not native tool calls.\n        return llmNodeInstance.withStructuredOutput(structuredOutputSchema, { method: 'jsonMode' });`
+    `// ${structuredOutputMarker}: Qwen3.5-compatible ceiling uses non-thinking OpenAI JSON mode; MCP remains outside the model.\n        return llmNodeInstance.withStructuredOutput(structuredOutputSchema, { method: 'jsonMode' });`
   ))
   return true
 }
@@ -120,21 +121,41 @@ function applyAgentflowToolOverlay() {
   assert.ok(fs.existsSync(agentflowToolTarget), 'I9_FLOWISE_AGENTFLOW_TOOL_RUNTIME_MISSING')
   const current = fs.readFileSync(agentflowToolTarget, 'utf8')
   if (current.includes(mcpFailClosedMarker)) return false
-  if (current.includes(legacyMcpFailClosedMarker)) {
-    const legacy = `            // ${legacyMcpFailClosedMarker}: MCP domain/tool errors must stop the governed flow.\n            if (selectedTool === 'customMCP' && typeof toolOutput === 'string' && (/errorCode/.test(toolOutput) || /MCP error -\\d+/.test(toolOutput))) {\n                throw new Error('I9_MCP_TOOL_FAILED_CLOSED');\n            }`
-    const upgraded = `            // ${mcpFailClosedMarker}: MCP domain/tool errors stop the flow with only a bounded error code.\n            if (selectedTool === 'customMCP' && typeof toolOutput === 'string' && (/errorCode/.test(toolOutput) || /MCP error -\\d+/.test(toolOutput))) {\n                const code = toolOutput.match(/errorCode(?:\\\\\"|\")[\\s:]*(?:\\\\\"|\")([A-Z0-9_]+)/)?.[1] || (toolOutput.match(/MCP error (-?\\d+)/)?.[1] ? 'MCP_PROTOCOL_ERROR' : 'MCP_TOOL_ERROR');\n                throw new Error(\`I9_MCP_TOOL_FAILED_CLOSED:\${code}\`);\n            }`
-    assert.ok(current.includes(legacy), 'I9_FLOWISE_AGENTFLOW_TOOL_LEGACY_PATCH_POINT_MISSING')
-    fs.writeFileSync(agentflowToolTarget, current.replace(legacy, upgraded))
+  const governedBlock = `            // ${mcpFailClosedMarker}: fail closed only on MCP error envelopes; terminal tasks may contain a business errorCode.
+            let governedMcpErrorCode;
+            if (selectedTool === 'customMCP' && typeof toolOutput === 'string') {
+                try {
+                    const content = JSON.parse(toolOutput);
+                    const innerText = Array.isArray(content) ? content.find((item) => item?.type === 'text')?.text : undefined;
+                    const payload = typeof innerText === 'string' ? JSON.parse(innerText) : undefined;
+                    if (payload?.errorCode && payload?.category && Number(payload?.status) >= 400) governedMcpErrorCode = String(payload.errorCode);
+                }
+                catch { }
+                if (governedMcpErrorCode || /MCP error -\\d+/.test(toolOutput)) {
+                    throw new Error(\`I9_MCP_TOOL_FAILED_CLOSED:\${governedMcpErrorCode || 'MCP_PROTOCOL_ERROR'}\`);
+                }
+            }`
+  if (current.includes(previousMcpFailClosedMarker)) {
+    const begin = current.indexOf(`            // ${previousMcpFailClosedMarker}:`)
+    const end = current.indexOf('            let parsedArtifacts;', begin)
+    assert.ok(begin >= 0 && end > begin, 'I9_FLOWISE_AGENTFLOW_TOOL_V2_PATCH_POINT_MISSING')
+    fs.writeFileSync(agentflowToolTarget, `${current.slice(0, begin)}${governedBlock}\n${current.slice(end)}`)
     return true
   }
-  assert.equal(sha256(current), frozenAgentflowToolHash, 'I9_FLOWISE_AGENTFLOW_TOOL_UPSTREAM_HASH_DRIFT')
-  const patchPoint = '            let parsedArtifacts;'
-  assert.ok(current.includes(patchPoint), 'I9_FLOWISE_AGENTFLOW_TOOL_PATCH_POINT_MISSING')
-  fs.writeFileSync(agentflowToolTarget, current.replace(
-    patchPoint,
-    `            // ${mcpFailClosedMarker}: MCP domain/tool errors stop the flow with only a bounded error code.\n            if (selectedTool === 'customMCP' && typeof toolOutput === 'string' && (/errorCode/.test(toolOutput) || /MCP error -\\d+/.test(toolOutput))) {\n                const code = toolOutput.match(/errorCode(?:\\\\\"|\")[\\s:]*(?:\\\\\"|\")([A-Z0-9_]+)/)?.[1] || (toolOutput.match(/MCP error (-?\\d+)/)?.[1] ? 'MCP_PROTOCOL_ERROR' : 'MCP_TOOL_ERROR');\n                throw new Error(\`I9_MCP_TOOL_FAILED_CLOSED:\${code}\`);\n            }\n${patchPoint}`
-  ))
-  return true
+  if (current.includes(legacyMcpFailClosedMarker)) {
+    const begin = current.indexOf(`            // ${legacyMcpFailClosedMarker}:`)
+    const end = current.indexOf('            let parsedArtifacts;', begin)
+    assert.ok(begin >= 0 && end > begin, 'I9_FLOWISE_AGENTFLOW_TOOL_LEGACY_PATCH_POINT_MISSING')
+    fs.writeFileSync(agentflowToolTarget, `${current.slice(0, begin)}${governedBlock}\n${current.slice(end)}`)
+    return true
+  }
+  if (sha256(current) === frozenAgentflowToolHash) {
+    const patchPoint = '            let parsedArtifacts;'
+    assert.ok(current.includes(patchPoint), 'I9_FLOWISE_AGENTFLOW_TOOL_PATCH_POINT_MISSING')
+    fs.writeFileSync(agentflowToolTarget, current.replace(patchPoint, `${governedBlock}\n${patchPoint}`))
+    return true
+  }
+  assert.fail('I9_FLOWISE_AGENTFLOW_TOOL_UPSTREAM_HASH_DRIFT')
 }
 
 function applyAdditionalOverlays() {

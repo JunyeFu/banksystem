@@ -5,7 +5,7 @@ document_type: design
 domain: regression-platform
 status: accepted
 authority: normative
-version: 1.1
+version: 1.2
 effective_date: 2026-07-21
 owner: 傅钧烨
 ---
@@ -113,11 +113,18 @@ platform/hengzhun-regression-system/
 - MiMo连接只引用环境变量，日志和错误响应不得回显密钥。
 - 14项MCP工具逐项执行真实最小任务，验证Bearer、namespace、幂等和输出预算。
 - 验证Human Input暂停/恢复、循环上限、工具超时和错误传播。
-- 主控总窗口1M，输入最多967232、保留输出32768；视觉总窗口16K，输入最多12K、保留输出4K。
+- 主控与视觉总窗口均为16K，输入最多12K、保留输出4K；MiMo的运行配置必须受 `qwen35-capability-envelope-v1.json` 限制。
 
 退出：14项工具真实调用通过；无Code、HTTP、数据库、文件、Shell、浏览器或任意URL节点绕过MCP。
 
-状态（2026-07-21）：`VERIFIED_I9_P4`。Bundled Flowise `MCPToolkit`已对14项认证工具逐项执行最小成功任务，并覆盖幂等、输出预算、确定性超时和安全错误；Human Input、循环上限、1M主控窗口及16K视觉窗口均由配置与自动测试冻结。`scripts/verify-i9-stage4-mimo.cjs`使用Flowise自带`@langchain/openai`适配器及`response_format=json_object`执行真实MiMo v2.5严格结构化请求；`verify-i9-stage4.ps1`只从忽略目录运行时配置映射凭据到进程，结束后清除且不输出。P4已关闭，P5开始前仍不得把静态Agentflow制品写成已发布平台流程。
+状态（2026-07-21）：`VERIFIED_I9_P4_QWEN35_CEILING_UPDATED`。Bundled Flowise `MCPToolkit`已对14项认证工具逐项执行最小成功任务，并覆盖幂等、输出预算、确定性超时和安全错误；Human Input、循环上限以及主控/视觉统一16K/12K/4K门禁均由配置与自动测试冻结。`scripts/verify-i9-stage4-mimo.cjs`使用Flowise自带`@langchain/openai`适配器及非思考、非流式`response_format=json_object`执行真实MiMo v2.5结构化请求；正式Workflow不使用模型原生工具调用，MCP只由平台节点调用。凭据只从忽略目录映射到进程，结束后清除且不输出。
+
+#### P4.1 Qwen3.5兼容上限
+
+- 报文固定为OpenAI兼容Chat Completions：只允许`system/user/assistant`和字符串`content`，只读取`choices[0].message.content`。
+- 所有结构化提示必须明确写出JSON；模型输出经过本地Schema校验，最多三次总尝试，不能以自然语言修补后直接推进状态。
+- 禁用thinking、streaming、原生tool calling、parallel tool calls、`reasoning_content`、developer role和多模态消息。
+- MiMo支持但Qwen3.5未确认的能力一律不用；切换Qwen3.5时不得改变节点职责、MCP参数或Human Input门禁。
 
 ### P5 Agentflow正式导入、发布与恢复
 
@@ -148,6 +155,8 @@ platform/hengzhun-regression-system/
 - 旧调度不静默迁移；正式运行期间不调用LLM或Midscene。
 
 退出：真实反向对话完成且无自动激活、无项目源码修改、无断言弱化、无秘密或绝对路径泄漏。
+
+状态（2026-07-21）：`VERIFIED_I9_P7`。隔离门户仅把`LOGIN_USERNAME`定位方式从已验证`TEST_ID`切换到批准目录中的`LABEL`候选，原版本正式运行以`LOGIN_USERNAME_LOCATOR_NOT_FOUND + TEST_FAILURE`确定性失败。正式Agentflow随后只读取`CTX-L1 StepFailureEnvelope`，使用Harness返回的批准定位器生成新版本并完成桌面/窄屏各3次纯Playwright复验；真实会话执行37个节点并返回`REVERSE_FLOW_VERIFIED`。候选经独立人工激活和独立复跑确认后成功，修复版调度被用户明确拒绝为`REJECTED_NO_MIGRATION`，旧调度未静默迁移。P7不证明P8跨电脑便携、P9最终提交文件夹或HiAgent目标环境。
 
 ### P8 便携候选与跨电脑验收
 

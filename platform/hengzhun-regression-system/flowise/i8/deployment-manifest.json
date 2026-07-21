@@ -3,6 +3,8 @@
   "flowiseVersion": "3.0.12",
   "databaseType": "sqlite",
   "agentflowArtifact": "agentflow-v2.json",
+  "modelCapabilityEnvelope": "../i9/qwen35-capability-envelope-v1.json",
+  "modelCompatibilityCeiling": "Qwen3.5",
   "stage5ContinuationArtifact": "stage5-delivery-agentflow-v1.json",
   "stage6ContinuationArtifact": "stage6-scheduling-agentflow-v1.json",
   "stage7ContinuationArtifact": "stage7-repair-agentflow-v1.json",

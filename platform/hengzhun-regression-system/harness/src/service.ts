@@ -27,7 +27,7 @@ import {
   type I8CandidateBuildCompletionInput,
   type I8CandidateCompileInput
 } from './i8/stage3-schemas';
-import { buildCandidatePackage, buildPatchedCandidatePackage, compileExecutableActionPlan } from './i8/script-package-builder';
+import { buildCandidatePackage, buildPatchedCandidatePackage, compileExecutableActionPlan, I8_CONTROLLED_CATALOG } from './i8/script-package-builder';
 import {
   I8_STABILITY_VIEWPORTS,
   i8StabilityCompletionSchema,
@@ -2504,9 +2504,16 @@ export class HarnessService {
         LEFT JOIN i8_repair_stability_certificates cert ON cert.proposal_id=p.proposal_id
         WHERE fi.namespace=? AND fi.incident_id=?`).get(namespace, incidentId) as Record<string, unknown> | undefined;
       if (!row) throw new HarnessError(404, 'I8_FAILURE_INCIDENT_NOT_FOUND', 'DOMAIN', 'I8 失败事故不存在。');
+      const repairTarget = row.classification === 'LOCATOR'
+        ? Object.keys(I8_CONTROLLED_CATALOG.repairTargets).find(targetRef => String(row.reason_code).startsWith(targetRef))
+        : undefined;
+      const approvedRepairOptions = repairTarget
+        ? I8_CONTROLLED_CATALOG.repairTargets[repairTarget as keyof typeof I8_CONTROLLED_CATALOG.repairTargets]
+          .map(locator => ({ operationType: 'TARGET_MAPPING', targetRef: repairTarget, locator }))
+        : [];
       return { incidentId: row.incident_id, runId: row.run_id, caseId: row.case_id, scriptId: row.script_id,
         scriptVersion: row.script_version, classification: row.classification, reasonCode: row.reason_code,
-        disposition: row.disposition, status: row.status,
+        disposition: row.disposition, status: row.status, approvedRepairOptions,
         failureEnvelope: { envelopeId: row.envelope_id, contextLevel: row.context_level, envelopeHash: row.envelope_hash,
           attemptCount: row.attempt_count, maxAttempts: row.max_attempts, payload: JSON.parse(String(row.envelope_json)) },
         ...(row.proposal_id ? { proposal: { proposalId: row.proposal_id, repairCandidateId: row.repair_candidate_id,

@@ -5,7 +5,7 @@ document_type: how-to
 domain: governance
 status: accepted
 authority: normative
-version: 1.5
+version: 1.7
 effective_date: 2026-07-21
 owner: project-owner
 ---
@@ -68,7 +68,7 @@ owner: project-owner
 |---|---|---|
 | `AUD-009` | Harness `claimNextAuthoringAction` 从 SQLite 维护完整计划、游标、上一摘要、当前动作、下一预览、最近事实和页面状态 | `CLOSED_STAGE1`：保留历史机械层，但对 Worker 只发当前获批 CTX Envelope，不再用宽松 `window` 作为执行契约 |
 | `AUD-010` | 历史 Worker 只读取 `currentAction.prompt` | `CLOSED_STAGE1`：Worker 解析严格 Envelope，模型提示包含完整获批 Envelope；纯 Playwright 路径不调用模型并记录 `NOT_INVOKED` |
-| `AUD-011` | 历史代码缺少 CTX 升级、token/图像估算、预算错误码和 migration 009 | `CLOSED_STAGE1_CODE`：已实现 L1→L2→L3、视觉16K/12K、主控1M预算函数、图像预估、确定性错误码和不可变审计；Flowise 主控实际调用留待阶段2 |
+| `AUD-011` | 历史代码缺少 CTX 升级、token/图像估算、预算错误码和 migration 009 | `CLOSED_STAGE1_CODE_UPDATED`：已实现 L1→L2→L3、视觉与主控统一16K/12K预算、图像预估、确定性错误码和不可变审计 |
 | `AUD-012` | 历史 authoring claim 响应为任意对象 | `CLOSED_STAGE1`：Worker OpenAPI 1.3.0 冻结 Claim、Envelope、Completion 与 usage Schema，顶层及受控嵌套对象均拒绝未知字段 |
 | `AUD-013` | 历史 `test:i4` 只证明机械层 | `CLOSED_STAGE1_AUTOMATION`：`verify:i8:stage1` 9/9 覆盖 Schema、migration、CTX升级、预算、实际usage超限和OpenAPI；真实 MiMo/Flowise E2E 仍未运行 |
 | `AUD-014` | 普通用户输入可能混入 namespace、幂等键、凭据别名等技术参数 | `CLOSED_STAGE2`：Agentflow Start 固定为单一 Chat Input；MCP 从会话和受控环境生成 namespace、幂等键、actor 与鉴权参数 |
@@ -107,12 +107,13 @@ owner: project-owner
 | `AUD-047` | Flowise 平台 SQLite、平台知识与 Harness 事实可能越权或双写 | `CLOSED_I9_P3_PUBLIC_IMPORT_AND_DUAL_SQLITE`：平台知识与参数引用只经Flowise公开账户/导入/查询API装配；Harness migration 016只保存不可变快照引用。两库独立备份、停机恢复、Hash、`quick_check`、职责表与正文禁入均在隔离真实运行中通过 |
 | `AUD-048` | Agentflow/MCP 制品存在可能被误报为 MiMo 与十四工具已经真实连通 | `CLOSED_I9_P4_MIMO_AND_MCP`：Bundled Flowise MCP客户端已真实调用14/14工具并验证鉴权、幂等、预算、超时、安全错误、Human Input和循环；MiMo v2.5已经Flowise同源`@langchain/openai`适配器和JSON响应格式完成真实严格结构化调用，凭据未写入制品或输出 |
 | `AUD-049` | 可加载 Agentflow JSON 不等于已经发布且重启可恢复 | `CLOSED_I9_P5_PUBLICATION_AND_RESTART`：固定ID正式Agentflow已通过公开凭据、导入、更新、校验和导出API私有发布，校验0问题；停止四服务并从同一双SQLite重启后Flow ID、发布状态、定义Hash和导出Hash一致，无直接数据库写入或临时手工状态 |
-| `AUD-050` | 本机引擎测试可能被误报为用户自然语言正反向闭环 | `PARTIAL_CLOSED_I9_P6_OPEN_P7`：P6普通中文输入到脚本生成、6/6、预览、激活、按需纯Playwright运行及同会话回复已真实通过；P7反向事故、候选、复验、激活、复跑/修复版调度仍须独立真实Flowise对话验收 |
+| `AUD-050` | 本机引擎测试可能被误报为用户自然语言正反向闭环 | `CLOSED_I9_P6_P7`：P6普通中文输入到脚本生成、6/6、预览、激活、按需纯Playwright运行及同会话回复已真实通过；P7受控定位器失效经`CTX-L1`、白名单提案、新6/6证书、独立激活和独立复跑完成37节点真实Flowise反向对话，修复版调度被明确拒绝且旧调度未迁移 |
 | `AUD-051` | 单机复制或探针恢复可能被误报为已通过便携验收 | `OPEN_I9_P8`：临时候选必须在干净目录和第二台 Windows 10/11 x64 电脑完成解压启动、备份恢复和核心 E2E；候选不冒充最终提交文件夹 |
 | `AUD-052` | 已验证候选仍可能夹带运行态、秘密或依赖人工整理 | `OPEN_I9_P9`：最终`.release/hengzhun-regression-system-windows-x64/`必须从冻结提交可复现生成，采用内容白名单并通过秘密、运行态、绝对路径、压缩往返Hash和离线启动检查 |
 | `AUD-053` | Flowise、Coze、HiAgent 分支可能在迁移时互相覆盖 | `OPEN_I9_RELEASE`：I9 P9 通过后才把 Flowise 版冻结到 `main`；保留 `coze`，再从该基线新建 `hiagent`，禁止自动 merge、删分支或 force push |
+| `AUD-054` | MiMo 的大窗口、报文扩展或原生工具能力可能生成无法迁移到 Qwen3.5/HiAgent 的实现 | `CLOSED_QWEN35_COMPATIBILITY_CEILING`：MiMo 仅作为当前提供方；控制器和视觉请求统一16K/12K/4K，报文固定为非思考、非流式 OpenAI Chat Completions 字符串消息与 JSON mode，MCP 由 Workflow 节点调用，模型原生工具与提供方扩展字段失败关闭 |
 
-`AUD-009...AUD-043` 已关闭 I8 七阶段本机引擎，`AUD-044` 继续约束外部运行证据；`AUD-045...AUD-049`已由I9 P1—P5关闭，`AUD-050`的P6正向部分已关闭而P7仍开放，`AUD-051...AUD-053`继续构成I9 P8—P9与发布分支硬门禁。不得把正向对话、隔离验证、静态制品或P8临时候选写成反向修复、最终提交文件夹或HiAgent证据。
+`AUD-009...AUD-043` 已关闭 I8 七阶段本机引擎，`AUD-044` 继续约束外部运行证据；`AUD-045...AUD-050`已由I9 P1—P7关闭，`AUD-051...AUD-053`继续构成I9 P8—P9与发布分支硬门禁。不得把本机正反向对话、隔离验证、静态制品或P8临时候选写成最终提交文件夹或HiAgent证据。
 
 ### 2.4 仍未验证但不得遗忘
 
@@ -263,7 +264,7 @@ Agent 平台只负责自然语言接收、平台知识查询、案例结构化�
 | 消费者 | 总窗口硬上限 | 输入预算 | 输出保留 | 允许上下文 |
 |---|---:|---:|---:|---|
 | Midscene 视觉 LLM | 16,000 | 最多 12,000 | 至少 4,000 | 默认 `CTX-L1`，规则证明需要时 `CTX-L2`，极少数分支可用裁剪后的 `CTX-L3` |
-| Flowise/HiAgent 主控 LLM | 1,000,000 | 最多 967,232 | 至少 32,768 | 当前案例、已发布知识命中、Workflow 状态、MCP 脱敏摘要和当前最小依赖锥 |
+| Flowise/HiAgent 主控 LLM | 16,000 | 最多 12,000 | 至少 4,000 | 当前案例、已发布知识命中、Workflow 状态、MCP 脱敏摘要和当前最小依赖锥 |
 
 计量包含系统提示、开发者提示、工具/Schema 定义、对话消息、`ActionContextEnvelope`、截图或图像折算 token、模型输出以及提供方附加的不可见模板开销。实现必须采用模型提供方实际 tokenizer/usage 作为最终值；预估不确定时按更保守值计量。
 
@@ -282,10 +283,19 @@ Agent 平台只负责自然语言接收、平台知识查询、案例结构化�
 
 主控模型规则：
 
-1. 1M 是容量上限，不是读取仓库、SQLite、其他案例、完整日志或完整历史对话的授权。
+1. 16K 是主控硬上限，不是读取仓库、SQLite、其他案例、完整日志或完整历史对话的授权。
 2. 默认仍使用当前 Workflow 节点所需最小上下文；只有确定性规则证明信息不足时才扩展依赖锥。
-3. 单请求必须满足 `estimatedInputTokens <= 967,232` 且 `input + reservedOutput <= 1,000,000`；超限返回 `CONTROLLER_CONTEXT_BUDGET_EXCEEDED` 并通过摘要、分页或重新拆分 Workflow 降级。
-4. 主控不得把自身1M窗口转发给视觉模型；向视觉模型发送的每次包必须重新按16K硬上限构造和计量。
+3. 单请求必须满足 `estimatedInputTokens <= 12,000` 且 `input + reservedOutput <= 16,000`；超限返回 `CONTROLLER_CONTEXT_BUDGET_EXCEEDED` 并通过摘要、分页或重新拆分 Workflow 降级。
+4. 主控与视觉模型虽然同为16K，仍是两个独立授权包；向视觉模型发送的每次包必须重新构造和计量。
+
+### `HZ-C18` Qwen3.5 能力上限
+
+1. MiMo v2.5 只是当前运行提供方；任何设计只有同时落在 Qwen3.5 已确认能力内才可进入正式流程。
+2. 请求只使用 OpenAI 兼容 `/v1/chat/completions`，消息角色仅 `system/user/assistant`，`content` 仅字符串；响应只读取 `choices[0].message.content`。
+3. 结构化输出固定 `response_format={"type":"json_object"}`，提示中必须出现 JSON，关闭 thinking 和 streaming；所有输出仍须本地 Schema 校验，最多三次总尝试，失败关闭。
+4. 单次最大输出4,000 tokens、超时60秒；主控与视觉均执行16,000总量、12,000输入、4,000输出保留。
+5. 禁用模型原生 `tools/tool_choice/tool_calls/parallel_tool_calls/reasoning_content`、开发者角色、多模态消息和提供方私有字段。MCP 由 Flowise/HiAgent Workflow 节点顺序调用，不让模型直接执行工具。
+6. 可执行契约为 `flowise/i9/qwen35-capability-envelope-v1.json`；未来切换到 Qwen3.5 时只能更换凭据、模型名和基础地址，不得改变 Workflow 语义。
 
 每个 `ActionContextEnvelope` 必须增加：`consumerType`、`contextLevel`、`modelContextLimitTokens`、`inputBudgetTokens`、`reservedOutputTokens`、`estimatedInputTokens`、`imageTokenEstimate`、`tokenizerId`、`budgetDecision` 和 `redactionProfileId`。预算决定与最终 usage 写入 Harness 审计，但不得保存秘密正文。
 
@@ -340,7 +350,7 @@ DecisionDelta
 | MCP 工具 | `HZ-C04/C11` | Schema、鉴权、幂等、namespace、分页、预算、负测 |
 | SQLite migration | `HZ-C06/C15` | 备份、迁移、FK、integrity、回滚、跨库隔离 |
 | Midscene | `HZ-C10/C11/C14/C17` | 16K 总窗口、12K 输入门禁、上下文最小化、歧义失败关闭、Playwright 独立验证 |
-| 主控 LLM | `HZ-C03/C08/C09/C14/C17` | 1M 总窗口、最小依赖锥、无全库/全项目读取、上下文超限降级 |
+| 主控 LLM | `HZ-C03/C08/C09/C14/C17/C18` | 16K/12K/4K、Qwen3.5兼容报文、最小依赖锥、无全库/全项目读取、上下文超限降级 |
 | Builder/DSL | `HZ-C10/C12` | 白名单、确定性 Hash、任意代码拒绝 |
 | Playwright/证书 | `HZ-C12` | 2 视口 × 3 次、独立 Fixture/Context、证据一致 |
 | 调度/收件箱 | `HZ-C13` | 精确版本、Cron/runAt、misfire、重启、离线恢复 |
