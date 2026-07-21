@@ -65,8 +65,19 @@ function processInfo(pid) {
   try { return JSON.parse(result.stdout.trim()) } catch { return null }
 }
 
-function isOwned(record) {
-  const info = processInfo(record.pid)
+function processInfos(records) {
+  const pids = records.map(record => Number(record?.pid)).filter(pid => Number.isInteger(pid) && pid > 0)
+  if (!pids.length) return new Map()
+  const command = `$ids=@(${pids.join(',')}); @(Get-CimInstance Win32_Process -ErrorAction SilentlyContinue | Where-Object {$ids -contains $_.ProcessId} | Select-Object ProcessId,ExecutablePath,CommandLine) | ConvertTo-Json -Compress`
+  const result = childProcess.spawnSync('powershell.exe', ['-NoProfile', '-Command', command], { encoding: 'utf8', windowsHide: true })
+  if (result.status !== 0 || !result.stdout.trim()) return new Map()
+  try {
+    const parsed = JSON.parse(result.stdout.trim())
+    return new Map((Array.isArray(parsed) ? parsed : [parsed]).map(info => [Number(info.ProcessId), info]))
+  } catch { return new Map() }
+}
+
+function isOwned(record, info = processInfo(record.pid)) {
   if (!info) return false
   const executable = path.resolve(String(info.ExecutablePath || '')).toLowerCase()
   const commandLine = String(info.CommandLine || '').replaceAll('/', '\\').toLowerCase()
@@ -94,8 +105,8 @@ async function httpHealth(url, timeoutMs = 1500) {
   })
 }
 
-function workerHealth(record) {
-  if (!isOwned(record) || !fs.existsSync(workerHealthFile)) return false
+function workerHealth(record, owned = isOwned(record)) {
+  if (!owned || !fs.existsSync(workerHealthFile)) return false
   try {
     const health = JSON.parse(fs.readFileSync(workerHealthFile, 'utf8'))
     const age = Date.now() - Date.parse(health.updatedAt)
@@ -103,9 +114,9 @@ function workerHealth(record) {
   } catch { return false }
 }
 
-async function serviceHealth(record) {
-  if (!isOwned(record)) return false
-  if (record.name === 'worker') return workerHealth(record)
+async function serviceHealth(record, owned = isOwned(record)) {
+  if (!owned) return false
+  if (record.name === 'worker') return workerHealth(record, owned)
   return await httpHealth(definitions[record.name].health)
 }
 
@@ -116,11 +127,13 @@ function readState() {
 
 async function status() {
   const state = readState()
+  const records = serviceOrder.map(name => state?.services?.find(item => item.name === name)).filter(Boolean)
+  const infoByPid = processInfos(records)
   const services = []
   for (const name of serviceOrder) {
     const record = state?.services?.find(item => item.name === name)
-    const owned = record ? isOwned(record) : false
-    const healthy = record ? await serviceHealth(record) : false
+    const owned = record ? isOwned(record, infoByPid.get(record.pid)) : false
+    const healthy = record ? await serviceHealth(record, owned) : false
     services.push({ name, pid: record?.pid || null, owned, healthy })
   }
   const healthy = services.every(item => item.owned && item.healthy)

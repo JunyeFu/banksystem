@@ -21,6 +21,6 @@
   },
   "lifecycle": {
     "startupTimeoutSeconds": 90,
-    "workerHeartbeatMaxAgeSeconds": 10
+    "workerHeartbeatMaxAgeSeconds": 30
   }
 }
