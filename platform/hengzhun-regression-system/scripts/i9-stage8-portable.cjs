@@ -69,7 +69,7 @@ function copyRuntimeTree(relative, candidateRoot) {
   const destination = path.join(candidateRoot, ...relative.split('/'))
   assert.ok(fs.existsSync(source), `I9_P8_RUNTIME_TREE_MISSING:${relative}`)
   fs.mkdirSync(destination, { recursive: true })
-  const result = run('robocopy.exe', [source, destination, '/E', '/COPY:DAT', '/DCOPY:DAT', '/R:1', '/W:1', '/XJ', '/NFL', '/NDL', '/NJH', '/NJS', '/NP', '/XF', '.env', '.env.*', '*.log', '*.pid'])
+  const result = run('robocopy.exe', [source, destination, '/E', '/COPY:DAT', '/DCOPY:DAT', '/R:1', '/W:1', '/XJ', '/MT:16', '/NFL', '/NDL', '/NJH', '/NJS', '/NP', '/XF', '.env', '.env.*', '*.log', '*.pid'])
   assert.ok(result.status >= 0 && result.status <= 7, `I9_P8_RUNTIME_COPY_FAILED:${relative}:${result.status}`)
 }
 
