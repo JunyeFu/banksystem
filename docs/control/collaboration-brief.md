@@ -43,12 +43,12 @@ I0—I7的Coze演示是冻结历史，I8七阶段本机确定性引擎已经关�
 ## 3. 当前真实状态
 
 - `HENGZHUN-I8-FLOWISE-001`：`DONE`；七阶段确定性引擎、MCP、Worker和真实Chromium门禁已完成。
-- `HENGZHUN-I9-FLOWISE-PRODUCT-001`：`IN_PROGRESS`；当前从P1正式运行时收编开始，严格按P1—P9顺序推进。
+- `HENGZHUN-I9-FLOWISE-PRODUCT-001`：`IN_PROGRESS`；P1正式运行时收编已验证，当前进入P2四服务便携启停与健康门禁，仍严格按P1—P9顺序推进。
 - Flowise Windows 隔离探针：通过，但仅证明技术可行。
 - 当前产品结构校验：保留 Coze 历史目录，同时要求 `flowise/`、`mcp/` 和 Flowise 平台知识制品；不再把 Coze Knowledge 写成 I9 当前权威。
 - 历史 I4 Harness 已实现 SQLite 游标、单动作租约和“上一摘要/当前动作/下一预览”状态窗口，`npm.cmd run test:i4` 当前为 3/3 通过。
 - I8 阶段1已让 Worker 以强类型 `ActionContextEnvelope` 为唯一视觉上下文，完成 `CTX-L1→L2→L3` 歧义升级、视觉16K/12K门禁、主控1M预算函数、图像/token预估、migration 009和不可变预算审计。
-- I8 migration 009—015、MCP 7.0.0十四工具、Builder、Worker、六次签证、受控交付、精确调度、结果收件箱和限域修复均已验证。I9尚未开始正式Flowise运行时收编，因此当前仍没有可打开的正式Flowise产品URL；技术探针和制品不可冒充平台可用。HiAgent运行仍未验收。
+- I8 migration 009—015、MCP 7.0.0十四工具、Builder、Worker、六次签证、受控交付、精确调度、结果收件箱和限域修复均已验证。I9 P1已冻结并复算正式Flowise运行树，但P2尚未实现四服务统一启停，因此当前仍没有可打开的正式Flowise产品URL；静态运行时不可冒充平台可用。HiAgent运行仍未验收。
 - HiAgent MCP 注册、网络可达性、容量和真实 Workflow 映射：测试环境待验证。
 - 开发 RAG 索引：`NOT_BUILT`，不影响产品。
 - 外部案例/视频输入：`PROPOSED`，依赖已完成的 I8 引擎，但受 I9 退出门禁延后。

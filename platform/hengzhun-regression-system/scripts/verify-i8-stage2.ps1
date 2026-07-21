@@ -4,7 +4,7 @@ param()
 $ErrorActionPreference = 'Stop'
 $root = Split-Path -Parent $PSScriptRoot
 $node = Join-Path $root 'runtime\node-v20.20.2-win-x64\node.exe'
-$flowisePackage = Join-Path $root '.data\probes\flowise\app-3.0.12\package.json'
+$flowisePackage = Join-Path $root 'flowise\app\package.json'
 
 if (-not (Test-Path -LiteralPath $flowisePackage)) {
     throw 'I8_STAGE2_FLOWISE_3_0_12_RUNTIME_MISSING'

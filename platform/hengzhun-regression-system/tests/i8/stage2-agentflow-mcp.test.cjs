@@ -13,7 +13,7 @@ const { startHarness } = require('../../dist/harness/src/server.js')
 
 const productRoot = path.resolve(__dirname, '../..')
 const nodePath = path.join(productRoot, 'runtime', 'node-v20.20.2-win-x64', 'node.exe')
-const flowiseAppPath = path.join(productRoot, '.data', 'probes', 'flowise', 'app-3.0.12')
+const flowiseAppPath = path.join(productRoot, 'flowise', 'app')
 const serviceToken = 'synthetic-i8-stage2-service-token-000001'
 const mcpToken = 'synthetic-i8-stage2-mcp-token-00000002'
 
@@ -165,7 +165,7 @@ test('stage2 schemas reject unresolved clarification, secret-like input and mism
 })
 
 test('Flowise 3.0.12 artifact uses only mapped nodes, chat input and MCP for external tools', () => {
-  assert.ok(fs.existsSync(path.join(flowiseAppPath, 'package.json')), 'Flowise 3.0.12 probe runtime is required')
+  assert.ok(fs.existsSync(path.join(flowiseAppPath, 'package.json')), 'Formal Flowise 3.0.12 runtime is required')
   const flow = JSON.parse(fs.readFileSync(path.join(productRoot, 'flowise', 'i8', 'agentflow-v2.json'), 'utf8'))
   const manifest = JSON.parse(fs.readFileSync(path.join(productRoot, 'flowise', 'i8', 'deployment-manifest.json'), 'utf8'))
   const mapping = YAML.parse(fs.readFileSync(path.join(productRoot, 'flowise', 'i8', 'hiagent-capability-map.yaml'), 'utf8'))
@@ -201,7 +201,7 @@ test('Flowise 3.0.12 artifact uses only mapped nodes, chat input and MCP for ext
 
 test('Flowise MCP client reaches the authenticated 14-tool server and active tools reach Harness', async (t) => {
   const { baseUrl } = await fixture(t)
-  assert.ok(fs.existsSync(path.join(flowiseAppPath, 'package.json')), 'Flowise 3.0.12 probe runtime is required')
+  assert.ok(fs.existsSync(path.join(flowiseAppPath, 'package.json')), 'Formal Flowise 3.0.12 runtime is required')
   const port = await freePort()
   const child = spawn(nodePath, [path.join(productRoot, 'mcp', 'src', 'server.cjs')], {
     cwd: productRoot,

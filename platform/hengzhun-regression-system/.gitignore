@@ -6,6 +6,10 @@ runtime/node-v20.20.2-win-x64/
 runtime/browsers/
 runtime/node_modules/
 
+# Flowise is provisioned into the formal product boundary from the locked runtime manifest.
+# The 1.8+ GiB dependency tree is a local/release asset, not source control content.
+flowise/app/
+
 # Generated Coze/HiAgent packages and reports are validated before separate publication.
 coze/dist/
 tests/results/

@@ -11,6 +11,9 @@ if not exist "%NODE%" (
   exit /b 2
 )
 
+cd /d "%PRODUCT_ROOT%"
+if errorlevel 1 exit /b 2
+
 if not exist "%PRODUCT_ROOT%.data" mkdir "%PRODUCT_ROOT%.data"
 
 "%NODE%" "%PRODUCT_ROOT%scripts\verify-structure.cjs"
@@ -61,5 +64,8 @@ if errorlevel 1 exit /b %ERRORLEVEL%
 call "%PRODUCT_ROOT%runtime\node-v20.20.2-win-x64\npm.cmd" run verify:i8:stage7
 if errorlevel 1 exit /b %ERRORLEVEL%
 
-echo HENGZHUN_I1_I2_I3_I4_I5_I6_I7_AND_I8_STAGE7_VERIFIED
+call "%PRODUCT_ROOT%runtime\node-v20.20.2-win-x64\npm.cmd" run verify:i9:stage1
+if errorlevel 1 exit /b %ERRORLEVEL%
+
+echo HENGZHUN_I1_I2_I3_I4_I5_I6_I7_I8_STAGE7_AND_I9_STAGE1_VERIFIED
 exit /b 0

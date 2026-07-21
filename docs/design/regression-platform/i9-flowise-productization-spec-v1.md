@@ -84,6 +84,8 @@ platform/hengzhun-regression-system/
 
 退出：断网条件下可完成静态依赖检查；产品文件不引用`probes/`、WSL、Docker或全局Node。
 
+状态（2026-07-21）：`VERIFIED_I9_P1`。正式运行时位于`flowise/app/`，由`flowise/runtime-package.json`、`flowise/runtime-package-lock.json`和`flowise/manifests/i9-p1-runtime-baseline.json`冻结；`npm.cmd run verify:i9:stage1`完成端口、Bundled Node入口、版本、锁文件和完整运行树Hash复核。该结论只关闭P1，不证明四服务已启动或Flowise已有可打开URL。
+
 ### P2 四服务便携启停与健康门禁
 
 - 启动顺序：Harness → MCP → Worker → Flowise；停止顺序反向。

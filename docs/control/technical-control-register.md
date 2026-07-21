@@ -102,7 +102,7 @@ owner: project-owner
 | `AUD-042` | 修复候选可能绕过稳定性门禁或自动替换正式脚本 | `CLOSED_STAGE7_CERTIFICATE_AND_HUMAN_GATE`：每候选独立ID/版本/来源链/Hash，必须重新2视口×3次并取得新证书；仅显式ACTIVATE生效，不自动运行或迁移既有调度 |
 | `AUD-043` | 修复激活后阶段5/6仍可能误选旧脚本版本 | `CLOSED_STAGE7_VERSION_HANDOFF`：`run_submit`和新建Schedule优先选择已激活修复版本并复核计划/脚本Hash；既有Schedule保持冻结版本，迁移必须由用户另行创建或明确操作 |
 | `AUD-044` | 本机Stage7自动测试可能被误报为Flowise/MiMo/HiAgent完成 | `OPEN_EXTERNAL_RUNTIME_EVIDENCE`：本机已证明Harness/MCP/Worker/SQLite闭环及固定Chromium阶段7修复候选6/6；真实Agentflow发布、MiMo主控对话和HiAgent目标环境分别保留门禁 |
-| `AUD-045` | 隔离探针或未跟踪目录可能被正式产品运行依赖 | `OPEN_I9_P1`：正式 Flowise 运行时必须收编到产品目录，冻结版本与 Hash；不得依赖 `probes/`、全局 Node、WSL、Docker 或运行时下载 |
+| `AUD-045` | 隔离探针或未跟踪目录可能被正式产品运行依赖 | `CLOSED_I9_P1_RUNTIME_BASELINE`：正式Flowise 3.0.12运行树已收编到`flowise/app/`，Bundled Node 20.20.2、Chromium 1217、依赖锁与完整目录Hash已冻结并离线复算；配置和正式入口不依赖`probes/`、全局Node、WSL、Docker或运行时下载 |
 | `AUD-046` | 缺少四服务统一启停、状态和正式 URL | `OPEN_I9_P2`：Flowise、Harness、MCP、Worker 必须由产品自有命令准备、启动、停止和检查；端口冲突、弱 Token、缺配置和异常退出均失败关闭 |
 | `AUD-047` | Flowise 平台 SQLite、平台知识与 Harness 事实可能越权或双写 | `OPEN_I9_P3`：只经公开导入/界面初始化平台资源，禁止直接修改 Flowise 内部数据库；两类 SQLite 分别备份、恢复和验真 |
 | `AUD-048` | Agentflow/MCP 制品存在可能被误报为 MiMo 与十四工具已经真实连通 | `OPEN_I9_P4`：MiMo 主控、十四工具、输出预算、超时、Human Input 续办、会话恢复和错误传播必须逐项留下真实调用证据 |
@@ -112,7 +112,7 @@ owner: project-owner
 | `AUD-052` | 已验证候选仍可能夹带运行态、秘密或依赖人工整理 | `OPEN_I9_P9`：最终`.release/hengzhun-regression-system-windows-x64/`必须从冻结提交可复现生成，采用内容白名单并通过秘密、运行态、绝对路径、压缩往返Hash和离线启动检查 |
 | `AUD-053` | Flowise、Coze、HiAgent 分支可能在迁移时互相覆盖 | `OPEN_I9_RELEASE`：I9 P9 通过后才把 Flowise 版冻结到 `main`；保留 `coze`，再从该基线新建 `hiagent`，禁止自动 merge、删分支或 force push |
 
-`AUD-009...AUD-043` 已关闭 I8 七阶段本机引擎，`AUD-044` 继续约束外部运行证据；`AUD-045...AUD-053` 分别构成 I9 P1—P9 与发布分支硬门禁。不得把本机引擎、隔离探针、静态制品或P8临时候选写成 Flowise 真实 Agentflow、最终提交文件夹或 HiAgent 证据。
+`AUD-009...AUD-043` 已关闭 I8 七阶段本机引擎，`AUD-044` 继续约束外部运行证据；`AUD-045`已由I9 P1关闭，`AUD-046...AUD-053`继续构成I9 P2—P9与发布分支硬门禁。不得把本机引擎、隔离探针、静态制品或P8临时候选写成 Flowise 真实 Agentflow、最终提交文件夹或 HiAgent 证据。
 
 ### 2.4 仍未验证但不得遗忘
 
