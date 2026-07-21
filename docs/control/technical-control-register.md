@@ -104,7 +104,7 @@ owner: project-owner
 | `AUD-044` | 本机Stage7自动测试可能被误报为Flowise/MiMo/HiAgent完成 | `OPEN_EXTERNAL_RUNTIME_EVIDENCE`：本机已证明Harness/MCP/Worker/SQLite闭环及固定Chromium阶段7修复候选6/6；真实Agentflow发布、MiMo主控对话和HiAgent目标环境分别保留门禁 |
 | `AUD-045` | 隔离探针或未跟踪目录可能被正式产品运行依赖 | `CLOSED_I9_P1_RUNTIME_BASELINE`：正式Flowise 3.0.12运行树已收编到`flowise/app/`，Bundled Node 20.20.2、Chromium 1217、依赖锁与完整目录Hash已冻结并离线复算；配置和正式入口不依赖`probes/`、全局Node、WSL、Docker或运行时下载 |
 | `AUD-046` | 缺少四服务统一启停、状态和正式 URL | `CLOSED_I9_P2_LIFECYCLE`：产品自有命令已按固定顺序管理四服务，PID归属、独立健康、端口冲突、弱Token、幂等启动、部分失败清理、反序安全停止及双SQLite重启恢复均有真实证据；未知占用不终止 |
-| `AUD-047` | Flowise 平台 SQLite、平台知识与 Harness 事实可能越权或双写 | `OPEN_I9_P3`：只经公开导入/界面初始化平台资源，禁止直接修改 Flowise 内部数据库；两类 SQLite 分别备份、恢复和验真 |
+| `AUD-047` | Flowise 平台 SQLite、平台知识与 Harness 事实可能越权或双写 | `CLOSED_I9_P3_PUBLIC_IMPORT_AND_DUAL_SQLITE`：平台知识与参数引用只经Flowise公开账户/导入/查询API装配；Harness migration 016只保存不可变快照引用。两库独立备份、停机恢复、Hash、`quick_check`、职责表与正文禁入均在隔离真实运行中通过 |
 | `AUD-048` | Agentflow/MCP 制品存在可能被误报为 MiMo 与十四工具已经真实连通 | `OPEN_I9_P4`：MiMo 主控、十四工具、输出预算、超时、Human Input 续办、会话恢复和错误传播必须逐项留下真实调用证据 |
 | `AUD-049` | 可加载 Agentflow JSON 不等于已经发布且重启可恢复 | `OPEN_I9_P5`：正式 Agentflow 必须通过公开流程导入、发布、导出并记录 Hash；重启后无需临时手工状态即可恢复 |
 | `AUD-050` | 本机引擎测试可能被误报为用户自然语言正反向闭环 | `OPEN_I9_P6_P7`：正向脚本生成/验证/交付/运行/调度与反向事故/候选/复验/激活必须分别在真实 Flowise 对话中验收 |
@@ -112,7 +112,7 @@ owner: project-owner
 | `AUD-052` | 已验证候选仍可能夹带运行态、秘密或依赖人工整理 | `OPEN_I9_P9`：最终`.release/hengzhun-regression-system-windows-x64/`必须从冻结提交可复现生成，采用内容白名单并通过秘密、运行态、绝对路径、压缩往返Hash和离线启动检查 |
 | `AUD-053` | Flowise、Coze、HiAgent 分支可能在迁移时互相覆盖 | `OPEN_I9_RELEASE`：I9 P9 通过后才把 Flowise 版冻结到 `main`；保留 `coze`，再从该基线新建 `hiagent`，禁止自动 merge、删分支或 force push |
 
-`AUD-009...AUD-043` 已关闭 I8 七阶段本机引擎，`AUD-044` 继续约束外部运行证据；`AUD-045...AUD-046`已由I9 P1—P2关闭，`AUD-047...AUD-053`继续构成I9 P3—P9与发布分支硬门禁。不得把运行底座、隔离探针、静态制品或P8临时候选写成 Flowise 真实 Agentflow、最终提交文件夹或 HiAgent 证据。
+`AUD-009...AUD-043` 已关闭 I8 七阶段本机引擎，`AUD-044` 继续约束外部运行证据；`AUD-045...AUD-047`已由I9 P1—P3关闭，`AUD-048...AUD-053`继续构成I9 P4—P9与发布分支硬门禁。不得把运行底座、平台参数引用、隔离验证、静态制品或P8临时候选写成 MiMo/十四工具真实连通、Flowise真实Agentflow、最终提交文件夹或HiAgent证据。
 
 ### 2.4 仍未验证但不得遗忘
 

@@ -70,5 +70,8 @@ if errorlevel 1 exit /b %ERRORLEVEL%
 call "%PRODUCT_ROOT%runtime\node-v20.20.2-win-x64\npm.cmd" run verify:i9:stage2
 if errorlevel 1 exit /b %ERRORLEVEL%
 
-echo HENGZHUN_I1_I2_I3_I4_I5_I6_I7_I8_STAGE7_I9_STAGE1_AND_STAGE2_VERIFIED
+call "%PRODUCT_ROOT%runtime\node-v20.20.2-win-x64\npm.cmd" run verify:i9:stage3
+if errorlevel 1 exit /b %ERRORLEVEL%
+
+echo HENGZHUN_I1_I2_I3_I4_I5_I6_I7_I8_STAGE7_I9_STAGE1_STAGE2_AND_STAGE3_VERIFIED
 exit /b 0

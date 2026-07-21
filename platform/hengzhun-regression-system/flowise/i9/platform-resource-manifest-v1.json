@@ -1,0 +1,27 @@
+{
+  "schemaVersion": "hengzhun-i9-platform-resource-manifest-v1",
+  "resourceVersion": "1.0.0",
+  "knowledge": {
+    "snapshotId": "flowise-portal-login-v1",
+    "storeId": "8b7b962b-74b2-4c11-969f-46b7ebac6901",
+    "documentId": "e2d3f3cd-2146-47f3-aa8d-302a52b4c9cf",
+    "chunkId": "0aac163d-c2e9-438f-91ac-a6c3ac768ff6",
+    "storeName": "衡准平台知识-门户登录一致性-v1",
+    "sourcePath": "flowise/i9/knowledge/portal-login-consistency-v1.md",
+    "sourceVersion": "1.0.0",
+    "contentHash": "28e7dc39896fd396774c8d0ae9e2fe2c5715272a28f7f43ba11073951bafc33c",
+    "citationIds": [
+      "HZ-KNOW-PORTAL-LOGIN-001#identity-consistency",
+      "HZ-KNOW-PORTAL-LOGIN-001#acceptance-evidence",
+      "HZ-KNOW-PORTAL-LOGIN-001#execution-boundary"
+    ]
+  },
+  "connectionProfilePath": "flowise/i9/connection-profiles-v1.json",
+  "importMethod": {
+    "method": "POST",
+    "path": "/api/v1/export-import/import",
+    "interface": "Flowise public export/import API"
+  },
+  "flowiseDatabaseRole": "platform-configuration-knowledge-metadata",
+  "harnessDatabaseRole": "structured-regression-facts-and-knowledge-snapshot-ref-only"
+}

@@ -6,6 +6,9 @@ async function main(): Promise<void> {
   const productRoot = path.resolve(process.env.HENGZHUN_PRODUCT_ROOT ?? process.cwd());
   const { server, application } = await startHarness({
     productRoot,
+    databasePath: process.env.HENGZHUN_DATABASE_PATH,
+    backupDirectory: process.env.HENGZHUN_DATABASE_BACKUP_PATH,
+    artifactRoot: process.env.HENGZHUN_ARTIFACT_ROOT,
     host: process.env.HOST ?? '127.0.0.1',
     port: Number(process.env.PORT ?? 18788)
   });

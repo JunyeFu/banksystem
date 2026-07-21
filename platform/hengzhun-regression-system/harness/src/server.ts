@@ -9,6 +9,7 @@ import {
   caseCreateDraftSchema,
   caseImportSubmitSchema,
   decisionSubmitSchema,
+  i9KnowledgeSnapshotRegistrationSchema,
   namespaceSchema,
   planCompileSchema,
   repairCandidateCreateSchema,
@@ -366,6 +367,11 @@ export async function createHarnessApplication(options: HarnessApplicationOption
         credentialFingerprint: fingerprint,
         actorType: url.pathname.startsWith('/v1/i8/') ? 'SYSTEM' as const : 'COZE' as const
       };
+      if (request.method === 'POST' && url.pathname === '/v1/platform/knowledge-snapshots:register') {
+        const input = i9KnowledgeSnapshotRegistrationSchema.parse(await readJson(request));
+        const result = await service.registerI9KnowledgeSnapshot(input, context);
+        return sendJson(response, result.status, result.response, 'L1', requestId);
+      }
       if (request.method === 'POST' && url.pathname === '/v1/i8/cases:prepare') {
         const input = i8CasePrepareSchema.parse(await readJson(request));
         const result = await service.prepareI8Case(input, context);

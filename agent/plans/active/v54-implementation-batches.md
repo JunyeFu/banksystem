@@ -404,6 +404,8 @@ I9内部实现顺序固定为9个阶段：
 
 2026-07-21 P2关闭结论：产品自有`prepare/start/status/stop`已按Harness → MCP → Worker → Flowise启动并反序停止；四项PID归属与独立健康门禁、重复启动幂等、未知端口拒绝且不杀进程、弱Token失败关闭、部分失败清理、双SQLite完整性和真实重启恢复均通过。历史Docker Harness已确认归属后仅停止未删除。当前进入P3；只可称Flowise运行底座可用，不得声称平台知识、模型/MCP连接或Agentflow已完成。
 
+2026-07-21 P3关闭结论：固定版本平台知识、MiMo/MCP连接参数与运行时秘密变量引用已通过Flowise公开账户、导入和查询API装配，未直接写Flowise内部表；固定引用、来源版本、内容Hash和引用ID均可回读。Harness migration 016只保存不可变`KnowledgeSnapshotRef`，不保存知识正文。两套SQLite通过SQLite在线备份API分别备份，并在停机门禁下恢复、`quick_check`和职责表边界复核通过。当前进入P4；P3没有注入MiMo密钥、没有调用模型或MCP工具，不得声称MiMo或十四工具已连通。
+
 I9退出条件全部为硬门禁：
 
 - 一个正式入口命令能在干净Windows目录启动四服务，健康检查全部通过，并给出可打开的Flowise URL；

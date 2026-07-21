@@ -1,7 +1,13 @@
 ---
 id: EVIDENCE-HENGZHUN-I9-P1-RUNTIME-BASELINE-20260721
 title: 衡准 I9 P1 产品化基线与运行时收编证据
+document_type: evidence
+domain: platform
 status: verified
+authority: evidence
+version: 1.0
+effective_date: 2026-07-21
+owner: project-owner
 date: 2026-07-21
 ---
 

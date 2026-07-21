@@ -1,7 +1,13 @@
 ---
 id: EVIDENCE-HENGZHUN-I9-P2-FOUR-SERVICE-LIFECYCLE-20260721
 title: 衡准 I9 P2 四服务便携启停与健康门禁证据
+document_type: evidence
+domain: platform
 status: verified
+authority: evidence
+version: 1.0
+effective_date: 2026-07-21
+owner: project-owner
 date: 2026-07-21
 ---
 

@@ -18,7 +18,8 @@ import type {
   RepairCandidateCreateInput,
   RunSubmitInput,
   ScheduleCreateInput,
-  ScheduleDisableInput
+  ScheduleDisableInput,
+  I9KnowledgeSnapshotRegistrationInput
 } from './schemas';
 import type { I8AuthoringSubmitInput, I8CasePrepareInput } from './i8/stage2-schemas';
 import {
@@ -412,6 +413,68 @@ export class HarnessService {
         objectType: result.objectType, objectId: result.objectId, outcome: 'ACCEPTED'
       });
       return { status: result.status, response, replayed: false };
+    });
+  }
+
+  async registerI9KnowledgeSnapshot(
+    input: I9KnowledgeSnapshotRegistrationInput,
+    context: RequestContext
+  ): Promise<IdempotentResult> {
+    return this.idempotent(input.namespace, 'i9_knowledge_snapshot_register', input.idempotencyKey, input, context, (db, timestamp) => {
+      const existing = db.prepare(`
+        SELECT snapshot_id, platform_resource_id, source_ref, source_version, content_hash, citation_ids_json
+        FROM i9_knowledge_snapshot_refs
+        WHERE snapshot_id = ? OR (namespace = ? AND content_hash = ?)
+      `).get(input.snapshot.knowledgeSnapshotId, input.namespace, input.snapshot.contentHash) as Record<string, unknown> | undefined;
+      const expectedCitationJson = canonicalJson(input.snapshot.citationIds);
+      if (existing) {
+        const matches = existing.snapshot_id === input.snapshot.knowledgeSnapshotId
+          && existing.platform_resource_id === input.platformResourceId
+          && existing.source_ref === input.sourceRef
+          && existing.source_version === input.snapshot.sourceVersion
+          && existing.content_hash === input.snapshot.contentHash
+          && existing.citation_ids_json === expectedCitationJson;
+        if (!matches) {
+          throw new HarnessError(409, 'I9_KNOWLEDGE_SNAPSHOT_CONFLICT', 'CONCURRENCY', '知识快照引用与已登记版本冲突。', false, true);
+        }
+        return {
+          status: 200,
+          response: {
+            snapshotId: input.snapshot.knowledgeSnapshotId,
+            contentHash: input.snapshot.contentHash,
+            citationIds: input.snapshot.citationIds,
+            status: 'ALREADY_REGISTERED'
+          },
+          objectType: 'KNOWLEDGE_SNAPSHOT_REF',
+          objectId: input.snapshot.knowledgeSnapshotId
+        };
+      }
+      db.prepare(`
+        INSERT INTO i9_knowledge_snapshot_refs(
+          snapshot_id, namespace, platform, platform_resource_id, source_ref,
+          source_version, content_hash, citation_ids_json, registered_at
+        ) VALUES (?, ?, 'FLOWISE', ?, ?, ?, ?, ?, ?)
+      `).run(
+        input.snapshot.knowledgeSnapshotId,
+        input.namespace,
+        input.platformResourceId,
+        input.sourceRef,
+        input.snapshot.sourceVersion,
+        input.snapshot.contentHash,
+        expectedCitationJson,
+        timestamp
+      );
+      return {
+        status: 201,
+        response: {
+          snapshotId: input.snapshot.knowledgeSnapshotId,
+          contentHash: input.snapshot.contentHash,
+          citationIds: input.snapshot.citationIds,
+          status: 'REGISTERED'
+        },
+        objectType: 'KNOWLEDGE_SNAPSHOT_REF',
+        objectId: input.snapshot.knowledgeSnapshotId
+      };
     });
   }
 

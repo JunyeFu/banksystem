@@ -11,6 +11,15 @@ export const knowledgeSnapshotRefSchema = z.object({
   citationIds: z.array(boundedText(160)).min(1).max(50)
 }).strict();
 
+export const i9KnowledgeSnapshotRegistrationSchema = z.object({
+  namespace: namespaceSchema,
+  idempotencyKey: idempotencyKeySchema,
+  snapshot: knowledgeSnapshotRefSchema,
+  platform: z.literal('FLOWISE'),
+  platformResourceId: boundedText(160),
+  sourceRef: boundedText(512)
+}).strict();
+
 export const regressionCaseDraftSchema = z.object({
   schemaVersion: z.literal('i8-regression-case-draft-v1'),
   title: boundedText(160),
@@ -204,6 +213,7 @@ export type RepairCandidateCreateInput = z.infer<typeof repairCandidateCreateSch
 export type ScheduleCreateInput = z.infer<typeof scheduleCreateSchema>;
 export type ScheduleDisableInput = z.infer<typeof scheduleDisableSchema>;
 export type DecisionSubmitInput = z.infer<typeof decisionSubmitSchema>;
+export type I9KnowledgeSnapshotRegistrationInput = z.infer<typeof i9KnowledgeSnapshotRegistrationSchema>;
 
 
 export function validationIssues(error: z.ZodError): Array<{ path: string; code: string; message: string }> {

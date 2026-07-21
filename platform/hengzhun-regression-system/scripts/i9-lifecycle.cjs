@@ -147,11 +147,35 @@ async function waitForService(record) {
 }
 
 function serviceEnvironment(name) {
+  const testDataRoot = process.env.NODE_ENV === 'test' && process.env.HENGZHUN_I9_TEST_DATA_ROOT
+    ? path.resolve(process.env.HENGZHUN_I9_TEST_DATA_ROOT)
+    : null
+  if (testDataRoot) {
+    const allowedRoot = path.join(root, '.data', 'tests')
+    if (!(testDataRoot === allowedRoot || testDataRoot.startsWith(`${allowedRoot}${path.sep}`))) {
+      throw new LifecycleError('I9_TEST_DATA_ROOT_OUTSIDE_PRODUCT_DATA', 'test data root must stay under .data/tests')
+    }
+  }
   const common = { ...process.env, HENGZHUN_PRODUCT_ROOT: root, HENGZHUN_HARNESS_URL: `http://127.0.0.1:${config.network.harnessPort}`, HENGZHUN_STOP_FILE: path.join(stateRoot, `stop-${name}.signal`) }
-  if (name === 'harness') return { ...common, HOST: '127.0.0.1', PORT: String(config.network.harnessPort), HENGZHUN_ALLOWED_CLIENTS: '127.0.0.1,::1' }
+  if (name === 'harness') {
+    if (testDataRoot) {
+      for (const relative of ['sqlite', 'sqlite/backups', 'artifacts']) fs.mkdirSync(path.join(testDataRoot, relative), { recursive: true })
+    }
+    return {
+    ...common,
+    HOST: '127.0.0.1', PORT: String(config.network.harnessPort), HENGZHUN_ALLOWED_CLIENTS: '127.0.0.1,::1',
+    ...(testDataRoot ? {
+      HENGZHUN_DATABASE_PATH: path.join(testDataRoot, 'sqlite', 'regression_platform.sqlite'),
+      HENGZHUN_DATABASE_BACKUP_PATH: path.join(testDataRoot, 'sqlite', 'backups'),
+      HENGZHUN_ARTIFACT_ROOT: path.join(testDataRoot, 'artifacts')
+    } : {})
+    }
+  }
   if (name === 'mcp') return { ...common, FLOWISE_APP_PATH: path.join(root, 'flowise', 'app'), HENGZHUN_MCP_PORT: String(config.network.mcpPort), HENGZHUN_NAMESPACE: process.env.HENGZHUN_NAMESPACE || 'hengzhun-local' }
   if (name === 'worker') return { ...common, HENGZHUN_WORKER_ID: process.env.HENGZHUN_WORKER_ID || 'hengzhun-i9-worker', HENGZHUN_WORKER_HEALTH_FILE: workerHealthFile }
-  return { ...common, HOST: '127.0.0.1', PORT: String(config.network.flowisePort), DATABASE_TYPE: 'sqlite', DATABASE_PATH: path.join(root, '.data', 'flowise'), SECRETKEY_PATH: path.join(root, '.data', 'flowise', 'secrets'), BLOB_STORAGE_PATH: path.join(root, '.data', 'flowise', 'storage'), LOG_PATH: path.join(root, '.data', 'flowise', 'logs'), DISABLE_FLOWISE_TELEMETRY: 'true', SECURE_COOKIES: 'false' }
+  const flowiseDataRoot = testDataRoot ? path.join(testDataRoot, 'flowise') : path.join(root, '.data', 'flowise')
+  for (const relative of ['secrets', 'storage', 'logs']) fs.mkdirSync(path.join(flowiseDataRoot, relative), { recursive: true })
+  return { ...common, HOST: '127.0.0.1', PORT: String(config.network.flowisePort), DATABASE_TYPE: 'sqlite', DATABASE_PATH: flowiseDataRoot, SECRETKEY_PATH: path.join(flowiseDataRoot, 'secrets'), BLOB_STORAGE_PATH: path.join(flowiseDataRoot, 'storage'), LOG_PATH: path.join(flowiseDataRoot, 'logs'), DISABLE_FLOWISE_TELEMETRY: 'true', SECURE_COOKIES: 'false' }
 }
 
 function spawnService(name) {

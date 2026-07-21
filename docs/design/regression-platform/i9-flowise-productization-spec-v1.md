@@ -106,6 +106,8 @@ platform/hengzhun-regression-system/
 
 退出：知识检索可返回固定引用；领域状态只存在Harness SQLite；平台资源重建不依赖开发RAG。
 
+状态（2026-07-21）：`VERIFIED_I9_P3`。`flowise/i9/platform-resource-manifest-v1.json`冻结知识来源、版本、Hash、引用ID及确定性资源ID；`scripts/i9-platform-bootstrap.cjs`只经Flowise公开账户、导入、变量和知识查询API完成首次装配与幂等复核。migration 016与Harness公开受认证入口只登记不可变知识快照引用。`backup:i9`/`restore:i9`分别处理Flowise与Harness SQLite并检查Hash、`quick_check`、职责表和知识正文禁入。`verify:i9:stage3:live`已在隔离数据根完成真实公开API与双库恢复验证。模型/MCP这里只登记参数和秘密变量名，真实MiMo与十四工具调用仍由P4验收。
+
 ### P4 MiMo主控与14工具真实连通
 
 - MiMo连接只引用环境变量，日志和错误响应不得回显密钥。
