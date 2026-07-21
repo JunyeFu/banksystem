@@ -23,5 +23,7 @@ Add-I9EnvValue $lines 'HENGZHUN_MCP_TOKEN'
 [System.IO.File]::WriteAllLines($runtimeEnv, $lines, [System.Text.UTF8Encoding]::new($false))
 
 . (Join-Path $PSScriptRoot 'import-i9-runtime-env.ps1')
+& (Join-Path $root 'runtime\node-v20.20.2-win-x64\node.exe') (Join-Path $PSScriptRoot 'apply-i9-flowise-overlays.cjs') | Out-Null
+if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 & (Join-Path $root 'runtime\node-v20.20.2-win-x64\node.exe') (Join-Path $PSScriptRoot 'i9-lifecycle.cjs') prepare
 exit $LASTEXITCODE

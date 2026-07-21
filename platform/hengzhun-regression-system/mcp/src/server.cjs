@@ -22,6 +22,10 @@ const harnessTimeoutMs = process.env.NODE_ENV === 'test' && process.env.HENGZHUN
   ? Number(process.env.HENGZHUN_MCP_HARNESS_TIMEOUT_MS)
   : 30_000
 const safeRef = z.string().trim().min(3).max(160).regex(/^[A-Za-z0-9._:-]+$/)
+const jsonObjectArgument = z.union([
+  z.string().trim().min(2).max(24_000),
+  z.record(z.string(), z.unknown())
+])
 
 if (!harnessToken) throw new Error('HENGZHUN_SERVICE_TOKEN_MISSING')
 if (!mcpToken || mcpToken.length < 24) throw new Error('HENGZHUN_MCP_TOKEN_MISSING_OR_WEAK')
@@ -93,6 +97,7 @@ async function callHarness(route, payload) {
 }
 
 function parseJsonArgument(value, errorCode) {
+  if (value && typeof value === 'object' && !Array.isArray(value)) return value
   try {
     const parsed = JSON.parse(value)
     if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) throw new Error('object required')
@@ -111,8 +116,8 @@ function createServer() {
     description: '将自然语言案例的已澄清结构化草案和知识快照提交给衡准权威状态库。',
     inputSchema: {
       caseDescription: z.string().trim().min(1).max(2000),
-      draftJson: z.string().trim().min(2).max(16_000),
-      acceptanceSummaryJson: z.string().trim().min(2).max(8_000),
+      draftJson: jsonObjectArgument,
+      acceptanceSummaryJson: jsonObjectArgument,
       sessionRef: safeRef
     }
   }, async ({ caseDescription, draftJson, acceptanceSummaryJson, sessionRef }) => {
@@ -141,14 +146,39 @@ function createServer() {
       choice: z.enum(['APPROVE', 'REJECT']),
       confirmationRef: safeRef,
       reason: z.string().trim().min(1).max(1000),
-      intentPlanJson: z.string().trim().max(24_000).optional(),
+      intentPlanJson: jsonObjectArgument.optional(),
+      caseId: safeRef.optional(),
+      caseVersion: z.number().int().positive().optional(),
+      route: z.string().trim().min(1).max(512).optional(),
+      intentStepIds: z.array(safeRef).min(1).max(50).optional(),
+      actions: z.array(z.string().trim().min(1).max(500)).min(1).max(50).optional(),
+      expectedOutcomes: z.array(z.string().trim().min(1).max(500)).min(1).max(50).optional(),
+      riskLevels: z.array(z.enum(['LOW', 'MEDIUM', 'HIGH'])).min(1).max(50).optional(),
+      assertions: z.array(z.string().trim().min(1).max(500)).min(1).max(50).optional(),
       sessionRef: safeRef
     }
-  }, async ({ preparationId, expectedVersion, choice, confirmationRef, reason, intentPlanJson, sessionRef }) => {
+  }, async ({ preparationId, expectedVersion, choice, confirmationRef, reason, intentPlanJson, caseId, caseVersion, route, intentStepIds, actions, expectedOutcomes, riskLevels, assertions, sessionRef }) => {
     try {
-      const intentPlan = choice === 'APPROVE'
-        ? parseJsonArgument(intentPlanJson || '', 'I8_INTENT_JSON_INVALID')
-        : undefined
+      let intentPlan
+      if (choice === 'APPROVE') {
+        if (intentPlanJson) {
+          intentPlan = parseJsonArgument(intentPlanJson, 'I8_INTENT_JSON_INVALID')
+        } else {
+          const counts = [intentStepIds?.length, actions?.length, expectedOutcomes?.length, riskLevels?.length]
+          if (!caseId || !caseVersion || !route || !assertions?.length || counts.some(count => !count) || new Set(counts).size !== 1) {
+            const error = new Error('I8_INTENT_FLAT_FIELDS_INVALID')
+            error.code = 'I8_INTENT_FLAT_FIELDS_INVALID'
+            throw error
+          }
+          intentPlan = {
+            schemaVersion: 'i8-intent-plan-v1', caseId, caseVersion, route,
+            steps: intentStepIds.map((intentStepId, index) => ({
+              intentStepId, action: actions[index], expected: expectedOutcomes[index], riskLevel: riskLevels[index]
+            })),
+            assertions
+          }
+        }
+      }
       const businessPayload = { preparationId, expectedVersion, choice, confirmationRef, reason, intentPlan }
       return callHarness('/v1/i8/authoring:submit', {
         namespace,
@@ -169,27 +199,48 @@ function createServer() {
   }, async ({ preparationId }) => callHarness('/v1/i8/authoring:get', { namespace, preparationId }))
 
   server.registerTool('candidate_get', {
-    description: '从已确认 IntentPlan 确定性编译阶段3计划，或读取当前候选生成状态；技术参数由 MCP 注入。',
+    description: '从已确认 IntentPlan 确定性编译阶段3计划，或读取当前候选生成状态；可受控等待本地Worker完成六次稳定性签证，技术参数由 MCP 注入。',
     inputSchema: {
       preparationId: safeRef,
-      sessionRef: safeRef
+      sessionRef: safeRef,
+      waitForCertificate: z.boolean().optional(),
+      waitTimeoutSeconds: z.number().int().min(1).max(180).optional()
     }
-  }, async ({ preparationId, sessionRef }) => {
-    const existing = await requestHarness('/v1/i8/candidates:get', { namespace, preparationId })
-    if (existing.response.ok) return textResult(existing.body)
-    if (existing.response.status !== 404) {
-      return textResult({ errorCode: existing.body.errorCode || 'I8_CANDIDATE_STATUS_UNAVAILABLE', status: existing.response.status }, true)
+  }, async ({ preparationId, sessionRef, waitForCertificate, waitTimeoutSeconds }) => {
+    let current = await requestHarness('/v1/i8/candidates:get', { namespace, preparationId })
+    if (!current.response.ok && current.response.status !== 404) {
+      return textResult({ errorCode: current.body.errorCode || 'I8_CANDIDATE_STATUS_UNAVAILABLE', status: current.response.status }, true)
     }
-    const current = await requestHarness('/v1/i8/authoring:get', { namespace, preparationId })
-    if (!current.response.ok || !Number.isInteger(current.body.version)) {
-      return textResult({ errorCode: current.body.errorCode || 'I8_PREPARATION_VERSION_UNAVAILABLE', status: current.response.status }, true)
+    if (current.response.status === 404) {
+      const authoring = await requestHarness('/v1/i8/authoring:get', { namespace, preparationId })
+      if (!authoring.response.ok || !Number.isInteger(authoring.body.version)) {
+        return textResult({ errorCode: authoring.body.errorCode || 'I8_PREPARATION_VERSION_UNAVAILABLE', status: authoring.response.status }, true)
+      }
+      const compiled = await requestHarness('/v1/i8/candidates:compile', {
+        namespace,
+        idempotencyKey: idempotencyKey('candidate_get', sessionRef, { preparationId, expectedPreparationVersion: authoring.body.version }),
+        preparationId,
+        expectedPreparationVersion: authoring.body.version
+      })
+      if (!compiled.response.ok) {
+        return textResult({ errorCode: compiled.body.errorCode || 'I8_CANDIDATE_COMPILE_FAILED', status: compiled.response.status }, true)
+      }
+      current = compiled
     }
-    return callHarness('/v1/i8/candidates:compile', {
-      namespace,
-      idempotencyKey: idempotencyKey('candidate_get', sessionRef, { preparationId, expectedPreparationVersion: current.body.version }),
-      preparationId,
-      expectedPreparationVersion: current.body.version
-    })
+    if (waitForCertificate !== true) return textResult(current.body)
+    const deadline = Date.now() + (waitTimeoutSeconds ?? 120) * 1000
+    const terminalActions = new Set(['HUMAN_DELIVERY_DECISION_REQUIRED', 'ACTIVATE_OR_REJECT_AVAILABLE', 'ON_DEMAND_RUN_AVAILABLE', 'CANDIDATE_REPAIR_REQUIRED', 'AUTHORING_REVIEW_REQUIRED', 'NONE'])
+    while (!terminalActions.has(current.body?.nextAction) && Date.now() < deadline) {
+      await new Promise(resolve => setTimeout(resolve, 750))
+      current = await requestHarness('/v1/i8/candidates:get', { namespace, preparationId })
+      if (!current.response.ok) {
+        return textResult({ errorCode: current.body.errorCode || 'I8_CANDIDATE_STATUS_UNAVAILABLE', status: current.response.status }, true)
+      }
+    }
+    if (!terminalActions.has(current.body?.nextAction)) {
+      return textResult({ errorCode: 'I8_CANDIDATE_WAIT_TIMEOUT', nextAction: current.body?.nextAction || 'UNKNOWN' }, true)
+    }
+    return textResult(current.body, false, 16 * 1024)
   })
 
   server.registerTool('candidate_preview', {
@@ -245,9 +296,26 @@ function createServer() {
   }))
 
   server.registerTool('task_get', {
-    description: '读取按需回归任务的最小脱敏状态与结果摘要。',
-    inputSchema: { taskId: safeRef }
-  }, async ({ taskId }) => callHarness('/v1/i8/tasks:get', { namespace, taskId }))
+    description: '读取按需回归任务的最小脱敏状态与结果摘要；可受控等待本地纯Playwright Worker进入终态。',
+    inputSchema: {
+      taskId: safeRef,
+      waitForTerminal: z.boolean().optional(),
+      waitTimeoutSeconds: z.number().int().min(1).max(180).optional()
+    }
+  }, async ({ taskId, waitForTerminal, waitTimeoutSeconds }) => {
+    let current = await requestHarness('/v1/i8/tasks:get', { namespace, taskId })
+    if (!current.response.ok) return textResult({ errorCode: current.body.errorCode || 'I8_TASK_STATUS_UNAVAILABLE', status: current.response.status }, true)
+    if (waitForTerminal !== true) return textResult(current.body)
+    const deadline = Date.now() + (waitTimeoutSeconds ?? 120) * 1000
+    const terminal = new Set(['SUCCEEDED', 'FAILED', 'BLOCKED', 'WAITING_USER', 'CANCELLED'])
+    while (!terminal.has(current.body?.status) && Date.now() < deadline) {
+      await new Promise(resolve => setTimeout(resolve, 750))
+      current = await requestHarness('/v1/i8/tasks:get', { namespace, taskId })
+      if (!current.response.ok) return textResult({ errorCode: current.body.errorCode || 'I8_TASK_STATUS_UNAVAILABLE', status: current.response.status }, true)
+    }
+    if (!terminal.has(current.body?.status)) return textResult({ errorCode: 'I8_TASK_WAIT_TIMEOUT', status: current.body?.status || 'UNKNOWN' }, true)
+    return textResult(current.body)
+  })
 
   server.registerTool('schedule_create', {
     description: '在用户确认规范化时间后，为已激活候选创建精确绑定脚本版本的周期或一次性回归。用户不提供技术版本和凭据。',

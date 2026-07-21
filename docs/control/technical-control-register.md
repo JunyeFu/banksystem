@@ -107,12 +107,12 @@ owner: project-owner
 | `AUD-047` | Flowise 平台 SQLite、平台知识与 Harness 事实可能越权或双写 | `CLOSED_I9_P3_PUBLIC_IMPORT_AND_DUAL_SQLITE`：平台知识与参数引用只经Flowise公开账户/导入/查询API装配；Harness migration 016只保存不可变快照引用。两库独立备份、停机恢复、Hash、`quick_check`、职责表与正文禁入均在隔离真实运行中通过 |
 | `AUD-048` | Agentflow/MCP 制品存在可能被误报为 MiMo 与十四工具已经真实连通 | `CLOSED_I9_P4_MIMO_AND_MCP`：Bundled Flowise MCP客户端已真实调用14/14工具并验证鉴权、幂等、预算、超时、安全错误、Human Input和循环；MiMo v2.5已经Flowise同源`@langchain/openai`适配器和JSON响应格式完成真实严格结构化调用，凭据未写入制品或输出 |
 | `AUD-049` | 可加载 Agentflow JSON 不等于已经发布且重启可恢复 | `CLOSED_I9_P5_PUBLICATION_AND_RESTART`：固定ID正式Agentflow已通过公开凭据、导入、更新、校验和导出API私有发布，校验0问题；停止四服务并从同一双SQLite重启后Flow ID、发布状态、定义Hash和导出Hash一致，无直接数据库写入或临时手工状态 |
-| `AUD-050` | 本机引擎测试可能被误报为用户自然语言正反向闭环 | `OPEN_I9_P6_P7`：正向脚本生成/验证/交付/运行/调度与反向事故/候选/复验/激活必须分别在真实 Flowise 对话中验收 |
+| `AUD-050` | 本机引擎测试可能被误报为用户自然语言正反向闭环 | `PARTIAL_CLOSED_I9_P6_OPEN_P7`：P6普通中文输入到脚本生成、6/6、预览、激活、按需纯Playwright运行及同会话回复已真实通过；P7反向事故、候选、复验、激活、复跑/修复版调度仍须独立真实Flowise对话验收 |
 | `AUD-051` | 单机复制或探针恢复可能被误报为已通过便携验收 | `OPEN_I9_P8`：临时候选必须在干净目录和第二台 Windows 10/11 x64 电脑完成解压启动、备份恢复和核心 E2E；候选不冒充最终提交文件夹 |
 | `AUD-052` | 已验证候选仍可能夹带运行态、秘密或依赖人工整理 | `OPEN_I9_P9`：最终`.release/hengzhun-regression-system-windows-x64/`必须从冻结提交可复现生成，采用内容白名单并通过秘密、运行态、绝对路径、压缩往返Hash和离线启动检查 |
 | `AUD-053` | Flowise、Coze、HiAgent 分支可能在迁移时互相覆盖 | `OPEN_I9_RELEASE`：I9 P9 通过后才把 Flowise 版冻结到 `main`；保留 `coze`，再从该基线新建 `hiagent`，禁止自动 merge、删分支或 force push |
 
-`AUD-009...AUD-043` 已关闭 I8 七阶段本机引擎，`AUD-044` 继续约束外部运行证据；`AUD-045...AUD-049`已由I9 P1—P5关闭，`AUD-050...AUD-053`继续构成I9 P6—P9与发布分支硬门禁。不得把运行底座、平台参数引用、MCP/模型连通、Agentflow发布、隔离验证、静态制品或P8临时候选写成真实正反向对话、最终提交文件夹或HiAgent证据。
+`AUD-009...AUD-043` 已关闭 I8 七阶段本机引擎，`AUD-044` 继续约束外部运行证据；`AUD-045...AUD-049`已由I9 P1—P5关闭，`AUD-050`的P6正向部分已关闭而P7仍开放，`AUD-051...AUD-053`继续构成I9 P8—P9与发布分支硬门禁。不得把正向对话、隔离验证、静态制品或P8临时候选写成反向修复、最终提交文件夹或HiAgent证据。
 
 ### 2.4 仍未验证但不得遗忘
 

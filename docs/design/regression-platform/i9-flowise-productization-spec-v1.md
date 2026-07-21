@@ -138,6 +138,8 @@ platform/hengzhun-regression-system/
 
 退出：首个登录/资料一致性案例在真实Flowise对话中完整通过，证据脱敏且可追溯。
 
+状态（2026-07-21）：`VERIFIED_I9_P6`。正式Agentflow以一句普通中文案例描述启动，依次经过知识查询、结构化、人工确认、MCP权威写入、确定性Builder、真实复兴银行门户浏览器事实探测、固定Chromium 2视口×3次签证、脚本预览、显式激活、独立按需运行确认、纯Playwright正式运行和终态回复；真实会话共执行20个节点并返回`FORWARD_FLOW_VERIFIED`。MiMo的IntentPlan交接改为平台原生支持的十项扁平结构化字段，由MCP重建严格领域对象，避免嵌套JSON转义漂移。P6不证明P7反向修复或P8/P9便携交付。
+
 ### P7 反向失败与限域恢复
 
 - 用受控定位器变更制造正式失败，不修改Harness安全规则。

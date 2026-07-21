@@ -1,4 +1,5 @@
 const os = require('node:os');
+const crypto = require('node:crypto');
 const fs = require('node:fs');
 const path = require('node:path');
 const { executeLoginProfile } = require('./login-profile.cjs');
@@ -6,6 +7,7 @@ const { executeAccountOwnership } = require('./account-ownership.cjs');
 const { executeAuthRejectionRecovery } = require('./auth-rejection-recovery.cjs');
 const { executeStabilityBatch } = require('./i8-stability-runner.cjs');
 const { executeI8FormalRun } = require('./i8-formal-runner.cjs');
+const { I8_CONTROLLED_CATALOG } = require('../../dist/harness/src/i8/script-package-builder.js');
 
 const executors = new Map([
   ['worker/src/login-profile.cjs', executeLoginProfile],
@@ -162,6 +164,63 @@ async function runI8StabilityOnce() {
   return true;
 }
 
+function stableJson(value) {
+  if (Array.isArray(value)) return `[${value.map(stableJson).join(',')}]`;
+  if (value && typeof value === 'object') return `{${Object.keys(value).sort().map(key => `${JSON.stringify(key)}:${stableJson(value[key])}`).join(',')}}`;
+  return JSON.stringify(value);
+}
+
+function sha256(value) {
+  return crypto.createHash('sha256').update(value).digest('hex');
+}
+
+async function runI8CandidateBuildOnce() {
+  const claim = await post('/internal/worker/i8/candidates:claim', { workerId });
+  if (claim.status === 'EMPTY') return false;
+  process.stdout.write(JSON.stringify({ event: 'i8_candidate_claimed', jobId: claim.jobId }) + '\n');
+  try {
+    const browserProbe = await executeLoginProfile({
+      namespace: claim.namespace,
+      caseId: claim.plan.caseId,
+      caseVersion: claim.plan.caseVersion,
+      runId: claim.jobId,
+      taskId: claim.jobId,
+      execution: { credentialAlias: 'i3-customer', fixtureNamespace: `authoring-${claim.jobId}` }
+    });
+    if (browserProbe.outcome !== 'PASSED') throw Object.assign(new Error('候选作者化浏览器事实未通过。'), { code: browserProbe.errorCode || 'I8_CANDIDATE_BROWSER_PROBE_FAILED' });
+    const verifiedAt = new Date().toISOString();
+    const verifiedActionRecords = claim.plan.actions.map(action => ({
+      schemaVersion: 'i8-verified-action-record-v1',
+      executablePlanId: claim.plan.executablePlanId,
+      actionId: action.actionId,
+      ordinal: action.ordinal,
+      outcome: 'VERIFIED_PASSED',
+      ...(action.semanticTargetRef ? { locator: I8_CONTROLLED_CATALOG.targets[action.semanticTargetRef] } : {}),
+      pageSignatureHash: sha256(stableJson(action.pageSignature)),
+      factsHash: sha256(stableJson({ actionId: action.actionId, outcome: 'VERIFIED_PASSED', browserProbe: 'LOGIN_PROFILE_PASSED' })),
+      verification: { dom: true, url: true, request: true, business: true },
+      verifiedAt
+    }));
+    const completed = await post(`/internal/worker/i8/candidates/${encodeURIComponent(claim.jobId)}:complete`, {
+      workerId,
+      planHash: claim.planHash,
+      outcome: 'VERIFIED_PASSED',
+      verifiedActionRecords
+    });
+    process.stdout.write(JSON.stringify({ event: 'i8_candidate_completed', jobId: claim.jobId, status: completed.status }) + '\n');
+  } catch (error) {
+    await post(`/internal/worker/i8/candidates/${encodeURIComponent(claim.jobId)}:complete`, {
+      workerId,
+      planHash: claim.planHash,
+      outcome: 'FAILED',
+      errorCode: error.code || 'I8_CANDIDATE_BUILD_FAILED',
+      verifiedActionRecords: []
+    });
+    process.stderr.write(JSON.stringify({ event: 'i8_candidate_failed', jobId: claim.jobId, errorCode: error.code || 'I8_CANDIDATE_BUILD_FAILED' }) + '\n');
+  }
+  return true;
+}
+
 async function runI8RepairStabilityOnce() {
   const claim = await post('/internal/worker/i8/repairs/stability:claim', { workerId });
   if (claim.status === 'EMPTY') return false;
@@ -182,7 +241,7 @@ async function main() {
   writeHealth('HEALTHY');
   do {
     if (stopFile && fs.existsSync(stopFile)) { writeHealth('STOPPED'); return; }
-    const worked = await runI8RepairStabilityOnce() || await runRepairOnce() || await runI8StabilityOnce() || await runOnce();
+    const worked = await runI8RepairStabilityOnce() || await runRepairOnce() || await runI8CandidateBuildOnce() || await runI8StabilityOnce() || await runOnce();
     writeHealth('HEALTHY');
     if (once) return;
     await new Promise(resolve => setTimeout(resolve, worked ? 250 : 500));

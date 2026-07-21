@@ -61,7 +61,7 @@ Customer graphical password-login qualification and its local-demo/production bo
 | I8 exact-version scheduling | VERIFIED_I8_STAGE6_LOCAL | migration 014回填历史周期调度并冻结案例/计划/脚本版本和Hash；支持五字段Cron与带偏移runAt，一次性终态自动停用；脚本current_version漂移后仍由固定Chromium运行冻结版本 |
 | I8 offline result inbox | VERIFIED_I8_STAGE6_LOCAL | 每个正式Run终态按namespace+runId幂等写入不可删除SQLite收件箱；支持倒序分页、未读筛选与确认已读，只返回脱敏摘要和Artifact元数据 |
 | I8 restricted reverse repair | VERIFIED_I8_STAGE7_LOCAL | migration 015、十一类事故、CTX-L1/L2/L3证据升级、最多3候选、严格补丁白名单、每候选独立Hash和六次重新签证、显式激活、修复版本按需运行和新调度精确绑定已通过自动测试；不自动迁移既有调度，不修改被测项目 |
-| I9 Flowise portable product | IN_PROGRESS / P5_VERIFIED_P6_READY | P1—P5已关闭；MiMo与14/14工具真实连通，固定ID正式Agentflow经公开API加密凭据、导入、0问题校验、私有发布、导出Hash和停止/重启恢复通过。P6—P9仍未关闭，也没有真实正反向对话或便携交付证据 |
+| I9 Flowise portable product | IN_PROGRESS / P6_VERIFIED_P7_READY | P1—P6已关闭；普通中文案例已在正式Flowise对话完成确定性候选、固定Chromium 6/6、预览、显式激活、纯Playwright按需运行及同会话终态回复。P7反向恢复、P8便携候选和P9最终提交文件夹仍未关闭 |
 | Harness governed action context | VERIFIED_I8_STAGE1 | migration 009、严格Envelope、Hash、单动作租约、不可变预算审计和L1→L2→L3通过自动测试；历史SQLite游标和Playwright推进继续有效 |
 | Controller-to-visual sliding context | PARTIALLY_IMPLEMENTED_STAGE3 | Worker已消费完整获批Envelope，Flowise已交接IntentPlan并生成ExecutableActionPlan；真实MiMo视觉E2E仍未运行，usage未公开时只记录`NOT_EXPOSED` |
 | Midscene visual Agent plus Playwright fact collection | PARTIALLY_VERIFIED_WITH_FALLBACK | `INPUT/TAP/SCROLL` 通过五视口门禁；`LOCATE` 降级并强制 Playwright-only，所有事实仍由 Playwright 独立验证 |

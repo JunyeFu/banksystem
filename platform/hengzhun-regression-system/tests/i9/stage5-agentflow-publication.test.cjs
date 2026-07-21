@@ -25,9 +25,13 @@ test('P5 published flow binds only runtime references and HiAgent-mapped node se
   const text = stableJson(flow)
   assert.equal(text.includes('{{$vars.HENGZHUN_KNOWLEDGE_STORE}}'), false)
   assert.equal(text.includes('{{$vars.MIMO_BASE_URL}}'), false)
-  assert.equal(text.includes('{{$vars.HZ_I9_MODEL_BASE_URL}}'), true)
-  assert.equal(text.includes('{{$vars.HENGZHUN_MCP_TOKEN}}'), true)
+  assert.equal(text.includes('{{$vars.HZ_I9_MODEL_BASE_URL}}'), false)
+  assert.equal(text.includes('https://api.xiaomimimo.com/v1'), true)
+  assert.equal(text.includes('{{ $vars.HENGZHUN_MCP_TOKEN }}'), true)
   assert.equal(text.includes(publication.credential.id), true)
+  for (const llm of flow.nodes.filter(node => node.data.name === 'llmAgentflow')) {
+    assert.equal(llm.data.inputs.llmModelConfig.FLOWISE_CREDENTIAL_ID, publication.credential.id)
+  }
   for (const forbidden of ['shellAgentflow', 'httpAgentflow', 'codeAgentflow', 'databaseAgentflow', 'fileAgentflow']) {
     assert.equal(text.includes(forbidden), false)
   }
@@ -35,6 +39,20 @@ test('P5 published flow binds only runtime references and HiAgent-mapped node se
   assert.ok(nodeNames.has('humanInputAgentflow'))
   assert.ok(nodeNames.has('toolAgentflow'))
   assert.ok(nodeNames.has('llmAgentflow'))
+  assert.ok(flow.nodes.every(node => Array.isArray(node.data.inputParams)))
+  assert.ok(flow.nodes.every(node => Array.isArray(node.data.outputAnchors)))
+  const retriever = flow.nodes.find(node => node.data.name === 'retrieverAgentflow')
+  assert.deepEqual(retriever.data.inputs.retrieverKnowledgeDocumentStores, [{
+    documentStore: `${publication.knowledgeStoreId}:${publication.knowledgeStoreName}`
+  }])
+  assert.equal(text.includes('{{ toolAgentflow_prepare.output }}'), false)
+  assert.equal(text.includes('{{ toolAgentflow_get.output }}'), false)
+  assert.equal(text.includes('{{ toolAgentflow_candidate.output }}'), false)
+  const intent = flow.nodes.find(node => node.id === 'llmAgentflow_intent')
+  const intentSystem = intent.data.inputs.llmMessages.find(message => message.role === 'system').content
+  assert.match(intentSystem, /顶层只能包含preparationId、preparationVersion、caseId、caseVersion、route、intentStepIds、actions、expectedOutcomes、riskLevels、assertions十个扁平字段/)
+  assert.match(intentSystem, /intentStepIds、actions、expectedOutcomes和riskLevels必须是非空且严格等长的数组/)
+  assert.equal(intentSystem.includes('intentPlanJson'), false)
 })
 
 test('P5 scripts use public Flowise APIs and never mutate the platform SQLite directly', () => {
