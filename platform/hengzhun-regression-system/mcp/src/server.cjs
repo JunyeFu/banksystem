@@ -91,10 +91,8 @@ function parseJsonArgument(value, errorCode) {
   }
 }
 
-const deferredTools = ['failure_get', 'repair_propose', 'decision_submit']
-
 function createServer() {
-  const server = new McpServer({ name: 'hengzhun-i8-regression', version: '6.0.0' })
+  const server = new McpServer({ name: 'hengzhun-i8-regression', version: '7.0.0' })
 
   server.registerTool('case_prepare', {
     description: '将自然语言案例的已澄清结构化草案和知识快照提交给衡准权威状态库。',
@@ -283,21 +281,38 @@ function createServer() {
     return textResult(result.body, false, 16 * 1024)
   })
 
-  for (const toolName of deferredTools) {
-    server.registerTool(toolName, {
-      description: `${toolName} 已冻结名称和边界，但要到 I8 后续阶段实现。`,
-      inputSchema: { requestRef: safeRef.optional() }
-    }, async () => textResult({
-      errorCode: 'I8_STAGE_CAPABILITY_NOT_AVAILABLE',
-      tool: toolName,
-      availableFrom: toolName.startsWith('candidate_') ? 'I8_STAGE5' : 'I8_LATER_STAGE'
-    }, true))
-  }
+  server.registerTool('failure_get', {
+    description: '读取确定性分类的事故与脱敏StepFailureEnvelope；默认只返回CTX-L1。',
+    inputSchema: { incidentId: safeRef }
+  }, async ({ incidentId }) => callHarness('/v1/i8/failures:get', { namespace, incidentId }))
+
+  server.registerTool('repair_propose', {
+    description: '提交Schema受限的ScriptPatchProposal；禁止完整源码、项目文件、命令、任意URL和断言弱化。',
+    inputSchema: { incidentId: safeRef, patchJson: z.string().trim().min(2).max(16_000), sessionRef: safeRef }
+  }, async ({ incidentId, patchJson, sessionRef }) => {
+    try {
+      const patch = parseJsonArgument(patchJson, 'I8_PATCH_JSON_INVALID')
+      const current = await requestHarness('/v1/i8/failures:get', { namespace, incidentId })
+      if (!current.response.ok || !current.body.failureEnvelope?.envelopeHash) return textResult({ errorCode: current.body.errorCode || 'I8_FAILURE_ENVELOPE_UNAVAILABLE', status: current.response.status }, true)
+      const business = { incidentId, expectedEnvelopeHash: current.body.failureEnvelope.envelopeHash, patch }
+      return callHarness('/v1/i8/repairs:propose', { namespace, idempotencyKey: idempotencyKey('repair_propose', sessionRef, business), ...business })
+    } catch (error) { return textResult({ errorCode: error.code || 'MCP_ARGUMENT_INVALID' }, true) }
+  })
+
+  server.registerTool('decision_submit', {
+    description: '仅对已完成六轮验证的修复提案记录ACTIVATE或REJECT；激活不自动复跑或迁移调度。',
+    inputSchema: { incidentId: safeRef, proposalId: safeRef, choice: z.enum(['ACTIVATE', 'REJECT']), confirmationRef: safeRef, reason: z.string().trim().min(1).max(1000), sessionRef: safeRef }
+  }, async ({ incidentId, proposalId, choice, confirmationRef, reason, sessionRef }) => {
+    const current = await requestHarness('/v1/i8/failures:get', { namespace, incidentId })
+    if (!current.response.ok || current.body.proposal?.proposalId !== proposalId || !Number.isInteger(current.body.proposal?.version)) return textResult({ errorCode: current.body.errorCode || 'I8_REPAIR_PROPOSAL_VERSION_UNAVAILABLE', status: current.response.status }, true)
+    const business = { proposalId, expectedProposalVersion: current.body.proposal.version, choice, confirmationRef, reason }
+    return callHarness('/v1/i8/repairs:decide', { namespace, idempotencyKey: idempotencyKey('decision_submit', sessionRef, business), ...business })
+  })
   return server
 }
 
 const app = createMcpExpressApp()
-app.get('/health', (_request, response) => response.json({ status: 'ok', service: 'hengzhun-i8-mcp', version: '6.0.0' }))
+app.get('/health', (_request, response) => response.json({ status: 'ok', service: 'hengzhun-i8-mcp', version: '7.0.0' }))
 app.use('/mcp', (request, response, next) => {
   if (!authorized(request.headers.authorization)) {
     response.status(401).json({ jsonrpc: '2.0', error: { code: -32001, message: 'Unauthorized' }, id: null })

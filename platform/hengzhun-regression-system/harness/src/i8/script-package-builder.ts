@@ -28,6 +28,21 @@ const TARGETS = Object.freeze({
   PROFILE_AVATAR: { kind: 'TEST_ID', value: 'profile-avatar' }
 }) satisfies Readonly<Record<string, { kind: 'ROLE' | 'LABEL' | 'TEST_ID'; value: string }>>;
 
+const REPAIR_TARGETS = Object.freeze({
+  LOGIN_USERNAME: Object.freeze([
+    TARGETS.LOGIN_USERNAME,
+    { kind: 'LABEL' as const, value: '用户名 / 手机号' }
+  ]),
+  LOGIN_PASSWORD: Object.freeze([
+    TARGETS.LOGIN_PASSWORD,
+    { kind: 'LABEL' as const, value: '密码' }
+  ]),
+  LOGIN_SUBMIT: Object.freeze([
+    TARGETS.LOGIN_SUBMIT,
+    { kind: 'ROLE' as const, value: 'button|账号密码登录' }
+  ])
+}) satisfies Readonly<Record<string, readonly { kind: 'ROLE' | 'LABEL' | 'TEST_ID'; value: string }[]>>;
+
 const TIMEOUTS = Object.freeze({ DEFAULT_30S: 30_000 });
 
 const actionTemplate = [
@@ -145,7 +160,7 @@ function generatedSourceLegacy(dsl: DslDocument, locators: Record<string, { kind
   return `'use strict'\nconst PACKAGE = Object.freeze(${embedded})\n\nfunction locator(page, ref) {\n  const item = PACKAGE.locators[ref]\n  if (!item) throw Object.assign(new Error('Target is not allowlisted'), { code: 'CANDIDATE_TARGET_NOT_ALLOWLISTED' })\n  if (item.kind === 'TEST_ID') return page.getByTestId(item.value)\n  if (item.kind === 'LABEL') return page.getByLabel(item.value, { exact: true })\n  if (item.kind === 'ROLE') {\n    const [role, name] = item.value.split('|')\n    return page.getByRole(role, { name, exact: true })\n  }\n  throw Object.assign(new Error('Locator kind is not allowlisted'), { code: 'CANDIDATE_LOCATOR_KIND_INVALID' })\n}\n\nfunction routeUrl(baseUrl, routeRef) {\n  const route = PACKAGE.routes[routeRef]\n  if (!route || !route.startsWith('/')) throw Object.assign(new Error('Route is not allowlisted'), { code: 'CANDIDATE_ROUTE_NOT_ALLOWLISTED' })\n  const base = new URL(baseUrl)\n  const resolved = new URL(route, base)\n  if (resolved.origin !== base.origin) throw Object.assign(new Error('Route escaped the allowed origin'), { code: 'CANDIDATE_ROUTE_ORIGIN_MISMATCH' })\n  return resolved\n}\n\nasync function execute(context) {\n  const { page, baseUrl, fixtures, capture } = context\n  const facts = []\n  for (const step of PACKAGE.dsl.steps) {\n    if (step.operation === 'goto') await page.goto(routeUrl(baseUrl, step.routeRef).toString(), { waitUntil: 'domcontentloaded', timeout: PACKAGE.timeouts.DEFAULT_30S })\n    else if (step.operation === 'fill') await locator(page, step.targetRef).fill(fixtures[step.fixtureValueRef])\n    else if (step.operation === 'click') await locator(page, step.targetRef).click()\n    else if (step.operation === 'select') await locator(page, step.targetRef).selectOption(step.optionRef)\n    else if (step.operation === 'waitForURL') await page.waitForURL((url) => url.pathname.startsWith(routeUrl(baseUrl, step.routePatternRef).pathname), { timeout: PACKAGE.timeouts[step.timeoutPolicyRef] })\n    else if (step.operation === 'waitForResponse') await page.waitForResponse((response) => response.url().includes(step.responsePatternRef), { timeout: PACKAGE.timeouts[step.timeoutPolicyRef] })\n    else if (step.operation === 'expectVisible' && !(await locator(page, step.targetRef).isVisible())) throw Object.assign(new Error('Expected target to be visible'), { code: 'CANDIDATE_EXPECT_VISIBLE_FAILED' })\n    else if (step.operation === 'expectText') { const actual = (await locator(page, step.targetRef).innerText()).trim(); if (actual !== fixtures[step.expectedTextRef]) throw Object.assign(new Error('Expected text did not match'), { code: 'CANDIDATE_EXPECT_TEXT_FAILED' }) }\n    else if (step.operation === 'expectEqual') { const left = (await locator(page, step.targetRef).innerText()).trim(); const right = (await locator(page, step.comparisonTargetRef).innerText()).trim(); if (left !== right) throw Object.assign(new Error('Expected values to be equal'), { code: 'CANDIDATE_EXPECT_EQUAL_FAILED' }) }\n    else if (step.operation === 'screenshot') await capture(step.evidenceNameRef, page)\n    facts.push({ stepId: step.stepId, operation: step.operation, passed: true })\n  }\n  return { outcome: 'PASSED', facts }\n}\n\nmodule.exports = Object.freeze({ schemaVersion: 'hengzhun-candidate-module-v1', execute })\n`;
 }
 
-function generatedSource(dsl: DslDocument, locators: Record<string, { kind: 'ROLE' | 'LABEL' | 'TEST_ID'; value: string }>): string {
+export function generatedSource(dsl: DslDocument, locators: Record<string, { kind: 'ROLE' | 'LABEL' | 'TEST_ID'; value: string }>): string {
   const legacy = generatedSourceLegacy(dsl, locators);
   const instantaneousAssertion = "else if (step.operation === 'expectVisible' && !(await locator(page, step.targetRef).isVisible())) throw Object.assign(new Error('Expected target to be visible'), { code: 'CANDIDATE_EXPECT_VISIBLE_FAILED' })";
   const boundedAssertion = "else if (step.operation === 'expectVisible') { try { await locator(page, step.targetRef).waitFor({ state: 'visible', timeout: PACKAGE.timeouts.DEFAULT_30S }) } catch { throw Object.assign(new Error('Expected target to become visible'), { code: `CANDIDATE_EXPECT_VISIBLE_FAILED_${step.targetRef}` }) } }";
@@ -164,6 +179,79 @@ export interface CandidatePackage {
   sourceChainHash: string;
   manifest: Record<string, unknown>;
   manifestHash: string;
+}
+
+export interface RestrictedPatchProposal {
+  schemaVersion: 'i8-script-patch-proposal-v1';
+  operations: Array<Record<string, unknown> & { type: 'TARGET_MAPPING' | 'WAIT_CONDITION' | 'ACTION_PARAMETER' | 'STEP_ORDER' | 'ASSERTION_IMPLEMENTATION' }>;
+  rationale: string;
+}
+
+export function buildPatchedCandidatePackage(
+  planInput: unknown,
+  recordsInput: unknown,
+  base: { candidateId: string; scriptId: string; scriptVersion: number; sourceChainHash: string },
+  proposal: RestrictedPatchProposal,
+  attemptNo: number,
+  generatedAt: string
+): CandidatePackage {
+  const { dsl: originalDsl, locators: originalLocators } = buildDslDocument(planInput, recordsInput);
+  let steps = originalDsl.steps.map(step => ({ ...step }));
+  const locators = { ...originalLocators };
+  for (const operation of proposal.operations) {
+    if (operation.type === 'TARGET_MAPPING') {
+      const targetRef = String(operation.targetRef);
+      const requested = operation.locator as { kind?: string; value?: string };
+      const alternatives = REPAIR_TARGETS[targetRef as keyof typeof REPAIR_TARGETS];
+      const controlled = alternatives?.find(item => item.kind === requested?.kind && item.value === requested?.value);
+      if (!controlled) throw new Error('I8_PATCH_TARGET_MAPPING_NOT_ALLOWLISTED');
+      if (!steps.some(step => 'targetRef' in step && step.targetRef === targetRef)) throw new Error('I8_PATCH_TARGET_UNUSED');
+      locators[targetRef] = controlled;
+    } else if (operation.type === 'WAIT_CONDITION') {
+      const step = steps.find(item => item.stepId === operation.stepId);
+      if (!step || !['waitForURL', 'waitForResponse'].includes(step.operation) || operation.timeoutPolicyRef !== 'DEFAULT_30S') throw new Error('I8_PATCH_WAIT_CONDITION_NOT_ALLOWLISTED');
+      Object.assign(step, { timeoutPolicyRef: 'DEFAULT_30S' });
+    } else if (operation.type === 'ACTION_PARAMETER') {
+      const step = steps.find(item => item.stepId === operation.stepId);
+      if (!step || step.operation !== 'select' || operation.parameter !== 'optionRef' || step.optionRef !== operation.value) throw new Error('I8_PATCH_ACTION_PARAMETER_NOT_ALLOWLISTED');
+    } else if (operation.type === 'ASSERTION_IMPLEMENTATION') {
+      const step = steps.find(item => item.stepId === operation.stepId);
+      const expected = step?.operation === 'expectVisible' ? 'BOUNDED_VISIBLE' : step?.operation === 'expectText' ? 'EXACT_TEXT' : step?.operation === 'expectEqual' ? 'EXACT_EQUAL' : undefined;
+      if (!expected || operation.implementation !== expected) throw new Error('I8_PATCH_ASSERTION_WEAKENING_REJECTED');
+    } else if (operation.type === 'STEP_ORDER') {
+      const order = operation.orderedStepIds as unknown;
+      if (!Array.isArray(order) || order.length !== steps.length || new Set(order).size !== steps.length || steps.some(step => !order.includes(step.stepId))) throw new Error('I8_PATCH_STEP_ORDER_INVALID');
+      const reordered = order.map(id => steps.find(step => step.stepId === id)!);
+      const fixedOriginal = steps.filter(step => !step.operation.startsWith('expect')).map(step => step.stepId);
+      const fixedReordered = reordered.filter(step => !step.operation.startsWith('expect')).map(step => step.stepId);
+      if (canonicalJson(fixedOriginal) !== canonicalJson(fixedReordered) || reordered.at(-1)?.operation !== 'screenshot') throw new Error('I8_PATCH_STEP_ORDER_UNSAFE');
+      steps = reordered;
+    }
+  }
+  const dsl = dslDocumentSchema.parse({ ...originalDsl, steps });
+  const dslJson = canonicalJson(dsl);
+  const dslHash = sha256(dslJson);
+  const patchHash = sha256(canonicalJson(proposal));
+  const sourceChainHash = sha256(canonicalJson({ baseCandidateId: base.candidateId, baseSourceChainHash: base.sourceChainHash, patchHash, attemptNo, generatorVersion: I8_GENERATOR_VERSION }));
+  const repairProvenance = canonicalJson({
+    schemaVersion: 'i8-repair-provenance-v1',
+    baseCandidateId: base.candidateId,
+    patchHash,
+    attemptNo,
+    sourceChainHash
+  });
+  const scriptSource = `// HENGZHUN_REPAIR_PROVENANCE ${repairProvenance}\n${generatedSource(dsl, locators)}`;
+  const scriptHash = sha256(scriptSource);
+  const candidateId = `candidate_${sha256(canonicalJson({ sourceChainHash, scriptHash })).slice(0, 40)}`;
+  const scriptVersion = base.scriptVersion + attemptNo;
+  const manifest = {
+    schemaVersion: 'hengzhun-candidate-manifest-v1', candidateId, scriptId: base.scriptId, scriptVersion,
+    executablePlanId: dsl.executablePlanId, dslVersion: 'HENGZHUN_DSL_V1', dslHash,
+    generatorVersion: I8_GENERATOR_VERSION, sourceChainHash, repairOfCandidateId: base.candidateId,
+    patchHash, repairAttempt: attemptNo, files: [{ relativePath: 'script.cjs', sha256: scriptHash }], dependencyAllowlist: [], generatedAt
+  };
+  const manifestHash = sha256(canonicalJson(manifest));
+  return { candidateId, scriptId: base.scriptId, scriptVersion, dsl, dslHash, scriptSource, scriptHash, sourceChainHash, manifest, manifestHash };
 }
 
 export function buildCandidatePackage(planInput: unknown, recordsInput: unknown, generatedAt: string): CandidatePackage {
@@ -199,4 +287,4 @@ export function buildCandidatePackage(planInput: unknown, recordsInput: unknown,
   return { candidateId, scriptId, scriptVersion: 1, dsl, dslHash, scriptSource, scriptHash, sourceChainHash, manifest, manifestHash };
 }
 
-export const I8_CONTROLLED_CATALOG = Object.freeze({ routes: ROUTES, targets: TARGETS, timeouts: TIMEOUTS });
+export const I8_CONTROLLED_CATALOG = Object.freeze({ routes: ROUTES, targets: TARGETS, repairTargets: REPAIR_TARGETS, timeouts: TIMEOUTS });

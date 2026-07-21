@@ -369,6 +369,8 @@ I8 内部实现顺序固定为：
 
 2026-07-20 阶段6完成状态：第6项已完成代码、本机集成和真实固定Chromium验收。migration 014为历史调度回填并冻结`scriptId + scriptVersion + scriptHash`，无法确定身份的旧调度自动禁用；新调度同时支持五字段Cron的`RECURRING`和带偏移`runAt`的`ONE_TIME`。执行时按冻结版本及Hash读取`script_versions`，即使`current_version`变化也不跟随；一次性调度终态自动停用。每个正式Run终态以`namespace + runId`幂等写入不可删除的SQLite收件箱，可分页读取、未读筛选和确认已读，只返回脱敏摘要与Artifact元数据。Flowise阶段6制品由主控LLM规范化自然语言时间、回显并经Human Input确认，用户不接触Cron、凭据或技术版本。MCP现有11项ACTIVE，阶段7的3项继续失败关闭；`verify:i8:stage6`与真实Playwright调度专项均通过。阶段7限域反向修复是下一步；真实Flowise发布/MiMo对话和HiAgent仍未验收。
 
+2026-07-21 阶段7完成状态：第7项已完成本机代码、迁移、契约、Worker接入和自动化闭环验证。migration 015冻结十一类事故、`CTX-L1→CTX-L2→CTX-L3`最小失败封装、最多3个版本化修复提案、独立2视口×3次稳定性批次/证书及不可变人工决定。`ScriptPatchProposal`只接受受控目标映射、固定等待、受控动作参数、步骤顺序和不弱化断言实现；每个候选生成独立ID、版本、来源链与Hash，禁止完整源码、运行时自修补、自动激活和修改被测项目。失败稳定性验证按相邻证据升级上下文，第三次后稳定拒绝第四候选；持证候选只有经用户`ACTIVATE`才成为精确脚本版本。后续用户显式调用`run_submit`或新建调度时会选择已激活修复版本，既有调度不自动迁移。MCP 7.0.0的14项工具全部ACTIVE，Flowise阶段7制品仍只使用HiAgent可映射节点。真实Flowise发布、MiMo主控对话、HiAgent目标环境和本机固定Chromium阶段7重跑仍是独立外部/运行环境门禁，不得由自动化测试冒充。
+
 I8 退出条件全部为硬门禁：
 
 - 普通用户只输入案例描述即可完成首个登录/资料一致性案例的结构化、作者化、脚本生成和稳定性验证；

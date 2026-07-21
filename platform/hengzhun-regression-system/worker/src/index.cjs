@@ -150,10 +150,25 @@ async function runI8StabilityOnce() {
   return true;
 }
 
+async function runI8RepairStabilityOnce() {
+  const claim = await post('/internal/worker/i8/repairs/stability:claim', { workerId });
+  if (claim.status === 'EMPTY') return false;
+  process.stdout.write(JSON.stringify({ event: 'i8_repair_stability_claimed', batchId: claim.batchId, proposalId: claim.proposalId }) + '\n');
+  try {
+    const productRoot = path.resolve(__dirname, '..', '..');
+    const completion = await executeStabilityBatch(claim, { productRoot, runtimeProductRoot: productRoot, workerId, environment: process.env });
+    const completed = await post(`/internal/worker/i8/repairs/stability/${encodeURIComponent(claim.batchId)}:complete`, completion);
+    process.stdout.write(JSON.stringify({ event: 'i8_repair_stability_completed', batchId: claim.batchId, status: completed.status }) + '\n');
+  } catch (error) {
+    process.stderr.write(JSON.stringify({ event: 'i8_repair_stability_blocked', batchId: claim.batchId, errorCode: error.code || 'I8_REPAIR_STABILITY_EXECUTION_FAILED' }) + '\n');
+  }
+  return true;
+}
+
 async function main() {
   const once = process.argv.includes('--once');
   do {
-    const worked = await runRepairOnce() || await runI8StabilityOnce() || await runOnce();
+    const worked = await runI8RepairStabilityOnce() || await runRepairOnce() || await runI8StabilityOnce() || await runOnce();
     if (once) return;
     await new Promise(resolve => setTimeout(resolve, worked ? 250 : 1500));
   } while (true);

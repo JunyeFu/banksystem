@@ -95,8 +95,14 @@ owner: project-owner
 | `AUD-036` | 用户可能被迫提供Cron、凭据或技术版本，或未确认即创建调度 | `CLOSED_STAGE6`：Flowise结构化LLM规范化并回显，Human Input确认后调用一次；MCP/Harness注入credential、Fixture和精确版本 |
 | `AUD-037` | Agent离线或会话中断可能丢失正式运行结果 | `CLOSED_STAGE6`：所有正式Run终态按namespace+runId幂等写入不可删除SQLite收件箱，支持分页、未读筛选和确认已读 |
 | `AUD-038` | 调度/收件箱开放可能连带开放阶段7修复或泄露Artifact路径 | `CLOSED_STAGE6_EVIDENCE_BOUNDARY`：MCP仅11项ACTIVE、阶段7三项失败关闭；收件箱只返回脱敏摘要与Artifact元数据，不返回relativePath |
+| `AUD-039` | 历史七类事故不足以覆盖I8正反向链路 | `CLOSED_STAGE7_CLASSIFICATION`：migration 015和确定性分类器冻结十一类事故，分类不由LLM自由填写 |
+| `AUD-040` | 失败诊断可能把整库、整日志或凭据送入模型 | `CLOSED_STAGE7_CONTEXT_BOUNDARY`：只生成脱敏`StepFailureEnvelope`，默认CTX-L1；仅在修复验证失败后按相邻证据升级L2/L3，响应不含绝对路径、凭据或SQLite内容 |
+| `AUD-041` | 主控LLM可能借修复提交完整源码或扩大工具能力 | `CLOSED_STAGE7_PATCH_ALLOWLIST`：严格Schema只允许目标映射、固定等待、受控参数、步骤顺序和不弱化断言；未知字段、源码、任意选择器和第四候选均拒绝 |
+| `AUD-042` | 修复候选可能绕过稳定性门禁或自动替换正式脚本 | `CLOSED_STAGE7_CERTIFICATE_AND_HUMAN_GATE`：每候选独立ID/版本/来源链/Hash，必须重新2视口×3次并取得新证书；仅显式ACTIVATE生效，不自动运行或迁移既有调度 |
+| `AUD-043` | 修复激活后阶段5/6仍可能误选旧脚本版本 | `CLOSED_STAGE7_VERSION_HANDOFF`：`run_submit`和新建Schedule优先选择已激活修复版本并复核计划/脚本Hash；既有Schedule保持冻结版本，迁移必须由用户另行创建或明确操作 |
+| `AUD-044` | 本机Stage7自动测试可能被误报为Flowise/MiMo/HiAgent完成 | `OPEN_EXTERNAL_RUNTIME_EVIDENCE`：本机只证明Harness/MCP/Worker/SQLite闭环；真实Agentflow发布、MiMo主控对话、固定Chromium阶段7复验和HiAgent目标环境分别保留门禁 |
 
-`AUD-009...AUD-013` 完成阶段1，`AUD-014...AUD-018` 完成阶段2，`AUD-019...AUD-023` 完成阶段3，`AUD-024...AUD-027` 完成阶段4，`AUD-028...AUD-033` 完成阶段5，`AUD-034...AUD-038` 完成阶段6精确版本调度、一次性运行和离线收件箱边界。阶段7才允许实现限域诊断/修复；不得把本机证据写成Flowise真实Agentflow、MiMo或HiAgent证据。
+`AUD-009...AUD-013` 完成阶段1，`AUD-014...AUD-018` 完成阶段2，`AUD-019...AUD-023` 完成阶段3，`AUD-024...AUD-027` 完成阶段4，`AUD-028...AUD-033` 完成阶段5，`AUD-034...AUD-038` 完成阶段6，`AUD-039...AUD-043` 完成阶段7本机限域诊断/修复闭环；`AUD-044`继续约束外部运行证据。不得把本机证据写成Flowise真实Agentflow、MiMo或HiAgent证据。
 
 ### 2.4 仍未验证但不得遗忘
 

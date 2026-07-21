@@ -5,6 +5,7 @@
   "agentflowArtifact": "agentflow-v2.json",
   "stage5ContinuationArtifact": "stage5-delivery-agentflow-v1.json",
   "stage6ContinuationArtifact": "stage6-scheduling-agentflow-v1.json",
+  "stage7ContinuationArtifact": "stage7-repair-agentflow-v1.json",
   "requiredUserInput": ["caseDescription"],
   "runtimeVariables": ["MIMO_BASE_URL", "HENGZHUN_MCP_TOKEN", "HENGZHUN_KNOWLEDGE_STORE"],
   "credentialsPackaged": false,
@@ -12,6 +13,6 @@
   "allowedNodeSemantics": ["chat_input", "knowledge_retrieval", "structured_llm", "condition", "human_input", "loop", "mcp_tool", "direct_reply"],
   "forbiddenNodeSemantics": ["code", "http", "database", "filesystem", "shell", "browser", "arbitrary_url"],
   "mcpEndpoint": "http://127.0.0.1:18789/mcp",
-  "activeMcpTools": ["case_prepare", "authoring_submit", "authoring_get", "candidate_get", "candidate_preview", "candidate_decide", "run_submit", "task_get", "schedule_create", "schedule_get", "result_inbox_list"],
+  "activeMcpTools": ["case_prepare", "authoring_submit", "authoring_get", "candidate_get", "candidate_preview", "candidate_decide", "run_submit", "task_get", "schedule_create", "schedule_get", "result_inbox_list", "failure_get", "repair_propose", "decision_submit"],
   "knowledgeSources": [{"path":"knowledge/portal-login-consistency.md","sourceId":"HZ-KNOW-PORTAL-LOGIN-001","version":"1.0.0","contentHash":"a287297dde0434efa7dbb6ebbeed8a2238cf5b6fe3613c538472a2e08f688b5d"}]
 }

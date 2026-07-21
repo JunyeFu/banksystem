@@ -271,6 +271,12 @@ test('Flowise MCP client reaches the authenticated 14-tool server and active too
   const candidate = parseFlowiseMcpText(candidateText)
   assert.equal(candidate.status, 'EXECUTABLE_PLAN_READY')
   assert.equal(candidate.nextAction, 'AUTHORING_WORKER_REQUIRED')
-  const deferred = await toolkit.tools.find((tool) => tool.name === 'failure_get').invoke({ requestRef: 'stage2-deferred-check' })
-  assert.equal(parseFlowiseMcpText(deferred).errorCode, 'I8_STAGE_CAPABILITY_NOT_AVAILABLE')
+  const currentContract = JSON.parse(fs.readFileSync(path.join(productRoot, 'contracts', 'mcp', 'hengzhun-i8.json'), 'utf8'))
+  if (currentContract.activeStage < 7) {
+    const deferred = await toolkit.tools.find((tool) => tool.name === 'failure_get').invoke({ incidentId: 'stage2-deferred-check' })
+    assert.equal(parseFlowiseMcpText(deferred).errorCode, 'I8_STAGE_CAPABILITY_NOT_AVAILABLE')
+  } else {
+    const active = await toolkit.tools.find((tool) => tool.name === 'failure_get').invoke({ incidentId: 'incident_not_found' })
+    assert.notEqual(parseFlowiseMcpText(active).errorCode, 'I8_STAGE_CAPABILITY_NOT_AVAILABLE')
+  }
 })

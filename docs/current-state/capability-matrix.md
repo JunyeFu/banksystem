@@ -49,9 +49,9 @@ Customer graphical password-login qualification and its local-demo/production bo
 | Coze runtime knowledge base | VERIFIED_HISTORICAL_DEMO | I3/I4/I6 的 Knowledge Base 历史演示证据保留；I8 不继续扩展 Coze |
 | Coze Agent orchestration plus Harness tools | VERIFIED_HISTORICAL_DEMO | Coze 公开 Agent 已完成 I3/I5/I6 历史闭环；该证据不证明 Flowise 或 HiAgent 当前可用 |
 | Flowise Windows technical probe | VERIFIED_PROBE_ONLY | Flowise 3.0.12、Bundled Node 20.20.2、SQLite、MiMo v2.5、MCP、Human Input、平台知识查询、流程导出和整目录复制重启通过隔离探针；只授权 I8 实现，不是产品验收 |
-| I8 Flowise deterministic authoring system | IN_PROGRESS / STAGE6_IMPLEMENTED | 阶段1上下文内核、阶段2 Agentflow/MCP/Harness交接、阶段3有限DSL/确定性Builder、阶段4稳定性证书、阶段5受控交付/激活/按需执行和阶段6调度/离线收件箱已完成；阶段7限域修复闭环尚未实现 |
+| I8 Flowise deterministic authoring system | IN_PROGRESS / STAGE7_LOCAL_IMPLEMENTED | 阶段1—7本机代码链已完成；仍需真实Flowise Agentflow发布/MiMo对话、阶段7固定Chromium复验及HiAgent目标环境验收，故I8总任务不关闭 |
 | I8 Flowise Agentflow artifact | VERIFIED_STAGE3_ARTIFACT | Flowise 3.0.12节点类可加载；唯一用户输入为案例描述；知识、结构化、澄清、Human Input、MCP、候选编译和回显均有HiAgent映射；未做真实Agentflow发布/MiMo对话 |
-| I8 MCP control channel | VERIFIED_I8_STAGE6_LOCAL | Bearer Streamable HTTP、14工具白名单、11项ACTIVE、阶段7三项失败关闭；阶段6新增调度创建/查询和结果收件箱，技术版本、Fixture和凭据别名由MCP/Harness注入；不能外推为HiAgent网络已通 |
+| I8 MCP control channel | VERIFIED_I8_STAGE7_LOCAL | Bearer Streamable HTTP、14工具白名单全部ACTIVE；`failure_get/repair_propose/decision_submit`仅映射受控Harness操作，技术版本、Fixture和凭据别名由MCP/Harness注入；不能外推为Flowise发布或HiAgent网络已通 |
 | I8 case-to-intent handoff | VERIFIED_I8_STAGE2 | migration 010、严格Schema、幂等、Hash、不可变源字段、人工APPROVE/REJECT及`AWAITING_STAGE3`最小状态查询通过测试 |
 | I8 deterministic script candidate | VERIFIED_I8_STAGE3_LOCAL | migration 011、严格ExecutableActionPlan、10操作DSL、固定模板Builder、候选版本/Hash/来源链和不可变SQLite记录通过；同输入生成字节一致脚本 |
 | I8 candidate Worker allowlist | VERIFIED_I8_STAGE3_CONTRACT | 受控候选目录、manifest/脚本Hash、固定模块契约和危险能力拒绝通过Fake Page集成测试；真实Chromium证据与签证由独立阶段4门禁提供 |
@@ -60,6 +60,7 @@ Customer graphical password-login qualification and its local-demo/production bo
 | I8 activated on-demand regression | VERIFIED_I8_STAGE5_LOCAL | 已激活候选由常驻Worker以固定Chromium和纯Playwright执行；合成门户和真实复兴银行门户正式复跑均通过，任务状态可查询；阶段6另已完成周期/一次性调度 |
 | I8 exact-version scheduling | VERIFIED_I8_STAGE6_LOCAL | migration 014回填历史周期调度并冻结案例/计划/脚本版本和Hash；支持五字段Cron与带偏移runAt，一次性终态自动停用；脚本current_version漂移后仍由固定Chromium运行冻结版本 |
 | I8 offline result inbox | VERIFIED_I8_STAGE6_LOCAL | 每个正式Run终态按namespace+runId幂等写入不可删除SQLite收件箱；支持倒序分页、未读筛选与确认已读，只返回脱敏摘要和Artifact元数据 |
+| I8 restricted reverse repair | VERIFIED_I8_STAGE7_LOCAL | migration 015、十一类事故、CTX-L1/L2/L3证据升级、最多3候选、严格补丁白名单、每候选独立Hash和六次重新签证、显式激活、修复版本按需运行和新调度精确绑定已通过自动测试；不自动迁移既有调度，不修改被测项目 |
 | Harness governed action context | VERIFIED_I8_STAGE1 | migration 009、严格Envelope、Hash、单动作租约、不可变预算审计和L1→L2→L3通过自动测试；历史SQLite游标和Playwright推进继续有效 |
 | Controller-to-visual sliding context | PARTIALLY_IMPLEMENTED_STAGE3 | Worker已消费完整获批Envelope，Flowise已交接IntentPlan并生成ExecutableActionPlan；真实MiMo视觉E2E仍未运行，usage未公开时只记录`NOT_EXPOSED` |
 | Midscene visual Agent plus Playwright fact collection | PARTIALLY_VERIFIED_WITH_FALLBACK | `INPUT/TAP/SCROLL` 通过五视口门禁；`LOCATE` 降级并强制 Playwright-only，所有事实仍由 Playwright 独立验证 |

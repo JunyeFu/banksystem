@@ -26,7 +26,7 @@ import {
   type I8CandidateBuildCompletionInput,
   type I8CandidateCompileInput
 } from './i8/stage3-schemas';
-import { buildCandidatePackage, compileExecutableActionPlan } from './i8/script-package-builder';
+import { buildCandidatePackage, buildPatchedCandidatePackage, compileExecutableActionPlan } from './i8/script-package-builder';
 import {
   I8_STABILITY_VIEWPORTS,
   i8StabilityCompletionSchema,
@@ -38,6 +38,13 @@ import type {
   I8RunSubmitInput
 } from './i8/stage5-schemas';
 import type { I8ResultInboxListInput, I8ScheduleCreateInput } from './i8/stage6-schemas';
+import {
+  classifyI8Failure,
+  scriptPatchProposalSchema,
+  type I8IncidentClassification,
+  type I8RepairDecisionInput,
+  type I8RepairProposeInput
+} from './i8/stage7-schemas';
 import { nextCronOccurrence, parseCron, validateTimeZone } from './cron';
 import { canonicalJson, nowIso, opaqueId, requestHash, sha256 } from './utils';
 
@@ -101,6 +108,13 @@ function classifyFailure(errorCategory?: string, errorCode?: string): FailureCla
   if (/ASSERTION|MISMATCH|TEST_FAILURE/.test(code) || errorCategory === 'TEST_FAILURE') return 'ASSERTION';
   if (/MODEL|MIDSCENE|LLM/.test(code)) return 'MODEL';
   return 'TOOL';
+}
+
+function i8FailureDisposition(classification: I8IncidentClassification): 'REPORT_ONLY' | 'RETRY_ALLOWED' | 'REAUTHOR_REQUIRED' | 'PATCH_ALLOWED' {
+  if (['PRODUCT_DEFECT', 'CONTRACT', 'AUTHENTICATION'].includes(classification)) return 'REPORT_ONLY';
+  if (['ENVIRONMENT', 'MODEL', 'TOOL', 'FIXTURE_DATA'].includes(classification)) return 'RETRY_ALLOWED';
+  if (classification === 'LOCATOR') return 'REAUTHOR_REQUIRED';
+  return 'PATCH_ALLOWED';
 }
 
 const SCRIPT_CATALOG: Record<ExecutionProfile, string> = {
@@ -1388,14 +1402,26 @@ export class HarnessService {
   async submitI8Run(input: I8RunSubmitInput, context: RequestContext): Promise<IdempotentResult> {
     return this.idempotent(input.namespace, 'i8_run_submit', input.idempotencyKey, input, context, (db, timestamp) => {
       const row = db.prepare(`
-        SELECT p.preparation_id, p.case_id, p.case_version, c.candidate_id, c.status AS candidate_status,
-               c.script_id, c.script_version, c.script_sha256, d.activated_plan_id
-        FROM i8_executable_plans p
-        JOIN i8_script_candidates c ON c.executable_plan_id = p.executable_plan_id
-        JOIN i8_script_delivery_decisions d ON d.candidate_id = c.candidate_id AND d.choice = 'ACTIVATE'
-        WHERE p.namespace = ? AND p.preparation_id = ?
-        ORDER BY d.created_at DESC LIMIT 1
-      `).get(input.namespace, input.preparationId) as Record<string, unknown> | undefined;
+        WITH activated_scripts AS (
+          SELECT p.preparation_id, p.case_id, p.case_version, c.candidate_id,
+                 c.status AS candidate_status, c.script_id, c.script_version,
+                 c.script_sha256, d.activated_plan_id, d.created_at, 1 AS priority
+          FROM i8_executable_plans p
+          JOIN i8_script_candidates c ON c.executable_plan_id = p.executable_plan_id
+          JOIN i8_script_delivery_decisions d ON d.candidate_id = c.candidate_id AND d.choice = 'ACTIVATE'
+          WHERE p.namespace = ? AND p.preparation_id = ?
+          UNION ALL
+          SELECT ep.preparation_id, ep.case_id, ep.case_version, rp.repair_candidate_id,
+                 'SCRIPT_VALIDATED', rp.script_id, rp.script_version,
+                 rp.script_sha256, rd.activated_plan_id, rd.created_at, 2 AS priority
+          FROM i8_script_patch_proposals rp
+          JOIN i8_repair_decisions rd ON rd.proposal_id = rp.proposal_id AND rd.choice = 'ACTIVATE'
+          JOIN i8_script_candidates base ON base.candidate_id = rp.base_candidate_id
+          JOIN i8_executable_plans ep ON ep.executable_plan_id = base.executable_plan_id
+          WHERE rp.namespace = ? AND ep.preparation_id = ? AND rp.status = 'ACTIVATED'
+        )
+        SELECT * FROM activated_scripts ORDER BY priority DESC, created_at DESC LIMIT 1
+      `).get(input.namespace, input.preparationId, input.namespace, input.preparationId) as Record<string, unknown> | undefined;
       if (!row || row.candidate_status !== 'SCRIPT_VALIDATED' || !row.activated_plan_id) {
         throw new HarnessError(409, 'I8_SCRIPT_NOT_ACTIVATED', 'DOMAIN', '按需运行只接受已明确激活的持证脚本。', false, true);
       }
@@ -1590,14 +1616,26 @@ export class HarnessService {
         throw new HarnessError(409, 'I8_SCHEDULE_CONFIRMATION_ALREADY_USED', 'CONCURRENCY', '该人工确认已创建过调度。', false, true, { scheduleId: confirmed.schedule_id });
       }
       const row = db.prepare(`
-        SELECT p.preparation_id, p.case_id, p.case_version, c.candidate_id, c.status AS candidate_status,
-               c.script_id, c.script_version, c.script_sha256, d.activated_plan_id
-        FROM i8_executable_plans p
-        JOIN i8_script_candidates c ON c.executable_plan_id = p.executable_plan_id
-        JOIN i8_script_delivery_decisions d ON d.candidate_id = c.candidate_id AND d.choice = 'ACTIVATE'
-        WHERE p.namespace = ? AND p.preparation_id = ?
-        ORDER BY d.created_at DESC LIMIT 1
-      `).get(input.namespace, input.preparationId) as Record<string, unknown> | undefined;
+        WITH activated_scripts AS (
+          SELECT p.preparation_id, p.case_id, p.case_version, c.candidate_id,
+                 c.status AS candidate_status, c.script_id, c.script_version,
+                 c.script_sha256, d.activated_plan_id, d.created_at, 1 AS priority
+          FROM i8_executable_plans p
+          JOIN i8_script_candidates c ON c.executable_plan_id = p.executable_plan_id
+          JOIN i8_script_delivery_decisions d ON d.candidate_id = c.candidate_id AND d.choice = 'ACTIVATE'
+          WHERE p.namespace = ? AND p.preparation_id = ?
+          UNION ALL
+          SELECT ep.preparation_id, ep.case_id, ep.case_version, rp.repair_candidate_id,
+                 'SCRIPT_VALIDATED', rp.script_id, rp.script_version,
+                 rp.script_sha256, rd.activated_plan_id, rd.created_at, 2 AS priority
+          FROM i8_script_patch_proposals rp
+          JOIN i8_repair_decisions rd ON rd.proposal_id = rp.proposal_id AND rd.choice = 'ACTIVATE'
+          JOIN i8_script_candidates base ON base.candidate_id = rp.base_candidate_id
+          JOIN i8_executable_plans ep ON ep.executable_plan_id = base.executable_plan_id
+          WHERE rp.namespace = ? AND ep.preparation_id = ? AND rp.status = 'ACTIVATED'
+        )
+        SELECT * FROM activated_scripts ORDER BY priority DESC, created_at DESC LIMIT 1
+      `).get(input.namespace, input.preparationId, input.namespace, input.preparationId) as Record<string, unknown> | undefined;
       if (!row || row.candidate_status !== 'SCRIPT_VALIDATED' || !row.activated_plan_id) {
         throw new HarnessError(409, 'I8_SCRIPT_NOT_ACTIVATED', 'DOMAIN', '调度只接受已明确激活的持证脚本。', false, true);
       }
@@ -2335,6 +2373,31 @@ export class HarnessService {
             classification, input.errorCode ?? 'WORKER_EXECUTION_FAILED', input.summary,
             resultArtifact?.artifactId ?? null, timestamp, timestamp
           );
+          const i8Classification = classifyI8Failure(input.errorCategory, input.errorCode);
+          const disposition = i8FailureDisposition(i8Classification);
+          const envelopeId = opaqueId('failureenv');
+          const envelope = {
+            schemaVersion: 'i8-step-failure-envelope-v1',
+            stage: 'FORMAL_RUN',
+            object: { runId: task.run_id, taskId, caseId: task.case_id, caseVersion: task.case_version, scriptId: task.script_id, scriptVersion: task.script_version },
+            errorCode: input.errorCode ?? 'WORKER_EXECUTION_FAILED',
+            classification: i8Classification,
+            inputSummary: { environment: 'local', originScheduleId: task.origin_schedule_id ?? null },
+            outputSummary: { outcome: input.outcome, resultArtifactId: resultArtifact?.artifactId ?? null },
+            artifactRefs: artifacts.map(item => item.artifactId),
+            allowedRepairScope: disposition,
+            contextLevel: 'CTX-L1',
+            attemptCount: 0,
+            maxAttempts: 3,
+            redactionProfileId: 'HENGZHUN_FAILURE_REDACTION_V1'
+          };
+          const envelopeJson = canonicalJson(envelope);
+          db.prepare(`INSERT INTO i8_failure_incidents(incident_id, namespace, classification, disposition, status, created_at, updated_at)
+            VALUES (?, ?, ?, ?, 'FAILURE_CLASSIFIED', ?, ?)`)
+            .run(incidentId, task.namespace, i8Classification, disposition, timestamp, timestamp);
+          db.prepare(`INSERT INTO i8_step_failure_envelopes(envelope_id, namespace, incident_id, stage, context_level, envelope_json, envelope_hash, attempt_count, max_attempts, created_at, updated_at)
+            VALUES (?, ?, ?, 'FORMAL_RUN', 'CTX-L1', ?, ?, 0, 3, ?, ?)`)
+            .run(envelopeId, task.namespace, incidentId, envelopeJson, sha256(envelopeJson), timestamp, timestamp);
           if (classification === 'LOCATOR') {
             db.prepare(`UPDATE scripts SET status = 'VALIDATING', updated_at = ? WHERE script_id = ? AND status = 'SCRIPT_VALIDATED'`)
               .run(timestamp, task.script_id);
@@ -2357,6 +2420,263 @@ export class HarnessService {
       artifactIds: artifacts.map(item => item.artifactId),
       ...(incidentId ? { incidentId } : {})
     };
+  }
+
+  getI8Failure(namespace: string, incidentId: string): Record<string, unknown> {
+    return this.database.read(db => {
+      const row = db.prepare(`SELECT fi.incident_id, fi.run_id, fi.case_id, fi.script_id, fi.script_version, fi.reason_code,
+        i.classification, i.disposition, i.status, e.envelope_id, e.context_level, e.envelope_json, e.envelope_hash,
+        e.attempt_count, e.max_attempts, e.updated_at, p.proposal_id, p.repair_candidate_id, p.status proposal_status,
+        p.version proposal_version, p.script_version repair_script_version, p.script_sha256, p.manifest_sha256,
+        b.status stability_status, cert.certificate_id, cert.validation_run_ids_json
+        FROM failure_incidents fi JOIN i8_failure_incidents i ON i.incident_id=fi.incident_id
+        JOIN i8_step_failure_envelopes e ON e.envelope_id=(
+          SELECT envelope_id FROM i8_step_failure_envelopes
+          WHERE incident_id=fi.incident_id
+          ORDER BY CASE context_level WHEN 'CTX-L3' THEN 3 WHEN 'CTX-L2' THEN 2 ELSE 1 END DESC
+          LIMIT 1
+        )
+        LEFT JOIN i8_script_patch_proposals p ON p.proposal_id=(SELECT proposal_id FROM i8_script_patch_proposals WHERE incident_id=fi.incident_id ORDER BY attempt_no DESC LIMIT 1)
+        LEFT JOIN i8_repair_stability_batches b ON b.proposal_id=p.proposal_id
+        LEFT JOIN i8_repair_stability_certificates cert ON cert.proposal_id=p.proposal_id
+        WHERE fi.namespace=? AND fi.incident_id=?`).get(namespace, incidentId) as Record<string, unknown> | undefined;
+      if (!row) throw new HarnessError(404, 'I8_FAILURE_INCIDENT_NOT_FOUND', 'DOMAIN', 'I8 失败事故不存在。');
+      return { incidentId: row.incident_id, runId: row.run_id, caseId: row.case_id, scriptId: row.script_id,
+        scriptVersion: row.script_version, classification: row.classification, reasonCode: row.reason_code,
+        disposition: row.disposition, status: row.status,
+        failureEnvelope: { envelopeId: row.envelope_id, contextLevel: row.context_level, envelopeHash: row.envelope_hash,
+          attemptCount: row.attempt_count, maxAttempts: row.max_attempts, payload: JSON.parse(String(row.envelope_json)) },
+        ...(row.proposal_id ? { proposal: { proposalId: row.proposal_id, repairCandidateId: row.repair_candidate_id,
+          status: row.proposal_status, version: row.proposal_version, scriptVersion: row.repair_script_version,
+          scriptHash: row.script_sha256, manifestHash: row.manifest_sha256,
+          stability: { status: row.stability_status, requiredRuns: 6, certificateId: row.certificate_id ?? null,
+            validationRunIds: row.validation_run_ids_json ? JSON.parse(String(row.validation_run_ids_json)) : [] } } } : {}), updatedAt: row.updated_at };
+    });
+  }
+
+  async proposeI8Repair(input: I8RepairProposeInput, context: RequestContext): Promise<IdempotentResult> {
+    const patch = scriptPatchProposalSchema.parse(input.patch);
+    const exhausted = await this.database.write(db => {
+      const envelope = db.prepare(`
+        SELECT e.attempt_count, e.max_attempts
+        FROM i8_step_failure_envelopes e
+        JOIN i8_failure_incidents i ON i.incident_id = e.incident_id
+        WHERE e.namespace = ? AND e.incident_id = ?
+        ORDER BY CASE e.context_level WHEN 'CTX-L3' THEN 3 WHEN 'CTX-L2' THEN 2 ELSE 1 END DESC
+        LIMIT 1
+      `).get(input.namespace, input.incidentId) as any;
+      if (!envelope || Number(envelope.attempt_count) < Number(envelope.max_attempts)) return false;
+      db.prepare(`UPDATE i8_failure_incidents SET status = 'UNRESOLVED', updated_at = ? WHERE incident_id = ?`)
+        .run(nowIso(), input.incidentId);
+      return true;
+    });
+    if (exhausted) {
+      throw new HarnessError(409, 'I8_REPAIR_ATTEMPT_LIMIT_EXHAUSTED', 'DOMAIN', '三个修复候选已耗尽。', false, true);
+    }
+    return this.idempotent(input.namespace, 'i8_repair_propose', input.idempotencyKey, input, context, (db, timestamp) => {
+      const incident = db.prepare(`SELECT fi.*, i.classification, i.disposition, e.envelope_id, e.envelope_hash, e.attempt_count, e.max_attempts,
+        c.candidate_id base_candidate_id, c.script_id base_script_id, c.script_version base_script_version, c.source_chain_hash base_source_chain_hash,
+        p.plan_json, p.executable_plan_id FROM failure_incidents fi JOIN i8_failure_incidents i ON i.incident_id=fi.incident_id
+        JOIN i8_step_failure_envelopes e ON e.envelope_id=(
+          SELECT envelope_id FROM i8_step_failure_envelopes
+          WHERE incident_id=fi.incident_id
+          ORDER BY CASE context_level WHEN 'CTX-L3' THEN 3 WHEN 'CTX-L2' THEN 2 ELSE 1 END DESC
+          LIMIT 1
+        )
+        JOIN i8_script_candidates c ON c.script_id=fi.script_id AND c.script_version=fi.script_version
+        JOIN i8_executable_plans p ON p.executable_plan_id=c.executable_plan_id WHERE fi.namespace=? AND fi.incident_id=?`)
+        .get(input.namespace, input.incidentId) as Record<string, unknown> | undefined;
+      if (!incident) throw new HarnessError(404, 'I8_REPAIR_BASE_CANDIDATE_NOT_FOUND', 'DOMAIN', '事故没有可审计的 I8 基础候选。');
+      if (incident.envelope_hash !== input.expectedEnvelopeHash) throw new HarnessError(409, 'I8_FAILURE_ENVELOPE_HASH_CONFLICT', 'CONCURRENCY', '失败封装已变化。', false, true, { currentEnvelopeHash: incident.envelope_hash });
+      if (!['PATCH_ALLOWED', 'REAUTHOR_REQUIRED'].includes(String(incident.disposition))) throw new HarnessError(409, 'I8_REPAIR_DISPOSITION_NOT_PATCHABLE', 'DOMAIN', '该事故只能报告或重试，禁止脚本补丁。', false, true);
+      const attemptNo = Number(incident.attempt_count) + 1;
+      if (attemptNo > Number(incident.max_attempts)) throw new HarnessError(409, 'I8_REPAIR_ATTEMPT_LIMIT_EXHAUSTED', 'DOMAIN', '三个修复候选已耗尽。', false, true);
+      if (incident.classification === 'LOCATOR' && patch.operations.some(item => item.type !== 'TARGET_MAPPING')) throw new HarnessError(409, 'I8_LOCATOR_REPAIR_SCOPE_EXCEEDED', 'CONTRACT', '定位事故只接受受控目标映射。', false, true);
+      if (incident.classification === 'ASSERTION' && patch.operations.some(item => item.type !== 'ASSERTION_IMPLEMENTATION')) throw new HarnessError(409, 'I8_ASSERTION_REPAIR_SCOPE_EXCEEDED', 'CONTRACT', '断言事故只接受不弱化契约的实现修复。', false, true);
+      const records = db.prepare(`SELECT record_json FROM i8_verified_action_records WHERE executable_plan_id=? ORDER BY ordinal`).all(incident.executable_plan_id).map((item: any) => JSON.parse(String(item.record_json)));
+      let candidate;
+      try { candidate = buildPatchedCandidatePackage(JSON.parse(String(incident.plan_json)), records, { candidateId: String(incident.base_candidate_id), scriptId: String(incident.base_script_id), scriptVersion: Number(incident.base_script_version), sourceChainHash: String(incident.base_source_chain_hash) }, patch, attemptNo, timestamp); }
+      catch (error) { throw new HarnessError(409, error instanceof Error ? error.message : 'I8_PATCH_PROPOSAL_REJECTED', 'CONTRACT', '补丁未通过白名单和不弱化校验。', false, true); }
+      const relativeDirectory = `.data/candidates/${input.namespace}/${candidate.candidateId}`;
+      const resolved = path.resolve(this.productRoot, ...relativeDirectory.split('/')); const root = path.resolve(this.productRoot, '.data', 'candidates');
+      if (!resolved.startsWith(`${root}${path.sep}`)) throw new HarnessError(500, 'I8_REPAIR_DIRECTORY_INVALID', 'ENVIRONMENT', '修复目录越界。');
+      fs.mkdirSync(resolved, { recursive: true }); const manifestJson = canonicalJson(candidate.manifest);
+      for (const [name, content] of [['script.cjs', candidate.scriptSource], ['manifest.json', manifestJson]] as const) { const target=path.join(resolved,name); if (fs.existsSync(target) && fs.readFileSync(target,'utf8')!==content) throw new HarnessError(409,'I8_REPAIR_FILE_CONFLICT','CONCURRENCY','修复文件冲突。',false,true); if(!fs.existsSync(target)) fs.writeFileSync(target,content,{encoding:'utf8',flag:'wx'}); }
+      const proposalId=opaqueId('patch'), batchId=`repairbatch_${sha256(candidate.candidateId).slice(0,40)}`, patchJson=canonicalJson(patch);
+      db.prepare(`INSERT INTO i8_script_patch_proposals(proposal_id,namespace,incident_id,envelope_id,base_candidate_id,repair_candidate_id,attempt_no,patch_json,patch_hash,script_id,script_version,dsl_json,dsl_hash,generator_version,relative_directory,script_sha256,manifest_json,manifest_sha256,source_chain_hash,status,version,created_at,updated_at) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,'STABILITY_QUEUED',1,?,?)`)
+        .run(proposalId,input.namespace,input.incidentId,incident.envelope_id,incident.base_candidate_id,candidate.candidateId,attemptNo,patchJson,sha256(patchJson),candidate.scriptId,candidate.scriptVersion,canonicalJson(candidate.dsl),candidate.dslHash,'hengzhun-script-package-builder-1.0.0',relativeDirectory,candidate.scriptHash,manifestJson,candidate.manifestHash,candidate.sourceChainHash,timestamp,timestamp);
+      db.prepare(`INSERT INTO i8_repair_stability_batches(batch_id,namespace,proposal_id,repair_candidate_id,status,version,created_at,updated_at) VALUES (?,?,?,?,'QUEUED',1,?,?)`).run(batchId,input.namespace,proposalId,candidate.candidateId,timestamp,timestamp);
+      const suffix=candidate.candidateId.slice('candidate_'.length); const insertRun=db.prepare(`INSERT INTO i8_repair_stability_runs(validation_run_id,batch_id,repair_candidate_id,viewport_id,viewport_width,viewport_height,sequence_no,fixture_ref,status,created_at) VALUES (?,?,?,?,?,?,?,?,'QUEUED',?)`);
+      for(const viewport of I8_STABILITY_VIEWPORTS) for(let sequence=1;sequence<=3;sequence+=1) insertRun.run(`validation_${suffix}_${viewport.suffix}_${sequence}`,batchId,candidate.candidateId,viewport.viewportId,viewport.width,viewport.height,sequence,`repairfixture_${suffix}_${viewport.suffix}_${sequence}`,timestamp);
+      db.prepare(`UPDATE i8_step_failure_envelopes SET attempt_count=?,updated_at=? WHERE envelope_id=?`).run(attemptNo,timestamp,incident.envelope_id); db.prepare(`UPDATE i8_failure_incidents SET status='PATCH_ALLOWED',updated_at=? WHERE incident_id=?`).run(timestamp,input.incidentId);
+      return {status:202,objectType:'I8_SCRIPT_PATCH_PROPOSAL',objectId:proposalId,response:{proposalId,incidentId:input.incidentId,repairCandidateId:candidate.candidateId,attemptNo,status:'STABILITY_QUEUED',version:1,scriptId:candidate.scriptId,scriptVersion:candidate.scriptVersion,scriptHash:candidate.scriptHash,manifestHash:candidate.manifestHash,requiredStabilityRuns:6,activationRequired:true}};
+    });
+  }
+
+  async claimNextI8RepairStability(workerId: string): Promise<Record<string, unknown>> {
+    return this.database.write(db => { const timestamp=nowIso(); const row=db.prepare(`SELECT b.*,p.relative_directory,p.script_sha256,p.manifest_sha256 FROM i8_repair_stability_batches b JOIN i8_script_patch_proposals p ON p.proposal_id=b.proposal_id WHERE b.status='QUEUED' ORDER BY b.created_at LIMIT 1`).get() as any; if(!row)return{status:'EMPTY'}; const leaseExpiresAt=new Date(Date.now()+600000).toISOString(); db.prepare(`UPDATE i8_repair_stability_batches SET status='RUNNING',lease_owner=?,lease_expires_at=?,version=version+1,updated_at=? WHERE batch_id=?`).run(workerId,leaseExpiresAt,timestamp,row.batch_id); db.prepare(`UPDATE i8_repair_stability_runs SET status='RUNNING' WHERE batch_id=?`).run(row.batch_id); db.prepare(`UPDATE i8_script_patch_proposals SET status='STABILITY_VALIDATING',version=version+1,updated_at=? WHERE proposal_id=?`).run(timestamp,row.proposal_id); const runs=db.prepare(`SELECT * FROM i8_repair_stability_runs WHERE batch_id=? ORDER BY viewport_width DESC,sequence_no`).all(row.batch_id) as any[]; return{status:'CLAIMED',batchId:row.batch_id,proposalId:row.proposal_id,namespace:row.namespace,candidateId:row.repair_candidate_id,relativeDirectory:row.relative_directory,scriptHash:row.script_sha256,manifestHash:row.manifest_sha256,credentialAlias:'i3-customer',leaseOwner:workerId,leaseExpiresAt,runs:runs.map(r=>({validationRunId:r.validation_run_id,viewportId:r.viewport_id,viewportWidth:r.viewport_width,viewportHeight:r.viewport_height,sequenceNo:r.sequence_no,fixtureRef:r.fixture_ref}))}; });
+  }
+
+
+  async completeI8RepairStability(batchId: string, inputValue: I8StabilityCompletionInput): Promise<Record<string, unknown>> {
+    const input = i8StabilityCompletionSchema.parse(inputValue);
+    return this.database.write(db => {
+      const batch = db.prepare(`
+        SELECT b.*, p.script_sha256, p.incident_id, p.attempt_no
+        FROM i8_repair_stability_batches b
+        JOIN i8_script_patch_proposals p ON p.proposal_id = b.proposal_id
+        WHERE b.batch_id = ?
+      `).get(batchId) as any;
+      if (!batch) {
+        throw new HarnessError(404, 'I8_REPAIR_STABILITY_BATCH_NOT_FOUND', 'DOMAIN', '修复稳定性批次不存在。');
+      }
+      if (batch.status !== 'RUNNING' || batch.lease_owner !== input.workerId ||
+          input.candidateId !== batch.repair_candidate_id || input.scriptHash !== batch.script_sha256) {
+        throw new HarnessError(409, 'I8_REPAIR_STABILITY_BINDING_INVALID', 'CONCURRENCY', '修复回传绑定无效。', false, true);
+      }
+
+      const expected = db.prepare(`SELECT validation_run_id FROM i8_repair_stability_runs WHERE batch_id = ?`)
+        .all(batchId) as Array<{ validation_run_id: string }>;
+      const byId = new Map(input.runs.map(run => [run.validationRunId, run]));
+      if (expected.length !== 6 || byId.size !== 6 || expected.some(row => !byId.has(row.validation_run_id))) {
+        throw new HarnessError(409, 'I8_REPAIR_STABILITY_RUN_SET_INVALID', 'CONTRACT', '必须回传固定六次验证。', false, true);
+      }
+
+      const evidenceRoot = path.resolve(this.productRoot, '.data', 'stability');
+      for (const run of input.runs) {
+        for (const evidence of run.evidence) {
+          const resolved = path.resolve(this.productRoot, ...evidence.relativePath.split('/'));
+          if (!resolved.startsWith(`${evidenceRoot}${path.sep}`) || !fs.existsSync(resolved)) {
+            throw new HarnessError(409, 'I8_REPAIR_EVIDENCE_MISSING', 'EVIDENCE', '修复证据缺失或越界。', false, true);
+          }
+          const bytes = fs.readFileSync(resolved);
+          if (bytes.byteLength !== evidence.byteLength || sha256(bytes) !== evidence.sha256) {
+            throw new HarnessError(409, 'I8_REPAIR_EVIDENCE_HASH_MISMATCH', 'EVIDENCE', '修复证据Hash不匹配。', false, true);
+          }
+        }
+      }
+
+      const assertionHashes = new Set(input.runs.map(run => run.assertionSetHash));
+      const evidenceHashes = new Set(input.runs.map(run => run.evidenceSetHash));
+      const success = input.runs.every(run => run.outcome === 'PASSED') && assertionHashes.size === 1 && evidenceHashes.size === 1;
+      const timestamp = nowIso();
+      const update = db.prepare(`
+        UPDATE i8_repair_stability_runs
+        SET status = ?, duration_ms = ?, assertion_set_hash = ?, evidence_set_hash = ?,
+            evidence_json = ?, error_code = ?, completed_at = ?
+        WHERE validation_run_id = ? AND batch_id = ? AND status = 'RUNNING'
+      `);
+      for (const run of input.runs) {
+        update.run(run.outcome === 'PASSED' ? 'PASSED' : 'FAILED', run.durationMs, run.assertionSetHash,
+          run.evidenceSetHash, canonicalJson(run.evidence), run.errorCode ?? null, timestamp, run.validationRunId, batchId);
+      }
+
+      if (success) {
+        db.prepare(`
+          INSERT INTO i8_repair_stability_certificates(
+            certificate_id, namespace, proposal_id, batch_id, repair_candidate_id, script_sha256,
+            runtime_fingerprint, validation_run_ids_json, assertion_set_hash, evidence_set_hash, status, issued_at
+          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'PASSED', ?)
+        `).run(opaqueId('repaircert'), batch.namespace, batch.proposal_id, batchId, batch.repair_candidate_id,
+          batch.script_sha256, input.runtimeFingerprint, canonicalJson(input.runs.map(run => run.validationRunId)),
+          [...assertionHashes][0], [...evidenceHashes][0], timestamp);
+      }
+
+      db.prepare(`
+        UPDATE i8_repair_stability_batches
+        SET status = ?, lease_owner = NULL, lease_expires_at = NULL, runtime_fingerprint = ?,
+            assertion_set_hash = ?, evidence_set_hash = ?, error_code = ?, version = version + 1,
+            completed_at = ?, updated_at = ?
+        WHERE batch_id = ?
+      `).run(success ? 'PASSED' : 'FAILED', input.runtimeFingerprint,
+        assertionHashes.size === 1 ? [...assertionHashes][0] : null,
+        evidenceHashes.size === 1 ? [...evidenceHashes][0] : null,
+        success ? null : 'I8_REPAIR_STABILITY_FAILED', timestamp, timestamp, batchId);
+      db.prepare(`UPDATE i8_script_patch_proposals SET status = ?, version = version + 1, updated_at = ? WHERE proposal_id = ?`)
+        .run(success ? 'WAITING_USER' : 'VALIDATION_FAILED', timestamp, batch.proposal_id);
+      db.prepare(`UPDATE i8_failure_incidents SET status = ?, updated_at = ? WHERE incident_id = ?`)
+        .run(success ? 'WAITING_USER' : 'PATCH_ALLOWED', timestamp, batch.incident_id);
+
+      let contextLevel: 'CTX-L1' | 'CTX-L2' | 'CTX-L3' = 'CTX-L1';
+      if (!success) {
+        contextLevel = Number(batch.attempt_no) >= 2 ? 'CTX-L3' : 'CTX-L2';
+        const prior = db.prepare(`
+          SELECT envelope_json, attempt_count, max_attempts
+          FROM i8_step_failure_envelopes
+          WHERE incident_id = ?
+          ORDER BY CASE context_level WHEN 'CTX-L3' THEN 3 WHEN 'CTX-L2' THEN 2 ELSE 1 END DESC
+          LIMIT 1
+        `).get(batch.incident_id) as any;
+        const payload = {
+          ...JSON.parse(String(prior.envelope_json)),
+          contextLevel,
+          attemptCount: Number(batch.attempt_no),
+          adjacentFailureSummary: {
+            proposalId: batch.proposal_id,
+            repairCandidateId: batch.repair_candidate_id,
+            batchId,
+            failedRunCount: input.runs.filter(run => run.outcome === 'FAILED').length,
+            errorCodes: [...new Set(input.runs.map(run => run.errorCode).filter(Boolean))].sort(),
+            assertionSetConsistent: assertionHashes.size === 1,
+            evidenceSetConsistent: evidenceHashes.size === 1
+          }
+        };
+        const envelopeJson = canonicalJson(payload);
+        db.prepare(`
+          INSERT OR IGNORE INTO i8_step_failure_envelopes(
+            envelope_id, namespace, incident_id, stage, context_level, envelope_json, envelope_hash,
+            attempt_count, max_attempts, created_at, updated_at
+          ) VALUES (?, ?, ?, 'FORMAL_RUN', ?, ?, ?, ?, ?, ?, ?)
+        `).run(opaqueId('failureenv'), batch.namespace, batch.incident_id, contextLevel, envelopeJson,
+          sha256(envelopeJson), Number(batch.attempt_no), Number(prior.max_attempts), timestamp, timestamp);
+      }
+
+      return {
+        batchId,
+        proposalId: batch.proposal_id,
+        repairCandidateId: batch.repair_candidate_id,
+        status: success ? 'PASSED' : 'FAILED',
+        passedRuns: input.runs.filter(run => run.outcome === 'PASSED').length,
+        requiredRuns: 6,
+        contextLevel,
+        nextAction: success ? 'HUMAN_REPAIR_DECISION_REQUIRED' : 'REPAIR_PROPOSAL_REQUIRED'
+      };
+    });
+  }
+
+  async decideI8Repair(input: I8RepairDecisionInput, context: RequestContext): Promise<IdempotentResult> {
+    return this.idempotent(input.namespace, 'i8_repair_decision', input.idempotencyKey, input, context, (db, timestamp) => {
+      const proposal = db.prepare(`SELECT p.*, cert.certificate_id, ep.case_id, ep.case_version
+        FROM i8_script_patch_proposals p
+        JOIN i8_repair_stability_certificates cert ON cert.proposal_id = p.proposal_id
+        JOIN i8_script_candidates base ON base.candidate_id = p.base_candidate_id
+        JOIN i8_executable_plans ep ON ep.executable_plan_id = base.executable_plan_id
+        WHERE p.namespace = ? AND p.proposal_id = ?`).get(input.namespace, input.proposalId) as any;
+      if (!proposal) throw new HarnessError(409, 'I8_REPAIR_CERTIFICATE_REQUIRED', 'EVIDENCE', '修复候选未取得六轮证书。', false, true);
+      if (proposal.version !== input.expectedProposalVersion) throw new HarnessError(409, 'I8_REPAIR_PROPOSAL_VERSION_CONFLICT', 'CONCURRENCY', '修复提案版本已变化。', false, true, { currentVersion: proposal.version });
+      if (proposal.status !== 'WAITING_USER') throw new HarnessError(409, 'I8_REPAIR_DECISION_NOT_ALLOWED', 'DOMAIN', '当前不接受人工决定。', false, true);
+      let activatedPlanId: string | null = null;
+      if (input.choice === 'ACTIVATE') {
+        const relativePath = `${proposal.relative_directory}/script.cjs`;
+        const configuration = canonicalJson({ mode: 'I8_CANDIDATE', candidateId: proposal.repair_candidate_id, relativeDirectory: proposal.relative_directory, scriptHash: proposal.script_sha256, manifestHash: proposal.manifest_sha256 });
+        const existing = db.prepare('SELECT sha256 FROM script_versions WHERE script_id = ? AND version = ?').get(proposal.script_id, proposal.script_version) as any;
+        if (existing && existing.sha256 !== proposal.script_sha256) throw new HarnessError(409, 'I8_REPAIR_SCRIPT_VERSION_CONFLICT', 'CONCURRENCY', '修复脚本版本冲突。', false, true);
+        if (!existing) db.prepare(`INSERT INTO script_versions(script_id, version, relative_path, sha256, validation_status, configuration_json, source_sha256, created_at) VALUES (?, ?, ?, ?, 'PASSED', ?, ?, ?)`)
+          .run(proposal.script_id, proposal.script_version, relativePath, proposal.script_sha256, configuration, proposal.script_sha256, timestamp);
+        db.prepare(`UPDATE scripts SET current_version = ?, status = 'SCRIPT_VALIDATED', updated_at = ? WHERE script_id = ?`).run(proposal.script_version, timestamp, proposal.script_id);
+        activatedPlanId = `plan_i8_repair_${sha256(proposal.repair_candidate_id).slice(0, 40)}`;
+        const summary = canonicalJson({ source: 'I8_RESTRICTED_REPAIR', proposalId: proposal.proposal_id, repairCandidateId: proposal.repair_candidate_id, certificateId: proposal.certificate_id, scriptHash: proposal.script_sha256, formalRegression: true });
+        const repairPlanVersion = Number((db.prepare(`SELECT MAX(version) maximum FROM plans WHERE namespace = ? AND case_id = ? AND case_version = ?`).get(input.namespace, proposal.case_id, proposal.case_version) as any)?.maximum ?? 0) + 1;
+        db.prepare(`INSERT INTO plans(plan_id, namespace, case_id, case_version, version, status, summary_json, content_hash, created_at, script_id, full_action_plan_json) VALUES (?, ?, ?, ?, ?, 'READY', ?, ?, ?, ?, NULL)`)
+          .run(activatedPlanId, input.namespace, proposal.case_id, proposal.case_version, repairPlanVersion, summary, sha256(summary), timestamp, proposal.script_id);
+      }
+      const decisionId = opaqueId('repairdecision');
+      db.prepare(`INSERT INTO i8_repair_decisions(decision_id, namespace, proposal_id, expected_proposal_version, choice, reason, confirmation_ref, activated_plan_id, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`)
+        .run(decisionId, input.namespace, input.proposalId, input.expectedProposalVersion, input.choice, input.reason, input.confirmationRef, activatedPlanId, timestamp);
+      db.prepare(`UPDATE i8_script_patch_proposals SET status = ?, version = version + 1, updated_at = ? WHERE proposal_id = ?`).run(input.choice === 'ACTIVATE' ? 'ACTIVATED' : 'REJECTED', timestamp, input.proposalId);
+      db.prepare(`UPDATE i8_failure_incidents SET status = ?, updated_at = ? WHERE incident_id = ?`).run(input.choice === 'ACTIVATE' ? 'RESOLVED' : 'REJECTED', timestamp, proposal.incident_id);
+      return { status: 200, objectType: 'I8_REPAIR_DECISION', objectId: decisionId, response: { decisionId, proposalId: input.proposalId, choice: input.choice, status: 'RECORDED', activatedPlanId, scriptId: proposal.script_id, scriptVersion: proposal.script_version, rerunRequired: input.choice === 'ACTIVATE', scheduleMigrationRequired: false } };
+    });
   }
 
   getFailureIncident(namespace: string, incidentId: string): Record<string, unknown> {

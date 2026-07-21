@@ -1,11 +1,11 @@
 {
   "schemaVersion": "hengzhun-i8-mcp-contract-v1",
-  "contractVersion": "6.0.0",
+  "contractVersion": "7.0.0",
   "transport": "streamable-http",
   "endpoint": "http://127.0.0.1:18789/mcp",
   "authentication": "bearer",
   "additionalToolsAllowed": false,
-  "activeStage": 6,
+  "activeStage": 7,
   "tools": [
     {"name":"case_prepare","stage":2,"status":"ACTIVE","outputLevel":"OUT-L1"},
     {"name":"authoring_submit","stage":2,"status":"ACTIVE","outputLevel":"OUT-L1"},
@@ -18,9 +18,9 @@
     {"name":"schedule_create","stage":6,"status":"ACTIVE","outputLevel":"OUT-L1"},
     {"name":"schedule_get","stage":6,"status":"ACTIVE","outputLevel":"OUT-L1"},
     {"name":"result_inbox_list","stage":6,"status":"ACTIVE","outputLevel":"OUT-L1"},
-    {"name":"failure_get","stage":7,"status":"DEFERRED_FAIL_CLOSED","outputLevel":"OUT-L2"},
-    {"name":"repair_propose","stage":7,"status":"DEFERRED_FAIL_CLOSED","outputLevel":"OUT-L2"},
-    {"name":"decision_submit","stage":7,"status":"DEFERRED_FAIL_CLOSED","outputLevel":"OUT-L1"}
+    {"name":"failure_get","stage":7,"status":"ACTIVE","outputLevel":"OUT-L2"},
+    {"name":"repair_propose","stage":7,"status":"ACTIVE","outputLevel":"OUT-L2"},
+    {"name":"decision_submit","stage":7,"status":"ACTIVE","outputLevel":"OUT-L1"}
   ],
   "forbiddenCapabilities": ["filesystem","sql","shell","browser","arbitrary_url","credential_read"]
 }

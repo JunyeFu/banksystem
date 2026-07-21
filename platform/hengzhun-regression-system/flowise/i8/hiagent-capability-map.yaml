@@ -1,6 +1,6 @@
 schemaVersion: hengzhun-i8-hiagent-capability-map-v1
 flowiseVersion: 3.0.12
-scope: stage3-local-implementation-only
+scope: stage7-local-artifact-only
 claimsHiAgentRuntimeVerified: false
 mappings:
   - flowise: chat_input

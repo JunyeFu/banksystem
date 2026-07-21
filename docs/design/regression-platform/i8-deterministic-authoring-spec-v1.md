@@ -528,3 +528,14 @@ I8 方案本身已冻结；以下是外部验收风险，不改变实现选择�
 - Flowise阶段6制品只使用结构化LLM、条件、Human Input、MCP和直接回复。用户输入自然语言时间；主控回显类型、Asia/Shanghai时间、Cron或runAt、misfire、宽限和重试，确认后才幂等创建。ON_DEMAND不调用调度写工具。
 - MCP 6.0.0共14项冻结工具，其中11项ACTIVE；`failure_get/repair_propose/decision_submit`继续稳定失败关闭至阶段7。
 - `verify:i8:stage6`覆盖阶段1—6；`verify:i8:stage6:live`使用固定Chromium实际执行ONE_TIME调度，并在主动制造`current_version`漂移后证明运行仍绑定旧版本。此证据仍不证明真实Flowise发布、MiMo对话或HiAgent运行。
+
+## 21. 阶段7实现记录（2026-07-21）
+
+- migration 015新增十一类`i8_failure_incidents`、可分级且不可变的`i8_step_failure_envelopes`、最多3次的`i8_script_patch_proposals`、独立修复稳定性批次/六个Run/证书和人工决定表。
+- 正式失败先由确定性分类器产生CTX-L1；一次修复验证失败后写入只含相邻摘要的CTX-L2，第二次失败升级CTX-L3。不得读取整库、整日志、凭据、Storage State或项目源码补充上下文。
+- `ScriptPatchProposal`拒绝完整源码、未知字段、任意选择器和断言弱化，只允许受控目标映射、固定等待、受控动作参数、步骤顺序及等强/更强断言实现。
+- 每个修复尝试把安全来源元数据写入生成脚本头部，使候选ID、脚本版本、脚本Hash、Manifest Hash和来源链均可区分和审计；第三个候选后稳定拒绝第四次尝试。
+- 每个候选必须重新完成1440×900和390×844各3次的纯Playwright验证；失败不发证，成功后仍保持`WAITING_USER`。只有显式`ACTIVATE`建立新`script_versions`和READY Plan。
+- 激活本身不自动运行、不迁移Schedule。用户后续显式调用`run_submit`或新建Schedule时，Harness优先选择已激活修复版本并复核精确版本/Hash；历史Schedule继续绑定原版本。
+- MCP 7.0.0启用全部14项工具；阶段7 Flowise同源制品只使用结构化LLM、条件、循环、Human Input、MCP和直接回复，不使用Code/HTTP/数据库/文件/Shell/浏览器节点。
+- 本机自动化测试覆盖十一类、L1/L2/L3、三次上限、白名单、六次重新签证、显式激活、修复版本按需运行和新调度绑定。真实Flowise发布、MiMo对话、固定Chromium阶段7复验和HiAgent仍为独立门禁。

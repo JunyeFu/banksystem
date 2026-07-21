@@ -223,7 +223,7 @@ Flowise 检索
 - 视觉模型默认 `CTX-L1`，只有确定性消歧规则才能升级 `CTX-L2` 或裁剪后的 `CTX-L3`。主控即使有 1M 容量，也不得读取完整仓库、SQLite、其他案例、秘密或无关历史。
 - Harness 必须按消费者独立预估和记录 token 预算。视觉上下文无法压入 16K 时不得静默删除安全字段，必须返回 `VISION_CONTEXT_BUDGET_EXCEEDED` 并转纯 Playwright、重新规划或人工处理；主控超限返回 `CONTROLLER_CONTEXT_BUDGET_EXCEEDED`。
 
-### 8.3 当前实现边界（2026-07-20 阶段5落地后）
+### 8.3 当前实现边界（2026-07-21 阶段7本机落地后）
 
 当前 I0—I7 历史代码仅实现了 Harness/SQLite 层的滑动状态：完整计划持久化、游标、上一动作摘要、当前动作、下一动作预览、最近观察、页面状态、单动作租约，以及 Playwright 验证成功后推进。历史 `test:i4` 当前 3/3 通过。
 
@@ -239,7 +239,9 @@ I8 阶段5进一步落地 migration 013、持证候选Hash复核、16KiB完整�
 
 I8 阶段6进一步落地 migration 014：历史周期调度回填创建时实际脚本身份，无法安全回填时禁用；新调度冻结`caseVersion + planId + scriptId + scriptVersion + scriptHash`，执行时读取精确`script_versions`而不跟随`current_version`。`RECURRING`使用五字段Cron，`ONE_TIME`使用带偏移`runAt`并在成功或最终失败后自动停用。每个正式Run终态幂等写入不可删除的SQLite结果收件箱；Agent可分页获取未读项并确认已读，响应不含本机路径或凭据。MCP累计11项活跃、阶段7三项失败关闭；阶段6固定Chromium专项实际完成一次调度纯Playwright回归。
 
-尚未完成的是运行中 Agentflow 发布、真实 MiMo 主控对话、阶段7限域修复以及 HiAgent 目标环境验收。因此只能声明“阶段6本机代码、集成和固定Chromium验证完成”，不能声明“I8全部完成”或“HiAgent已验收”。追踪见 `AUD-009...AUD-038`。
+I8 阶段7进一步落地 migration 015：正式失败确定性分类为十一类并生成脱敏`StepFailureEnvelope`；默认CTX-L1，修复稳定性失败后只携带相邻失败摘要升级到L2/L3。补丁严格限制为受控目标映射、固定等待、受控参数、步骤顺序和不弱化断言；最多3个候选，每个都有独立版本、来源链和Hash并重新执行2视口×3次纯Playwright门禁。持证候选仍需用户显式ACTIVATE；随后用户另行提交按需运行或新建调度时精确选择修复版本，既有调度不自动迁移。MCP 7.0.0的14项工具全部ACTIVE，但无任意文件、Shell、浏览器或URL能力。
+
+尚未完成的是运行中 Agentflow 发布、真实 MiMo 主控对话、阶段7固定Chromium复验以及 HiAgent 目标环境验收。因此只能声明“阶段7本机代码与自动化闭环完成”，不能声明“I8全部完成”或“HiAgent已验收”。追踪见 `AUD-009...AUD-044`。
 
 ## 9. HiAgent 迁移约束
 

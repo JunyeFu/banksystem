@@ -28,6 +28,7 @@ import {
 import { i8StabilityCompletionSchema } from './i8/stage4-schemas';
 import { i8CandidateDecisionSchema, i8CandidatePreviewSchema, i8RunSubmitSchema, i8TaskGetSchema } from './i8/stage5-schemas';
 import { i8ResultInboxListSchema, i8ScheduleCreateSchema, i8ScheduleGetSchema } from './i8/stage6-schemas';
+import { i8FailureGetSchema, i8RepairDecisionSchema, i8RepairProposeSchema } from './i8/stage7-schemas';
 import { authorizeRequest, loadSecurityConfig, remoteAddressForAudit, SecurityConfig, SecurityResult } from './security';
 import { HarnessService } from './service';
 import { credentialFingerprint, nowIso, opaqueId } from './utils';
@@ -283,6 +284,15 @@ export async function createHarnessApplication(options: HarnessApplicationOption
         const input = workerClaimSchema.parse(await readJson(request));
         return sendJson(response, 200, await service.claimNextI8Stability(input.workerId), 'L2', requestId);
       }
+      if (request.method === 'POST' && url.pathname === '/internal/worker/i8/repairs/stability:claim') {
+        const input = workerClaimSchema.parse(await readJson(request));
+        return sendJson(response, 200, await service.claimNextI8RepairStability(input.workerId), 'L2', requestId);
+      }
+      const i8RepairStabilityCompleteMatch = url.pathname.match(/^\/internal\/worker\/i8\/repairs\/stability\/([^/]+):complete$/);
+      if (request.method === 'POST' && i8RepairStabilityCompleteMatch) {
+        const input = i8StabilityCompletionSchema.parse(await readJson(request, MAX_WORKER_REQUEST_BYTES));
+        return sendJson(response, 200, await service.completeI8RepairStability(decodeURIComponent(i8RepairStabilityCompleteMatch[1] as string), input), 'L2', requestId);
+      }
       const i8StabilityCompleteMatch = url.pathname.match(/^\/internal\/worker\/i8\/stability\/([^/]+):complete$/);
       if (request.method === 'POST' && i8StabilityCompleteMatch) {
         authorizeWorker(request.headers.authorization, workerToken);
@@ -407,6 +417,20 @@ export async function createHarnessApplication(options: HarnessApplicationOption
       if (request.method === 'POST' && url.pathname === '/v1/i8/results:inbox-list') {
         const input = i8ResultInboxListSchema.parse(await readJson(request));
         return sendJson(response, 200, await service.listI8ResultInbox(input), 'L2', requestId);
+      }
+      if (request.method === 'POST' && url.pathname === '/v1/i8/failures:get') {
+        const input = i8FailureGetSchema.parse(await readJson(request));
+        return sendJson(response, 200, service.getI8Failure(input.namespace, input.incidentId), 'L2', requestId);
+      }
+      if (request.method === 'POST' && url.pathname === '/v1/i8/repairs:propose') {
+        const input = i8RepairProposeSchema.parse(await readJson(request));
+        const result = await service.proposeI8Repair(input, context);
+        return sendJson(response, result.status, result.response, 'L2', requestId);
+      }
+      if (request.method === 'POST' && url.pathname === '/v1/i8/repairs:decide') {
+        const input = i8RepairDecisionSchema.parse(await readJson(request));
+        const result = await service.decideI8Repair(input, context);
+        return sendJson(response, result.status, result.response, 'L1', requestId);
       }
       if (request.method === 'POST' && url.pathname === '/v1/plugin/cases:create-draft') {
         const input = caseCreateDraftSchema.parse(await readJson(request));
