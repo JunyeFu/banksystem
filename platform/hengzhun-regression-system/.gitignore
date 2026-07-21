@@ -1,5 +1,6 @@
 # Runtime data and evidence are machine-local and may contain sensitive context.
 .data/
+.release/
 
 # Portable runtime binaries and installed dependencies are reproducible local assets.
 runtime/node-v20.20.2-win-x64/
