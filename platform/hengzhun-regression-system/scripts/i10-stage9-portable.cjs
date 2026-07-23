@@ -241,16 +241,38 @@ function verifyCandidate(candidateRoot) {
 }
 
 function validateArchiveListing(archivePath) {
-  const result = run('tar.exe', ['-tf', archivePath])
-  assert.equal(result.status, 0, `I10_S9_ARCHIVE_LIST_FAILED:${String(result.stderr || '').trim()}`)
-  const entries = String(result.stdout || '').split(/\r?\n/).filter(Boolean).map(value => value.replace(/\\/g, '/'))
-  assert.ok(entries.length > 0, 'I10_S9_ARCHIVE_EMPTY')
-  for (const entry of entries) {
+  const listingPath = path.join(path.dirname(archivePath), `.${path.basename(archivePath)}.${process.pid}.listing.tmp`)
+  let entryCount = 0
+  const validateEntry = raw => {
+    const entry = raw.replace(/\\/g, '/')
+    if (!entry) return
+    entryCount += 1
     assert.ok(entry === policy.candidateName || entry.startsWith(`${policy.candidateName}/`), `I10_S9_ARCHIVE_ENTRY_OUTSIDE_ROOT:${entry}`)
     assert.ok(!entry.split('/').includes('..'), `I10_S9_ARCHIVE_TRAVERSAL:${entry}`)
     assert.ok(!/^[A-Za-z]:/.test(entry) && !entry.startsWith('/'), `I10_S9_ARCHIVE_ABSOLUTE_ENTRY:${entry}`)
   }
-  return entries.length
+  try {
+    const output = fs.openSync(listingPath, 'w')
+    try {
+      const result = run('tar.exe', ['-tf', archivePath], { stdio: ['ignore', output, 'pipe'] })
+      assert.equal(result.status, 0, `I10_S9_ARCHIVE_LIST_FAILED:${String(result.stderr || '').trim()}`)
+    } finally { fs.closeSync(output) }
+    const input = fs.openSync(listingPath, 'r')
+    try {
+      const buffer = Buffer.allocUnsafe(64 * 1024)
+      let carry = ''
+      while (true) {
+        const bytes = fs.readSync(input, buffer, 0, buffer.length, null)
+        if (bytes === 0) break
+        const lines = `${carry}${buffer.toString('utf8', 0, bytes)}`.split(/\r?\n/)
+        carry = lines.pop() || ''
+        for (const line of lines) validateEntry(line)
+      }
+      validateEntry(carry)
+    } finally { fs.closeSync(input) }
+  } finally { fs.rmSync(listingPath, { force: true }) }
+  assert.ok(entryCount > 0, 'I10_S9_ARCHIVE_EMPTY')
+  return entryCount
 }
 
 function verifyRelease(candidateRoot, archivePath, checksumPath) {
