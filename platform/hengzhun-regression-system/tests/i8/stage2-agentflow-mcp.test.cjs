@@ -202,7 +202,7 @@ test('Flowise 3.0.12 artifact uses only mapped nodes, chat input and MCP for ext
   }
 })
 
-test('Flowise MCP client reaches the authenticated 14-tool server and active tools reach Harness', async (t) => {
+test('Flowise MCP client preserves the legacy fourteen inside the authenticated I10 twenty-three-tool server', async (t) => {
   const { baseUrl } = await fixture(t)
   assert.ok(fs.existsSync(path.join(flowiseAppPath, 'package.json')), 'Formal Flowise 3.0.12 runtime is required')
   const port = await freePort()
@@ -238,11 +238,13 @@ test('Flowise MCP client reaches the authenticated 14-tool server and active too
   const { MCPToolkit } = runtimeRequire('flowise-components/dist/nodes/tools/MCP/core.js')
   const toolkit = new MCPToolkit({ url: `http://127.0.0.1:${port}/mcp`, headers: { Authorization: `Bearer ${mcpToken}` } }, 'sse')
   await toolkit.initialize()
-  assert.equal(toolkit.tools.length, 14)
+  assert.equal(toolkit.tools.length, 23)
   assert.deepEqual(toolkit.tools.map((tool) => tool.name).sort(), [
     'authoring_get', 'authoring_submit', 'candidate_decide', 'candidate_get', 'candidate_preview',
-    'case_prepare', 'decision_submit', 'failure_get', 'repair_propose', 'result_inbox_list',
-    'run_submit', 'schedule_create', 'schedule_get', 'task_get'
+    'case_prepare', 'credential_session_create', 'credential_session_get', 'decision_submit',
+    'failure_get', 'image_ingest_get', 'image_ingest_submit', 'ingest_decision_submit', 'ingest_get', 'ingest_submit',
+    'repair_propose', 'result_inbox_list', 'run_submit', 'schedule_create', 'schedule_get', 'task_get',
+    'verification_decision_submit', 'verification_get'
   ])
   const { draft, acceptanceSummary } = domainObjects()
   const prepareText = await toolkit.tools.find((tool) => tool.name === 'case_prepare').invoke({
@@ -253,6 +255,35 @@ test('Flowise MCP client reaches the authenticated 14-tool server and active too
   })
   const prepared = parseFlowiseMcpText(prepareText)
   assert.equal(prepared.status, 'PREPARED')
+
+  const i10Draft = {
+    schemaVersion: 'hengzhun-i10-case-draft-v1',
+    title: '门户登录资料一致性', objective: '验证当前客户身份资料一致。', summary: '登录后核对身份。',
+    targetSystem: '复兴银行门户', entryUrl: 'http://127.0.0.1:18082/portal/login',
+    preconditions: ['本机凭据引用有效'], steps: [{ action: '登录门户', expected: '进入受保护页面' }], assertions: ['当前用户资料一致'],
+    credentialRef: 'credential_00000000-0000-4000-8000-000000000001',
+    source: { inputType: 'NATURAL_LANGUAGE', sourceRef: 'ignored-by-mcp', sourceHash: '0'.repeat(64), provenanceSummary: '测试' },
+    confidence: 0.9, missingFields: [], confirmationStatus: 'CONFIRMED',
+    authoringStrategy: 'MIDSCENE_VISUAL_AUTHORING_PLAYWRIGHT_VERIFY', executionStrategy: 'PLAYWRIGHT_VALIDATED_ONLY', evidenceStrategy: 'REDACTED_HASHED_EVIDENCE'
+  }
+  const arrayDraftResult = parseFlowiseMcpText(await toolkit.tools.find((tool) => tool.name === 'case_prepare').invoke({
+    caseDescription: '客户登录后核对当前资料', draftArray: [i10Draft],
+    credentialRef: i10Draft.credentialRef, sessionRef: 'flowise-stage2-i10-array'
+  }))
+  assert.equal(arrayDraftResult.errorCode, 'I10_CREDENTIAL_REF_NOT_FOUND')
+  const flatDraftResult = parseFlowiseMcpText(await toolkit.tools.find((tool) => tool.name === 'case_prepare').invoke({
+    caseDescription: '客户登录后核对当前资料', caseTitle: i10Draft.title, objective: i10Draft.objective,
+    summary: i10Draft.summary, targetSystem: i10Draft.targetSystem, entryUrl: i10Draft.entryUrl,
+    preconditions: i10Draft.preconditions, actions: i10Draft.steps.map((step) => step.action),
+    expectedOutcomes: i10Draft.steps.map((step) => step.expected), assertions: i10Draft.assertions,
+    missingFields: [], credentialRef: i10Draft.credentialRef, sessionRef: 'flowise-stage2-i10-flat'
+  }))
+  assert.equal(flatDraftResult.errorCode, 'I10_CREDENTIAL_REF_NOT_FOUND')
+  const ambiguousDraftResult = parseFlowiseMcpText(await toolkit.tools.find((tool) => tool.name === 'case_prepare').invoke({
+    caseDescription: '客户登录后核对当前资料', draftArray: [i10Draft], draftJson: i10Draft,
+    credentialRef: i10Draft.credentialRef, sessionRef: 'flowise-stage2-i10-ambiguous'
+  }))
+  assert.equal(ambiguousDraftResult.errorCode, 'I10_DRAFT_SOURCE_AMBIGUOUS')
 
   const intentPlan = {
     schemaVersion: 'i8-intent-plan-v1', caseId: prepared.caseId, caseVersion: 1, route: '/portal/login',

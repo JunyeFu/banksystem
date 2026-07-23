@@ -61,8 +61,13 @@ function processInfo(pid) {
   if (!Number.isInteger(pid) || pid <= 0) return null
   const command = `$p=Get-CimInstance Win32_Process -Filter \"ProcessId = ${pid}\" -ErrorAction SilentlyContinue; if($p){$p | Select-Object ProcessId,ExecutablePath,CommandLine | ConvertTo-Json -Compress}`
   const result = childProcess.spawnSync('powershell.exe', ['-NoProfile', '-Command', command], { encoding: 'utf8', windowsHide: true })
-  if (result.status !== 0 || !result.stdout.trim()) return null
-  try { return JSON.parse(result.stdout.trim()) } catch { return null }
+  if (result.status === 0 && result.stdout.trim()) {
+    try { return JSON.parse(result.stdout.trim()) } catch {}
+  }
+  const fallback = `$p=Get-Process -Id ${pid} -ErrorAction SilentlyContinue; if($p){[pscustomobject]@{ProcessId=$p.Id;ExecutablePath=$p.Path;CommandLine=$null;StartTime=$p.StartTime.ToUniversalTime().ToString('o')} | ConvertTo-Json -Compress}`
+  const fallbackResult = childProcess.spawnSync('powershell.exe', ['-NoProfile', '-Command', fallback], { encoding: 'utf8', windowsHide: true })
+  if (fallbackResult.status !== 0 || !fallbackResult.stdout.trim()) return null
+  try { return JSON.parse(fallbackResult.stdout.trim()) } catch { return null }
 }
 
 function processInfos(records) {
@@ -81,7 +86,12 @@ function isOwned(record, info = processInfo(record.pid)) {
   if (!info) return false
   const executable = path.resolve(String(info.ExecutablePath || '')).toLowerCase()
   const commandLine = String(info.CommandLine || '').replaceAll('/', '\\').toLowerCase()
-  return executable === nodeExecutable.toLowerCase() && commandLine.includes(definitions[record.name].marker.toLowerCase()) && commandLine.includes(root.toLowerCase())
+  if (executable !== nodeExecutable.toLowerCase()) return false
+  if (commandLine) return commandLine.includes(definitions[record.name].marker.toLowerCase()) && commandLine.includes(root.toLowerCase())
+  const processStartedAt = Date.parse(info.StartTime || '')
+  const recordStartedAt = Date.parse(record.startedAt || '')
+  const entrypointMatches = record.entrypoint === definitions[record.name].args[0]
+  return entrypointMatches && Number.isFinite(processStartedAt) && Number.isFinite(recordStartedAt) && Math.abs(processStartedAt - recordStartedAt) <= 15_000
 }
 
 function pidExists(pid) {
@@ -155,11 +165,14 @@ async function occupiedPorts() {
   return occupied
 }
 
-async function waitForService(record) {
+async function waitForService(record, spawnedChild) {
+  if (!spawnedChild || spawnedChild.pid !== record.pid) {
+    throw new LifecycleError('I9_SPAWN_HANDLE_MISMATCH', `spawn handle mismatch for ${record.name}`, { service: record.name })
+  }
   const deadline = Date.now() + config.lifecycle.startupTimeoutSeconds * 1000
   while (Date.now() < deadline) {
-    if (!pidExists(record.pid)) throw new LifecycleError('I9_SERVICE_EXITED_DURING_STARTUP', `${record.name} exited during startup`, { service: record.name })
-    if (await serviceHealth(record)) return
+    if (spawnedChild.exitCode !== null || !pidExists(record.pid)) throw new LifecycleError('I9_SERVICE_EXITED_DURING_STARTUP', `${record.name} exited during startup`, { service: record.name })
+    if (await serviceHealth(record, true)) return
     await new Promise(resolve => setTimeout(resolve, 500))
   }
   throw new LifecycleError('I9_SERVICE_STARTUP_TIMEOUT', `${record.name} did not become healthy`, { service: record.name })
@@ -197,7 +210,7 @@ function serviceEnvironment(name) {
   return { ...common, HOST: '127.0.0.1', PORT: String(config.network.flowisePort), DATABASE_TYPE: 'sqlite', DATABASE_PATH: flowiseDataRoot, SECRETKEY_PATH: path.join(flowiseDataRoot, 'secrets'), BLOB_STORAGE_PATH: path.join(flowiseDataRoot, 'storage'), LOG_PATH: path.join(flowiseDataRoot, 'logs'), DISABLE_FLOWISE_TELEMETRY: 'true', SECURE_COOKIES: 'false' }
 }
 
-function spawnService(name) {
+function spawnService(name, spawnedChildren = null) {
   const definition = definitions[name]
   const stdoutRelative = `.data/logs/i9/${name}.stdout.log`
   const stderrRelative = `.data/logs/i9/${name}.stderr.log`
@@ -208,8 +221,30 @@ function spawnService(name) {
   const injectedFailure = process.env.NODE_ENV === 'test' && process.env.HENGZHUN_I9_TEST_FAIL_SERVICE === name
   const args = injectedFailure ? ['-e', 'process.exit(91)'] : [path.resolve(root, definition.args[0]), ...definition.args.slice(1)]
   const child = childProcess.spawn(nodeExecutable, args, { cwd: root, env: serviceEnvironment(name), detached: true, windowsHide: true, stdio: ['ignore', stdout, stderr] })
+  if (spawnedChildren) spawnedChildren.set(name, child)
   child.unref(); fs.closeSync(stdout); fs.closeSync(stderr)
   return { name, pid: child.pid, executable: config.paths.nodeExecutable, entrypoint: definition.args[0], stdout: stdoutRelative, stderr: stderrRelative, startedAt: new Date().toISOString() }
+}
+
+async function rollbackSpawnedRecords(records, spawnedChildren) {
+  const stopped = []
+  for (const name of [...serviceOrder].reverse()) {
+    const record = records.find(item => item.name === name)
+    const child = spawnedChildren.get(name)
+    if (!record || !child || child.pid !== record.pid || !pidExists(record.pid)) continue
+    const stopFile = path.join(stateRoot, `stop-${name}.signal`)
+    if (name === 'flowise') child.kill('SIGTERM')
+    else fs.writeFileSync(stopFile, 'stop\n')
+    const gracefulDeadline = Date.now() + 3_000
+    while (pidExists(record.pid) && Date.now() < gracefulDeadline) await new Promise(resolve => setTimeout(resolve, 100))
+    if (pidExists(record.pid)) child.kill('SIGTERM')
+    const forcedDeadline = Date.now() + 3_000
+    while (pidExists(record.pid) && Date.now() < forcedDeadline) await new Promise(resolve => setTimeout(resolve, 100))
+    if (pidExists(record.pid)) throw new LifecycleError('I9_START_ROLLBACK_TIMEOUT', `${name} did not stop during startup rollback`, { service: name, pid: record.pid })
+    if (fs.existsSync(stopFile)) fs.rmSync(stopFile)
+    stopped.push(name)
+  }
+  return stopped
 }
 
 async function stopRecords(records) {
@@ -245,19 +280,22 @@ async function start() {
   const occupied = await occupiedPorts()
   if (occupied.length) throw new LifecycleError('I9_PORT_OCCUPIED_UNKNOWN', 'one or more formal ports are occupied', { listeners: occupied })
   const records = []
+  const spawnedChildren = new Map()
   try {
     for (const name of serviceOrder) {
-      const record = spawnService(name)
+      const record = spawnService(name, spawnedChildren)
       records.push(record)
       writeJsonAtomic(stateFile, { schemaVersion: 'hengzhun-i9-process-state-v1', productRoot: root, services: records })
-      await waitForService(record)
+      await waitForService(record, spawnedChildren.get(name))
     }
     const result = await status()
     if (!result.healthy) throw new LifecycleError('I9_FOUR_SERVICE_HEALTH_FAILED', 'four-service health gate failed')
     writeJsonAtomic(lifecycleFile, { action: 'START', status: 'HEALTHY', at: new Date().toISOString(), services: records.map(({ name, pid }) => ({ name, pid })) })
     return { ...result, action: 'STARTED' }
   } catch (error) {
-    try { await stopRecords(records) } catch {}
+    try { await rollbackSpawnedRecords(records, spawnedChildren) } catch (rollbackError) {
+      error.rollback = { code: rollbackError.code || 'I9_START_ROLLBACK_FAILED', message: rollbackError.message }
+    }
     if (fs.existsSync(stateFile)) fs.rmSync(stateFile)
     throw error
   }

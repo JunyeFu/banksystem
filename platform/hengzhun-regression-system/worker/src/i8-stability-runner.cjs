@@ -29,14 +29,20 @@ function fail(code, message, category = 'ENVIRONMENT') {
 
 function assertClaim(claim) {
   if (!claim || claim.status !== 'CLAIMED' || !/^candidate_[0-9a-f]{40}$/.test(claim.candidateId || '')) fail('STABILITY_CLAIM_INVALID', '稳定性Claim不完整。', 'CONTRACT');
-  if (!Array.isArray(claim.runs) || claim.runs.length !== 6) fail('STABILITY_RUN_SET_INCOMPLETE', '稳定性Claim必须包含固定六次样本。', 'CONTRACT');
-  const expected = new Set(VIEWPORTS.flatMap(viewport => [1, 2, 3].map(sequence => `${viewport.viewportId}:${sequence}`)));
+  const policies = {
+    I8_2X3_V1: Object.freeze({ requiredRuns: 6, sequencesPerViewport: 3 }),
+    I10_2X2_V1: Object.freeze({ requiredRuns: 4, sequencesPerViewport: 2 })
+  };
+  const policy = policies[claim.stabilityPolicyVersion];
+  if (!policy || claim.requiredRuns !== policy.requiredRuns) fail('STABILITY_POLICY_INVALID', '稳定性Claim策略版本或运行数无效。', 'CONTRACT');
+  if (!Array.isArray(claim.runs) || claim.runs.length !== policy.requiredRuns) fail('STABILITY_RUN_SET_INCOMPLETE', '稳定性Claim样本数不符合冻结策略。', 'CONTRACT');
+  const expected = new Set(VIEWPORTS.flatMap(viewport => Array.from({ length: policy.sequencesPerViewport }, (_unused, index) => `${viewport.viewportId}:${index + 1}`)));
   const fixtures = new Set();
   for (const run of claim.runs) {
     const key = `${run.viewportId}:${run.sequenceNo}`;
     const viewport = VIEWPORTS.find(item => item.viewportId === run.viewportId);
-    if (!expected.delete(key) || !viewport || viewport.width !== run.viewportWidth || viewport.height !== run.viewportHeight) fail('STABILITY_RUN_SET_INVALID', '稳定性样本不是冻结的2视口×3次集合。', 'CONTRACT');
-    if (fixtures.has(run.fixtureRef)) fail('STABILITY_FIXTURE_NOT_ISOLATED', '六次验证必须使用独立Fixture。', 'CONTRACT');
+    if (!expected.delete(key) || !viewport || viewport.width !== run.viewportWidth || viewport.height !== run.viewportHeight) fail('STABILITY_RUN_SET_INVALID', '稳定性样本不符合冻结的视口和序号集合。', 'CONTRACT');
+    if (fixtures.has(run.fixtureRef)) fail('STABILITY_FIXTURE_NOT_ISOLATED', '每次验证必须使用独立Fixture。', 'CONTRACT');
     fixtures.add(run.fixtureRef);
   }
   if (expected.size !== 0) fail('STABILITY_RUN_SET_INCOMPLETE', '稳定性样本集合不完整。', 'CONTRACT');
@@ -215,8 +221,13 @@ async function executeStabilityBatch(claim, options = {}) {
   const productRoot = path.resolve(options.productRoot || path.resolve(__dirname, '..', '..'));
   const runtimeProductRoot = path.resolve(options.runtimeProductRoot || path.resolve(__dirname, '..', '..'));
   const executablePath = options.executablePath || path.join(runtimeProductRoot, 'runtime', 'browsers', 'chromium-1217', 'chrome-win64', 'chrome.exe');
-  const baseUrl = (options.baseUrl || process.env.HENGZHUN_PORTAL_BASE_URL || 'http://127.0.0.1:18082').replace(/\/$/, '') + '/';
-  const credential = resolveCredential(claim.credentialAlias, options.environment || process.env);
+  const baseUrl = (options.baseUrl || claim.entryUrl || process.env.HENGZHUN_PORTAL_BASE_URL || 'http://127.0.0.1:18082').replace(/\/portal\/login(?:[?#].*)?$/, '').replace(/\/$/, '') + '/';
+  const parsedBase = new URL(baseUrl);
+  if (parsedBase.protocol !== 'http:' || !['127.0.0.1', 'localhost'].includes(parsedBase.hostname) || parsedBase.username || parsedBase.password) {
+    fail('STABILITY_BASE_URL_NOT_ALLOWED', '稳定性运行只允许受控本机门户地址。', 'CONTRACT');
+  }
+  const credential = options.credential || resolveCredential(claim.credentialAlias, options.environment || process.env);
+  if (!credential?.username || !credential?.password) fail('STABILITY_CREDENTIAL_UNAVAILABLE', '稳定性运行凭据不可用。', 'SECURITY');
   const fingerprint = runtimeFingerprint(runtimeProductRoot, executablePath);
   const browser = await chromium.launch({ executablePath, headless: options.headless !== false });
   const results = [];

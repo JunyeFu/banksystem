@@ -9,6 +9,7 @@ const path = require('node:path')
 const { spawn } = require('node:child_process')
 const test = require('node:test')
 const { startHarness } = require('../../dist/harness/src/server.js')
+const { buildMidscenePrompt } = require('../../dist/harness/src/context-envelope.js')
 const { I8_CONTROLLED_CATALOG } = require('../../dist/harness/src/i8/script-package-builder.js')
 
 const productRoot = path.resolve(__dirname, '../..')
@@ -59,12 +60,22 @@ function domainObjects() {
   }
 }
 
-function recordsFor(plan) {
+function recordsFor(plan, authoringContexts = []) {
+  const contexts = new Map(authoringContexts.map(context => [context.actionId, context]))
   return plan.actions.map(action => ({
     schemaVersion: 'i8-verified-action-record-v1', executablePlanId: plan.executablePlanId, actionId: action.actionId, ordinal: action.ordinal,
     outcome: 'VERIFIED_PASSED', ...(action.semanticTargetRef ? { locator: I8_CONTROLLED_CATALOG.targets[action.semanticTargetRef] } : {}),
     pageSignatureHash: sha256(stableJson(action.pageSignature)), factsHash: sha256(stableJson({ actionId: action.actionId })),
-    verification: { dom: true, url: true, request: true, business: true }, verifiedAt: '2026-07-21T00:00:00.000Z'
+    verification: { dom: true, url: true, request: true, business: true },
+    ...(contexts.has(action.actionId) ? {
+      contextLevel: contexts.get(action.actionId).contextLevel,
+      contextEnvelopeHash: contexts.get(action.actionId).envelopeHash,
+      visualEvidence: {
+        invocation: 'REAL', provider: 'MIDSCENE', model: 'mimo-v2.5-compatibility-test',
+        promptHash: sha256(buildMidscenePrompt(contexts.get(action.actionId).envelope)), locatorMatched: true
+      }
+    } : {}),
+    verifiedAt: '2026-07-21T00:00:00.000Z'
   }))
 }
 
@@ -119,12 +130,14 @@ async function startFixture(t) {
   return { root, baseUrl, mcpPort, toolkit }
 }
 
-test('Flowise MCP client executes all fourteen governed tools with auth, idempotency, bounded output and safe errors', async t => {
+test('Flowise MCP client retains and executes all fourteen I9 governed tools after compatible extensions', async t => {
   const { root, baseUrl, mcpPort, toolkit } = await startFixture(t)
-  assert.deepEqual(toolkit.tools.map(tool => tool.name).sort(), [
+  const legacyTools = [
     'authoring_get', 'authoring_submit', 'candidate_decide', 'candidate_get', 'candidate_preview', 'case_prepare', 'decision_submit',
     'failure_get', 'repair_propose', 'result_inbox_list', 'run_submit', 'schedule_create', 'schedule_get', 'task_get'
-  ])
+  ]
+  const availableTools = new Set(toolkit.tools.map(tool => tool.name))
+  assert.deepEqual(legacyTools.filter(name => !availableTools.has(name)), [])
   const unauthorized = await fetch(`http://127.0.0.1:${mcpPort}/mcp`, { method: 'POST', headers: { 'content-type': 'application/json', accept: 'application/json, text/event-stream' }, body: JSON.stringify({ jsonrpc: '2.0', id: 1, method: 'initialize', params: { protocolVersion: '2025-03-26', capabilities: {}, clientInfo: { name: 'negative', version: '1' } } }) })
   assert.equal(unauthorized.status, 401)
 
@@ -153,8 +166,10 @@ test('Flowise MCP client executes all fourteen governed tools with auth, idempot
 
   const build = await post(baseUrl, '/internal/worker/i8/candidates:claim', { workerId: 'i9-p4-builder' }, workerToken)
   assert.equal(build.body.status, 'CLAIMED')
-  await post(baseUrl, `/internal/worker/i8/candidates/${build.body.jobId}:complete`, { workerId: 'i9-p4-builder', planHash: build.body.planHash, outcome: 'VERIFIED_PASSED', verifiedActionRecords: recordsFor(build.body.plan) }, workerToken)
+  const completedBuild = await post(baseUrl, `/internal/worker/i8/candidates/${build.body.jobId}:complete`, { workerId: 'i9-p4-builder', planHash: build.body.planHash, outcome: 'VERIFIED_PASSED', verifiedActionRecords: recordsFor(build.body.plan, build.body.authoringContexts) }, workerToken)
+  assert.equal(completedBuild.response.status, 200, JSON.stringify(completedBuild.body))
   const stability = await post(baseUrl, '/internal/worker/i8/stability:claim', { workerId: 'i9-p4-certifier' }, workerToken)
+  assert.equal(stability.response.status, 200, JSON.stringify(stability.body))
   await post(baseUrl, `/internal/worker/i8/stability/${stability.body.batchId}:complete`, stabilityCompletion(root, stability.body), workerToken)
 
   const preview = await invoke('candidate_preview', { preparationId: prepared.preparationId, limit: 20, includeDownload: false })

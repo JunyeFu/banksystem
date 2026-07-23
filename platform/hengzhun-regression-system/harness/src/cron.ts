@@ -61,10 +61,10 @@ export function validateTimeZone(timeZone: string): void {
   }
 }
 
-function localParts(date: Date, timeZone: string): { minute: number; hour: number; day: number; month: number; weekday: number } {
+function localParts(date: Date, timeZone: string): { minute: number; hour: number; day: number; month: number; year: number; weekday: number } {
   const parts = new Intl.DateTimeFormat('en-US', {
     timeZone,
-    hour12: false,
+    hour12: false, year: 'numeric',
     minute: '2-digit', hour: '2-digit', day: '2-digit', month: '2-digit', weekday: 'short'
   }).formatToParts(date);
   const value = (type: string) => parts.find(item => item.type === type)?.value ?? '';
@@ -74,8 +74,14 @@ function localParts(date: Date, timeZone: string): { minute: number; hour: numbe
     hour: Number(value('hour')) % 24,
     day: Number(value('day')),
     month: Number(value('month')),
+    year: Number(value('year')),
     weekday: weekdays[value('weekday')] as number
   };
+}
+
+function localMinuteKey(date: Date, timeZone: string): string {
+  const local = localParts(date, timeZone);
+  return `${local.year}-${local.month}-${local.day}T${local.hour}:${local.minute}`;
 }
 
 export function cronMatches(parsed: ParsedCron, date: Date, timeZone: string): boolean {
@@ -98,9 +104,10 @@ export function nextCronOccurrence(expression: string, timeZone: string, after: 
   const parsed = parseCron(expression);
   const start = Math.floor(after.getTime() / MINUTE_MS) * MINUTE_MS + MINUTE_MS;
   const limit = start + 366 * 24 * 60 * MINUTE_MS;
+  const priorLocalMinute = localMinuteKey(after, timeZone);
   for (let time = start; time <= limit; time += MINUTE_MS) {
     const candidate = new Date(time);
-    if (cronMatches(parsed, candidate, timeZone)) return candidate;
+    if (cronMatches(parsed, candidate, timeZone) && localMinuteKey(candidate, timeZone) !== priorLocalMinute) return candidate;
   }
   throw new Error('CRON_OCCURRENCE_NOT_FOUND_WITHIN_ONE_YEAR');
 }

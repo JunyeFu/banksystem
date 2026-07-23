@@ -8,4 +8,4 @@
 
 `openapi/hengzhun-worker-internal-v1.yaml` 1.5.0 在阶段1作者化和阶段3候选构建契约基础上，新增阶段4稳定性Claim/Completion、固定六样本、证据描述和运行时指纹Schema，共11项内部操作。它只供受控本机Worker，不导入Agent平台，也不暴露凭据、SQLite或任意执行能力。
 
-`mcp/hengzhun-i8.json` 7.0.0 冻结 I8 的 14 个 Agent 平台业务工具名和阶段状态。阶段7已全部启用；`failure_get`只返回脱敏失败封装，`repair_propose`只接受受限补丁 Schema，`decision_submit`只处理已完成六轮稳定性验证的修复提案。任何工具仍不得提供任意文件、SQL、Shell、浏览器或 URL 能力。
+`mcp/hengzhun-i8.json` 7.0.0 冻结 I8 的 14 个 Agent 平台业务工具名和阶段状态。阶段7已全部启用；`failure_get`只返回脱敏失败封装，`repair_propose`只接受受限补丁 Schema，`decision_submit`只处理已完成对象绑定稳定性策略验证的修复提案。I8历史对象保持6次，I10对象使用4次；任何工具仍不得提供任意文件、SQL、Shell、浏览器或 URL 能力。

@@ -67,6 +67,21 @@
     "package:i9:stage8": "powershell.exe -NoProfile -ExecutionPolicy Bypass -File scripts\\package-i9-stage8.ps1",
     "verify:i9:stage8": "powershell.exe -NoProfile -ExecutionPolicy Bypass -File scripts\\verify-i9-stage8.ps1",
     "test:i9:stage9": "runtime\\node-v20.20.2-win-x64\\node.exe --test tests\\i9\\stage9-folder-export.test.cjs",
+    "verify:i10:s2": "npm run build && npm run build:i10:agentflow && runtime\\node-v20.20.2-win-x64\\node.exe scripts\\verify-i10-agentflow-paths.cjs && runtime\\node-v20.20.2-win-x64\\node.exe --test tests\\i10\\formal-contract.test.cjs tests\\i10\\agentflow-path-contract.test.cjs tests\\i10\\credential-and-bridge.test.cjs",
+    "test:i10:core": "npm run build && runtime\\node-v20.20.2-win-x64\\node.exe --test tests\\i10\\formal-contract.test.cjs tests\\i10\\agentflow-path-contract.test.cjs tests\\i10\\case-file-import.test.cjs tests\\i10\\credential-and-bridge.test.cjs tests\\i10\\stability-policy.test.cjs tests\\i10\\video-ingest.test.cjs tests\\i10\\multimodal-verification.test.cjs tests\\i10\\stage8-live-contract.test.cjs tests\\i10\\stage9-portability.test.cjs tests\\i10\\platform-admin-portability.test.cjs",
+    "verify:i10:core": "npm run test:i10:core",
+    "verify:i10:agentflow": "npm run build:i10:agentflow && runtime\\node-v20.20.2-win-x64\\node.exe scripts\\verify-i10-agentflow-paths.cjs && runtime\\node-v20.20.2-win-x64\\node.exe --test tests\\i10\\agentflow-path-contract.test.cjs",
+    "verify:i10:models": "powershell.exe -NoProfile -ExecutionPolicy Bypass -File scripts\\verify-i10-model-probes.ps1",
+    "verify:i10:secrets": "powershell.exe -NoProfile -ExecutionPolicy Bypass -File scripts\\verify-i10-secret-leaks.ps1",
+    "verify:i10:closure": "runtime\\node-v20.20.2-win-x64\\node.exe scripts\\verify-i10-gap-closure.cjs",
+    "build:i10:agentflow": "runtime\\node-v20.20.2-win-x64\\node.exe scripts\\build-i10-agentflow.cjs",
+    "publish:i10:agentflow": "runtime\\node-v20.20.2-win-x64\\node.exe scripts\\i10-agentflow-publish.cjs",
+    "verify:i10:stage8:live": "powershell.exe -NoProfile -ExecutionPolicy Bypass -File scripts\\verify-i10-stage8-live.ps1",
+    "verify:i10:multimodal:live": "powershell.exe -NoProfile -ExecutionPolicy Bypass -File scripts\\verify-i10-multimodal-live.ps1",
+    "test:i10:stage9": "runtime\\node-v20.20.2-win-x64\\node.exe --test tests\\i10\\stage9-portability.test.cjs",
+    "preflight:i10:stage9": "runtime\\node-v20.20.2-win-x64\\node.exe scripts\\i10-stage9-portable.cjs preflight --report-only",
+    "package:i10:stage9": "runtime\\node-v20.20.2-win-x64\\node.exe scripts\\i10-stage9-portable.cjs package",
+    "verify:i10:stage9": "npm run test:i10:stage9 && npm run preflight:i10:stage9",
     "export:i9": "powershell.exe -NoProfile -ExecutionPolicy Bypass -File scripts\\export-i9-folder.ps1",
     "start:i8:mcp": "runtime\\node-v20.20.2-win-x64\\node.exe mcp\\src\\server.cjs",
     "verify:i7:delivery": "runtime\\node-v20.20.2-win-x64\\node.exe scripts\\verify-i7-delivery.cjs --record",
@@ -110,7 +125,14 @@
     "package:skills": "powershell.exe -NoProfile -ExecutionPolicy Bypass -File scripts\\package-skills.ps1"
   },
   "dependencies": {
+    "@tesseract.js-data/chi_sim": "1.0.0",
+    "@tesseract.js-data/eng": "1.0.0",
     "better-sqlite3": "11.10.0",
+    "csv-parse": "5.6.0",
+    "exceljs": "4.4.0",
+    "jszip": "3.10.1",
+    "mammoth": "1.12.0",
+    "tesseract.js": "6.0.1",
     "zod": "4.4.3"
   },
   "devDependencies": {
@@ -118,5 +140,8 @@
     "@types/node": "20.19.43",
     "typescript": "5.9.3",
     "yaml": "2.9.0"
+  },
+  "overrides": {
+    "uuid": "11.1.1"
   }
 }

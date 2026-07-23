@@ -100,6 +100,15 @@ export const verifiedActionRecordSchema = z.object({
   pageSignatureHash: sha256Schema,
   factsHash: sha256Schema,
   verification: z.object({ dom: z.boolean(), url: z.boolean(), request: z.boolean(), business: z.boolean() }).strict(),
+  contextLevel: z.enum(['CTX-L1', 'CTX-L2', 'CTX-L3']).optional(),
+  contextEnvelopeHash: sha256Schema.optional(),
+  visualEvidence: z.object({
+    invocation: z.literal('REAL'),
+    provider: z.literal('MIDSCENE'),
+    model: boundedText(160).regex(/^[A-Za-z0-9._:/-]+$/),
+    promptHash: sha256Schema,
+    locatorMatched: z.literal(true)
+  }).strict().optional(),
   verifiedAt: z.string().datetime({ offset: true })
 }).strict().superRefine((value, context) => {
   if (!Object.values(value.verification).every(Boolean)) {
@@ -133,7 +142,8 @@ export const i8CandidateCompileSchema = z.object({
   namespace: namespaceSchema,
   idempotencyKey: idempotencyKeySchema,
   preparationId: safeRef,
-  expectedPreparationVersion: z.number().int().positive()
+  expectedPreparationVersion: z.number().int().positive(),
+  stabilityPolicyVersion: z.enum(['I8_2X3_V1', 'I10_2X2_V1']).default('I8_2X3_V1')
 }).strict();
 
 export const i8CandidateGetSchema = z.object({

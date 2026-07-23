@@ -5,6 +5,7 @@ import { HarnessDatabase } from './database';
 import { HarnessError } from './errors';
 import {
   buildActionContextEnvelope,
+  buildMidscenePrompt,
   estimateImageTokens,
   MODEL_CONTEXT_POLICIES,
   type ContextLevel,
@@ -24,6 +25,7 @@ import type {
 import type { I8AuthoringSubmitInput, I8CasePrepareInput } from './i8/stage2-schemas';
 import {
   i8CandidateBuildCompletionSchema,
+  type ExecutableActionPlan,
   type I8CandidateBuildCompletionInput,
   type I8CandidateCompileInput
 } from './i8/stage3-schemas';
@@ -48,6 +50,7 @@ import {
 } from './i8/stage7-schemas';
 import { nextCronOccurrence, parseCron, validateTimeZone } from './cron';
 import { canonicalJson, nowIso, opaqueId, requestHash, sha256 } from './utils';
+import { I10Service } from './i10/service';
 
 interface RequestContext {
   requestId: string;
@@ -65,6 +68,74 @@ interface StoredIdempotency {
   request_hash: string;
   response_status: number;
   response_json: string;
+}
+
+type VisualTargetRef = Parameters<typeof buildActionContextEnvelope>[0]['currentAction']['targetRef'];
+type VisualActionType = Parameters<typeof buildActionContextEnvelope>[0]['currentAction']['actionType'];
+
+const I10_VISUAL_TARGETS = new Set<VisualTargetRef>([
+  'LOGIN_USERNAME', 'LOGIN_PASSWORD', 'LOGIN_SUBMIT', 'HEADER_DISPLAY_NAME', 'HEADER_AVATAR',
+  'HEADER_PROFILE_LINK', 'PROFILE_DISPLAY_NAME', 'PROFILE_AVATAR'
+]);
+
+const I10_VISUAL_TARGET_DESCRIPTIONS: Readonly<Record<string, string>> = Object.freeze({
+  LOGIN_USERNAME: '账号密码登录卡片中“用户名 / 手机号”标签下的文本输入框',
+  LOGIN_PASSWORD: '账号密码登录卡片中“密码”标签下的密码输入框',
+  LOGIN_SUBMIT: '账号密码登录卡片底部写有“账号密码登录”的主按钮',
+  HEADER_DISPLAY_NAME: '页面右上角用户区中、头像右侧显示的当前客户姓名“张三”，只定位姓名文字本身',
+  HEADER_AVATAR: '页面右上角用户区中显示单个姓氏字符“张”的圆形头像，只定位头像本身',
+  HEADER_PROFILE_LINK: '页面右上角用户区中的“个人资料”链接',
+  PROFILE_DISPLAY_NAME: '个人资料主卡片中“客户姓名”标签对应的姓名“张三”，只定位姓名值本身',
+  PROFILE_AVATAR: '个人资料主卡片左侧显示单个姓氏字符“张”的圆形大头像，只定位头像本身'
+});
+
+function visualActionType(operation: ExecutableActionPlan['actions'][number]['operation']): VisualActionType {
+  if (operation === 'fill') return 'INPUT';
+  if (operation === 'click') return 'TAP';
+  return 'LOCATE';
+}
+
+function buildI10CandidateContexts(plan: ExecutableActionPlan, workerId: string, jobId: string, leaseExpiresAt: string) {
+  const visualActions = plan.actions.filter(action => Boolean(action.semanticTargetRef));
+  return visualActions.map((action, index) => {
+    const targetRef = action.semanticTargetRef as VisualTargetRef;
+    if (!I10_VISUAL_TARGETS.has(targetRef)) throw new HarnessError(409, 'I10_VISUAL_TARGET_NOT_SUPPORTED', 'CONTRACT', 'I10视觉目标不在上下文白名单中。');
+    const previous = visualActions[index - 1];
+    const next = visualActions[index + 1];
+    const actionType = visualActionType(action.operation);
+    const envelope = buildActionContextEnvelope({
+      contextLevel: 'CTX-L2',
+      tokenizerId: 'qwen3.5-compatible',
+      imageTokenEstimate: estimateImageTokens(1440, 900),
+      workerId,
+      slotId: `ctxslot_${sha256(`${jobId}:${action.actionId}`).slice(0, 40)}`,
+      leaseExpiresAt,
+      currentAction: {
+        actionType,
+        prompt: `仅定位受控目标 ${targetRef}：${I10_VISUAL_TARGET_DESCRIPTIONS[targetRef]}。用于动作 ${action.operation}；必须排除相邻文字、链接和容器，不得读取或返回输入内容。`,
+        targetRef,
+        valueRef: action.operation === 'fill'
+          ? targetRef === 'LOGIN_PASSWORD' ? 'CREDENTIAL_PASSWORD' : 'CREDENTIAL_USERNAME'
+          : null,
+        riskLevel: action.riskLevel,
+        executionMode: 'MIDSCENE_LOCATE_PLAYWRIGHT_EXECUTE'
+      },
+      previousActionSummary: previous ? {
+        ordinal: previous.ordinal,
+        actionType: visualActionType(previous.operation),
+        summary: `上一受控动作 ${previous.operation} 已由Playwright验证后才允许进入当前动作。`
+      } : null,
+      nextActionPreview: next ? {
+        actionType: visualActionType(next.operation),
+        prompt: `下一受控动作将定位 ${next.semanticTargetRef as string}。`
+      } : null,
+      recentFacts: null,
+      currentPageState: null,
+      minimalDependencyCone: null,
+      fixtureRefs: action.fixtureRefs
+    });
+    return { actionId: action.actionId, ordinal: action.ordinal, contextLevel: envelope.contextLevel, envelope, envelopeHash: sha256(canonicalJson(envelope)) };
+  });
 }
 
 export interface WorkerEvidenceInput {
@@ -126,9 +197,11 @@ const SCRIPT_CATALOG: Record<ExecutionProfile, string> = {
 
 export class HarnessService {
   readonly artifacts: ArtifactStore;
+  readonly i10: I10Service;
 
   constructor(readonly database: HarnessDatabase, artifactRoot: string, readonly productRoot: string) {
     this.artifacts = new ArtifactStore(database, artifactRoot);
+    this.i10 = new I10Service(database, productRoot);
   }
 
   private validatedPlan(db: import('better-sqlite3').Database, namespace: string, planId: string, caseId: string, expectedCaseVersion: number): {
@@ -293,7 +366,12 @@ export class HarnessService {
   ): Record<string, unknown> & { scriptSource: string; scriptRelativePath: string } {
     const row = db.prepare(`
       SELECT c.*, p.case_id, p.case_version, p.version AS executable_plan_version,
-             prep.acceptance_summary_json,
+             p.preparation_id, prep.acceptance_summary_json,
+             (SELECT t.consumer_model FROM i10_action_traces t WHERE t.namespace = c.namespace AND t.preparation_id = p.preparation_id ORDER BY t.updated_at DESC LIMIT 1) AS authoring_model,
+             (SELECT t.context_policy FROM i10_action_traces t WHERE t.namespace = c.namespace AND t.preparation_id = p.preparation_id ORDER BY t.updated_at DESC LIMIT 1) AS authoring_context_policy,
+             (SELECT t.trace_hash FROM i10_action_traces t WHERE t.namespace = c.namespace AND t.preparation_id = p.preparation_id ORDER BY t.updated_at DESC LIMIT 1) AS authoring_trace_hash,
+             (SELECT t.playwright_fact_hash FROM i10_action_traces t WHERE t.namespace = c.namespace AND t.preparation_id = p.preparation_id ORDER BY t.updated_at DESC LIMIT 1) AS authoring_playwright_fact_hash,
+             (SELECT t.status FROM i10_action_traces t WHERE t.namespace = c.namespace AND t.preparation_id = p.preparation_id ORDER BY t.updated_at DESC LIMIT 1) AS authoring_status,
              cert.certificate_id, cert.status AS certificate_status, cert.script_sha256 AS certificate_script_sha256
       FROM i8_script_candidates c
       JOIN i8_executable_plans p ON p.executable_plan_id = c.executable_plan_id
@@ -807,9 +885,9 @@ export class HarnessService {
         preparation.case_version, preparation.intent_plan_hash, planJson, planHash, timestamp, timestamp
       );
       db.prepare(`
-        INSERT INTO i8_candidate_build_jobs(job_id, namespace, executable_plan_id, status, version, created_at, updated_at)
-        VALUES (?, ?, ?, 'QUEUED', 1, ?, ?)
-      `).run(jobId, input.namespace, plan.executablePlanId, timestamp, timestamp);
+        INSERT INTO i8_candidate_build_jobs(job_id, namespace, executable_plan_id, status, stability_policy_version, version, created_at, updated_at)
+        VALUES (?, ?, ?, 'QUEUED', ?, 1, ?, ?)
+      `).run(jobId, input.namespace, plan.executablePlanId, input.stabilityPolicyVersion, timestamp, timestamp);
       return {
         status: 202,
         objectType: 'I8_EXECUTABLE_PLAN',
@@ -838,6 +916,13 @@ export class HarnessService {
                b.batch_id AS stability_batch_id, b.status AS stability_status, b.error_code AS stability_error_code,
                cert.certificate_id, cert.runtime_fingerprint, cert.viewport_set_json, cert.validation_run_ids_json,
                cert.assertion_set_hash, cert.evidence_set_hash, cert.issued_at,
+               COALESCE(policy.policy_version, 'I8_2X3_V1') AS stability_policy_version,
+               COALESCE(policy.required_runs, 6) AS stability_required_runs,
+               (SELECT t.consumer_model FROM i10_action_traces t WHERE t.namespace = p.namespace AND t.preparation_id = p.preparation_id ORDER BY t.updated_at DESC LIMIT 1) AS authoring_model,
+               (SELECT t.context_policy FROM i10_action_traces t WHERE t.namespace = p.namespace AND t.preparation_id = p.preparation_id ORDER BY t.updated_at DESC LIMIT 1) AS authoring_context_policy,
+               (SELECT t.trace_hash FROM i10_action_traces t WHERE t.namespace = p.namespace AND t.preparation_id = p.preparation_id ORDER BY t.updated_at DESC LIMIT 1) AS authoring_trace_hash,
+               (SELECT t.playwright_fact_hash FROM i10_action_traces t WHERE t.namespace = p.namespace AND t.preparation_id = p.preparation_id ORDER BY t.updated_at DESC LIMIT 1) AS authoring_playwright_fact_hash,
+               (SELECT t.status FROM i10_action_traces t WHERE t.namespace = p.namespace AND t.preparation_id = p.preparation_id ORDER BY t.updated_at DESC LIMIT 1) AS authoring_status,
                (SELECT d.choice FROM i8_script_delivery_decisions d WHERE d.candidate_id = c.candidate_id ORDER BY d.created_at DESC LIMIT 1) AS delivery_choice,
                (SELECT d.effect FROM i8_script_delivery_decisions d WHERE d.candidate_id = c.candidate_id ORDER BY d.created_at DESC LIMIT 1) AS delivery_effect,
                (SELECT d.activated_plan_id FROM i8_script_delivery_decisions d WHERE d.candidate_id = c.candidate_id ORDER BY d.created_at DESC LIMIT 1) AS activated_plan_id,
@@ -849,6 +934,7 @@ export class HarnessService {
         LEFT JOIN i8_script_candidates c ON c.executable_plan_id = p.executable_plan_id
         LEFT JOIN i8_stability_batches b ON b.candidate_id = c.candidate_id
         LEFT JOIN i8_stability_certificates cert ON cert.candidate_id = c.candidate_id
+        LEFT JOIN i10_stability_policy_bindings policy ON policy.object_type='CANDIDATE_BATCH' AND policy.object_id=b.batch_id
         WHERE p.namespace = ? AND p.preparation_id = ?
       `).get(namespace, preparationId) as Record<string, unknown> | undefined;
       if (!row) throw new HarnessError(404, 'I8_EXECUTABLE_PLAN_NOT_FOUND', 'DOMAIN', '阶段3可执行计划不存在。');
@@ -860,6 +946,17 @@ export class HarnessService {
         version: row.plan_version,
         job: { jobId: row.job_id, status: row.job_status, ...(row.error_code ? { errorCode: row.error_code } : {}) },
         ...(row.candidate_id ? {
+          ...(row.authoring_trace_hash ? {
+            authoringEvidence: {
+              invocation: 'REAL',
+              provider: 'MIDSCENE',
+              model: row.authoring_model,
+              contextPolicy: row.authoring_context_policy,
+              actionTraceHash: row.authoring_trace_hash,
+              playwrightFactHash: row.authoring_playwright_fact_hash,
+              status: row.authoring_status
+            }
+          } : {}),
           candidate: {
             candidateId: row.candidate_id,
             scriptId: row.script_id,
@@ -877,7 +974,8 @@ export class HarnessService {
             status: row.stability_status,
             passedRuns: Number(row.stability_passed_runs ?? 0),
             failedRuns: Number(row.stability_failed_runs ?? 0),
-            requiredRuns: 6,
+            requiredRuns: Number(row.stability_required_runs ?? 6),
+            policyVersion: row.stability_policy_version,
             viewportSet: ['1440x900', '390x844'],
             ...(row.stability_error_code ? { errorCode: row.stability_error_code } : {}),
             ...(row.certificate_id ? {
@@ -928,9 +1026,11 @@ export class HarnessService {
         WHERE status = 'RUNNING' AND lease_expires_at IS NOT NULL AND lease_expires_at < ?
       `).run(timestamp, timestamp);
       const row = db.prepare(`
-        SELECT j.job_id, j.namespace, j.executable_plan_id, p.plan_json, p.plan_hash
+        SELECT j.job_id, j.namespace, j.executable_plan_id, j.stability_policy_version,
+               p.plan_json, p.plan_hash, p.case_id, p.preparation_id, cv.definition_json
         FROM i8_candidate_build_jobs j
         JOIN i8_executable_plans p ON p.executable_plan_id = j.executable_plan_id
+        JOIN case_versions cv ON cv.case_id = p.case_id AND cv.version = p.case_version
         WHERE j.status = 'QUEUED'
         ORDER BY j.created_at LIMIT 1
       `).get() as Record<string, unknown> | undefined;
@@ -944,13 +1044,26 @@ export class HarnessService {
       `).run(workerId, leaseExpiresAt, timestamp, row.job_id);
       db.prepare(`UPDATE i8_executable_plans SET status = 'AUTHORING', version = version + 1, updated_at = ? WHERE executable_plan_id = ?`)
         .run(timestamp, row.executable_plan_id);
+      const definition = JSON.parse(String(row.definition_json)) as Record<string, unknown>;
+      const plan = JSON.parse(String(row.plan_json)) as ExecutableActionPlan;
+      const authoringContexts = String(row.stability_policy_version) === 'I10_2X2_V1'
+        ? buildI10CandidateContexts(plan, workerId, String(row.job_id), leaseExpiresAt)
+        : [];
+      const insertContext = db.prepare(`INSERT OR IGNORE INTO i10_authoring_contexts(context_id,job_id,action_id,ordinal,context_level,envelope_json,envelope_hash,created_at) VALUES (?,?,?,?,?,?,?,?)`);
+      for (const item of authoringContexts) {
+        insertContext.run(opaqueId('context'),row.job_id,item.actionId,item.ordinal,item.contextLevel,canonicalJson(item.envelope),item.envelopeHash,timestamp);
+      }
       return {
         status: 'CLAIMED',
         jobId: row.job_id,
         namespace: row.namespace,
         executablePlanId: row.executable_plan_id,
         planHash: row.plan_hash,
-        plan: JSON.parse(String(row.plan_json)),
+        plan,
+        stabilityPolicyVersion: row.stability_policy_version,
+        ...(authoringContexts.length > 0 ? { authoringContexts } : {}),
+        ...(typeof definition.credentialRef === 'string' ? { credentialRef: definition.credentialRef } : {}),
+        ...(typeof definition.entryUrl === 'string' ? { entryUrl: definition.entryUrl } : {}),
         leaseExpiresAt
       };
     });
@@ -959,7 +1072,7 @@ export class HarnessService {
   async completeI8CandidateBuild(jobId: string, inputValue: I8CandidateBuildCompletionInput): Promise<Record<string, unknown>> {
     const input = i8CandidateBuildCompletionSchema.parse(inputValue);
     const job = this.database.read(db => db.prepare(`
-      SELECT j.*, p.plan_json, p.plan_hash, p.case_id, p.case_version, p.executable_plan_id
+      SELECT j.*, p.plan_json, p.plan_hash, p.case_id, p.case_version, p.executable_plan_id, p.preparation_id
       FROM i8_candidate_build_jobs j
       JOIN i8_executable_plans p ON p.executable_plan_id = j.executable_plan_id
       WHERE j.job_id = ?
@@ -978,9 +1091,29 @@ export class HarnessService {
       });
       return { jobId, status: 'FAILED', errorCode: input.errorCode, nextAction: 'AUTHORING_REVIEW_REQUIRED' };
     }
+    const plan = JSON.parse(String(job.plan_json)) as ExecutableActionPlan;
+    let i10Contexts: Array<{action_id:string;ordinal:number;context_level:string;envelope_json:string;envelope_hash:string}> = [];
+    if (String(job.stability_policy_version) === 'I10_2X2_V1') {
+      i10Contexts = this.database.read(db => db.prepare(`SELECT action_id,ordinal,context_level,envelope_json,envelope_hash FROM i10_authoring_contexts WHERE job_id=? ORDER BY ordinal`).all(jobId) as Array<{action_id:string;ordinal:number;context_level:string;envelope_json:string;envelope_hash:string}>);
+      const visualActions = plan.actions.filter(action => Boolean(action.semanticTargetRef));
+      if (i10Contexts.length !== visualActions.length) throw new HarnessError(409, 'I10_AUTHORING_CONTEXT_SET_INCOMPLETE', 'EVIDENCE', 'I10视觉上下文发放集合不完整。', false, true);
+      const records = new Map(input.verifiedActionRecords.map(record => [record.actionId, record]));
+      for (const action of visualActions) {
+        const context = i10Contexts.find(item => item.action_id === action.actionId);
+        const record = records.get(action.actionId);
+        const contextEnvelope = context ? JSON.parse(context.envelope_json) : undefined;
+        const contextHashValid = context ? sha256(canonicalJson(contextEnvelope)) === context.envelope_hash : false;
+        const expectedPromptHash = contextEnvelope && contextHashValid ? sha256(buildMidscenePrompt(contextEnvelope)) : undefined;
+        if (!context || !record || record.contextEnvelopeHash !== context.envelope_hash || record.contextLevel !== context.context_level
+          || !contextHashValid || record.visualEvidence?.invocation !== 'REAL' || record.visualEvidence.provider !== 'MIDSCENE'
+          || record.visualEvidence.promptHash !== expectedPromptHash || record.visualEvidence.locatorMatched !== true) {
+          throw new HarnessError(409, 'I10_REAL_VISUAL_EVIDENCE_REQUIRED', 'EVIDENCE', 'I10候选缺少与Harness上下文绑定的真实Midscene视觉证据。', false, true, { actionId: action.actionId });
+        }
+      }
+    }
     let candidate;
     try {
-      candidate = buildCandidatePackage(JSON.parse(String(job.plan_json)), input.verifiedActionRecords, String(job.created_at));
+      candidate = buildCandidatePackage(plan, input.verifiedActionRecords, String(job.created_at));
     } catch (error) {
       throw new HarnessError(409, error instanceof Error ? error.message : 'I8_CANDIDATE_BUILD_REJECTED', 'CONTRACT', 'Playwright 验证事实无法生成受控候选脚本。', false, true);
     }
@@ -1014,6 +1147,21 @@ export class HarnessService {
         const recordJson = canonicalJson(record);
         insertRecord.run(opaqueId('fact'), job.namespace, job.executable_plan_id, record.actionId, record.ordinal, recordJson, sha256(recordJson), timestamp);
       }
+      if (String(job.stability_policy_version) === 'I10_2X2_V1') {
+        const visualModels = [...new Set(input.verifiedActionRecords.map(record => record.visualEvidence?.model).filter((value): value is string => Boolean(value)))];
+        if (visualModels.length !== 1) throw new HarnessError(409, 'I10_VISUAL_MODEL_IDENTITY_INCONSISTENT', 'EVIDENCE', 'I10视觉证据模型身份不一致。', false, true);
+        const traceJson = canonicalJson({
+          schemaVersion: 'hengzhun-i10-action-trace-v1',
+          executablePlanId: job.executable_plan_id,
+          authoringContexts: i10Contexts.map(item => ({ actionId:item.action_id, ordinal:item.ordinal, contextLevel:item.context_level, envelopeHash:item.envelope_hash, envelope:JSON.parse(item.envelope_json) })),
+          records: input.verifiedActionRecords
+        });
+        const traceHash = sha256(traceJson);
+        db.prepare(`INSERT INTO i10_action_traces(trace_id,namespace,case_id,preparation_id,consumer_model,context_policy,trace_json,trace_hash,playwright_fact_hash,status,created_at,updated_at)
+          VALUES (?,?,?,?,?,'CTX-L2',?,?,?,'PLAYWRIGHT_VERIFIED',?,?)`)
+          .run(opaqueId('trace'), job.namespace, job.case_id, job.preparation_id, visualModels[0], traceJson, traceHash,
+            sha256(canonicalJson(input.verifiedActionRecords.map(record => record.verification))), timestamp, timestamp);
+      }
       db.prepare(`
         INSERT INTO i8_script_candidates(
           candidate_id, namespace, executable_plan_id, script_id, script_version, dsl_version, dsl_json, dsl_hash,
@@ -1041,8 +1189,13 @@ export class HarnessService {
           sequence_no, fixture_ref, status, created_at
         ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'QUEUED', ?)
       `);
+      const policyVersion = String(job.stability_policy_version ?? 'I8_2X3_V1');
+      const requiredRuns = policyVersion === 'I10_2X2_V1' ? 4 : 6;
+      const sequencesPerViewport = requiredRuns / I8_STABILITY_VIEWPORTS.length;
+      db.prepare(`INSERT INTO i10_stability_policy_bindings(object_type,object_id,policy_version,required_runs,created_at) VALUES ('CANDIDATE_BATCH',?,?,?,?)`)
+        .run(batchId, policyVersion, requiredRuns, timestamp);
       for (const viewport of I8_STABILITY_VIEWPORTS) {
-        for (let sequence = 1; sequence <= 3; sequence += 1) {
+        for (let sequence = 1; sequence <= sequencesPerViewport; sequence += 1) {
           insertStabilityRun.run(
             `validation_${candidateSuffix}_${viewport.suffix}_${sequence}`,
             batchId,
@@ -1088,10 +1241,14 @@ export class HarnessService {
       }
       const row = db.prepare(`
         SELECT b.batch_id, b.namespace, b.candidate_id, c.relative_directory, c.script_sha256, c.manifest_sha256,
-               c.script_version, p.case_version, p.version AS executable_plan_version
+               c.script_version, p.case_version, p.version AS executable_plan_version, cv.definition_json,
+               COALESCE(policy.policy_version, 'I8_2X3_V1') AS stability_policy_version,
+               COALESCE(policy.required_runs, 6) AS required_runs
         FROM i8_stability_batches b
         JOIN i8_script_candidates c ON c.candidate_id = b.candidate_id
         JOIN i8_executable_plans p ON p.executable_plan_id = c.executable_plan_id
+        JOIN case_versions cv ON cv.case_id = p.case_id AND cv.version = p.case_version
+        LEFT JOIN i10_stability_policy_bindings policy ON policy.object_type='CANDIDATE_BATCH' AND policy.object_id=b.batch_id
         WHERE b.status = 'QUEUED'
         ORDER BY b.created_at, b.batch_id LIMIT 1
       `).get() as Record<string, unknown> | undefined;
@@ -1107,7 +1264,8 @@ export class HarnessService {
         FROM i8_stability_validation_runs WHERE batch_id = ?
         ORDER BY CASE viewport_id WHEN 'DESKTOP_1440X900' THEN 1 ELSE 2 END, sequence_no
       `).all(row.batch_id) as Array<Record<string, unknown>>;
-      if (runs.length !== 6) throw new HarnessError(500, 'I8_STABILITY_RUN_SET_CORRUPT', 'EVIDENCE', '稳定性六次样本集合不完整。');
+      if (runs.length !== Number(row.required_runs)) throw new HarnessError(500, 'I8_STABILITY_RUN_SET_CORRUPT', 'EVIDENCE', '稳定性样本集合不完整。');
+      const definition = JSON.parse(String(row.definition_json)) as Record<string, unknown>;
       return {
         status: 'CLAIMED',
         batchId: row.batch_id,
@@ -1122,6 +1280,10 @@ export class HarnessService {
         credentialAlias: 'i3-customer',
         leaseOwner: workerId,
         leaseExpiresAt,
+        stabilityPolicyVersion: row.stability_policy_version,
+        requiredRuns: row.required_runs,
+        ...(String(row.stability_policy_version) === 'I10_2X2_V1' && typeof definition.credentialRef === 'string' ? { credentialRef: definition.credentialRef } : {}),
+        ...(String(row.stability_policy_version) === 'I10_2X2_V1' && typeof definition.entryUrl === 'string' ? { entryUrl: definition.entryUrl } : {}),
         runs: runs.map(run => ({
           validationRunId: run.validation_run_id,
           viewportId: run.viewport_id,
@@ -1137,10 +1299,13 @@ export class HarnessService {
   async completeI8Stability(batchId: string, inputValue: I8StabilityCompletionInput): Promise<Record<string, unknown>> {
     const input = i8StabilityCompletionSchema.parse(inputValue);
     const snapshot = this.database.read(db => db.prepare(`
-      SELECT b.*, c.script_sha256, c.namespace, p.case_version, p.version AS executable_plan_version
+      SELECT b.*, c.script_sha256, c.namespace, p.case_version, p.version AS executable_plan_version,
+             COALESCE(policy.policy_version, 'I8_2X3_V1') AS stability_policy_version,
+             COALESCE(policy.required_runs, 6) AS required_runs
       FROM i8_stability_batches b
       JOIN i8_script_candidates c ON c.candidate_id = b.candidate_id
       JOIN i8_executable_plans p ON p.executable_plan_id = c.executable_plan_id
+      LEFT JOIN i10_stability_policy_bindings policy ON policy.object_type='CANDIDATE_BATCH' AND policy.object_id=b.batch_id
       WHERE b.batch_id = ?
     `).get(batchId) as Record<string, unknown> | undefined);
     if (!snapshot) throw new HarnessError(404, 'I8_STABILITY_BATCH_NOT_FOUND', 'DOMAIN', '稳定性验证批次不存在。');
@@ -1151,7 +1316,7 @@ export class HarnessService {
     if (snapshot.candidate_id !== input.candidateId || snapshot.script_sha256 !== input.scriptHash) throw new HarnessError(409, 'I8_STABILITY_CANDIDATE_MISMATCH', 'CONCURRENCY', '稳定性结果与候选脚本不匹配。', false, true);
     const expectedRuns = this.database.read(db => db.prepare(`SELECT * FROM i8_stability_validation_runs WHERE batch_id = ?`).all(batchId) as Array<Record<string, unknown>>);
     const expectedById = new Map(expectedRuns.map(run => [String(run.validation_run_id), run]));
-    if (expectedById.size !== 6) throw new HarnessError(500, 'I8_STABILITY_RUN_SET_CORRUPT', 'EVIDENCE', '稳定性六次样本集合不完整。');
+    if (expectedById.size !== Number(snapshot.required_runs) || input.runs.length !== Number(snapshot.required_runs)) throw new HarnessError(500, 'I8_STABILITY_RUN_SET_CORRUPT', 'EVIDENCE', '稳定性样本集合不完整。');
     const stabilityRoot = path.resolve(this.productRoot, '.data', 'stability');
     for (const result of input.runs) {
       const expected = expectedById.get(result.validationRunId);
@@ -1194,9 +1359,11 @@ export class HarnessService {
         `).run(
           certificateId, snapshot.namespace, input.candidateId, batchId, input.scriptHash,
           snapshot.case_version, snapshot.executable_plan_version, input.runtimeFingerprint,
-          canonicalJson(I8_STABILITY_VIEWPORTS.map(viewport => ({ viewportId: viewport.viewportId, width: viewport.width, height: viewport.height, consecutivePasses: 3 }))),
+          canonicalJson(I8_STABILITY_VIEWPORTS.map(viewport => ({ viewportId: viewport.viewportId, width: viewport.width, height: viewport.height, consecutivePasses: Number(snapshot.required_runs) / I8_STABILITY_VIEWPORTS.length }))),
           canonicalJson(runIds), [...assertionHashes][0], [...evidenceHashes][0], timestamp
         );
+        db.prepare(`INSERT INTO i10_stability_policy_bindings(object_type,object_id,policy_version,required_runs,created_at) VALUES ('CANDIDATE_CERTIFICATE',?,?,?,?)`)
+          .run(certificateId, snapshot.stability_policy_version, snapshot.required_runs, timestamp);
       }
       db.prepare(`UPDATE i8_stability_batches SET status = ?, lease_owner = NULL, lease_expires_at = NULL, runtime_fingerprint = ?, assertion_set_hash = ?, evidence_set_hash = ?, error_code = ?, version = version + 1, completed_at = ?, updated_at = ? WHERE batch_id = ?`)
         .run(passed ? 'PASSED' : 'FAILED', input.runtimeFingerprint, assertionHashes.size === 1 ? [...assertionHashes][0] : null, evidenceHashes.size === 1 ? [...evidenceHashes][0] : null, errorCode ?? null, timestamp, timestamp, batchId);
@@ -1204,7 +1371,7 @@ export class HarnessService {
         .run(passed ? 'STABILITY_CERTIFIED' : 'VALIDATION_FAILED', timestamp, input.candidateId);
       this.audit(db, { requestId: `worker:${batchId}`, actorType: 'SYSTEM' }, {
         namespace: String(snapshot.namespace), action: 'i8_stability_complete', objectType: 'I8_STABILITY_BATCH', objectId: batchId,
-        outcome: passed ? 'SUCCEEDED' : 'REJECTED', details: { candidateId: input.candidateId, runCount: 6, certificateId: certificateId ?? null, errorCode: errorCode ?? null }
+        outcome: passed ? 'SUCCEEDED' : 'REJECTED', details: { candidateId: input.candidateId, runCount: input.runs.length, policyVersion: snapshot.stability_policy_version, certificateId: certificateId ?? null, errorCode: errorCode ?? null }
       });
       return {
         batchId,
@@ -1212,6 +1379,8 @@ export class HarnessService {
         status: passed ? 'STABILITY_CERTIFIED' : 'VALIDATION_FAILED',
         passedRuns: input.runs.filter(run => run.outcome === 'PASSED').length,
         failedRuns: input.runs.filter(run => run.outcome === 'FAILED').length,
+        requiredRuns: Number(snapshot.required_runs),
+        stabilityPolicyVersion: snapshot.stability_policy_version,
         ...(certificateId ? { certificateId, nextAction: 'I8_STAGE5_DELIVERY_REQUIRED' } : { errorCode, nextAction: 'CANDIDATE_REPAIR_REQUIRED' })
       };
     });
@@ -1293,6 +1462,17 @@ export class HarnessService {
           assertionSummary: JSON.parse(String(candidate.acceptance_summary_json)),
           evidenceHash: candidate.manifest_sha256
         },
+        ...(candidate.authoring_trace_hash ? {
+          authoringEvidence: {
+            invocation: 'REAL',
+            provider: 'MIDSCENE',
+            model: candidate.authoring_model,
+            contextPolicy: candidate.authoring_context_policy,
+            actionTraceHash: candidate.authoring_trace_hash,
+            playwrightFactHash: candidate.authoring_playwright_fact_hash,
+            status: candidate.authoring_status
+          }
+        } : {}),
         startLine: selected.length > 0 ? startIndex + 1 : 0,
         endLine: selected.length > 0 ? endIndex : 0,
         lines: selected,
@@ -1993,6 +2173,11 @@ export class HarnessService {
         ) VALUES (?, ?, ?, ?, 'WORKER', 'run.claim', 'RUN', ?, 'ACCEPTED', ?, ?, ?)
       `).run(opaqueId('evt'), row.namespace, row.run_id, row.task_id, row.run_id,
         opaqueId('worker'), JSON.stringify({ workerId, leaseExpiresAt }), timestamp);
+      const definition = JSON.parse(row.definition_json) as Record<string, unknown>;
+      const execution = JSON.parse(row.payload_json) as Record<string, unknown>;
+      const isI10Candidate = Boolean(execution.candidate)
+        && typeof definition.credentialRef === 'string'
+        && typeof definition.entryUrl === 'string';
       return {
         status: 'CLAIMED',
         taskId: row.task_id,
@@ -2001,8 +2186,14 @@ export class HarnessService {
         caseId: row.case_id,
         caseVersion: row.case_version,
         planId: row.plan_id,
-        definition: JSON.parse(row.definition_json),
-        execution: JSON.parse(row.payload_json),
+        definition,
+        execution: {
+          ...execution,
+          ...(isI10Candidate ? {
+            credentialRef: definition.credentialRef,
+            entryUrl: definition.entryUrl
+          } : {})
+        },
         leaseExpiresAt
       };
     });
@@ -2491,7 +2682,9 @@ export class HarnessService {
         i.classification, i.disposition, i.status, e.envelope_id, e.context_level, e.envelope_json, e.envelope_hash,
         e.attempt_count, e.max_attempts, e.updated_at, p.proposal_id, p.repair_candidate_id, p.status proposal_status,
         p.version proposal_version, p.script_version repair_script_version, p.script_sha256, p.manifest_sha256,
-        b.status stability_status, cert.certificate_id, cert.validation_run_ids_json
+        b.status stability_status, cert.certificate_id, cert.validation_run_ids_json,
+        COALESCE(policy.policy_version,'I8_2X3_V1') stability_policy_version,
+        COALESCE(policy.required_runs,6) stability_required_runs
         FROM failure_incidents fi JOIN i8_failure_incidents i ON i.incident_id=fi.incident_id
         JOIN i8_step_failure_envelopes e ON e.envelope_id=(
           SELECT envelope_id FROM i8_step_failure_envelopes
@@ -2502,6 +2695,7 @@ export class HarnessService {
         LEFT JOIN i8_script_patch_proposals p ON p.proposal_id=(SELECT proposal_id FROM i8_script_patch_proposals WHERE incident_id=fi.incident_id ORDER BY attempt_no DESC LIMIT 1)
         LEFT JOIN i8_repair_stability_batches b ON b.proposal_id=p.proposal_id
         LEFT JOIN i8_repair_stability_certificates cert ON cert.proposal_id=p.proposal_id
+        LEFT JOIN i10_stability_policy_bindings policy ON policy.object_type='REPAIR_BATCH' AND policy.object_id=b.batch_id
         WHERE fi.namespace=? AND fi.incident_id=?`).get(namespace, incidentId) as Record<string, unknown> | undefined;
       if (!row) throw new HarnessError(404, 'I8_FAILURE_INCIDENT_NOT_FOUND', 'DOMAIN', 'I8 失败事故不存在。');
       const repairTarget = row.classification === 'LOCATOR'
@@ -2509,6 +2703,7 @@ export class HarnessService {
         : undefined;
       const approvedRepairOptions = repairTarget
         ? I8_CONTROLLED_CATALOG.repairTargets[repairTarget as keyof typeof I8_CONTROLLED_CATALOG.repairTargets]
+          .slice(1)
           .map(locator => ({ operationType: 'TARGET_MAPPING', targetRef: repairTarget, locator }))
         : [];
       return { incidentId: row.incident_id, runId: row.run_id, caseId: row.case_id, scriptId: row.script_id,
@@ -2519,7 +2714,7 @@ export class HarnessService {
         ...(row.proposal_id ? { proposal: { proposalId: row.proposal_id, repairCandidateId: row.repair_candidate_id,
           status: row.proposal_status, version: row.proposal_version, scriptVersion: row.repair_script_version,
           scriptHash: row.script_sha256, manifestHash: row.manifest_sha256,
-          stability: { status: row.stability_status, requiredRuns: 6, certificateId: row.certificate_id ?? null,
+          stability: { status: row.stability_status, requiredRuns: Number(row.stability_required_runs ?? 6), policyVersion: row.stability_policy_version, certificateId: row.certificate_id ?? null,
             validationRunIds: row.validation_run_ids_json ? JSON.parse(String(row.validation_run_ids_json)) : [] } } } : {}), updatedAt: row.updated_at };
     });
   }
@@ -2546,7 +2741,9 @@ export class HarnessService {
     return this.idempotent(input.namespace, 'i8_repair_propose', input.idempotencyKey, input, context, (db, timestamp) => {
       const incident = db.prepare(`SELECT fi.*, i.classification, i.disposition, e.envelope_id, e.envelope_hash, e.attempt_count, e.max_attempts,
         c.candidate_id base_candidate_id, c.script_id base_script_id, c.script_version base_script_version, c.source_chain_hash base_source_chain_hash,
-        p.plan_json, p.executable_plan_id FROM failure_incidents fi JOIN i8_failure_incidents i ON i.incident_id=fi.incident_id
+        p.plan_json, p.executable_plan_id,
+        COALESCE(policy.policy_version,'I8_2X3_V1') stability_policy_version,
+        COALESCE(policy.required_runs,6) stability_required_runs FROM failure_incidents fi JOIN i8_failure_incidents i ON i.incident_id=fi.incident_id
         JOIN i8_step_failure_envelopes e ON e.envelope_id=(
           SELECT envelope_id FROM i8_step_failure_envelopes
           WHERE incident_id=fi.incident_id
@@ -2554,6 +2751,8 @@ export class HarnessService {
           LIMIT 1
         )
         JOIN i8_script_candidates c ON c.script_id=fi.script_id AND c.script_version=fi.script_version
+        LEFT JOIN i8_stability_batches base_batch ON base_batch.candidate_id=c.candidate_id
+        LEFT JOIN i10_stability_policy_bindings policy ON policy.object_type='CANDIDATE_BATCH' AND policy.object_id=base_batch.batch_id
         JOIN i8_executable_plans p ON p.executable_plan_id=c.executable_plan_id WHERE fi.namespace=? AND fi.incident_id=?`)
         .get(input.namespace, input.incidentId) as Record<string, unknown> | undefined;
       if (!incident) throw new HarnessError(404, 'I8_REPAIR_BASE_CANDIDATE_NOT_FOUND', 'DOMAIN', '事故没有可审计的 I8 基础候选。');
@@ -2576,15 +2775,73 @@ export class HarnessService {
       db.prepare(`INSERT INTO i8_script_patch_proposals(proposal_id,namespace,incident_id,envelope_id,base_candidate_id,repair_candidate_id,attempt_no,patch_json,patch_hash,script_id,script_version,dsl_json,dsl_hash,generator_version,relative_directory,script_sha256,manifest_json,manifest_sha256,source_chain_hash,status,version,created_at,updated_at) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,'STABILITY_QUEUED',1,?,?)`)
         .run(proposalId,input.namespace,input.incidentId,incident.envelope_id,incident.base_candidate_id,candidate.candidateId,attemptNo,patchJson,sha256(patchJson),candidate.scriptId,candidate.scriptVersion,canonicalJson(candidate.dsl),candidate.dslHash,'hengzhun-script-package-builder-1.0.0',relativeDirectory,candidate.scriptHash,manifestJson,candidate.manifestHash,candidate.sourceChainHash,timestamp,timestamp);
       db.prepare(`INSERT INTO i8_repair_stability_batches(batch_id,namespace,proposal_id,repair_candidate_id,status,version,created_at,updated_at) VALUES (?,?,?,?,'QUEUED',1,?,?)`).run(batchId,input.namespace,proposalId,candidate.candidateId,timestamp,timestamp);
+      const repairRequiredRuns=Number(incident.stability_required_runs ?? 6); const repairSequences=repairRequiredRuns/I8_STABILITY_VIEWPORTS.length;
+      db.prepare(`INSERT INTO i10_stability_policy_bindings(object_type,object_id,policy_version,required_runs,created_at) VALUES ('REPAIR_BATCH',?,?,?,?)`).run(batchId,incident.stability_policy_version,repairRequiredRuns,timestamp);
       const suffix=candidate.candidateId.slice('candidate_'.length); const insertRun=db.prepare(`INSERT INTO i8_repair_stability_runs(validation_run_id,batch_id,repair_candidate_id,viewport_id,viewport_width,viewport_height,sequence_no,fixture_ref,status,created_at) VALUES (?,?,?,?,?,?,?,?,'QUEUED',?)`);
-      for(const viewport of I8_STABILITY_VIEWPORTS) for(let sequence=1;sequence<=3;sequence+=1) insertRun.run(`validation_${suffix}_${viewport.suffix}_${sequence}`,batchId,candidate.candidateId,viewport.viewportId,viewport.width,viewport.height,sequence,`repairfixture_${suffix}_${viewport.suffix}_${sequence}`,timestamp);
+      for(const viewport of I8_STABILITY_VIEWPORTS) for(let sequence=1;sequence<=repairSequences;sequence+=1) insertRun.run(`validation_${suffix}_${viewport.suffix}_${sequence}`,batchId,candidate.candidateId,viewport.viewportId,viewport.width,viewport.height,sequence,`repairfixture_${suffix}_${viewport.suffix}_${sequence}`,timestamp);
       db.prepare(`UPDATE i8_step_failure_envelopes SET attempt_count=?,updated_at=? WHERE envelope_id=?`).run(attemptNo,timestamp,incident.envelope_id); db.prepare(`UPDATE i8_failure_incidents SET status='PATCH_ALLOWED',updated_at=? WHERE incident_id=?`).run(timestamp,input.incidentId);
-      return {status:202,objectType:'I8_SCRIPT_PATCH_PROPOSAL',objectId:proposalId,response:{proposalId,incidentId:input.incidentId,repairCandidateId:candidate.candidateId,attemptNo,status:'STABILITY_QUEUED',version:1,scriptId:candidate.scriptId,scriptVersion:candidate.scriptVersion,scriptHash:candidate.scriptHash,manifestHash:candidate.manifestHash,requiredStabilityRuns:6,activationRequired:true}};
+      return {status:202,objectType:'I8_SCRIPT_PATCH_PROPOSAL',objectId:proposalId,response:{proposalId,incidentId:input.incidentId,repairCandidateId:candidate.candidateId,attemptNo,status:'STABILITY_QUEUED',version:1,scriptId:candidate.scriptId,scriptVersion:candidate.scriptVersion,scriptHash:candidate.scriptHash,manifestHash:candidate.manifestHash,requiredStabilityRuns:repairRequiredRuns,stabilityPolicyVersion:incident.stability_policy_version,activationRequired:true}};
     });
   }
 
   async claimNextI8RepairStability(workerId: string): Promise<Record<string, unknown>> {
-    return this.database.write(db => { const timestamp=nowIso(); const row=db.prepare(`SELECT b.*,p.relative_directory,p.script_sha256,p.manifest_sha256 FROM i8_repair_stability_batches b JOIN i8_script_patch_proposals p ON p.proposal_id=b.proposal_id WHERE b.status='QUEUED' ORDER BY b.created_at LIMIT 1`).get() as any; if(!row)return{status:'EMPTY'}; const leaseExpiresAt=new Date(Date.now()+600000).toISOString(); db.prepare(`UPDATE i8_repair_stability_batches SET status='RUNNING',lease_owner=?,lease_expires_at=?,version=version+1,updated_at=? WHERE batch_id=?`).run(workerId,leaseExpiresAt,timestamp,row.batch_id); db.prepare(`UPDATE i8_repair_stability_runs SET status='RUNNING' WHERE batch_id=?`).run(row.batch_id); db.prepare(`UPDATE i8_script_patch_proposals SET status='STABILITY_VALIDATING',version=version+1,updated_at=? WHERE proposal_id=?`).run(timestamp,row.proposal_id); const runs=db.prepare(`SELECT * FROM i8_repair_stability_runs WHERE batch_id=? ORDER BY viewport_width DESC,sequence_no`).all(row.batch_id) as any[]; return{status:'CLAIMED',batchId:row.batch_id,proposalId:row.proposal_id,namespace:row.namespace,candidateId:row.repair_candidate_id,relativeDirectory:row.relative_directory,scriptHash:row.script_sha256,manifestHash:row.manifest_sha256,credentialAlias:'i3-customer',leaseOwner:workerId,leaseExpiresAt,runs:runs.map(r=>({validationRunId:r.validation_run_id,viewportId:r.viewport_id,viewportWidth:r.viewport_width,viewportHeight:r.viewport_height,sequenceNo:r.sequence_no,fixtureRef:r.fixture_ref}))}; });
+    return this.database.write(db => {
+      const timestamp = nowIso();
+      const row = db.prepare(`
+        SELECT b.*, p.relative_directory, p.script_sha256, p.manifest_sha256,
+               cv.definition_json,
+               COALESCE(policy.policy_version, 'I8_2X3_V1') AS stability_policy_version,
+               COALESCE(policy.required_runs, 6) AS required_runs
+        FROM i8_repair_stability_batches b
+        JOIN i8_script_patch_proposals p ON p.proposal_id = b.proposal_id
+        LEFT JOIN failure_incidents fi ON fi.incident_id = p.incident_id
+        LEFT JOIN runs r ON r.run_id = fi.run_id
+        LEFT JOIN case_versions cv ON cv.case_id = r.case_id AND cv.version = r.case_version
+        LEFT JOIN i10_stability_policy_bindings policy
+          ON policy.object_type = 'REPAIR_BATCH' AND policy.object_id = b.batch_id
+        WHERE b.status = 'QUEUED'
+        ORDER BY b.created_at, b.batch_id
+        LIMIT 1
+      `).get() as any;
+      if (!row) return { status: 'EMPTY' };
+      const leaseExpiresAt = new Date(Date.now() + 600_000).toISOString();
+      db.prepare(`UPDATE i8_repair_stability_batches SET status='RUNNING',lease_owner=?,lease_expires_at=?,version=version+1,updated_at=? WHERE batch_id=?`)
+        .run(workerId, leaseExpiresAt, timestamp, row.batch_id);
+      db.prepare(`UPDATE i8_repair_stability_runs SET status='RUNNING' WHERE batch_id=?`).run(row.batch_id);
+      db.prepare(`UPDATE i8_script_patch_proposals SET status='STABILITY_VALIDATING',version=version+1,updated_at=? WHERE proposal_id=?`)
+        .run(timestamp, row.proposal_id);
+      const runs = db.prepare(`SELECT * FROM i8_repair_stability_runs WHERE batch_id=? ORDER BY viewport_width DESC,sequence_no`)
+        .all(row.batch_id) as any[];
+      if (runs.length !== Number(row.required_runs)) {
+        throw new HarnessError(500, 'I8_REPAIR_STABILITY_RUN_SET_CORRUPT', 'EVIDENCE', '修复稳定性样本集合不完整。');
+      }
+      const definition = row.definition_json ? JSON.parse(String(row.definition_json)) as Record<string, unknown> : {};
+      return {
+        status: 'CLAIMED',
+        batchId: row.batch_id,
+        proposalId: row.proposal_id,
+        namespace: row.namespace,
+        candidateId: row.repair_candidate_id,
+        relativeDirectory: row.relative_directory,
+        scriptHash: row.script_sha256,
+        manifestHash: row.manifest_sha256,
+        credentialAlias: 'i3-customer',
+        leaseOwner: workerId,
+        leaseExpiresAt,
+        stabilityPolicyVersion: row.stability_policy_version,
+        requiredRuns: Number(row.required_runs),
+        ...(String(row.stability_policy_version) === 'I10_2X2_V1' && typeof definition.credentialRef === 'string' ? { credentialRef: definition.credentialRef } : {}),
+        ...(String(row.stability_policy_version) === 'I10_2X2_V1' && typeof definition.entryUrl === 'string' ? { entryUrl: definition.entryUrl } : {}),
+        runs: runs.map(run => ({
+          validationRunId: run.validation_run_id,
+          viewportId: run.viewport_id,
+          viewportWidth: run.viewport_width,
+          viewportHeight: run.viewport_height,
+          sequenceNo: run.sequence_no,
+          fixtureRef: run.fixture_ref
+        }))
+      };
+    });
   }
 
 
@@ -2592,9 +2849,12 @@ export class HarnessService {
     const input = i8StabilityCompletionSchema.parse(inputValue);
     return this.database.write(db => {
       const batch = db.prepare(`
-        SELECT b.*, p.script_sha256, p.incident_id, p.attempt_no
+        SELECT b.*, p.script_sha256, p.incident_id, p.attempt_no,
+               COALESCE(policy.policy_version,'I8_2X3_V1') stability_policy_version,
+               COALESCE(policy.required_runs,6) required_runs
         FROM i8_repair_stability_batches b
         JOIN i8_script_patch_proposals p ON p.proposal_id = b.proposal_id
+        LEFT JOIN i10_stability_policy_bindings policy ON policy.object_type='REPAIR_BATCH' AND policy.object_id=b.batch_id
         WHERE b.batch_id = ?
       `).get(batchId) as any;
       if (!batch) {
@@ -2605,11 +2865,22 @@ export class HarnessService {
         throw new HarnessError(409, 'I8_REPAIR_STABILITY_BINDING_INVALID', 'CONCURRENCY', '修复回传绑定无效。', false, true);
       }
 
-      const expected = db.prepare(`SELECT validation_run_id FROM i8_repair_stability_runs WHERE batch_id = ?`)
-        .all(batchId) as Array<{ validation_run_id: string }>;
+      const expected = db.prepare(`SELECT * FROM i8_repair_stability_runs WHERE batch_id = ?`)
+        .all(batchId) as Array<Record<string, unknown>>;
       const byId = new Map(input.runs.map(run => [run.validationRunId, run]));
-      if (expected.length !== 6 || byId.size !== 6 || expected.some(row => !byId.has(row.validation_run_id))) {
-        throw new HarnessError(409, 'I8_REPAIR_STABILITY_RUN_SET_INVALID', 'CONTRACT', '必须回传固定六次验证。', false, true);
+      if (expected.length !== Number(batch.required_runs) || byId.size !== Number(batch.required_runs) || input.runs.length !== Number(batch.required_runs) || expected.some(row => !byId.has(String(row.validation_run_id)))) {
+        throw new HarnessError(409, 'I8_REPAIR_STABILITY_RUN_SET_INVALID', 'CONTRACT', '必须回传当前策略规定的完整验证集合。', false, true);
+      }
+
+      for (const expectedRun of expected) {
+        const actual = byId.get(String(expectedRun.validation_run_id));
+        if (!actual || actual.viewportId !== expectedRun.viewport_id ||
+            actual.viewportWidth !== Number(expectedRun.viewport_width) ||
+            actual.viewportHeight !== Number(expectedRun.viewport_height) ||
+            actual.sequenceNo !== Number(expectedRun.sequence_no) ||
+            actual.fixtureRef !== expectedRun.fixture_ref) {
+          throw new HarnessError(409, 'I8_REPAIR_STABILITY_RUN_IDENTITY_MISMATCH', 'CONTRACT', '修复稳定性样本身份不匹配。', false, true);
+        }
       }
 
       const evidenceRoot = path.resolve(this.productRoot, '.data', 'stability');
@@ -2641,15 +2912,19 @@ export class HarnessService {
           run.evidenceSetHash, canonicalJson(run.evidence), run.errorCode ?? null, timestamp, run.validationRunId, batchId);
       }
 
+      let repairCertificateId: string | undefined;
       if (success) {
+        repairCertificateId = opaqueId('repaircert');
         db.prepare(`
           INSERT INTO i8_repair_stability_certificates(
             certificate_id, namespace, proposal_id, batch_id, repair_candidate_id, script_sha256,
             runtime_fingerprint, validation_run_ids_json, assertion_set_hash, evidence_set_hash, status, issued_at
           ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'PASSED', ?)
-        `).run(opaqueId('repaircert'), batch.namespace, batch.proposal_id, batchId, batch.repair_candidate_id,
+        `).run(repairCertificateId, batch.namespace, batch.proposal_id, batchId, batch.repair_candidate_id,
           batch.script_sha256, input.runtimeFingerprint, canonicalJson(input.runs.map(run => run.validationRunId)),
           [...assertionHashes][0], [...evidenceHashes][0], timestamp);
+        db.prepare(`INSERT INTO i10_stability_policy_bindings(object_type,object_id,policy_version,required_runs,created_at) VALUES ('REPAIR_CERTIFICATE',?,?,?,?)`)
+          .run(repairCertificateId,batch.stability_policy_version,batch.required_runs,timestamp);
       }
 
       db.prepare(`
@@ -2707,7 +2982,8 @@ export class HarnessService {
         repairCandidateId: batch.repair_candidate_id,
         status: success ? 'PASSED' : 'FAILED',
         passedRuns: input.runs.filter(run => run.outcome === 'PASSED').length,
-        requiredRuns: 6,
+        requiredRuns: Number(batch.required_runs),
+        stabilityPolicyVersion: batch.stability_policy_version,
         contextLevel,
         nextAction: success ? 'HUMAN_REPAIR_DECISION_REQUIRED' : 'REPAIR_PROPOSAL_REQUIRED'
       };
@@ -2722,7 +2998,7 @@ export class HarnessService {
         JOIN i8_script_candidates base ON base.candidate_id = p.base_candidate_id
         JOIN i8_executable_plans ep ON ep.executable_plan_id = base.executable_plan_id
         WHERE p.namespace = ? AND p.proposal_id = ?`).get(input.namespace, input.proposalId) as any;
-      if (!proposal) throw new HarnessError(409, 'I8_REPAIR_CERTIFICATE_REQUIRED', 'EVIDENCE', '修复候选未取得六轮证书。', false, true);
+      if (!proposal) throw new HarnessError(409, 'I8_REPAIR_CERTIFICATE_REQUIRED', 'EVIDENCE', '修复候选未取得当前策略要求的稳定性证书。', false, true);
       if (proposal.version !== input.expectedProposalVersion) throw new HarnessError(409, 'I8_REPAIR_PROPOSAL_VERSION_CONFLICT', 'CONCURRENCY', '修复提案版本已变化。', false, true, { currentVersion: proposal.version });
       if (proposal.status !== 'WAITING_USER') throw new HarnessError(409, 'I8_REPAIR_DECISION_NOT_ALLOWED', 'DOMAIN', '当前不接受人工决定。', false, true);
       let activatedPlanId: string | null = null;

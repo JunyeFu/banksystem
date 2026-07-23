@@ -1,0 +1,14 @@
+{
+  "schemaVersion": "hengzhun-i10-input-and-schedule-contract-v1",
+  "inputTypes": ["NATURAL_LANGUAGE", "CASE_FILE", "VIDEO"],
+  "supportingImages": { "availableForEveryInputType": true, "minimum": 0, "maximum": 20, "formats": ["png", "jpg", "jpeg", "webp"], "maximumBytesPerImage": 20971520, "maximumBatchBytes": 104857600, "bilingualOcr": ["chi_sim", "eng"], "originalImageSentToController": false, "controllerReceives": ["redactedOcr", "redactedImageHash", "provenanceRef", "confidence"] },
+  "caseDraftSchemaVersion": "hengzhun-i10-case-draft-v1",
+  "completenessGate": ["title", "targetSystem", "entryUrl", "preconditions", "steps", "assertions", "credentialRef", "confirmationStatus=CONFIRMED"],
+  "ingestTools": ["credential_session_create", "credential_session_get", "ingest_submit", "ingest_get", "ingest_decision_submit", "image_ingest_submit", "image_ingest_get"],
+  "verificationTools": ["verification_get", "verification_decision_submit"],
+  "verificationSecretRule": "OTP, PIN, private keys and biometric values are entered directly by the user and never enter LLM, SQLite, logs, screenshots, scripts or evidence.",
+  "executionModes": ["ON_DEMAND", "ONE_TIME", "RECURRING"],
+  "scheduleDraft": { "naturalLanguageInput": true, "humanConfirmationRequired": true, "fields": ["scheduleType", "runAtOrCron", "timezone", "misfirePolicy", "maxRetries"] },
+  "fixedExampleSchedulesAllowed": false,
+  "sourceDelivery": { "includeDownload": true, "chatContent": ["summary", "version", "sha256", "shortLivedDownloadUrl"], "fullFileExtension": ".cjs" }
+}

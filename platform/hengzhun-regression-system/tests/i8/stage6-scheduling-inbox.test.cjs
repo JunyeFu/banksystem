@@ -180,5 +180,5 @@ test('stage6 MCP and Flowise artifacts expose eleven governed tools without forb
   assert.equal(flow.nodes.find(node => node.id === 'scheduleCreateRecurring').arguments.runAt, undefined)
   assert.equal(flow.nodes.find(node => node.id === 'scheduleCreateOneTime').arguments.cronExpression, undefined)
   assert.equal(flow.nodes.some(node => flow.forbiddenSemantics.includes(node.semantic)), false)
-  assert.match(fs.readFileSync(path.join(productRoot, 'mcp', 'src', 'server.cjs'), 'utf8'), /version: '(?:6|7)\.0\.0'/)
+  assert.match(fs.readFileSync(path.join(productRoot, 'mcp', 'src', 'server.cjs'), 'utf8'), /version: '(?:6|7|8)\.0\.0'/)
 })

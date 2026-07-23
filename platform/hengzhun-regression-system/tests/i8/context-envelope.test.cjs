@@ -210,15 +210,17 @@ test('Harness emits strict CTX-L1 and deterministic ambiguity upgrades L2 then L
 
 test('visual and controller token budgets fail closed with deterministic error codes', () => {
   assert.equal(MODEL_CONTEXT_POLICIES.VISION_LLM.inputBudgetTokens, 12000);
-  assert.equal(MODEL_CONTEXT_POLICIES.CONTROLLER_LLM.inputBudgetTokens, 12000);
+  assert.equal(MODEL_CONTEXT_POLICIES.CONTROLLER_LLM.modelContextLimitTokens, 1000000);
+  assert.equal(MODEL_CONTEXT_POLICIES.CONTROLLER_LLM.inputBudgetTokens, 991808);
+  assert.equal(MODEL_CONTEXT_POLICIES.CONTROLLER_LLM.reservedOutputTokens, 8192);
   assert.doesNotThrow(() => assertContextBudget('VISION_LLM', 12000));
   assert.throws(
     () => assertContextBudget('VISION_LLM', 12001),
     error => error.errorCode === 'VISION_CONTEXT_BUDGET_EXCEEDED'
   );
-  assert.doesNotThrow(() => assertContextBudget('CONTROLLER_LLM', 12000));
+  assert.doesNotThrow(() => assertContextBudget('CONTROLLER_LLM', 991808));
   assert.throws(
-    () => assertContextBudget('CONTROLLER_LLM', 12001),
+    () => assertContextBudget('CONTROLLER_LLM', 991809),
     error => error.errorCode === 'CONTROLLER_CONTEXT_BUDGET_EXCEEDED'
   );
 });

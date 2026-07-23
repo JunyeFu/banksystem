@@ -33,6 +33,26 @@ import { i8FailureGetSchema, i8RepairDecisionSchema, i8RepairProposeSchema } fro
 import { authorizeRequest, loadSecurityConfig, remoteAddressForAudit, SecurityConfig, SecurityResult } from './security';
 import { HarnessService } from './service';
 import { credentialFingerprint, nowIso, opaqueId } from './utils';
+import {
+  credentialCaptureSchema,
+  credentialRefSchema,
+  credentialSessionCreateSchema,
+  credentialSessionGetSchema,
+  ingestDecisionSubmitSchema,
+  ingestGetSchema,
+  naturalLanguagePrepareSchema,
+  ingestSubmitSchema,
+  ingestWorkerCompletionSchema,
+  ingestWorkerFailureSchema,
+  imageIngestSubmitSchema,
+  imageIngestGetSchema,
+  imageIngestWorkerCompletionSchema,
+  imageIngestWorkerFailureSchema,
+  verificationChallengeReportSchema,
+  verificationGetSchema,
+  verificationResumeSchema,
+  verificationDecisionSubmitSchema
+} from './i10/schemas';
 
 const MAX_REQUEST_BYTES = 256 * 1024;
 const MAX_WORKER_REQUEST_BYTES = 8 * 1024 * 1024;
@@ -254,10 +274,77 @@ export async function createHarnessApplication(options: HarnessApplicationOption
         return response.end(content);
       }
 
+      const credentialFormMatch = url.pathname.match(/^\/v1\/i10\/credentials\/(credsession_[0-9a-f-]{36})\/form$/);
+      if (request.method === 'GET' && credentialFormMatch) {
+        const html = service.i10.credentialCaptureForm(credentialFormMatch[1] as string);
+        const content = Buffer.from(html, 'utf8');
+        response.writeHead(200, {
+          'content-type': 'text/html; charset=utf-8', 'content-length': content.byteLength,
+          'cache-control': 'no-store', 'content-security-policy': "default-src 'self'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; connect-src 'self'; frame-ancestors 'none'",
+          'x-content-type-options': 'nosniff', 'x-frame-options': 'DENY', 'referrer-policy': 'no-referrer', 'x-request-id': requestId
+        });
+        return response.end(content);
+      }
+      const credentialStoreMatch = url.pathname.match(/^\/v1\/i10\/credentials\/(credsession_[0-9a-f-]{36}):store$/);
+      if (request.method === 'POST' && credentialStoreMatch) {
+        const input = credentialCaptureSchema.parse(await readJson(request, 16 * 1024));
+        return sendJson(response, 200, await service.i10.captureCredential(credentialStoreMatch[1] as string, input), 'L0', requestId);
+      }
+
       if (request.method === 'POST' && url.pathname === '/internal/worker/tasks:claim') {
         authorizeWorker(request.headers.authorization, workerToken);
         const input = workerClaimSchema.parse(await readJson(request));
         return sendJson(response, 200, await service.claimNextRun(input.workerId), 'L0', requestId);
+      }
+      if (request.method === 'POST' && url.pathname === '/internal/worker/i10/ingest:claim') {
+        authorizeWorker(request.headers.authorization, workerToken);
+        const input = workerClaimSchema.parse(await readJson(request));
+        return sendJson(response, 200, await service.i10.claimVideoIngest(input.workerId), 'L1', requestId);
+      }
+      if (request.method === 'POST' && url.pathname === '/internal/worker/i10/ingest:complete') {
+        authorizeWorker(request.headers.authorization, workerToken);
+        const input = ingestWorkerCompletionSchema.parse(await readJson(request, MAX_WORKER_REQUEST_BYTES));
+        return sendJson(response, 200, await service.i10.completeVideoIngest(input), 'L1', requestId);
+      }
+      if (request.method === 'POST' && url.pathname === '/internal/worker/i10/ingest:fail') {
+        authorizeWorker(request.headers.authorization, workerToken);
+        const input = ingestWorkerFailureSchema.parse(await readJson(request, 32 * 1024));
+        return sendJson(response, 200, await service.i10.failVideoIngest(input), 'L0', requestId);
+      }
+      if (request.method === 'POST' && url.pathname === '/internal/worker/i10/images:claim') {
+        authorizeWorker(request.headers.authorization, workerToken);
+        const input = workerClaimSchema.parse(await readJson(request));
+        return sendJson(response, 200, await service.i10.claimImageIngest(input.workerId), 'L1', requestId);
+      }
+      if (request.method === 'POST' && url.pathname === '/internal/worker/i10/images:complete') {
+        authorizeWorker(request.headers.authorization, workerToken);
+        const input = imageIngestWorkerCompletionSchema.parse(await readJson(request, MAX_WORKER_REQUEST_BYTES));
+        return sendJson(response, 200, await service.i10.completeImageIngest(input), 'L1', requestId);
+      }
+      if (request.method === 'POST' && url.pathname === '/internal/worker/i10/images:fail') {
+        authorizeWorker(request.headers.authorization, workerToken);
+        const input = imageIngestWorkerFailureSchema.parse(await readJson(request));
+        return sendJson(response, 200, await service.i10.failImageIngest(input.workerId,input.imageIngestId,input.errorCode,input.retryable), 'L0', requestId);
+      }
+      if (request.method === 'POST' && url.pathname === '/internal/worker/i10/verification:report') {
+        authorizeWorker(request.headers.authorization, workerToken);
+        const input = verificationChallengeReportSchema.parse(await readJson(request));
+        return sendJson(response, 200, await service.i10.reportVerificationChallenge(input), 'L0', requestId);
+      }
+      if (request.method === 'POST' && url.pathname === '/internal/worker/i10/verification:get') {
+        authorizeWorker(request.headers.authorization, workerToken);
+        const input = verificationGetSchema.parse(await readJson(request));
+        return sendJson(response, 200, service.i10.getVerification(input.namespace,input.challengeId), 'L0', requestId);
+      }
+      if (request.method === 'POST' && url.pathname === '/internal/worker/i10/verification:resume') {
+        authorizeWorker(request.headers.authorization, workerToken);
+        const input = verificationResumeSchema.parse(await readJson(request));
+        return sendJson(response, 200, await service.i10.resumeVerification(input.namespace,input.challengeId,input.workerId), 'L0', requestId);
+      }
+      if (request.method === 'POST' && url.pathname === '/internal/worker/i10/credentials:resolve') {
+        authorizeWorker(request.headers.authorization, workerToken);
+        const input = z.object({ namespace: namespaceSchema, credentialRef: credentialRefSchema }).strict().parse(await readJson(request));
+        return sendJson(response, 200, service.i10.resolveCredentialForWorker(input.namespace, input.credentialRef), 'L0', requestId);
       }
       if (request.method === 'POST' && url.pathname === '/internal/worker/authoring:claim') {
         authorizeWorker(request.headers.authorization, workerToken);
@@ -367,6 +454,46 @@ export async function createHarnessApplication(options: HarnessApplicationOption
         credentialFingerprint: fingerprint,
         actorType: url.pathname.startsWith('/v1/i8/') ? 'SYSTEM' as const : 'COZE' as const
       };
+      if (request.method === 'POST' && url.pathname === '/v1/i10/credentials:sessions-create') {
+        const input = credentialSessionCreateSchema.parse(await readJson(request));
+        return sendJson(response, 200, await service.i10.createCredentialSession(input, context), 'L0', requestId);
+      }
+      if (request.method === 'POST' && url.pathname === '/v1/i10/credentials:sessions-get') {
+        const input = credentialSessionGetSchema.parse(await readJson(request));
+        return sendJson(response, 200, await service.i10.getCredentialSession(input.namespace, input.sessionId), 'L0', requestId);
+      }
+      if (request.method === 'POST' && url.pathname === '/v1/i10/cases:prepare') {
+        const input = naturalLanguagePrepareSchema.parse(await readJson(request));
+        return sendJson(response, 200, await service.i10.prepareNaturalLanguage(input, context), 'L1', requestId);
+      }
+      if (request.method === 'POST' && url.pathname === '/v1/i10/ingest:submit') {
+        const input = ingestSubmitSchema.parse(await readJson(request));
+        return sendJson(response, 202, await service.i10.submitIngest(input, context), 'L1', requestId);
+      }
+      if (request.method === 'POST' && url.pathname === '/v1/i10/ingest:get') {
+        const input = ingestGetSchema.parse(await readJson(request));
+        return sendJson(response, 200, service.i10.getIngest(input.namespace, input.ingestJobId), 'L1', requestId);
+      }
+      if (request.method === 'POST' && url.pathname === '/v1/i10/ingest:decide') {
+        const input = ingestDecisionSubmitSchema.parse(await readJson(request));
+        return sendJson(response, 200, await service.i10.decideIngest(input, context), 'L1', requestId);
+      }
+      if (request.method === 'POST' && url.pathname === '/v1/i10/images:submit') {
+        const input = imageIngestSubmitSchema.parse(await readJson(request));
+        return sendJson(response, 202, await service.i10.submitImageIngest(input, context), 'L1', requestId);
+      }
+      if (request.method === 'POST' && url.pathname === '/v1/i10/images:get') {
+        const input = imageIngestGetSchema.parse(await readJson(request));
+        return sendJson(response, 200, service.i10.getImageIngest(input.namespace,input.imageIngestId), 'L1', requestId);
+      }
+      if (request.method === 'POST' && url.pathname === '/v1/i10/verification:get') {
+        const input = verificationGetSchema.parse(await readJson(request));
+        return sendJson(response, 200, service.i10.getVerification(input.namespace,input.challengeId), 'L0', requestId);
+      }
+      if (request.method === 'POST' && url.pathname === '/v1/i10/verification:decide') {
+        const input = verificationDecisionSubmitSchema.parse(await readJson(request));
+        return sendJson(response, 200, await service.i10.decideVerification(input,context), 'L0', requestId);
+      }
       if (request.method === 'POST' && url.pathname === '/v1/platform/knowledge-snapshots:register') {
         const input = i9KnowledgeSnapshotRegistrationSchema.parse(await readJson(request));
         const result = await service.registerI9KnowledgeSnapshot(input, context);

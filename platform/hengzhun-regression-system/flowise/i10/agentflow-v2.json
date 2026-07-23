@@ -1,0 +1,5691 @@
+{
+  "description": "衡准 I10 正式版：三类输入、安全凭据引用、统一CaseDraft、真实Midscene作者化、纯Playwright四次验证、完整源码交付及即时/定时/周期回归。",
+  "usecases": [
+    "Regression Testing",
+    "Human In The Loop"
+  ],
+  "nodes": [
+    {
+      "id": "startAgentflow_i8",
+      "position": {
+        "x": 0,
+        "y": 200
+      },
+      "type": "customNode",
+      "data": {
+        "id": "startAgentflow_i8",
+        "label": "自然语言案例",
+        "name": "startAgentflow",
+        "version": 1.1,
+        "type": "Start",
+        "baseClasses": [
+          "Start"
+        ],
+        "category": "Agent Flows",
+        "inputs": {
+          "startInputType": "chatInput",
+          "startEphemeralMemory": true,
+          "startPersistState": false,
+          "startState": [
+            {
+              "key": "requestIntent",
+              "value": ""
+            },
+            {
+              "key": "inputType",
+              "value": ""
+            },
+            {
+              "key": "naturalLanguage",
+              "value": ""
+            },
+            {
+              "key": "flowiseFileRef",
+              "value": ""
+            },
+            {
+              "key": "originalFilename",
+              "value": ""
+            },
+            {
+              "key": "credentialRef",
+              "value": ""
+            },
+            {
+              "key": "supportingImages",
+              "value": ""
+            },
+            {
+              "key": "imageIngestId",
+              "value": "NONE"
+            },
+            {
+              "key": "imageFactsJson",
+              "value": "[]"
+            },
+            {
+              "key": "ingestJobId",
+              "value": ""
+            },
+            {
+              "key": "ingestJobVersion",
+              "value": ""
+            },
+            {
+              "key": "caseDraftJson",
+              "value": ""
+            },
+            {
+              "key": "acceptanceSummaryJson",
+              "value": ""
+            },
+            {
+              "key": "preparationId",
+              "value": ""
+            },
+            {
+              "key": "preparationVersion",
+              "value": ""
+            },
+            {
+              "key": "caseId",
+              "value": ""
+            },
+            {
+              "key": "caseVersion",
+              "value": ""
+            },
+            {
+              "key": "taskId",
+              "value": ""
+            },
+            {
+              "key": "scheduleId",
+              "value": ""
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "retrieverAgentflow_i8",
+      "position": {
+        "x": 340,
+        "y": 200
+      },
+      "type": "customNode",
+      "data": {
+        "id": "retrieverAgentflow_i8",
+        "label": "查询已发布业务知识",
+        "name": "retrieverAgentflow",
+        "version": 1,
+        "type": "Retriever",
+        "baseClasses": [
+          "Retriever"
+        ],
+        "category": "Agent Flows",
+        "inputs": {
+          "retrieverKnowledgeDocumentStores": "{{$vars.HENGZHUN_KNOWLEDGE_STORE}}",
+          "retrieverQuery": "{{question}}",
+          "outputFormat": "textWithMetadata"
+        }
+      }
+    },
+    {
+      "id": "llmAgentflow_structure",
+      "position": {
+        "x": 680,
+        "y": 200
+      },
+      "type": "customNode",
+      "data": {
+        "id": "llmAgentflow_structure",
+        "label": "结构化案例与验收摘要",
+        "name": "llmAgentflow",
+        "version": 1.1,
+        "type": "LLM",
+        "baseClasses": [
+          "LLM"
+        ],
+        "category": "Agent Flows",
+        "inputs": {
+          "llmModel": "chatOpenAI",
+          "llmMessages": [
+            {
+              "role": "system",
+              "content": "将自然语言案例与已确认的图片事实拆成结构化字段，由MCP组装权威CaseDraft。必须把每个文本输入动作的具体值写进actionStepsV2，并带inputValueSource与provenanceRefs；未知或敏感值不得猜测，凭据用CREDENTIAL_REF，验证码或PIN用RUNTIME_USER_INPUT。识别短信、TOTP、验证码、扫码、U盾、移动证书、生物识别或人工审批时必须生成verificationRequirements，统一unattendedPolicy=HUMAN_IN_LOOP_REQUIRED。preconditions、actions、expectedOutcomes、assertions和missingFields必须是JSON字符串数组。actions与expectedOutcomes必须等长。不得生成定位器、代码、SQL、Shell、账号或密码。credentialRef由Flowise状态直接交给MCP。信息不完整时列出missingFields。multimodalContextJson必须是合法JSON对象字符串，包含supportingImageIngestId、caseFacts、actionStepsV2、verificationRequirements。 最终JSON只能包含这些精确字段且必须全部出现，不得改名、不得省略、不得为null、不得添加额外字段：{\"caseTitle\":\"\",\"objective\":\"\",\"summary\":\"\",\"targetSystem\":\"\",\"entryUrl\":\"\",\"preconditions\":[],\"actions\":[],\"expectedOutcomes\":[],\"assertions\":[],\"missingFields\":[],\"multimodalContextJson\":\"\",\"acceptanceSummary\":\"\",\"clarificationRequired\":false,\"clarificationQuestion\":\"\"}。字段语义：caseTitle(string)=案例名称；objective(string)=测试目标；summary(string)=案例摘要；targetSystem(string)=目标系统；entryUrl(string)=入口URL；preconditions(stringArray)=前置条件数组；actions(stringArray)=业务动作数组；expectedOutcomes(stringArray)=与actions等长的预期结果数组；assertions(stringArray)=验收断言数组；missingFields(stringArray)=信息缺口，完整时为空数组；multimodalContextJson(string)=CaseDraft多模态扩展的严格JSON对象字符串；acceptanceSummary(string)=向用户展示的简明验收摘要，不是JSON；clarificationRequired(boolean)=是否需要最小业务澄清；clarificationQuestion(string)=至多一个业务澄清问题。"
+            },
+            {
+              "role": "user",
+              "content": "案例描述：{{$flow.state.naturalLanguage}}\ncredentialRef：{{$flow.state.credentialRef}}\n已确认图片事实：{{$flow.state.imageFactsJson}}\n图片任务：{{$flow.state.imageIngestId}}\n知识：{{retrieverAgentflow_i8.output}}"
+            }
+          ],
+          "llmEnableMemory": false,
+          "llmReturnResponseAs": "userMessage",
+          "llmStructuredOutput": [
+            {
+              "key": "caseTitle",
+              "type": "string",
+              "description": "案例名称"
+            },
+            {
+              "key": "objective",
+              "type": "string",
+              "description": "测试目标"
+            },
+            {
+              "key": "summary",
+              "type": "string",
+              "description": "案例摘要"
+            },
+            {
+              "key": "targetSystem",
+              "type": "string",
+              "description": "目标系统"
+            },
+            {
+              "key": "entryUrl",
+              "type": "string",
+              "description": "入口URL"
+            },
+            {
+              "key": "preconditions",
+              "type": "stringArray",
+              "description": "前置条件数组"
+            },
+            {
+              "key": "actions",
+              "type": "stringArray",
+              "description": "业务动作数组"
+            },
+            {
+              "key": "expectedOutcomes",
+              "type": "stringArray",
+              "description": "与actions等长的预期结果数组"
+            },
+            {
+              "key": "assertions",
+              "type": "stringArray",
+              "description": "验收断言数组"
+            },
+            {
+              "key": "missingFields",
+              "type": "stringArray",
+              "description": "信息缺口，完整时为空数组"
+            },
+            {
+              "key": "multimodalContextJson",
+              "type": "string",
+              "description": "CaseDraft多模态扩展的严格JSON对象字符串"
+            },
+            {
+              "key": "acceptanceSummary",
+              "type": "string",
+              "description": "向用户展示的简明验收摘要，不是JSON"
+            },
+            {
+              "key": "clarificationRequired",
+              "type": "boolean",
+              "description": "是否需要最小业务澄清"
+            },
+            {
+              "key": "clarificationQuestion",
+              "type": "string",
+              "description": "至多一个业务澄清问题"
+            }
+          ],
+          "llmUpdateState": [],
+          "llmModelConfig": {
+            "modelName": "${CONTROL_MODEL_NAME}",
+            "temperature": 0,
+            "streaming": false,
+            "reasoning": false,
+            "allowImageUploads": false,
+            "maxTokens": 8192,
+            "basepath": "${CONTROL_BASE_URL}",
+            "strictToolCalling": false,
+            "llmModel": "chatOpenAI"
+          }
+        }
+      }
+    },
+    {
+      "id": "conditionAgentflow_clarify",
+      "position": {
+        "x": 1020,
+        "y": 200
+      },
+      "type": "customNode",
+      "data": {
+        "id": "conditionAgentflow_clarify",
+        "label": "是否需要澄清",
+        "name": "conditionAgentflow",
+        "version": 1,
+        "type": "Condition",
+        "baseClasses": [
+          "Condition"
+        ],
+        "category": "Agent Flows",
+        "inputs": {
+          "conditions": [
+            {
+              "type": "boolean",
+              "value1": "{{llmAgentflow_structure.output.clarificationRequired}}",
+              "operation": "equal",
+              "value2": true
+            }
+          ]
+        },
+        "outputAnchors": [
+          {
+            "label": "需要澄清",
+            "name": "0"
+          },
+          {
+            "label": "无需澄清",
+            "name": "1"
+          }
+        ]
+      }
+    },
+    {
+      "id": "humanInputAgentflow_clarify",
+      "position": {
+        "x": 1360,
+        "y": 20
+      },
+      "type": "customNode",
+      "data": {
+        "id": "humanInputAgentflow_clarify",
+        "label": "最小业务澄清",
+        "name": "humanInputAgentflow",
+        "version": 1,
+        "type": "HumanInput",
+        "baseClasses": [
+          "HumanInput"
+        ],
+        "category": "Agent Flows",
+        "inputs": {
+          "humanInputDescriptionType": "fixed",
+          "humanInputDescription": "{{llmAgentflow_structure.output.clarificationQuestion}}",
+          "humanInputEnableFeedback": true
+        },
+        "outputAnchors": [
+          {
+            "label": "继续",
+            "name": "proceed"
+          },
+          {
+            "label": "拒绝",
+            "name": "reject"
+          }
+        ]
+      }
+    },
+    {
+      "id": "loopAgentflow_clarify",
+      "position": {
+        "x": 1700,
+        "y": 20
+      },
+      "type": "customNode",
+      "data": {
+        "id": "loopAgentflow_clarify",
+        "label": "带澄清结果重新结构化",
+        "name": "loopAgentflow",
+        "version": 1,
+        "type": "Loop",
+        "baseClasses": [
+          "Loop"
+        ],
+        "category": "Agent Flows",
+        "inputs": {
+          "loopBackToNode": "llmAgentflow_structure-结构化案例与验收摘要",
+          "maxLoopCount": 2
+        }
+      }
+    },
+    {
+      "id": "humanInputAgentflow_confirm",
+      "position": {
+        "x": 1360,
+        "y": 380
+      },
+      "type": "customNode",
+      "data": {
+        "id": "humanInputAgentflow_confirm",
+        "label": "确认案例摘要",
+        "name": "humanInputAgentflow",
+        "version": 1,
+        "type": "HumanInput",
+        "baseClasses": [
+          "HumanInput"
+        ],
+        "category": "Agent Flows",
+        "inputs": {
+          "humanInputDescriptionType": "fixed",
+          "humanInputDescription": "请确认以下案例草案、所有文本输入值的来源及验证要求后再写入衡准：{{llmAgentflow_structure.output.acceptanceSummary}}；多模态扩展：{{llmAgentflow_structure.output.multimodalContextJson}}",
+          "humanInputEnableFeedback": true
+        },
+        "outputAnchors": [
+          {
+            "label": "批准",
+            "name": "proceed"
+          },
+          {
+            "label": "拒绝",
+            "name": "reject"
+          }
+        ]
+      }
+    },
+    {
+      "id": "toolAgentflow_prepare",
+      "position": {
+        "x": 1700,
+        "y": 380
+      },
+      "type": "customNode",
+      "data": {
+        "id": "toolAgentflow_prepare",
+        "label": "MCP准备案例",
+        "name": "toolAgentflow",
+        "version": 1.2,
+        "type": "Tool",
+        "baseClasses": [
+          "Tool"
+        ],
+        "category": "Agent Flows",
+        "inputs": {
+          "toolAgentflowSelectedTool": "customMCP",
+          "toolInputArgs": [
+            {
+              "inputArgName": "caseDescription",
+              "inputArgValue": "{{$flow.state.naturalLanguage}}"
+            },
+            {
+              "inputArgName": "sessionRef",
+              "inputArgValue": "{{$flow.sessionId}}"
+            },
+            {
+              "inputArgName": "caseTitle",
+              "inputArgValue": "{{llmAgentflow_structure.output.caseTitle}}"
+            },
+            {
+              "inputArgName": "objective",
+              "inputArgValue": "{{llmAgentflow_structure.output.objective}}"
+            },
+            {
+              "inputArgName": "summary",
+              "inputArgValue": "{{llmAgentflow_structure.output.summary}}"
+            },
+            {
+              "inputArgName": "targetSystem",
+              "inputArgValue": "{{llmAgentflow_structure.output.targetSystem}}"
+            },
+            {
+              "inputArgName": "entryUrl",
+              "inputArgValue": "{{llmAgentflow_structure.output.entryUrl}}"
+            },
+            {
+              "inputArgName": "preconditions",
+              "inputArgValue": "{{llmAgentflow_structure.output.preconditions}}"
+            },
+            {
+              "inputArgName": "actions",
+              "inputArgValue": "{{llmAgentflow_structure.output.actions}}"
+            },
+            {
+              "inputArgName": "expectedOutcomes",
+              "inputArgValue": "{{llmAgentflow_structure.output.expectedOutcomes}}"
+            },
+            {
+              "inputArgName": "assertions",
+              "inputArgValue": "{{llmAgentflow_structure.output.assertions}}"
+            },
+            {
+              "inputArgName": "missingFields",
+              "inputArgValue": "{{llmAgentflow_structure.output.missingFields}}"
+            },
+            {
+              "inputArgName": "multimodalContextJson",
+              "inputArgValue": "{{llmAgentflow_structure.output.multimodalContextJson}}"
+            },
+            {
+              "inputArgName": "credentialRef",
+              "inputArgValue": "{{$flow.state.credentialRef}}"
+            }
+          ],
+          "toolUpdateState": [
+            {
+              "key": "preparationId",
+              "value": "{{ output.preparationId }}"
+            },
+            {
+              "key": "preparationVersion",
+              "value": "{{ output.version }}"
+            },
+            {
+              "key": "caseId",
+              "value": "{{ output.caseId }}"
+            },
+            {
+              "key": "caseVersion",
+              "value": "{{ output.caseVersion }}"
+            },
+            {
+              "key": "caseDraftJson",
+              "value": "{{ output.intentSource }}"
+            }
+          ],
+          "toolAgentflowSelectedToolConfig": {
+            "toolAgentflowSelectedTool": "customMCP",
+            "mcpServerConfig": "{\"url\":\"http://127.0.0.1:18789/mcp\",\"headers\":{\"Authorization\":\"Bearer {{$vars.HENGZHUN_MCP_TOKEN}}\"}}",
+            "mcpActions": [
+              "case_prepare"
+            ]
+          }
+        }
+      }
+    },
+    {
+      "id": "llmAgentflow_intent",
+      "position": {
+        "x": 2040,
+        "y": 380
+      },
+      "type": "customNode",
+      "data": {
+        "id": "llmAgentflow_intent",
+        "label": "形成扁平IntentPlan",
+        "name": "llmAgentflow",
+        "version": 1.1,
+        "type": "LLM",
+        "baseClasses": [
+          "LLM"
+        ],
+        "category": "Agent Flows",
+        "inputs": {
+          "llmModel": "chatOpenAI",
+          "llmMessages": [
+            {
+              "role": "system",
+              "content": "以JSON格式根据已确认草案形成严格IntentPlan业务字段。当前受控案例的route必须精确输出/portal/login，不得输出完整entryUrl、域名、协议、查询或锚点。动作、预期和风险三个数组必须等长且顺序一致；assertions为字符串数组。步骤ID由MCP按数组顺序确定性生成，模型不得输出、复制、改写或猜测ID。只能描述业务动作和期望，不得生成定位器、代码、SQL、Shell、凭据或可执行脚本。系统标识、权威ID和版本由MCP或Flow State生成并提交。 最终JSON只能包含这些精确字段且必须全部出现，不得改名、不得省略、不得为null、不得添加额外字段：{\"route\":\"\",\"actions\":[],\"expectedOutcomes\":[],\"riskLevels\":[],\"assertions\":[]}。字段语义：route(string)=已确认草案中的门户路由；actions(stringArray)=业务动作数组；expectedOutcomes(stringArray)=与动作对应的预期数组；riskLevels(stringArray)=与动作对应且只能为LOW的风险数组；assertions(stringArray)=已确认草案中的字符串断言数组。"
+            },
+            {
+              "role": "user",
+              "content": "已由MCP或导入链路确认的统一意图来源：{{$flow.state.caseDraftJson}}"
+            }
+          ],
+          "llmEnableMemory": false,
+          "llmReturnResponseAs": "userMessage",
+          "llmStructuredOutput": [
+            {
+              "key": "route",
+              "type": "string",
+              "description": "已确认草案中的门户路由"
+            },
+            {
+              "key": "actions",
+              "type": "stringArray",
+              "description": "业务动作数组"
+            },
+            {
+              "key": "expectedOutcomes",
+              "type": "stringArray",
+              "description": "与动作对应的预期数组"
+            },
+            {
+              "key": "riskLevels",
+              "type": "stringArray",
+              "description": "与动作对应且只能为LOW的风险数组"
+            },
+            {
+              "key": "assertions",
+              "type": "stringArray",
+              "description": "已确认草案中的字符串断言数组"
+            }
+          ],
+          "llmUpdateState": [],
+          "llmModelConfig": {
+            "modelName": "${CONTROL_MODEL_NAME}",
+            "temperature": 0,
+            "streaming": false,
+            "reasoning": false,
+            "allowImageUploads": false,
+            "maxTokens": 8192,
+            "basepath": "${CONTROL_BASE_URL}",
+            "strictToolCalling": false,
+            "llmModel": "chatOpenAI"
+          }
+        }
+      }
+    },
+    {
+      "id": "toolAgentflow_submit",
+      "position": {
+        "x": 2380,
+        "y": 380
+      },
+      "type": "customNode",
+      "data": {
+        "id": "toolAgentflow_submit",
+        "label": "MCP提交作者化意图",
+        "name": "toolAgentflow",
+        "version": 1.2,
+        "type": "Tool",
+        "baseClasses": [
+          "Tool"
+        ],
+        "category": "Agent Flows",
+        "inputs": {
+          "toolAgentflowSelectedTool": "customMCP",
+          "toolInputArgs": [
+            {
+              "inputArgName": "preparationId",
+              "inputArgValue": "{{$flow.state.preparationId}}"
+            },
+            {
+              "inputArgName": "expectedVersion",
+              "inputArgValue": "{{$flow.state.preparationVersion}}"
+            },
+            {
+              "inputArgName": "choice",
+              "inputArgValue": "APPROVE"
+            },
+            {
+              "inputArgName": "confirmationRef",
+              "inputArgValue": "{{$flow.sessionId}}"
+            },
+            {
+              "inputArgName": "reason",
+              "inputArgValue": "用户已在Human Input节点明确批准案例摘要"
+            },
+            {
+              "inputArgName": "caseId",
+              "inputArgValue": "{{$flow.state.caseId}}"
+            },
+            {
+              "inputArgName": "caseVersion",
+              "inputArgValue": "{{$flow.state.caseVersion}}"
+            },
+            {
+              "inputArgName": "route",
+              "inputArgValue": "{{llmAgentflow_intent.output.route}}"
+            },
+            {
+              "inputArgName": "actions",
+              "inputArgValue": "{{llmAgentflow_intent.output.actions}}"
+            },
+            {
+              "inputArgName": "expectedOutcomes",
+              "inputArgValue": "{{llmAgentflow_intent.output.expectedOutcomes}}"
+            },
+            {
+              "inputArgName": "riskLevels",
+              "inputArgValue": "{{llmAgentflow_intent.output.riskLevels}}"
+            },
+            {
+              "inputArgName": "assertions",
+              "inputArgValue": "{{llmAgentflow_intent.output.assertions}}"
+            },
+            {
+              "inputArgName": "sessionRef",
+              "inputArgValue": "{{$flow.sessionId}}"
+            }
+          ],
+          "toolUpdateState": [],
+          "toolAgentflowSelectedToolConfig": {
+            "toolAgentflowSelectedTool": "customMCP",
+            "mcpServerConfig": "{\"url\":\"http://127.0.0.1:18789/mcp\",\"headers\":{\"Authorization\":\"Bearer {{$vars.HENGZHUN_MCP_TOKEN}}\"}}",
+            "mcpActions": [
+              "authoring_submit"
+            ]
+          }
+        }
+      }
+    },
+    {
+      "id": "toolAgentflow_get",
+      "position": {
+        "x": 2720,
+        "y": 380
+      },
+      "type": "customNode",
+      "data": {
+        "id": "toolAgentflow_get",
+        "label": "MCP查询权威状态",
+        "name": "toolAgentflow",
+        "version": 1.2,
+        "type": "Tool",
+        "baseClasses": [
+          "Tool"
+        ],
+        "category": "Agent Flows",
+        "inputs": {
+          "toolAgentflowSelectedTool": "customMCP",
+          "toolInputArgs": [
+            {
+              "inputArgName": "preparationId",
+              "inputArgValue": "{{$flow.state.preparationId}}"
+            }
+          ],
+          "toolUpdateState": [],
+          "toolAgentflowSelectedToolConfig": {
+            "toolAgentflowSelectedTool": "customMCP",
+            "mcpServerConfig": "{\"url\":\"http://127.0.0.1:18789/mcp\",\"headers\":{\"Authorization\":\"Bearer {{$vars.HENGZHUN_MCP_TOKEN}}\"}}",
+            "mcpActions": [
+              "authoring_get"
+            ]
+          }
+        }
+      }
+    },
+    {
+      "id": "toolAgentflow_candidate",
+      "position": {
+        "x": 3060,
+        "y": 380
+      },
+      "type": "customNode",
+      "data": {
+        "id": "toolAgentflow_candidate",
+        "label": "MCP提交确定性Builder",
+        "name": "toolAgentflow",
+        "version": 1.2,
+        "type": "Tool",
+        "baseClasses": [
+          "Tool"
+        ],
+        "category": "Agent Flows",
+        "inputs": {
+          "toolAgentflowSelectedTool": "customMCP",
+          "toolInputArgs": [
+            {
+              "inputArgName": "preparationId",
+              "inputArgValue": "{{$flow.state.preparationId}}"
+            },
+            {
+              "inputArgName": "sessionRef",
+              "inputArgValue": "{{$flow.sessionId}}"
+            },
+            {
+              "inputArgName": "waitForCertificate",
+              "inputArgValue": false
+            }
+          ],
+          "toolUpdateState": [],
+          "toolAgentflowSelectedToolConfig": {
+            "toolAgentflowSelectedTool": "customMCP",
+            "mcpServerConfig": "{\"url\":\"http://127.0.0.1:18789/mcp\",\"headers\":{\"Authorization\":\"Bearer {{$vars.HENGZHUN_MCP_TOKEN}}\"}}",
+            "mcpActions": [
+              "candidate_get"
+            ]
+          }
+        }
+      }
+    },
+    {
+      "id": "humanInputAgentflow_generation",
+      "position": {
+        "x": 3400,
+        "y": 380
+      },
+      "type": "customNode",
+      "data": {
+        "id": "humanInputAgentflow_generation",
+        "label": "等待本地签证完成",
+        "name": "humanInputAgentflow",
+        "version": 1,
+        "type": "HumanInput",
+        "baseClasses": [
+          "HumanInput"
+        ],
+        "category": "Agent Flows",
+        "inputs": {
+          "humanInputDescriptionType": "fixed",
+          "humanInputDescription": "确定性Builder任务已提交，本地Worker正在生成Playwright脚本并执行固定Chromium 2视口×2次签证。请稍候后点击批准继续查询；拒绝将停止本次续办且不会激活脚本。",
+          "humanInputEnableFeedback": true
+        }
+      }
+    },
+    {
+      "id": "toolAgentflow_candidate_ready",
+      "position": {
+        "x": 3740,
+        "y": 380
+      },
+      "type": "customNode",
+      "data": {
+        "id": "toolAgentflow_candidate_ready",
+        "label": "MCP等待签证终态",
+        "name": "toolAgentflow",
+        "version": 1.2,
+        "type": "Tool",
+        "baseClasses": [
+          "Tool"
+        ],
+        "category": "Agent Flows",
+        "inputs": {
+          "toolAgentflowSelectedTool": "customMCP",
+          "toolInputArgs": [
+            {
+              "inputArgName": "preparationId",
+              "inputArgValue": "{{$flow.state.preparationId}}"
+            },
+            {
+              "inputArgName": "sessionRef",
+              "inputArgValue": "{{$flow.sessionId}}"
+            },
+            {
+              "inputArgName": "waitForCertificate",
+              "inputArgValue": false
+            },
+            {
+              "inputArgName": "waitTimeoutSeconds",
+              "inputArgValue": 45
+            }
+          ],
+          "toolUpdateState": [],
+          "toolAgentflowSelectedToolConfig": {
+            "toolAgentflowSelectedTool": "customMCP",
+            "mcpServerConfig": "{\"url\":\"http://127.0.0.1:18789/mcp\",\"headers\":{\"Authorization\":\"Bearer {{$vars.HENGZHUN_MCP_TOKEN}}\"}}",
+            "mcpActions": [
+              "candidate_get"
+            ]
+          }
+        }
+      }
+    },
+    {
+      "id": "toolAgentflow_preview",
+      "position": {
+        "x": 4080,
+        "y": 380
+      },
+      "type": "customNode",
+      "data": {
+        "id": "toolAgentflow_preview",
+        "label": "MCP预览持证脚本",
+        "name": "toolAgentflow",
+        "version": 1.2,
+        "type": "Tool",
+        "baseClasses": [
+          "Tool"
+        ],
+        "category": "Agent Flows",
+        "inputs": {
+          "toolAgentflowSelectedTool": "customMCP",
+          "toolInputArgs": [
+            {
+              "inputArgName": "preparationId",
+              "inputArgValue": "{{$flow.state.preparationId}}"
+            },
+            {
+              "inputArgName": "cursor",
+              "inputArgValue": "line:0"
+            },
+            {
+              "inputArgName": "limit",
+              "inputArgValue": 40
+            },
+            {
+              "inputArgName": "includeDownload",
+              "inputArgValue": true
+            }
+          ],
+          "toolUpdateState": [],
+          "toolAgentflowSelectedToolConfig": {
+            "toolAgentflowSelectedTool": "customMCP",
+            "mcpServerConfig": "{\"url\":\"http://127.0.0.1:18789/mcp\",\"headers\":{\"Authorization\":\"Bearer {{$vars.HENGZHUN_MCP_TOKEN}}\"}}",
+            "mcpActions": [
+              "candidate_preview"
+            ]
+          }
+        }
+      }
+    },
+    {
+      "id": "humanInputAgentflow_activate",
+      "position": {
+        "x": 4420,
+        "y": 380
+      },
+      "type": "customNode",
+      "data": {
+        "id": "humanInputAgentflow_activate",
+        "label": "审阅并激活脚本",
+        "name": "humanInputAgentflow",
+        "version": 1,
+        "type": "HumanInput",
+        "baseClasses": [
+          "HumanInput"
+        ],
+        "category": "Agent Flows",
+        "inputs": {
+          "humanInputDescriptionType": "fixed",
+          "humanInputDescription": "候选已由固定Chromium完成2视口×2次签证。请审阅脚本预览；批准将显式激活精确版本，拒绝则不激活。\n{{toolAgentflow_preview}}",
+          "humanInputEnableFeedback": true
+        }
+      }
+    },
+    {
+      "id": "toolAgentflow_activate",
+      "position": {
+        "x": 4760,
+        "y": 380
+      },
+      "type": "customNode",
+      "data": {
+        "id": "toolAgentflow_activate",
+        "label": "MCP显式激活",
+        "name": "toolAgentflow",
+        "version": 1.2,
+        "type": "Tool",
+        "baseClasses": [
+          "Tool"
+        ],
+        "category": "Agent Flows",
+        "inputs": {
+          "toolAgentflowSelectedTool": "customMCP",
+          "toolInputArgs": [
+            {
+              "inputArgName": "preparationId",
+              "inputArgValue": "{{$flow.state.preparationId}}"
+            },
+            {
+              "inputArgName": "choice",
+              "inputArgValue": "ACTIVATE"
+            },
+            {
+              "inputArgName": "confirmationRef",
+              "inputArgValue": "{{$flow.sessionId}}"
+            },
+            {
+              "inputArgName": "reason",
+              "inputArgValue": "用户在脚本预览人工确认节点明确批准激活"
+            },
+            {
+              "inputArgName": "sessionRef",
+              "inputArgValue": "{{$flow.sessionId}}"
+            }
+          ],
+          "toolUpdateState": [],
+          "toolAgentflowSelectedToolConfig": {
+            "toolAgentflowSelectedTool": "customMCP",
+            "mcpServerConfig": "{\"url\":\"http://127.0.0.1:18789/mcp\",\"headers\":{\"Authorization\":\"Bearer {{$vars.HENGZHUN_MCP_TOKEN}}\"}}",
+            "mcpActions": [
+              "candidate_decide"
+            ]
+          }
+        }
+      }
+    },
+    {
+      "id": "humanInputAgentflow_run",
+      "position": {
+        "x": 5100,
+        "y": 380
+      },
+      "type": "customNode",
+      "data": {
+        "id": "humanInputAgentflow_run",
+        "label": "确认即时、单次或周期执行",
+        "name": "humanInputAgentflow",
+        "version": 1,
+        "type": "HumanInput",
+        "baseClasses": [
+          "HumanInput"
+        ],
+        "category": "Agent Flows",
+        "inputs": {
+          "humanInputDescriptionType": "fixed",
+          "humanInputDescription": "请选择并明确确认：立即执行（ON_DEMAND）、单次定时（ONE_TIME，给出日期时间与时区）或周期执行（RECURRING，给出频率与时区）。Harness提交前会确定性校验，未确认则不执行。",
+          "humanInputEnableFeedback": true
+        }
+      }
+    },
+    {
+      "id": "toolAgentflow_run",
+      "position": {
+        "x": 5440,
+        "y": 380
+      },
+      "type": "customNode",
+      "data": {
+        "id": "toolAgentflow_run",
+        "label": "MCP提交按需回归",
+        "name": "toolAgentflow",
+        "version": 1.2,
+        "type": "Tool",
+        "baseClasses": [
+          "Tool"
+        ],
+        "category": "Agent Flows",
+        "inputs": {
+          "toolAgentflowSelectedTool": "customMCP",
+          "toolInputArgs": [
+            {
+              "inputArgName": "preparationId",
+              "inputArgValue": "{{$flow.state.preparationId}}"
+            },
+            {
+              "inputArgName": "sessionRef",
+              "inputArgValue": "{{$flow.sessionId}}"
+            }
+          ],
+          "toolUpdateState": [
+            {
+              "key": "taskId",
+              "value": "{{ output.taskId }}"
+            }
+          ],
+          "toolAgentflowSelectedToolConfig": {
+            "toolAgentflowSelectedTool": "customMCP",
+            "mcpServerConfig": "{\"url\":\"http://127.0.0.1:18789/mcp\",\"headers\":{\"Authorization\":\"Bearer {{$vars.HENGZHUN_MCP_TOKEN}}\"}}",
+            "mcpActions": [
+              "run_submit"
+            ]
+          }
+        }
+      }
+    },
+    {
+      "id": "llmAgentflow_runref",
+      "position": {
+        "x": 5780,
+        "y": 380
+      },
+      "type": "customNode",
+      "data": {
+        "id": "llmAgentflow_runref",
+        "label": "提取任务引用",
+        "name": "llmAgentflow",
+        "version": 1.1,
+        "type": "LLM",
+        "baseClasses": [
+          "LLM"
+        ],
+        "category": "Agent Flows",
+        "inputs": {
+          "llmModel": "chatOpenAI",
+          "llmMessages": [
+            {
+              "role": "system",
+              "content": "只以JSON格式从MCP按需运行结果中原样提取taskId。顶层只能返回taskId，不得补造、改写或输出其他字段。 最终JSON只能包含这些精确字段且必须全部出现，不得改名、不得省略、不得为null、不得添加额外字段：{\"taskId\":\"\"}。字段语义：taskId(string)=从MCP结果原样提取的taskId。"
+            },
+            {
+              "role": "user",
+              "content": "按需运行结果：{{toolAgentflow_run}}"
+            }
+          ],
+          "llmEnableMemory": false,
+          "llmReturnResponseAs": "userMessage",
+          "llmStructuredOutput": [
+            {
+              "key": "taskId",
+              "type": "string",
+              "description": "从MCP结果原样提取的taskId"
+            }
+          ],
+          "llmUpdateState": [],
+          "llmModelConfig": {
+            "modelName": "${CONTROL_MODEL_NAME}",
+            "temperature": 0,
+            "streaming": false,
+            "reasoning": false,
+            "allowImageUploads": false,
+            "maxTokens": 8192,
+            "basepath": "${CONTROL_BASE_URL}",
+            "strictToolCalling": false,
+            "llmModel": "chatOpenAI"
+          }
+        }
+      }
+    },
+    {
+      "id": "toolAgentflow_task",
+      "position": {
+        "x": 6120,
+        "y": 380
+      },
+      "type": "customNode",
+      "data": {
+        "id": "toolAgentflow_task",
+        "label": "MCP等待回归终态",
+        "name": "toolAgentflow",
+        "version": 1.2,
+        "type": "Tool",
+        "baseClasses": [
+          "Tool"
+        ],
+        "category": "Agent Flows",
+        "inputs": {
+          "toolAgentflowSelectedTool": "customMCP",
+          "toolInputArgs": [
+            {
+              "inputArgName": "taskId",
+              "inputArgValue": "{{$flow.state.taskId}}"
+            },
+            {
+              "inputArgName": "waitForTerminal",
+              "inputArgValue": true
+            },
+            {
+              "inputArgName": "waitTimeoutSeconds",
+              "inputArgValue": 150
+            }
+          ],
+          "toolUpdateState": [],
+          "toolAgentflowSelectedToolConfig": {
+            "toolAgentflowSelectedTool": "customMCP",
+            "mcpServerConfig": "{\"url\":\"http://127.0.0.1:18789/mcp\",\"headers\":{\"Authorization\":\"Bearer {{$vars.HENGZHUN_MCP_TOKEN}}\"}}",
+            "mcpActions": [
+              "task_get"
+            ]
+          }
+        }
+      }
+    },
+    {
+      "id": "llmAgentflow_terminal",
+      "position": {
+        "x": 6460,
+        "y": 380
+      },
+      "type": "customNode",
+      "data": {
+        "id": "llmAgentflow_terminal",
+        "label": "解释正式运行终态",
+        "name": "llmAgentflow",
+        "version": 1.1,
+        "type": "LLM",
+        "baseClasses": [
+          "LLM"
+        ],
+        "category": "Agent Flows",
+        "inputs": {
+          "llmModel": "chatOpenAI",
+          "llmMessages": [
+            {
+              "role": "system",
+              "content": "只以JSON格式从MCP任务终态原样提取status、incidentId和一句脱敏summary。成功时incidentId返回空字符串；失败时必须原样复制incidentId。不得生成修复方案、代码、定位器、路径、凭据或其他字段。 最终JSON只能包含这些精确字段且必须全部出现，不得改名、不得省略、不得为null、不得添加额外字段：{\"status\":\"\",\"incidentId\":\"\",\"summary\":\"\"}。字段语义：status(string)=MCP任务状态；incidentId(string)=失败事故ID或空字符串；summary(string)=脱敏结果摘要。"
+            },
+            {
+              "role": "user",
+              "content": "任务终态：{{toolAgentflow_task}}"
+            }
+          ],
+          "llmEnableMemory": false,
+          "llmReturnResponseAs": "userMessage",
+          "llmStructuredOutput": [
+            {
+              "key": "status",
+              "type": "string",
+              "description": "MCP任务状态"
+            },
+            {
+              "key": "incidentId",
+              "type": "string",
+              "description": "失败事故ID或空字符串"
+            },
+            {
+              "key": "summary",
+              "type": "string",
+              "description": "脱敏结果摘要"
+            }
+          ],
+          "llmUpdateState": [],
+          "llmModelConfig": {
+            "modelName": "${CONTROL_MODEL_NAME}",
+            "temperature": 0,
+            "streaming": false,
+            "reasoning": false,
+            "allowImageUploads": false,
+            "maxTokens": 8192,
+            "basepath": "${CONTROL_BASE_URL}",
+            "strictToolCalling": false,
+            "llmModel": "chatOpenAI"
+          }
+        }
+      }
+    },
+    {
+      "id": "conditionAgentflow_terminal",
+      "position": {
+        "x": 6800,
+        "y": 380
+      },
+      "type": "customNode",
+      "data": {
+        "id": "conditionAgentflow_terminal",
+        "label": "正式运行是否成功",
+        "name": "conditionAgentflow",
+        "version": 1,
+        "type": "Condition",
+        "baseClasses": [
+          "Condition"
+        ],
+        "category": "Agent Flows",
+        "inputs": {
+          "conditions": [
+            {
+              "type": "string",
+              "value1": "{{llmAgentflow_terminal.output.status}}",
+              "operation": "equal",
+              "value2": "SUCCEEDED"
+            }
+          ]
+        },
+        "outputAnchors": [
+          {
+            "label": "成功",
+            "name": "0"
+          },
+          {
+            "label": "失败",
+            "name": "1"
+          }
+        ]
+      }
+    },
+    {
+      "id": "humanInputAgentflow_repair",
+      "position": {
+        "x": 7140,
+        "y": 620
+      },
+      "type": "customNode",
+      "data": {
+        "id": "humanInputAgentflow_repair",
+        "label": "确认分析失败",
+        "name": "humanInputAgentflow",
+        "version": 1,
+        "type": "HumanInput",
+        "baseClasses": [
+          "HumanInput"
+        ],
+        "category": "Agent Flows",
+        "inputs": {
+          "humanInputDescriptionType": "fixed",
+          "humanInputDescription": "正式回归失败：{{llmAgentflow_terminal.output.summary}}。批准将只读取Harness脱敏事故封装并生成白名单修复候选；拒绝只报告失败，不修改脚本。",
+          "humanInputEnableFeedback": true
+        }
+      }
+    },
+    {
+      "id": "toolAgentflow_failure",
+      "position": {
+        "x": 7480,
+        "y": 620
+      },
+      "type": "customNode",
+      "data": {
+        "id": "toolAgentflow_failure",
+        "label": "MCP读取脱敏事故",
+        "name": "toolAgentflow",
+        "version": 1.2,
+        "type": "Tool",
+        "baseClasses": [
+          "Tool"
+        ],
+        "category": "Agent Flows",
+        "inputs": {
+          "toolAgentflowSelectedTool": "customMCP",
+          "toolInputArgs": [
+            {
+              "inputArgName": "incidentId",
+              "inputArgValue": "{{llmAgentflow_terminal.output.incidentId}}"
+            },
+            {
+              "inputArgName": "waitForProposal",
+              "inputArgValue": false
+            }
+          ],
+          "toolUpdateState": [],
+          "toolAgentflowSelectedToolConfig": {
+            "toolAgentflowSelectedTool": "customMCP",
+            "mcpServerConfig": "{\"url\":\"http://127.0.0.1:18789/mcp\",\"headers\":{\"Authorization\":\"Bearer {{$vars.HENGZHUN_MCP_TOKEN}}\"}}",
+            "mcpActions": [
+              "failure_get"
+            ]
+          }
+        }
+      }
+    },
+    {
+      "id": "llmAgentflow_repair",
+      "position": {
+        "x": 7820,
+        "y": 620
+      },
+      "type": "customNode",
+      "data": {
+        "id": "llmAgentflow_repair",
+        "label": "生成限域修复字段",
+        "name": "llmAgentflow",
+        "version": 1.1,
+        "type": "LLM",
+        "baseClasses": [
+          "LLM"
+        ],
+        "category": "Agent Flows",
+        "inputs": {
+          "llmModel": "chatOpenAI",
+          "llmMessages": [
+            {
+              "role": "system",
+              "content": "你只能以JSON格式从Harness返回的approvedRepairOptions中选择与失效定位器不同的一项，不得自创定位器。原样返回incidentId，并输出operationType、targetRef、locatorKind、locatorValue和rationale六个扁平字段。禁止源码、任意选择器、路径、命令、URL、凭据、断言删除或功能绕过。 最终JSON只能包含这些精确字段且必须全部出现，不得改名、不得省略、不得为null、不得添加额外字段：{\"incidentId\":\"\",\"operationType\":\"\",\"targetRef\":\"\",\"locatorKind\":\"\",\"locatorValue\":\"\",\"rationale\":\"\"}。字段语义：incidentId(string)=事故ID；operationType(string)=只能取批准选项中的操作类型；targetRef(string)=只能取批准选项中的目标引用；locatorKind(string)=只能取批准选项中的定位类型；locatorValue(string)=只能取批准选项中的定位值；rationale(string)=不含技术秘密的修复理由。"
+            },
+            {
+              "role": "user",
+              "content": "脱敏事故与批准选项：{{toolAgentflow_failure}}"
+            }
+          ],
+          "llmEnableMemory": false,
+          "llmReturnResponseAs": "userMessage",
+          "llmStructuredOutput": [
+            {
+              "key": "incidentId",
+              "type": "string",
+              "description": "事故ID"
+            },
+            {
+              "key": "operationType",
+              "type": "string",
+              "description": "只能取批准选项中的操作类型"
+            },
+            {
+              "key": "targetRef",
+              "type": "string",
+              "description": "只能取批准选项中的目标引用"
+            },
+            {
+              "key": "locatorKind",
+              "type": "string",
+              "description": "只能取批准选项中的定位类型"
+            },
+            {
+              "key": "locatorValue",
+              "type": "string",
+              "description": "只能取批准选项中的定位值"
+            },
+            {
+              "key": "rationale",
+              "type": "string",
+              "description": "不含技术秘密的修复理由"
+            }
+          ],
+          "llmUpdateState": [],
+          "llmModelConfig": {
+            "modelName": "${CONTROL_MODEL_NAME}",
+            "temperature": 0,
+            "streaming": false,
+            "reasoning": false,
+            "allowImageUploads": false,
+            "maxTokens": 8192,
+            "basepath": "${CONTROL_BASE_URL}",
+            "strictToolCalling": false,
+            "llmModel": "chatOpenAI"
+          }
+        }
+      }
+    },
+    {
+      "id": "humanInputAgentflow_repair_confirm",
+      "position": {
+        "x": 8160,
+        "y": 620
+      },
+      "type": "customNode",
+      "data": {
+        "id": "humanInputAgentflow_repair_confirm",
+        "label": "确认创建修复候选",
+        "name": "humanInputAgentflow",
+        "version": 1,
+        "type": "HumanInput",
+        "baseClasses": [
+          "HumanInput"
+        ],
+        "category": "Agent Flows",
+        "inputs": {
+          "humanInputDescriptionType": "fixed",
+          "humanInputDescription": "拟创建受控修复候选：{{llmAgentflow_repair.output.rationale}}。批准只会生成新候选并重新执行2视口×2次验证，不会自动激活、复跑或迁移调度。",
+          "humanInputEnableFeedback": true
+        }
+      }
+    },
+    {
+      "id": "toolAgentflow_repair_propose",
+      "position": {
+        "x": 8500,
+        "y": 620
+      },
+      "type": "customNode",
+      "data": {
+        "id": "toolAgentflow_repair_propose",
+        "label": "MCP提交修复候选",
+        "name": "toolAgentflow",
+        "version": 1.2,
+        "type": "Tool",
+        "baseClasses": [
+          "Tool"
+        ],
+        "category": "Agent Flows",
+        "inputs": {
+          "toolAgentflowSelectedTool": "customMCP",
+          "toolInputArgs": [
+            {
+              "inputArgName": "incidentId",
+              "inputArgValue": "{{llmAgentflow_repair.output.incidentId}}"
+            },
+            {
+              "inputArgName": "operationType",
+              "inputArgValue": "{{llmAgentflow_repair.output.operationType}}"
+            },
+            {
+              "inputArgName": "targetRef",
+              "inputArgValue": "{{llmAgentflow_repair.output.targetRef}}"
+            },
+            {
+              "inputArgName": "locatorKind",
+              "inputArgValue": "{{llmAgentflow_repair.output.locatorKind}}"
+            },
+            {
+              "inputArgName": "locatorValue",
+              "inputArgValue": "{{llmAgentflow_repair.output.locatorValue}}"
+            },
+            {
+              "inputArgName": "rationale",
+              "inputArgValue": "{{llmAgentflow_repair.output.rationale}}"
+            },
+            {
+              "inputArgName": "sessionRef",
+              "inputArgValue": "{{$flow.sessionId}}"
+            }
+          ],
+          "toolUpdateState": [],
+          "toolAgentflowSelectedToolConfig": {
+            "toolAgentflowSelectedTool": "customMCP",
+            "mcpServerConfig": "{\"url\":\"http://127.0.0.1:18789/mcp\",\"headers\":{\"Authorization\":\"Bearer {{$vars.HENGZHUN_MCP_TOKEN}}\"}}",
+            "mcpActions": [
+              "repair_propose"
+            ]
+          }
+        }
+      }
+    },
+    {
+      "id": "humanInputAgentflow_repair_wait",
+      "position": {
+        "x": 8840,
+        "y": 620
+      },
+      "type": "customNode",
+      "data": {
+        "id": "humanInputAgentflow_repair_wait",
+        "label": "等待修复候选四次复验",
+        "name": "humanInputAgentflow",
+        "version": 1,
+        "type": "HumanInput",
+        "baseClasses": [
+          "HumanInput"
+        ],
+        "category": "Agent Flows",
+        "inputs": {
+          "humanInputDescriptionType": "fixed",
+          "humanInputDescription": "修复候选仍在本机纯Playwright四次复验中。当前脱敏状态：{{toolAgentflow_repair_ready}}。请稍候后批准继续查询；拒绝将停止续办且不会激活任何修复。",
+          "humanInputEnableFeedback": true
+        }
+      }
+    },
+    {
+      "id": "toolAgentflow_repair_ready",
+      "position": {
+        "x": 9180,
+        "y": 620
+      },
+      "type": "customNode",
+      "data": {
+        "id": "toolAgentflow_repair_ready",
+        "label": "MCP查询修复复验状态",
+        "name": "toolAgentflow",
+        "version": 1.2,
+        "type": "Tool",
+        "baseClasses": [
+          "Tool"
+        ],
+        "category": "Agent Flows",
+        "inputs": {
+          "toolAgentflowSelectedTool": "customMCP",
+          "toolInputArgs": [
+            {
+              "inputArgName": "incidentId",
+              "inputArgValue": "{{llmAgentflow_repair.output.incidentId}}"
+            },
+            {
+              "inputArgName": "waitForProposal",
+              "inputArgValue": false
+            }
+          ],
+          "toolUpdateState": [],
+          "toolAgentflowSelectedToolConfig": {
+            "toolAgentflowSelectedTool": "customMCP",
+            "mcpServerConfig": "{\"url\":\"http://127.0.0.1:18789/mcp\",\"headers\":{\"Authorization\":\"Bearer {{$vars.HENGZHUN_MCP_TOKEN}}\"}}",
+            "mcpActions": [
+              "failure_get"
+            ]
+          }
+        }
+      }
+    },
+    {
+      "id": "llmAgentflow_proposalref",
+      "position": {
+        "x": 9520,
+        "y": 620
+      },
+      "type": "customNode",
+      "data": {
+        "id": "llmAgentflow_proposalref",
+        "label": "提取持证修复引用",
+        "name": "llmAgentflow",
+        "version": 1.1,
+        "type": "LLM",
+        "baseClasses": [
+          "LLM"
+        ],
+        "category": "Agent Flows",
+        "inputs": {
+          "llmModel": "chatOpenAI",
+          "llmMessages": [
+            {
+              "role": "system",
+              "content": "只以JSON格式原样提取incidentId、proposal.proposalId、proposal.status和proposal.stability.requiredRuns。不得补造字段；只有status为WAITING_USER才可继续人工激活。 顶层只能是incidentId、proposalId、status、requiredRuns四个字段，禁止输出proposal或stability嵌套对象。严格形状示例：{\"incidentId\":\"事故ID\",\"proposalId\":\"提案ID\",\"status\":\"WAITING_USER\",\"requiredRuns\":6} 最终JSON只能包含这些精确字段且必须全部出现，不得改名、不得省略、不得为null、不得添加额外字段：{\"incidentId\":\"\",\"proposalId\":\"\",\"status\":\"\",\"requiredRuns\":0}。字段语义：incidentId(string)=事故ID；proposalId(string)=修复提案ID；status(string)=修复提案状态；requiredRuns(number)=复验次数。"
+            },
+            {
+              "role": "user",
+              "content": "修复复验状态：{{toolAgentflow_repair_ready}}"
+            }
+          ],
+          "llmEnableMemory": false,
+          "llmReturnResponseAs": "userMessage",
+          "llmStructuredOutput": [
+            {
+              "key": "incidentId",
+              "type": "string",
+              "description": "事故ID"
+            },
+            {
+              "key": "proposalId",
+              "type": "string",
+              "description": "修复提案ID"
+            },
+            {
+              "key": "status",
+              "type": "string",
+              "description": "修复提案状态"
+            },
+            {
+              "key": "requiredRuns",
+              "type": "number",
+              "description": "复验次数"
+            }
+          ],
+          "llmUpdateState": [],
+          "llmModelConfig": {
+            "modelName": "${CONTROL_MODEL_NAME}",
+            "temperature": 0,
+            "streaming": false,
+            "reasoning": false,
+            "allowImageUploads": false,
+            "maxTokens": 8192,
+            "basepath": "${CONTROL_BASE_URL}",
+            "strictToolCalling": false,
+            "llmModel": "chatOpenAI"
+          }
+        }
+      }
+    },
+    {
+      "id": "humanInputAgentflow_repair_activate",
+      "position": {
+        "x": 9860,
+        "y": 620
+      },
+      "type": "customNode",
+      "data": {
+        "id": "humanInputAgentflow_repair_activate",
+        "label": "确认激活持证修复",
+        "name": "humanInputAgentflow",
+        "version": 1,
+        "type": "HumanInput",
+        "baseClasses": [
+          "HumanInput"
+        ],
+        "category": "Agent Flows",
+        "inputs": {
+          "humanInputDescriptionType": "fixed",
+          "humanInputDescription": "新修复候选已完成{{llmAgentflow_proposalref.output.requiredRuns}}次验证，状态为{{llmAgentflow_proposalref.output.status}}。批准才会激活新精确版本；拒绝保留原版本。",
+          "humanInputEnableFeedback": true
+        }
+      }
+    },
+    {
+      "id": "toolAgentflow_repair_decision",
+      "position": {
+        "x": 10200,
+        "y": 620
+      },
+      "type": "customNode",
+      "data": {
+        "id": "toolAgentflow_repair_decision",
+        "label": "MCP激活修复版本",
+        "name": "toolAgentflow",
+        "version": 1.2,
+        "type": "Tool",
+        "baseClasses": [
+          "Tool"
+        ],
+        "category": "Agent Flows",
+        "inputs": {
+          "toolAgentflowSelectedTool": "customMCP",
+          "toolInputArgs": [
+            {
+              "inputArgName": "incidentId",
+              "inputArgValue": "{{llmAgentflow_proposalref.output.incidentId}}"
+            },
+            {
+              "inputArgName": "proposalId",
+              "inputArgValue": "{{llmAgentflow_proposalref.output.proposalId}}"
+            },
+            {
+              "inputArgName": "choice",
+              "inputArgValue": "ACTIVATE"
+            },
+            {
+              "inputArgName": "confirmationRef",
+              "inputArgValue": "{{$flow.sessionId}}"
+            },
+            {
+              "inputArgName": "reason",
+              "inputArgValue": "用户明确批准已完成四次验证的限域修复候选"
+            },
+            {
+              "inputArgName": "sessionRef",
+              "inputArgValue": "{{$flow.sessionId}}"
+            }
+          ],
+          "toolUpdateState": [],
+          "toolAgentflowSelectedToolConfig": {
+            "toolAgentflowSelectedTool": "customMCP",
+            "mcpServerConfig": "{\"url\":\"http://127.0.0.1:18789/mcp\",\"headers\":{\"Authorization\":\"Bearer {{$vars.HENGZHUN_MCP_TOKEN}}\"}}",
+            "mcpActions": [
+              "decision_submit"
+            ]
+          }
+        }
+      }
+    },
+    {
+      "id": "humanInputAgentflow_repair_rerun",
+      "position": {
+        "x": 10540,
+        "y": 620
+      },
+      "type": "customNode",
+      "data": {
+        "id": "humanInputAgentflow_repair_rerun",
+        "label": "确认复跑修复版本",
+        "name": "humanInputAgentflow",
+        "version": 1,
+        "type": "HumanInput",
+        "baseClasses": [
+          "HumanInput"
+        ],
+        "category": "Agent Flows",
+        "inputs": {
+          "humanInputDescriptionType": "fixed",
+          "humanInputDescription": "修复版本已激活，但不会自动复跑。批准将创建一次纯Playwright复跑；拒绝则只保留已激活版本。",
+          "humanInputEnableFeedback": true
+        }
+      }
+    },
+    {
+      "id": "toolAgentflow_repair_rerun",
+      "position": {
+        "x": 10880,
+        "y": 620
+      },
+      "type": "customNode",
+      "data": {
+        "id": "toolAgentflow_repair_rerun",
+        "label": "MCP提交修复复跑",
+        "name": "toolAgentflow",
+        "version": 1.2,
+        "type": "Tool",
+        "baseClasses": [
+          "Tool"
+        ],
+        "category": "Agent Flows",
+        "inputs": {
+          "toolAgentflowSelectedTool": "customMCP",
+          "toolInputArgs": [
+            {
+              "inputArgName": "preparationId",
+              "inputArgValue": "{{$flow.state.preparationId}}"
+            },
+            {
+              "inputArgName": "sessionRef",
+              "inputArgValue": "{{$flow.sessionId}}-repair-rerun"
+            }
+          ],
+          "toolUpdateState": [
+            {
+              "key": "taskId",
+              "value": "{{ output.taskId }}"
+            }
+          ],
+          "toolAgentflowSelectedToolConfig": {
+            "toolAgentflowSelectedTool": "customMCP",
+            "mcpServerConfig": "{\"url\":\"http://127.0.0.1:18789/mcp\",\"headers\":{\"Authorization\":\"Bearer {{$vars.HENGZHUN_MCP_TOKEN}}\"}}",
+            "mcpActions": [
+              "run_submit"
+            ]
+          }
+        }
+      }
+    },
+    {
+      "id": "llmAgentflow_repair_runref",
+      "position": {
+        "x": 11220,
+        "y": 620
+      },
+      "type": "customNode",
+      "data": {
+        "id": "llmAgentflow_repair_runref",
+        "label": "提取修复复跑任务",
+        "name": "llmAgentflow",
+        "version": 1.1,
+        "type": "LLM",
+        "baseClasses": [
+          "LLM"
+        ],
+        "category": "Agent Flows",
+        "inputs": {
+          "llmModel": "chatOpenAI",
+          "llmMessages": [
+            {
+              "role": "system",
+              "content": "只以JSON格式原样提取MCP结果中的taskId，不得补造其他字段。 最终JSON只能包含这些精确字段且必须全部出现，不得改名、不得省略、不得为null、不得添加额外字段：{\"taskId\":\"\"}。字段语义：taskId(string)=修复复跑任务ID。"
+            },
+            {
+              "role": "user",
+              "content": "修复复跑提交结果：{{toolAgentflow_repair_rerun}}"
+            }
+          ],
+          "llmEnableMemory": false,
+          "llmReturnResponseAs": "userMessage",
+          "llmStructuredOutput": [
+            {
+              "key": "taskId",
+              "type": "string",
+              "description": "修复复跑任务ID"
+            }
+          ],
+          "llmUpdateState": [],
+          "llmModelConfig": {
+            "modelName": "${CONTROL_MODEL_NAME}",
+            "temperature": 0,
+            "streaming": false,
+            "reasoning": false,
+            "allowImageUploads": false,
+            "maxTokens": 8192,
+            "basepath": "${CONTROL_BASE_URL}",
+            "strictToolCalling": false,
+            "llmModel": "chatOpenAI"
+          }
+        }
+      }
+    },
+    {
+      "id": "toolAgentflow_repair_task",
+      "position": {
+        "x": 11560,
+        "y": 620
+      },
+      "type": "customNode",
+      "data": {
+        "id": "toolAgentflow_repair_task",
+        "label": "MCP等待修复复跑终态",
+        "name": "toolAgentflow",
+        "version": 1.2,
+        "type": "Tool",
+        "baseClasses": [
+          "Tool"
+        ],
+        "category": "Agent Flows",
+        "inputs": {
+          "toolAgentflowSelectedTool": "customMCP",
+          "toolInputArgs": [
+            {
+              "inputArgName": "taskId",
+              "inputArgValue": "{{$flow.state.taskId}}"
+            },
+            {
+              "inputArgName": "waitForTerminal",
+              "inputArgValue": true
+            },
+            {
+              "inputArgName": "waitTimeoutSeconds",
+              "inputArgValue": 150
+            }
+          ],
+          "toolUpdateState": [],
+          "toolAgentflowSelectedToolConfig": {
+            "toolAgentflowSelectedTool": "customMCP",
+            "mcpServerConfig": "{\"url\":\"http://127.0.0.1:18789/mcp\",\"headers\":{\"Authorization\":\"Bearer {{$vars.HENGZHUN_MCP_TOKEN}}\"}}",
+            "mcpActions": [
+              "task_get"
+            ]
+          }
+        }
+      }
+    },
+    {
+      "id": "humanInputAgentflow_repair_schedule",
+      "position": {
+        "x": 11900,
+        "y": 620
+      },
+      "type": "customNode",
+      "data": {
+        "id": "humanInputAgentflow_repair_schedule",
+        "label": "独立决定修复版调度",
+        "name": "humanInputAgentflow",
+        "version": 1,
+        "type": "HumanInput",
+        "baseClasses": [
+          "HumanInput"
+        ],
+        "category": "Agent Flows",
+        "inputs": {
+          "humanInputDescriptionType": "fixed",
+          "humanInputDescription": "修复版本复跑终态：{{toolAgentflow_repair_task}}；正式结果收件箱：{{toolAgentflow_repair_result_inbox}}。旧调度不会自动迁移。批准将另建一条用户刚刚确认的单次或周期修复版调度；拒绝则不创建调度。",
+          "humanInputEnableFeedback": true
+        }
+      }
+    },
+    {
+      "id": "toolAgentflow_repair_schedule",
+      "position": {
+        "x": 12240,
+        "y": 620
+      },
+      "type": "customNode",
+      "data": {
+        "id": "toolAgentflow_repair_schedule",
+        "label": "MCP创建已确认单次修复版调度",
+        "name": "toolAgentflow",
+        "version": 1.2,
+        "type": "Tool",
+        "baseClasses": [
+          "Tool"
+        ],
+        "category": "Agent Flows",
+        "inputs": {
+          "toolAgentflowSelectedTool": "customMCP",
+          "toolInputArgs": [
+            {
+              "inputArgName": "preparationId",
+              "inputArgValue": "{{$flow.state.preparationId}}"
+            },
+            {
+              "inputArgName": "scheduleType",
+              "inputArgValue": "ONE_TIME"
+            },
+            {
+              "inputArgName": "runAt",
+              "inputArgValue": "{{llmAgentflow_repair_schedule_intent.output.runAt}}"
+            },
+            {
+              "inputArgName": "timezone",
+              "inputArgValue": "{{llmAgentflow_repair_schedule_intent.output.timezone}}"
+            },
+            {
+              "inputArgName": "misfirePolicy",
+              "inputArgValue": "{{llmAgentflow_repair_schedule_intent.output.misfirePolicy}}"
+            },
+            {
+              "inputArgName": "misfireGraceSeconds",
+              "inputArgValue": "{{llmAgentflow_repair_schedule_intent.output.misfireGraceSeconds}}"
+            },
+            {
+              "inputArgName": "maxRetries",
+              "inputArgValue": "{{llmAgentflow_repair_schedule_intent.output.maxRetries}}"
+            },
+            {
+              "inputArgName": "confirmationRef",
+              "inputArgValue": "{{$flow.sessionId}}"
+            },
+            {
+              "inputArgName": "sessionRef",
+              "inputArgValue": "{{$flow.sessionId}}-repair-schedule"
+            }
+          ],
+          "toolUpdateState": [
+            {
+              "key": "scheduleId",
+              "value": "{{ output.scheduleId }}"
+            }
+          ],
+          "toolAgentflowSelectedToolConfig": {
+            "toolAgentflowSelectedTool": "customMCP",
+            "mcpServerConfig": "{\"url\":\"http://127.0.0.1:18789/mcp\",\"headers\":{\"Authorization\":\"Bearer {{$vars.HENGZHUN_MCP_TOKEN}}\"}}",
+            "mcpActions": [
+              "schedule_create"
+            ]
+          }
+        }
+      }
+    },
+    {
+      "id": "directReplyAgentflow_result",
+      "position": {
+        "x": 7140,
+        "y": 180
+      },
+      "type": "customNode",
+      "data": {
+        "id": "directReplyAgentflow_result",
+        "label": "返回正向回归结果",
+        "name": "directReplyAgentflow",
+        "version": 1,
+        "type": "DirectReply",
+        "baseClasses": [
+          "DirectReply"
+        ],
+        "category": "Agent Flows",
+        "inputs": {
+          "directReplyMessage": "正向链路已完成纯Playwright执行。权威任务结果：{{toolAgentflow_task}}；正式结果收件箱：{{toolAgentflow_result_inbox}}"
+        }
+      }
+    },
+    {
+      "id": "directReplyAgentflow_failure_report",
+      "position": {
+        "x": 7480,
+        "y": 980
+      },
+      "type": "customNode",
+      "data": {
+        "id": "directReplyAgentflow_failure_report",
+        "label": "仅报告正式失败",
+        "name": "directReplyAgentflow",
+        "version": 1,
+        "type": "DirectReply",
+        "baseClasses": [
+          "DirectReply"
+        ],
+        "category": "Agent Flows",
+        "inputs": {
+          "directReplyMessage": "正式回归失败已记录为脱敏事故，但用户未批准创建修复候选；脚本、断言、运行和调度均未改变。"
+        }
+      }
+    },
+    {
+      "id": "directReplyAgentflow_repair_rejected",
+      "position": {
+        "x": 8500,
+        "y": 980
+      },
+      "type": "customNode",
+      "data": {
+        "id": "directReplyAgentflow_repair_rejected",
+        "label": "未创建修复候选",
+        "name": "directReplyAgentflow",
+        "version": 1,
+        "type": "DirectReply",
+        "baseClasses": [
+          "DirectReply"
+        ],
+        "category": "Agent Flows",
+        "inputs": {
+          "directReplyMessage": "用户未批准创建修复候选；原脚本和事故状态保持不变。"
+        }
+      }
+    },
+    {
+      "id": "directReplyAgentflow_repair_not_activated",
+      "position": {
+        "x": 10200,
+        "y": 980
+      },
+      "type": "customNode",
+      "data": {
+        "id": "directReplyAgentflow_repair_not_activated",
+        "label": "未激活持证修复",
+        "name": "directReplyAgentflow",
+        "version": 1,
+        "type": "DirectReply",
+        "baseClasses": [
+          "DirectReply"
+        ],
+        "category": "Agent Flows",
+        "inputs": {
+          "directReplyMessage": "修复候选已完成四次验证，但用户未批准激活；正式脚本版本、运行和调度均未改变。"
+        }
+      }
+    },
+    {
+      "id": "directReplyAgentflow_repair_no_rerun",
+      "position": {
+        "x": 10880,
+        "y": 980
+      },
+      "type": "customNode",
+      "data": {
+        "id": "directReplyAgentflow_repair_no_rerun",
+        "label": "修复已激活但未复跑",
+        "name": "directReplyAgentflow",
+        "version": 1,
+        "type": "DirectReply",
+        "baseClasses": [
+          "DirectReply"
+        ],
+        "category": "Agent Flows",
+        "inputs": {
+          "directReplyMessage": "修复版本已显式激活，但用户未批准复跑；未创建新运行或调度。"
+        }
+      }
+    },
+    {
+      "id": "directReplyAgentflow_repair_no_schedule",
+      "position": {
+        "x": 12240,
+        "y": 980
+      },
+      "type": "customNode",
+      "data": {
+        "id": "directReplyAgentflow_repair_no_schedule",
+        "label": "修复完成但不迁移调度",
+        "name": "directReplyAgentflow",
+        "version": 1,
+        "type": "DirectReply",
+        "baseClasses": [
+          "DirectReply"
+        ],
+        "category": "Agent Flows",
+        "inputs": {
+          "directReplyMessage": "限域修复候选已完成四次验证、人工激活和纯Playwright复跑；用户未创建修复版调度，旧调度没有静默迁移。复跑结果：{{toolAgentflow_repair_task}}"
+        }
+      }
+    },
+    {
+      "id": "directReplyAgentflow_repair_scheduled",
+      "position": {
+        "x": 12580,
+        "y": 620
+      },
+      "type": "customNode",
+      "data": {
+        "id": "directReplyAgentflow_repair_scheduled",
+        "label": "返回修复与调度结果",
+        "name": "directReplyAgentflow",
+        "version": 1,
+        "type": "DirectReply",
+        "baseClasses": [
+          "DirectReply"
+        ],
+        "category": "Agent Flows",
+        "inputs": {
+          "directReplyMessage": "限域修复候选已完成四次验证、人工激活和纯Playwright复跑，并按用户独立确认创建精确绑定修复版本的调度。复跑：{{toolAgentflow_repair_task}}；调度：{{toolAgentflow_repair_schedule_get}}"
+        }
+      }
+    },
+    {
+      "id": "directReplyAgentflow_not_activated",
+      "position": {
+        "x": 4080,
+        "y": 740
+      },
+      "type": "customNode",
+      "data": {
+        "id": "directReplyAgentflow_not_activated",
+        "label": "未激活脚本",
+        "name": "directReplyAgentflow",
+        "version": 1,
+        "type": "DirectReply",
+        "baseClasses": [
+          "DirectReply"
+        ],
+        "category": "Agent Flows",
+        "inputs": {
+          "directReplyMessage": "用户未批准激活，持证候选保持未激活状态，未创建运行或调度。"
+        }
+      }
+    },
+    {
+      "id": "directReplyAgentflow_run_later",
+      "position": {
+        "x": 4760,
+        "y": 740
+      },
+      "type": "customNode",
+      "data": {
+        "id": "directReplyAgentflow_run_later",
+        "label": "稍后运行或调度",
+        "name": "directReplyAgentflow",
+        "version": 1,
+        "type": "DirectReply",
+        "baseClasses": [
+          "DirectReply"
+        ],
+        "category": "Agent Flows",
+        "inputs": {
+          "directReplyMessage": "脚本已激活但用户选择稍后处理；当前未创建按需运行或调度，可在续办流程中选择一次性或周期调度。"
+        }
+      }
+    },
+    {
+      "id": "directReplyAgentflow_rejected",
+      "position": {
+        "x": 1700,
+        "y": 740
+      },
+      "type": "customNode",
+      "data": {
+        "id": "directReplyAgentflow_rejected",
+        "label": "用户拒绝",
+        "name": "directReplyAgentflow",
+        "version": 1,
+        "type": "DirectReply",
+        "baseClasses": [
+          "DirectReply"
+        ],
+        "category": "Agent Flows",
+        "inputs": {
+          "directReplyMessage": "本次案例未获用户确认，未通过MCP写入衡准权威状态。"
+        }
+      }
+    },
+    {
+      "id": "llmAgentflow_i10_input",
+      "position": {
+        "x": 340,
+        "y": -220
+      },
+      "type": "customNode",
+      "data": {
+        "id": "llmAgentflow_i10_input",
+        "label": "识别三类输入与信息缺口",
+        "name": "llmAgentflow",
+        "version": 1.1,
+        "type": "LLM",
+        "baseClasses": [
+          "LLM"
+        ],
+        "category": "Agent Flows",
+        "inputs": {
+          "llmModel": "chatOpenAI",
+          "llmMessages": [
+            {
+              "role": "system",
+              "content": "你是衡准输入分类器。先识别CASE_AUTHORING、RESULT_QUERY或SCHEDULE_DISABLE。凡是描述测试步骤、预期结果并要求创建、执行或验证新案例，必须判为CASE_AUTHORING；只有用户明确要求查询既有任务、调度或结果收件箱且给出对应ID时才判为RESULT_QUERY；只有明确要求停用且给出scheduleId时才判为SCHEDULE_DISABLE。案例创建再严格分类NATURAL_LANGUAGE、CASE_FILE或VIDEO；三类主输入都可附0到20张补充图片，必须把主文件与补充图片分开。附件字段只能逐字复制运行时提供的FLOWISE_CONTROLLED_ATTACHMENTS元数据；没有该元数据时不得猜测。分类阶段imageIngestId必须固定输出NONE，imageFactsJson必须固定输出[]。禁止读取本地路径、SQLite、凭据明文。 最终JSON只能包含这些精确字段且必须全部出现，不得改名、不得省略、不得为null、不得添加额外字段：{\"requestIntent\":\"\",\"inputType\":\"\",\"naturalLanguage\":\"\",\"flowiseFileRef\":\"\",\"originalFilename\":\"\",\"hasSupportingImages\":false,\"supportingImages\":[],\"imageIngestId\":\"\",\"imageFactsJson\":\"\",\"credentialRef\":\"\",\"credentialMissing\":false,\"informationGap\":\"\",\"scheduleId\":\"\"}。字段语义：requestIntent(string)=CASE_AUTHORING、RESULT_QUERY或SCHEDULE_DISABLE；inputType(string)=NATURAL_LANGUAGE、CASE_FILE或VIDEO；naturalLanguage(string)=自然语言案例描述；flowiseFileRef(string)=Flowise受控附件标识；originalFilename(string)=原始文件名；hasSupportingImages(boolean)=是否存在除主输入外的补充图片附件；supportingImages(jsonArray)=0到20个补充图片受控元数据对象，仅含flowiseFileRef、originalFilename和purposeHint；imageIngestId(string)=分类阶段固定输出NONE，后续由Harness图片任务覆盖；imageFactsJson(string)=分类阶段固定输出[]，后续由Harness图片事实覆盖；credentialRef(string)=已有本机凭据引用；没有则为空；credentialMissing(boolean)=是否需要本机录入账号密码；informationGap(string)=除凭据外的信息缺口；scheduleId(string)=停用调度时用户明确提供的scheduleId，否则为空。"
+            },
+            {
+              "role": "user",
+              "content": "输入：{{question}}"
+            }
+          ],
+          "llmEnableMemory": false,
+          "llmReturnResponseAs": "userMessage",
+          "llmStructuredOutput": [
+            {
+              "key": "requestIntent",
+              "type": "string",
+              "description": "CASE_AUTHORING、RESULT_QUERY或SCHEDULE_DISABLE"
+            },
+            {
+              "key": "inputType",
+              "type": "string",
+              "description": "NATURAL_LANGUAGE、CASE_FILE或VIDEO"
+            },
+            {
+              "key": "naturalLanguage",
+              "type": "string",
+              "description": "自然语言案例描述"
+            },
+            {
+              "key": "flowiseFileRef",
+              "type": "string",
+              "description": "Flowise受控附件标识"
+            },
+            {
+              "key": "originalFilename",
+              "type": "string",
+              "description": "原始文件名"
+            },
+            {
+              "key": "hasSupportingImages",
+              "type": "boolean",
+              "description": "是否存在除主输入外的补充图片附件"
+            },
+            {
+              "key": "supportingImages",
+              "type": "jsonArray",
+              "description": "0到20个补充图片受控元数据对象，仅含flowiseFileRef、originalFilename和purposeHint"
+            },
+            {
+              "key": "imageIngestId",
+              "type": "string",
+              "description": "分类阶段固定输出NONE，后续由Harness图片任务覆盖"
+            },
+            {
+              "key": "imageFactsJson",
+              "type": "string",
+              "description": "分类阶段固定输出[]，后续由Harness图片事实覆盖"
+            },
+            {
+              "key": "credentialRef",
+              "type": "string",
+              "description": "已有本机凭据引用；没有则为空"
+            },
+            {
+              "key": "credentialMissing",
+              "type": "boolean",
+              "description": "是否需要本机录入账号密码"
+            },
+            {
+              "key": "informationGap",
+              "type": "string",
+              "description": "除凭据外的信息缺口"
+            },
+            {
+              "key": "scheduleId",
+              "type": "string",
+              "description": "停用调度时用户明确提供的scheduleId，否则为空"
+            }
+          ],
+          "llmUpdateState": [
+            {
+              "key": "requestIntent",
+              "value": "{{ output.requestIntent }}"
+            },
+            {
+              "key": "inputType",
+              "value": "{{ output.inputType }}"
+            },
+            {
+              "key": "naturalLanguage",
+              "value": "{{ output.naturalLanguage }}"
+            },
+            {
+              "key": "flowiseFileRef",
+              "value": "{{ output.flowiseFileRef }}"
+            },
+            {
+              "key": "originalFilename",
+              "value": "{{ output.originalFilename }}"
+            },
+            {
+              "key": "supportingImages",
+              "value": "{{ output.supportingImages }}"
+            },
+            {
+              "key": "imageIngestId",
+              "value": "{{ output.imageIngestId }}"
+            },
+            {
+              "key": "imageFactsJson",
+              "value": "{{ output.imageFactsJson }}"
+            },
+            {
+              "key": "credentialRef",
+              "value": "{{ output.credentialRef }}"
+            },
+            {
+              "key": "scheduleId",
+              "value": "{{ output.scheduleId }}"
+            }
+          ],
+          "llmModelConfig": {
+            "modelName": "${CONTROL_MODEL_NAME}",
+            "temperature": 0,
+            "streaming": false,
+            "reasoning": false,
+            "allowImageUploads": false,
+            "maxTokens": 8192,
+            "basepath": "${CONTROL_BASE_URL}",
+            "strictToolCalling": false,
+            "llmModel": "chatOpenAI"
+          }
+        }
+      }
+    },
+    {
+      "id": "conditionAgentflow_case_intent",
+      "position": {
+        "x": 680,
+        "y": -220
+      },
+      "type": "customNode",
+      "data": {
+        "id": "conditionAgentflow_case_intent",
+        "label": "是否创建回归案例",
+        "name": "conditionAgentflow",
+        "version": 1,
+        "type": "Condition",
+        "baseClasses": [
+          "Condition"
+        ],
+        "category": "Agent Flows",
+        "inputs": {
+          "conditions": [
+            {
+              "type": "string",
+              "value1": "{{$flow.state.requestIntent}}",
+              "operation": "equal",
+              "value2": "CASE_AUTHORING"
+            }
+          ]
+        },
+        "outputAnchors": [
+          {
+            "label": "创建案例",
+            "name": "0"
+          },
+          {
+            "label": "管理意图",
+            "name": "1"
+          }
+        ]
+      }
+    },
+    {
+      "id": "conditionAgentflow_result_intent",
+      "position": {
+        "x": 1020,
+        "y": -20
+      },
+      "type": "customNode",
+      "data": {
+        "id": "conditionAgentflow_result_intent",
+        "label": "是否查询回归结果",
+        "name": "conditionAgentflow",
+        "version": 1,
+        "type": "Condition",
+        "baseClasses": [
+          "Condition"
+        ],
+        "category": "Agent Flows",
+        "inputs": {
+          "conditions": [
+            {
+              "type": "string",
+              "value1": "{{$flow.state.requestIntent}}",
+              "operation": "equal",
+              "value2": "RESULT_QUERY"
+            }
+          ]
+        },
+        "outputAnchors": [
+          {
+            "label": "查询结果",
+            "name": "0"
+          },
+          {
+            "label": "停用调度",
+            "name": "1"
+          }
+        ]
+      }
+    },
+    {
+      "id": "toolAgentflow_management_inbox",
+      "position": {
+        "x": 1360,
+        "y": 40
+      },
+      "type": "customNode",
+      "data": {
+        "id": "toolAgentflow_management_inbox",
+        "label": "MCP查询历史回归结果",
+        "name": "toolAgentflow",
+        "version": 1.2,
+        "type": "Tool",
+        "baseClasses": [
+          "Tool"
+        ],
+        "category": "Agent Flows",
+        "inputs": {
+          "toolAgentflowSelectedTool": "customMCP",
+          "toolInputArgs": [
+            {
+              "inputArgName": "limit",
+              "inputArgValue": 10
+            },
+            {
+              "inputArgName": "unreadOnly",
+              "inputArgValue": false
+            },
+            {
+              "inputArgName": "acknowledgeInboxIds",
+              "inputArgValue": []
+            }
+          ],
+          "toolUpdateState": [],
+          "toolAgentflowSelectedToolConfig": {
+            "toolAgentflowSelectedTool": "customMCP",
+            "mcpServerConfig": "{\"url\":\"http://127.0.0.1:18789/mcp\",\"headers\":{\"Authorization\":\"Bearer {{$vars.HENGZHUN_MCP_TOKEN}}\"}}",
+            "mcpActions": [
+              "result_inbox_list"
+            ]
+          }
+        }
+      }
+    },
+    {
+      "id": "directReplyAgentflow_management_results",
+      "position": {
+        "x": 1700,
+        "y": 40
+      },
+      "type": "customNode",
+      "data": {
+        "id": "directReplyAgentflow_management_results",
+        "label": "返回历史回归结果",
+        "name": "directReplyAgentflow",
+        "version": 1,
+        "type": "DirectReply",
+        "baseClasses": [
+          "DirectReply"
+        ],
+        "category": "Agent Flows",
+        "inputs": {
+          "directReplyMessage": "以下是Harness SQLite中的正式回归结果收件箱，仅含脱敏摘要和制品元数据：{{toolAgentflow_management_inbox}}"
+        }
+      }
+    },
+    {
+      "id": "humanInputAgentflow_schedule_disable",
+      "position": {
+        "x": 1360,
+        "y": -100
+      },
+      "type": "customNode",
+      "data": {
+        "id": "humanInputAgentflow_schedule_disable",
+        "label": "确认停用指定调度",
+        "name": "humanInputAgentflow",
+        "version": 1,
+        "type": "HumanInput",
+        "baseClasses": [
+          "HumanInput"
+        ],
+        "category": "Agent Flows",
+        "inputs": {
+          "humanInputDescriptionType": "fixed",
+          "humanInputDescription": "将停用调度{{$flow.state.scheduleId}}。这不会删除历史结果或脚本。请明确批准；拒绝则保持调度不变。",
+          "humanInputEnableFeedback": true
+        },
+        "outputAnchors": [
+          {
+            "label": "批准",
+            "name": "proceed"
+          },
+          {
+            "label": "拒绝",
+            "name": "reject"
+          }
+        ]
+      }
+    },
+    {
+      "id": "toolAgentflow_schedule_disable",
+      "position": {
+        "x": 1700,
+        "y": -100
+      },
+      "type": "customNode",
+      "data": {
+        "id": "toolAgentflow_schedule_disable",
+        "label": "MCP停用指定调度",
+        "name": "toolAgentflow",
+        "version": 1.2,
+        "type": "Tool",
+        "baseClasses": [
+          "Tool"
+        ],
+        "category": "Agent Flows",
+        "inputs": {
+          "toolAgentflowSelectedTool": "customMCP",
+          "toolInputArgs": [
+            {
+              "inputArgName": "scheduleId",
+              "inputArgValue": "{{$flow.state.scheduleId}}"
+            },
+            {
+              "inputArgName": "action",
+              "inputArgValue": "DISABLE"
+            },
+            {
+              "inputArgName": "reason",
+              "inputArgValue": "用户在Flowise中明确确认停用调度"
+            },
+            {
+              "inputArgName": "sessionRef",
+              "inputArgValue": "{{$flow.sessionId}}-schedule-disable"
+            }
+          ],
+          "toolUpdateState": [],
+          "toolAgentflowSelectedToolConfig": {
+            "toolAgentflowSelectedTool": "customMCP",
+            "mcpServerConfig": "{\"url\":\"http://127.0.0.1:18789/mcp\",\"headers\":{\"Authorization\":\"Bearer {{$vars.HENGZHUN_MCP_TOKEN}}\"}}",
+            "mcpActions": [
+              "schedule_get"
+            ]
+          }
+        }
+      }
+    },
+    {
+      "id": "directReplyAgentflow_schedule_disabled",
+      "position": {
+        "x": 2040,
+        "y": -100
+      },
+      "type": "customNode",
+      "data": {
+        "id": "directReplyAgentflow_schedule_disabled",
+        "label": "返回调度停用结果",
+        "name": "directReplyAgentflow",
+        "version": 1,
+        "type": "DirectReply",
+        "baseClasses": [
+          "DirectReply"
+        ],
+        "category": "Agent Flows",
+        "inputs": {
+          "directReplyMessage": "调度停用决定已由Harness记录：{{toolAgentflow_schedule_disable}}"
+        }
+      }
+    },
+    {
+      "id": "directReplyAgentflow_schedule_disable_cancelled",
+      "position": {
+        "x": 1700,
+        "y": -220
+      },
+      "type": "customNode",
+      "data": {
+        "id": "directReplyAgentflow_schedule_disable_cancelled",
+        "label": "取消停用调度",
+        "name": "directReplyAgentflow",
+        "version": 1,
+        "type": "DirectReply",
+        "baseClasses": [
+          "DirectReply"
+        ],
+        "category": "Agent Flows",
+        "inputs": {
+          "directReplyMessage": "用户未批准停用；调度状态保持不变。"
+        }
+      }
+    },
+    {
+      "id": "conditionAgentflow_credential",
+      "position": {
+        "x": 680,
+        "y": -220
+      },
+      "type": "customNode",
+      "data": {
+        "id": "conditionAgentflow_credential",
+        "label": "是否需要本机安全凭据",
+        "name": "conditionAgentflow",
+        "version": 1,
+        "type": "Condition",
+        "baseClasses": [
+          "Condition"
+        ],
+        "category": "Agent Flows",
+        "inputs": {
+          "conditions": [
+            {
+              "type": "boolean",
+              "value1": "{{llmAgentflow_i10_input.output.credentialMissing}}",
+              "operation": "equal",
+              "value2": true
+            }
+          ]
+        },
+        "outputAnchors": [
+          {
+            "label": "需要录入",
+            "name": "0"
+          },
+          {
+            "label": "已有引用",
+            "name": "1"
+          }
+        ]
+      }
+    },
+    {
+      "id": "toolAgentflow_credential_create",
+      "position": {
+        "x": 1020,
+        "y": -380
+      },
+      "type": "customNode",
+      "data": {
+        "id": "toolAgentflow_credential_create",
+        "label": "MCP创建安全凭据会话",
+        "name": "toolAgentflow",
+        "version": 1.2,
+        "type": "Tool",
+        "baseClasses": [
+          "Tool"
+        ],
+        "category": "Agent Flows",
+        "inputs": {
+          "toolAgentflowSelectedTool": "customMCP",
+          "toolInputArgs": [
+            {
+              "inputArgName": "label",
+              "inputArgValue": "复兴银行门户测试账户"
+            },
+            {
+              "inputArgName": "sessionRef",
+              "inputArgValue": "{{$flow.sessionId}}-credential"
+            }
+          ],
+          "toolUpdateState": [],
+          "toolAgentflowSelectedToolConfig": {
+            "toolAgentflowSelectedTool": "customMCP",
+            "mcpServerConfig": "{\"url\":\"http://127.0.0.1:18789/mcp\",\"headers\":{\"Authorization\":\"Bearer {{$vars.HENGZHUN_MCP_TOKEN}}\"}}",
+            "mcpActions": [
+              "credential_session_create"
+            ]
+          }
+        }
+      }
+    },
+    {
+      "id": "humanInputAgentflow_credential",
+      "position": {
+        "x": 1360,
+        "y": -380
+      },
+      "type": "customNode",
+      "data": {
+        "id": "humanInputAgentflow_credential",
+        "label": "在本机表单录入凭据",
+        "name": "humanInputAgentflow",
+        "version": 1,
+        "type": "HumanInput",
+        "baseClasses": [
+          "HumanInput"
+        ],
+        "category": "Agent Flows",
+        "inputs": {
+          "humanInputDescriptionType": "fixed",
+          "humanInputDescription": "请打开以下本机地址录入账号密码。完成后再批准继续；账号密码不会进入Flowise或模型上下文：{{toolAgentflow_credential_create}}",
+          "humanInputEnableFeedback": true
+        },
+        "outputAnchors": [
+          {
+            "label": "批准",
+            "name": "proceed"
+          },
+          {
+            "label": "拒绝",
+            "name": "reject"
+          }
+        ]
+      }
+    },
+    {
+      "id": "toolAgentflow_credential_get",
+      "position": {
+        "x": 1700,
+        "y": -380
+      },
+      "type": "customNode",
+      "data": {
+        "id": "toolAgentflow_credential_get",
+        "label": "MCP读取凭据引用状态",
+        "name": "toolAgentflow",
+        "version": 1.2,
+        "type": "Tool",
+        "baseClasses": [
+          "Tool"
+        ],
+        "category": "Agent Flows",
+        "inputs": {
+          "toolAgentflowSelectedTool": "customMCP",
+          "toolInputArgs": [
+            {
+              "inputArgName": "sessionId",
+              "inputArgValue": "{{toolAgentflow_credential_create.sessionId}}"
+            }
+          ],
+          "toolUpdateState": [
+            {
+              "key": "credentialRef",
+              "value": "{{ output.credentialRef }}"
+            }
+          ],
+          "toolAgentflowSelectedToolConfig": {
+            "toolAgentflowSelectedTool": "customMCP",
+            "mcpServerConfig": "{\"url\":\"http://127.0.0.1:18789/mcp\",\"headers\":{\"Authorization\":\"Bearer {{$vars.HENGZHUN_MCP_TOKEN}}\"}}",
+            "mcpActions": [
+              "credential_session_get"
+            ]
+          }
+        }
+      }
+    },
+    {
+      "id": "llmAgentflow_i10_ready",
+      "position": {
+        "x": 2040,
+        "y": -220
+      },
+      "type": "customNode",
+      "data": {
+        "id": "llmAgentflow_i10_ready",
+        "label": "合并输入与credentialRef",
+        "name": "llmAgentflow",
+        "version": 1.1,
+        "type": "LLM",
+        "baseClasses": [
+          "LLM"
+        ],
+        "category": "Agent Flows",
+        "inputs": {
+          "llmModel": "chatOpenAI",
+          "llmMessages": [
+            {
+              "role": "system",
+              "content": "只校验Flow State中已受控的统一输入，不得生成或猜测账号密码，不得改变附件引用。credentialRef为空时必须失败关闭。 请严格输出JSON对象，字段必须符合结构化输出定义。 最终JSON只能包含这些精确字段且必须全部出现，不得改名、不得省略、不得为null、不得添加额外字段：{\"inputType\":\"\",\"naturalLanguage\":\"\",\"flowiseFileRef\":\"\",\"originalFilename\":\"\",\"hasSupportingImages\":false,\"supportingImages\":[],\"imageIngestId\":\"\",\"imageFactsJson\":\"\",\"credentialRef\":\"\",\"informationGap\":\"\"}。字段语义：inputType(string)=NATURAL_LANGUAGE、CASE_FILE或VIDEO；naturalLanguage(string)=自然语言案例描述；flowiseFileRef(string)=Flowise受控附件标识；originalFilename(string)=原始文件名；hasSupportingImages(boolean)=是否存在除主输入外的补充图片附件；supportingImages(jsonArray)=0到20个补充图片受控元数据对象，仅含flowiseFileRef、originalFilename和purposeHint；imageIngestId(string)=分类阶段固定输出NONE，后续由Harness图片任务覆盖；imageFactsJson(string)=分类阶段固定输出[]，后续由Harness图片事实覆盖；credentialRef(string)=已有本机凭据引用；没有则为空；informationGap(string)=除凭据外的信息缺口。"
+            },
+            {
+              "role": "user",
+              "content": "inputType={{$flow.state.inputType}}；naturalLanguage={{$flow.state.naturalLanguage}}；flowiseFileRef={{$flow.state.flowiseFileRef}}；originalFilename={{$flow.state.originalFilename}}；credentialRef={{$flow.state.credentialRef}}"
+            }
+          ],
+          "llmEnableMemory": false,
+          "llmReturnResponseAs": "userMessage",
+          "llmStructuredOutput": [
+            {
+              "key": "inputType",
+              "type": "string",
+              "description": "NATURAL_LANGUAGE、CASE_FILE或VIDEO"
+            },
+            {
+              "key": "naturalLanguage",
+              "type": "string",
+              "description": "自然语言案例描述"
+            },
+            {
+              "key": "flowiseFileRef",
+              "type": "string",
+              "description": "Flowise受控附件标识"
+            },
+            {
+              "key": "originalFilename",
+              "type": "string",
+              "description": "原始文件名"
+            },
+            {
+              "key": "hasSupportingImages",
+              "type": "boolean",
+              "description": "是否存在除主输入外的补充图片附件"
+            },
+            {
+              "key": "supportingImages",
+              "type": "jsonArray",
+              "description": "0到20个补充图片受控元数据对象，仅含flowiseFileRef、originalFilename和purposeHint"
+            },
+            {
+              "key": "imageIngestId",
+              "type": "string",
+              "description": "分类阶段固定输出NONE，后续由Harness图片任务覆盖"
+            },
+            {
+              "key": "imageFactsJson",
+              "type": "string",
+              "description": "分类阶段固定输出[]，后续由Harness图片事实覆盖"
+            },
+            {
+              "key": "credentialRef",
+              "type": "string",
+              "description": "已有本机凭据引用；没有则为空"
+            },
+            {
+              "key": "informationGap",
+              "type": "string",
+              "description": "除凭据外的信息缺口"
+            }
+          ],
+          "llmUpdateState": [],
+          "llmModelConfig": {
+            "modelName": "${CONTROL_MODEL_NAME}",
+            "temperature": 0,
+            "streaming": false,
+            "reasoning": false,
+            "allowImageUploads": false,
+            "maxTokens": 8192,
+            "basepath": "${CONTROL_BASE_URL}",
+            "strictToolCalling": false,
+            "llmModel": "chatOpenAI"
+          }
+        }
+      }
+    },
+    {
+      "id": "conditionAgentflow_supporting_images",
+      "position": {
+        "x": 2240,
+        "y": -360
+      },
+      "type": "customNode",
+      "data": {
+        "id": "conditionAgentflow_supporting_images",
+        "label": "是否有补充案例图片",
+        "name": "conditionAgentflow",
+        "version": 1,
+        "type": "Condition",
+        "baseClasses": [
+          "Condition"
+        ],
+        "category": "Agent Flows",
+        "inputs": {
+          "conditions": [
+            {
+              "type": "boolean",
+              "value1": "{{llmAgentflow_i10_input.output.hasSupportingImages}}",
+              "operation": "equal",
+              "value2": true
+            }
+          ]
+        },
+        "outputAnchors": [
+          {
+            "label": "有补充图片",
+            "name": "0"
+          },
+          {
+            "label": "没有补充图片",
+            "name": "1"
+          }
+        ]
+      }
+    },
+    {
+      "id": "toolAgentflow_image_ingest_submit",
+      "position": {
+        "x": 2480,
+        "y": -480
+      },
+      "type": "customNode",
+      "data": {
+        "id": "toolAgentflow_image_ingest_submit",
+        "label": "MCP提交补充图片OCR分析",
+        "name": "toolAgentflow",
+        "version": 1.2,
+        "type": "Tool",
+        "baseClasses": [
+          "Tool"
+        ],
+        "category": "Agent Flows",
+        "inputs": {
+          "toolAgentflowSelectedTool": "customMCP",
+          "toolInputArgs": [
+            {
+              "inputArgName": "sourceRef",
+              "inputArgValue": "{{$flow.sessionId}}"
+            },
+            {
+              "inputArgName": "primaryInputType",
+              "inputArgValue": "{{$flow.state.inputType}}"
+            },
+            {
+              "inputArgName": "images",
+              "inputArgValue": "{{$flow.state.supportingImages}}"
+            },
+            {
+              "inputArgName": "primaryText",
+              "inputArgValue": "{{$flow.state.naturalLanguage}}"
+            },
+            {
+              "inputArgName": "sessionRef",
+              "inputArgValue": "{{$flow.sessionId}}-images"
+            }
+          ],
+          "toolUpdateState": [
+            {
+              "key": "imageIngestId",
+              "value": "{{ output.imageIngestId }}"
+            }
+          ],
+          "toolAgentflowSelectedToolConfig": {
+            "toolAgentflowSelectedTool": "customMCP",
+            "mcpServerConfig": "{\"url\":\"http://127.0.0.1:18789/mcp\",\"headers\":{\"Authorization\":\"Bearer {{$vars.HENGZHUN_MCP_TOKEN}}\"}}",
+            "mcpActions": [
+              "image_ingest_submit"
+            ]
+          }
+        }
+      }
+    },
+    {
+      "id": "humanInputAgentflow_image_wait",
+      "position": {
+        "x": 2720,
+        "y": -480
+      },
+      "type": "customNode",
+      "data": {
+        "id": "humanInputAgentflow_image_wait",
+        "label": "等待本机中英文OCR与事实筛选",
+        "name": "humanInputAgentflow",
+        "version": 1,
+        "type": "HumanInput",
+        "baseClasses": [
+          "HumanInput"
+        ],
+        "category": "Agent Flows",
+        "inputs": {
+          "humanInputDescriptionType": "fixed",
+          "humanInputDescription": "补充图片正在本机执行中英文OCR、敏感信息脱敏和主控模型事实筛选。批准后查询结果；系统不会把原始未脱敏图片、密码、验证码或PIN发送给模型。",
+          "humanInputEnableFeedback": true
+        }
+      }
+    },
+    {
+      "id": "toolAgentflow_image_ingest_get",
+      "position": {
+        "x": 2960,
+        "y": -480
+      },
+      "type": "customNode",
+      "data": {
+        "id": "toolAgentflow_image_ingest_get",
+        "label": "MCP查询图片事实候选",
+        "name": "toolAgentflow",
+        "version": 1.2,
+        "type": "Tool",
+        "baseClasses": [
+          "Tool"
+        ],
+        "category": "Agent Flows",
+        "inputs": {
+          "toolAgentflowSelectedTool": "customMCP",
+          "toolInputArgs": [
+            {
+              "inputArgName": "imageIngestId",
+              "inputArgValue": "{{$flow.state.imageIngestId}}"
+            }
+          ],
+          "toolUpdateState": [
+            {
+              "key": "imageFactsJson",
+              "value": "{{ output.facts }}"
+            }
+          ],
+          "toolAgentflowSelectedToolConfig": {
+            "toolAgentflowSelectedTool": "customMCP",
+            "mcpServerConfig": "{\"url\":\"http://127.0.0.1:18789/mcp\",\"headers\":{\"Authorization\":\"Bearer {{$vars.HENGZHUN_MCP_TOKEN}}\"}}",
+            "mcpActions": [
+              "image_ingest_get"
+            ]
+          }
+        }
+      }
+    },
+    {
+      "id": "conditionAgentflow_image_ready",
+      "position": {
+        "x": 3200,
+        "y": -480
+      },
+      "type": "customNode",
+      "data": {
+        "id": "conditionAgentflow_image_ready",
+        "label": "图片事实是否可人工确认",
+        "name": "conditionAgentflow",
+        "version": 1,
+        "type": "Condition",
+        "baseClasses": [
+          "Condition"
+        ],
+        "category": "Agent Flows",
+        "inputs": {
+          "conditions": [
+            {
+              "type": "string",
+              "value1": "{{toolAgentflow_image_ingest_get}}",
+              "operation": "contains",
+              "value2": "WAITING_USER"
+            }
+          ]
+        },
+        "outputAnchors": [
+          {
+            "label": "可确认",
+            "name": "0"
+          },
+          {
+            "label": "失败或处理中",
+            "name": "1"
+          }
+        ]
+      }
+    },
+    {
+      "id": "humanInputAgentflow_image_confirm",
+      "position": {
+        "x": 3440,
+        "y": -480
+      },
+      "type": "customNode",
+      "data": {
+        "id": "humanInputAgentflow_image_confirm",
+        "label": "确认图片事实与填空内容",
+        "name": "humanInputAgentflow",
+        "version": 1,
+        "type": "HumanInput",
+        "baseClasses": [
+          "HumanInput"
+        ],
+        "category": "Agent Flows",
+        "inputs": {
+          "humanInputDescriptionType": "fixed",
+          "humanInputDescription": "请确认主控模型从补充图片中选择的案例事实、文本框填充值、来源与置信度。未知值不得猜测；验证码、U盾PIN等只能由您在运行时直接输入：{{toolAgentflow_image_ingest_get}}",
+          "humanInputEnableFeedback": true
+        },
+        "outputAnchors": [
+          {
+            "label": "批准",
+            "name": "proceed"
+          },
+          {
+            "label": "拒绝",
+            "name": "reject"
+          }
+        ]
+      }
+    },
+    {
+      "id": "directReplyAgentflow_image_failed",
+      "position": {
+        "x": 3440,
+        "y": -620
+      },
+      "type": "customNode",
+      "data": {
+        "id": "directReplyAgentflow_image_failed",
+        "label": "返回图片分析未就绪",
+        "name": "directReplyAgentflow",
+        "version": 1,
+        "type": "DirectReply",
+        "baseClasses": [
+          "DirectReply"
+        ],
+        "category": "Agent Flows",
+        "inputs": {
+          "directReplyMessage": "补充图片尚未形成可确认事实或已失败关闭，未继续作者化：{{toolAgentflow_image_ingest_get}}"
+        }
+      }
+    },
+    {
+      "id": "conditionAgentflow_natural",
+      "position": {
+        "x": 2380,
+        "y": -220
+      },
+      "type": "customNode",
+      "data": {
+        "id": "conditionAgentflow_natural",
+        "label": "是否自然语言输入",
+        "name": "conditionAgentflow",
+        "version": 1,
+        "type": "Condition",
+        "baseClasses": [
+          "Condition"
+        ],
+        "category": "Agent Flows",
+        "inputs": {
+          "conditions": [
+            {
+              "type": "string",
+              "value1": "{{$flow.state.inputType}}",
+              "operation": "equal",
+              "value2": "NATURAL_LANGUAGE"
+            }
+          ]
+        },
+        "outputAnchors": [
+          {
+            "label": "自然语言",
+            "name": "0"
+          },
+          {
+            "label": "附件",
+            "name": "1"
+          }
+        ]
+      }
+    },
+    {
+      "id": "conditionAgentflow_video",
+      "position": {
+        "x": 2720,
+        "y": -40
+      },
+      "type": "customNode",
+      "data": {
+        "id": "conditionAgentflow_video",
+        "label": "是否视频输入",
+        "name": "conditionAgentflow",
+        "version": 1,
+        "type": "Condition",
+        "baseClasses": [
+          "Condition"
+        ],
+        "category": "Agent Flows",
+        "inputs": {
+          "conditions": [
+            {
+              "type": "string",
+              "value1": "{{$flow.state.inputType}}",
+              "operation": "equal",
+              "value2": "VIDEO"
+            }
+          ]
+        },
+        "outputAnchors": [
+          {
+            "label": "视频",
+            "name": "0"
+          },
+          {
+            "label": "案例文件",
+            "name": "1"
+          }
+        ]
+      }
+    },
+    {
+      "id": "toolAgentflow_ingest_video",
+      "position": {
+        "x": 3060,
+        "y": -140
+      },
+      "type": "customNode",
+      "data": {
+        "id": "toolAgentflow_ingest_video",
+        "label": "MCP提交视频导入",
+        "name": "toolAgentflow",
+        "version": 1.2,
+        "type": "Tool",
+        "baseClasses": [
+          "Tool"
+        ],
+        "category": "Agent Flows",
+        "inputs": {
+          "toolAgentflowSelectedTool": "customMCP",
+          "toolInputArgs": [
+            {
+              "inputArgName": "inputType",
+              "inputArgValue": "VIDEO"
+            },
+            {
+              "inputArgName": "flowiseFileRef",
+              "inputArgValue": "{{$flow.state.flowiseFileRef}}"
+            },
+            {
+              "inputArgName": "originalFilename",
+              "inputArgValue": "{{$flow.state.originalFilename}}"
+            },
+            {
+              "inputArgName": "credentialRef",
+              "inputArgValue": "{{$flow.state.credentialRef}}"
+            },
+            {
+              "inputArgName": "supportingImageIngestId",
+              "inputArgValue": "{{$flow.state.imageIngestId}}"
+            },
+            {
+              "inputArgName": "sessionRef",
+              "inputArgValue": "{{$flow.sessionId}}-video"
+            }
+          ],
+          "toolUpdateState": [
+            {
+              "key": "ingestJobId",
+              "value": "{{ output.ingestJobId }}"
+            }
+          ],
+          "toolAgentflowSelectedToolConfig": {
+            "toolAgentflowSelectedTool": "customMCP",
+            "mcpServerConfig": "{\"url\":\"http://127.0.0.1:18789/mcp\",\"headers\":{\"Authorization\":\"Bearer {{$vars.HENGZHUN_MCP_TOKEN}}\"}}",
+            "mcpActions": [
+              "ingest_submit"
+            ]
+          }
+        }
+      }
+    },
+    {
+      "id": "toolAgentflow_ingest_file",
+      "position": {
+        "x": 3060,
+        "y": 80
+      },
+      "type": "customNode",
+      "data": {
+        "id": "toolAgentflow_ingest_file",
+        "label": "MCP提交案例文件",
+        "name": "toolAgentflow",
+        "version": 1.2,
+        "type": "Tool",
+        "baseClasses": [
+          "Tool"
+        ],
+        "category": "Agent Flows",
+        "inputs": {
+          "toolAgentflowSelectedTool": "customMCP",
+          "toolInputArgs": [
+            {
+              "inputArgName": "inputType",
+              "inputArgValue": "CASE_FILE"
+            },
+            {
+              "inputArgName": "flowiseFileRef",
+              "inputArgValue": "{{$flow.state.flowiseFileRef}}"
+            },
+            {
+              "inputArgName": "originalFilename",
+              "inputArgValue": "{{$flow.state.originalFilename}}"
+            },
+            {
+              "inputArgName": "credentialRef",
+              "inputArgValue": "{{$flow.state.credentialRef}}"
+            },
+            {
+              "inputArgName": "supportingImageIngestId",
+              "inputArgValue": "{{$flow.state.imageIngestId}}"
+            },
+            {
+              "inputArgName": "sessionRef",
+              "inputArgValue": "{{$flow.sessionId}}-case_file"
+            }
+          ],
+          "toolUpdateState": [
+            {
+              "key": "ingestJobId",
+              "value": "{{ output.ingestJobId }}"
+            }
+          ],
+          "toolAgentflowSelectedToolConfig": {
+            "toolAgentflowSelectedTool": "customMCP",
+            "mcpServerConfig": "{\"url\":\"http://127.0.0.1:18789/mcp\",\"headers\":{\"Authorization\":\"Bearer {{$vars.HENGZHUN_MCP_TOKEN}}\"}}",
+            "mcpActions": [
+              "ingest_submit"
+            ]
+          }
+        }
+      }
+    },
+    {
+      "id": "humanInputAgentflow_ingest_wait",
+      "position": {
+        "x": 3400,
+        "y": -40
+      },
+      "type": "customNode",
+      "data": {
+        "id": "humanInputAgentflow_ingest_wait",
+        "label": "等待导入处理并检查缺口",
+        "name": "humanInputAgentflow",
+        "version": 1,
+        "type": "HumanInput",
+        "baseClasses": [
+          "HumanInput"
+        ],
+        "category": "Agent Flows",
+        "inputs": {
+          "humanInputDescriptionType": "fixed",
+          "humanInputDescription": "附件已进入受控导入。视频需等待本机抽帧、OCR与真实视觉分析；批准后查询状态。任何低置信度或信息缺口都必须人工校正。",
+          "humanInputEnableFeedback": true
+        }
+      }
+    },
+    {
+      "id": "toolAgentflow_ingest_get",
+      "position": {
+        "x": 3740,
+        "y": -40
+      },
+      "type": "customNode",
+      "data": {
+        "id": "toolAgentflow_ingest_get",
+        "label": "MCP查询统一CaseDraft",
+        "name": "toolAgentflow",
+        "version": 1.2,
+        "type": "Tool",
+        "baseClasses": [
+          "Tool"
+        ],
+        "category": "Agent Flows",
+        "inputs": {
+          "toolAgentflowSelectedTool": "customMCP",
+          "toolInputArgs": [
+            {
+              "inputArgName": "ingestJobId",
+              "inputArgValue": "{{$flow.state.ingestJobId}}"
+            }
+          ],
+          "toolUpdateState": [
+            {
+              "key": "ingestJobVersion",
+              "value": "{{ output.version }}"
+            },
+            {
+              "key": "caseDraftJson",
+              "value": "{{ output.items.0.draft }}"
+            }
+          ],
+          "toolAgentflowSelectedToolConfig": {
+            "toolAgentflowSelectedTool": "customMCP",
+            "mcpServerConfig": "{\"url\":\"http://127.0.0.1:18789/mcp\",\"headers\":{\"Authorization\":\"Bearer {{$vars.HENGZHUN_MCP_TOKEN}}\"}}",
+            "mcpActions": [
+              "ingest_get"
+            ]
+          }
+        }
+      }
+    },
+    {
+      "id": "conditionAgentflow_ingest_ready",
+      "position": {
+        "x": 4080,
+        "y": -80
+      },
+      "type": "customNode",
+      "data": {
+        "id": "conditionAgentflow_ingest_ready",
+        "label": "导入是否等待人工确认",
+        "name": "conditionAgentflow",
+        "version": 1,
+        "type": "Condition",
+        "baseClasses": [
+          "Condition"
+        ],
+        "category": "Agent Flows",
+        "inputs": {
+          "conditions": [
+            {
+              "type": "string",
+              "value1": "{{toolAgentflow_ingest_get}}",
+              "operation": "contains",
+              "value2": "WAITING_USER"
+            }
+          ]
+        },
+        "outputAnchors": [
+          {
+            "label": "可确认",
+            "name": "0"
+          },
+          {
+            "label": "检查处理中",
+            "name": "1"
+          }
+        ]
+      }
+    },
+    {
+      "id": "conditionAgentflow_ingest_processing",
+      "position": {
+        "x": 4420,
+        "y": 60
+      },
+      "type": "customNode",
+      "data": {
+        "id": "conditionAgentflow_ingest_processing",
+        "label": "导入是否仍在处理",
+        "name": "conditionAgentflow",
+        "version": 1,
+        "type": "Condition",
+        "baseClasses": [
+          "Condition"
+        ],
+        "category": "Agent Flows",
+        "inputs": {
+          "conditions": [
+            {
+              "type": "string",
+              "value1": "{{toolAgentflow_ingest_get}}",
+              "operation": "contains",
+              "value2": "PROCESSING"
+            }
+          ]
+        },
+        "outputAnchors": [
+          {
+            "label": "继续等待",
+            "name": "0"
+          },
+          {
+            "label": "失败终态",
+            "name": "1"
+          }
+        ]
+      }
+    },
+    {
+      "id": "directReplyAgentflow_ingest_failed",
+      "position": {
+        "x": 4760,
+        "y": 200
+      },
+      "type": "customNode",
+      "data": {
+        "id": "directReplyAgentflow_ingest_failed",
+        "label": "返回导入失败",
+        "name": "directReplyAgentflow",
+        "version": 1,
+        "type": "DirectReply",
+        "baseClasses": [
+          "DirectReply"
+        ],
+        "category": "Agent Flows",
+        "inputs": {
+          "directReplyMessage": "附件导入未形成可确认的统一CaseDraft，系统已失败关闭。权威状态：{{toolAgentflow_ingest_get}}"
+        }
+      }
+    },
+    {
+      "id": "humanInputAgentflow_ingest_confirm",
+      "position": {
+        "x": 4760,
+        "y": -80
+      },
+      "type": "customNode",
+      "data": {
+        "id": "humanInputAgentflow_ingest_confirm",
+        "label": "确认或校正导入草案",
+        "name": "humanInputAgentflow",
+        "version": 1,
+        "type": "HumanInput",
+        "baseClasses": [
+          "HumanInput"
+        ],
+        "category": "Agent Flows",
+        "inputs": {
+          "humanInputDescriptionType": "fixed",
+          "humanInputDescription": "请逐项检查导入草案、置信度和missingFields。信息完整时直接批准；需要修改时在反馈中提供严格JSON corrections数组后批准；取消导入请选择拒绝：{{toolAgentflow_ingest_get}}",
+          "humanInputEnableFeedback": true
+        },
+        "outputAnchors": [
+          {
+            "label": "批准",
+            "name": "proceed"
+          },
+          {
+            "label": "拒绝",
+            "name": "reject"
+          }
+        ]
+      }
+    },
+    {
+      "id": "llmAgentflow_ingest_decision",
+      "position": {
+        "x": 4420,
+        "y": -40
+      },
+      "type": "customNode",
+      "data": {
+        "id": "llmAgentflow_ingest_decision",
+        "label": "解析人工确认或校正",
+        "name": "llmAgentflow",
+        "version": 1.1,
+        "type": "LLM",
+        "baseClasses": [
+          "LLM"
+        ],
+        "category": "Agent Flows",
+        "inputs": {
+          "llmModel": "chatOpenAI",
+          "llmMessages": [
+            {
+              "role": "system",
+              "content": "只解析用户对导入草案的人工决定。没有修正内容时correctionRequired=false且correctionsJson={\"corrections\":[]}；提供修正时correctionRequired=true，并把每项修正原样规范为{\"corrections\":[{\"ordinal\":正整数,\"draft\":完整CaseDraft}]}。禁止补造CaseDraft、凭据、路径或技术字段。 最终JSON只能包含这些精确字段且必须全部出现，不得改名、不得省略、不得为null、不得添加额外字段：{\"correctionRequired\":false,\"correctionsJson\":\"\",\"reason\":\"\"}。字段语义：correctionRequired(boolean)=用户是否明确提交了修正；correctionsJson(string)=严格JSON对象，唯一字段为corrections数组；reason(string)=不含凭据的人工确认或修正理由。"
+            },
+            {
+              "role": "user",
+              "content": "待确认草案：{{toolAgentflow_ingest_get}}\n用户本轮确认或校正：{{question}}"
+            }
+          ],
+          "llmEnableMemory": false,
+          "llmReturnResponseAs": "userMessage",
+          "llmStructuredOutput": [
+            {
+              "key": "correctionRequired",
+              "type": "boolean",
+              "description": "用户是否明确提交了修正"
+            },
+            {
+              "key": "correctionsJson",
+              "type": "string",
+              "description": "严格JSON对象，唯一字段为corrections数组"
+            },
+            {
+              "key": "reason",
+              "type": "string",
+              "description": "不含凭据的人工确认或修正理由"
+            }
+          ],
+          "llmUpdateState": [],
+          "llmModelConfig": {
+            "modelName": "${CONTROL_MODEL_NAME}",
+            "temperature": 0,
+            "streaming": false,
+            "reasoning": false,
+            "allowImageUploads": false,
+            "maxTokens": 8192,
+            "basepath": "${CONTROL_BASE_URL}",
+            "strictToolCalling": false,
+            "llmModel": "chatOpenAI"
+          }
+        }
+      }
+    },
+    {
+      "id": "conditionAgentflow_ingest_correction",
+      "position": {
+        "x": 4760,
+        "y": -40
+      },
+      "type": "customNode",
+      "data": {
+        "id": "conditionAgentflow_ingest_correction",
+        "label": "是否提交案例修正",
+        "name": "conditionAgentflow",
+        "version": 1,
+        "type": "Condition",
+        "baseClasses": [
+          "Condition"
+        ],
+        "category": "Agent Flows",
+        "inputs": {
+          "conditions": [
+            {
+              "type": "boolean",
+              "value1": "{{llmAgentflow_ingest_decision.output.correctionRequired}}",
+              "operation": "equal",
+              "value2": true
+            }
+          ]
+        },
+        "outputAnchors": [
+          {
+            "label": "提交修正",
+            "name": "0"
+          },
+          {
+            "label": "确认无修正",
+            "name": "1"
+          }
+        ]
+      }
+    },
+    {
+      "id": "toolAgentflow_ingest_correct",
+      "position": {
+        "x": 5100,
+        "y": -180
+      },
+      "type": "customNode",
+      "data": {
+        "id": "toolAgentflow_ingest_correct",
+        "label": "MCP提交CaseDraft修正",
+        "name": "toolAgentflow",
+        "version": 1.2,
+        "type": "Tool",
+        "baseClasses": [
+          "Tool"
+        ],
+        "category": "Agent Flows",
+        "inputs": {
+          "toolAgentflowSelectedTool": "customMCP",
+          "toolInputArgs": [
+            {
+              "inputArgName": "ingestJobId",
+              "inputArgValue": "{{$flow.state.ingestJobId}}"
+            },
+            {
+              "inputArgName": "expectedVersion",
+              "inputArgValue": "{{$flow.state.ingestJobVersion}}"
+            },
+            {
+              "inputArgName": "choice",
+              "inputArgValue": "CORRECT"
+            },
+            {
+              "inputArgName": "correctionsJson",
+              "inputArgValue": "{{llmAgentflow_ingest_decision.output.correctionsJson}}"
+            },
+            {
+              "inputArgName": "reason",
+              "inputArgValue": "用户在Flowise中提交导入草案修正"
+            },
+            {
+              "inputArgName": "confirmationRef",
+              "inputArgValue": "{{$flow.sessionId}}-ingest-correct"
+            },
+            {
+              "inputArgName": "sessionRef",
+              "inputArgValue": "{{$flow.sessionId}}-ingest-correct"
+            }
+          ],
+          "toolUpdateState": [],
+          "toolAgentflowSelectedToolConfig": {
+            "toolAgentflowSelectedTool": "customMCP",
+            "mcpServerConfig": "{\"url\":\"http://127.0.0.1:18789/mcp\",\"headers\":{\"Authorization\":\"Bearer {{$vars.HENGZHUN_MCP_TOKEN}}\"}}",
+            "mcpActions": [
+              "ingest_decision_submit"
+            ]
+          }
+        }
+      }
+    },
+    {
+      "id": "toolAgentflow_ingest_decide",
+      "position": {
+        "x": 5100,
+        "y": 100
+      },
+      "type": "customNode",
+      "data": {
+        "id": "toolAgentflow_ingest_decide",
+        "label": "MCP确认统一CaseDraft",
+        "name": "toolAgentflow",
+        "version": 1.2,
+        "type": "Tool",
+        "baseClasses": [
+          "Tool"
+        ],
+        "category": "Agent Flows",
+        "inputs": {
+          "toolAgentflowSelectedTool": "customMCP",
+          "toolInputArgs": [
+            {
+              "inputArgName": "ingestJobId",
+              "inputArgValue": "{{$flow.state.ingestJobId}}"
+            },
+            {
+              "inputArgName": "expectedVersion",
+              "inputArgValue": "{{$flow.state.ingestJobVersion}}"
+            },
+            {
+              "inputArgName": "choice",
+              "inputArgValue": "CONFIRM"
+            },
+            {
+              "inputArgName": "reason",
+              "inputArgValue": "用户在Flowise中确认统一CaseDraft"
+            },
+            {
+              "inputArgName": "confirmationRef",
+              "inputArgValue": "{{$flow.sessionId}}-ingest-confirm"
+            },
+            {
+              "inputArgName": "sessionRef",
+              "inputArgValue": "{{$flow.sessionId}}-ingest-decision"
+            }
+          ],
+          "toolUpdateState": [
+            {
+              "key": "preparationId",
+              "value": "{{ output.cases.0.preparationId }}"
+            },
+            {
+              "key": "preparationVersion",
+              "value": "{{ output.cases.0.preparationVersion }}"
+            },
+            {
+              "key": "caseId",
+              "value": "{{ output.cases.0.caseId }}"
+            },
+            {
+              "key": "caseVersion",
+              "value": "{{ output.cases.0.version }}"
+            },
+            {
+              "key": "credentialRef",
+              "value": "{{ output.cases.0.credentialRef }}"
+            }
+          ],
+          "toolAgentflowSelectedToolConfig": {
+            "toolAgentflowSelectedTool": "customMCP",
+            "mcpServerConfig": "{\"url\":\"http://127.0.0.1:18789/mcp\",\"headers\":{\"Authorization\":\"Bearer {{$vars.HENGZHUN_MCP_TOKEN}}\"}}",
+            "mcpActions": [
+              "ingest_decision_submit"
+            ]
+          }
+        }
+      }
+    },
+    {
+      "id": "toolAgentflow_ingest_reject",
+      "position": {
+        "x": 4420,
+        "y": 220
+      },
+      "type": "customNode",
+      "data": {
+        "id": "toolAgentflow_ingest_reject",
+        "label": "MCP拒绝导入草案",
+        "name": "toolAgentflow",
+        "version": 1.2,
+        "type": "Tool",
+        "baseClasses": [
+          "Tool"
+        ],
+        "category": "Agent Flows",
+        "inputs": {
+          "toolAgentflowSelectedTool": "customMCP",
+          "toolInputArgs": [
+            {
+              "inputArgName": "ingestJobId",
+              "inputArgValue": "{{$flow.state.ingestJobId}}"
+            },
+            {
+              "inputArgName": "expectedVersion",
+              "inputArgValue": "{{$flow.state.ingestJobVersion}}"
+            },
+            {
+              "inputArgName": "choice",
+              "inputArgValue": "REJECT"
+            },
+            {
+              "inputArgName": "reason",
+              "inputArgValue": "用户在Flowise中明确拒绝导入草案"
+            },
+            {
+              "inputArgName": "confirmationRef",
+              "inputArgValue": "{{$flow.sessionId}}-ingest-reject"
+            },
+            {
+              "inputArgName": "sessionRef",
+              "inputArgValue": "{{$flow.sessionId}}-ingest-reject"
+            }
+          ],
+          "toolUpdateState": [],
+          "toolAgentflowSelectedToolConfig": {
+            "toolAgentflowSelectedTool": "customMCP",
+            "mcpServerConfig": "{\"url\":\"http://127.0.0.1:18789/mcp\",\"headers\":{\"Authorization\":\"Bearer {{$vars.HENGZHUN_MCP_TOKEN}}\"}}",
+            "mcpActions": [
+              "ingest_decision_submit"
+            ]
+          }
+        }
+      }
+    },
+    {
+      "id": "llmAgentflow_schedule_intent",
+      "position": {
+        "x": 5440,
+        "y": 380
+      },
+      "type": "customNode",
+      "data": {
+        "id": "llmAgentflow_schedule_intent",
+        "label": "解析已确认执行方式",
+        "name": "llmAgentflow",
+        "version": 1.1,
+        "type": "LLM",
+        "baseClasses": [
+          "LLM"
+        ],
+        "category": "Agent Flows",
+        "inputs": {
+          "llmModel": "chatOpenAI",
+          "llmMessages": [
+            {
+              "role": "system",
+              "content": "把用户已经确认的执行方式严格解析为ON_DEMAND、ONE_TIME或RECURRING。ONE_TIME必须给带偏移runAt；RECURRING必须给Cron；必须保留用户确认的IANA时区。禁止填充示例日期。若用户文本已经包含ISO 8601时间，runAt必须逐字符复制该ISO时间，尤其不得把Z改成+08:00或在不换算时钟值的情况下改写偏移；任何时区换算都必须保持同一UTC时间点。 请严格输出JSON对象，字段必须符合结构化输出定义。 最终JSON只能包含这些精确字段且必须全部出现，不得改名、不得省略、不得为null、不得添加额外字段：{\"scheduleType\":\"\",\"runAt\":\"\",\"cronExpression\":\"\",\"timezone\":\"\",\"misfirePolicy\":\"\",\"misfireGraceSeconds\":0,\"maxRetries\":0}。字段语义：scheduleType(string)=ON_DEMAND、ONE_TIME或RECURRING；runAt(string)=ONE_TIME带偏移ISO时间，否则空；cronExpression(string)=RECURRING Cron，否则空；timezone(string)=IANA时区；misfirePolicy(string)=SKIP或RUN_ONCE；misfireGraceSeconds(number)=错过执行宽限秒数；maxRetries(number)=0到5。"
+            },
+            {
+              "role": "user",
+              "content": "用户本轮确认：{{question}}"
+            }
+          ],
+          "llmEnableMemory": false,
+          "llmReturnResponseAs": "userMessage",
+          "llmStructuredOutput": [
+            {
+              "key": "scheduleType",
+              "type": "string",
+              "description": "ON_DEMAND、ONE_TIME或RECURRING"
+            },
+            {
+              "key": "runAt",
+              "type": "string",
+              "description": "ONE_TIME带偏移ISO时间，否则空"
+            },
+            {
+              "key": "cronExpression",
+              "type": "string",
+              "description": "RECURRING Cron，否则空"
+            },
+            {
+              "key": "timezone",
+              "type": "string",
+              "description": "IANA时区"
+            },
+            {
+              "key": "misfirePolicy",
+              "type": "string",
+              "description": "SKIP或RUN_ONCE"
+            },
+            {
+              "key": "misfireGraceSeconds",
+              "type": "number",
+              "description": "错过执行宽限秒数"
+            },
+            {
+              "key": "maxRetries",
+              "type": "number",
+              "description": "0到5"
+            }
+          ],
+          "llmUpdateState": [],
+          "llmModelConfig": {
+            "modelName": "${CONTROL_MODEL_NAME}",
+            "temperature": 0,
+            "streaming": false,
+            "reasoning": false,
+            "allowImageUploads": false,
+            "maxTokens": 8192,
+            "basepath": "${CONTROL_BASE_URL}",
+            "strictToolCalling": false,
+            "llmModel": "chatOpenAI"
+          }
+        }
+      }
+    },
+    {
+      "id": "conditionAgentflow_on_demand",
+      "position": {
+        "x": 5780,
+        "y": 380
+      },
+      "type": "customNode",
+      "data": {
+        "id": "conditionAgentflow_on_demand",
+        "label": "是否立即执行",
+        "name": "conditionAgentflow",
+        "version": 1,
+        "type": "Condition",
+        "baseClasses": [
+          "Condition"
+        ],
+        "category": "Agent Flows",
+        "inputs": {
+          "conditions": [
+            {
+              "type": "string",
+              "value1": "{{llmAgentflow_schedule_intent.output.scheduleType}}",
+              "operation": "contains",
+              "value2": "ON_DEMAND"
+            }
+          ]
+        },
+        "outputAnchors": [
+          {
+            "label": "立即执行",
+            "name": "0"
+          },
+          {
+            "label": "定时或周期",
+            "name": "1"
+          }
+        ]
+      }
+    },
+    {
+      "id": "conditionAgentflow_one_time",
+      "position": {
+        "x": 6120,
+        "y": 380
+      },
+      "type": "customNode",
+      "data": {
+        "id": "conditionAgentflow_one_time",
+        "label": "是否单次定时",
+        "name": "conditionAgentflow",
+        "version": 1,
+        "type": "Condition",
+        "baseClasses": [
+          "Condition"
+        ],
+        "category": "Agent Flows",
+        "inputs": {
+          "conditions": [
+            {
+              "type": "string",
+              "value1": "{{llmAgentflow_schedule_intent.output.scheduleType}}",
+              "operation": "contains",
+              "value2": "ONE_TIME"
+            }
+          ]
+        },
+        "outputAnchors": [
+          {
+            "label": "单次定时",
+            "name": "0"
+          },
+          {
+            "label": "检查周期",
+            "name": "1"
+          }
+        ]
+      }
+    },
+    {
+      "id": "conditionAgentflow_recurring",
+      "position": {
+        "x": 6460,
+        "y": 480
+      },
+      "type": "customNode",
+      "data": {
+        "id": "conditionAgentflow_recurring",
+        "label": "是否周期执行",
+        "name": "conditionAgentflow",
+        "version": 1,
+        "type": "Condition",
+        "baseClasses": [
+          "Condition"
+        ],
+        "category": "Agent Flows",
+        "inputs": {
+          "conditions": [
+            {
+              "type": "string",
+              "value1": "{{llmAgentflow_schedule_intent.output.scheduleType}}",
+              "operation": "contains",
+              "value2": "RECURRING"
+            }
+          ]
+        },
+        "outputAnchors": [
+          {
+            "label": "周期执行",
+            "name": "0"
+          },
+          {
+            "label": "无法确定",
+            "name": "1"
+          }
+        ]
+      }
+    },
+    {
+      "id": "toolAgentflow_schedule",
+      "position": {
+        "x": 6120,
+        "y": 180
+      },
+      "type": "customNode",
+      "data": {
+        "id": "toolAgentflow_schedule",
+        "label": "MCP创建已确认单次调度",
+        "name": "toolAgentflow",
+        "version": 1.2,
+        "type": "Tool",
+        "baseClasses": [
+          "Tool"
+        ],
+        "category": "Agent Flows",
+        "inputs": {
+          "toolAgentflowSelectedTool": "customMCP",
+          "toolInputArgs": [
+            {
+              "inputArgName": "preparationId",
+              "inputArgValue": "{{$flow.state.preparationId}}"
+            },
+            {
+              "inputArgName": "scheduleType",
+              "inputArgValue": "ONE_TIME"
+            },
+            {
+              "inputArgName": "runAt",
+              "inputArgValue": "{{llmAgentflow_schedule_intent.output.runAt}}"
+            },
+            {
+              "inputArgName": "timezone",
+              "inputArgValue": "{{llmAgentflow_schedule_intent.output.timezone}}"
+            },
+            {
+              "inputArgName": "misfirePolicy",
+              "inputArgValue": "{{llmAgentflow_schedule_intent.output.misfirePolicy}}"
+            },
+            {
+              "inputArgName": "misfireGraceSeconds",
+              "inputArgValue": "{{llmAgentflow_schedule_intent.output.misfireGraceSeconds}}"
+            },
+            {
+              "inputArgName": "maxRetries",
+              "inputArgValue": "{{llmAgentflow_schedule_intent.output.maxRetries}}"
+            },
+            {
+              "inputArgName": "confirmationRef",
+              "inputArgValue": "{{$flow.sessionId}}-schedule-confirm"
+            },
+            {
+              "inputArgName": "sessionRef",
+              "inputArgValue": "{{$flow.sessionId}}-schedule"
+            }
+          ],
+          "toolUpdateState": [
+            {
+              "key": "scheduleId",
+              "value": "{{ output.scheduleId }}"
+            }
+          ],
+          "toolAgentflowSelectedToolConfig": {
+            "toolAgentflowSelectedTool": "customMCP",
+            "mcpServerConfig": "{\"url\":\"http://127.0.0.1:18789/mcp\",\"headers\":{\"Authorization\":\"Bearer {{$vars.HENGZHUN_MCP_TOKEN}}\"}}",
+            "mcpActions": [
+              "schedule_create"
+            ]
+          }
+        }
+      }
+    },
+    {
+      "id": "toolAgentflow_schedule_recurring",
+      "position": {
+        "x": 6800,
+        "y": 420
+      },
+      "type": "customNode",
+      "data": {
+        "id": "toolAgentflow_schedule_recurring",
+        "label": "MCP创建已确认周期调度",
+        "name": "toolAgentflow",
+        "version": 1.2,
+        "type": "Tool",
+        "baseClasses": [
+          "Tool"
+        ],
+        "category": "Agent Flows",
+        "inputs": {
+          "toolAgentflowSelectedTool": "customMCP",
+          "toolInputArgs": [
+            {
+              "inputArgName": "preparationId",
+              "inputArgValue": "{{$flow.state.preparationId}}"
+            },
+            {
+              "inputArgName": "scheduleType",
+              "inputArgValue": "RECURRING"
+            },
+            {
+              "inputArgName": "cronExpression",
+              "inputArgValue": "{{llmAgentflow_schedule_intent.output.cronExpression}}"
+            },
+            {
+              "inputArgName": "timezone",
+              "inputArgValue": "{{llmAgentflow_schedule_intent.output.timezone}}"
+            },
+            {
+              "inputArgName": "misfirePolicy",
+              "inputArgValue": "{{llmAgentflow_schedule_intent.output.misfirePolicy}}"
+            },
+            {
+              "inputArgName": "misfireGraceSeconds",
+              "inputArgValue": "{{llmAgentflow_schedule_intent.output.misfireGraceSeconds}}"
+            },
+            {
+              "inputArgName": "maxRetries",
+              "inputArgValue": "{{llmAgentflow_schedule_intent.output.maxRetries}}"
+            },
+            {
+              "inputArgName": "confirmationRef",
+              "inputArgValue": "{{$flow.sessionId}}-schedule-confirm"
+            },
+            {
+              "inputArgName": "sessionRef",
+              "inputArgValue": "{{$flow.sessionId}}-schedule"
+            }
+          ],
+          "toolUpdateState": [
+            {
+              "key": "scheduleId",
+              "value": "{{ output.scheduleId }}"
+            }
+          ],
+          "toolAgentflowSelectedToolConfig": {
+            "toolAgentflowSelectedTool": "customMCP",
+            "mcpServerConfig": "{\"url\":\"http://127.0.0.1:18789/mcp\",\"headers\":{\"Authorization\":\"Bearer {{$vars.HENGZHUN_MCP_TOKEN}}\"}}",
+            "mcpActions": [
+              "schedule_create"
+            ]
+          }
+        }
+      }
+    },
+    {
+      "id": "directReplyAgentflow_schedule_invalid",
+      "position": {
+        "x": 6800,
+        "y": 620
+      },
+      "type": "customNode",
+      "data": {
+        "id": "directReplyAgentflow_schedule_invalid",
+        "label": "执行方式无法确定",
+        "name": "directReplyAgentflow",
+        "version": 1,
+        "type": "DirectReply",
+        "baseClasses": [
+          "DirectReply"
+        ],
+        "category": "Agent Flows",
+        "inputs": {
+          "directReplyMessage": "无法从用户确认中唯一确定ON_DEMAND、ONE_TIME或RECURRING；未创建任务或调度。请重新明确执行方式、时间与时区。"
+        }
+      }
+    },
+    {
+      "id": "toolAgentflow_schedule_get",
+      "position": {
+        "x": 6460,
+        "y": 180
+      },
+      "type": "customNode",
+      "data": {
+        "id": "toolAgentflow_schedule_get",
+        "label": "MCP回读调度状态",
+        "name": "toolAgentflow",
+        "version": 1.2,
+        "type": "Tool",
+        "baseClasses": [
+          "Tool"
+        ],
+        "category": "Agent Flows",
+        "inputs": {
+          "toolAgentflowSelectedTool": "customMCP",
+          "toolInputArgs": [
+            {
+              "inputArgName": "scheduleId",
+              "inputArgValue": "{{$flow.state.scheduleId}}"
+            }
+          ],
+          "toolUpdateState": [],
+          "toolAgentflowSelectedToolConfig": {
+            "toolAgentflowSelectedTool": "customMCP",
+            "mcpServerConfig": "{\"url\":\"http://127.0.0.1:18789/mcp\",\"headers\":{\"Authorization\":\"Bearer {{$vars.HENGZHUN_MCP_TOKEN}}\"}}",
+            "mcpActions": [
+              "schedule_get"
+            ]
+          }
+        }
+      }
+    },
+    {
+      "id": "directReplyAgentflow_scheduled",
+      "position": {
+        "x": 6800,
+        "y": 180
+      },
+      "type": "customNode",
+      "data": {
+        "id": "directReplyAgentflow_scheduled",
+        "label": "返回调度创建结果",
+        "name": "directReplyAgentflow",
+        "version": 1,
+        "type": "DirectReply",
+        "baseClasses": [
+          "DirectReply"
+        ],
+        "category": "Agent Flows",
+        "inputs": {
+          "directReplyMessage": "已按用户确认的时区和频率创建并回读调度：{{toolAgentflow_schedule_get}}。脚本版本和Hash保持与四次验证证书一致。"
+        }
+      }
+    },
+    {
+      "id": "llmAgentflow_repair_schedule_intent",
+      "position": {
+        "x": 12240,
+        "y": 500
+      },
+      "type": "customNode",
+      "data": {
+        "id": "llmAgentflow_repair_schedule_intent",
+        "label": "解析修复版调度选择",
+        "name": "llmAgentflow",
+        "version": 1.1,
+        "type": "LLM",
+        "baseClasses": [
+          "LLM"
+        ],
+        "category": "Agent Flows",
+        "inputs": {
+          "llmModel": "chatOpenAI",
+          "llmMessages": [
+            {
+              "role": "system",
+              "content": "只解析用户已确认的ONE_TIME或RECURRING调度；必须输出带偏移runAt或Cron、IANA时区、misfire与重试。禁止示例日期。若用户文本已经包含ISO 8601时间，runAt必须逐字符复制该ISO时间，尤其不得把Z改成+08:00或在不换算时钟值的情况下改写偏移；任何时区换算都必须保持同一UTC时间点。 请严格输出JSON对象，字段必须符合结构化输出定义。 最终JSON只能包含这些精确字段且必须全部出现，不得改名、不得省略、不得为null、不得添加额外字段：{\"runAt\":\"\",\"cronExpression\":\"\",\"timezone\":\"\",\"misfirePolicy\":\"\",\"misfireGraceSeconds\":0,\"maxRetries\":0,\"scheduleType\":\"\"}。字段语义：runAt(string)=ONE_TIME带偏移ISO时间，否则空；cronExpression(string)=RECURRING Cron，否则空；timezone(string)=IANA时区；misfirePolicy(string)=SKIP或RUN_ONCE；misfireGraceSeconds(number)=错过执行宽限秒数；maxRetries(number)=0到5；scheduleType(string)=ONE_TIME或RECURRING。"
+            },
+            {
+              "role": "user",
+              "content": "用户本轮确认：{{question}}"
+            }
+          ],
+          "llmEnableMemory": false,
+          "llmReturnResponseAs": "userMessage",
+          "llmStructuredOutput": [
+            {
+              "key": "runAt",
+              "type": "string",
+              "description": "ONE_TIME带偏移ISO时间，否则空"
+            },
+            {
+              "key": "cronExpression",
+              "type": "string",
+              "description": "RECURRING Cron，否则空"
+            },
+            {
+              "key": "timezone",
+              "type": "string",
+              "description": "IANA时区"
+            },
+            {
+              "key": "misfirePolicy",
+              "type": "string",
+              "description": "SKIP或RUN_ONCE"
+            },
+            {
+              "key": "misfireGraceSeconds",
+              "type": "number",
+              "description": "错过执行宽限秒数"
+            },
+            {
+              "key": "maxRetries",
+              "type": "number",
+              "description": "0到5"
+            },
+            {
+              "key": "scheduleType",
+              "type": "string",
+              "description": "ONE_TIME或RECURRING"
+            }
+          ],
+          "llmUpdateState": [],
+          "llmModelConfig": {
+            "modelName": "${CONTROL_MODEL_NAME}",
+            "temperature": 0,
+            "streaming": false,
+            "reasoning": false,
+            "allowImageUploads": false,
+            "maxTokens": 8192,
+            "basepath": "${CONTROL_BASE_URL}",
+            "strictToolCalling": false,
+            "llmModel": "chatOpenAI"
+          }
+        }
+      }
+    },
+    {
+      "id": "conditionAgentflow_repair_one_time",
+      "position": {
+        "x": 12580,
+        "y": 500
+      },
+      "type": "customNode",
+      "data": {
+        "id": "conditionAgentflow_repair_one_time",
+        "label": "修复版是否单次定时",
+        "name": "conditionAgentflow",
+        "version": 1,
+        "type": "Condition",
+        "baseClasses": [
+          "Condition"
+        ],
+        "category": "Agent Flows",
+        "inputs": {
+          "conditions": [
+            {
+              "type": "string",
+              "value1": "{{llmAgentflow_repair_schedule_intent.output.scheduleType}}",
+              "operation": "contains",
+              "value2": "ONE_TIME"
+            }
+          ]
+        },
+        "outputAnchors": [
+          {
+            "label": "单次定时",
+            "name": "0"
+          },
+          {
+            "label": "检查周期",
+            "name": "1"
+          }
+        ]
+      }
+    },
+    {
+      "id": "conditionAgentflow_repair_recurring",
+      "position": {
+        "x": 12920,
+        "y": 620
+      },
+      "type": "customNode",
+      "data": {
+        "id": "conditionAgentflow_repair_recurring",
+        "label": "修复版是否周期执行",
+        "name": "conditionAgentflow",
+        "version": 1,
+        "type": "Condition",
+        "baseClasses": [
+          "Condition"
+        ],
+        "category": "Agent Flows",
+        "inputs": {
+          "conditions": [
+            {
+              "type": "string",
+              "value1": "{{llmAgentflow_repair_schedule_intent.output.scheduleType}}",
+              "operation": "contains",
+              "value2": "RECURRING"
+            }
+          ]
+        },
+        "outputAnchors": [
+          {
+            "label": "周期执行",
+            "name": "0"
+          },
+          {
+            "label": "无法确定",
+            "name": "1"
+          }
+        ]
+      }
+    },
+    {
+      "id": "toolAgentflow_repair_schedule_recurring",
+      "position": {
+        "x": 13260,
+        "y": 540
+      },
+      "type": "customNode",
+      "data": {
+        "id": "toolAgentflow_repair_schedule_recurring",
+        "label": "MCP创建已确认周期修复版调度",
+        "name": "toolAgentflow",
+        "version": 1.2,
+        "type": "Tool",
+        "baseClasses": [
+          "Tool"
+        ],
+        "category": "Agent Flows",
+        "inputs": {
+          "toolAgentflowSelectedTool": "customMCP",
+          "toolInputArgs": [
+            {
+              "inputArgName": "preparationId",
+              "inputArgValue": "{{$flow.state.preparationId}}"
+            },
+            {
+              "inputArgName": "scheduleType",
+              "inputArgValue": "RECURRING"
+            },
+            {
+              "inputArgName": "cronExpression",
+              "inputArgValue": "{{llmAgentflow_repair_schedule_intent.output.cronExpression}}"
+            },
+            {
+              "inputArgName": "timezone",
+              "inputArgValue": "{{llmAgentflow_repair_schedule_intent.output.timezone}}"
+            },
+            {
+              "inputArgName": "misfirePolicy",
+              "inputArgValue": "{{llmAgentflow_repair_schedule_intent.output.misfirePolicy}}"
+            },
+            {
+              "inputArgName": "misfireGraceSeconds",
+              "inputArgValue": "{{llmAgentflow_repair_schedule_intent.output.misfireGraceSeconds}}"
+            },
+            {
+              "inputArgName": "maxRetries",
+              "inputArgValue": "{{llmAgentflow_repair_schedule_intent.output.maxRetries}}"
+            },
+            {
+              "inputArgName": "confirmationRef",
+              "inputArgValue": "{{$flow.sessionId}}"
+            },
+            {
+              "inputArgName": "sessionRef",
+              "inputArgValue": "{{$flow.sessionId}}-repair-schedule"
+            }
+          ],
+          "toolUpdateState": [
+            {
+              "key": "scheduleId",
+              "value": "{{ output.scheduleId }}"
+            }
+          ],
+          "toolAgentflowSelectedToolConfig": {
+            "toolAgentflowSelectedTool": "customMCP",
+            "mcpServerConfig": "{\"url\":\"http://127.0.0.1:18789/mcp\",\"headers\":{\"Authorization\":\"Bearer {{$vars.HENGZHUN_MCP_TOKEN}}\"}}",
+            "mcpActions": [
+              "schedule_create"
+            ]
+          }
+        }
+      }
+    },
+    {
+      "id": "directReplyAgentflow_repair_schedule_invalid",
+      "position": {
+        "x": 13260,
+        "y": 700
+      },
+      "type": "customNode",
+      "data": {
+        "id": "directReplyAgentflow_repair_schedule_invalid",
+        "label": "修复版执行方式无法确定",
+        "name": "directReplyAgentflow",
+        "version": 1,
+        "type": "DirectReply",
+        "baseClasses": [
+          "DirectReply"
+        ],
+        "category": "Agent Flows",
+        "inputs": {
+          "directReplyMessage": "无法从用户确认中唯一确定ONE_TIME或RECURRING；未创建修复版调度。请重新明确执行方式、时间与时区。"
+        }
+      }
+    },
+    {
+      "id": "toolAgentflow_repair_schedule_get",
+      "position": {
+        "x": 12600,
+        "y": 500
+      },
+      "type": "customNode",
+      "data": {
+        "id": "toolAgentflow_repair_schedule_get",
+        "label": "MCP回读修复版调度状态",
+        "name": "toolAgentflow",
+        "version": 1.2,
+        "type": "Tool",
+        "baseClasses": [
+          "Tool"
+        ],
+        "category": "Agent Flows",
+        "inputs": {
+          "toolAgentflowSelectedTool": "customMCP",
+          "toolInputArgs": [
+            {
+              "inputArgName": "scheduleId",
+              "inputArgValue": "{{$flow.state.scheduleId}}"
+            }
+          ],
+          "toolUpdateState": [],
+          "toolAgentflowSelectedToolConfig": {
+            "toolAgentflowSelectedTool": "customMCP",
+            "mcpServerConfig": "{\"url\":\"http://127.0.0.1:18789/mcp\",\"headers\":{\"Authorization\":\"Bearer {{$vars.HENGZHUN_MCP_TOKEN}}\"}}",
+            "mcpActions": [
+              "schedule_get"
+            ]
+          }
+        }
+      }
+    },
+    {
+      "id": "toolAgentflow_result_inbox",
+      "position": {
+        "x": 9860,
+        "y": -180
+      },
+      "type": "customNode",
+      "data": {
+        "id": "toolAgentflow_result_inbox",
+        "label": "MCP读取正式结果收件箱",
+        "name": "toolAgentflow",
+        "version": 1.2,
+        "type": "Tool",
+        "baseClasses": [
+          "Tool"
+        ],
+        "category": "Agent Flows",
+        "inputs": {
+          "toolAgentflowSelectedTool": "customMCP",
+          "toolInputArgs": [
+            {
+              "inputArgName": "limit",
+              "inputArgValue": 10
+            },
+            {
+              "inputArgName": "unreadOnly",
+              "inputArgValue": false
+            },
+            {
+              "inputArgName": "acknowledgeInboxIds",
+              "inputArgValue": []
+            }
+          ],
+          "toolUpdateState": [],
+          "toolAgentflowSelectedToolConfig": {
+            "toolAgentflowSelectedTool": "customMCP",
+            "mcpServerConfig": "{\"url\":\"http://127.0.0.1:18789/mcp\",\"headers\":{\"Authorization\":\"Bearer {{$vars.HENGZHUN_MCP_TOKEN}}\"}}",
+            "mcpActions": [
+              "result_inbox_list"
+            ]
+          }
+        }
+      }
+    },
+    {
+      "id": "toolAgentflow_repair_result_inbox",
+      "position": {
+        "x": 11920,
+        "y": 500
+      },
+      "type": "customNode",
+      "data": {
+        "id": "toolAgentflow_repair_result_inbox",
+        "label": "MCP读取修复复跑结果收件箱",
+        "name": "toolAgentflow",
+        "version": 1.2,
+        "type": "Tool",
+        "baseClasses": [
+          "Tool"
+        ],
+        "category": "Agent Flows",
+        "inputs": {
+          "toolAgentflowSelectedTool": "customMCP",
+          "toolInputArgs": [
+            {
+              "inputArgName": "limit",
+              "inputArgValue": 10
+            },
+            {
+              "inputArgName": "unreadOnly",
+              "inputArgValue": false
+            },
+            {
+              "inputArgName": "acknowledgeInboxIds",
+              "inputArgValue": []
+            }
+          ],
+          "toolUpdateState": [],
+          "toolAgentflowSelectedToolConfig": {
+            "toolAgentflowSelectedTool": "customMCP",
+            "mcpServerConfig": "{\"url\":\"http://127.0.0.1:18789/mcp\",\"headers\":{\"Authorization\":\"Bearer {{$vars.HENGZHUN_MCP_TOKEN}}\"}}",
+            "mcpActions": [
+              "result_inbox_list"
+            ]
+          }
+        }
+      }
+    },
+    {
+      "id": "conditionAgentflow_candidate_ready",
+      "position": {
+        "x": 7820,
+        "y": -220
+      },
+      "type": "customNode",
+      "data": {
+        "id": "conditionAgentflow_candidate_ready",
+        "label": "候选是否完成四次签证",
+        "name": "conditionAgentflow",
+        "version": 1,
+        "type": "Condition",
+        "baseClasses": [
+          "Condition"
+        ],
+        "category": "Agent Flows",
+        "inputs": {
+          "conditions": [
+            {
+              "type": "string",
+              "value1": "{{toolAgentflow_candidate_ready}}",
+              "operation": "contains",
+              "value2": "HUMAN_DELIVERY_DECISION_REQUIRED"
+            }
+          ]
+        },
+        "outputAnchors": [
+          {
+            "label": "已持证",
+            "name": "0"
+          },
+          {
+            "label": "继续等待",
+            "name": "1"
+          }
+        ]
+      }
+    },
+    {
+      "id": "conditionAgentflow_candidate_authoring_failed",
+      "position": {
+        "x": 8160,
+        "y": 20
+      },
+      "type": "customNode",
+      "data": {
+        "id": "conditionAgentflow_candidate_authoring_failed",
+        "label": "作者化是否失败关闭",
+        "name": "conditionAgentflow",
+        "version": 1,
+        "type": "Condition",
+        "baseClasses": [
+          "Condition"
+        ],
+        "category": "Agent Flows",
+        "inputs": {
+          "conditions": [
+            {
+              "type": "string",
+              "value1": "{{toolAgentflow_candidate_ready}}",
+              "operation": "contains",
+              "value2": "AUTHORING_REVIEW_REQUIRED"
+            }
+          ]
+        },
+        "outputAnchors": [
+          {
+            "label": "作者化失败",
+            "name": "0"
+          },
+          {
+            "label": "继续判断",
+            "name": "1"
+          }
+        ]
+      }
+    },
+    {
+      "id": "conditionAgentflow_candidate_validation_failed",
+      "position": {
+        "x": 8500,
+        "y": 80
+      },
+      "type": "customNode",
+      "data": {
+        "id": "conditionAgentflow_candidate_validation_failed",
+        "label": "候选验证是否失败关闭",
+        "name": "conditionAgentflow",
+        "version": 1,
+        "type": "Condition",
+        "baseClasses": [
+          "Condition"
+        ],
+        "category": "Agent Flows",
+        "inputs": {
+          "conditions": [
+            {
+              "type": "string",
+              "value1": "{{toolAgentflow_candidate_ready}}",
+              "operation": "contains",
+              "value2": "CANDIDATE_REPAIR_REQUIRED"
+            }
+          ]
+        },
+        "outputAnchors": [
+          {
+            "label": "验证失败",
+            "name": "0"
+          },
+          {
+            "label": "仍在处理",
+            "name": "1"
+          }
+        ]
+      }
+    },
+    {
+      "id": "directReplyAgentflow_candidate_failed",
+      "position": {
+        "x": 8840,
+        "y": -20
+      },
+      "type": "customNode",
+      "data": {
+        "id": "directReplyAgentflow_candidate_failed",
+        "label": "返回作者化或验证失败",
+        "name": "directReplyAgentflow",
+        "version": 1,
+        "type": "DirectReply",
+        "baseClasses": [
+          "DirectReply"
+        ],
+        "category": "Agent Flows",
+        "inputs": {
+          "directReplyMessage": "候选脚本未通过真实作者化或纯Playwright验证，系统已失败关闭，未签发证书、未激活脚本。权威状态：{{toolAgentflow_candidate_ready}}"
+        }
+      }
+    },
+    {
+      "id": "conditionAgentflow_repair_ready",
+      "position": {
+        "x": 9520,
+        "y": 620
+      },
+      "type": "customNode",
+      "data": {
+        "id": "conditionAgentflow_repair_ready",
+        "label": "修复候选是否完成四次签证",
+        "name": "conditionAgentflow",
+        "version": 1,
+        "type": "Condition",
+        "baseClasses": [
+          "Condition"
+        ],
+        "category": "Agent Flows",
+        "inputs": {
+          "conditions": [
+            {
+              "type": "string",
+              "value1": "{{toolAgentflow_repair_ready}}",
+              "operation": "contains",
+              "value2": "WAITING_USER"
+            }
+          ]
+        },
+        "outputAnchors": [
+          {
+            "label": "已持证",
+            "name": "0"
+          },
+          {
+            "label": "继续判断",
+            "name": "1"
+          }
+        ]
+      }
+    },
+    {
+      "id": "conditionAgentflow_repair_validation_failed",
+      "position": {
+        "x": 9860,
+        "y": 720
+      },
+      "type": "customNode",
+      "data": {
+        "id": "conditionAgentflow_repair_validation_failed",
+        "label": "修复候选是否验证失败",
+        "name": "conditionAgentflow",
+        "version": 1,
+        "type": "Condition",
+        "baseClasses": [
+          "Condition"
+        ],
+        "category": "Agent Flows",
+        "inputs": {
+          "conditions": [
+            {
+              "type": "string",
+              "value1": "{{toolAgentflow_repair_ready}}",
+              "operation": "contains",
+              "value2": "VALIDATION_FAILED"
+            }
+          ]
+        },
+        "outputAnchors": [
+          {
+            "label": "验证失败",
+            "name": "0"
+          },
+          {
+            "label": "仍在处理",
+            "name": "1"
+          }
+        ]
+      }
+    },
+    {
+      "id": "directReplyAgentflow_repair_validation_failed",
+      "position": {
+        "x": 10200,
+        "y": 760
+      },
+      "type": "customNode",
+      "data": {
+        "id": "directReplyAgentflow_repair_validation_failed",
+        "label": "返回修复验证失败",
+        "name": "directReplyAgentflow",
+        "version": 1,
+        "type": "DirectReply",
+        "baseClasses": [
+          "DirectReply"
+        ],
+        "category": "Agent Flows",
+        "inputs": {
+          "directReplyMessage": "修复候选未通过纯Playwright或四次稳定性验证，系统已失败关闭，未激活、未复跑、未迁移调度。权威状态：{{toolAgentflow_repair_ready}}"
+        }
+      }
+    }
+  ],
+  "edges": [
+    {
+      "id": "e02",
+      "source": "retrieverAgentflow_i8",
+      "sourceHandle": "retrieverAgentflow_i8-output-retrieverAgentflow",
+      "target": "llmAgentflow_structure",
+      "targetHandle": "llmAgentflow_structure"
+    },
+    {
+      "id": "e03",
+      "source": "llmAgentflow_structure",
+      "sourceHandle": "llmAgentflow_structure-output-llmAgentflow",
+      "target": "conditionAgentflow_clarify",
+      "targetHandle": "conditionAgentflow_clarify"
+    },
+    {
+      "id": "e04",
+      "source": "conditionAgentflow_clarify",
+      "sourceHandle": "conditionAgentflow_clarify-output-0",
+      "target": "humanInputAgentflow_clarify",
+      "targetHandle": "humanInputAgentflow_clarify"
+    },
+    {
+      "id": "e05",
+      "source": "humanInputAgentflow_clarify",
+      "sourceHandle": "humanInputAgentflow_clarify-output-0",
+      "target": "loopAgentflow_clarify",
+      "targetHandle": "loopAgentflow_clarify"
+    },
+    {
+      "id": "e06",
+      "source": "conditionAgentflow_clarify",
+      "sourceHandle": "conditionAgentflow_clarify-output-1",
+      "target": "humanInputAgentflow_confirm",
+      "targetHandle": "humanInputAgentflow_confirm"
+    },
+    {
+      "id": "e07",
+      "source": "humanInputAgentflow_confirm",
+      "sourceHandle": "humanInputAgentflow_confirm-output-0",
+      "target": "toolAgentflow_prepare",
+      "targetHandle": "toolAgentflow_prepare"
+    },
+    {
+      "id": "e08",
+      "source": "humanInputAgentflow_confirm",
+      "sourceHandle": "humanInputAgentflow_confirm-output-1",
+      "target": "directReplyAgentflow_rejected",
+      "targetHandle": "directReplyAgentflow_rejected"
+    },
+    {
+      "id": "e09",
+      "source": "humanInputAgentflow_clarify",
+      "sourceHandle": "humanInputAgentflow_clarify-output-1",
+      "target": "directReplyAgentflow_rejected",
+      "targetHandle": "directReplyAgentflow_rejected"
+    },
+    {
+      "id": "e10",
+      "source": "toolAgentflow_prepare",
+      "sourceHandle": "toolAgentflow_prepare-output-toolAgentflow",
+      "target": "llmAgentflow_intent",
+      "targetHandle": "llmAgentflow_intent"
+    },
+    {
+      "id": "e11",
+      "source": "llmAgentflow_intent",
+      "sourceHandle": "llmAgentflow_intent-output-llmAgentflow",
+      "target": "toolAgentflow_submit",
+      "targetHandle": "toolAgentflow_submit"
+    },
+    {
+      "id": "e12",
+      "source": "toolAgentflow_submit",
+      "sourceHandle": "toolAgentflow_submit-output-toolAgentflow",
+      "target": "toolAgentflow_get",
+      "targetHandle": "toolAgentflow_get"
+    },
+    {
+      "id": "e13",
+      "source": "toolAgentflow_get",
+      "sourceHandle": "toolAgentflow_get-output-toolAgentflow",
+      "target": "toolAgentflow_candidate",
+      "targetHandle": "toolAgentflow_candidate"
+    },
+    {
+      "id": "e14",
+      "source": "toolAgentflow_candidate",
+      "sourceHandle": "toolAgentflow_candidate-output-toolAgentflow",
+      "target": "humanInputAgentflow_generation",
+      "targetHandle": "humanInputAgentflow_generation"
+    },
+    {
+      "id": "e15",
+      "source": "humanInputAgentflow_generation",
+      "sourceHandle": "humanInputAgentflow_generation-output-0",
+      "target": "toolAgentflow_candidate_ready",
+      "targetHandle": "toolAgentflow_candidate_ready"
+    },
+    {
+      "id": "e15r",
+      "source": "humanInputAgentflow_generation",
+      "sourceHandle": "humanInputAgentflow_generation-output-1",
+      "target": "directReplyAgentflow_not_activated",
+      "targetHandle": "directReplyAgentflow_not_activated"
+    },
+    {
+      "id": "e15b",
+      "source": "toolAgentflow_preview",
+      "sourceHandle": "toolAgentflow_preview-output-toolAgentflow",
+      "target": "humanInputAgentflow_activate",
+      "targetHandle": "humanInputAgentflow_activate"
+    },
+    {
+      "id": "e16",
+      "source": "humanInputAgentflow_activate",
+      "sourceHandle": "humanInputAgentflow_activate-output-0",
+      "target": "toolAgentflow_activate",
+      "targetHandle": "toolAgentflow_activate"
+    },
+    {
+      "id": "e17",
+      "source": "humanInputAgentflow_activate",
+      "sourceHandle": "humanInputAgentflow_activate-output-1",
+      "target": "directReplyAgentflow_not_activated",
+      "targetHandle": "directReplyAgentflow_not_activated"
+    },
+    {
+      "id": "e18",
+      "source": "toolAgentflow_activate",
+      "sourceHandle": "toolAgentflow_activate-output-toolAgentflow",
+      "target": "humanInputAgentflow_run",
+      "targetHandle": "humanInputAgentflow_run"
+    },
+    {
+      "id": "e20",
+      "source": "humanInputAgentflow_run",
+      "sourceHandle": "humanInputAgentflow_run-output-1",
+      "target": "directReplyAgentflow_run_later",
+      "targetHandle": "directReplyAgentflow_run_later"
+    },
+    {
+      "id": "e21",
+      "source": "toolAgentflow_run",
+      "sourceHandle": "toolAgentflow_run-output-toolAgentflow",
+      "target": "llmAgentflow_runref",
+      "targetHandle": "llmAgentflow_runref"
+    },
+    {
+      "id": "e22",
+      "source": "llmAgentflow_runref",
+      "sourceHandle": "llmAgentflow_runref-output-llmAgentflow",
+      "target": "toolAgentflow_task",
+      "targetHandle": "toolAgentflow_task"
+    },
+    {
+      "id": "e23",
+      "source": "toolAgentflow_task",
+      "sourceHandle": "toolAgentflow_task-output-toolAgentflow",
+      "target": "llmAgentflow_terminal",
+      "targetHandle": "llmAgentflow_terminal"
+    },
+    {
+      "id": "e24",
+      "source": "llmAgentflow_terminal",
+      "sourceHandle": "llmAgentflow_terminal-output-llmAgentflow",
+      "target": "conditionAgentflow_terminal",
+      "targetHandle": "conditionAgentflow_terminal"
+    },
+    {
+      "id": "e26",
+      "source": "conditionAgentflow_terminal",
+      "sourceHandle": "conditionAgentflow_terminal-output-1",
+      "target": "humanInputAgentflow_repair",
+      "targetHandle": "humanInputAgentflow_repair"
+    },
+    {
+      "id": "e27",
+      "source": "humanInputAgentflow_repair",
+      "sourceHandle": "humanInputAgentflow_repair-output-0",
+      "target": "toolAgentflow_failure",
+      "targetHandle": "toolAgentflow_failure"
+    },
+    {
+      "id": "e27r",
+      "source": "humanInputAgentflow_repair",
+      "sourceHandle": "humanInputAgentflow_repair-output-1",
+      "target": "directReplyAgentflow_failure_report",
+      "targetHandle": "directReplyAgentflow_failure_report"
+    },
+    {
+      "id": "e28",
+      "source": "toolAgentflow_failure",
+      "sourceHandle": "toolAgentflow_failure-output-toolAgentflow",
+      "target": "llmAgentflow_repair",
+      "targetHandle": "llmAgentflow_repair"
+    },
+    {
+      "id": "e29",
+      "source": "llmAgentflow_repair",
+      "sourceHandle": "llmAgentflow_repair-output-llmAgentflow",
+      "target": "humanInputAgentflow_repair_confirm",
+      "targetHandle": "humanInputAgentflow_repair_confirm"
+    },
+    {
+      "id": "e30",
+      "source": "humanInputAgentflow_repair_confirm",
+      "sourceHandle": "humanInputAgentflow_repair_confirm-output-0",
+      "target": "toolAgentflow_repair_propose",
+      "targetHandle": "toolAgentflow_repair_propose"
+    },
+    {
+      "id": "e30r",
+      "source": "humanInputAgentflow_repair_confirm",
+      "sourceHandle": "humanInputAgentflow_repair_confirm-output-1",
+      "target": "directReplyAgentflow_repair_rejected",
+      "targetHandle": "directReplyAgentflow_repair_rejected"
+    },
+    {
+      "id": "e32r",
+      "source": "humanInputAgentflow_repair_wait",
+      "sourceHandle": "humanInputAgentflow_repair_wait-output-1",
+      "target": "directReplyAgentflow_repair_rejected",
+      "targetHandle": "directReplyAgentflow_repair_rejected"
+    },
+    {
+      "id": "e34",
+      "source": "llmAgentflow_proposalref",
+      "sourceHandle": "llmAgentflow_proposalref-output-llmAgentflow",
+      "target": "humanInputAgentflow_repair_activate",
+      "targetHandle": "humanInputAgentflow_repair_activate"
+    },
+    {
+      "id": "e35",
+      "source": "humanInputAgentflow_repair_activate",
+      "sourceHandle": "humanInputAgentflow_repair_activate-output-0",
+      "target": "toolAgentflow_repair_decision",
+      "targetHandle": "toolAgentflow_repair_decision"
+    },
+    {
+      "id": "e35r",
+      "source": "humanInputAgentflow_repair_activate",
+      "sourceHandle": "humanInputAgentflow_repair_activate-output-1",
+      "target": "directReplyAgentflow_repair_not_activated",
+      "targetHandle": "directReplyAgentflow_repair_not_activated"
+    },
+    {
+      "id": "e36",
+      "source": "toolAgentflow_repair_decision",
+      "sourceHandle": "toolAgentflow_repair_decision-output-toolAgentflow",
+      "target": "humanInputAgentflow_repair_rerun",
+      "targetHandle": "humanInputAgentflow_repair_rerun"
+    },
+    {
+      "id": "e37",
+      "source": "humanInputAgentflow_repair_rerun",
+      "sourceHandle": "humanInputAgentflow_repair_rerun-output-0",
+      "target": "toolAgentflow_repair_rerun",
+      "targetHandle": "toolAgentflow_repair_rerun"
+    },
+    {
+      "id": "e37r",
+      "source": "humanInputAgentflow_repair_rerun",
+      "sourceHandle": "humanInputAgentflow_repair_rerun-output-1",
+      "target": "directReplyAgentflow_repair_no_rerun",
+      "targetHandle": "directReplyAgentflow_repair_no_rerun"
+    },
+    {
+      "id": "e38",
+      "source": "toolAgentflow_repair_rerun",
+      "sourceHandle": "toolAgentflow_repair_rerun-output-toolAgentflow",
+      "target": "llmAgentflow_repair_runref",
+      "targetHandle": "llmAgentflow_repair_runref"
+    },
+    {
+      "id": "e39",
+      "source": "llmAgentflow_repair_runref",
+      "sourceHandle": "llmAgentflow_repair_runref-output-llmAgentflow",
+      "target": "toolAgentflow_repair_task",
+      "targetHandle": "toolAgentflow_repair_task"
+    },
+    {
+      "id": "e41r",
+      "source": "humanInputAgentflow_repair_schedule",
+      "sourceHandle": "humanInputAgentflow_repair_schedule-output-1",
+      "target": "directReplyAgentflow_repair_no_schedule",
+      "targetHandle": "directReplyAgentflow_repair_no_schedule"
+    },
+    {
+      "id": "i10-e01",
+      "source": "startAgentflow_i8",
+      "sourceHandle": "startAgentflow_i8-output-startAgentflow",
+      "target": "llmAgentflow_i10_input",
+      "targetHandle": "llmAgentflow_i10_input"
+    },
+    {
+      "id": "i10-e01a",
+      "source": "llmAgentflow_i10_input",
+      "sourceHandle": "llmAgentflow_i10_input-output-llmAgentflow",
+      "target": "conditionAgentflow_case_intent",
+      "targetHandle": "conditionAgentflow_case_intent"
+    },
+    {
+      "id": "i10-e01b",
+      "source": "conditionAgentflow_case_intent",
+      "sourceHandle": "conditionAgentflow_case_intent-output-0",
+      "target": "conditionAgentflow_credential",
+      "targetHandle": "conditionAgentflow_credential"
+    },
+    {
+      "id": "i10-e01c",
+      "source": "conditionAgentflow_case_intent",
+      "sourceHandle": "conditionAgentflow_case_intent-output-1",
+      "target": "conditionAgentflow_result_intent",
+      "targetHandle": "conditionAgentflow_result_intent"
+    },
+    {
+      "id": "i10-e01d",
+      "source": "conditionAgentflow_result_intent",
+      "sourceHandle": "conditionAgentflow_result_intent-output-0",
+      "target": "toolAgentflow_management_inbox",
+      "targetHandle": "toolAgentflow_management_inbox"
+    },
+    {
+      "id": "i10-e01e",
+      "source": "toolAgentflow_management_inbox",
+      "sourceHandle": "toolAgentflow_management_inbox-output-toolAgentflow",
+      "target": "directReplyAgentflow_management_results",
+      "targetHandle": "directReplyAgentflow_management_results"
+    },
+    {
+      "id": "i10-e01f",
+      "source": "conditionAgentflow_result_intent",
+      "sourceHandle": "conditionAgentflow_result_intent-output-1",
+      "target": "humanInputAgentflow_schedule_disable",
+      "targetHandle": "humanInputAgentflow_schedule_disable"
+    },
+    {
+      "id": "i10-e01g",
+      "source": "humanInputAgentflow_schedule_disable",
+      "sourceHandle": "humanInputAgentflow_schedule_disable-output-0",
+      "target": "toolAgentflow_schedule_disable",
+      "targetHandle": "toolAgentflow_schedule_disable"
+    },
+    {
+      "id": "i10-e01h",
+      "source": "toolAgentflow_schedule_disable",
+      "sourceHandle": "toolAgentflow_schedule_disable-output-toolAgentflow",
+      "target": "directReplyAgentflow_schedule_disabled",
+      "targetHandle": "directReplyAgentflow_schedule_disabled"
+    },
+    {
+      "id": "i10-e01i",
+      "source": "humanInputAgentflow_schedule_disable",
+      "sourceHandle": "humanInputAgentflow_schedule_disable-output-1",
+      "target": "directReplyAgentflow_schedule_disable_cancelled",
+      "targetHandle": "directReplyAgentflow_schedule_disable_cancelled"
+    },
+    {
+      "id": "i10-e03",
+      "source": "conditionAgentflow_credential",
+      "sourceHandle": "conditionAgentflow_credential-output-0",
+      "target": "toolAgentflow_credential_create",
+      "targetHandle": "toolAgentflow_credential_create"
+    },
+    {
+      "id": "i10-e04",
+      "source": "toolAgentflow_credential_create",
+      "sourceHandle": "toolAgentflow_credential_create-output-toolAgentflow",
+      "target": "humanInputAgentflow_credential",
+      "targetHandle": "humanInputAgentflow_credential"
+    },
+    {
+      "id": "i10-e05",
+      "source": "humanInputAgentflow_credential",
+      "sourceHandle": "humanInputAgentflow_credential-output-0",
+      "target": "toolAgentflow_credential_get",
+      "targetHandle": "toolAgentflow_credential_get"
+    },
+    {
+      "id": "i10-e06",
+      "source": "toolAgentflow_credential_get",
+      "sourceHandle": "toolAgentflow_credential_get-output-toolAgentflow",
+      "target": "llmAgentflow_i10_ready",
+      "targetHandle": "llmAgentflow_i10_ready"
+    },
+    {
+      "id": "i10-e07",
+      "source": "conditionAgentflow_credential",
+      "sourceHandle": "conditionAgentflow_credential-output-1",
+      "target": "llmAgentflow_i10_ready",
+      "targetHandle": "llmAgentflow_i10_ready"
+    },
+    {
+      "id": "i10-e08",
+      "source": "llmAgentflow_i10_ready",
+      "sourceHandle": "llmAgentflow_i10_ready-output-llmAgentflow",
+      "target": "conditionAgentflow_supporting_images",
+      "targetHandle": "conditionAgentflow_supporting_images"
+    },
+    {
+      "id": "i10-e08a",
+      "source": "conditionAgentflow_supporting_images",
+      "sourceHandle": "conditionAgentflow_supporting_images-output-0",
+      "target": "toolAgentflow_image_ingest_submit",
+      "targetHandle": "toolAgentflow_image_ingest_submit"
+    },
+    {
+      "id": "i10-e08b",
+      "source": "toolAgentflow_image_ingest_submit",
+      "sourceHandle": "toolAgentflow_image_ingest_submit-output-toolAgentflow",
+      "target": "humanInputAgentflow_image_wait",
+      "targetHandle": "humanInputAgentflow_image_wait"
+    },
+    {
+      "id": "i10-e08c",
+      "source": "humanInputAgentflow_image_wait",
+      "sourceHandle": "humanInputAgentflow_image_wait-output-0",
+      "target": "toolAgentflow_image_ingest_get",
+      "targetHandle": "toolAgentflow_image_ingest_get"
+    },
+    {
+      "id": "i10-e08d",
+      "source": "toolAgentflow_image_ingest_get",
+      "sourceHandle": "toolAgentflow_image_ingest_get-output-toolAgentflow",
+      "target": "conditionAgentflow_image_ready",
+      "targetHandle": "conditionAgentflow_image_ready"
+    },
+    {
+      "id": "i10-e08e",
+      "source": "conditionAgentflow_image_ready",
+      "sourceHandle": "conditionAgentflow_image_ready-output-0",
+      "target": "humanInputAgentflow_image_confirm",
+      "targetHandle": "humanInputAgentflow_image_confirm"
+    },
+    {
+      "id": "i10-e08f",
+      "source": "humanInputAgentflow_image_confirm",
+      "sourceHandle": "humanInputAgentflow_image_confirm-output-0",
+      "target": "conditionAgentflow_natural",
+      "targetHandle": "conditionAgentflow_natural"
+    },
+    {
+      "id": "i10-e08g",
+      "source": "conditionAgentflow_image_ready",
+      "sourceHandle": "conditionAgentflow_image_ready-output-1",
+      "target": "directReplyAgentflow_image_failed",
+      "targetHandle": "directReplyAgentflow_image_failed"
+    },
+    {
+      "id": "i10-e08h",
+      "source": "conditionAgentflow_supporting_images",
+      "sourceHandle": "conditionAgentflow_supporting_images-output-1",
+      "target": "conditionAgentflow_natural",
+      "targetHandle": "conditionAgentflow_natural"
+    },
+    {
+      "id": "i10-e09",
+      "source": "conditionAgentflow_natural",
+      "sourceHandle": "conditionAgentflow_natural-output-0",
+      "target": "retrieverAgentflow_i8",
+      "targetHandle": "retrieverAgentflow_i8"
+    },
+    {
+      "id": "i10-e10",
+      "source": "conditionAgentflow_natural",
+      "sourceHandle": "conditionAgentflow_natural-output-1",
+      "target": "conditionAgentflow_video",
+      "targetHandle": "conditionAgentflow_video"
+    },
+    {
+      "id": "i10-e11",
+      "source": "conditionAgentflow_video",
+      "sourceHandle": "conditionAgentflow_video-output-0",
+      "target": "toolAgentflow_ingest_video",
+      "targetHandle": "toolAgentflow_ingest_video"
+    },
+    {
+      "id": "i10-e12",
+      "source": "conditionAgentflow_video",
+      "sourceHandle": "conditionAgentflow_video-output-1",
+      "target": "toolAgentflow_ingest_file",
+      "targetHandle": "toolAgentflow_ingest_file"
+    },
+    {
+      "id": "i10-e13",
+      "source": "toolAgentflow_ingest_video",
+      "sourceHandle": "toolAgentflow_ingest_video-output-toolAgentflow",
+      "target": "humanInputAgentflow_ingest_wait",
+      "targetHandle": "humanInputAgentflow_ingest_wait"
+    },
+    {
+      "id": "i10-e14",
+      "source": "toolAgentflow_ingest_file",
+      "sourceHandle": "toolAgentflow_ingest_file-output-toolAgentflow",
+      "target": "humanInputAgentflow_ingest_wait",
+      "targetHandle": "humanInputAgentflow_ingest_wait"
+    },
+    {
+      "id": "i10-e15",
+      "source": "humanInputAgentflow_ingest_wait",
+      "sourceHandle": "humanInputAgentflow_ingest_wait-output-0",
+      "target": "toolAgentflow_ingest_get",
+      "targetHandle": "toolAgentflow_ingest_get"
+    },
+    {
+      "id": "i10-e16",
+      "source": "toolAgentflow_ingest_get",
+      "sourceHandle": "toolAgentflow_ingest_get-output-toolAgentflow",
+      "target": "conditionAgentflow_ingest_ready",
+      "targetHandle": "conditionAgentflow_ingest_ready"
+    },
+    {
+      "id": "i10-e16a",
+      "source": "conditionAgentflow_ingest_ready",
+      "sourceHandle": "conditionAgentflow_ingest_ready-output-0",
+      "target": "humanInputAgentflow_ingest_confirm",
+      "targetHandle": "humanInputAgentflow_ingest_confirm"
+    },
+    {
+      "id": "i10-e16b",
+      "source": "conditionAgentflow_ingest_ready",
+      "sourceHandle": "conditionAgentflow_ingest_ready-output-1",
+      "target": "conditionAgentflow_ingest_processing",
+      "targetHandle": "conditionAgentflow_ingest_processing"
+    },
+    {
+      "id": "i10-e16c",
+      "source": "conditionAgentflow_ingest_processing",
+      "sourceHandle": "conditionAgentflow_ingest_processing-output-0",
+      "target": "humanInputAgentflow_ingest_wait",
+      "targetHandle": "humanInputAgentflow_ingest_wait"
+    },
+    {
+      "id": "i10-e16d",
+      "source": "conditionAgentflow_ingest_processing",
+      "sourceHandle": "conditionAgentflow_ingest_processing-output-1",
+      "target": "directReplyAgentflow_ingest_failed",
+      "targetHandle": "directReplyAgentflow_ingest_failed"
+    },
+    {
+      "id": "i10-e17",
+      "source": "humanInputAgentflow_ingest_confirm",
+      "sourceHandle": "humanInputAgentflow_ingest_confirm-output-0",
+      "target": "llmAgentflow_ingest_decision",
+      "targetHandle": "llmAgentflow_ingest_decision"
+    },
+    {
+      "id": "i10-e17r",
+      "source": "humanInputAgentflow_ingest_confirm",
+      "sourceHandle": "humanInputAgentflow_ingest_confirm-output-1",
+      "target": "toolAgentflow_ingest_reject",
+      "targetHandle": "toolAgentflow_ingest_reject"
+    },
+    {
+      "id": "i10-e17a",
+      "source": "llmAgentflow_ingest_decision",
+      "sourceHandle": "llmAgentflow_ingest_decision-output-llmAgentflow",
+      "target": "conditionAgentflow_ingest_correction",
+      "targetHandle": "conditionAgentflow_ingest_correction"
+    },
+    {
+      "id": "i10-e17b",
+      "source": "conditionAgentflow_ingest_correction",
+      "sourceHandle": "conditionAgentflow_ingest_correction-output-0",
+      "target": "toolAgentflow_ingest_correct",
+      "targetHandle": "toolAgentflow_ingest_correct"
+    },
+    {
+      "id": "i10-e17c",
+      "source": "toolAgentflow_ingest_correct",
+      "sourceHandle": "toolAgentflow_ingest_correct-output-toolAgentflow",
+      "target": "toolAgentflow_ingest_get",
+      "targetHandle": "toolAgentflow_ingest_get"
+    },
+    {
+      "id": "i10-e17d",
+      "source": "conditionAgentflow_ingest_correction",
+      "sourceHandle": "conditionAgentflow_ingest_correction-output-1",
+      "target": "toolAgentflow_ingest_decide",
+      "targetHandle": "toolAgentflow_ingest_decide"
+    },
+    {
+      "id": "i10-e17e",
+      "source": "toolAgentflow_ingest_reject",
+      "sourceHandle": "toolAgentflow_ingest_reject-output-toolAgentflow",
+      "target": "directReplyAgentflow_rejected",
+      "targetHandle": "directReplyAgentflow_rejected"
+    },
+    {
+      "id": "i10-e18",
+      "source": "toolAgentflow_ingest_decide",
+      "sourceHandle": "toolAgentflow_ingest_decide-output-toolAgentflow",
+      "target": "llmAgentflow_intent",
+      "targetHandle": "llmAgentflow_intent"
+    },
+    {
+      "id": "i10-e19",
+      "source": "humanInputAgentflow_run",
+      "sourceHandle": "humanInputAgentflow_run-output-0",
+      "target": "llmAgentflow_schedule_intent",
+      "targetHandle": "llmAgentflow_schedule_intent"
+    },
+    {
+      "id": "i10-e20",
+      "source": "llmAgentflow_schedule_intent",
+      "sourceHandle": "llmAgentflow_schedule_intent-output-llmAgentflow",
+      "target": "conditionAgentflow_on_demand",
+      "targetHandle": "conditionAgentflow_on_demand"
+    },
+    {
+      "id": "i10-e21",
+      "source": "conditionAgentflow_on_demand",
+      "sourceHandle": "conditionAgentflow_on_demand-output-0",
+      "target": "toolAgentflow_run",
+      "targetHandle": "toolAgentflow_run"
+    },
+    {
+      "id": "i10-e22",
+      "source": "conditionAgentflow_on_demand",
+      "sourceHandle": "conditionAgentflow_on_demand-output-1",
+      "target": "conditionAgentflow_one_time",
+      "targetHandle": "conditionAgentflow_one_time"
+    },
+    {
+      "id": "i10-e22a",
+      "source": "conditionAgentflow_one_time",
+      "sourceHandle": "conditionAgentflow_one_time-output-0",
+      "target": "toolAgentflow_schedule",
+      "targetHandle": "toolAgentflow_schedule"
+    },
+    {
+      "id": "i10-e22b",
+      "source": "conditionAgentflow_one_time",
+      "sourceHandle": "conditionAgentflow_one_time-output-1",
+      "target": "conditionAgentflow_recurring",
+      "targetHandle": "conditionAgentflow_recurring"
+    },
+    {
+      "id": "i10-e22c",
+      "source": "conditionAgentflow_recurring",
+      "sourceHandle": "conditionAgentflow_recurring-output-0",
+      "target": "toolAgentflow_schedule_recurring",
+      "targetHandle": "toolAgentflow_schedule_recurring"
+    },
+    {
+      "id": "i10-e22d",
+      "source": "conditionAgentflow_recurring",
+      "sourceHandle": "conditionAgentflow_recurring-output-1",
+      "target": "directReplyAgentflow_schedule_invalid",
+      "targetHandle": "directReplyAgentflow_schedule_invalid"
+    },
+    {
+      "id": "i10-e23",
+      "source": "toolAgentflow_schedule",
+      "sourceHandle": "toolAgentflow_schedule-output-toolAgentflow",
+      "target": "toolAgentflow_schedule_get",
+      "targetHandle": "toolAgentflow_schedule_get"
+    },
+    {
+      "id": "i10-e23a",
+      "source": "toolAgentflow_schedule_recurring",
+      "sourceHandle": "toolAgentflow_schedule_recurring-output-toolAgentflow",
+      "target": "toolAgentflow_schedule_get",
+      "targetHandle": "toolAgentflow_schedule_get"
+    },
+    {
+      "id": "i10-e23b",
+      "source": "toolAgentflow_schedule_get",
+      "sourceHandle": "toolAgentflow_schedule_get-output-toolAgentflow",
+      "target": "directReplyAgentflow_scheduled",
+      "targetHandle": "directReplyAgentflow_scheduled"
+    },
+    {
+      "id": "i10-e23c",
+      "source": "toolAgentflow_repair_task",
+      "sourceHandle": "toolAgentflow_repair_task-output-toolAgentflow",
+      "target": "toolAgentflow_repair_result_inbox",
+      "targetHandle": "toolAgentflow_repair_result_inbox"
+    },
+    {
+      "id": "i10-e23d",
+      "source": "toolAgentflow_repair_result_inbox",
+      "sourceHandle": "toolAgentflow_repair_result_inbox-output-toolAgentflow",
+      "target": "humanInputAgentflow_repair_schedule",
+      "targetHandle": "humanInputAgentflow_repair_schedule"
+    },
+    {
+      "id": "i10-e24",
+      "source": "humanInputAgentflow_repair_schedule",
+      "sourceHandle": "humanInputAgentflow_repair_schedule-output-0",
+      "target": "llmAgentflow_repair_schedule_intent",
+      "targetHandle": "llmAgentflow_repair_schedule_intent"
+    },
+    {
+      "id": "i10-e25",
+      "source": "llmAgentflow_repair_schedule_intent",
+      "sourceHandle": "llmAgentflow_repair_schedule_intent-output-llmAgentflow",
+      "target": "conditionAgentflow_repair_one_time",
+      "targetHandle": "conditionAgentflow_repair_one_time"
+    },
+    {
+      "id": "i10-e25a",
+      "source": "conditionAgentflow_repair_one_time",
+      "sourceHandle": "conditionAgentflow_repair_one_time-output-0",
+      "target": "toolAgentflow_repair_schedule",
+      "targetHandle": "toolAgentflow_repair_schedule"
+    },
+    {
+      "id": "i10-e25b",
+      "source": "conditionAgentflow_repair_one_time",
+      "sourceHandle": "conditionAgentflow_repair_one_time-output-1",
+      "target": "conditionAgentflow_repair_recurring",
+      "targetHandle": "conditionAgentflow_repair_recurring"
+    },
+    {
+      "id": "i10-e25c",
+      "source": "conditionAgentflow_repair_recurring",
+      "sourceHandle": "conditionAgentflow_repair_recurring-output-0",
+      "target": "toolAgentflow_repair_schedule_recurring",
+      "targetHandle": "toolAgentflow_repair_schedule_recurring"
+    },
+    {
+      "id": "i10-e25d",
+      "source": "conditionAgentflow_repair_recurring",
+      "sourceHandle": "conditionAgentflow_repair_recurring-output-1",
+      "target": "directReplyAgentflow_repair_schedule_invalid",
+      "targetHandle": "directReplyAgentflow_repair_schedule_invalid"
+    },
+    {
+      "id": "i10-e26",
+      "source": "toolAgentflow_repair_schedule",
+      "sourceHandle": "toolAgentflow_repair_schedule-output-toolAgentflow",
+      "target": "toolAgentflow_repair_schedule_get",
+      "targetHandle": "toolAgentflow_repair_schedule_get"
+    },
+    {
+      "id": "i10-e26a",
+      "source": "toolAgentflow_repair_schedule_recurring",
+      "sourceHandle": "toolAgentflow_repair_schedule_recurring-output-toolAgentflow",
+      "target": "toolAgentflow_repair_schedule_get",
+      "targetHandle": "toolAgentflow_repair_schedule_get"
+    },
+    {
+      "id": "i10-e27",
+      "source": "toolAgentflow_repair_schedule_get",
+      "sourceHandle": "toolAgentflow_repair_schedule_get-output-toolAgentflow",
+      "target": "directReplyAgentflow_repair_scheduled",
+      "targetHandle": "directReplyAgentflow_repair_scheduled"
+    },
+    {
+      "id": "i10-e28",
+      "source": "conditionAgentflow_terminal",
+      "sourceHandle": "conditionAgentflow_terminal-output-0",
+      "target": "toolAgentflow_result_inbox",
+      "targetHandle": "toolAgentflow_result_inbox"
+    },
+    {
+      "id": "i10-e29",
+      "source": "toolAgentflow_result_inbox",
+      "sourceHandle": "toolAgentflow_result_inbox-output-toolAgentflow",
+      "target": "directReplyAgentflow_result",
+      "targetHandle": "directReplyAgentflow_result"
+    },
+    {
+      "id": "i10-e30",
+      "source": "toolAgentflow_candidate_ready",
+      "sourceHandle": "toolAgentflow_candidate_ready-output-toolAgentflow",
+      "target": "conditionAgentflow_candidate_ready",
+      "targetHandle": "conditionAgentflow_candidate_ready"
+    },
+    {
+      "id": "i10-e31",
+      "source": "conditionAgentflow_candidate_ready",
+      "sourceHandle": "conditionAgentflow_candidate_ready-output-0",
+      "target": "toolAgentflow_preview",
+      "targetHandle": "toolAgentflow_preview"
+    },
+    {
+      "id": "i10-e32",
+      "source": "conditionAgentflow_candidate_ready",
+      "sourceHandle": "conditionAgentflow_candidate_ready-output-1",
+      "target": "conditionAgentflow_candidate_authoring_failed",
+      "targetHandle": "conditionAgentflow_candidate_authoring_failed"
+    },
+    {
+      "id": "i10-e33",
+      "source": "conditionAgentflow_candidate_authoring_failed",
+      "sourceHandle": "conditionAgentflow_candidate_authoring_failed-output-0",
+      "target": "directReplyAgentflow_candidate_failed",
+      "targetHandle": "directReplyAgentflow_candidate_failed"
+    },
+    {
+      "id": "i10-e34",
+      "source": "conditionAgentflow_candidate_authoring_failed",
+      "sourceHandle": "conditionAgentflow_candidate_authoring_failed-output-1",
+      "target": "conditionAgentflow_candidate_validation_failed",
+      "targetHandle": "conditionAgentflow_candidate_validation_failed"
+    },
+    {
+      "id": "i10-e35",
+      "source": "conditionAgentflow_candidate_validation_failed",
+      "sourceHandle": "conditionAgentflow_candidate_validation_failed-output-0",
+      "target": "directReplyAgentflow_candidate_failed",
+      "targetHandle": "directReplyAgentflow_candidate_failed"
+    },
+    {
+      "id": "i10-e36",
+      "source": "conditionAgentflow_candidate_validation_failed",
+      "sourceHandle": "conditionAgentflow_candidate_validation_failed-output-1",
+      "target": "humanInputAgentflow_generation",
+      "targetHandle": "humanInputAgentflow_generation"
+    },
+    {
+      "id": "i10-e37",
+      "source": "toolAgentflow_repair_propose",
+      "sourceHandle": "toolAgentflow_repair_propose-output-toolAgentflow",
+      "target": "toolAgentflow_repair_ready",
+      "targetHandle": "toolAgentflow_repair_ready"
+    },
+    {
+      "id": "i10-e38",
+      "source": "toolAgentflow_repair_ready",
+      "sourceHandle": "toolAgentflow_repair_ready-output-toolAgentflow",
+      "target": "conditionAgentflow_repair_ready",
+      "targetHandle": "conditionAgentflow_repair_ready"
+    },
+    {
+      "id": "i10-e39",
+      "source": "conditionAgentflow_repair_ready",
+      "sourceHandle": "conditionAgentflow_repair_ready-output-0",
+      "target": "llmAgentflow_proposalref",
+      "targetHandle": "llmAgentflow_proposalref"
+    },
+    {
+      "id": "i10-e40",
+      "source": "conditionAgentflow_repair_ready",
+      "sourceHandle": "conditionAgentflow_repair_ready-output-1",
+      "target": "conditionAgentflow_repair_validation_failed",
+      "targetHandle": "conditionAgentflow_repair_validation_failed"
+    },
+    {
+      "id": "i10-e41",
+      "source": "conditionAgentflow_repair_validation_failed",
+      "sourceHandle": "conditionAgentflow_repair_validation_failed-output-0",
+      "target": "directReplyAgentflow_repair_validation_failed",
+      "targetHandle": "directReplyAgentflow_repair_validation_failed"
+    },
+    {
+      "id": "i10-e42",
+      "source": "conditionAgentflow_repair_validation_failed",
+      "sourceHandle": "conditionAgentflow_repair_validation_failed-output-1",
+      "target": "humanInputAgentflow_repair_wait",
+      "targetHandle": "humanInputAgentflow_repair_wait"
+    },
+    {
+      "id": "i10-e43",
+      "source": "humanInputAgentflow_repair_wait",
+      "sourceHandle": "humanInputAgentflow_repair_wait-output-0",
+      "target": "toolAgentflow_repair_ready",
+      "targetHandle": "toolAgentflow_repair_ready"
+    }
+  ],
+  "i10Contract": {
+    "schemaVersion": "hengzhun-i10-agentflow-v1",
+    "controller": {
+      "apiKeyVariable": "CONTROL_API_KEY",
+      "baseUrlVariable": "CONTROL_BASE_URL",
+      "modelVariable": "CONTROL_MODEL_NAME",
+      "contextTokens": 1000000,
+      "maxOutputTokens": 8192
+    },
+    "visual": {
+      "apiKeyVariable": "VISION_API_KEY",
+      "baseUrlVariable": "VISION_BASE_URL",
+      "modelVariable": "VISION_MODEL_NAME",
+      "contextTokens": 16000,
+      "maxInputTokens": 12000,
+      "maxOutputTokens": 4000
+    },
+    "externalTools": "MCP_ONLY",
+    "toolCount": 23,
+    "inputTypes": [
+      "NATURAL_LANGUAGE",
+      "CASE_FILE",
+      "VIDEO"
+    ],
+    "supportingImagesPerInput": {
+      "minimum": 0,
+      "maximum": 20
+    },
+    "naturalLanguageIntents": [
+      "CASE_AUTHORING",
+      "RESULT_QUERY",
+      "SCHEDULE_DISABLE"
+    ],
+    "schedules": [
+      "ON_DEMAND",
+      "ONE_TIME",
+      "RECURRING"
+    ]
+  }
+}

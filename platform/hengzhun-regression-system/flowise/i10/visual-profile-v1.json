@@ -1,0 +1,13 @@
+{
+  "schemaVersion": "hengzhun-i10-visual-profile-v1",
+  "provider": "MiMo",
+  "modelName": "${VISION_MODEL_NAME}",
+  "compatibilityCeiling": "Qwen3.5",
+  "baseUrlVariable": "VISION_BASE_URL",
+  "apiKeyVariable": "VISION_API_KEY",
+  "modelNameVariable": "VISION_MODEL_NAME",
+  "context": { "totalTokens": 16000, "maximumInputTokens": 12000, "reservedOutputTokens": 4000 },
+  "messageBoundary": { "roles": ["system", "user", "assistant"], "imageTransport": "image_url", "structuredOutput": "json_object", "maximumImagesPerCall": 6 },
+  "responsibilities": ["MIDSCENE_VISUAL_AUTHORING", "LOCATOR_RECOVERY", "REDACTED_VIDEO_KEYFRAME_OBSERVATION"],
+  "forbidden": ["controller_reasoning", "final_playwright_source", "plaintext_credentials", "formal_regression_execution", "playwright_fallback_as_visual_success"]
+}

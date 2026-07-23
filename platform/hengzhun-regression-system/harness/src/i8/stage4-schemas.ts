@@ -51,17 +51,22 @@ export const i8StabilityCompletionSchema = z.object({
   candidateId: safeRef,
   scriptHash: sha256Schema,
   runtimeFingerprint: sha256Schema,
-  runs: z.array(stabilityRunResultSchema).length(6)
+  runs: z.array(stabilityRunResultSchema).min(4).max(6)
 }).strict().superRefine((value, context) => {
+  if (![4, 6].includes(value.runs.length)) {
+    context.addIssue({ code: 'custom', path: ['runs'], message: '只接受I10四次或I8历史六次验证结果。' });
+    return;
+  }
+  const sequences = value.runs.length === 4 ? 2 : 3;
   const keys = new Set<string>();
   for (const run of value.runs) {
     const key = `${run.viewportId}:${run.sequenceNo}`;
-    if (keys.has(key)) context.addIssue({ code: 'custom', path: ['runs'], message: '六次验证不得重复视口与序号。' });
+    if (keys.has(key)) context.addIssue({ code: 'custom', path: ['runs'], message: '验证不得重复视口与序号。' });
     keys.add(key);
   }
   for (const viewport of I8_STABILITY_VIEWPORTS) {
-    for (let sequence = 1; sequence <= 3; sequence += 1) {
-      if (!keys.has(`${viewport.viewportId}:${sequence}`)) context.addIssue({ code: 'custom', path: ['runs'], message: '必须完整提交两个视口各三次结果。' });
+    for (let sequence = 1; sequence <= sequences; sequence += 1) {
+      if (!keys.has(`${viewport.viewportId}:${sequence}`)) context.addIssue({ code: 'custom', path: ['runs'], message: `必须完整提交两个视口各${sequences}次结果。` });
     }
   }
 });

@@ -206,6 +206,10 @@ export function buildPatchedCandidatePackage(
       const controlled = alternatives?.find(item => item.kind === requested?.kind && item.value === requested?.value);
       if (!controlled) throw new Error('I8_PATCH_TARGET_MAPPING_NOT_ALLOWLISTED');
       if (!steps.some(step => 'targetRef' in step && step.targetRef === targetRef)) throw new Error('I8_PATCH_TARGET_UNUSED');
+      const current = locators[targetRef as keyof typeof locators];
+      if (current?.kind === controlled.kind && current.value === controlled.value) {
+        throw new Error('I8_PATCH_TARGET_MAPPING_NOOP');
+      }
       locators[targetRef] = controlled;
     } else if (operation.type === 'WAIT_CONDITION') {
       const step = steps.find(item => item.stepId === operation.stepId);

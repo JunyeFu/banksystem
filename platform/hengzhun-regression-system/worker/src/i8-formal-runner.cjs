@@ -5,6 +5,7 @@ const path = require('node:path');
 const { chromium } = require('../../runtime/node_modules/playwright');
 const { executeCandidatePackage } = require('./i8-candidate-runner.cjs');
 const { artifact, resolveCredential, sha256 } = require('./login-profile.cjs');
+const { classifyVerificationChallenge } = require('./i10-midscene-candidate-authoring.cjs');
 
 const EMPTY_SCREENSHOT = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=', 'base64');
 
@@ -21,18 +22,38 @@ function fail(code, message, category = 'ENVIRONMENT') {
   throw Object.assign(new Error(message), { code, category });
 }
 
+function formalBaseUrl(task, environment, options) {
+  const i10EntryUrl = options.entryUrl || task.execution?.entryUrl;
+  if (i10EntryUrl) {
+    let parsed;
+    try { parsed = new URL(i10EntryUrl); }
+    catch { fail('I10_ENTRY_URL_INVALID', 'I10 正式执行入口不是有效 URL。', 'CONTRACT'); }
+    const loopback = ['127.0.0.1', 'localhost', '::1'].includes(parsed.hostname);
+    if (parsed.protocol !== 'http:' || !loopback || parsed.username || parsed.password
+      || parsed.pathname !== '/portal/login' || parsed.search || parsed.hash) {
+      fail('I10_ENTRY_URL_NOT_ALLOWED', 'I10 正式执行入口不在受控本机门户白名单中。', 'AUTHORIZATION');
+    }
+    return new URL('/', parsed).href;
+  }
+  return (environment.HENGZHUN_PORTAL_BASE_URL || 'http://127.0.0.1:18082').replace(/\/$/, '') + '/';
+}
+
 async function executeI8FormalRun(task, environment = process.env, options = {}) {
   const descriptor = task.execution?.candidate;
   if (!descriptor?.candidateId || !descriptor.relativeDirectory || !descriptor.scriptHash || !descriptor.manifestHash) {
     fail('I8_CANDIDATE_DESCRIPTOR_INVALID', '正式执行缺少冻结候选身份。', 'CONTRACT');
   }
-  const credential = resolveCredential(task.execution?.credentialAlias, environment);
+  const credential = options.credential || resolveCredential(task.execution?.credentialAlias, environment);
+  if (!credential || typeof credential.username !== 'string' || typeof credential.password !== 'string'
+    || !credential.username || !credential.password) {
+    fail('I10_CREDENTIAL_RESOLUTION_INVALID', '正式执行未获得有效的进程内凭据。', 'AUTHORIZATION');
+  }
   const productRoot = path.resolve(options.productRoot || path.resolve(__dirname, '..', '..'));
   const runtimeProductRoot = path.resolve(options.runtimeProductRoot || path.resolve(__dirname, '..', '..'));
   const executablePath = environment.HENGZHUN_CHROMIUM_EXECUTABLE
     || path.join(runtimeProductRoot, 'runtime', 'browsers', 'chromium-1217', 'chrome-win64', 'chrome.exe');
   if (!fs.existsSync(executablePath)) fail('CHROMIUM_UNAVAILABLE', '固定 Chromium 不可用。');
-  const baseUrl = (environment.HENGZHUN_PORTAL_BASE_URL || 'http://127.0.0.1:18082').replace(/\/$/, '') + '/';
+  const baseUrl = formalBaseUrl(task, environment, options);
   const allowedOrigins = new Set([new URL(baseUrl).origin, 'http://127.0.0.1:18443', 'http://127.0.0.1:19000']);
   const browser = await chromium.launch({ executablePath, headless: true });
   const context = await browser.newContext({
@@ -82,6 +103,11 @@ async function executeI8FormalRun(task, environment = process.env, options = {})
       ? { outcome: 'PASSED', summary: '已激活脚本通过纯 Playwright 正式回归。', evidence }
       : { outcome: 'FAILED', summary: '已激活脚本正式回归断言失败。', errorCode: 'I8_FORMAL_ASSERTION_FAILED', errorCategory: 'TEST_FAILURE', retryable: false, userActionRequired: false, evidence };
   } catch (error) {
+    const challenge=classifyVerificationChallenge(await page.locator('body').innerText().catch(()=>''));
+    if(challenge){
+      if(typeof options.onVerificationChallenge==='function')await options.onVerificationChallenge({...challenge,namespace:task.namespace,taskRef:task.taskId});
+      error=Object.assign(new Error('运行中出现必须由用户完成的验证，自动/定时任务已失败关闭。'),{code:'I10_HUMAN_IN_LOOP_REQUIRED',category:'ENVIRONMENT'});
+    }
     const errorMessage = String(error?.message || '');
     const locatorFailure = LOCATOR_ERROR_CODES.find(([needle]) => errorMessage.includes(needle));
     if (locatorFailure && (!error.code || error.name === 'TimeoutError')) {
