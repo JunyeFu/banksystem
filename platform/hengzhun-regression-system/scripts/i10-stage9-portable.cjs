@@ -127,7 +127,11 @@ function forbiddenCoreFindings(candidateRoot) {
     const top = relative.toLowerCase().split('/')[0]
     if (policy.forbiddenPathSegments.map(value => value.toLowerCase()).includes(top)) findings.push(`FORBIDDEN_TOP_LEVEL:${relative}`)
     const basename = path.basename(relative)
-    if (policy.forbiddenFilePatterns.some(pattern => matchesGlobName(basename, pattern))) findings.push(`FORBIDDEN_FILE:${relative}`)
+    // Locked runtime trees legitimately contain dependency source files such as
+    // useLocalStorageState.js and Playwright's storage-state.md documentation.
+    // Runtime trees are copied from pinned assets and verified by aggregate
+    // hashes; mutable/user-created state remains forbidden everywhere else.
+    if (!isRuntimeAsset(relative) && policy.forbiddenFilePatterns.some(pattern => matchesGlobName(basename, pattern))) findings.push(`FORBIDDEN_FILE:${relative}`)
     if (!isRuntimeAsset(relative) && textExtensions.has(path.extname(relative).toLowerCase()) && fs.statSync(absolute).size <= 4 * 1024 * 1024) {
       const content = fs.readFileSync(absolute, 'utf8')
       if (secretRegexes.some(pattern => pattern.test(content))) findings.push(`SECRET_CONTENT:${relative}`)

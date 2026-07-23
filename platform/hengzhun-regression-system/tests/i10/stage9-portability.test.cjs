@@ -62,6 +62,24 @@ test('S9 scanner fails closed on secrets, source-machine paths, runtime files an
   }
 })
 
+test('S9 scanner permits pinned runtime dependency source names but still rejects product storage state', () => {
+  const fixture = path.join(root, '.data', 'tests', `i10-s9-runtime-name-${process.pid}`)
+  fs.rmSync(fixture, { recursive: true, force: true })
+  const runtimeFile = path.join(fixture, 'flowise', 'app', 'node_modules', 'package', 'useLocalStorageState.js')
+  const productState = path.join(fixture, 'config', 'browser-storage-state.json')
+  fs.mkdirSync(path.dirname(runtimeFile), { recursive: true })
+  fs.mkdirSync(path.dirname(productState), { recursive: true })
+  fs.writeFileSync(runtimeFile, 'module.exports = {}\n', 'utf8')
+  fs.writeFileSync(productState, '{}\n', 'utf8')
+  try {
+    const findings = forbiddenCoreFindings(fixture)
+    assert.ok(!findings.some(item => item.includes('useLocalStorageState.js')))
+    assert.ok(findings.includes('FORBIDDEN_FILE:config/browser-storage-state.json'))
+  } finally {
+    fs.rmSync(fixture, { recursive: true, force: true })
+  }
+})
+
 test('S9 preflight is read-only and truthfully reports source freeze readiness', () => {
   const releaseFolder = path.join(root, '.release', 'hengzhun-regression-system-windows-x64-i10')
   const archive = path.join(root, '.release', 'hengzhun-regression-system-windows-x64-i10.zip')
