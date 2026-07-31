@@ -247,6 +247,7 @@ function crossSessionToolContinuationPending(body) {
     'toolAgentflow_i10_v6_cross_session_candidate_activate',
     'toolAgentflow_i10_v6_cross_session_run_submit',
     'toolAgentflow_i10_v6_cross_session_task_get',
+    'toolAgentflow_i10_v6_cross_session_schedule_create',
     'toolAgentflow_i10_v6_cross_session_result_inbox'
   ].includes(String(latest?.nodeId || ''))
 }
@@ -258,8 +259,12 @@ function crossSessionToolContinuationPending(body) {
 function crossSessionExecutionPlanPending(body) {
   const executed = Array.isArray(body?.agentFlowExecutedData) ? body.agentFlowExecutedData : []
   const latestReply = [...executed].reverse().find(item => String(item?.nodeId || '').startsWith('directReplyAgentflow_'))
+  // Match only the actual EXECUTION_PLAN ask.  The input-prompt template lists
+  // the plan phrasings as examples for humans, so a loose /立即执行/ match
+  // would fire on ANY input request (for example missing case basics) and
+  // loop the driver on a plan answer that can never be accepted.
   return latestReply?.nodeId === 'directReplyAgentflow_i10_v6_cross_session_input_prompt' &&
-    /立即执行|单次定时|周期执行|EXECUTION_PLAN/.test(String(body?.text || ''))
+    /脚本已激活，请说明立即执行|请说明立即执行、单次定时或周期执行/.test(String(body?.text || ''))
 }
 
 // A cross-session write outside the case-preparation path (for example the
@@ -474,7 +479,13 @@ function assertCandidateDeliveryEvidence(transcript, context) {
     if (authoring) break
   }
   if (!authoring) fail('I10_STAGE8_MIDSCENE_EVIDENCE_MISSING', context)
-  if (!/I10_2X2_V1/.test(text)) fail('I10_STAGE8_STABILITY_EVIDENCE_MISSING', context)
+  // The stability policy string only reaches the conversation while the
+  // certificate is still being produced; on a fast worker the candidate can
+  // certify between polls and the string never appears.  The certificate
+  // reference is timing-independent, and finalizeRecord separately enforces
+  // the authoritative invariant in SQLite (certificate ISSUED/PASSED plus
+  // four unique PASSED validation runs), so accept either form here.
+  if (!/I10_2X2_V1/.test(text) && !/certificate_[0-9a-f]{40}/i.test(text)) fail('I10_STAGE8_STABILITY_EVIDENCE_MISSING', context)
   if (!/(?:downloadUrl|downloadPath|\.cjs)/i.test(text)) fail('I10_STAGE8_SOURCE_DOWNLOAD_MISSING', context)
   if (!/[0-9a-f]{64}/i.test(text)) fail('I10_STAGE8_SOURCE_HASH_MISSING', context)
 }
@@ -620,6 +631,24 @@ async function predict(payload, { readOnlyRetry = false } = {}) {
       })
     }
     await sleep(attempt * 2_000)
+  }
+}
+
+// The compile -> preview read chain fails closed with I8_CANDIDATE_UNAVAILABLE
+// (or I8_PREVIEW_FAILED) while the stability certificate is still being
+// produced.  On polling paths that means "still compiling", not a defect.
+// Tolerate only these two codes; every other failure stays fail-closed.
+function candidatePreviewPendingError(error) {
+  const haystack = `${String(error?.message || '')}\n${String(error?.details?.responseError || '')}`
+  return /I8_CANDIDATE_UNAVAILABLE|I8_PREVIEW_FAILED/.test(haystack)
+}
+
+async function predictOrCandidatePending(payload) {
+  try {
+    return await predict(payload)
+  } catch (error) {
+    if (candidatePreviewPendingError(error)) return null
+    throw error
   }
 }
 
@@ -801,16 +830,22 @@ async function runConversation({
   // Terminal validations must see the whole evidence chain, not only the
   // responses produced by this resume turn: candidate delivery, authoring and
   // 2x2 evidence were written by earlier sessions of the same run directory.
-  seedTranscript = null
+  seedTranscript = null,
+  // Resuming the ORIGINAL chat preserves its session state (naturalLanguage,
+  // credentialRef, crossSessionExecutionPlan, confirmed image facts).  A fresh
+  // chat forces the confirmed-image chain to rebuild a deficient draft that
+  // misses every case field.
+  resumeChatId = null,
+  resumeSessionId = null
 }) {
-  const chatId = `i10-s8-${inputType.toLowerCase()}-${mode.toLowerCase()}-${reverse ? 'reverse' : 'forward'}-${Date.now()}`
+  const chatId = resumeChatId || `i10-s8-${inputType.toLowerCase()}-${mode.toLowerCase()}-${reverse ? 'reverse' : 'forward'}-${Date.now()}`
   // Flowise chat ids are presentation identifiers and may carry a descriptive
   // prefix.  The Agentflow's MCP contracts, however, use $flow.sessionId as
   // an opaque session reference.  Keep that value UUID-shaped for the whole
   // conversation instead of accidentally binding it to the longer chat id.
   // This mirrors the actual Flowise UI session contract and prevents an
   // otherwise valid authoring approval from failing at the MCP boundary.
-  const flowSessionId = crypto.randomUUID()
+  const flowSessionId = resumeSessionId || crypto.randomUUID()
   const credentialClause = variant === 'F002_CAPTURE_ACTIVATE_NO_RUN'
     ? '当前尚未录入安全凭据，请先创建本机安全凭据录入会话；不得要求我在对话中输入明文账号密码'
     : `使用已有安全凭据引用${scenario.credentialRef}`
@@ -863,9 +898,14 @@ async function runConversation({
     // S4 recovery entry: resume polling the authoritative journey through the
     // cross-session chain instead of replaying a fresh natural-language case.
     // A fresh case would duplicate the frozen case and the authoring job that
-    // the interrupted run already created as side effects.
+    // the interrupted run already created as side effects.  When the interrupt
+    // happened before any journey existed (image-ingest stage), resume the
+    // confirmed-image chain by its opaque ingest reference instead.
+    const resumeQuestion = /^imageingest_[0-9a-f-]{36}$/i.test(resumeJourneyId)
+      ? `继续已确认图片 ${resumeJourneyId}`
+      : `继续处理旅程${resumeJourneyId}：查询作者化、Playwright验证和稳定性运行结果。`
     body = await predict({
-      question: `继续处理旅程${resumeJourneyId}：查询作者化、Playwright验证和稳定性运行结果。`,
+      question: resumeQuestion,
       chatId,
       overrideConfig: { sessionId: flowSessionId }
     })
@@ -993,11 +1033,20 @@ async function runConversation({
       }
       if (crossSessionToolContinuationPending(body)) {
         if (!journeyId) fail('I10_STAGE8_ASYNC_JOURNEY_ID_MISSING', { inputType, mode, reverse })
-        body = await predict({
+        const polled = await predictOrCandidatePending({
           question: `继续处理旅程${journeyId}：继续作者化与候选编译。`,
           chatId: body.chatId || chatId,
           overrideConfig: { sessionId: body.sessionId || flowSessionId }
         })
+        if (!polled) {
+          // Null means "preview not ready, still compiling".  Reassigning body
+          // to null here would turn every pending predicate false and exit the
+          // loop into the terminal assert, so keep the previous body instead.
+          traceStage8(`candidate preview not ready at gate ${step}; polling again`)
+          await sleep(15_000)
+          continue
+        }
+        body = polled
         transcript.push(body)
         safeWrite(`${sequence}-${String(step).padStart(2, '0')}-cross-session-tool-continuation.json`, body)
         continue
@@ -1016,7 +1065,7 @@ async function runConversation({
       }
       await sleep(15_000)
       const resumePrefix = `继续处理旅程${journeyId}：`
-      body = await predict({
+      const polled = await predictOrCandidatePending({
         question: ingestProcessingPending(body) || journeyProcessingPending(body)
           ? `${resumePrefix}查询附件导入、抽帧、本机ONNX OCR和文字变化时间线结果。`
           : imageProcessingPending(body)
@@ -1025,6 +1074,12 @@ async function runConversation({
         chatId: body.chatId || chatId,
         overrideConfig: { sessionId: body.sessionId || flowSessionId }
       })
+      if (!polled) {
+        // Same null-body guard as the tool-continuation branch above.
+        traceStage8(`candidate preview not ready at gate ${step}; polling again`)
+        continue
+      }
+      body = polled
       transcript.push(body)
       safeWrite(`${sequence}-${String(step).padStart(2, '0')}-image-processing-poll.json`, body)
       continue

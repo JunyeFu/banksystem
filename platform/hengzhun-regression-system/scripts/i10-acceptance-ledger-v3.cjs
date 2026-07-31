@@ -128,11 +128,31 @@ function recordTerminal(record) {
   if (!fs.existsSync(path.resolve(root, record.runResultPath))) throw new Error('I10_ACCEPTANCE_RECORD_RUN_RESULT_MISSING')
   const ledger = readLedger(record.releaseIdentity)
   const recordKey = key(record.caseId, record.variant, record.attempt)
-  if (ledger.records[recordKey]?.status === 'PASSED') {
+  const cached = ledger.records[recordKey]
+  if (cached?.status === 'PASSED' && sameReleaseIdentity(cached.releaseIdentity, record.releaseIdentity)) {
     // Terminal evidence is immutable for its release identity.  Returning a
     // cached successful record prevents a second launcher run from replacing
-    // a script hash, certificate, or result inbox reference.
-    return ledger.records[recordKey]
+    // a script hash, certificate, or result inbox reference.  A PASSED record
+    // and a pending checkpoint for the same key contradict each other (the
+    // checkpoint was written by a failure that happened after the record
+    // landed), so the checkpoint is retired together with the cached record.
+    delete ledger.checkpoints[recordKey]
+    writeLedger(ledger)
+    return cached
+  }
+  if (cached?.status === 'PASSED') {
+    // A PASSED record from an older release identity must never block the
+    // current identity's terminal evidence: archive it read-only instead of
+    // silently discarding the new run.
+    ledger.historicalRecords = Array.isArray(ledger.historicalRecords) ? ledger.historicalRecords : []
+    ledger.historicalRecords.push({
+      ...cached,
+      status: 'HISTORICAL_STALE',
+      historicalReason: 'RELEASE_IDENTITY_CHANGED',
+      supersededAt: new Date().toISOString(),
+      supersededByReleaseIdentity: record.releaseIdentity
+    })
+    delete ledger.records[recordKey]
   }
   const persisted = {
     schemaVersion: 'hengzhun-i10-acceptance-record-v3',
@@ -162,7 +182,8 @@ function status() {
   const ledger = readLedger(identity)
   const current = currentRecords(ledger, identity)
   const historical = Object.values(ledger.records).filter(record => record.status === 'HISTORICAL_STALE' || !sameReleaseIdentity(record.releaseIdentity, identity))
-  return { schemaVersion: ledger.schemaVersion, releaseIdentity: identity, currentPassed: current.length, required: 18, historicalStale: historical.length, checkpoints: Object.keys(ledger.checkpoints).length }
+  const archived = Array.isArray(ledger.historicalRecords) ? ledger.historicalRecords.length : 0
+  return { schemaVersion: ledger.schemaVersion, releaseIdentity: identity, currentPassed: current.length, required: 18, historicalStale: historical.length + archived, checkpoints: Object.keys(ledger.checkpoints).length }
 }
 
 function migrateLegacyV2() {

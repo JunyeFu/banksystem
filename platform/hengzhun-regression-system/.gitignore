@@ -1,21 +1,38 @@
-# Runtime data and evidence are machine-local and may contain sensitive context.
+# Local runtime state and user data. Never version these files.
 .data/
-.release/
+*.db
+*.sqlite
+*.sqlite3
+*.log
+logs/
+runs/
+evidence/
 
-# Portable runtime binaries and installed dependencies are reproducible local assets.
-runtime/node-v20.20.2-win-x64/
+# Private configuration and credentials.
+.env
+.env.*
+!.env.example
+config/runtime.env
+config/*.local.json
+
+# Bundled/generated dependencies are release assets, not source history.
+node_modules/
+flowise/node_modules/
+runtime/node-v*/
+runtime/chromium/
+runtime/ffmpeg/
 runtime/browsers/
 runtime/node_modules/
+runtime/ocr-models/
 
-# Flowise is provisioned into the formal product boundary from the locked runtime manifest.
-# The 1.8+ GiB dependency tree is a local/release asset, not source control content.
-flowise/app/
+# Generated output and editor/OS files.
+dist/
+coverage/
+*.tmp
+*.bak
+.DS_Store
+Thumbs.db
 
-# Generated Coze/HiAgent packages and reports are validated before separate publication.
-coze/dist/
-tests/results/
-*.log
-
-# Generated public-platform packages and machine-local vendor sources.
-coze/packages/*.skill
-coze/packages/*.zip
+# Never add archive copies of the portable package.
+*.zip
+*.7z

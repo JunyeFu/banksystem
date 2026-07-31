@@ -292,7 +292,9 @@ const journeyProjectionFields = [
   // custom-MCP content string and would persist the literal template.
   ['taskId', 'references.taskId'], ['runId', 'references.runId'],
   ['scheduleId', 'references.scheduleId'], ['inboxId', 'references.inboxId'],
-  ['resultArtifactId', 'references.resultArtifactId']
+  ['resultArtifactId', 'references.resultArtifactId'],
+  ['executionPlanMode', 'references.executionPlan.mode'], ['executionPlanRunAt', 'references.executionPlan.runAt'],
+  ['executionPlanCron', 'references.executionPlan.cronExpression'], ['executionPlanTimezone', 'references.executionPlan.timezone']
 ]
 // Custom Function state updates are resolved by Flowise's own
 // processTemplateVariables() *after* the function returns.  That API accepts
@@ -519,6 +521,9 @@ const crossDecisionRejectGetId = 'toolAgentflow_i10_v6_cross_session_reject_jour
   const crossSessionCandidatePreviewId = 'toolAgentflow_i10_v6_cross_session_candidate_preview'
   const crossSessionResultPreviewId = 'toolAgentflow_i10_v6_cross_session_result_preview'
   const crossSessionResultTaskGetId = 'toolAgentflow_i10_v6_cross_session_result_task_get'
+  const crossSessionScheduleCompileId = 'customFunctionAgentflow_i10_v6_cross_session_schedule_compile'
+  const crossSessionScheduleCreateId = 'toolAgentflow_i10_v6_cross_session_schedule_create'
+  const crossSessionScheduledReplyId = 'directReplyAgentflow_i10_v6_cross_session_scheduled'
 // v5 may already contain these node ids with legacy unscoped `output.*`
 // templates.  Replace the three-node gate as a unit so v6 cannot silently
 // retain the stale configuration from its source graph.
@@ -537,7 +542,8 @@ const crossDecisionIds = new Set([
     crossSessionAuthoringProcessingReplyId, crossSessionAuthoringSubmitId, crossSessionCandidateCompileId,
     crossDecisionExecutionPlanSubmitId, crossDecisionInputPromptId,
     crossSessionRunSubmitId, crossSessionTaskGetId, crossSessionResultInboxId, crossSessionResultReplyId,
-    crossSessionCandidatePreviewId, crossSessionResultPreviewId, crossSessionResultTaskGetId
+    crossSessionCandidatePreviewId, crossSessionResultPreviewId, crossSessionResultTaskGetId,
+    crossSessionScheduleCompileId, crossSessionScheduleCreateId, crossSessionScheduledReplyId
 ])
 flow.nodes = flow.nodes.filter(node => !crossDecisionIds.has(node.id))
 flow.edges = flow.edges.filter(edge => !crossDecisionIds.has(edge.source) && !crossDecisionIds.has(edge.target))
@@ -668,6 +674,98 @@ return { route: canDecide && approve ? 'APPROVE' : (canDecide && reject ? 'REJEC
   crossResultTaskGet.data.label = 'MCP终态读取执行任务'
   crossResultTaskGet.position = { x: 1720, y: 210 }
   flow.nodes.push(crossResultTaskGet)
+  // Schedule tail: compile the frozen plan (session state first, then the
+  // authoritative journey references for recovered conversations), create the
+  // confirmed schedule, and present a terminal card for the driver's
+  // out-of-band awaitScheduledResult.  schedule_create is the single write;
+  // the reply reads no state and ends the conversation for this mode.
+  flow.nodes.push({
+    id: crossSessionScheduleCompileId,
+    position: { x: 1540, y: -80 },
+    type: 'customNode',
+    data: {
+      id: crossSessionScheduleCompileId,
+      label: '编译已确认调度参数',
+      name: 'customFunctionAgentflow',
+      version: 1.1,
+      type: 'CustomFunction',
+      baseClasses: ['customFunctionAgentflow'],
+      category: 'Agent Flows',
+      inputs: {
+        customFunctionInputVariables: [
+          { variableName: 'sessionPlan', variableValue: '{{$flow.state.crossSessionExecutionPlan}}' },
+          { variableName: 'journeyMode', variableValue: '{{$flow.state.executionPlanMode}}' },
+          { variableName: 'journeyRunAt', variableValue: '{{$flow.state.executionPlanRunAt}}' },
+          { variableName: 'journeyCron', variableValue: '{{$flow.state.executionPlanCron}}' },
+          { variableName: 'journeyTimezone', variableValue: '{{$flow.state.executionPlanTimezone}}' }
+        ],
+        customFunctionJavascriptFunction: `
+const parse = value => { try { const parsed = JSON.parse(String(value || '')); return parsed && typeof parsed === 'object' ? parsed : {} } catch { return {} } };
+const sessionPlan = parse($sessionPlan);
+const plan = {
+  mode: String(sessionPlan.mode || $journeyMode || '').trim().toUpperCase(),
+  runAt: String(sessionPlan.runAt || $journeyRunAt || '').trim(),
+  cronExpression: String(sessionPlan.cronExpression || $journeyCron || '').trim(),
+  timezone: String(sessionPlan.timezone || $journeyTimezone || 'Asia/Shanghai').trim() || 'Asia/Shanghai'
+};
+if (!['ONE_TIME', 'RECURRING'].includes(plan.mode)) throw new Error('I10_SCHEDULE_PLAN_MODE_MISSING');
+if (plan.mode === 'ONE_TIME' && !plan.runAt) throw new Error('I10_SCHEDULE_PLAN_RUN_AT_MISSING');
+if (plan.mode === 'RECURRING' && !plan.cronExpression) throw new Error('I10_SCHEDULE_PLAN_CRON_MISSING');
+return {
+  scheduleType: plan.mode,
+  runAt: plan.mode === 'ONE_TIME' ? plan.runAt : '',
+  cronExpression: plan.mode === 'RECURRING' ? plan.cronExpression : '',
+  timezone: plan.timezone,
+  misfirePolicy: plan.mode === 'ONE_TIME' ? 'RUN_ONCE' : 'SKIP',
+  misfireGraceSeconds: 300,
+  maxRetries: 1
+};`,
+        customFunctionUpdateState: [
+          { key: 'scheduleType', value: '{{ output.scheduleType }}' },
+          { key: 'scheduleRunAt', value: '{{ output.runAt }}' },
+          { key: 'scheduleCronExpression', value: '{{ output.cronExpression }}' },
+          { key: 'scheduleTimezone', value: '{{ output.timezone }}' },
+          { key: 'scheduleMisfirePolicy', value: '{{ output.misfirePolicy }}' },
+          { key: 'scheduleMisfireGraceSeconds', value: '{{ output.misfireGraceSeconds }}' },
+          { key: 'scheduleMaxRetries', value: '{{ output.maxRetries }}' }
+        ]
+      }
+    }
+  })
+  const crossScheduleCreate = JSON.parse(JSON.stringify(flow.nodes.find(node => node.id === 'toolAgentflow_schedule')))
+  if (!crossScheduleCreate) throw new Error('I10_V6_CROSS_SESSION_SCHEDULE_CREATE_SOURCE_MISSING')
+  crossScheduleCreate.id = crossSessionScheduleCreateId
+  crossScheduleCreate.data.id = crossSessionScheduleCreateId
+  crossScheduleCreate.data.label = 'MCP创建已确认调度'
+  crossScheduleCreate.position = { x: 1720, y: -80 }
+  crossScheduleCreate.data.inputs.toolInputArgs = [
+    { inputArgName: 'preparationId', inputArgValue: '{{$flow.state.preparationId}}' },
+    { inputArgName: 'scheduleType', inputArgValue: '{{$flow.state.scheduleType}}' },
+    { inputArgName: 'cronExpression', inputArgValue: '{{$flow.state.scheduleCronExpression}}' },
+    { inputArgName: 'runAt', inputArgValue: '{{$flow.state.scheduleRunAt}}' },
+    { inputArgName: 'timezone', inputArgValue: '{{$flow.state.scheduleTimezone}}' },
+    { inputArgName: 'misfirePolicy', inputArgValue: '{{$flow.state.scheduleMisfirePolicy}}' },
+    { inputArgName: 'misfireGraceSeconds', inputArgValue: '{{$flow.state.scheduleMisfireGraceSeconds}}' },
+    { inputArgName: 'maxRetries', inputArgValue: '{{$flow.state.scheduleMaxRetries}}' },
+    { inputArgName: 'confirmationRef', inputArgValue: '{{$flow.sessionId}}-schedule-confirm' },
+    { inputArgName: 'sessionRef', inputArgValue: '{{$flow.sessionId}}-schedule' }
+  ]
+  flow.nodes.push(crossScheduleCreate)
+  flow.nodes.push({
+    id: crossSessionScheduledReplyId,
+    position: { x: 1900, y: -80 },
+    type: 'customNode',
+    data: {
+      id: crossSessionScheduledReplyId,
+      label: '返回调度已创建状态',
+      name: 'directReplyAgentflow',
+      version: 1,
+      type: 'Direct Reply',
+      baseClasses: ['directReplyAgentflow'],
+      category: 'Agent Flows',
+      inputs: { directReplyMessage: '## 调度已经创建\n\n已按唯一冻结计划创建调度 schedule {{$flow.state.scheduleId}}，可按调度编号查询运行结果；周期调度将在验收完成后停用。不要输入账号、密码、验证码、PIN 或 API Key。' }
+    }
+  })
   // NEEDS_INPUT(EXECUTION_PLAN) resumes end at this single write tool.  Like
   // the resume-authoring tools above it has no outgoing edge: native custom
   // MCP tools end the Flowise execution, and the frozen RUN/schedule proposal
@@ -864,7 +962,7 @@ return { route: canDecide && approve ? 'APPROVE' : (canDecide && reject ? 'REJEC
   // terminal reply.  Without these three branches the projection silently
   // rewound the Journey to READY_FOR_SCRIPT_ACTIVATION and the driver looped
   // on phantom activation proposals forever.
-  for (const actionType of ['CALL_RUN_SUBMIT', 'QUERY_TASK', 'RESULT_AVAILABLE']) {
+  for (const actionType of ['CALL_RUN_SUBMIT', 'QUERY_TASK', 'RESULT_AVAILABLE', 'CALL_SCHEDULE_CREATE', 'QUERY_SCHEDULE']) {
     if (!crossRouteInputs.conditions.some(condition => condition.value2 === actionType)) {
       crossRouteInputs.conditions.push({ type: 'string', value1: '{{$flow.state.journeyNextActionType}}', operation: 'equal', value2: actionType })
     }
@@ -884,7 +982,7 @@ return { route: canDecide && approve ? 'APPROVE' : (canDecide && reject ? 'REJEC
   crossSessionRoute.data.outputAnchors = [
     { label: '确认冻结提案或补充输入', name: '0' }, { label: '提交作者化', name: '1' }, { label: '编译候选脚本', name: '2' },
     { label: '提交按需执行', name: '3' }, { label: '查询执行任务', name: '4' }, { label: '读取正式结果', name: '5' },
-    { label: '作者化处理中', name: '6' }
+    { label: '创建已确认调度', name: '6' }, { label: '返回调度已创建', name: '7' }, { label: '作者化处理中', name: '8' }
   ]
   flow.edges = flow.edges.filter(edge => !(edge.source === crossSessionRoute.id && edge.sourceHandle === `${crossSessionRoute.id}-output-0` && edge.target === 'toolAgentflow_candidate_ready'))
   for (const edge of flow.edges) {
@@ -925,7 +1023,10 @@ return { route: canDecide && approve ? 'APPROVE' : (canDecide && reject ? 'REJEC
     { id: 'i10-v6-cross-session-result-task-inbox', source: crossSessionResultTaskGetId, target: crossSessionResultInboxId, sourceHandle: `${crossSessionResultTaskGetId}-output-toolAgentflow`, targetHandle: crossSessionResultInboxId, type: 'buttonedge' },
     { id: 'i10-v6-cross-session-result-inbox-preview', source: crossSessionResultInboxId, target: crossSessionResultPreviewId, sourceHandle: `${crossSessionResultInboxId}-output-toolAgentflow`, targetHandle: crossSessionResultPreviewId, type: 'buttonedge' },
     { id: 'i10-v6-cross-session-result-preview-reply', source: crossSessionResultPreviewId, target: crossSessionResultReplyId, sourceHandle: `${crossSessionResultPreviewId}-output-toolAgentflow`, targetHandle: crossSessionResultReplyId, type: 'buttonedge' },
-    { id: 'i10-v6-cross-session-authoring-processing', source: crossSessionRoute.id, target: crossSessionAuthoringProcessingReplyId, sourceHandle: `${crossSessionRoute.id}-output-6`, targetHandle: crossSessionAuthoringProcessingReplyId, type: 'buttonedge' }
+    { id: 'i10-v6-cross-session-schedule-compile', source: crossSessionRoute.id, target: crossSessionScheduleCompileId, sourceHandle: `${crossSessionRoute.id}-output-6`, targetHandle: crossSessionScheduleCompileId, type: 'buttonedge' },
+    { id: 'i10-v6-cross-session-schedule-compile-create', source: crossSessionScheduleCompileId, target: crossSessionScheduleCreateId, sourceHandle: `${crossSessionScheduleCompileId}-output-customFunctionAgentflow`, targetHandle: crossSessionScheduleCreateId, type: 'buttonedge' },
+    { id: 'i10-v6-cross-session-scheduled-reply', source: crossSessionRoute.id, target: crossSessionScheduledReplyId, sourceHandle: `${crossSessionRoute.id}-output-7`, targetHandle: crossSessionScheduledReplyId, type: 'buttonedge' },
+    { id: 'i10-v6-cross-session-authoring-processing', source: crossSessionRoute.id, target: crossSessionAuthoringProcessingReplyId, sourceHandle: `${crossSessionRoute.id}-output-8`, targetHandle: crossSessionAuthoringProcessingReplyId, type: 'buttonedge' }
   )
 }
 // The old cross-session status card was replaced by the actual frozen-proposal

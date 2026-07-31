@@ -1,3 +1,0 @@
-# 合成参考标识
-
-`HZ-I1-SKILL-REFERENCE`

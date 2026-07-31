@@ -1,4 +1,0 @@
-interface:
-  display_name: "Regression Result Explainer"
-  short_description: "Explain Harness results from controlled evidence"
-  default_prompt: "Use $explain-regression-result to explain this regression result."

@@ -14,6 +14,11 @@ const {
   recordKey,
   acceptanceNaturalLanguage
 } = require('../i10-18-chain-acceptance-live.cjs')
+const { currentReleaseIdentity } = require('../i10-release-identity.cjs')
+
+function currentIdentity() {
+  return currentReleaseIdentity({ requireDeployed: false })
+}
 
 function draft(overrides = {}) {
   return semanticProjection({
@@ -98,13 +103,24 @@ test('I10 acceptance treats a per-run controlled loopback port as fixture infras
 })
 
 test('I10 acceptance pair status uses semantic contract rather than raw hash', () => {
+  const identity = currentIdentity()
   const ledger = {
     records: {
-      [recordKey('L1', 'TEXT_ONLY')]: { status: 'PASSED', semanticHash: 'a', semantic: draft() },
-      [recordKey('L1', 'TEXT_WITH_IMAGE')]: { status: 'PASSED', semanticHash: 'b', semantic: draft({ objective: '验证主页和个人资料页姓名头像一致' }) }
+      [recordKey('L1', 'TEXT_ONLY')]: { status: 'PASSED', semanticHash: 'a', semantic: draft(), releaseIdentity: identity },
+      [recordKey('L1', 'TEXT_WITH_IMAGE')]: { status: 'PASSED', semanticHash: 'b', semantic: draft({ objective: '验证主页和个人资料页姓名头像一致' }), releaseIdentity: identity }
     }
   }
   assert.equal(pairStatus(ledger, 'L1'), 'SEMANTIC_MATCH')
+})
+
+test('I10 acceptance pair status rejects mixed release identities', () => {
+  const ledger = {
+    records: {
+      [recordKey('L1', 'TEXT_ONLY')]: { status: 'PASSED', semanticHash: 'a', semantic: draft(), releaseIdentity: currentIdentity() },
+      [recordKey('L1', 'TEXT_WITH_IMAGE')]: { status: 'PASSED', semanticHash: 'b', semantic: draft(), releaseIdentity: { schemaVersion: 'hengzhun-i10-release-identity-v1', identityHash: 'f'.repeat(64) } }
+    }
+  }
+  assert.equal(pairStatus(ledger, 'L1'), 'PENDING_PAIR')
 })
 
 test('I10 recovery excludes a partial acceptance record from the Flowise transcript', () => {

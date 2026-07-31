@@ -6650,6 +6650,18 @@
               "value1": "{{$flow.state.journeyNextActionType}}",
               "operation": "equal",
               "value2": "RESULT_AVAILABLE"
+            },
+            {
+              "type": "string",
+              "value1": "{{$flow.state.journeyNextActionType}}",
+              "operation": "equal",
+              "value2": "CALL_SCHEDULE_CREATE"
+            },
+            {
+              "type": "string",
+              "value1": "{{$flow.state.journeyNextActionType}}",
+              "operation": "equal",
+              "value2": "QUERY_SCHEDULE"
             }
           ]
         },
@@ -6679,8 +6691,16 @@
             "name": "5"
           },
           {
-            "label": "作者化处理中",
+            "label": "创建已确认调度",
             "name": "6"
+          },
+          {
+            "label": "返回调度已创建",
+            "name": "7"
+          },
+          {
+            "label": "作者化处理中",
+            "name": "8"
           }
         ]
       }
@@ -12464,6 +12484,22 @@
             {
               "key": "resultArtifactId",
               "value": "{{ output.references.resultArtifactId }}"
+            },
+            {
+              "key": "executionPlanMode",
+              "value": "{{ output.references.executionPlan.mode }}"
+            },
+            {
+              "key": "executionPlanRunAt",
+              "value": "{{ output.references.executionPlan.runAt }}"
+            },
+            {
+              "key": "executionPlanCron",
+              "value": "{{ output.references.executionPlan.cronExpression }}"
+            },
+            {
+              "key": "executionPlanTimezone",
+              "value": "{{ output.references.executionPlan.timezone }}"
             }
           ]
         }
@@ -12849,6 +12885,22 @@
             {
               "key": "resultArtifactId",
               "value": "{{ output.references.resultArtifactId }}"
+            },
+            {
+              "key": "executionPlanMode",
+              "value": "{{ output.references.executionPlan.mode }}"
+            },
+            {
+              "key": "executionPlanRunAt",
+              "value": "{{ output.references.executionPlan.runAt }}"
+            },
+            {
+              "key": "executionPlanCron",
+              "value": "{{ output.references.executionPlan.cronExpression }}"
+            },
+            {
+              "key": "executionPlanTimezone",
+              "value": "{{ output.references.executionPlan.timezone }}"
             }
           ]
         }
@@ -13061,6 +13113,22 @@
             {
               "key": "resultArtifactId",
               "value": "{{ output.references.resultArtifactId }}"
+            },
+            {
+              "key": "executionPlanMode",
+              "value": "{{ output.references.executionPlan.mode }}"
+            },
+            {
+              "key": "executionPlanRunAt",
+              "value": "{{ output.references.executionPlan.runAt }}"
+            },
+            {
+              "key": "executionPlanCron",
+              "value": "{{ output.references.executionPlan.cronExpression }}"
+            },
+            {
+              "key": "executionPlanTimezone",
+              "value": "{{ output.references.executionPlan.timezone }}"
             }
           ]
         }
@@ -13416,6 +13484,179 @@
               "task_get"
             ]
           }
+        }
+      }
+    },
+    {
+      "id": "customFunctionAgentflow_i10_v6_cross_session_schedule_compile",
+      "position": {
+        "x": 1540,
+        "y": -80
+      },
+      "type": "customNode",
+      "data": {
+        "id": "customFunctionAgentflow_i10_v6_cross_session_schedule_compile",
+        "label": "编译已确认调度参数",
+        "name": "customFunctionAgentflow",
+        "version": 1.1,
+        "type": "CustomFunction",
+        "baseClasses": [
+          "customFunctionAgentflow"
+        ],
+        "category": "Agent Flows",
+        "inputs": {
+          "customFunctionInputVariables": [
+            {
+              "variableName": "sessionPlan",
+              "variableValue": "{{$flow.state.crossSessionExecutionPlan}}"
+            },
+            {
+              "variableName": "journeyMode",
+              "variableValue": "{{$flow.state.executionPlanMode}}"
+            },
+            {
+              "variableName": "journeyRunAt",
+              "variableValue": "{{$flow.state.executionPlanRunAt}}"
+            },
+            {
+              "variableName": "journeyCron",
+              "variableValue": "{{$flow.state.executionPlanCron}}"
+            },
+            {
+              "variableName": "journeyTimezone",
+              "variableValue": "{{$flow.state.executionPlanTimezone}}"
+            }
+          ],
+          "customFunctionJavascriptFunction": "\nconst parse = value => { try { const parsed = JSON.parse(String(value || '')); return parsed && typeof parsed === 'object' ? parsed : {} } catch { return {} } };\nconst sessionPlan = parse($sessionPlan);\nconst plan = {\n  mode: String(sessionPlan.mode || $journeyMode || '').trim().toUpperCase(),\n  runAt: String(sessionPlan.runAt || $journeyRunAt || '').trim(),\n  cronExpression: String(sessionPlan.cronExpression || $journeyCron || '').trim(),\n  timezone: String(sessionPlan.timezone || $journeyTimezone || 'Asia/Shanghai').trim() || 'Asia/Shanghai'\n};\nif (!['ONE_TIME', 'RECURRING'].includes(plan.mode)) throw new Error('I10_SCHEDULE_PLAN_MODE_MISSING');\nif (plan.mode === 'ONE_TIME' && !plan.runAt) throw new Error('I10_SCHEDULE_PLAN_RUN_AT_MISSING');\nif (plan.mode === 'RECURRING' && !plan.cronExpression) throw new Error('I10_SCHEDULE_PLAN_CRON_MISSING');\nreturn {\n  scheduleType: plan.mode,\n  runAt: plan.mode === 'ONE_TIME' ? plan.runAt : '',\n  cronExpression: plan.mode === 'RECURRING' ? plan.cronExpression : '',\n  timezone: plan.timezone,\n  misfirePolicy: plan.mode === 'ONE_TIME' ? 'RUN_ONCE' : 'SKIP',\n  misfireGraceSeconds: 300,\n  maxRetries: 1\n};",
+          "customFunctionUpdateState": [
+            {
+              "key": "scheduleType",
+              "value": "{{ output.scheduleType }}"
+            },
+            {
+              "key": "scheduleRunAt",
+              "value": "{{ output.runAt }}"
+            },
+            {
+              "key": "scheduleCronExpression",
+              "value": "{{ output.cronExpression }}"
+            },
+            {
+              "key": "scheduleTimezone",
+              "value": "{{ output.timezone }}"
+            },
+            {
+              "key": "scheduleMisfirePolicy",
+              "value": "{{ output.misfirePolicy }}"
+            },
+            {
+              "key": "scheduleMisfireGraceSeconds",
+              "value": "{{ output.misfireGraceSeconds }}"
+            },
+            {
+              "key": "scheduleMaxRetries",
+              "value": "{{ output.maxRetries }}"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "toolAgentflow_i10_v6_cross_session_schedule_create",
+      "position": {
+        "x": 1720,
+        "y": -80
+      },
+      "type": "customNode",
+      "data": {
+        "id": "toolAgentflow_i10_v6_cross_session_schedule_create",
+        "label": "MCP创建已确认调度",
+        "name": "toolAgentflow",
+        "version": 1.2,
+        "type": "Tool",
+        "baseClasses": [
+          "Tool"
+        ],
+        "category": "Agent Flows",
+        "inputs": {
+          "toolAgentflowSelectedTool": "customMCP",
+          "toolInputArgs": [
+            {
+              "inputArgName": "preparationId",
+              "inputArgValue": "{{$flow.state.preparationId}}"
+            },
+            {
+              "inputArgName": "scheduleType",
+              "inputArgValue": "{{$flow.state.scheduleType}}"
+            },
+            {
+              "inputArgName": "cronExpression",
+              "inputArgValue": "{{$flow.state.scheduleCronExpression}}"
+            },
+            {
+              "inputArgName": "runAt",
+              "inputArgValue": "{{$flow.state.scheduleRunAt}}"
+            },
+            {
+              "inputArgName": "timezone",
+              "inputArgValue": "{{$flow.state.scheduleTimezone}}"
+            },
+            {
+              "inputArgName": "misfirePolicy",
+              "inputArgValue": "{{$flow.state.scheduleMisfirePolicy}}"
+            },
+            {
+              "inputArgName": "misfireGraceSeconds",
+              "inputArgValue": "{{$flow.state.scheduleMisfireGraceSeconds}}"
+            },
+            {
+              "inputArgName": "maxRetries",
+              "inputArgValue": "{{$flow.state.scheduleMaxRetries}}"
+            },
+            {
+              "inputArgName": "confirmationRef",
+              "inputArgValue": "{{$flow.sessionId}}-schedule-confirm"
+            },
+            {
+              "inputArgName": "sessionRef",
+              "inputArgValue": "{{$flow.sessionId}}-schedule"
+            }
+          ],
+          "toolUpdateState": [
+            {
+              "key": "scheduleId",
+              "value": "{{ output.scheduleId }}"
+            }
+          ],
+          "toolAgentflowSelectedToolConfig": {
+            "toolAgentflowSelectedTool": "customMCP",
+            "mcpServerConfig": "{\"url\":\"http://127.0.0.1:18789/mcp\",\"headers\":{\"Authorization\":\"Bearer {{$vars.HENGZHUN_MCP_TOKEN}}\"}}",
+            "mcpActions": [
+              "schedule_create"
+            ]
+          }
+        }
+      }
+    },
+    {
+      "id": "directReplyAgentflow_i10_v6_cross_session_scheduled",
+      "position": {
+        "x": 1900,
+        "y": -80
+      },
+      "type": "customNode",
+      "data": {
+        "id": "directReplyAgentflow_i10_v6_cross_session_scheduled",
+        "label": "返回调度已创建状态",
+        "name": "directReplyAgentflow",
+        "version": 1,
+        "type": "Direct Reply",
+        "baseClasses": [
+          "directReplyAgentflow"
+        ],
+        "category": "Agent Flows",
+        "inputs": {
+          "directReplyMessage": "## 调度已经创建\n\n已按唯一冻结计划创建调度 schedule {{$flow.state.scheduleId}}，可按调度编号查询运行结果；周期调度将在验收完成后停用。不要输入账号、密码、验证码、PIN 或 API Key。"
         }
       }
     },
@@ -15042,6 +15283,22 @@
             {
               "key": "resultArtifactId",
               "value": "{{ output.references.resultArtifactId }}"
+            },
+            {
+              "key": "executionPlanMode",
+              "value": "{{ output.references.executionPlan.mode }}"
+            },
+            {
+              "key": "executionPlanRunAt",
+              "value": "{{ output.references.executionPlan.runAt }}"
+            },
+            {
+              "key": "executionPlanCron",
+              "value": "{{ output.references.executionPlan.cronExpression }}"
+            },
+            {
+              "key": "executionPlanTimezone",
+              "value": "{{ output.references.executionPlan.timezone }}"
             }
           ]
         }
@@ -15212,6 +15469,22 @@
             {
               "key": "resultArtifactId",
               "value": "{{ output.references.resultArtifactId }}"
+            },
+            {
+              "key": "executionPlanMode",
+              "value": "{{ output.references.executionPlan.mode }}"
+            },
+            {
+              "key": "executionPlanRunAt",
+              "value": "{{ output.references.executionPlan.runAt }}"
+            },
+            {
+              "key": "executionPlanCron",
+              "value": "{{ output.references.executionPlan.cronExpression }}"
+            },
+            {
+              "key": "executionPlanTimezone",
+              "value": "{{ output.references.executionPlan.timezone }}"
             }
           ]
         }
@@ -16069,6 +16342,22 @@
             {
               "key": "resultArtifactId",
               "value": "{{ output.references.resultArtifactId }}"
+            },
+            {
+              "key": "executionPlanMode",
+              "value": "{{ output.references.executionPlan.mode }}"
+            },
+            {
+              "key": "executionPlanRunAt",
+              "value": "{{ output.references.executionPlan.runAt }}"
+            },
+            {
+              "key": "executionPlanCron",
+              "value": "{{ output.references.executionPlan.cronExpression }}"
+            },
+            {
+              "key": "executionPlanTimezone",
+              "value": "{{ output.references.executionPlan.timezone }}"
             }
           ]
         }
@@ -16876,6 +17165,22 @@
             {
               "key": "resultArtifactId",
               "value": "{{ output.references.resultArtifactId }}"
+            },
+            {
+              "key": "executionPlanMode",
+              "value": "{{ output.references.executionPlan.mode }}"
+            },
+            {
+              "key": "executionPlanRunAt",
+              "value": "{{ output.references.executionPlan.runAt }}"
+            },
+            {
+              "key": "executionPlanCron",
+              "value": "{{ output.references.executionPlan.cronExpression }}"
+            },
+            {
+              "key": "executionPlanTimezone",
+              "value": "{{ output.references.executionPlan.timezone }}"
             }
           ]
         }
@@ -19080,10 +19385,34 @@
       "type": "buttonedge"
     },
     {
+      "id": "i10-v6-cross-session-schedule-compile",
+      "source": "conditionAgentflow_i10_v4_cross_session_route",
+      "target": "customFunctionAgentflow_i10_v6_cross_session_schedule_compile",
+      "sourceHandle": "conditionAgentflow_i10_v4_cross_session_route-output-6",
+      "targetHandle": "customFunctionAgentflow_i10_v6_cross_session_schedule_compile",
+      "type": "buttonedge"
+    },
+    {
+      "id": "i10-v6-cross-session-schedule-compile-create",
+      "source": "customFunctionAgentflow_i10_v6_cross_session_schedule_compile",
+      "target": "toolAgentflow_i10_v6_cross_session_schedule_create",
+      "sourceHandle": "customFunctionAgentflow_i10_v6_cross_session_schedule_compile-output-customFunctionAgentflow",
+      "targetHandle": "toolAgentflow_i10_v6_cross_session_schedule_create",
+      "type": "buttonedge"
+    },
+    {
+      "id": "i10-v6-cross-session-scheduled-reply",
+      "source": "conditionAgentflow_i10_v4_cross_session_route",
+      "target": "directReplyAgentflow_i10_v6_cross_session_scheduled",
+      "sourceHandle": "conditionAgentflow_i10_v4_cross_session_route-output-7",
+      "targetHandle": "directReplyAgentflow_i10_v6_cross_session_scheduled",
+      "type": "buttonedge"
+    },
+    {
       "id": "i10-v6-cross-session-authoring-processing",
       "source": "conditionAgentflow_i10_v4_cross_session_route",
       "target": "directReplyAgentflow_i10_v6_cross_session_authoring_processing",
-      "sourceHandle": "conditionAgentflow_i10_v4_cross_session_route-output-6",
+      "sourceHandle": "conditionAgentflow_i10_v4_cross_session_route-output-8",
       "targetHandle": "directReplyAgentflow_i10_v6_cross_session_authoring_processing",
       "type": "buttonedge"
     },

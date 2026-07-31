@@ -231,6 +231,20 @@ function compactJourneyForFlowise(body) {
       inboxId: text(body.references.inboxId, 160),
       resultArtifactId: text(body.references.resultArtifactId, 160)
     }
+    // The frozen execution plan must survive a session change: a recovered
+    // conversation has no crossSessionExecutionPlan state, so the schedule
+    // compile function re-reads these authoritative values instead.
+    const plan = body.references.executionPlan && typeof body.references.executionPlan === 'object'
+      ? body.references.executionPlan
+      : null
+    if (plan) {
+      compact.references.executionPlan = {
+        mode: text(plan.mode, 40),
+        runAt: text(plan.runAt, 80),
+        cronExpression: text(plan.cronExpression, 160),
+        timezone: text(plan.timezone, 80)
+      }
+    }
   }
   if (typeof body?.renderedMarkdown === 'string' && body.renderedMarkdown.trim()) {
     compact.renderedMarkdown = text(body.renderedMarkdown, 1024)
@@ -1068,8 +1082,8 @@ function createServer() {
     inputSchema: {
       preparationId: safeRef,
       scheduleType: z.enum(['RECURRING', 'ONE_TIME']),
-      cronExpression: z.string().trim().min(9).max(128).optional(),
-      runAt: z.string().datetime({ offset: true }).optional(),
+      cronExpression: z.union([z.string().trim().min(9).max(128), z.literal('')]).optional(),
+      runAt: z.union([z.string().datetime({ offset: true }), z.literal('')]).optional(),
       timezone: z.string().trim().min(1).max(80).default('Asia/Shanghai'),
       misfirePolicy: z.enum(['SKIP', 'RUN_ONCE']).default('RUN_ONCE'),
       misfireGraceSeconds: z.number().int().min(0).max(86400).default(300),

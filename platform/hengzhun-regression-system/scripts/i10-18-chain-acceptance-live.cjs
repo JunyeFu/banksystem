@@ -10,7 +10,7 @@ const fs = require('node:fs')
 const path = require('node:path')
 const Database = require('better-sqlite3')
 const acceptanceLedger = require('./i10-acceptance-ledger-v3.cjs')
-const { currentReleaseIdentity } = require('./i10-release-identity.cjs')
+const { currentReleaseIdentity, sameReleaseIdentity } = require('./i10-release-identity.cjs')
 const opaqueReferences = require('./i10-reference-contracts.cjs')
 
 const root = path.resolve(__dirname, '..')
@@ -302,8 +302,16 @@ function comparisonProjection(semantic) {
     .filter(marker => !priorMarkers.has(marker)))
   const outcomeMarkers = markerSetForText(outcome)
   const genericReadOnlyOutcome = /(?:数据.*(?:正确|正常)|展示.*(?:正确|正常)|结果.*(?:正确|正常))/u.test(outcome)
-  if (readOnly && !mutation && !highRiskTerminal && actionMarkers.size > 0 &&
-      ([...actionMarkers].every(marker => outcomeMarkers.has(marker)) || genericReadOnlyOutcome)) {
+  // A terminal read-only action that introduces no new markers at all (every
+  // business concept it names already appeared in earlier steps) is at least
+  // as collapsible as one whose new markers are all restated in its outcome:
+  // it asserts nothing the plan does not already cover.  Requiring size > 0
+  // here previously kept one side of a pair at three steps while the other
+  // collapsed to two, producing a false SEMANTIC_MISMATCH.
+  const poppable = actionMarkers.size === 0
+    ? outcomeMarkers.size > 0 || genericReadOnlyOutcome
+    : ([...actionMarkers].every(marker => outcomeMarkers.has(marker)) || genericReadOnlyOutcome)
+  if (readOnly && !mutation && !highRiskTerminal && poppable) {
     projected.actions.pop()
     projected.expectedOutcomes.pop()
   }
@@ -338,14 +346,19 @@ function readLedger() { return acceptanceLedger.readLedger() }
 function writeLedger(ledger) { return acceptanceLedger.writeLedger(ledger) }
 function recordKey(caseId, variant) { return acceptanceLedger.key(caseId, variant, 1) }
 
-function comparable(record) {
-  return record && record.status === 'PASSED' && typeof record.semanticHash === 'string'
+function comparable(record, identity) {
+  return record && record.status === 'PASSED' && typeof record.semanticHash === 'string' &&
+    sameReleaseIdentity(record.releaseIdentity, identity)
 }
 
 function pairStatus(ledger, caseId) {
+  // A pair only counts when both variants passed under the CURRENT release
+  // identity; mixing an older identity's image record with a new text run is
+  // not a completed pair.
+  const identity = currentReleaseIdentity({ requireDeployed: false })
   const text = ledger.records[recordKey(caseId, 'TEXT_ONLY')]
   const image = ledger.records[recordKey(caseId, 'TEXT_WITH_IMAGE')]
-  if (!comparable(text) || !comparable(image)) return 'PENDING_PAIR'
+  if (!comparable(text, identity) || !comparable(image, identity)) return 'PENDING_PAIR'
   return semanticEquivalent(caseId, text.semantic, image.semantic).status
 }
 
@@ -567,42 +580,59 @@ async function recover(caseId, variant, runDirectoryName) {
   const terminalText = String(transcript.at(-1)?.text || '')
   const metadata = stage8.scenarioMetadata(transcript)
   const mode = variant === 'TEXT_ONLY' ? 'ON_DEMAND' : SCHEDULE_BY_IMAGE_CASE[caseId]
+  const serialized = transcript.map(value => JSON.stringify(value)).join('\n')
+  let terminalReady = false
+  if (mode === 'ON_DEMAND') {
+    try { stage8.requireOnDemandTerminalEvidence(transcript, terminalText); terminalReady = true } catch { terminalReady = false }
+  } else {
+    terminalReady = Boolean([...new Set(serialized.match(opaqueReferences.scanPattern('schedule')) || [])].at(-1))
+  }
+  if (!terminalReady) {
+    // S4: an interrupted acceptance conversation (checkpoint before any
+    // terminal reply) must continue from the authoritative journey, not be
+    // declared unrecoverable and not be replayed as a fresh side-effecting
+    // case.  Resume polling the same journey through the cross-session chain;
+    // every new transcript lands in this same run directory.  When the
+    // interrupt happened before any journey existed (image-ingest stage),
+    // resume through the opaque ingest reference instead.  A previous resume
+    // that landed on a missing-case-input journey was rebuilt from a context-
+    // free chat; the confirmed-image reference is the correct ref there.
+    const journeyRef = [...new Set(serialized.match(opaqueReferences.scanPattern('journey')) || [])].at(-1)
+    const imageRef = [...new Set(serialized.match(opaqueReferences.scanPattern('imageingest')) || [])].at(-1)
+    const missingCaseInput = /请补充：credentialRef|I10_ENTRY_URL_REQUIRED|I10_TARGET_SYSTEM_REQUIRED|I10_DRAFT_FIELD_INVALID/.test(serialized)
+    const resumeRef = (missingCaseInput && imageRef) ? imageRef : (journeyRef || imageRef)
+    if (!resumeRef) fail('I10_ACCEPTANCE_RECOVERY_JOURNEY_ID_MISSING', { caseId, variant })
+    // Resume the ORIGINAL chat so its session state (naturalLanguage,
+    // credentialRef, confirmed image facts, execution plan) is preserved;
+    // take it from the first transcript, before any later resume attempt
+    // opened a context-free chat.
+    const original = transcript.find(body => body && (body.chatId || body.sessionId)) || {}
+    stage8.setEvidenceRootForAcceptance(directory)
+    const scenario = loadScenario(null)
+    const result = await stage8.runConversation({
+      inputType: 'NATURAL_LANGUAGE', mode, reverse: false, scenario, sequence: caseId,
+      resumeJourneyId: resumeRef, seedTranscript: transcript,
+      resumeChatId: original.chatId || null, resumeSessionId: original.sessionId || null
+    })
+    return finalizeRecord({
+      caseId,
+      variant,
+      directory,
+      item,
+      naturalLanguage: acceptanceNaturalLanguage(item, caseId),
+      publication,
+      result
+    })
+  }
   let executionEvidence
   if (mode === 'ON_DEMAND') {
-    try {
-      executionEvidence = stage8.requireOnDemandTerminalEvidence(transcript, terminalText)
-    } catch (error) {
-      // S4: an interrupted acceptance conversation (checkpoint before any
-      // terminal reply) must continue from the authoritative journey, not be
-      // declared unrecoverable and not be replayed as a fresh side-effecting
-      // case.  Resume polling the same journey through the cross-session
-      // chain; every new transcript lands in this same run directory.
-      const serialized = transcript.map(value => JSON.stringify(value)).join('\n')
-      const journeyId = [...new Set(serialized.match(opaqueReferences.scanPattern('journey')) || [])].at(-1)
-      if (!journeyId) fail('I10_ACCEPTANCE_RECOVERY_JOURNEY_ID_MISSING', { caseId, variant })
-      stage8.setEvidenceRootForAcceptance(directory)
-      const scenario = loadScenario(null)
-      const result = await stage8.runConversation({
-        inputType: 'NATURAL_LANGUAGE', mode, reverse: false, scenario, sequence: caseId,
-        resumeJourneyId: journeyId, seedTranscript: transcript
-      })
-      return finalizeRecord({
-        caseId,
-        variant,
-        directory,
-        item,
-        naturalLanguage: acceptanceNaturalLanguage(item, caseId),
-        publication,
-        result
-      })
-    }
+    executionEvidence = stage8.requireOnDemandTerminalEvidence(transcript, terminalText)
   } else {
     // A caller may be interrupted after the one-time/recurring schedule has
     // been accepted but before the ledger write.  Re-query the already-created
     // schedule through the public Flowise/Harness route; never create a second
     // schedule merely to recover a local evidence write.
-    const allText = transcript.map(value => JSON.stringify(value)).join('\n')
-    const scheduleIds = [...new Set(allText.match(opaqueReferences.scanPattern('schedule')) || [])]
+    const scheduleIds = [...new Set(serialized.match(opaqueReferences.scanPattern('schedule')) || [])]
     const scheduleId = scheduleIds.at(-1)
     if (!scheduleId) fail('I10_ACCEPTANCE_RECOVERY_SCHEDULE_ID_MISSING', { mode })
     const scheduledResult = await stage8.awaitScheduledResult(scheduleId, mode, `${caseId}-recover`)
