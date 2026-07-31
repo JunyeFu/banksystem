@@ -1,6 +1,9 @@
 package local.bank.channel;
 
 import java.io.InputStream;
+import java.math.BigDecimal;
+import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
@@ -14,6 +17,7 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.client.RestClientResponseException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
 import local.bank.channel.audit.AuditService;
@@ -25,6 +29,12 @@ import org.springframework.transaction.annotation.Transactional;
 @PreAuthorize("hasAuthority('ROLE_TEST_SUPPORT')")
 public class TestSupportController {
   public record IdentityLinkRequest(String subject, String logicalRef) { }
+  /**
+   * Local/test-only browser-suite fixture.  Core-money changes are always
+   * performed through FineractAdapter; this controller never writes a
+   * Fineract database directly.
+   */
+  public record CustomerScenarioRequest(String subject, String logicalCustomerRef, String destinationCustomerRef) { }
   private final JdbcTemplate jdbc;
   private final FineractAdapter fineract;
   private final AuditService audit;
@@ -119,6 +129,7 @@ public class TestSupportController {
     Map<String, Object> accountResult = fineract.createSavingsAccount(clientId, productId, currency);
     long accountId = ((Number) accountResult.get("savingsId")).longValue();
     try {
+      fineract.savingsCommand(accountId, "approve", Map.of());
       fineract.savingsCommand(accountId, "activate", Map.of());
     } catch (Exception ignored) { }
     return accountId;
@@ -130,6 +141,7 @@ public class TestSupportController {
     jdbc.update("DELETE FROM security_audit_event");
     jdbc.update("DELETE FROM transfer_receipt");
     jdbc.update("DELETE FROM notification");
+    jdbc.update("DELETE FROM beneficiary");
     jdbc.update("DELETE FROM ledger_entry");
     jdbc.update("DELETE FROM outbox_event");
     jdbc.update("DELETE FROM transfer_reversal");
@@ -172,6 +184,139 @@ public class TestSupportController {
     return ResponseEntity.ok(Map.of("status", "LINKED", "logicalRef", request.logicalRef()));
   }
 
+  @PostMapping("/customer-scenario:seed")
+  @Transactional
+  public ResponseEntity<Map<String, Object>> seedCustomerScenario(@RequestBody CustomerScenarioRequest request) {
+    if (request == null || request.subject() == null || !request.subject().matches("^[A-Za-z0-9._:-]{8,128}$")) {
+      return ResponseEntity.badRequest().body(Map.of("status", "REJECTED", "reason", "INVALID_SUBJECT"));
+    }
+    if (!"customer.alice".equals(request.logicalCustomerRef()) || !"customer.bob".equals(request.destinationCustomerRef())) {
+      return ResponseEntity.badRequest().body(Map.of("status", "REJECTED", "reason", "INVALID_SCENARIO_REFERENCES"));
+    }
+    List<Long> sourceClients = jdbc.query("SELECT fineract_client_id FROM customer_identity WHERE subject=?", (rs, n) -> rs.getLong(1), request.subject());
+    List<Long> destinationClients = jdbc.query("SELECT fineract_client_id FROM customer_identity WHERE subject LIKE 'fixture-bob-%' ORDER BY created_at DESC LIMIT 1", (rs, n) -> rs.getLong(1));
+    if (sourceClients.isEmpty() || destinationClients.isEmpty()) {
+      return ResponseEntity.status(409).body(Map.of("status", "REJECTED", "reason", "FIXTURE_IDENTITY_NOT_READY"));
+    }
+    String stage = "LOAD_ACCOUNTS";
+    try {
+      Map<String, Object> source = primarySavingsAccount(sourceClients.get(0));
+      Map<String, Object> destination = primarySavingsAccount(destinationClients.get(0));
+      stage = "VALIDATE_DESTINATION";
+      long sourceAccountId = accountId(source);
+      long destinationAccountId = accountId(destination);
+      stage = "ACTIVATE_SOURCE";
+      ensureActiveSavings(sourceAccountId, source);
+      stage = "ACTIVATE_DESTINATION";
+      ensureActiveSavings(destinationAccountId, destination);
+      String destinationNumber = accountNumber(destination);
+      if (destinationNumber == null || destinationNumber.length() < 6) {
+        return ResponseEntity.status(409).body(Map.of("status", "REJECTED", "reason", "DESTINATION_ACCOUNT_NOT_READY"));
+      }
+      stage = "CHECK_TRANSACTIONS";
+      boolean hasTransactions;
+      try {
+        hasTransactions = !fineract.savingsTransactions(sourceAccountId, null, null).isEmpty();
+      } catch (Exception ignored) {
+        // Some local Fineract versions do not expose the transaction-search
+        // endpoint. The idempotent scenario still uses the official deposit
+        // command; a unique scenario marker prevents duplicate deposits.
+        hasTransactions = jdbc.queryForObject("SELECT COUNT(*) FROM security_audit_event WHERE resource_type='CustomerScenario' AND resource_id=? AND action='FUND' AND outcome='SUCCESS'", Integer.class, request.subject()) > 0;
+      }
+      if (!hasTransactions) {
+        stage = "FUND_SOURCE";
+        fineract.savingsCommand(sourceAccountId, "deposit", Map.of(
+            "transactionAmount", new BigDecimal("1000.00")));
+        audit.record(AuditService.EVENT_FIXTURE_SEEDED, "SYSTEM", "test-support", "CustomerScenario", request.subject(),
+            "FUND", "SUCCESS", null, Map.of("amount", "1000.00", "currency", "CNY"));
+      }
+      String accountToken = sha256(destinationNumber);
+      stage = "UPSERT_BENEFICIARY";
+      UUID beneficiaryId = UUID.nameUUIDFromBytes(("i10-scenario-beneficiary|" + request.subject() + "|" + accountToken).getBytes(StandardCharsets.UTF_8));
+      jdbc.update("""
+          INSERT INTO beneficiary(beneficiary_id,subject,account_token,account_last4,display_name,destination_account_id)
+          VALUES (?,?,?,?,?,?)
+          ON CONFLICT (subject,account_token) DO UPDATE SET display_name=EXCLUDED.display_name,
+            destination_account_id=EXCLUDED.destination_account_id,updated_at=now()
+          """, beneficiaryId, request.subject(), accountToken,
+          destinationNumber.substring(destinationNumber.length() - 4), "I10测试收款人", String.valueOf(destinationAccountId));
+      UUID notificationId = UUID.nameUUIDFromBytes(("i10-scenario-notification|" + request.subject()).getBytes(StandardCharsets.UTF_8));
+      stage = "UPSERT_NOTIFICATION";
+      jdbc.update("""
+          INSERT INTO notification(notification_id,subject,notification_type,payload)
+          VALUES (?,?,?,?) ON CONFLICT (notification_id) DO NOTHING
+          """, notificationId, request.subject(), "SECURITY", "{\"source\":\"I10_SCENARIO\"}");
+      audit.record(AuditService.EVENT_FIXTURE_SEEDED, "SYSTEM", "test-support", "CustomerScenario", request.subject(),
+          "SEED", "SUCCESS", null, Map.of("scenario", "I10_BROWSER_OCR", "sourceAccountId", sourceAccountId));
+      return ResponseEntity.ok(Map.of("status", "READY", "scenario", "I10_BROWSER_OCR", "beneficiaryId", beneficiaryId.toString(),
+          "sourceAccountId", sourceAccountId, "notificationCreated", true));
+    } catch (Exception ex) {
+      audit.record(AuditService.EVENT_FIXTURE_SEEDED, "SYSTEM", "test-support", "CustomerScenario", request.subject(),
+          "SEED", "FAILED", null, Map.of("reason", ex.getClass().getSimpleName()));
+      return ResponseEntity.ok(Map.of("status", "FAILED", "reason", "I10_SCENARIO_SEED_FAILED",
+          "failureClass", ex.getClass().getSimpleName(), "failureStage", stage, "failureHint", safeFineractHint(ex)));
+    }
+  }
+
+  @PostMapping("/customer-scenario:clear")
+  @Transactional
+  public ResponseEntity<Map<String, Object>> clearCustomerScenario(@RequestBody CustomerScenarioRequest request) {
+    if (request == null || request.subject() == null || !request.subject().matches("^[A-Za-z0-9._:-]{8,128}$")) {
+      return ResponseEntity.badRequest().body(Map.of("status", "REJECTED", "reason", "INVALID_SUBJECT"));
+    }
+    int notifications = jdbc.update("DELETE FROM notification WHERE subject=? AND payload LIKE '%I10_SCENARIO%'", request.subject());
+    int beneficiaries = jdbc.update("DELETE FROM beneficiary WHERE subject=? AND display_name='I10测试收款人'", request.subject());
+    return ResponseEntity.ok(Map.of("status", "CLEARED", "notifications", notifications, "beneficiaries", beneficiaries));
+  }
+
+  private Map<String, Object> primarySavingsAccount(long clientId) {
+    List<Map<String, Object>> accounts = fineract.clientAccounts(clientId);
+    if (accounts.isEmpty()) throw new IllegalStateException("No savings account");
+    return fineract.accountDetails(accountId(accounts.get(0)));
+  }
+
+  @SuppressWarnings("unchecked")
+  private void ensureActiveSavings(long accountId, Map<String, Object> account) {
+    Object status = account.get("status");
+    String code = status instanceof Map<?, ?> map ? String.valueOf(((Map<String, Object>) map).getOrDefault("code", "")) : String.valueOf(status);
+    if (code.toLowerCase(java.util.Locale.ROOT).contains("active")) return;
+    fineract.savingsCommand(accountId, "approve", Map.of());
+    fineract.savingsCommand(accountId, "activate", Map.of());
+  }
+
+  private static long accountId(Map<String, Object> account) {
+    Object id = account.getOrDefault("id", account.getOrDefault("accountId", account.get("savingsAccountId")));
+    if (!(id instanceof Number number)) throw new IllegalStateException("Account id missing");
+    return number.longValue();
+  }
+
+  private static String accountNumber(Map<String, Object> account) {
+    Object value = account.getOrDefault("accountNo", account.get("accountNumber"));
+    return value == null ? null : String.valueOf(value).trim();
+  }
+
+  private static String sha256(String input) throws Exception {
+    byte[] digest = MessageDigest.getInstance("SHA-256").digest(input.getBytes(StandardCharsets.UTF_8));
+    StringBuilder output = new StringBuilder();
+    for (byte value : digest) output.append(String.format("%02x", value));
+    return output.toString();
+  }
+
+  private static String safeFineractHint(Exception error) {
+    if (!(error instanceof RestClientResponseException response)) return "UNCLASSIFIED";
+    String body = response.getResponseBodyAsString();
+    java.util.regex.Matcher matcher = java.util.regex.Pattern.compile(
+        "\"(?:parameterName|developerMessageCode|userMessageGlobalisationCode|errorCode)\"\\s*:\\s*\"([A-Za-z0-9._-]{1,96})\"")
+        .matcher(body);
+    String fallback = null;
+    while (matcher.find()) {
+      String value = matcher.group(1);
+      if (!"validation.msg.validation.errors.exist".equals(value)) return value;
+      fallback = value;
+    }
+    return fallback == null ? "HTTP_" + response.getStatusCode().value() : fallback;
+  }
+
   @GetMapping("/fixtures/{logicalRef}")
   public ResponseEntity<Map<String, Object>> getFixture(@PathVariable String logicalRef) {
     if (logicalRef.startsWith("customer.")) {
@@ -197,8 +342,9 @@ public class TestSupportController {
         if (accounts.isEmpty()) return ResponseEntity.notFound().build();
         var firstAccount = accounts.get(0);
         Object accountId = firstAccount.getOrDefault("id", firstAccount.getOrDefault("accountId", 0));
+        Object accountNumber = firstAccount.getOrDefault("accountNo", firstAccount.getOrDefault("accountNumber", ""));
         Object currency = firstAccount.getOrDefault("currencyCode", firstAccount.getOrDefault("currency", "CNY"));
-        return ResponseEntity.ok(Map.of("logicalRef", logicalRef, "accountId", accountId, "currency", currency, "clientId", clientId));
+        return ResponseEntity.ok(Map.of("logicalRef", logicalRef, "accountId", accountId, "accountNumber", accountNumber, "currency", currency, "clientId", clientId));
       } catch (Exception e) {
         return ResponseEntity.ok(Map.of("logicalRef", logicalRef, "accountId", 0, "currency", "CNY", "error", e.getMessage()));
       }
@@ -216,6 +362,8 @@ public class TestSupportController {
         Map.of("pageId", "customer.account.detail", "routePattern", "/accounts/:accountId"),
         Map.of("pageId", "customer.transfers", "routePattern", "/transfers"),
         Map.of("pageId", "customer.transfer.create", "routePattern", "/transfers/new"),
+        Map.of("pageId", "customer.transfer.verification", "routePattern", "/verification"),
+        Map.of("pageId", "customer.transfer.order.query", "routePattern", "/orders/query"),
         Map.of("pageId", "customer.transfer.result", "routePattern", "/transfers/:transferId"),
         Map.of("pageId", "customer.beneficiaries", "routePattern", "/beneficiaries"),
         Map.of("pageId", "customer.loans", "routePattern", "/loans"),

@@ -115,6 +115,21 @@ export class HarnessDatabase {
     return (this.connection.pragma('quick_check') as Array<{ quick_check: string }>).map(row => row.quick_check);
   }
 
+  migrationStatus(): { appliedVersion: number; expectedVersion: number; pending: number[] } {
+    const expected = fs.readdirSync(this.options.migrationsDirectory)
+      .filter(name => /^\d+_.+\.sql$/.test(name))
+      .map(name => Number(name.split('_', 1)[0]))
+      .sort((left, right) => left - right);
+    const applied = (this.connection.prepare('SELECT version FROM schema_migrations ORDER BY version').all() as Array<{ version: number }>)
+      .map(row => row.version);
+    const appliedSet = new Set(applied);
+    return {
+      appliedVersion: applied.at(-1) ?? 0,
+      expectedVersion: expected.at(-1) ?? 0,
+      pending: expected.filter(version => !appliedSet.has(version))
+    };
+  }
+
   async createBackup(label = 'manual'): Promise<string> {
     const safeLabel = label.replace(/[^a-zA-Z0-9._-]/g, '-');
     const timestamp = new Date().toISOString().replace(/[:.]/g, '-');

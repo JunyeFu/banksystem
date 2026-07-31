@@ -4,7 +4,8 @@ import {
   idempotencyKeySchema,
   intentPlanSchema,
   namespaceSchema,
-  regressionCaseDraftSchema
+  regressionCaseDraftSchema,
+  targetAdapterBindingSchema
 } from '../schemas';
 
 const boundedText = (maximum: number) => z.string().trim().min(1).max(maximum);
@@ -49,13 +50,27 @@ export const i8AuthoringSubmitSchema = z.object({
     confirmationRef: boundedText(160).regex(SAFE_REFERENCE),
     reason: boundedText(1000)
   }).strict(),
+  // Flowise submits only the frozen target context.  The Harness reads the
+  // prepared CaseDraft again and deterministically creates the IntentPlan;
+  // browser-node arrays are retained below only for legacy clients.
+  authoringContext: z.object({
+    route: boundedText(512),
+    executionProfile: z.enum(['LOGIN_PROFILE', 'TRANSFER_UKEY_ORDER_QUERY', 'GENERIC_WEB']),
+    targetProfileId: boundedText(80).optional(),
+    targetProfileVersion: z.number().int().positive().optional(),
+    targetProfileHash: z.string().regex(/^[0-9a-f]{64}$/).optional(),
+    targetProfileSnapshot: z.record(z.string(), z.unknown()).optional(),
+    adapterBinding: targetAdapterBindingSchema.optional()
+  }).strict().optional(),
   intentPlan: intentPlanSchema.optional()
 }).strict().superRefine((value, context) => {
-  if (value.confirmation.choice === 'APPROVE' && !value.intentPlan) {
-    context.addIssue({ code: 'custom', path: ['intentPlan'], message: '批准作者化必须提交 IntentPlan。' });
-  }
-  if (value.confirmation.choice === 'REJECT' && value.intentPlan) {
-    context.addIssue({ code: 'custom', path: ['intentPlan'], message: '拒绝作者化时不得提交 IntentPlan。' });
+  // Native Flowise Human Input nodes do not reliably retain Custom Function
+  // state after a user confirmation.  On APPROVE the Harness may therefore
+  // reconstruct the context from the immutable CaseDraft credential binding
+  // and its already ACTIVE TargetProfile.  It remains fail-closed when that
+  // exact persisted binding is absent; no URL/name based inference is allowed.
+  if (value.confirmation.choice === 'REJECT' && (value.intentPlan || value.authoringContext)) {
+    context.addIssue({ code: 'custom', path: ['authoringContext'], message: '拒绝作者化时不得提交执行上下文。' });
   }
 });
 

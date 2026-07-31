@@ -50,7 +50,7 @@ function loadCandidateExecutor(descriptor) {
   const verified = verifyCandidatePackage(descriptor);
   delete require.cache[require.resolve(verified.scriptPath)];
   const candidate = require(verified.scriptPath);
-  if (candidate?.schemaVersion !== 'hengzhun-candidate-module-v1' || typeof candidate.execute !== 'function') fail('CANDIDATE_MODULE_CONTRACT_INVALID', '候选模块不符合固定导出契约。');
+  if (!['hengzhun-candidate-module-v1', 'hengzhun-candidate-module-v2'].includes(candidate?.schemaVersion) || typeof candidate.execute !== 'function') fail('CANDIDATE_MODULE_CONTRACT_INVALID', '候选模块不符合固定导出契约。');
   return candidate.execute;
 }
 
@@ -59,7 +59,17 @@ async function executeCandidatePackage(descriptor, context) {
   const base = new URL(context.baseUrl);
   if (!['http:', 'https:'].includes(base.protocol) || base.username || base.password || base.pathname !== '/') fail('CANDIDATE_BASE_URL_INVALID', '基础地址不符合受控来源契约。');
   if (!context.page || typeof context.capture !== 'function' || !context.fixtures || typeof context.fixtures !== 'object') fail('CANDIDATE_RUNTIME_CONTEXT_INVALID', '候选运行上下文不完整。');
-  return execute({ page: context.page, baseUrl: base.toString(), fixtures: Object.freeze({ ...context.fixtures }), capture: context.capture });
+  return execute({
+    page: context.page,
+    baseUrl: base.toString(),
+    fixtures: Object.freeze({ ...context.fixtures }),
+    capture: context.capture,
+    ...(typeof context.afterStep === 'function' ? { afterStep: context.afterStep } : {}),
+    // Candidate modules are generated artifacts.  Passing this optional hook
+    // keeps their public contract stable while allowing the formal runner to
+    // persist a redacted execution boundary when a browser operation fails.
+    ...(typeof context.onStep === 'function' ? { onStep: context.onStep } : {})
+  });
 }
 
 module.exports = { executeCandidatePackage, loadCandidateExecutor, resolveCandidateDirectory, verifyCandidatePackage };

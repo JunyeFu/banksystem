@@ -27,6 +27,15 @@ const jsonObjectArgument = z.union([
   z.string().trim().min(2).max(24_000),
   z.record(z.string(), z.unknown())
 ])
+// Agentflow template interpolation serializes Custom Function array outputs as
+// JSON strings before invoking MCP.  Keep the wire contract compatible with
+// both that representation and native arrays, then restore and validate the
+// actual array below.  This is intentionally narrow: it is not a generic JSON
+// escape hatch for arbitrary tool arguments.
+const jsonArrayArgument = z.union([
+  z.string().trim().min(2).max(24_000),
+  z.array(z.unknown()).max(50)
+])
 const i10NaturalDraftArgument = z.object({
   schemaVersion: z.literal('hengzhun-i10-case-draft-v1'),
   title: z.string(), objective: z.string(), summary: z.string(),
@@ -119,16 +128,116 @@ async function requestHarness(route, payload) {
   }
 }
 
-async function callHarness(route, payload) {
+async function callHarness(route, payload, responseProjector) {
   const { response, body } = await requestHarness(route, payload)
   if (!response.ok) {
+    // Harness validation errors deliberately contain only schema paths/codes. Keep
+    // those diagnostics so Flowise can direct the user to the actual missing or
+    // malformed field, while never reflecting submitted values, credentials, or
+    // request bodies back into the conversation.
+    const issues = Array.isArray(body?.details?.issues)
+      ? body.details.issues
+        .filter((issue) => issue && typeof issue === 'object')
+        .slice(0, 12)
+        .map((issue) => ({
+          path: typeof issue.path === 'string' ? issue.path.slice(0, 120) : '',
+          code: typeof issue.code === 'string' ? issue.code.slice(0, 80) : 'invalid'
+        }))
+      : undefined
     return textResult({
       errorCode: typeof body.errorCode === 'string' ? body.errorCode : 'HARNESS_REQUEST_FAILED',
       category: typeof body.category === 'string' ? body.category : 'TOOL',
-      status: response.status
+      status: response.status,
+      ...(issues && issues.length > 0 ? { validationIssues: issues } : {})
     }, true)
   }
-  return textResult(body)
+  return textResult(typeof responseProjector === 'function' ? responseProjector(body) : body)
+}
+
+// Flowise's native custom-MCP Tool boundary accepts a substantially smaller
+// response than the Harness artifact model.  The full Journey remains the
+// authority in SQLite and is available through journey_get/artifacts; this
+// projection keeps only the fields required to continue the current graph.
+// Without it a valid journey_prepare can be replaced by the unhelpful
+// MCP_OUTPUT_BUDGET_EXCEEDED sentinel before the next node sees its journeyId.
+function compactJourneyForFlowise(body) {
+  // This projection crosses Flowise's native MCP Tool result boundary, whose
+  // practical limit is smaller than the Harness artifact contract. Keep it
+  // deliberately below that boundary: the I10 draft contract currently caps
+  // executable steps at four, and the full Journey stays queryable in
+  // Harness/SQLite rather than being mirrored into the conversation graph.
+  const text = (value, limit = 320) => String(value || '').slice(0, limit)
+  const texts = (value, count = 8, limit = 160) => Array.isArray(value)
+    ? value.map(item => text(item, limit)).filter(Boolean).slice(0, count)
+    : []
+  const draft = body?.caseDraft && typeof body.caseDraft === 'object' ? body.caseDraft : {}
+  const steps = Array.isArray(draft.steps)
+    ? draft.steps.slice(0, 4).map(step => ({ action: text(step?.action, 240), expected: text(step?.expected, 240) }))
+    : []
+  const proposal = body?.proposal && typeof body.proposal === 'object'
+    ? {
+        proposalId: text(body.proposal.proposalId || body.proposalId, 160),
+        payloadHash: text(body.proposal.payloadHash || body.proposalPayloadHash, 160),
+        summary: text(body.proposal.summary, 320),
+        effect: text(body.proposal.effect, 240),
+        rejectEffect: text(body.proposal.rejectEffect, 240)
+      }
+    : undefined
+  const nextAction = body?.nextAction && typeof body.nextAction === 'object'
+    ? { type: text(body.nextAction.type, 80), description: text(body.nextAction.description, 240) }
+    : undefined
+  const compact = {
+    journeyId: text(body?.journeyId, 160), version: Number.isInteger(body?.version) ? body.version : 0,
+    status: text(body?.status, 80), stage: text(body?.stage, 100), summary: text(body?.summary, 320),
+    missingFields: texts(body?.missingFields, 20, 160), needsCredential: body?.needsCredential === true,
+    interactionMode: text(body?.interactionMode, 80),
+    proposalId: text(body?.proposalId, 160), proposalPayloadHash: text(body?.proposalPayloadHash, 160),
+    // Flowise state bindings intentionally use these root aliases.  Preserve
+    // them in the bounded projection as well as in `proposal`, otherwise a
+    // valid cross-session proposal renders literal template text even though
+    // the Journey itself was read successfully.
+    proposalSummary: text(body?.proposalSummary || proposal?.summary, 320),
+    proposalEffect: text(body?.proposalEffect || proposal?.effect, 240),
+    proposalRejectEffect: text(body?.proposalRejectEffect || proposal?.rejectEffect, 240),
+    proposalProceedDecision: text(body?.proposalProceedDecision, 120),
+    proposalRejectDecision: text(body?.proposalRejectDecision, 120),
+    caseId: text(body?.caseId, 160), caseVersion: Number.isInteger(body?.caseVersion) ? body.caseVersion : 0,
+    preparationId: text(body?.preparationId, 160), preparationVersion: Number.isInteger(body?.preparationVersion) ? body.preparationVersion : 0,
+    caseDraft: {
+      schemaVersion: text(draft.schemaVersion, 80), title: text(draft.title, 160), objective: text(draft.objective, 320),
+      summary: text(draft.summary, 320), targetSystem: text(draft.targetSystem, 160), entryUrl: text(draft.entryUrl, 512),
+      preconditions: texts(draft.preconditions, 8, 160), steps, assertions: texts(draft.assertions, 8, 160),
+      credentialRef: text(draft.credentialRef, 160), missingFields: texts(draft.missingFields, 20, 160),
+      confirmationStatus: text(draft.confirmationStatus, 80)
+    }
+  }
+  if (body?.inputRequest && typeof body.inputRequest === 'object') {
+    compact.inputRequest = {
+      prompt: text(body.inputRequest.prompt, 320),
+      inputKind: text(body.inputRequest.inputKind, 80),
+      requiredFields: texts(body.inputRequest.requiredFields, 8, 120)
+    }
+  }
+  // The QUERY_TASK / RESULT_AVAILABLE branches bind task/run/schedule/inbox
+  // references from the authoritative Journey.  Keep them as bounded scalars;
+  // omitting them left the literal `{{ output.references.* }}` template in
+  // Flowise state and failed the task_get schema at the MCP boundary.
+  if (body?.references && typeof body.references === 'object') {
+    compact.references = {
+      candidateId: text(body.references.candidateId, 160),
+      taskId: text(body.references.taskId, 160),
+      runId: text(body.references.runId, 160),
+      scheduleId: text(body.references.scheduleId, 160),
+      inboxId: text(body.references.inboxId, 160),
+      resultArtifactId: text(body.references.resultArtifactId, 160)
+    }
+  }
+  if (typeof body?.renderedMarkdown === 'string' && body.renderedMarkdown.trim()) {
+    compact.renderedMarkdown = text(body.renderedMarkdown, 1024)
+  }
+  if (proposal) compact.proposal = proposal
+  if (nextAction) compact.nextAction = nextAction
+  return compact
 }
 
 function parseJsonArgument(value, errorCode) {
@@ -136,6 +245,22 @@ function parseJsonArgument(value, errorCode) {
   try {
     const parsed = JSON.parse(value)
     if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) throw new Error('object required')
+    return parsed
+  } catch {
+    const error = new Error(errorCode)
+    error.code = errorCode
+    throw error
+  }
+}
+
+function parseJsonArrayArgument(value, errorCode) {
+  if (Array.isArray(value)) return value
+  try {
+    const serialized = typeof value === 'string' && value.startsWith('uri:')
+      ? decodeURIComponent(value.slice(4))
+      : value
+    const parsed = JSON.parse(serialized)
+    if (!Array.isArray(parsed)) throw new Error('array required')
     return parsed
   } catch {
     const error = new Error(errorCode)
@@ -154,14 +279,91 @@ function normalizeControlledPortalRoute(value) {
   return raw
 }
 
+function normalizeCasePrepareUrl(value) {
+  const raw = String(value || '').trim()
+  if (!raw) return ''
+  try {
+    const parsed = new URL(raw)
+    if (!['http:', 'https:'].includes(parsed.protocol)) {
+      const error = new Error('I10_ENTRY_URL_PROTOCOL_INVALID')
+      error.code = 'I10_ENTRY_URL_PROTOCOL_INVALID'
+      throw error
+    }
+    return parsed.href
+  } catch (error) {
+    if (error?.code) throw error
+    const invalid = new Error('I10_ENTRY_URL_INVALID')
+    invalid.code = 'I10_ENTRY_URL_INVALID'
+    throw invalid
+  }
+}
+
+function normalizeCasePrepareCredentialRef(value) {
+  const raw = String(value || '').trim()
+  if (!raw) return ''
+  if (!/^credential_[0-9a-f-]{36}$/.test(raw)) {
+    const error = new Error('I10_CREDENTIAL_REF_INVALID')
+    error.code = 'I10_CREDENTIAL_REF_INVALID'
+    throw error
+  }
+  return raw
+}
+
+function normalizeCasePrepareActionSteps(value, steps, credentialRef) {
+  if (value !== undefined && !Array.isArray(value)) {
+    const error = new Error('I10_ACTION_STEPS_INVALID')
+    error.code = 'I10_ACTION_STEPS_INVALID'
+    throw error
+  }
+  const source = Array.isArray(value) ? value : []
+  return steps.map((step, index) => {
+    const raw = source[index] && typeof source[index] === 'object' && !Array.isArray(source[index]) ? source[index] : {}
+    const instruction = String(raw.instruction || raw.action || step.action || '').trim()
+    const expected = String(raw.expected || step.expected || '').trim()
+    const rawType = String(raw.actionType || '').toUpperCase()
+    const actionType = ['NAVIGATE', 'CLICK', 'INPUT', 'SELECT', 'UPLOAD', 'WAIT', 'ASSERT', 'VERIFY'].includes(rawType)
+      ? rawType
+      : /输入|填写|键入/i.test(instruction) ? 'INPUT'
+        : /等待/i.test(instruction) ? 'WAIT'
+          : /验证|核对|确认.*显示/i.test(instruction) ? 'VERIFY'
+            : /打开|访问|进入.*页面/i.test(instruction) ? 'NAVIGATE' : 'CLICK'
+    const credentialAction = actionType === 'INPUT' && /账号|用户名|密码|手机号/i.test(instruction)
+    const allowedInputSources = ['USER_TEXT', 'IMAGE_EVIDENCE', 'CASE_FILE', 'VIDEO_EVIDENCE', 'CREDENTIAL_REF', 'RUNTIME_USER_INPUT']
+    const inputValueSource = allowedInputSources.includes(raw.inputValueSource)
+      ? raw.inputValueSource
+      : actionType === 'INPUT' ? 'RUNTIME_USER_INPUT' : undefined
+    if (!instruction || !expected) {
+      const error = new Error('I10_ACTION_STEPS_INVALID')
+      error.code = 'I10_ACTION_STEPS_INVALID'
+      throw error
+    }
+    return {
+      ordinal: index + 1,
+      actionType,
+      instruction,
+      ...(String(raw.targetDescription || raw.elementDescription || '').trim()
+        ? { targetDescription: String(raw.targetDescription || raw.elementDescription).trim().slice(0, 500) }
+        : {}),
+      ...(!credentialAction && typeof raw.inputValue === 'string' && raw.inputValue.trim()
+        ? { inputValue: raw.inputValue.trim().slice(0, 2000) }
+        : {}),
+      ...(credentialAction
+        ? { inputValueSource: 'CREDENTIAL_REF', provenanceRefs: credentialRef ? [credentialRef] : [] }
+        : { ...(inputValueSource ? { inputValueSource } : {}), provenanceRefs: Array.isArray(raw.provenanceRefs) ? raw.provenanceRefs : [] }),
+      confidence: Number.isFinite(Number(raw.confidence)) ? Math.max(0, Math.min(1, Number(raw.confidence))) : 0.9,
+      expected
+    }
+  })
+}
+
 function normalizeI10NaturalDraft(draft, caseDescription, sessionRef, credentialRefOverride) {
   const steps = Array.isArray(draft.steps) ? draft.steps.map(step => ({
     action: String(step.action || '').trim(),
     expected: String(step.expected || step.expectedResult || step.expectedResults || '').trim()
   })).filter(step => step.action && step.expected) : []
-  const entryUrl = String(draft.entryUrl || caseDescription.match(/https?:\/\/[^\s，。；]+/)?.[0] || '').trim()
+  const entryUrl = normalizeCasePrepareUrl(draft.entryUrl || caseDescription.match(/https?:\/\/[^\s，。；]+/)?.[0] || '')
   const targetSystem = String(draft.targetSystem || '').trim()
-  const credentialRef = String(credentialRefOverride || (typeof draft.credentialRef === 'string' ? draft.credentialRef : '')).trim()
+  const credentialRef = normalizeCasePrepareCredentialRef(credentialRefOverride || (typeof draft.credentialRef === 'string' ? draft.credentialRef : ''))
   const missingFields = [...new Set([
     ...(Array.isArray(draft.missingFields) ? draft.missingFields.map(String) : []),
     ...(!targetSystem ? ['targetSystem'] : []), ...(!entryUrl ? ['entryUrl'] : []),
@@ -178,9 +380,13 @@ function normalizeI10NaturalDraft(draft, caseDescription, sessionRef, credential
     ...(targetSystem ? { targetSystem } : {}), ...(entryUrl ? { entryUrl } : {}),
     preconditions: Array.isArray(draft.preconditions) && draft.preconditions.length ? draft.preconditions.map(String).filter(Boolean) : ['目标系统可访问', '本机安全凭据引用有效'],
     steps, assertions, ...(credentialRef ? { credentialRef } : {}),
-    ...(typeof draft.supportingImageIngestId === 'string' ? { supportingImageIngestId: draft.supportingImageIngestId } : {}),
-    caseFacts: Array.isArray(draft.caseFacts) ? draft.caseFacts : [],
-    actionStepsV2: Array.isArray(draft.actionStepsV2) ? draft.actionStepsV2 : [],
+    ...(typeof draft.supportingImageIngestId === 'string' && draft.supportingImageIngestId.trim()
+      ? { supportingImageIngestId: draft.supportingImageIngestId.trim() }
+      : {}),
+    caseFacts: Array.isArray(draft.caseFacts)
+      ? draft.caseFacts.filter(item => item && typeof item === 'object' && !Array.isArray(item))
+      : [],
+    actionStepsV2: normalizeCasePrepareActionSteps(draft.actionStepsV2, steps, credentialRef),
     verificationRequirements: Array.isArray(draft.verificationRequirements) ? draft.verificationRequirements : [],
     source: { inputType: 'NATURAL_LANGUAGE', sourceRef: sessionRef, sourceHash: digest(caseDescription), provenanceSummary: '由Flowise主控模型根据用户自然语言生成，并由MCP确定性规范化来源与固定策略字段。' },
     confidence: Number.isFinite(Number(draft.confidence)) ? Math.max(0, Math.min(1, Number(draft.confidence))) : 0.9,
@@ -204,6 +410,71 @@ function createServer() {
     inputSchema: { sessionId: safeRef }
   }, async ({ sessionId }) => callHarness('/v1/i10/credentials:sessions-get', { namespace, sessionId }))
 
+  server.registerTool('target_profile_prepare', {
+    description: '首次使用任意HTTP/HTTPS网站或扩展已知跳转域名时，探测入口并生成唯一站点档案确认提案。保留完整路径、查询参数和Hash，不执行测试。',
+    inputSchema: {
+      displayName: z.string().trim().min(1).max(160),
+      // Keep the transport schema permissive enough for Harness to return a
+      // field-level diagnostic instead of an opaque MCP argument failure.
+      launchUrl: z.string().trim().max(4096),
+      // Flowise emits undeclared optional tool arguments as empty strings.
+      // Treat an empty target-profile reference as omitted so the journey
+      // prerequisite gate can decide whether a profile must be prepared.
+      targetProfileId: z.union([safeRef,z.literal('')]).optional(),
+      credentialRef: z.string().trim().max(160).optional(),
+      // Only a registry-owned symbolic id crosses the Flowise boundary.  The
+      // Harness, not Flowise or the model, resolves it to a signed binding.
+      adapterSelection: z.union([z.literal(''), z.literal('fuxing-bank-demo')]).optional(),
+      adapterBinding: z.object({
+        adapterId: z.string().trim().min(1).max(80),
+        adapterVersion: z.string().trim().min(1).max(40),
+        manifestHash: z.string().regex(/^[0-9a-f]{64}$/)
+      }).strict().optional(),
+      applicationProfile: z.object({
+        displayName: z.string().trim().min(1).max(160),
+        modules: z.array(z.object({
+          moduleId: z.string().trim().regex(/^[a-z0-9][a-z0-9-]*[a-z0-9]$/),
+          displayName: z.string().trim().min(1).max(160),
+          capabilities: z.array(z.enum(['AUTHENTICATION','NAVIGATION','READ_ONLY_QUERY','FORM_INTERACTION','TABLE_INTERACTION','FILE_UPLOAD','FILE_DOWNLOAD','BUSINESS_SUBMISSION','VERIFICATION_GATE','ASSERTION','EVIDENCE_CAPTURE'])).min(1).max(11)
+        }).strict()).min(1).max(50)
+      }).strict().optional(),
+      tlsPolicy: z.enum(['STRICT', 'ALLOW_SELF_SIGNED']).optional(),
+      sessionRef: safeRef
+    }
+  }, async ({ sessionRef, ...business }) => callHarness('/v1/i10/target-profiles:prepare', {
+    namespace,
+    idempotencyKey: idempotencyKey('target_profile_prepare', sessionRef, business),
+    sessionRef,
+    ...business
+  }))
+
+  server.registerTool('target_profile_get', {
+    description: '按目标站点档案ID或入口URL读取冻结的站点、跳转、凭据域名与版本策略。',
+    inputSchema: {
+      targetProfileId: z.union([safeRef,z.literal('')]).optional(),
+      launchUrl: z.string().trim().min(8).max(4096).optional()
+    }
+  }, async ({ targetProfileId, launchUrl }) => callHarness('/v1/i10/target-profiles:get', {
+    namespace,
+    ...(targetProfileId ? { targetProfileId } : {}),
+    ...(launchUrl ? { launchUrl } : {})
+  }))
+
+  server.registerTool('target_profile_decision_submit', {
+    description: '对唯一且已冻结的目标站点档案提案执行批准或拒绝；批准后才允许作者化，并将凭据引用绑定到该站点档案。',
+    inputSchema: {
+      targetProfileId: safeRef,
+      expectedVersion: z.number().int().positive(),
+      decision: z.enum(['APPROVE', 'REJECT']),
+      confirmationRef: safeRef,
+      sessionRef: safeRef
+    }
+  }, async ({ sessionRef, ...business }) => callHarness('/v1/i10/target-profiles:decide', {
+    namespace,
+    idempotencyKey: idempotencyKey('target_profile_decision_submit', sessionRef, business),
+    ...business
+  }))
+
   server.registerTool('ingest_submit', {
     description: '提交Flowise受控附件引用。案例文件同步解析，视频进入本机异步抽帧/OCR/视觉分析；禁止任意本机路径。',
     inputSchema: {
@@ -226,10 +497,18 @@ function createServer() {
     inputSchema: {
       ingestJobId: safeRef, expectedVersion: z.number().int().positive(),
       choice: z.enum(['CONFIRM', 'CORRECT', 'REJECT']),
-      correctionsJson: jsonObjectArgument.optional(), reason: z.string().trim().min(1).max(1000),
+      correctionsJson: jsonObjectArgument.optional(),
+      itemDecisionsJson: z.union([
+        z.array(z.object({
+          ordinal: z.number().int().min(1).max(1000),
+          decision: z.enum(['CONFIRM','REJECT'])
+        }).strict()).max(1000),
+        jsonObjectArgument
+      ]).optional(),
+      reason: z.string().trim().min(1).max(1000),
       confirmationRef: safeRef, sessionRef: safeRef
     }
-  }, async ({ ingestJobId, expectedVersion, choice, correctionsJson, reason, confirmationRef, sessionRef }) => {
+  }, async ({ ingestJobId, expectedVersion, choice, correctionsJson, itemDecisionsJson, reason, confirmationRef, sessionRef }) => {
     try {
       let corrections = []
       if (correctionsJson) {
@@ -237,7 +516,13 @@ function createServer() {
         corrections = Array.isArray(parsed) ? parsed : parsed.corrections
         if (!Array.isArray(corrections)) throw new Error('corrections array required')
       }
-      const business = { ingestJobId, expectedVersion, choice, corrections, reason, confirmationRef }
+      let itemDecisions = []
+      if (itemDecisionsJson) {
+        const parsed = typeof itemDecisionsJson === 'string' ? JSON.parse(itemDecisionsJson) : itemDecisionsJson
+        itemDecisions = Array.isArray(parsed) ? parsed : parsed.itemDecisions
+        if (!Array.isArray(itemDecisions)) throw new Error('itemDecisions array required')
+      }
+      const business = { ingestJobId, expectedVersion, choice, corrections, itemDecisions, reason, confirmationRef }
       return callHarness('/v1/i10/ingest:decide', {
         namespace, idempotencyKey: idempotencyKey('ingest_decision_submit', sessionRef, business), ...business
       })
@@ -245,11 +530,11 @@ function createServer() {
   })
 
   server.registerTool('image_ingest_submit', {
-    description: '为自然语言、案例文件或视频主输入提交0到20张受控补充图片；图片仅经本机中英文OCR和脱敏后供主控模型筛选案例事实。',
+    description: '为自然语言、案例文件或视频主输入提交0到20张受控补充图片；图片在本机脱敏后由MiMo视觉观察并结合中英文OCR，再由主控模型筛选案例事实。',
     inputSchema: {
       sourceRef: safeRef, primaryInputType: z.enum(['NATURAL_LANGUAGE','CASE_FILE','VIDEO']),
-      images: z.array(z.object({ flowiseFileRef: controlledAttachmentRef, originalFilename: z.string().trim().min(1).max(260), purposeHint: z.string().trim().max(500).optional() })).min(1).max(20),
-      primaryText: z.string().trim().max(8000).optional(), sessionRef: safeRef
+      images: z.array(z.object({ flowiseFileRef: controlledAttachmentRef, originalFilename: z.string().trim().min(1).max(260).optional(), purposeHint: z.string().trim().max(500).optional() })).min(1).max(20),
+      primaryText: z.string().trim().max(8000).optional(), credentialRef: safeRef.optional(), sessionRef: safeRef
     }
   }, async ({ sessionRef, ...business }) => callHarness('/v1/i10/images:submit', {
     namespace, idempotencyKey: idempotencyKey('image_ingest_submit',sessionRef,business), ...business
@@ -260,15 +545,191 @@ function createServer() {
     inputSchema: { imageIngestId: safeRef }
   }, async ({ imageIngestId }) => callHarness('/v1/i10/images:get',{namespace,imageIngestId}))
 
+  server.registerTool('image_ingest_decision_submit', {
+    description: '对补充图片提取的每一条事实逐项确认、纠正或拒绝；只有全部事实完成决定后才能进入案例草案。',
+    inputSchema: {
+      imageIngestId: safeRef,
+      expectedVersion: z.number().int().positive(),
+      confirmationRef: safeRef,
+      decisions: z.array(z.object({
+        factId: safeRef,
+        decision: z.enum(['CONFIRM','CORRECT','REJECT']),
+        replacementValue: z.string().trim().min(1).max(4000).optional()
+      })).min(1).max(200),
+      sessionRef: safeRef
+    }
+  }, async ({ sessionRef, ...business }) => callHarness('/v1/i10/images:decide', {
+    namespace, idempotencyKey: idempotencyKey('image_ingest_decision_submit',sessionRef,business), ...business
+  }))
+
   server.registerTool('verification_get', {
     description: '查询Midscene发现的短信、验证码、扫码、UKey等人工验证挑战及用户准备要求。',
-    inputSchema: { challengeId: safeRef }
-  }, async ({ challengeId }) => callHarness('/v1/i10/verification:get',{namespace,challengeId}))
+    inputSchema: { challengeId: safeRef.optional(), taskRef: safeRef.optional() }
+  }, async ({ challengeId,taskRef }) => {
+    if (Boolean(challengeId) === Boolean(taskRef)) return textResult({errorCode:'I10_VERIFICATION_LOOKUP_REF_INVALID'},true)
+    return callHarness('/v1/i10/verification:get',{namespace,...(challengeId?{challengeId}:{taskRef})})
+  })
 
   server.registerTool('verification_decision_submit', {
     description: '用户确认已准备验证方式或已在浏览器/硬件上完成验证；严禁提交验证码、PIN、私钥或生物信息。',
     inputSchema: { challengeId:safeRef, expectedVersion:z.number().int().positive(), decision:z.enum(['USER_READY','USER_ACTION_COMPLETED','CANCEL']), confirmationRef:safeRef, note:z.string().trim().max(500).optional(), sessionRef:safeRef }
   }, async ({sessionRef,...business})=>callHarness('/v1/i10/verification:decide',{namespace,idempotencyKey:idempotencyKey('verification_decision_submit',sessionRef,business),...business}))
+
+  server.registerTool('journey_prepare', {
+    description: '创建或恢复衡准权威交互旅程。Harness确定性检查输入完整度、凭据引用和下一允许操作；未就绪时只返回缺口，不进入业务MCP筛查。',
+    inputSchema: {
+      sessionRef: safeRef,
+      // The deployed v7 Agentflow retains the v6 Journey interaction
+      // contract.  Flowise validates this schema before the MCP handler can
+      // normalize optional empty state, so omitting v6 here turns an otherwise
+      // valid first message into a generic MCP protocol failure.
+      interactionContractVersion: z.enum(['v3','v4','v5','v6']).optional(),
+      // Flowise validates tool inputs before the handler is entered.  In a
+      // fresh execution an optional, upstream state value can therefore be
+      // sent literally as `{{ output.journeyId }}`.  Accept only that narrow
+      // unresolved-template shape here; the handler below removes it before
+      // the request reaches Harness.  A normal non-empty value remains
+      // subject to the opaque safeRef contract.
+      journeyId: z.union([safeRef, z.literal(''), z.string().regex(/^\{\{[^}]+\}\}$/)]).optional(),
+      requestIntent: z.enum(['CASE_AUTHORING','RESULT_QUERY','SCHEDULE_DISABLE','JOURNEY_RESUME','HELP','UNSUPPORTED']),
+      inputType: z.enum(['NATURAL_LANGUAGE','CASE_FILE','VIDEO','NONE']),
+      naturalLanguage: z.string().trim().max(8000).optional(),
+      entryUrl: z.string().max(4096).optional(),
+      targetSystem: z.string().trim().max(160).optional(),
+      flowiseFileRef: z.union([controlledAttachmentRef,z.literal('')]).optional(),
+      originalFilename: z.string().trim().max(260).optional(),
+      credentialRef: z.string().trim().max(160).optional(),
+      // Flowise serializes optional references as "" when no profile exists.
+      targetProfileId: z.union([safeRef,z.literal('')]).optional(),
+      // Flowise persists an empty start-state collection as the string "" in
+      // a fresh resumed chat. Accept that transport representation here and
+      // normalize it before calling Harness; the Harness contract remains an
+      // array and never receives an ambiguous string.
+      supportingImages: z.union([z.array(z.object({
+        flowiseFileRef: controlledAttachmentRef,
+        // Signed Flowise attachment references carry the canonical filename.
+        // Keep this optional so the LLM cannot invent a filename merely to
+        // satisfy the transport schema. Harness verifies an explicitly
+        // supplied name against the signed value.
+        originalFilename: z.string().trim().min(1).max(260).optional(),
+        purposeHint: z.string().trim().max(500).optional()
+      })).max(20), z.string().max(20000)]).optional(),
+      scheduleId: z.union([safeRef,z.literal('')]).optional(),
+      taskId: z.union([safeRef,z.literal('')]).optional(),
+      draftJson: jsonObjectArgument.optional(),
+      // These two fields are produced by the Flowise normalizer and are
+      // Flowise exposes every numeric state value to MCP tools as generic
+      // `number`, not an OpenAPI `integer`, even when the runtime value is an
+      // exact integer. Keep the transport schema compatible and let Harness
+      // remain the authority that rejects non-integral revisions.
+      semanticAssessment: jsonObjectArgument.optional(),
+      inputRevision: z.coerce.number().min(1).optional()
+    }
+  }, async ({ sessionRef, draftJson, supportingImages, semanticAssessment, inputRevision, ...business }) => {
+    try {
+      const normalizedDraft = draftJson === undefined ? undefined : parseJsonArgument(draftJson,'I10_JOURNEY_DRAFT_INVALID')
+      let normalizedSupportingImages = supportingImages
+      if (typeof normalizedSupportingImages === 'string') {
+        const text = normalizedSupportingImages.trim()
+        normalizedSupportingImages = text ? parseJsonArgument(text, 'I10_JOURNEY_SUPPORTING_IMAGES_INVALID') : []
+      }
+      if (!Array.isArray(normalizedSupportingImages)) throw new Error('I10_JOURNEY_SUPPORTING_IMAGES_INVALID')
+      const payload = {
+        ...business,
+        sessionRef,
+        supportingImages: normalizedSupportingImages,
+        ...(normalizedDraft ? { draftJson: normalizedDraft } : {}),
+        ...(semanticAssessment ? { semanticAssessment } : {}),
+        ...(inputRevision === undefined ? {} : { inputRevision })
+      }
+      for (const key of ['journeyId','flowiseFileRef','originalFilename','credentialRef','targetProfileId','scheduleId','taskId']) {
+        // A fresh Flowise execution can retain an unresolved upstream
+        // template literally (for example "{{ output.journeyId }}"). These
+        // are absent optional values, not valid opaque IDs; fail closed for
+        // required fields but omit them here so a new authoritative journey
+        // can be created from the normalized draft.
+        if (typeof payload[key] === 'string' && /\{\{[^}]+\}\}/.test(payload[key])) payload[key] = ''
+        if (payload[key] === '') delete payload[key]
+      }
+      return callHarness('/v1/i10/journeys:prepare', {
+        namespace,
+        idempotencyKey: idempotencyKey('journey_prepare',sessionRef,payload),
+        ...payload
+      }, compactJourneyForFlowise)
+    } catch (error) {
+      return textResult(safeProtocolFailure(error),true)
+    }
+  })
+
+  server.registerTool('journey_get', {
+    description: '按journeyId或当前会话查询统一交互状态卡。长任务返回PROCESSING和建议重试时间，不要求用户点击“等待完成”。',
+    inputSchema: {
+      journeyId: safeRef.optional(),
+      sessionRef: safeRef.optional(),
+      waitSeconds: z.number().int().min(0).max(25).optional()
+    }
+  }, async (business) => callHarness('/v1/i10/journeys:get',{
+    namespace,
+    ...business,
+    waitSeconds: business.waitSeconds || 0
+  }, compactJourneyForFlowise))
+
+  server.registerTool('journey_input_submit', {
+    description: '提交当前旅程明确要求的非秘密补充输入。输入必须先由主控模型结构化；Harness会确定性校验并冻结唯一候选，不能直接触发运行、调度、激活或停用。',
+    inputSchema: {
+      journeyId: safeRef,
+      expectedVersion: z.number().int().positive(),
+      inputKind: z.enum(['INITIAL_CASE_INPUT','CASE_CORRECTION','INGEST_CORRECTION','EXECUTION_PLAN','REPAIR_EXECUTION_PLAN']),
+      normalizedInput: jsonObjectArgument,
+      submissionRef: safeRef,
+      sessionRef: safeRef
+    }
+  }, async ({ sessionRef, normalizedInput, ...business }) => {
+    try {
+      const normalized = parseJsonArgument(normalizedInput,'I10_JOURNEY_INPUT_INVALID')
+      const request = { ...business, normalizedInput: normalized }
+      return callHarness('/v1/i10/journeys:submit-input',{
+        namespace,
+        idempotencyKey: idempotencyKey('journey_input_submit',sessionRef,request),
+        ...request
+      })
+    } catch (error) {
+      return textResult(safeProtocolFailure(error),true)
+    }
+  })
+
+  server.registerTool('journey_decision_submit', {
+    description: '提交旅程当前阶段允许的最小人工决定。必须携带版本和确认引用，禁止把账号、密码、验证码或PIN放入payload。',
+    inputSchema: {
+      journeyId: safeRef,
+      expectedVersion: z.number().int().positive(),
+      decision: z.enum([
+        'APPROVE_CASE','REJECT_CASE','ACTIVATE_SCRIPT','REJECT_SCRIPT',
+         'RUN_ON_DEMAND','CREATE_ONE_TIME_SCHEDULE','CREATE_RECURRING_SCHEDULE','DEFER_EXECUTION',
+         'REVISE_EXECUTION_PLAN',
+        'ACTIVATE_REPAIR','REJECT_REPAIR','COMPLETE_RUNTIME_VERIFICATION','ABORT_RUNTIME_VERIFICATION',
+        'DISABLE_SCHEDULE','CANCEL'
+      ]),
+      confirmationRef: safeRef,
+      proposalId: z.string().regex(/^proposal_[0-9a-f]{32}$/).optional(),
+      payloadHash: z.string().regex(/^[0-9a-f]{64}$/).optional(),
+      payload: jsonObjectArgument.optional(),
+      reason: z.string().trim().max(1000).optional(),
+      sessionRef: safeRef
+    }
+  }, async ({ sessionRef, payload, ...business }) => {
+    try {
+      const normalizedPayload = payload === undefined ? {} : parseJsonArgument(payload,'I10_JOURNEY_DECISION_PAYLOAD_INVALID')
+      const request = { ...business, payload: normalizedPayload }
+      return callHarness('/v1/i10/journeys:decide',{
+        namespace,
+        idempotencyKey: idempotencyKey('journey_decision_submit',sessionRef,request),
+        ...request
+      })
+    } catch (error) {
+      return textResult(safeProtocolFailure(error),true)
+    }
+  })
 
   server.registerTool('case_prepare', {
     description: '将自然语言案例的已澄清统一CaseDraft提交给衡准权威状态库；继续兼容历史I8草案。',
@@ -281,22 +742,24 @@ function createServer() {
       objective: z.string().trim().min(1).max(2000).optional(),
       summary: z.string().trim().min(1).max(1000).optional(),
       targetSystem: z.string().trim().min(1).max(160).optional(),
-      entryUrl: z.string().url().max(2048).optional(),
+      entryUrl: z.string().max(4096).optional(),
       preconditions: z.array(z.string().trim().min(1).max(500)).max(50).optional(),
       actions: z.array(z.string().trim().min(1).max(500)).min(1).max(50).optional(),
       expectedOutcomes: z.array(z.string().trim().min(1).max(500)).min(1).max(50).optional(),
       assertions: z.array(z.string().trim().min(1).max(500)).min(1).max(50).optional(),
       missingFields: z.array(z.string().trim().min(1).max(160)).max(30).optional(),
       multimodalContextJson: jsonObjectArgument.optional(),
-      credentialRef: safeRef.optional(),
+      credentialRef: z.string().trim().max(160).optional(),
+      journeyId: safeRef.optional(),
       sessionRef: safeRef
     }
   }, async ({
     caseDescription, draftArray, draftJson, acceptanceSummaryJson,
     caseTitle, objective, summary, targetSystem, entryUrl, preconditions,
-    actions, expectedOutcomes, assertions, missingFields, multimodalContextJson, credentialRef, sessionRef
+    actions, expectedOutcomes, assertions, missingFields, multimodalContextJson, credentialRef, journeyId, sessionRef
   }) => {
     try {
+      const normalizedCredentialRef = normalizeCasePrepareCredentialRef(credentialRef)
       const flatDraftSupplied = caseTitle !== undefined || actions !== undefined || expectedOutcomes !== undefined
       const suppliedDraftSources = Number(draftArray !== undefined) + Number(draftJson !== undefined) + Number(flatDraftSupplied)
       if (suppliedDraftSources !== 1) {
@@ -306,27 +769,38 @@ function createServer() {
       }
       let draft
       if (flatDraftSupplied) {
-        if (!caseTitle || !objective || !summary || !targetSystem || !entryUrl || !preconditions?.length || !actions?.length ||
+        const normalizedEntryUrl = normalizeCasePrepareUrl(entryUrl)
+        if (!caseTitle || !objective || !summary || !targetSystem || !normalizedEntryUrl || !preconditions?.length || !actions?.length ||
           !expectedOutcomes?.length || actions.length !== expectedOutcomes.length || !assertions?.length) {
           const error = new Error('I10_DRAFT_FLAT_FIELDS_INVALID')
           error.code = 'I10_DRAFT_FLAT_FIELDS_INVALID'
           throw error
         }
         draft = {
-          schemaVersion: 'hengzhun-i10-case-draft-v1', title: caseTitle, objective, summary, targetSystem, entryUrl,
+          schemaVersion: 'hengzhun-i10-case-draft-v1', title: caseTitle, objective, summary, targetSystem, entryUrl: normalizedEntryUrl,
           preconditions, steps: actions.map((action, index) => ({ action, expected: expectedOutcomes[index] })), assertions,
-          credentialRef, missingFields: missingFields || [], confirmationStatus: missingFields?.length ? 'WAITING_USER' : 'CONFIRMED'
+          credentialRef: normalizedCredentialRef, missingFields: missingFields || [], confirmationStatus: missingFields?.length ? 'WAITING_USER' : 'CONFIRMED'
         }
-        if(multimodalContextJson){const multimodal=parseJsonArgument(multimodalContextJson,'I10_MULTIMODAL_CONTEXT_INVALID');Object.assign(draft,{supportingImageIngestId:multimodal.supportingImageIngestId,caseFacts:Array.isArray(multimodal.caseFacts)?multimodal.caseFacts:[],actionStepsV2:Array.isArray(multimodal.actionStepsV2)?multimodal.actionStepsV2:[],verificationRequirements:Array.isArray(multimodal.verificationRequirements)?multimodal.verificationRequirements:[]})}
+        if(multimodalContextJson){
+          const multimodal=parseJsonArgument(multimodalContextJson,'I10_MULTIMODAL_CONTEXT_INVALID')
+          if (multimodal.actionStepsV2 !== undefined && !Array.isArray(multimodal.actionStepsV2)) {
+            const error = new Error('I10_ACTION_STEPS_INVALID'); error.code = 'I10_ACTION_STEPS_INVALID'; throw error
+          }
+          if (multimodal.verificationRequirements !== undefined && !Array.isArray(multimodal.verificationRequirements)) {
+            const error = new Error('I10_VERIFICATION_REQUIREMENTS_INVALID'); error.code = 'I10_VERIFICATION_REQUIREMENTS_INVALID'; throw error
+          }
+          Object.assign(draft,{supportingImageIngestId:multimodal.supportingImageIngestId,caseFacts:Array.isArray(multimodal.caseFacts)?multimodal.caseFacts:[],actionStepsV2:multimodal.actionStepsV2||[],verificationRequirements:multimodal.verificationRequirements||[]})
+        }
       } else {
         draft = draftArray ? draftArray[0] : parseJsonArgument(draftJson, 'I8_DRAFT_JSON_INVALID')
       }
       if (draft.schemaVersion === 'hengzhun-i10-case-draft-v1' || typeof draft.credentialRef === 'string') {
-        const normalizedDraft = normalizeI10NaturalDraft(draft, caseDescription, sessionRef, credentialRef)
+        const normalizedDraft = normalizeI10NaturalDraft(draft, caseDescription, sessionRef, normalizedCredentialRef)
         return callHarness('/v1/i10/cases:prepare', {
           namespace,
           idempotencyKey: idempotencyKey('case_prepare', sessionRef, { caseDescription, draft: normalizedDraft }),
           actorRef: 'flowise-controller',
+          ...(journeyId ? { journeyId } : {}),
           caseDescription,
           draft: normalizedDraft
         })
@@ -350,54 +824,69 @@ function createServer() {
     description: '在用户明确确认后提交 IntentPlan；阶段2只推进到等待阶段3执行计划编译。',
     inputSchema: {
       preparationId: safeRef,
-      expectedVersion: z.number().int().positive(),
+      // Flowise's native Tool node serializes state interpolation as text even
+      // when the originating MCP response contains a JSON number.  Coerce the
+      // bounded optimistic-lock version at this transport boundary, then keep
+      // the exact integer contract for Harness.  This is not permissive: NaN,
+      // fractions, zero and negative values still fail closed.
+      expectedVersion: z.coerce.number().int().positive(),
       choice: z.enum(['APPROVE', 'REJECT']),
       confirmationRef: safeRef,
       reason: z.string().trim().min(1).max(1000),
-      intentPlanJson: jsonObjectArgument.optional(),
       caseId: safeRef.optional(),
       caseVersion: z.number().int().positive().optional(),
-      route: z.string().trim().min(1).max(512).optional(),
+      // Native Flowise interpolates an absent Custom Function state value as an
+      // empty string.  Treat '' as absent for every optional field on this
+      // boundary (same rule as authoringContext below); the Harness then
+      // reconstructs the exact persisted CaseDraft -> credential -> ACTIVE
+      // TargetProfile binding or fails closed with a field-level error.
+      route: z.union([z.string().trim().min(1).max(512), z.literal('')]).optional(),
+      executionProfile: z.enum(['LOGIN_PROFILE', 'TRANSFER_UKEY_ORDER_QUERY', 'GENERIC_WEB']).optional(),
+      targetProfileId: z.union([safeRef, z.literal('')]).optional(),
+      targetProfileVersion: z.union([z.coerce.number().int().positive(), z.literal('')]).optional(),
+      targetProfileHash: z.union([z.string().regex(/^[0-9a-f]{64}$/), z.literal('')]).optional(),
+      targetProfileSnapshot: z.union([jsonObjectArgument, z.literal('')]).optional(),
+      // (see the empty-string note above)
+      authoringContext: z.union([jsonObjectArgument, z.literal('')]).optional(),
       // Controller IDs are alignment placeholders only. Accept short labels here,
       // then replace every value with a Harness-owned deterministic identifier.
-      intentStepIds: z.array(z.string().trim().min(1).max(160)).min(1).max(50).optional(),
-      actions: z.array(z.string().trim().min(1).max(500)).min(1).max(50).optional(),
-      expectedOutcomes: z.array(z.string().trim().min(1).max(500)).min(1).max(50).optional(),
-      riskLevels: z.array(z.enum(['LOW', 'MEDIUM', 'HIGH'])).min(1).max(50).optional(),
-      assertions: z.array(z.string().trim().min(1).max(500)).min(1).max(50).optional(),
+      intentStepIds: jsonArrayArgument.optional(),
+      actions: jsonArrayArgument.optional(),
+      expectedOutcomes: jsonArrayArgument.optional(),
+      riskLevels: jsonArrayArgument.optional(),
+      inputValues: jsonArrayArgument.optional(),
+      inputValueSources: jsonArrayArgument.optional(),
+      assertions: jsonArrayArgument.optional(),
       sessionRef: safeRef
     }
-  }, async ({ preparationId, expectedVersion, choice, confirmationRef, reason, intentPlanJson, caseId, caseVersion, route, intentStepIds, actions, expectedOutcomes, riskLevels, assertions, sessionRef }) => {
+  }, async ({ preparationId, expectedVersion, choice, confirmationRef, reason, caseId, caseVersion, route, executionProfile, targetProfileId, targetProfileVersion, targetProfileHash, targetProfileSnapshot, authoringContext, intentStepIds, actions, expectedOutcomes, riskLevels, inputValues, inputValueSources, assertions, sessionRef }) => {
     try {
-      let intentPlan
+      let context
       if (choice === 'APPROVE') {
-        if (intentPlanJson) {
-          intentPlan = parseJsonArgument(intentPlanJson, 'I8_INTENT_JSON_INVALID')
-        } else {
-          const counts = [actions?.length, expectedOutcomes?.length, riskLevels?.length]
-          if (!caseId || !caseVersion || !route || !assertions?.length || counts.some(count => !count) || new Set(counts).size !== 1 || (intentStepIds !== undefined && intentStepIds.length !== actions?.length)) {
-            const error = new Error('I8_INTENT_FLAT_FIELDS_INVALID')
-            error.code = 'I8_INTENT_FLAT_FIELDS_INVALID'
-            throw error
-          }
-          intentPlan = {
-            schemaVersion: 'i8-intent-plan-v1', caseId, caseVersion, route: normalizeControlledPortalRoute(route),
-            steps: actions.map((_action, index) => ({
-              intentStepId: `intent-${String(index + 1).padStart(3, '0')}`,
-              action: actions[index], expected: expectedOutcomes[index], riskLevel: riskLevels[index]
-            })),
-            assertions
-          }
-        }
+        // Empty-string interpolations are transport noise, not values (schema
+        // note above); normalize before the context assembly below.
+        const blankToUndefined = value => (typeof value === 'string' && !value.trim()) ? undefined : value
+        route = blankToUndefined(route)
+        targetProfileId = blankToUndefined(targetProfileId)
+        targetProfileVersion = blankToUndefined(targetProfileVersion)
+        targetProfileHash = blankToUndefined(targetProfileHash)
+        targetProfileSnapshot = blankToUndefined(targetProfileSnapshot)
+        context = (typeof authoringContext === 'string' && !authoringContext.trim())
+          ? undefined
+          : authoringContext
+          ? parseJsonArgument(authoringContext, 'I8_AUTHORING_CONTEXT_INVALID')
+          : { route, executionProfile: executionProfile || 'GENERIC_WEB', targetProfileId, targetProfileVersion, targetProfileHash,
+            targetProfileSnapshot: targetProfileSnapshot ? parseJsonArgument(targetProfileSnapshot, 'I10_TARGET_PROFILE_SNAPSHOT_INVALID') : undefined }
+        if (context && !context.route) context = undefined
       }
-      const businessPayload = { preparationId, expectedVersion, choice, confirmationRef, reason, intentPlan }
+      const businessPayload = { preparationId, expectedVersion, choice, confirmationRef, reason, context }
       return callHarness('/v1/i8/authoring:submit', {
         namespace,
         idempotencyKey: idempotencyKey('authoring_submit', sessionRef, businessPayload),
         preparationId,
         expectedVersion,
         confirmation: { choice, confirmationRef, reason },
-        ...(intentPlan ? { intentPlan } : {})
+        ...(context ? { authoringContext: context } : {})
       })
     } catch (error) {
       return textResult({ errorCode: error.code || 'MCP_ARGUMENT_INVALID' }, true)
@@ -415,24 +904,35 @@ function createServer() {
       preparationId: safeRef,
       sessionRef: safeRef,
       waitForCertificate: z.boolean().optional(),
-      waitTimeoutSeconds: z.number().int().min(1).max(180).optional()
+      waitTimeoutSeconds: z.number().int().min(1).max(180).optional(),
+      retryFailed: z.boolean().optional(),
+      revisionReason: z.string().trim().min(8).max(500).optional()
     }
-  }, async ({ preparationId, sessionRef, waitForCertificate, waitTimeoutSeconds }) => {
+  }, async ({ preparationId, sessionRef, waitForCertificate, waitTimeoutSeconds, retryFailed, revisionReason }) => {
     let current = await requestHarness('/v1/i8/candidates:get', { namespace, preparationId })
     if (!current.response.ok && current.response.status !== 404) {
       return textResult({ errorCode: current.body.errorCode || 'I8_CANDIDATE_STATUS_UNAVAILABLE', status: current.response.status }, true)
     }
-    if (current.response.status === 404) {
+    if (current.response.status === 404 || (retryFailed === true &&
+        ['AUTHORING_REVIEW_REQUIRED', 'CANDIDATE_REPAIR_REQUIRED'].includes(current.body?.nextAction))) {
       const authoring = await requestHarness('/v1/i8/authoring:get', { namespace, preparationId })
       if (!authoring.response.ok || !Number.isInteger(authoring.body.version)) {
         return textResult({ errorCode: authoring.body.errorCode || 'I8_PREPARATION_VERSION_UNAVAILABLE', status: authoring.response.status }, true)
       }
       const compiled = await requestHarness('/v1/i8/candidates:compile', {
         namespace,
-        idempotencyKey: idempotencyKey('candidate_get', sessionRef, { preparationId, expectedPreparationVersion: authoring.body.version }),
+        idempotencyKey: idempotencyKey('candidate_get', sessionRef, {
+          preparationId,
+          expectedPreparationVersion: authoring.body.version,
+          retryFailed: retryFailed === true,
+          revisionReason: revisionReason || null,
+          previousJobId: current.body?.job?.jobId || null
+        }),
         preparationId,
         expectedPreparationVersion: authoring.body.version,
-        stabilityPolicyVersion: 'I10_2X2_V1'
+        stabilityPolicyVersion: 'I10_2X2_V1',
+        retryFailed: retryFailed === true,
+        ...(revisionReason ? { revisionReason } : {})
       })
       if (!compiled.response.ok) {
         return textResult({ errorCode: compiled.body.errorCode || 'I8_CANDIDATE_COMPILE_FAILED', status: compiled.response.status }, true)
@@ -450,7 +950,19 @@ function createServer() {
       }
     }
     if (!terminalActions.has(current.body?.nextAction)) {
-      return textResult({ errorCode: 'I8_CANDIDATE_WAIT_TIMEOUT', nextAction: current.body?.nextAction || 'UNKNOWN' }, true)
+      const taskRef = current.body?.job?.jobId
+      if (taskRef) {
+        const verification = await requestHarness('/v1/i10/verification:get',{namespace,taskRef})
+        if (verification.response.ok) {
+          return textResult({
+            status:'WAITING_USER',
+            nextAction:'HUMAN_VERIFICATION_REQUIRED',
+            job:current.body.job,
+            verification:verification.body
+          })
+        }
+      }
+      return textResult({ errorCode: 'I8_CANDIDATE_WAIT_TIMEOUT', status:'PROCESSING', nextAction:'ASYNC_CANDIDATE_RESUME', job:current.body?.job }, false)
     }
     return textResult(current.body, false, 16 * 1024)
   })
@@ -508,7 +1020,7 @@ function createServer() {
   }))
 
   server.registerTool('task_get', {
-    description: '读取按需回归任务的最小脱敏状态与结果摘要；可受控等待本地纯Playwright Worker进入终态。',
+    description: '读取按需回归任务的最小脱敏状态与结果摘要；等待期间若Worker在业务首次确认后发现U盾等人工验证，会立即返回人工门槛而不是阻塞到超时。',
     inputSchema: {
       taskId: safeRef,
       waitForTerminal: z.boolean().optional(),
@@ -517,6 +1029,20 @@ function createServer() {
   }, async ({ taskId, waitForTerminal, waitTimeoutSeconds }) => {
     let current = await requestHarness('/v1/i8/tasks:get', { namespace, taskId })
     if (!current.response.ok) return textResult({ errorCode: current.body.errorCode || 'I8_TASK_STATUS_UNAVAILABLE', status: current.response.status }, true)
+    const withVerification = async taskBody => {
+      const verification = await requestHarness('/v1/i10/verification:get', { namespace, taskRef: taskId })
+      if (!verification.response.ok) return null
+      const status = String(verification.body?.status || '')
+      if (!['WAITING_USER_PREPARATION', 'WAITING_USER_ACTION'].includes(status)) return null
+      return {
+        ...taskBody,
+        status: 'WAITING_USER',
+        nextAction: 'HUMAN_VERIFICATION_REQUIRED',
+        verification: verification.body
+      }
+    }
+    const initialVerification = await withVerification(current.body)
+    if (initialVerification) return textResult(initialVerification)
     if (waitForTerminal !== true) return textResult(current.body)
     const deadline = Date.now() + (waitTimeoutSeconds ?? 120) * 1000
     const terminal = new Set(['SUCCEEDED', 'FAILED', 'BLOCKED', 'WAITING_USER', 'CANCELLED'])
@@ -524,8 +1050,16 @@ function createServer() {
       await new Promise(resolve => setTimeout(resolve, 750))
       current = await requestHarness('/v1/i8/tasks:get', { namespace, taskId })
       if (!current.response.ok) return textResult({ errorCode: current.body.errorCode || 'I8_TASK_STATUS_UNAVAILABLE', status: current.response.status }, true)
+      const verification = await withVerification(current.body)
+      if (verification) return textResult(verification)
     }
-    if (!terminal.has(current.body?.status)) return textResult({ errorCode: 'I8_TASK_WAIT_TIMEOUT', status: current.body?.status || 'UNKNOWN' }, true)
+    if (!terminal.has(current.body?.status)) {
+      return textResult({
+        status: current.body?.status || 'PROCESSING',
+        nextAction: 'ASYNC_TASK_RESUME',
+        taskId
+      })
+    }
     return textResult(current.body)
   })
 
@@ -573,6 +1107,36 @@ function createServer() {
       expectedVersion: current.body.version,
       reason
     })
+  })
+
+  server.registerTool('schedule_disable', {
+    description: '在用户明确确认后停用指定调度；先读取当前版本，再以乐观并发方式提交停用决定。',
+    inputSchema: {
+      scheduleId: safeRef,
+      reason: z.string().trim().min(1).max(1000),
+      sessionRef: safeRef
+    }
+  }, async ({ scheduleId, reason, sessionRef }) => {
+    const current = await requestHarness('/v1/i8/schedules:get', { namespace, scheduleId })
+    if (!current.response.ok || !Number.isInteger(current.body?.version)) {
+      return textResult({ errorCode: current.body?.errorCode || 'I8_SCHEDULE_STATUS_UNAVAILABLE', status: current.response.status }, true)
+    }
+    return callHarness('/v1/plugin/schedules:disable', {
+      namespace,
+      idempotencyKey: idempotencyKey('schedule_disable', sessionRef, { scheduleId, expectedVersion: current.body.version, reason }),
+      scheduleId,
+      expectedVersion: current.body.version,
+      reason
+    })
+  })
+
+  server.registerTool('artifact_download_grant', {
+    description: '为衡准已登记且未隔离的制品签发15分钟内有效的一次性下载链接；不接受本地路径。',
+    inputSchema: {
+      artifactId: z.string().regex(/^art_[0-9a-f-]{36}$/)
+    }
+  }, async ({ artifactId }) => {
+    return callHarness('/v1/i10/artifacts:grant-download', { namespace, artifactId })
   })
 
   server.registerTool('result_inbox_list', {
@@ -652,7 +1216,7 @@ function createServer() {
 }
 
 const app = createMcpExpressApp()
-app.get('/health', (_request, response) => response.json({ status: 'ok', service: 'hengzhun-i10-mcp', version: '8.0.0' }))
+app.get('/health', (_request, response) => response.json({ status: 'ok', service: 'hengzhun-i10-mcp', version: '10.0.0' }))
 app.use('/mcp', (request, response, next) => {
   if (!authorized(request.headers.authorization)) {
     response.status(401).json({ jsonrpc: '2.0', error: { code: -32001, message: 'Unauthorized' }, id: null })

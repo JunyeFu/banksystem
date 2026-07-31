@@ -1,25 +1,21 @@
 {
   "schemaVersion": "hengzhun-i10-gap-closure-matrix-v1",
   "scope": "I10-S0-S8-R0-R7",
-  "status": "VERIFIED",
+  "status": "HISTORICAL_BASELINE_ONLY",
+  "supersededBy": "flowise/i10/i10-18-chain-acceptance-issue-register-v1.md",
+  "acceptanceBoundary": "This matrix records pre-18-chain component evidence only. It must never be used to assert I10_FLOWISE_18_CHAIN_ACCEPTED or I10_FLOWISE_LOCAL_ACCEPTED.",
   "stage8Evidence": {
     "path": ".data/evidence/i10/stage8/result.json",
-    "sha256": "cc6e0a813c119206ecf5afd82335b59a4ed29f39f9853a15cf377331a8349ccd",
-    "forwardScenarioCount": 9,
-    "reverseScenarioCount": 3,
+    "sha256": "00f4c3d4599dbfca93671a1928a280f2c029049ba1a1946044c535f8a95c5d94",
+    "forwardScenarioCount": 1,
+    "reverseScenarioCount": 0,
     "mock": false,
     "degraded": false
   },
   "multimodalVerificationEvidence": {
     "path": ".data/evidence/i10/multimodal-verification/result.json",
-    "sha256": "099dc67856720fb2de168e557b06b2ceecbd01e52707ee4102ec8bedd7b52f21",
-    "mock": false,
-    "degraded": false,
-    "imageCount": 1,
-    "factCount": 6,
-    "controllerInvocation": "REAL",
-    "verificationStatus": "RESUMED",
-    "hardwareOperationVerified": false
+    "available": false,
+    "reason": "Historical evidence path is absent from the current local runtime; it cannot support current acceptance."
   },
   "supportingRuntimeEvidence": [
     ".data/evidence/i10/model-probes/result.json",

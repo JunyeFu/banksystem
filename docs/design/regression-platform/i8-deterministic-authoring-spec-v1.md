@@ -12,6 +12,8 @@ owner: project-owner
 
 # 衡准 I8 确定性脚本作者化阶段实施规格 V1
 
+> 历史兼容说明：本文中的 `Human Input` 是 Flowise/本机交互适配语义，不是已证明的 HiAgent 原生节点；HiAgent 迁移以消息、信息收集、选择器/条件和状态回流表达。
+
 > 本文是 [`agent/plans/active/v54-implementation-batches.md`](../../../agent/plans/active/v54-implementation-batches.md) 中 I8 的冻结详细规格，只回答 I8 如何编码、测试和验收。它不定义其他阶段、不维护任务状态、不改变 I0—I7 历史事实，也不构成第二份实施顺序。任务状态仍只由 `agent/backlog.yaml` 维护。
 
 ## 1. 冻结目标

@@ -3,14 +3,16 @@ id: DOC-V54-COZE-HARNESS-ACCEPTANCE
 title: V5.4 Coze Harness 回归核心验收矩阵
 document_type: reference
 domain: architecture
-status: accepted
-authority: normative
-version: 1.5
+status: superseded
+authority: historical
+version: 1.6
 effective_date: 2026-07-18
 owner: project-owner
 ---
 
 # V5.4 Coze/Harness 回归核心验收矩阵
+
+> 2026-07-20 起本矩阵只证明 I0—I7 历史 Coze 交付，不用于 I8。I8 验收改由唯一实施顺序、[`Flowise/SQLite/HiAgent 架构基线`](overview/flowise-sqlite-hiagent-regression-baseline-v1.md) 和 [`I8 确定性作者化规格`](../design/regression-platform/i8-deterministic-authoring-spec-v1.md) 共同约束。
 
 本矩阵只适用于 `COZE-HARNESS-CORE-001`。实施先后以 [`../../agent/plans/active/v54-implementation-batches.md`](../../agent/plans/active/v54-implementation-batches.md) 为唯一权威。银行 S0-S7 验收继续以 [`acceptance-matrix.md`](acceptance-matrix.md) 为准，但不构成平台基础建设的全局前置条件；衡准 UI 实现处于暂停状态，不属于本矩阵的交付范围。
 

@@ -3,9 +3,9 @@ id: EVIDENCE-HENGZHUN-I8-STAGE7-20260721
 title: 衡准I8阶段7限域修复闭环验证证据
 document_type: evidence
 domain: regression-platform
-status: accepted
-authority: informative
-version: 1.0
+status: verified
+authority: evidence
+version: 1.1
 effective_date: 2026-07-21
 owner: 傅钧烨
 ---

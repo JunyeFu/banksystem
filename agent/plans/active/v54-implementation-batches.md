@@ -129,7 +129,7 @@ Playwright 对浏览器事实和正式回归结果负责，不接受 Midscene �
 
 任何阶段不得越级。特别禁止 `Midscene 动作通过 -> 直接 SCRIPT_VALIDATED`、`候选生成成功 -> 自动激活`、`单次 Playwright 通过 -> 稳定性通过`、`正式运行失败 -> 运行时调用 Midscene 修补后继续`、`脚本激活 -> 自动创建 Schedule`。稳定性验证已经是激活前的真实纯 Playwright 执行；激活后不再强制重复一次内容相同的“首次正式运行”，只有用户选择立即按需运行或创建调度时才产生新的正式 Run。
 
-动作上下文必须以 SQLite 中的 `ExecutableActionPlan + cursor + action lease + verified action record` 为权威。`CTX-L1` 只含当前动作完整定义、页面签名、不变量、风险、允许目标、Fixture 引用和最近事实观察；`CTX-L2` 增加上一动作脱敏结果和下一动作最小预览；`CTX-L3` 只在分支/修复需要时增加最小依赖锥，不得发送完整计划或完整对话。工具响应另用 `OUT-L0...OUT-L3` 预算，二者不得混称。视觉与主控 LLM 完整窗口均固定 16,000 tokens（输入最多 12,000、输出保留至少 4,000）；窗口容量不得扩大数据授权。MiMo v2.5只能使用Qwen3.5确认的OpenAI Chat Completions字符串消息、非思考非流式JSON mode能力，模型不得原生调用工具。Midscene 输出后，Playwright 必须在受控页面状态中重放并验证，结果写回数据库后 Harness 才能推进游标；Agent 对话文本不得直接推进动作状态。
+动作上下文必须以 SQLite 中的 `ExecutableActionPlan + cursor + action lease + verified action record` 为权威。`CTX-L1` 只含当前动作完整定义、页面签名、不变量、风险、允许目标、Fixture 引用和最近事实观察；`CTX-L2` 增加上一动作脱敏结果和下一动作最小预览；`CTX-L3` 只在分支/修复需要时增加最小依赖锥，不得发送完整计划或完整对话。工具响应另用 `OUT-L0...OUT-L3` 预算，二者不得混称。I10视觉请求固定16,000总窗口、12,000输入和4,000输出保留；I10主控档要求1,000,000总上下文和最多8,192输出，二者容量均不得扩大数据授权。MiMo v2.5只能使用Qwen3.5确认的OpenAI Chat Completions字符串消息、非思考非流式JSON mode能力，模型不得原生调用工具。未来内网Qwen3.5必须按精确checkpoint、推理后端和HiAgent连接器做实时能力门禁，低于最低档时阻止迁移，高于最低档时记录真实能力且适配器不得静默限缩。Midscene 输出后，Playwright 必须在受控页面状态中重放并验证，结果写回数据库后 Harness 才能推进游标；Agent 对话文本不得直接推进动作状态。
 
 ### 6. 稳定性验证后的交付与调度选择
 
@@ -350,7 +350,7 @@ I8 不延续 Coze 或 Dify 专用实现。个人/办公电脑入口使用 Window
 
 I8 内部实现顺序固定为：
 
-1. 以 `AUD-009...AUD-013/AUD-054` 为基线，冻结 `RegressionCaseDraft`、`AcceptanceSummary`、`KnowledgeSnapshotRef`、`IntentPlan`、`ExecutableActionPlan` 和 `CTX-L1/CTX-L2/CTX-L3` `ActionContextEnvelope` 强类型 Schema；完成 migration 009、视觉/主控统一16K token预算字段与门禁、图像 token 估算、预算错误码/审计，并让 Worker 实际消费完整 Envelope。历史 I4 状态窗口只能作为游标/租约基础，不能代替本步骤。
+1. 以 `AUD-009...AUD-013/AUD-054` 为基线，冻结 `RegressionCaseDraft`、`AcceptanceSummary`、`KnowledgeSnapshotRef`、`IntentPlan`、`ExecutableActionPlan` 和 `CTX-L1/CTX-L2/CTX-L3` `ActionContextEnvelope` 强类型 Schema；完成 migration 009、I8历史视觉/主控统一16K token预算字段与门禁、图像 token 估算、预算错误码/审计，并让 Worker 实际消费完整 Envelope。I10现行模型分层以本文件I10段和`HZ-C17/C18`为准。历史 I4 状态窗口只能作为游标/租约基础，不能代替本步骤。
 2. 建立只接收自然语言案例描述的可迁移 Agentflow 定义；技术参数由 Flowise/Harness 生成，Flowise 外部调用全部经过 MCP。
 3. 实现有限 DSL、确定性 Script Package Builder、候选版本/Hash/来源追踪和 Worker 白名单执行。
 4. 实现 `StabilityCertificate`：两个视口各连续 3 次、共 6 次，新 BrowserContext、独立 Fixture、无残留认证、断言/证据一致。
@@ -358,9 +358,9 @@ I8 内部实现顺序固定为：
 6. 将 Schedule 精确绑定到 `caseVersion + planId + scriptId + scriptVersion`，再实现 `ONE_TIME runAt` 和离线结果收件箱；用户通过自然语言给出时间，系统回显规范化摘要，不要求用户编写 Cron。
 7. 实现分级 `StepFailureEnvelope`、十一类事故和受限 `ScriptPatchProposal`；每个修复候选都必须重新通过完整稳定性门禁，禁止运行时自修补、自动激活或修改被测项目代码。
 
-2026-07-21 阶段1兼容性更新：强类型领域Schema、migration 009、`ActionContextEnvelope`、不可变预算审计、L1→L2→L3歧义升级、图像token预估、确定性错误码、Worker完整Envelope消费和Worker OpenAPI 1.3.0均保留；主控预算由旧1M收紧为与视觉一致的16K/12K/4K。真实MiMo usage按接口能力记录，不能替代Qwen3.5兼容报文门禁。
+2026-07-21 阶段1历史兼容性记录：强类型领域Schema、migration 009、`ActionContextEnvelope`、不可变预算审计、L1→L2→L3歧义升级、图像token预估、确定性错误码、Worker完整Envelope消费和Worker OpenAPI 1.3.0均保留；I9当时曾将主控与视觉统一为16K/12K/4K。该历史决定已由I10的主控1,000,000/8,192与视觉16K/12K/4K分层策略覆盖；真实模型usage仍不能替代Qwen3.5兼容报文和未来精确端点能力门禁。
 
-2026-07-20 阶段2完成状态：第2项已完成代码、制品和本机集成验证。`flowise/i8/agentflow-v2.json` 只接收 Chat Input 案例描述，平台知识、结构化 LLM、最小澄清、Human Input、MCP 与结果回显均有 HiAgent 语义映射；没有 Code、HTTP、数据库、文件或 Shell 节点。migration 010 与 Harness 实现 `PREPARED → REJECTED/AWAITING_STAGE3` 权威交接，MCP Server 以 Bearer、固定 namespace、确定性幂等、8 KiB 输出门禁注册14工具，其中阶段2启用 `case_prepare / authoring_submit / authoring_get`。阶段3在此基础上启用 `candidate_get`，其余10项稳定失败关闭。阶段2及阶段3累计验证使用 Flowise 3.0.12 的真实 `MCPToolkit` 贯通 MCP→Harness→SQLite；当前进程未注入 MiMo 密钥且未发布运行中 Agentflow，因此不能声明真实 MiMo 对话或 HiAgent 运行验收。
+2026-07-20 阶段2完成状态：第2项已完成代码、制品和本机集成验证。`flowise/i8/agentflow-v2.json` 只接收 Chat Input 案例描述，平台知识、结构化 LLM、最小澄清、Flowise Human Input 适配器、MCP 与结果回显均已实现；此前“有 HiAgent 语义映射”的表述仅指消息/信息收集/条件的语义映射，不证明 HiAgent 原生存在该节点。没有 Code、HTTP、数据库、文件或 Shell 节点。migration 010 与 Harness 实现 `PREPARED → REJECTED/AWAITING_STAGE3` 权威交接，MCP Server 以 Bearer、固定 namespace、确定性幂等、8 KiB 输出门禁注册14工具，其中阶段2启用 `case_prepare / authoring_submit / authoring_get`。阶段3在此基础上启用 `candidate_get`，其余10项稳定失败关闭。阶段2及阶段3累计验证使用 Flowise 3.0.12 的真实 `MCPToolkit` 贯通 MCP→Harness→SQLite；当前进程未注入 MiMo 密钥且未发布运行中 Agentflow，因此不能声明真实 MiMo 对话或 HiAgent 运行验收。
 
 2026-07-20 阶段3完成状态：第3项已完成代码与本机集成验证。migration 011、严格 `ExecutableActionPlan`、10操作有限 DSL、仅 `ROLE/LABEL/TEST_ID` 定位器、确定性 Script Package Builder、候选版本/Hash/来源链、不可变 SQLite 记录、文件 Hash 复核和 Worker 白名单执行已经落地。相同规范化输入生成字节一致脚本与相同 Hash；`candidate_get` 不接收用户提供的并发版本，而由 MCP 查询 Harness 后注入受控版本。`verify:i8:stage3` 15/15，Worker 测试通过受控 Playwright Page 契约并拒绝篡改包。阶段3没有运行真实 Chromium、没有生成 `StabilityCertificate`，也没有激活或调度候选；第4项六次真实浏览器稳定性门禁是下一步。
 
@@ -394,7 +394,7 @@ I9内部实现顺序固定为9个阶段：
 2. **四服务便携启停与健康门禁**：实现Flowise、Harness、MCP、Worker的一键准备/启动/停止/状态检查和异常退出清理；固定只监听本机回环地址，运行态只写`.data/`，重复启动、端口占用、缺配置和弱Token均失败关闭。
 3. **平台SQLite、知识与配置导入**：初始化Flowise自己的`database.sqlite`，通过Flowise公开支持的导入/界面流程建立平台知识、模型连接、MCP连接和环境变量引用；只保存知识正文于Flowise知识层，Harness SQLite继续独占回归事实，禁止直接修改Flowise内部数据库绕过注册。
 4. **MiMo主控与14工具真实连通**：配置MiMo v2.5主控模型和认证MCP，逐项验证14工具调用、输出预算、超时、人工确认续办、会话恢复和错误传播；Flowise不得直连Shell、文件、SQLite、浏览器、凭据或任意URL。
-5. **正式Agentflow导入、发布与重启恢复**：把I8阶段2—7同源制品装配为真实可发布Agentflow；只使用有HiAgent映射证据的输入、知识检索、结构化LLM、条件、循环、Human Input、MCP和直接回复节点；导出同源定义和Hash，重启后仍可恢复且不依赖手工临时状态。
+5. **正式Agentflow导入、发布与重启恢复**：把I8阶段2—7同源制品装配为真实可发布Agentflow；Flowise本机允许使用 `Human Input` 作为交互适配器，但跨平台合同必须落到HiAgent已证明的消息、信息收集、选择器/条件、工作流、MCP和直接回复语义；不得把 `Proceed/Reject` 写成HiAgent原生能力。导出同源定义和Hash，重启后仍可恢复且不依赖手工临时状态。逐节点映射见 [`docs/architecture/overview/hiagent-flowise-capability-boundary-v1.md`](../../../docs/architecture/overview/hiagent-flowise-capability-boundary-v1.md)。
 6. **正向自然语言全链路验收**：用户只输入门户登录与资料一致性案例描述；真实Flowise完成结构化、最小澄清、人工确认、Builder候选、真实Chromium 6/6、脚本预览、显式激活、按需运行或新调度，并把结果返回同一对话。
 7. **反向失败、限域修复与恢复验收**：主动制造受控脚本失效，真实Flowise展示十一类事故和最小CTX上下文，生成白名单补丁候选，经新的真实Chromium 6/6和用户激活后再由用户独立选择复跑或创建修复版调度；不得自动修改项目、自动激活或静默迁移旧调度。
 8. **便携候选与本机干净目录验收**：从干净提交生成不含凭据的候选目录、Hash、SBOM、配置模板、备份/恢复说明和机器可读验收记录；在当前电脑全新目录完成准备、四服务、内置Chromium核心E2E、双SQLite备份恢复和重启复验。第二台电脑恢复移交办公电脑阶段，不再阻塞本机I9关闭，也不得由本机证据冒充。
@@ -406,7 +406,7 @@ I9内部实现顺序固定为9个阶段：
 
 2026-07-21 P3关闭结论：固定版本平台知识、MiMo/MCP连接参数与运行时秘密变量引用已通过Flowise公开账户、导入和查询API装配，未直接写Flowise内部表；固定引用、来源版本、内容Hash和引用ID均可回读。Harness migration 016只保存不可变`KnowledgeSnapshotRef`，不保存知识正文。两套SQLite通过SQLite在线备份API分别备份，并在停机门禁下恢复、`quick_check`和职责表边界复核通过。当前进入P4；P3没有注入MiMo密钥、没有调用模型或MCP工具，不得声称MiMo或十四工具已连通。
 
-2026-07-21 P4兼容性更新：Bundled Flowise 3.0.12的真实`MCPToolkit`已通过认证Streamable HTTP发现并调用14/14工具，成功链覆盖作者化、候选、预览、激活、运行、调度、收件箱、事故、修复和拒绝；Bearer拒绝、确定性幂等、16 KiB输出、100 ms测试超时转换、安全错误传播、Human Input和循环上限均已通过。`p4-controller-profile-v1.json`把主控与视觉统一冻结为16K/12K/4K，`qwen35-capability-envelope-v1.json`限制MiMo只使用Qwen3.5兼容的非思考、非流式OpenAI JSON mode字符串报文；MCP只由Workflow节点调用。凭据仍只由忽略目录运行时变量映射且执行后清除。
+2026-07-21 P4兼容性更新：Bundled Flowise 3.0.12的真实`MCPToolkit`已通过认证Streamable HTTP发现并调用14/14工具，成功链覆盖作者化、候选、预览、激活、运行、调度、收件箱、事故、修复和拒绝；Bearer拒绝、确定性幂等、16 KiB输出、100 ms测试超时转换、安全错误传播、Flowise Human Input 适配器和循环上限均已通过。该证据不证明 HiAgent 有同名 Human Input 或 Proceed/Reject；迁移时必须使用信息收集、消息和选择器/条件。`p4-controller-profile-v1.json`把主控与视觉统一冻结为16K/12K/4K，`qwen35-capability-envelope-v1.json`限制MiMo只使用Qwen3.5兼容的非思考、非流式OpenAI JSON mode字符串报文；MCP只由Workflow节点调用。凭据仍只由忽略目录运行时变量映射且执行后清除。
 
 2026-07-21 P5关闭结论：固定ID的“衡准自动化回归主控”通过Flowise公开凭据、工作区导入、Chatflow更新、校验和工作区导出API完成装配与私有发布；MiMo凭据只经公开API加密保存，Flowise SQLite未被直接修改。I8阶段2—7四份同源制品Hash、HiAgent能力交集、正式FlowData Hash和导出Hash均冻结；真实校验为0问题。四服务停止后从同一隔离双SQLite重启，Flow ID、发布状态、定义Hash和导出Hash保持一致。`AUD-049`关闭，当前进入P6；尚不得声称普通用户正向自然语言对话已经完成。
 
@@ -419,7 +419,7 @@ I9内部实现顺序固定为9个阶段：
 I9退出条件全部为硬门禁：
 
 - 一个正式入口命令能在干净Windows目录启动四服务，健康检查全部通过，并给出可打开的Flowise URL；
-- 平台外能力100%经认证MCP，Flowise实际使用节点100%存在HiAgent映射证据；
+- 平台外能力100%经认证MCP；Flowise实际使用节点只有在存在HiAgent映射证据时才可进入同源流程，`Human Input`/`Proceed`/`Reject`仅作为Flowise本机适配层；
 - 正向和反向两条真实Flowise对话链均完成，涉及候选脚本的门禁均由固定Chromium完成2视口×3次；
 - Flowise重启、会话续办、SQLite备份恢复、端口冲突、缺配置和错误传播均有自动测试或真实证据；
 - P8便携目录在当前电脑干净运行态通过，安装过程不要求WSL、Docker、全局Node或联网下载运行依赖；第二台电脑恢复由办公电脑阶段独立取证；
@@ -438,7 +438,52 @@ I9已退出；视频案例、外部适配器、跨项目自动修复、衡准UI�
 - 视频导入、五类外部适配器、跨项目自动修复和新增高风险银行案例；
 - 衡准任何页面、投影、路由迁移或写控制。
 
-上述事项可能阻塞对应扩展功能，但不得反向阻塞 I9 的 Flowise 产品化闭环。
+### I10：Flowise 正式版自动化回归测试平台（当前实施阶段）
+
+I9 的最终目录、migration 001—016、六次证书和验收证据保持只读历史基线。I10 在 `agent/i10-flowise-formal-portable` 独立分支与独立 `.release/hengzhun-regression-system-windows-x64-i10/` 发布目录中实现，不覆盖 I9，不自动合并 `main`，不改写 `coze` 或 `hiagent`。
+
+I10 的功能缺口扩展为 `I10-G01...I10-G20`。G01—G12保持原含义；G13—G20依次为三入口补充图片、本机中英文OCR与脱敏、主控事实筛选与溯源、含输入值的ActionStepV2、验证要求模型、Midscene暂停/恢复、U盾安全协作边界及无人值守验证失败关闭。
+
+I10 实施顺序唯一固定为：
+
+1. `I10-S0`：冻结 I9、建立缺口追踪、DecisionDelta、分支与规格。
+2. `I10-S1`：办公电脑通用模型变量、主控/视觉双探针、DPAPI CurrentUser 凭据表单与 `credentialRef`。
+3. `I10-S2`：`InputEnvelope / CaseDraft`、5项新增 MCP、SQLite migration 017、缺口追问和人工确认。
+4. `I10-S3`：XLSX、CSV、DOCX、JSON 安全导入、1000案例/20 MiB门禁和批量修正。
+5. `I10-S4`：MP4/H.264校验、FFmpeg抽帧、PP-OCRv5中英文识别、关键帧脱敏、确定性文字变化时间线、主控事实筛选和逐项人工校正；视频导入不调用MiMo。
+6. `I10-S5`：门户登录真实 Midscene 视觉作者化、Playwright事实补充、ActionTrace和确定性Builder。
+7. `I10-S6`：`I10_2X2_V1`四次验证、失败关闭、I9六次历史兼容、完整`.cjs`短时下载和Hash绑定。
+8. `I10-S7`：`ON_DEMAND / ONE_TIME / RECURRING`自然语言计划、人工时区/频率确认和同门禁反向修复；固定2030示例不得迁移。
+9. `I10-S8`：自然语言、案例文件、视频三入口分别完成即时、单次、周期和失败修复真实对话验收。
+10. `I10-R0`：冻结G13—G20合同，新增图片、事实、动作与验证状态Schema及migration 020。
+11. `I10-R1`：三入口接收受控补充图片并执行格式、魔数、单图/总量和路径逃逸门禁。
+12. `I10-R2`：本机中英文OCR、敏感框脱敏、Hash证据与主控模型事实筛选。
+13. `I10-R3`：图片事实与主输入融合，形成可追溯`CaseFactCandidate / ActionStepV2 / VerificationRequirement`。
+14. `I10-R4`：Harness验证挑战状态机、版本化人工决定、不可变事件和无人值守失败关闭。
+15. `I10-R5`：Midscene验证发现、同会话等待/恢复及U盾浏览器协调边界。
+16. `I10-R6`：Flowise主链升级为23项MCP并加入图片事实确认和验证提示。
+17. `I10-R7`：全量合同、兼容、安全、真实模型/Flowise及受控验证验收；U盾硬件能力不得用模拟结果代替。
+18. `I10-S9`：不再重新导出目录或生成ZIP；只对当前桌面运行权威目录刷新`manifest/files.sha256.json`，独立复算清单SHA-256，并以`VERIFY.cmd --no-pause`完成核心文件、运行时资产、禁止内容和文件集合一致性收口。该收口不得扩张为跨电脑或全平台便携主张。
+
+### I10 当前执行事实（2026-07-22）
+
+- `S0`：已建立分支、G01—G12、DecisionDelta与详细规格；I9历史目录未改写。
+- `S1`：DPAPI凭据链与通用`CONTROL_* / VISION_*`配置已实现；2026-07-22真实双模型探针通过，主控DeepSeek V4 Flash完成结构化输出和时间保持探针，视觉MiMo v2.5完成真实截图理解，均为`mock=false/degraded=false`。
+- `S2`：已完成代码与本机合同验收。`InputEnvelope / CaseDraft`、migration 017、旧14项加5项新增MCP均已落地；后续R6在不破坏兼容的前提下将Agentflow扩展到109节点/123边和23项MCP。附件人工复核已形成确认、修正后复核、拒绝持久化三条路径，路径感知校验确保不存在跨分支未定义引用。
+- `S3`：已完成代码与本机自动验收。CSV、JSON、XLSX、DOCX通过受控附件统一形成CaseDraft；字段映射、逐记录批量错误和人工解决记录由migration 019不可变持久化。混合批次不静默跳过坏记录，全部错误解决前不得确认；宏、旧Office格式、异常压缩、路径逃逸、20 MiB与1000案例上限均失败关闭。
+- `S4`：2026-07-24按最新DecisionDelta完成纯OCR迁移。H.264/1080p/15分钟/500MiB门禁、FFmpeg抽帧、固定PP-OCRv5模型Hash、坐标脱敏、原始帧清理、`OCR_FRAME_DIFF_V1`时间线、真实主控事实筛选和逐项人工校正均已落地；所有推导事实置信度上限0.74并固定需要人工确认。真实运行探针返回`I10_LIVE_VIDEO_OCR_ONLY_PASSED`，视频草案仅含`:ocr`来源且不含MiMo。MiMo继续仅用于S5 Midscene作者化。
+- `S5`：门户登录真实Midscene作者化已通过。Harness冻结CTX-L2上中下文，Worker调用MiMo驱动Midscene并保存脱敏ActionTrace，Playwright补充事实，Builder独占最终源码；候选查询与预览只公开`REAL/MIDSCENE/PLAYWRIGHT_VERIFIED`及双Hash安全元数据。
+- `S6`：已完成本机代码与合同验收。I10候选严格执行1440×900与390×844各2次，任一失败阻止证书和交付；成功证书、实际执行源码、预览与一次性`.cjs`下载的SHA-256一致。修复候选继承同一`I10_2X2_V1/4`策略并校验每个样本的视口、序号和Fixture，失败不得激活，重新提案必须重新完成4次；I9历史`I8_2X3_V1/6`保持可读可测。
+- `S7`：即时、单次、周期路径均由人工确认后的计划进入Harness；单次/周期精确冻结脚本Hash和版本。幂等、防重复、misfire、停用、重启恢复、结果收件箱和DST策略均通过；S8真实对话进一步证明三入口的单次与周期任务产生匹配`scheduleId`的结果，周期任务随后经独立人工确认停用。
+- `S8/R7`：原固定矩阵9条正向+3条反向全部完成，`mock=false/degraded=false`。补充图片与验证链随后完成真实探针：1张脱敏图经本机中英文OCR和真实主控筛出6条事实，验证挑战持久化到`RESUMED`；证据Hash为`099DC67856720FB2DE168E557B06B2CEECBD01E52707EE4102EC8BEDD7B52F21`。`gap-closure-matrix-v1.json`与`verify:i10:closure`现逐项绑定G01—G20；U盾探针明确`hardwareOperationVerified=false`，只验收平台协调边界，不冒充物理硬件操作。
+- `S9`：2026-07-24按用户最新决策缩减并完成。未重新导出目录、未生成ZIP，也未宣称第二台电脑或任意电脑便携验收；只在当前桌面运行权威目录刷新`manifest/files.sha256.json`并运行`VERIFY.cmd --no-pause`。最终清单覆盖213个核心文件和6个运行时资产，清单SHA-256为`282ca17c8775f675071b0287ef2793caa7dcb70f6ba098d3199c14c84281db07`，禁止内容命中0项，最终状态为`I10_PORTABLE_FOLDER_VERIFIED`。
+- 当前事实证据见 `docs/evidence/platform/hengzhun-i10-current-implementation-2026-07-22.md`。
+
+通用运行环境模型变量为 `CONTROL_API_KEY / CONTROL_BASE_URL / CONTROL_MODEL_NAME` 和 `VISION_API_KEY / VISION_BASE_URL / VISION_MODEL_NAME / VISION_MODEL_FAMILY`。厂商名不得成为发布包配置接口；当前选定的主控实现为 DeepSeek V4 Flash，视觉实现为 MiMo v2.5。主控最大总上下文1,000,000 tokens、单次输出8,192 tokens；视觉总窗口16,000、输入12,000、输出4,000并受Qwen3.5能力上限约束。两者都不得原生越过Flowise MCP节点调用外部工具。
+
+I10 的 S0—S9 及 R0—R7 已按当前本机交付边界完成。S9只关闭现有桌面目录的VERIFY清单与校验和，不包含重新导出、ZIP或跨电脑便携认证。未来内网Qwen3.5迁移是独立实时能力门禁：当前通用适配和协议兼容不等于已证明任意Qwen3.5 checkpoint、推理后端或HiAgent连接器的真实容量。
+
+上述事项可能阻塞对应扩展功能，但不得反向改写已关闭的 I9 历史证据。
 
 ## 排除范围
 

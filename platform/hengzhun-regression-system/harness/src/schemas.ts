@@ -1,5 +1,11 @@
 import { z } from 'zod';
 
+export const targetAdapterBindingSchema = z.object({
+  adapterId: z.string().regex(/^[a-z0-9][a-z0-9-]{1,78}[a-z0-9]$/),
+  adapterVersion: z.string().regex(/^\d+\.\d+\.\d+$/),
+  manifestHash: z.string().regex(/^[0-9a-f]{64}$/)
+}).strict();
+
 export const namespaceSchema = z.string().regex(/^[a-z0-9][a-z0-9._-]{2,63}$/);
 export const idempotencyKeySchema = z.string().min(8).max(128).regex(/^[A-Za-z0-9._:-]+$/);
 const boundedText = (maximum: number) => z.string().trim().min(1).max(maximum);
@@ -44,19 +50,78 @@ export const acceptanceSummarySchema = z.object({
   clarificationQuestions: z.array(boundedText(500)).max(10)
 }).strict();
 
+// Non-secret business fields are deliberately separate from free-form action
+// prose.  They are frozen with the CaseDraft, can be displayed back to the
+// user for confirmation, and are the only I10 source for transfer/query
+// fixtures.  Credentials remain referenced elsewhere by credentialRef.
+export const typedBusinessInputsV1Schema = z.object({
+  schemaVersion: z.literal('hengzhun-i10-typed-business-inputs-v1'),
+  values: z.object({
+    dateRange: boundedText(80).optional(),
+    filter: boundedText(500).optional(),
+    payeeRef: z.string().trim().regex(/^payee_[A-Za-z0-9._:-]{4,120}$/).optional(),
+    amount: z.string().trim().regex(/^(?:0|[1-9][0-9]{0,11})(?:\.[0-9]{1,2})?$/).optional(),
+    currency: z.string().trim().regex(/^[A-Z]{3}$/).optional(),
+    purpose: boundedText(200).optional()
+  }).strict(),
+  source: z.enum(['USER_CONFIRMED', 'IMPORT_CONFIRMED', 'OCR_CONFIRMED'])
+}).strict().superRefine((value, context) => {
+  const transferFields = ['payeeRef', 'amount', 'currency', 'purpose'] as const;
+  const present = transferFields.filter(field => Boolean(value.values[field]));
+  if (present.length > 0 && present.length !== transferFields.length) {
+    context.addIssue({
+      code: 'custom', path: ['values'],
+      message: '转账业务输入必须同时包含payeeRef、amount、currency和purpose。'
+    });
+  }
+  if (value.values.amount && Number(value.values.amount) <= 0) {
+    context.addIssue({ code: 'custom', path: ['values', 'amount'], message: '转账金额必须大于0。' });
+  }
+});
+
 export const intentPlanSchema = z.object({
   schemaVersion: z.literal('i8-intent-plan-v1'),
   caseId: boundedText(80),
   caseVersion: z.number().int().positive(),
   route: boundedText(512),
+  executionProfile: z.enum(['LOGIN_PROFILE', 'TRANSFER_UKEY_ORDER_QUERY', 'GENERIC_WEB']).default('LOGIN_PROFILE'),
+  targetProfileId: boundedText(80).optional(),
+  targetProfileVersion: z.number().int().positive().optional(),
+  targetProfileHash: z.string().regex(/^[0-9a-f]{64}$/).optional(),
+  targetProfileSnapshot: z.record(z.string(), z.unknown()).optional(),
+  adapterBinding: targetAdapterBindingSchema.optional(),
+  inputContractVersion: z.enum(['LEGACY', 'TypedBusinessInputsV1']).default('LEGACY'),
+  typedBusinessInputs: typedBusinessInputsV1Schema.optional(),
   steps: z.array(z.object({
     intentStepId: boundedText(80),
     action: boundedText(500),
     expected: boundedText(500),
-    riskLevel: z.enum(['LOW', 'MEDIUM', 'HIGH'])
+    riskLevel: z.enum(['LOW', 'MEDIUM', 'HIGH']),
+    inputValue: z.string().trim().max(500).optional(),
+    inputValueSource: z.enum(['USER_TEXT', 'CREDENTIAL_REF', 'RUNTIME_USER_INPUT', 'NONE']).default('NONE')
   }).strict()).min(1).max(50),
   assertions: z.array(boundedText(500)).min(1).max(50)
-}).strict();
+}).strict().superRefine((value, context) => {
+  if (value.executionProfile === 'GENERIC_WEB' &&
+      (!value.targetProfileId || !value.targetProfileVersion || !value.targetProfileHash || !value.targetProfileSnapshot)) {
+    context.addIssue({ code: 'custom', path: ['targetProfileId'], message: '通用Web计划必须冻结目标站点档案。' });
+  }
+  if (value.executionProfile !== 'GENERIC_WEB' && !value.adapterBinding) {
+    context.addIssue({ code: 'custom', path: ['adapterBinding'], message: '受控适配器计划必须冻结显式适配器绑定。' });
+  }
+  if (value.executionProfile === 'TRANSFER_UKEY_ORDER_QUERY') {
+    // I10 service paths always set TypedBusinessInputsV1.  Retain LEGACY for
+    // immutable I9 replay evidence, where the Builder deliberately keeps its
+    // old frozen-plan compatibility path.  This schema must not retroactively
+    // invalidate historical certificates.
+    if (value.inputContractVersion === 'TypedBusinessInputsV1') {
+      const inputs = value.typedBusinessInputs?.values;
+      for (const field of ['payeeRef', 'amount', 'currency', 'purpose'] as const) {
+        if (!inputs?.[field]) context.addIssue({ code: 'custom', path: ['typedBusinessInputs', 'values', field], message: `转账计划缺少${field}。` });
+      }
+    }
+  }
+});
 
 export const executableActionPlanSchema = z.object({
   schemaVersion: z.literal('i8-executable-action-plan-v1'),

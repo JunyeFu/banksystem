@@ -5,8 +5,9 @@
   "type": "AGENTFLOW",
   "deployed": true,
   "isPublic": false,
-  "primaryFlowDataPath": "flowise/i10/agentflow-v2.json",
-  "primaryFlowSha256": "3a6f18490aca2f5e29532e5343de39b4577e8a26042d44d40afa4fa738f6667f",
+  "primaryFlowDataPath": "flowise/i10/agentflow-v7.json",
+  "primaryFlowSha256": "a4ad9488868a2dde950b27c2eec591eda0e0e447a4ee5d496e0a040f20f9a31b",
+  "chatbotConfigPath": "flowise/i10/chatbot-config-v1.json",
   "controllerCredential": {
     "id": "b6fd091d-30c6-4bd6-a081-000000000010",
     "name": "衡准主控模型",
@@ -22,11 +23,19 @@
     "VISION_MODEL_NAME"
   ],
   "externalToolBoundary": "FLOWISE_MCP_NODES_ONLY",
-  "mcpToolCount": 19,
+  "mcpToolCount": 33,
   "publishState": "DEPLOYED_PRIVATE_PUBLIC_API_ROUND_TRIP_VERIFIED",
   "importPath": "/api/v1/export-import/import",
   "publishPath": "/api/v1/chatflows/{id}",
   "exportPath": "/api/v1/export-import/export",
   "publicationEvidencePath": ".data/evidence/i10/flowise/publication.json",
-  "lastVerifiedAt": "2026-07-23T01:02:22.764Z"
+  "rollbackFlowDataPath": "flowise/i10/agentflow-v6.json",
+  "rollbackFlowSha256": "0a6599ff179a567e6d5f07d99e610add8c29cd5268f12ad202901ae572639da2",
+  "primaryFlowVersion": 7,
+  "interactionAuthority": "HARNESS_EXACT_PROPOSAL_JOURNEY",
+  "layoutSnapshotPath": "flowise/i10/agentflow-v7-layout.json",
+  "layoutSavedAt": "2026-07-24T03:08:57.612Z",
+  "chatbotConfigSha256": "706f53989d18443b8e493db2f0c714272c93c37900b008c5234863ab9650849f",
+  "deployedFlowDataSha256": "5759974b101b3a92cd8d4bbca379bb970cadba7c4a007e854e7d448c3287e69c",
+  "lastVerifiedAt": "2026-07-31T05:56:25.243Z"
 }

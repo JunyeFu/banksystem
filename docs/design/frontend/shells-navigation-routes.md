@@ -5,8 +5,8 @@ document_type: reference
 domain: frontend
 status: accepted
 authority: normative
-version: 1.3
-effective_date: 2026-07-15
+version: 1.4
+effective_date: 2026-07-20
 owner: project-owner
 ---
 
@@ -57,6 +57,6 @@ owner: project-owner
 
 ## 当前衡准路由
 
-`/quality/dashboard`、`/quality/cases`、`/quality/cases/:caseId`、`/quality/baselines`、`/quality/runs`、`/quality/schedules`、`/quality/incidents`、`/quality/knowledge`、`/quality/releases` 保留为未来只读路由；当前实现暂停。恢复后它们只消费只读观测契约，不以浏览器夹具代替生产后端实现，也不提供 Coze 支持或写控制。
+`/quality/dashboard`、`/quality/cases`、`/quality/cases/:caseId`、`/quality/baselines`、`/quality/runs`、`/quality/schedules`、`/quality/incidents`、`/quality/knowledge`、`/quality/releases` 保留为未来只读路由；当前实现暂停。恢复后它们只消费只读观测契约，不以浏览器夹具代替生产后端实现，也不提供 Agent 平台支持或写控制。
 
 路由、权限、字段和业务状态不得仅因视觉稿存在而新增。衡准路由仅在项目负责人恢复 `HZ-OBSERVABILITY-001` 后才进入实施。

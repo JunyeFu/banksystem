@@ -11,3 +11,4 @@ if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 & $node (Join-Path $PSScriptRoot 'i10-stage8-orchestrator.cjs')
 exit $LASTEXITCODE
+

@@ -224,7 +224,7 @@ public class FineractAdapter {
     body.put("interestCalculationDaysInYearType", 365);
     body.put("lockinPeriodFrequency", 0);
     body.put("lockinPeriodFrequencyType", 0);
-    body.put("submittedOnDate", LocalDate.of(2020, 1, 1).toString());
+    body.put("submittedOnDate", businessDate().toString());
     body.put("dateFormat", "yyyy-MM-dd");
     body.put("locale", "en");
     return client.post().uri("/api/v1/savingsaccounts").body(body).retrieve().body(Map.class);
@@ -232,18 +232,44 @@ public class FineractAdapter {
 
   @SuppressWarnings("unchecked")
   public Map<String, Object> savingsCommand(long accountId, String command, Map<String, Object> body) {
-    if (!java.util.Set.of("block", "unblock", "close", "prematureClose", "activate", "deposit", "withdrawal").contains(command)) throw new IllegalArgumentException("Unsupported savings command");
+    if (!java.util.Set.of("approve", "block", "unblock", "close", "prematureClose", "activate", "deposit", "withdrawal").contains(command)) throw new IllegalArgumentException("Unsupported savings command");
     Map<String, Object> payload = body == null ? new java.util.HashMap<>() : new java.util.HashMap<>(body);
     if (command.equals("block")) { Object reason = payload.getOrDefault("reasonForBlock", payload.getOrDefault("note", "Channel operations block")); payload.put("reasonForBlock", reason); }
-    if (command.equals("close") || command.equals("prematureClose")) { payload.putIfAbsent("closedOnDate", LocalDate.now().toString()); payload.putIfAbsent("dateFormat", "yyyy-MM-dd"); payload.putIfAbsent("locale", "en"); }
-    if (command.equals("activate")) { payload.putIfAbsent("activatedOnDate", LocalDate.now().toString()); payload.putIfAbsent("dateFormat", "yyyy-MM-dd"); payload.putIfAbsent("locale", "en"); }
-    return client.post().uri(uri -> uri.path("/api/v1/savingsaccounts/{id}").queryParam("command", command).build(accountId)).body(payload).retrieve().body(Map.class);
+    String transactionDate = businessDate().toString();
+    if (command.equals("close") || command.equals("prematureClose")) { payload.putIfAbsent("closedOnDate", transactionDate); payload.putIfAbsent("dateFormat", "yyyy-MM-dd"); payload.putIfAbsent("locale", "en"); }
+    if (command.equals("approve")) { payload.putIfAbsent("approvedOnDate", transactionDate); payload.putIfAbsent("dateFormat", "yyyy-MM-dd"); payload.putIfAbsent("locale", "en"); }
+    if (command.equals("activate")) { payload.putIfAbsent("activatedOnDate", transactionDate); payload.putIfAbsent("dateFormat", "yyyy-MM-dd"); payload.putIfAbsent("locale", "en"); }
+    if (command.equals("deposit") || command.equals("withdrawal")) { payload.putIfAbsent("transactionDate", transactionDate); payload.putIfAbsent("dateFormat", "yyyy-MM-dd"); payload.putIfAbsent("locale", "en"); payload.putIfAbsent("paymentTypeId", 1); }
+    // Fineract exposes account lifecycle commands on the savings-account resource,
+    // while monetary transactions are a separate command resource.  Sending a
+    // deposit to the lifecycle endpoint is rejected as an unsupported command.
+    String path = (command.equals("deposit") || command.equals("withdrawal"))
+        ? "/api/v1/savingsaccounts/{id}/transactions"
+        : "/api/v1/savingsaccounts/{id}";
+    return client.post().uri(uri -> uri.path(path).queryParam("command", command).build(accountId)).body(payload).retrieve().body(Map.class);
   }
 
   @SuppressWarnings("unchecked")
   public List<Map<String,Object>> savingsTransactions(long accountId,String fromDate,String toDate){
-    Map<String,Object> body=client.get().uri(uri->{var b=uri.path("/api/v1/savingsaccounts/{id}/transactions/search").queryParam("limit",1000);if(fromDate!=null&&!fromDate.isBlank())b.queryParam("fromDate",fromDate);if(toDate!=null&&!toDate.isBlank())b.queryParam("toDate",toDate);return b.build(accountId);}).retrieve().body(Map.class);
-    if(body==null||!(body.get("content") instanceof List<?> list))return List.of();return list.stream().filter(x->x instanceof Map<?,?>).map(x->(Map<String,Object>)x).toList();
+    // Fineract's documented transaction collection is the primary source.
+    // Do not emit null date parameters: some local images treat them as an
+    // invalid date filter.  Older images can still expose the same data via
+    // the account association, so retain that read-only compatibility path.
+    Object body;
+    try {
+      body = client.get().uri(uri -> {
+        var builder = uri.path("/api/v1/savingsaccounts/{id}/transactions");
+        if (fromDate != null && !fromDate.isBlank()) builder.queryParam("fromDate", fromDate);
+        if (toDate != null && !toDate.isBlank()) builder.queryParam("toDate", toDate);
+        return builder.build(accountId);
+      }).retrieve().body(Object.class);
+    } catch (org.springframework.web.client.RestClientException ignored) {
+      body = client.get().uri(uri -> uri.path("/api/v1/savingsaccounts/{id}").queryParam("associations", "transactions").build(accountId)).retrieve().body(Object.class);
+    }
+    Object entries = body instanceof Map<?,?> map ? map.get("transactions") : body;
+    if (!(entries instanceof List<?>) && body instanceof Map<?,?> map) entries = map.get("content");
+    if (!(entries instanceof List<?> list)) return List.of();
+    return list.stream().filter(x->x instanceof Map<?,?>).map(x->(Map<String,Object>)x).toList();
   }
 
   public Map<String,Object> submitLoan(Map<String,Object> body, String idempotencyKey){

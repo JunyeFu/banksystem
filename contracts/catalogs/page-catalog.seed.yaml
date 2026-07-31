@@ -123,6 +123,26 @@ pages:
       error:
         testId: transfer-error
 
+  - pageId: customer.transfer.verification
+    routePattern: /verification
+    readyMarker:
+      testId: transfer-verification-page
+    elements:
+      confirm:
+        testId: ukey-verify-control
+        role: button
+        name: 确认验证并查询单号
+
+  - pageId: customer.transfer.order.query
+    routePattern: /orders/query
+    readyMarker:
+      testId: order-query-page
+    elements:
+      orderNumber:
+        testId: order-number
+      status:
+        testId: order-status
+
   - pageId: customer.transfer.result
     routePattern: /transfers/:paymentId
     readyMarker:

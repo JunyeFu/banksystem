@@ -1,0 +1,4523 @@
+资源管理模块接口
+
+API 列表概览
+组件：iam-server
+服务：IamService
+该服务名称用来指定 top 的 service header
+
+API 列表概览
+
+工作空间管理
+AddMemberToWorkspace: 添加工作空间成员
+
+BatchUpdateWorkspaceQuota: 批量更新工作空间配额
+
+CheckWorkspace: 检查工作空间名称是否重复
+
+CheckWorkspaceSafelyDeletable: 检查工作空间是否可以安全删除
+
+CreatePersonalWorkspace: 创建个人空间
+
+CreateWorkspace: 创建工作空间
+
+CreateWorkspaceForAdmin:
+
+DeleteWorkspace: 删除工作空间
+
+DeleteWorkspaceForAdmin:
+
+GetWorkspace: 查询工作空间详情
+
+GetWorkspaceAuths: 获取工作空间权限
+
+IsWorkspaceMember: 查询用户是否是某个空间成员
+
+ListAllWorkspace: 列出所有工作空间，不考虑成员权限
+
+ListOrgWorkspaceRel: 根据组织查询已授权空间列表,支持分页
+
+ListWorkspace: 查询工作空间列表
+
+ListWorkspaceMember: 查询工作空间成员列表
+
+ListWorkspaceParentOrgs: 查询空间关联的组织以及父节点组织
+
+RemoveMemberFromWorkspace: 移除工作空间成员
+
+UpdateMemberAuth: 编辑工作空间成员权限
+
+UpdateWorkspace: 更新工作空间
+UpdateWorkspaceForAdmin:
+
+标签管理
+CheckLabelExist: 标签是否存在
+
+CreateLabel: 创建标签
+
+DeleteLabel: 删除标签
+
+ListLabel: 获取标签列表
+
+ListLabelForAdmin: 获取标签列表（管理员用）
+
+ListLabelType: 获取标签类型列表
+
+MoveLabelOrder: 移动标签排序
+
+UpdateLabel: 更新标签
+
+资源管理
+CreateResource: 创建资源
+
+DeleteResource: 删除资源
+
+GetResource: 获取资源详情
+
+ListResource: 获取资源列表
+
+TagResources: 资源打标
+
+UnTagResources: 资源取消打标
+
+组件：llmops-app-server
+服务：AppService
+该服务名称用来指定 top 的 service header
+
+API 列表概览
+
+发布渠道管理
+AddCustomPublishChannel: 租户发布渠道管理-创建自定义发布渠道
+
+CheckBuiltinPublishChannelName: 租户发布渠道管理-检查内置发布渠道名称
+
+CheckCustomPublishChannelCode: 租户发布渠道管理-检查自定义发布渠道编码
+
+CheckCustomPublishChannelName: 租户发布渠道管理-检查自定义发布渠道名称
+
+DeletePublishChannel: 租户发布渠道管理-删除发布渠道
+
+GetPublishChannelInfo: 租户发布渠道管理-获取发布渠道详情
+
+GetWebChannelEnabledAccessTypes: 获取租户 web 发布渠道访问控制生效范围
+
+GetWebsdkChannelEnabledAccessTypes: 获取租户 webSDK 发布渠道访问控制生效范围
+ListTenantPublishChannel: 租户发布渠道管理-获取发布渠道列表
+
+UpdateBuiltinPublishChannelInfo: 租户发布渠道管理-修改内置发布渠道信息
+
+UpdateCustomPublishChannel: 租户发布渠道管理-更新自定义发布渠道
+
+UpdateHiaAppPublishChannelConfig: 租户发布渠道管理-更新 HiaApp 发布渠道配置
+
+UpdateLarkPublishChannelConfig: 租户发布渠道管理-更新飞书发布渠道配置
+
+UpdatePublishChannelApprovalEnable: 租户发布渠道管理-更新发布渠道审批开关
+
+UpdatePublishChannelEnable: 租户发布渠道管理-更新发布渠道开关
+
+UpdateWebPublishChannelConfig: 租户发布渠道管理-更新 web 发布渠道配置
+
+UpdateWebsdkPublishChannelConfig: 租户发布渠道管理-更新 webSDK 发布渠道配置
+
+标签管理
+ ⚠️
+【 废弃】CheckLabelExist: 标签是否存在
+
+【⚠️废弃】CreateLabel: 创建标签
+
+【⚠️废弃】DeleteLabel: 删除标签
+
+【⚠️废弃】ListLabel: 获取标签列表
+
+【⚠️废弃】ListLabelForAdmin: 获取标签列表（管理员用）
+
+【⚠️废弃】ListLabelType: 获取标签类型列表
+
+【⚠️废弃】UpdateLabel: 更新标签
+
+服务：PluginService
+该服务名称用来指定 top 的 service header
+
+API 列表概览
+
+插件
+BatchExportPluginDSL: DSL 导入导出
+
+BatchGetImportPluginAction: 获取导入操作
+
+BatchReleasePlugin: 批量上架插件
+
+ConvertPluginFromOpenAPI: 导入功能
+
+CreatePlugin: 创建插件
+
+DeletePlugin: 删除插件
+
+DeprecatePlugin: 废弃插件
+
+ExportPluginToOpenAPI:
+FavoritePlugin:
+GetAipptAuthCode: apippt 相关
+
+GetArchivedPlugin: 获取已经发布的插件
+
+GetPlugin: 获取插件
+
+GetPluginConfig: 获取授权信息
+
+GetPluginIDByName: 通过 Name 获取插件 ID
+
+GetReleasedPlugin: 获取已经上架的插件
+
+GetRunnablePluginToolInner: 获取 runtime 运行工具
+
+ImportPluginFromOpenAPI:
+ImportToolFromCurl:
+ImportToolFromOpenAPI:
+ListArchivedPlugin:
+ListArchivedPluginBrief:
+
+ListAvailablePluginCategory: 获取可用的插件分类
+
+ListPlugin: 获取插件列表
+
+ListPluginUpdateLog: 操作记录
+
+ListReleasedPlugin:
+ListReleasedPluginBrief:
+
+PublishPlugin: 发布插件
+
+ReleasePlugin: 上架插件
+
+RemovePluginConfig: 删除插件授权配置(取消授权)
+
+SavePluginConfig: 保存插件授权配置(授权)
+
+SetPluginVisitTime: 收藏
+
+UnfavoritePlugin:
+
+UpdatePlugin: 修改插件
+
+服务：PluginToolService
+该服务名称用来指定 top 的 service header
+
+API 列表概览
+
+插件
+GetToolIDByName: 通过 Name 查工具 Id
+
+服务：PluginAdminService
+该服务名称用来指定 top 的 service header
+
+API 列表概览
+
+插件
+GetPluginForAdmin: 获取插件详情
+
+ListAllPluginForAdmin: 获取所有插件列表
+
+ListPluginForAdmin: 获取插件列表
+
+插件/制品管理
+BatchDeprecatePluginForAdmin: 租户管理端: 批量下架租户插件
+
+BatchReleasePluginForAdmin: 租户管理端: 批量上架租户插件
+
+DeprecatePluginForAdmin: 租户管理端: 下架租户插件
+
+GetArchivedPluginForAdmin: 租户管理端: 获取租户下的原生插件列表
+
+GetPluginTenantConfig: 租户管理端: 获取租户原生插件授权配置
+
+ListArchivedPluginForAdmin: 租户管理端: 获取租户下的原生插件列表
+
+ReleasePluginForAdmin: 租户管理端: 上架租户插件
+
+SetPluginLabelsForAdmin: 租户管理端: 设置插件分类
+
+SetPluginTenantConfig: 租户管理端: 设置租户原生插件授权配置
+
+组件：iam-server
+服务：IamService
+该服务名称用来指定 top 的 service header
+
+API 接口
+工作空间管理
+添加工作空间成员
+Action: AddMemberToWorkspace
+Version: 2024-12-25
+Method: Post
+
+请求 (workspace.AddMemberToWorkspaceRequest):
+
+
+参数                    类型             是否必填     说明
+
+
+WorkspaceID           string         true     工作空间 ID
+
+
+UserIDS               list[string]   false    用户 ID
+OrgIDS                list[string]          false   组织 ID
+
+
+UserGroupIDS          list[string]          false   用户组 ID
+
+
+Role                  string                false   成员角色：
+                                                    WorkspaceAdmin-
+                                                    空间所有者，
+                                                    WorkspaceMembe
+                                                    r-空间成员
+                                                    WorkspaceVisitor-
+                                                    空间只读
+
+
+ResourceIDs           list[role.ResourceI   false   资源的 ID
+                      Ds]
+
+Tags                  list[string]          false   资源标签，2.5.0
+                                                    仅支持
+                                                    sys:tag:createdBy
+                                                    表示自建资源
+
+响应 (workspace.AddMemberToWorkspaceResponse):
+
+
+参数                    类型                    是否必填    说明
+
+
+ResponseMetadat       base.ResponseM        true    响应的元数据
+a                     etadata
+
+Result                map[string]any        false   响应内容
+
+批量更新工作空间配额
+Action: BatchUpdateWorkspaceQuota
+Version: 2024-12-25
+Method: Post
+
+请求 (workspace.BatchUpdateWorkspaceQuotaRequest):
+
+
+参数                    类型                    是否必填    说明
+
+
+WorkspaceIDs          list[string]          true    工作空间列表
+Quota                 list[workspace.Wo   true      待更新的配额列表
+                      rkspaceQuota]
+
+响应 (workspace.BatchUpdateWorkspaceQuotaResponse):
+
+
+参数                    类型                  是否必填      说明
+
+
+ResponseMetadat       base.ResponseM      true      响应的元数据
+a                     etadata
+
+Result                map[string]any      false     响应内容
+
+检查工作空间名称是否重复
+Action: CheckWorkspace
+Version: 2024-12-25
+Method: Post
+
+请求 (workspace.CheckWorkspaceRequest):
+
+
+参数                    类型                  是否必填      说明
+
+
+Name                  string              false     工作空间名称
+
+响应 (workspace.CheckWorkspaceResponse):
+
+
+参数                    类型                  是否必填      说明
+
+
+ResponseMetadat       base.ResponseM      true      响应的元数据
+a                     etadata
+
+Result                map[string]any      false     响应内容
+
+
+---- Exist            bool                true
+
+检查工作空间是否可以安全删除
+Action: CheckWorkspaceSafelyDeletable
+Version: 2024-12-25
+Method: Post
+
+请求 (workspace.CheckSafelyDeletableRequset):
+
+
+参数                    类型                  是否必填      说明
+ID                    string           true       ID
+
+响应 (workspace.CheckSafelyDeletableResponse):
+
+
+参数                    类型               是否必填       说明
+
+
+ResponseMetadat       base.ResponseM   true       响应的元数据
+a                     etadata
+
+Result                map[string]any   false      响应内容
+
+
+----                  bool             true       是否可以安全删除
+IsSavelyDeletable
+
+---- Reason           string           false      不可删除的原因
+
+创建个人空间
+Action: CreatePersonalWorkspace
+Version: 2024-12-25
+Method: Post
+
+请求 (workspace.CreatePersonalWorkspaceRequest):
+
+
+参数                    类型               是否必填       说明
+
+响应 (workspace.CreatePersonalWorkspaceResponse):
+
+
+参数                    类型               是否必填       说明
+
+
+ResponseMetadat       base.ResponseM   true       响应的元数据
+a                     etadata
+
+Result                map[string]any   false      响应内容
+
+
+---- ID               string           true       空间 ID， 格式为
+                                                  personal-{user_id}
+
+创建工作空间
+Action: CreateWorkspace
+Version: 2024-12-25
+Method: Post
+
+请求 (workspace.CreateWorkspaceRequest):
+
+
+参数                    类型                  是否必填    说明
+
+
+Name                  string              true    名称
+
+
+OwnerID               string              true    空间所有人，传
+                                                  IAM user id
+
+Description           string              false   描述
+
+
+URL                   string              false   头像存储的 URL
+
+
+OrgId                 string              false   组织 ID 可选
+
+
+ID                    string              false   工作空间 id，如果
+                                                  不填，则自动生成
+
+
+Status                i32                 false   Status, 默认为 1
+
+
+Quota                 list[workspace.Wo   false   Quota
+                      rkspaceQuota]               workspace's quota
+
+响应 (workspace.CreateWorkspaceResponse):
+
+
+参数                    类型                  是否必填    说明
+
+
+ResponseMetadat       base.ResponseM      true    响应的元数据
+a                     etadata
+
+Result                map[string]any      false   响应内容
+
+
+---- ID               string              false
+
+CreateWorkspaceForAdmin
+Action: CreateWorkspaceForAdmin
+Version: 2024-12-25
+Method: Post
+
+请求 (workspace.CreateWorkspaceRequest):
+参数                    类型                  是否必填    说明
+
+
+Name                  string              true    名称
+
+
+OwnerID               string              true    空间所有人，传
+                                                  IAM user id
+
+Description           string              false   描述
+
+
+URL                   string              false   头像存储的 URL
+
+
+OrgId                 string              false   组织 ID 可选
+
+
+ID                    string              false   工作空间 id，如果
+                                                  不填，则自动生成
+
+
+Status                i32                 false   Status, 默认为 1
+
+
+Quota                 list[workspace.Wo   false   Quota
+                      rkspaceQuota]               workspace's quota
+
+响应 (workspace.CreateWorkspaceResponse):
+
+
+参数                    类型                  是否必填    说明
+
+
+ResponseMetadat       base.ResponseM      true    响应的元数据
+a                     etadata
+
+Result                map[string]any      false   响应内容
+
+
+---- ID               string              false
+
+删除工作空间
+Action: DeleteWorkspace
+Version: 2024-12-25
+Method: Post
+
+请求 (workspace.DeleteWorkspaceRequest):
+
+
+参数                    类型                  是否必填    说明
+ID                    string           true
+
+
+响应 (workspace.DeleteWorkspaceResponse):
+
+
+参数                    类型               是否必填    说明
+
+
+ResponseMetadat       base.ResponseM   true    响应的元数据
+a                     etadata
+
+Result                map[string]any   false   响应内容
+
+DeleteWorkspaceForAdmin
+Action: DeleteWorkspaceForAdmin
+Version: 2024-12-25
+Method: Post
+
+请求 (workspace.DeleteWorkspaceRequest):
+
+
+参数                    类型               是否必填    说明
+
+
+ID                    string           true
+
+
+响应 (workspace.DeleteWorkspaceResponse):
+
+
+参数                    类型               是否必填    说明
+
+
+ResponseMetadat       base.ResponseM   true    响应的元数据
+a                     etadata
+
+Result                map[string]any   false   响应内容
+
+查询工作空间详情
+Action: GetWorkspace
+Version: 2024-12-25
+Method: Post
+
+请求 (workspace.GetWorkspaceRequest):
+
+
+参数                    类型               是否必填    说明
+
+
+ID                    string           false
+Name                  string            false
+
+
+响应 (workspace.GetWorkspaceResponse):
+
+
+参数                    类型                是否必填    说明
+
+
+ResponseMetadat       base.ResponseM    true    响应的元数据
+a                     etadata
+
+Result                map[string]any    false   响应内容
+
+
+---- Item             workspace.Works   false
+                      paceDetail
+
+获取工作空间权限
+Action: GetWorkspaceAuths
+Version: 2024-12-25
+Method: Post
+
+请求 (workspace.GetWorkspaceAuthsRequest):
+
+
+参数                    类型                是否必填    说明
+
+
+WorkspaceID           string            true    工作空间 ID
+
+
+UserID                string            true    IAM 用户 ID
+
+响应 (workspace.GetWorkspaceAuthsResponse):
+
+
+参数                    类型                是否必填    说明
+
+
+ResponseMetadat       base.ResponseM    true    响应的元数据
+a                     etadata
+
+Result                map[string]any    false   响应内容
+
+
+---- Items            list[string]      false   已授权的功能模块
+                                                列表
+                                                APP 管理：
+                                                AUTH_APP
+                                                工具：
+                                               AUTH_TOOL
+                                               知识库：
+                                               AUTH_KNOWLE
+                                               DGE
+                                               运行时：
+                                               AUTH_RUNTIME
+                                               空间配置：
+                                               AUTH_WORKSPA
+                                               CE_CONFIG
+
+查询用户是否是某个空间成员
+Action: IsWorkspaceMember
+Version: 2024-12-25
+Method: Post
+
+请求 (workspace.IsWorkspaceMemberRequest):
+
+
+参数                    类型               是否必填    说明
+
+
+WorkspaceID           string           true    空间 ID
+
+响应 (workspace.IsWorkspaceMemberResponse):
+
+
+参数                    类型               是否必填    说明
+
+
+ResponseMetadat       base.ResponseM   true    响应的元数据
+a                     etadata
+
+Result                map[string]any   false   响应内容
+
+
+---- IsMember         bool             true    是否是空间成员
+
+列出所有工作空间，不考虑成员权限
+Action: ListAllWorkspace
+Version: 2024-12-25
+Method: Post
+
+请求 (workspace.ListAllWorkspaceRequest):
+
+
+参数                    类型               是否必填    说明
+ListOpt               common.ListOptio     false
+                      n
+
+Filter                workspace.ListAll    false   筛选条件
+                      Filter
+
+响应 (workspace.ListAllWorkspaceResponse):
+
+
+参数                    类型                   是否必填    说明
+
+
+ResponseMetadat       base.ResponseM       true    响应的元数据
+a                     etadata
+
+Result                map[string]any       false   响应内容
+
+
+---- Items            list[workspace.All   false   工作空间列表
+                      WorkspaceItem]
+
+---- Total            i64                  false   条目总数
+
+根据组织查询已授权空间列表,支持分页
+Action: ListOrgWorkspaceRel
+Version: 2024-12-25
+Method: Post
+
+请求 (workspace.ListOrgWorkspaceRelRequest):
+
+
+参数                    类型                   是否必填    说明
+
+
+OrgId                 string               true    组织 ID
+
+
+ListOpt               common.ListOptio     false   分页基础信息
+                      n
+
+WorkspaceName         string               false   空间 Name 支持模
+                                                   糊搜索
+
+响应 (workspace.ListOrgWorkspaceRelResponse):
+
+
+参数                    类型                   是否必填    说明
+
+
+ResponseMetadat       base.ResponseM       true    响应的元数据
+a                     etadata
+
+
+Result                map[string]any       false   响应内容
+
+
+---- Items            list[workspace.Wo    false   待关联空间列表
+                      rkspaceDetail]               工作空间列表
+
+
+---- Total            i64                  false   条目总数
+
+查询工作空间列表
+Action: ListWorkspace
+Version: 2024-12-25
+Method: Post
+
+请求 (workspace.ListWorkspaceRequest):
+
+
+参数                    类型                   是否必填    说明
+
+
+ListOpt               common.ListOptio     false
+                      n
+
+Filter                workspace.ListFilt   false   筛选条件
+                      er
+
+响应 (workspace.ListWorkspaceResponse):
+
+
+参数                    类型                   是否必填    说明
+
+
+ResponseMetadat       base.ResponseM       true    响应的元数据
+a                     etadata
+
+Result                map[string]any       false   响应内容
+
+
+---- Items            list[workspace.Wo    false   工作空间列表
+                      rkspaceItem]
+
+---- Total            i64                  false   条目总数
+
+查询工作空间成员列表
+Action: ListWorkspaceMember
+Version: 2024-12-25
+Method: Post
+
+请求 (workspace.ListWorkspaceMemberRequest):
+
+
+参数                    类型                   是否必填    说明
+
+
+WorkspaceID           string               true    工作空间 ID
+
+
+Filter                workspace.ListFilt   false   筛选条件
+                      er
+
+ListOpt               common.ListOptio     false
+                      n
+
+响应 (workspace.ListWorkspaceMemberResponse):
+
+
+参数                    类型                   是否必填    说明
+
+
+ResponseMetadat       base.ResponseM       true    响应的元数据
+a                     etadata
+
+Result                map[string]any       false   响应内容
+
+
+---- Items            list[workspace.Me    false   工作空间成员列表
+                      mber]
+
+---- Total            i64                  false   条目总数
+
+
+---- DefaultRole      string               false
+
+查询空间关联的组织以及父节点组织
+Action: ListWorkspaceParentOrgs
+Version: 2024-12-25
+Method: Post
+
+请求 (workspace.ListWorkspaceParentOrgsRequest):
+
+
+参数                    类型                   是否必填    说明
+
+
+WorkspaceID           string               true    空间 ID
+
+响应 (workspace.ListWorkspaceParentOrgsResponse):
+参数                    类型                    是否必填    说明
+
+
+ResponseMetadat       base.ResponseM        true    响应的元数据
+a                     etadata
+
+Result                map[string]any        false   响应内容
+
+
+---- Items            list[organization.O   false   待关联空间列表
+                      rgNode]                       工作空间列表
+
+
+---- Total            i64                   false   条目总数
+
+移除工作空间成员
+Action: RemoveMemberFromWorkspace
+Version: 2024-12-25
+Method: Post
+
+请求 (workspace.RemoveMemberFromWorkspaceRequest):
+
+
+参数                    类型                    是否必填    说明
+
+
+WorkspaceID           string                true    工作空间 ID
+
+
+MemberID              string                false
+
+
+UserIDS               list[string]          false   用户 ID
+
+
+OrgIDS                list[string]          false   组织 ID
+
+
+UserGroupIDS          list[string]          false   用户组 ID
+
+响应 (workspace.RemoveMemberFromWorkspaceResponse):
+
+
+参数                    类型                    是否必填    说明
+
+
+ResponseMetadat       base.ResponseM        true    响应的元数据
+a                     etadata
+
+Result                map[string]any        false   响应内容
+
+编辑工作空间成员权限
+Action: UpdateMemberAuth
+Version: 2024-12-25
+Method: Post
+
+请求 (workspace.UpdateMemberAuthRequest):
+
+
+参数                    类型                    是否必填    说明
+
+
+WorkspaceID           string                true    工作空间 ID
+
+
+MemberIDS             list[string]          false   成员 ID
+
+
+UserIDS               list[string]          false   用户 ID
+
+
+OrgIDS                list[string]          false   组织 ID
+
+
+UserGroupIDS          list[string]          false   用户组 ID
+
+
+Role                  string                true    成员角色：
+                                                    WorkspaceMembe
+                                                    r-空间成员
+                                                    WorkspaceVisitor-
+                                                    空间只读
+
+
+ResourceIDs           list[role.ResourceI   false   资源的 ID
+                      Ds]
+
+Tags                  list[string]          false   资源标签，2.5.0
+                                                    仅支持
+                                                    sys:tag:createdBy
+                                                    表示自建资源
+
+响应 (workspace.UpdateMemberAuthResponse):
+
+
+参数                    类型                    是否必填    说明
+
+
+ResponseMetadat       base.ResponseM        true    响应的元数据
+a                     etadata
+
+Result                map[string]any        false   响应内容
+
+更新工作空间
+Action: UpdateWorkspace
+Version: 2024-12-25
+Method: Post
+
+请求 (workspace.UpdateWorkspaceRequest):
+
+
+参数                    类型                  是否必填    说明
+
+
+ID                    string              true    ID
+
+Name                  string              false   名称
+
+
+OwnerID               string              false   更新 Owner，传
+                                                  IAM user id
+
+Description           string              false   描述
+
+
+URL                   string              false   头像存储的 URL
+
+
+OrgId                 string              false   组织 ID 可选
+
+
+Quota                 list[workspace.Wo   false   Quota
+                      rkspaceQuota]               workspace's quota
+
+响应 (workspace.UpdateWorkspaceResponse):
+
+
+参数                    类型                  是否必填    说明
+
+
+ResponseMetadat       base.ResponseM      true    响应的元数据
+a                     etadata
+
+Result                map[string]any      false   响应内容
+
+UpdateWorkspaceForAdmin
+Action: UpdateWorkspaceForAdmin
+Version: 2024-12-25
+Method: Post
+
+请求 (workspace.UpdateWorkspaceRequest):
+
+
+参数                    类型                  是否必填    说明
+ID                    string              true    ID
+
+Name                  string              false   名称
+
+
+OwnerID               string              false   更新 Owner，传
+                                                  IAM user id
+
+Description           string              false   描述
+
+
+URL                   string              false   头像存储的 URL
+
+
+OrgId                 string              false   组织 ID 可选
+
+
+Quota                 list[workspace.Wo   false   Quota
+                      rkspaceQuota]               workspace's quota
+
+响应 (workspace.UpdateWorkspaceResponse):
+
+
+参数                    类型                  是否必填    说明
+
+
+ResponseMetadat       base.ResponseM      true    响应的元数据
+a                     etadata
+
+Result                map[string]any      false   响应内容
+
+标签管理
+标签是否存在
+Action: CheckLabelExist
+Version: 2024-12-25
+Method: Post
+
+请求 (label.CheckLabelExistRequest):
+
+
+参数                    类型                  是否必填    说明
+
+
+LabelType             string              true    标签类型
+
+
+LabelCode             string              false   标签 code
+
+
+Name                  string              false   标签名称
+SubType               string           false   标签子类型
+
+响应 (label.CheckLabelExistResponse):
+
+
+参数                    类型               是否必填    说明
+
+
+ResponseMetadat       base.ResponseM   true    响应的元数据
+a                     etadata
+
+Result                map[string]any   false   响应内容
+
+
+---- Exist            bool             true    是否存在
+
+创建标签
+Action: CreateLabel
+Version: 2024-12-25
+Method: Post
+
+请求 (label.CreateLabelRequest):
+
+
+参数                    类型               是否必填    说明
+
+
+Name                  string           true    标签名称
+
+
+LabelCode             string           true    标签 code
+
+
+LabelType             string           true    标签类型
+
+
+SubType               string           false   子类型，只有智能
+                                               体有 classification
+                                               分类；attribute 属
+                                               性 两种子类型
+                                               兼容老版本请求，
+                                               通过 LabelType 参
+                                               数
+                                               LabelType:SubTyp
+                                               e 格式指定,例如：
+                                               application:classifi
+                                               cation
+
+RightCode             string           false   目标位置的右邻居
+                                               编码（可为空），
+                                               不填默认移动到最
+                                               左侧(置顶)
+
+响应 (label.CreateLabelResponse):
+
+
+参数                    类型               是否必填    说明
+
+
+ResponseMetadat       base.ResponseM   true    响应的元数据
+a                     etadata
+
+Result                map[string]any   false   响应内容
+
+删除标签
+Action: DeleteLabel
+Version: 2024-12-25
+Method: Post
+
+请求 (label.DeleteLabelRequest):
+
+
+参数                    类型               是否必填    说明
+
+
+LabelType             string           true    标签类型
+
+
+LabelCode             string           true    标签 code
+
+
+SubType               string           false   子类型，只有智能
+                                               体有 classification
+                                               分类；attribute 属
+                                               性 两种子类型
+                                               兼容老版本请求，
+                                               通过 LabelType 参
+                                               数
+                                               LabelType:SubTyp
+                                               e 格式指定,例如：
+                                               application:classifi
+                                               cation
+
+响应 (label.DeleteLabelResponse):
+
+
+参数                    类型               是否必填    说明
+ResponseMetadat       base.ResponseM        true    响应的元数据
+a                     etadata
+
+Result                map[string]any        false   响应内容
+
+获取标签列表
+Action: ListLabel
+Version: 2024-12-25
+Method: Post
+
+请求 (label.ListLabelRequest):
+
+
+参数                    类型                    是否必填    说明
+
+
+LabelTypes            list[string]          false   标签类型，使用
+                                                    LabelTypes 过滤
+                                                    时，返回的元素中
+                                                    标签类型格式为
+                                                    LabelType:SubTyp
+                                                    e
+
+Name                  string                false   标签名称
+
+
+PageNumber            i32                   false   页码
+
+
+PageSize              i32                   false   每页数量
+
+
+Order                 string                false   排序字段 可填
+                                                    ASC DESC， 默
+                                                    认 DESC
+
+
+Status                i32                   false   启用状态 0 未启用
+                                                    1 启用
+
+
+LabelCodes            list[string]          false   标签编码
+
+
+LabelTypeFilters      list[label.LabelTyp   false   新的标签类型过
+                      eFilter]                      滤，与
+                                                    LabelTypes 互斥
+                                                    使用
+                                                    LabelTypeFilters
+                                                  过滤时，返回的元
+                                                  素中标签类型和子
+                                                  类型分字段返回
+                                                  （默认分字段返
+                                                  回）
+
+响应 (label.ListLabelResponse):
+
+
+参数                    类型                  是否必填    说明
+
+
+ResponseMetadat       base.ResponseM      true    响应的元数据
+a                     etadata
+
+Result                map[string]any      false   响应内容
+
+
+---- Labels           list[label.Label]   true    标签列表
+
+
+---- Total            i32                 true    总数
+
+获取标签列表（管理员用）
+Action: ListLabelForAdmin
+Version: 2024-12-25
+Method: Post
+
+请求 (label.ListLabelRequest):
+
+
+参数                    类型                  是否必填    说明
+
+
+LabelTypes            list[string]        false   标签类型，使用
+                                                  LabelTypes 过滤
+                                                  时，返回的元素中
+                                                  标签类型格式为
+                                                  LabelType:SubTyp
+                                                  e
+
+Name                  string              false   标签名称
+
+
+PageNumber            i32                 false   页码
+
+
+PageSize              i32                 false   每页数量
+Order                 string                false   排序字段 可填
+                                                    ASC DESC， 默
+                                                    认 DESC
+
+
+Status                i32                   false   启用状态 0 未启用
+                                                    1 启用
+
+
+LabelCodes            list[string]          false   标签编码
+
+
+LabelTypeFilters      list[label.LabelTyp   false   新的标签类型过
+                      eFilter]                      滤，与
+                                                    LabelTypes 互斥
+                                                    使用
+                                                    LabelTypeFilters
+                                                    过滤时，返回的元
+                                                    素中标签类型和子
+                                                    类型分字段返回
+                                                    （默认分字段返
+                                                    回）
+
+响应 (label.ListLabelResponse):
+
+
+参数                    类型                    是否必填    说明
+
+
+ResponseMetadat       base.ResponseM        true    响应的元数据
+a                     etadata
+
+Result                map[string]any        false   响应内容
+
+
+---- Labels           list[label.Label]     true    标签列表
+
+
+---- Total            i32                   true    总数
+
+获取标签类型列表
+Action: ListLabelType
+Version: 2024-12-25
+Method: Post
+
+请求 (label.ListLabelTypeRequest):
+
+
+参数                    类型                    是否必填    说明
+响应 (label.ListLabelTypeResponse):
+
+
+参数                    类型                    是否必填    说明
+
+
+ResponseMetadat       base.ResponseM        true    响应的元数据
+a                     etadata
+
+Result                map[string]any        false   响应内容
+
+
+---- LabelTypes       list[label.LabelTyp   true    标签类型列表
+                      e]
+
+移动标签排序
+Action: MoveLabelOrder
+Version: 2024-12-25
+Method: Post
+
+请求 (label.MoveLabelOrderRequest):
+
+
+参数                    类型                    是否必填    说明
+
+
+LabelType             string                true    标签类型
+
+
+SubType               string                false   标签子类型
+
+
+LabelCode             string                true    标签 code
+
+
+LeftCode              string                false   目标位置的左邻居
+                                                    编码（可为空），
+                                                    未指定时根据
+                                                    rightCode 找到
+                                                    leftCode
+                                                    同时为空表示移动
+                                                    到最左侧
+
+
+RightCode             string                false   目标位置的右邻居
+                                                    编码（可为空），
+                                                    未指定时根据
+                                                    leftCode 找到
+                                               rightCode
+
+响应 (label.MoveLabelOrderResponse):
+
+
+参数                    类型               是否必填    说明
+
+
+ResponseMetadat       base.ResponseM   true    响应的元数据
+a                     etadata
+
+Result                map[string]any   false   响应内容
+
+更新标签
+Action: UpdateLabel
+Version: 2024-12-25
+Method: Post
+
+请求 (label.UpdateLabelRequest):
+
+
+参数                    类型               是否必填    说明
+
+
+LabelType             string           true    标签类型
+
+
+LabelCode             string           true    标签 code
+
+
+Name                  string           false   标签名称
+
+
+Status                i32              false   启用状态 0 未启用
+                                               1 启用
+
+
+SubType               string           false   子类型，只有智能
+                                               体有 classification
+                                               分类；attribute 属
+                                               性 两种子类型
+                                               兼容老版本请求，
+                                               通过 LabelType 参
+                                               数
+                                               LabelType:SubTyp
+                                               e 格式指定,例如：
+                                               application:classifi
+                                               cation
+响应 (label.UpdateLabelResponse):
+
+
+参数                    类型                 是否必填    说明
+
+
+ResponseMetadat       base.ResponseM     true    响应的元数据
+a                     etadata
+
+Result                map[string]any     false   响应内容
+
+资源管理
+创建资源
+Action: CreateResource
+Version: 2024-12-25
+Method: Post
+
+请求 (resource.CreateResourceRequest):
+
+
+参数                    类型                 是否必填    说明
+
+
+ResourceName          string             true    ResourceName
+
+ResourceScope         string             true    ResourceScope =
+                                                 "platform"
+
+ServiceName           string             true    ServiceName
+
+Status                byte               false   Status = 1 active
+
+响应 (resource.CreateResourceResponse):
+
+
+参数                    类型                 是否必填    说明
+
+
+ResponseMetadat       base.ResponseM     true    响应的元数据
+a                     etadata
+
+Result                map[string]any     false   响应内容
+
+
+---- Resource         resource.Resourc   true
+                      e
+
+删除资源
+Action: DeleteResource
+Version: 2024-12-25
+Method: Post
+
+请求 (resource.DeleteResourceRequest):
+
+
+参数                     类型                 是否必填    说明
+
+
+ID                     string             true
+
+
+响应 (resource.DeleteResourceResponse):
+
+
+参数                     类型                 是否必填    说明
+
+
+ResponseMetadat        base.ResponseM     true    响应的元数据
+a                      etadata
+
+Result                 map[string]any     false   响应内容
+
+获取资源详情
+Action: GetResource
+Version: 2024-12-25
+Method: Post
+
+请求 (resource.GetResourceRequest):
+
+
+参数                     类型                 是否必填    说明
+
+
+ID                     string             true
+
+
+响应 (resource.GetResourceResponse):
+
+
+参数                     类型                 是否必填    说明
+
+
+ResponseMetadat        base.ResponseM     true    响应的元数据
+a                      etadata
+
+Result                 map[string]any     false   响应内容
+
+
+---- Resource          resource.Resourc   true
+                       e
+
+获取资源列表
+Action: ListResource
+Version: 2024-12-25
+Method: Post
+
+请求 (resource.ListResourceRequest):
+
+
+参数                    类型                   是否必填    说明
+
+
+ResourceName          string               false
+
+
+ResourceScope         string               false
+
+
+ServiceName           string               false
+
+
+Status                byte                 false
+
+
+PageNumber            i64                  false
+
+
+PageSize              i64                  false
+
+
+响应 (resource.ListResourceResponse):
+
+
+参数                    类型                   是否必填    说明
+
+
+ResponseMetadat       base.ResponseM       true    响应的元数据
+a                     etadata
+
+Result                map[string]any       false   响应内容
+
+
+---- Items            list[resource.Reso   true
+                      urce]
+
+---- Total            i64                  true
+
+资源打标
+Action: TagResources
+Version: 2024-12-25
+Method: Post
+
+请求 (tag.TagRequest):
+
+
+参数                    类型                   是否必填    说明
+ResourceIDs           list[string]     true    资源 ID 列表,
+                                               @example:
+                                               ["user_001","user_
+                                               002"]
+
+ResourceName          string           true    资源类型名称,
+                                               @example: "user"
+
+Service               string           true    所属服务名称,
+                                               @example: "iam"
+
+Tags                  list[string]     true    标签键列表,
+                                               @example:
+                                               ["env","team"]
+
+Value                 string           true    标签值, 所有标签
+                                               使用同一个值,
+                                               @example: "prod"
+
+响应 (tag.TagResponse):
+
+
+参数                    类型               是否必填    说明
+
+
+ResponseMetadat       base.ResponseM   true    响应的元数据
+a                     etadata
+
+Result                map[string]any   false   响应内容
+
+资源取消打标
+Action: UnTagResources
+Version: 2024-12-25
+Method: Post
+
+请求 (tag.UnTagRequest):
+
+
+参数                    类型               是否必填    说明
+
+
+ResourceIDs           list[string]     true    资源 ID 列表,
+                                               @example:
+                                               ["user_001","user_
+                                               002"]
+ResourceName          string           true        资源类型名称,
+                                                   @example: "user"
+
+Service               string           true        所属服务名称,
+                                                   @example: "iam"
+
+Tags                  list[string]     true        需要取消的标签键
+                                                   列表, @example:
+                                                   ["env","team"]
+
+响应 (tag.UnTagResponse):
+
+
+参数                    类型               是否必填        说明
+
+
+ResponseMetadat       base.ResponseM   true        响应的元数据
+a                     etadata
+
+Result                map[string]any   false       响应内容
+
+组件：llmops-app-server
+服务：AppService
+该服务名称用来指定 top 的 service header
+
+API 接口
+发布渠道管理
+租户发布渠道管理-创建自定义发布渠道
+Action: AddCustomPublishChannel
+Version: 2023-08-01
+Method: Post
+
+请求 (publish_channel.AddCustomPublishChannelRequest):
+
+
+参数                    类型               是否必填        说明
+
+
+ChannelCode           string           true        渠道编码
+
+
+ChannelName           string           true        渠道名称
+
+
+ChannelIcon           string           false       渠道 icon
+
+
+ApprovalEnabled       bool             true        是否接入审批
+ChannelConfig         publish_channel.C   false     渠道配置
+                      ustomPublishCha
+                      nnelConfig
+
+响应 (publish_channel.AddCustomPublishChannelResponse):
+
+
+参数                    类型                  是否必填      说明
+
+
+ResponseMetadat       base.ResponseM      true      响应的元数据
+a                     etadata
+
+Result                map[string]any      false     响应内容
+
+
+---- ChannelID        string              true      渠道全局唯一 ID
+
+租户发布渠道管理-检查内置发布渠道名称
+Action: CheckBuiltinPublishChannelName
+Version: 2023-08-01
+Method: Post
+
+请求 (publish_channel.CheckBuiltinPublishChannelNameRequest):
+
+
+参数                    类型                  是否必填      说明
+
+
+ChannelName           string              true      待修改渠道名称
+
+
+ChannelCode           common.AppPubli     true      common.AppPubli
+                      shChannel                     shChannel 内置渠
+                                                    道编码
+
+响应 (publish_channel.CheckBuiltinPublishChannelNameResponse):
+
+
+参数                    类型                  是否必填      说明
+
+
+ResponseMetadat       base.ResponseM      true      响应的元数据
+a                     etadata
+
+Result                map[string]any      false     响应内容
+---- Reduplicated     bool             false      是否重复
+
+
+---- Invalid          bool             false      是否合法
+
+
+---- ErrorMsg         string           false      错误信息
+
+租户发布渠道管理-检查自定义发布渠道编码
+Action: CheckCustomPublishChannelCode
+Version: 2023-08-01
+Method: Post
+
+请求 (publish_channel.CheckCustomPublishChannelCodeRequest):
+
+
+参数                    类型               是否必填       说明
+
+
+ChannelCode           string           true       渠道编码
+
+响应 (publish_channel.CheckCustomPublishChannelCodeResponse):
+
+
+参数                    类型               是否必填       说明
+
+
+ResponseMetadat       base.ResponseM   true       响应的元数据
+a                     etadata
+
+Result                map[string]any   false      响应内容
+
+
+---- Reduplicated     bool             false      是否重复
+
+
+---- Invalid          bool             false      是否合法
+
+
+---- ErrorMsg         string           false      错误信息
+
+租户发布渠道管理-检查自定义发布渠道名称
+Action: CheckCustomPublishChannelName
+Version: 2023-08-01
+Method: Post
+
+请求 (publish_channel.CheckCustomPublishChannelNameRequest):
+
+
+参数                    类型               是否必填       说明
+ChannelName           string           true         渠道名称
+
+
+ChannelCode           string           false        渠道编码, 更新场
+                                                    景有效
+
+响应 (publish_channel.CheckCustomPublishChannelNameResponse):
+
+
+参数                    类型               是否必填         说明
+
+
+ResponseMetadat       base.ResponseM   true         响应的元数据
+a                     etadata
+
+Result                map[string]any   false        响应内容
+
+
+---- Reduplicated     bool             false        是否重复
+
+
+---- Invalid          bool             false        是否合法
+
+
+---- ErrorMsg         string           false        错误信息
+
+租户发布渠道管理-删除发布渠道
+Action: DeletePublishChannel
+Version: 2023-08-01
+Method: Post
+
+请求 (publish_channel.DeletePublishChannelRequest):
+
+
+参数                    类型               是否必填         说明
+
+
+ChannelCode           string           true         渠道编码
+
+响应 (common.EmptyResponse):
+
+
+参数                    类型               是否必填         说明
+
+
+ResponseMetadat       base.ResponseM   true         响应的元数据
+a                     etadata
+
+Result                map[string]any   false        响应内容
+
+租户发布渠道管理-获取发布渠道详情
+Action: GetPublishChannelInfo
+Version: 2023-08-01
+Method: Post
+
+请求 (publish_channel.GetPublishChannelInfoRequest):
+
+
+参数                    类型                  是否必填        说明
+
+
+ChannelCode           string              true        渠道编码
+
+响应 (publish_channel.GetPublishChannelInfoResponse):
+
+
+参数                    类型                  是否必填        说明
+
+
+ResponseMetadat       base.ResponseM      true        响应的元数据
+a                     etadata
+
+Result                map[string]any      false       响应内容
+
+
+---- ChannelInfo      publish_channel.P   true
+                      ublishChannelInfo
+
+获取租户 web 发布渠道访问控制生效范围
+Action: GetWebChannelEnabledAccessTypes
+Version: 2023-08-01
+Method: Post
+
+请求 (publish_channel.GetWebChannelEnabledAccessTypesRequest):
+
+
+参数                    类型                  是否必填        说明
+
+响应 (publish_channel.GetWebChannelEnabledAccessTypesResponse):
+
+
+参数                    类型                  是否必填        说明
+
+
+ResponseMetadat       base.ResponseM      true        响应的元数据
+a                     etadata
+
+Result                map[string]any      false       响应内容
+
+
+----                  list[common.AppW    true        生效范围列表
+EnabledAccessTy       ebAccessType]
+pes
+
+获取租户 webSDK 发布渠道访问控制生效范围
+Action: GetWebsdkChannelEnabledAccessTypes
+Version: 2023-08-01
+Method: Post
+
+请求 (publish_channel.GetWebsdkChannelEnabledAccessTypesRequest):
+
+
+参数                    类型                   是否必填         说明
+
+响应 (publish_channel.GetWebsdkChannelEnabledAccessTypesResponse):
+
+
+参数                    类型                   是否必填         说明
+
+
+ResponseMetadat       base.ResponseM       true         响应的元数据
+a                     etadata
+
+Result                map[string]any       false        响应内容
+
+
+----                  list[common.AppW     true         生效范围列表
+EnabledAccessTy       ebAccessType]
+pes
+
+租户发布渠道管理-获取发布渠道列表
+Action: ListTenantPublishChannel
+Version: 2023-08-01
+Method: Post
+
+请求 (publish_channel.ListTenantPublishChannelRequest):
+
+
+参数                    类型                   是否必填         说明
+
+
+Filter                publish_channel.Li   false        过滤条件
+                      stTenantPublishC
+                      hannelFilter
+
+响应 (publish_channel.ListTenantPublishChannelResponse):
+
+
+参数                    类型                   是否必填         说明
+
+
+ResponseMetadat       base.ResponseM       true         响应的元数据
+a                     etadata
+
+Result                map[string]any       false        响应内容
+---- Items            list[publish_chann   false      渠道列表
+                      el.PublishChannel
+                      Info]
+
+租户发布渠道管理-修改内置发布渠道信息
+Action: UpdateBuiltinPublishChannelInfo
+Version: 2023-08-01
+Method: Post
+
+请求 (publish_channel.UpdateBuiltinPublishChannelInfoRequest):
+
+
+参数                    类型                   是否必填       说明
+
+
+ChannelCode           common.AppPubli      true       common.AppPubli
+                      shChannel                       shChannel 渠道编
+                                                      码，目前只支持修
+                                                      改如下渠道名称及
+                                                      icon：lark、
+                                                      wx_subscribe、
+                                                      wx_service、
+                                                      wework、
+                                                      builtin_hia_app
+
+ChannelName           string               false      修改渠道名称(只
+                                                      修改对应页面语言
+                                                      的渠道名称)
+
+
+ChannelIcon           string               false      修改渠道 icon
+
+响应 (common.EmptyResponse):
+
+
+参数                    类型                   是否必填       说明
+
+
+ResponseMetadat       base.ResponseM       true       响应的元数据
+a                     etadata
+
+Result                map[string]any       false      响应内容
+
+租户发布渠道管理-更新自定义发布渠道
+Action: UpdateCustomPublishChannel
+Version: 2023-08-01
+Method: Post
+
+请求 (publish_channel.UpdateCustomPublishChannelRequest):
+
+
+参数                    类型                  是否必填      说明
+
+
+ChannelCode           string              true      渠道编码
+
+
+ChannelName           string              false     渠道名称
+
+
+ChannelIcon           string              false     渠道 icon
+
+
+ApprovalEnabled       bool                false     是否接入审批
+
+
+ChannelConfig         publish_channel.C   false     渠道配置
+                      ustomPublishCha
+                      nnelConfig
+
+响应 (common.EmptyResponse):
+
+
+参数                    类型                  是否必填      说明
+
+
+ResponseMetadat       base.ResponseM      true      响应的元数据
+a                     etadata
+
+Result                map[string]any      false     响应内容
+
+租户发布渠道管理-更新 HiaApp 发布渠道配置
+Action: UpdateHiaAppPublishChannelConfig
+Version: 2023-08-01
+Method: Post
+
+请求 (publish_channel.UpdateHiaAppPublishChannelConfigRequest):
+
+
+参数                    类型                  是否必填      说明
+
+
+BaseUrl               string              true      HiaApp BaseUrl
+
+ApiKey                string              true      HiaApp ApiKey
+
+ChannelName           string              false     修改 HiaApp 渠道
+                                                    名称(只修改对应
+                                                    页面语言的渠道名
+                                                    称)
+
+
+ChannelIcon           string             false      修改 HiaApp 渠道
+                                                    icon
+
+响应 (common.EmptyResponse):
+
+
+参数                    类型                 是否必填       说明
+
+
+ResponseMetadat       base.ResponseM     true       响应的元数据
+a                     etadata
+
+Result                map[string]any     false      响应内容
+
+租户发布渠道管理-更新飞书发布渠道配置
+Action: UpdateLarkPublishChannelConfig
+Version: 2023-08-01
+Method: Post
+
+请求 (publish_channel.UpdateLarkPublishChannelConfigRequest):
+
+
+参数                    类型                 是否必填       说明
+
+
+Host                  string             true       飞书地址
+
+
+ChannelName           string             false      修改飞书渠道名称
+                                                    (只修改对应页面
+                                                    语言的渠道名称)
+
+
+ChannelIcon           string             false      修改飞书渠道 icon
+
+响应 (common.EmptyResponse):
+
+
+参数                    类型                 是否必填       说明
+
+
+ResponseMetadat       base.ResponseM     true       响应的元数据
+a                     etadata
+
+Result                map[string]any     false      响应内容
+
+租户发布渠道管理-更新发布渠道审批开关
+Action: UpdatePublishChannelApprovalEnable
+Version: 2023-08-01
+Method: Post
+
+请求 (publish_channel.UpdatePublishChannelApprovalEnableRequest):
+
+
+参数                    类型               是否必填         说明
+
+
+ChannelCode           string           true         渠道编码
+
+
+Enable                bool             true         是否启用审批
+
+
+ConfigSkipApprov      bool             false        是否配置变更不走
+e                                                   审批而直接生效，
+                                                    即勾选“包括配置
+                                                    变更”传 false，不
+                                                    勾选则传 true，默
+                                                    认勾选；Enable 传
+                                                    true 开启审批时该
+                                                    参数有效，Enable
+                                                    传 false 时该参数
+                                                    无效；内置渠道有
+                                                    效，自定义渠道该
+                                                    参数无效
+
+响应 (common.EmptyResponse):
+
+
+参数                    类型               是否必填         说明
+
+
+ResponseMetadat       base.ResponseM   true         响应的元数据
+a                     etadata
+
+Result                map[string]any   false        响应内容
+
+租户发布渠道管理-更新发布渠道开关
+Action: UpdatePublishChannelEnable
+Version: 2023-08-01
+Method: Post
+
+请求 (publish_channel.UpdatePublishChannelEnableRequest):
+
+
+参数                    类型               是否必填         说明
+ChannelCode           string             true      渠道编码
+
+
+Enable                bool               true      是否启用
+
+响应 (common.EmptyResponse):
+
+
+参数                    类型                 是否必填      说明
+
+
+ResponseMetadat       base.ResponseM     true      响应的元数据
+a                     etadata
+
+Result                map[string]any     false     响应内容
+
+租户发布渠道管理-更新 web 发布渠道配置
+Action: UpdateWebPublishChannelConfig
+Version: 2023-08-01
+Method: Post
+
+请求 (publish_channel.UpdateWebPublishChannelConfigRequest):
+
+
+参数                    类型                 是否必填      说明
+
+
+EnabledAccessTy       list[common.AppW   true      生效范围
+pes                   ebAccessType]
+
+响应 (common.EmptyResponse):
+
+
+参数                    类型                 是否必填      说明
+
+
+ResponseMetadat       base.ResponseM     true      响应的元数据
+a                     etadata
+
+Result                map[string]any     false     响应内容
+
+租户发布渠道管理-更新 webSDK 发布渠道配置
+Action: UpdateWebsdkPublishChannelConfig
+Version: 2023-08-01
+Method: Post
+
+请求 (publish_channel.UpdateWebsdkPublishChannelConfigRequest):
+
+
+参数                    类型                 是否必填      说明
+EnabledAccessTy       list[common.AppW   true    生效范围
+pes                   ebAccessType]
+
+响应 (common.EmptyResponse):
+
+
+参数                    类型                 是否必填    说明
+
+
+ResponseMetadat       base.ResponseM     true    响应的元数据
+a                     etadata
+
+Result                map[string]any     false   响应内容
+
+标签管理
+标签是否存在
+⚠️废弃信息: 接口在 2.2.0 下线
+Action: CheckLabelExist
+Version: 2023-08-01
+Method: Post
+
+请求 (label.CheckLabelExistRequest):
+
+
+参数                    类型                 是否必填    说明
+
+
+LabelType             string             true    标签类型
+
+
+LabelCode             string             false   标签 code
+
+
+Name                  string             false   标签名称
+
+响应 (label.CheckLabelExistResponse):
+
+
+参数                    类型                 是否必填    说明
+
+
+ResponseMetadat       base.ResponseM     true    响应的元数据
+a                     etadata
+
+Result                map[string]any     false   响应内容
+
+
+---- Exist            bool               true    是否存在
+
+
+---- Top              base.TopParam      true    Top 相关的参数，
+                                               前端不需要处理
+
+创建标签
+标签管理
+
+⚠️废弃信息: 接口在 2.2.0 下线
+Action: CreateLabel
+Version: 2023-08-01
+Method: Post
+
+请求 (label.CreateLabelRequest):
+
+
+参数                    类型               是否必填    说明
+
+
+Name                  string           true    标签名称
+
+
+LabelCode             string           true    标签 code
+
+
+LabelType             string           true    标签类型
+
+响应 (label.CreateLabelResponse):
+
+
+参数                    类型               是否必填    说明
+
+
+ResponseMetadat       base.ResponseM   true    响应的元数据
+a                     etadata
+
+Result                map[string]any   false   响应内容
+
+
+---- Top              base.TopParam    true    Top 相关的参数，
+                                               前端不需要处理
+
+删除标签
+⚠️废弃信息: 接口在 2.2.0 下线
+Action: DeleteLabel
+Version: 2023-08-01
+Method: Post
+
+请求 (label.DeleteLabelRequest):
+
+
+参数                    类型               是否必填    说明
+LabelType             string           true    标签类型
+
+
+LabelCode             string           true    标签 code
+
+响应 (label.DeleteLabelResponse):
+
+
+参数                    类型               是否必填    说明
+
+
+ResponseMetadat       base.ResponseM   true    响应的元数据
+a                     etadata
+
+Result                map[string]any   false   响应内容
+
+
+---- Top              base.TopParam    true    Top 相关的参数，
+                                               前端不需要处理
+
+获取标签列表
+⚠️废弃信息: 接口在 2.2.0 下线
+Action: ListLabel
+Version: 2023-08-01
+Method: Post
+
+请求 (label.ListLabelRequest):
+
+
+参数                    类型               是否必填    说明
+
+
+LabelTypes            list[string]     false   标签类型
+
+
+Name                  string           false   标签名称
+
+
+PageNumber            i32              false   页码
+
+
+PageSize              i32              false   每页数量
+
+
+Order                 string           false   排序字段 可填
+                                               ASC DESC， 默
+                                               认 DESC
+
+
+Status                i32              false   启用状态 0 未启用
+                                               1 启用
+LabelCodes            list[string]        false   标签编码
+
+响应 (label.ListLabelResponse):
+
+
+参数                    类型                  是否必填    说明
+
+
+ResponseMetadat       base.ResponseM      true    响应的元数据
+a                     etadata
+
+Result                map[string]any      false   响应内容
+
+
+---- Labels           list[label.Label]   true    标签列表
+
+
+---- Total            i32                 true    总数
+
+
+---- Top              base.TopParam       true    Top 相关的参数，
+                                                  前端不需要处理
+
+获取标签列表（管理员用）
+⚠️废弃信息: 接口在 2.2.0 下线
+Action: ListLabelForAdmin
+Version: 2023-08-01
+Method: Post
+
+请求 (label.ListLabelRequest):
+
+
+参数                    类型                  是否必填    说明
+
+
+LabelTypes            list[string]        false   标签类型
+
+
+Name                  string              false   标签名称
+
+
+PageNumber            i32                 false   页码
+
+
+PageSize              i32                 false   每页数量
+
+
+Order                 string              false   排序字段 可填
+                                                  ASC DESC， 默
+                                                  认 DESC
+Status                i32                   false   启用状态 0 未启用
+                                                    1 启用
+
+
+LabelCodes            list[string]          false   标签编码
+
+响应 (label.ListLabelResponse):
+
+
+参数                    类型                    是否必填    说明
+
+
+ResponseMetadat       base.ResponseM        true    响应的元数据
+a                     etadata
+
+Result                map[string]any        false   响应内容
+
+
+---- Labels           list[label.Label]     true    标签列表
+
+
+---- Total            i32                   true    总数
+
+
+---- Top              base.TopParam         true    Top 相关的参数，
+                                                    前端不需要处理
+
+获取标签类型列表
+⚠️废弃信息: 接口在 2.2.0 下线
+Action: ListLabelType
+Version: 2023-08-01
+Method: Post
+
+请求 (label.ListLabelTypeRequest):
+
+
+参数                    类型                    是否必填    说明
+
+响应 (label.ListLabelTypeResponse):
+
+
+参数                    类型                    是否必填    说明
+
+
+ResponseMetadat       base.ResponseM        true    响应的元数据
+a                     etadata
+
+Result                map[string]any        false   响应内容
+
+
+---- LabelTypes       list[label.LabelTyp   true    标签类型列表
+                      e]
+
+
+---- Top              base.TopParam    true    Top 相关的参数，
+                                               前端不需要处理
+
+更新标签
+⚠️废弃信息: 接口在 2.2.0 下线
+Action: UpdateLabel
+Version: 2023-08-01
+Method: Post
+
+请求 (label.UpdateLabelRequest):
+
+
+参数                    类型               是否必填    说明
+
+
+LabelType             string           true    标签类型
+
+
+LabelCode             string           true    标签 code
+
+
+Name                  string           false   标签名称
+
+
+Status                i32              false   启用状态 0 未启用
+                                               1 启用
+
+响应 (label.UpdateLabelResponse):
+
+
+参数                    类型               是否必填    说明
+
+
+ResponseMetadat       base.ResponseM   true    响应的元数据
+a                     etadata
+
+Result                map[string]any   false   响应内容
+
+
+---- Top              base.TopParam    true    Top 相关的参数，
+                                               前端不需要处理
+
+服务：PluginService
+该服务名称用来指定 top 的 service header
+
+API 接口
+插件
+DSL 导入导出
+Action: BatchExportPluginDSL
+Version: 2023-08-01
+Method: Post
+
+请求 (plugin.BatchExportPluginDSLReq):
+
+
+参数                    类型                  是否必填     说明
+
+
+WorkspaceID           string              true     工作空间 ID
+
+
+IDs                   list[string]        true     插件 ID
+
+响应 (common.EmptyResponse):
+
+
+参数                    类型                  是否必填     说明
+
+
+ResponseMetadat       base.ResponseM      true     响应的元数据
+a                     etadata
+
+Result                map[string]any      false    响应内容
+
+获取导入操作
+Action: BatchGetImportPluginAction
+Version: 2023-08-01
+Method: Post
+
+请求 (migrate.BatchGetImportPluginActionRequest):
+
+
+参数                    类型                  是否必填     说明
+
+
+WorkspaceID           string              true     导入工作空间 ID
+
+
+PluginMetaInfoList    list[migrate.Comm   false    列表
+                      onMetaInfo]
+
+响应 (migrate.BatchGetImportPluginActionResponse):
+
+
+参数                    类型                  是否必填     说明
+
+
+ResponseMetadat       base.ResponseM      true     响应的元数据
+a                     etadata
+Result                map[string]any        false   响应内容
+
+
+----                  list[migrate.Import   false   检查结果
+PluginResultList      ActionResult]
+
+批量上架插件
+Action: BatchReleasePlugin
+Version: 2023-08-01
+Method: Post
+
+请求 (plugin.BatchReleasePluginReq):
+
+
+参数                    类型                    是否必填    说明
+
+
+WorkspaceID           string                true    工作空间 ID
+
+
+ReleasePlugins        list[plugin.Release   true
+                      Plugin]
+
+响应 (plugin.BatchReleasePluginResp):
+
+
+参数                    类型                    是否必填    说明
+
+
+ResponseMetadat       base.ResponseM        true    响应的元数据
+a                     etadata
+
+Result                map[string]any        false   响应内容
+
+
+----                  list[plugin.Release   true
+ReleasePluginRes      PluginResult]
+ults
+
+----                  list[plugin.Release   false
+ReleasePluginApp      PluginApprovalRe
+rovalResults          sult]
+
+导入功能
+Action: ConvertPluginFromOpenAPI
+Version: 2023-08-01
+Method: Post
+
+请求 (plugin.ConvertPluginFromOpenAPIReq):
+参数                     类型                 是否必填    说明
+
+
+WorkspaceID            string             true    工作空间 ID
+
+
+Content                binary             true    文件内容 json or
+                                                  yaml
+
+响应 (plugin.ConvertPluginFromOpenAPI):
+
+
+参数                     类型                 是否必填    说明
+
+
+ResponseMetadat        base.ResponseM     true    响应的元数据
+a                      etadata
+
+Result                 map[string]any     false   响应内容
+
+
+---- Name              string             true    名称
+
+
+---- Description       string             false   描述
+
+
+---- RequestInfo       meta.RequestInfo   true    请求信息
+
+
+---- AuthInfo          meta.AuthInfo      false   认证信息
+
+
+---- Type              string             true    类型固定式 Http
+
+创建插件
+Action: CreatePlugin
+Version: 2023-08-01
+Method: Post
+
+请求 (plugin.CreateReq):
+
+
+参数                     类型                 是否必填    说明
+
+
+WorkspaceID            string             true    工作空间 ID
+
+
+Name                   string             true    名称
+
+
+Description            string             true    描述
+Type                   meta.PluginType    true    类型
+
+
+Icon                   string             false   图标
+
+
+RequestInfo            meta.RequestInfo   false   请求信息
+
+
+McpInfo                meta.McpInfo       false   Mcp 信息
+
+
+AuthInfo               meta.AuthInfo      false   认证信息
+
+响应 (meta.IDResp):
+
+
+参数                     类型                 是否必填    说明
+
+
+ResponseMetadat        base.ResponseM     true    响应的元数据
+a                      etadata
+
+Result                 map[string]any     false   响应内容
+
+
+---- ID                string             true
+
+删除插件
+Action: DeletePlugin
+Version: 2023-08-01
+Method: Post
+
+请求 (meta.GetByIDAndWorkspaceReq):
+
+
+参数                     类型                 是否必填    说明
+
+
+WorkspaceID            string             true    工作空间 ID
+
+
+ID                     string             true    ID
+
+响应 (common.EmptyResponse):
+
+
+参数                     类型                 是否必填    说明
+
+
+ResponseMetadat        base.ResponseM     true    响应的元数据
+a                      etadata
+Result                map[string]any   false   响应内容
+
+废弃插件
+Action: DeprecatePlugin
+Version: 2023-08-01
+Method: Post
+
+请求 (meta.GetByIDReq):
+
+
+参数                    类型               是否必填    说明
+
+
+ID                    string           true    ID
+
+响应 (common.EmptyResponse):
+
+
+参数                    类型               是否必填    说明
+
+
+ResponseMetadat       base.ResponseM   true    响应的元数据
+a                     etadata
+
+Result                map[string]any   false   响应内容
+
+ExportPluginToOpenAPI
+Action: ExportPluginToOpenAPI
+Version: 2023-08-01
+Method: Post
+
+请求 (meta.GetByIDAndWorkspaceReq):
+
+
+参数                    类型               是否必填    说明
+
+
+WorkspaceID           string           true    工作空间 ID
+
+
+ID                    string           true    ID
+
+响应 (plugin.ExportPluginToOpenAPIResp):
+
+
+参数                    类型               是否必填    说明
+
+
+ResponseMetadat       base.ResponseM   true    响应的元数据
+a                     etadata
+Result                map[string]any   false   响应内容
+
+
+---- FileName         string           true    文件名
+
+
+---- Content          binary           true    文件内容
+
+
+---- Top              base.TopParam    true
+
+FavoritePlugin
+Action: FavoritePlugin
+Version: 2023-08-01
+Method: Post
+
+请求 (meta.GetByIDReq):
+
+
+参数                    类型               是否必填    说明
+
+
+ID                    string           true    ID
+
+响应 (common.EmptyResponse):
+
+
+参数                    类型               是否必填    说明
+
+
+ResponseMetadat       base.ResponseM   true    响应的元数据
+a                     etadata
+
+Result                map[string]any   false   响应内容
+
+apippt 相关
+Action: GetAipptAuthCode
+Version: 2023-08-01
+Method: Post
+
+请求 (provider.GetAipptAuthCodeReq):
+
+
+参数                    类型               是否必填    说明
+
+
+WorkspaceID           string           true    工作空间 ID
+
+
+ToolName              string           true    AIPPT 名称
+
+响应 (provider.GetAipptAuthCodeResp):
+参数                    类型               是否必填    说明
+
+
+ResponseMetadat       base.ResponseM   true    响应的元数据
+a                     etadata
+
+Result                map[string]any   false   响应内容
+
+
+---- Code             string           true
+
+
+---- ApiKey           string           true
+
+
+---- Channel          string           false
+
+
+---- UID              string           false
+
+
+---- ExpireAt         string           true
+
+获取已经发布的插件
+Action: GetArchivedPlugin
+Version: 2023-08-01
+Method: Post
+
+请求 (meta.GetByIDAndWorkspaceReq):
+
+
+参数                    类型               是否必填    说明
+
+
+WorkspaceID           string           true    工作空间 ID
+
+
+ID                    string           true    ID
+
+响应 (meta.PluginItem):
+
+
+参数                    类型               是否必填    说明
+
+
+ResponseMetadat       base.ResponseM   true    响应的元数据
+a                     etadata
+
+Result                map[string]any   false   响应内容
+
+
+---- WorkspaceID      string           false   工作空间 ID
+---- ID             string              true
+
+
+---- Name           string              true    名称
+
+
+---- Description    string              true    描述
+
+
+---- Type           meta.PluginType     true    类型
+
+
+---- Icon           string              true    图标
+
+
+---- Uniqcode       string              true    编码
+
+
+---- Labels         list[string]        false   标签
+
+
+---- I18nInfo       meta.PluginI18nIn   false   多语言信息
+                    fo
+
+---- DisplayName    string              true    显示的名字
+
+
+---- RequestInfo    meta.RequestInfo    false   请求信息
+
+
+---- SystemInfo     meta.SystemInfo     false   系统信息
+
+
+---- McpInfo        meta.McpInfo        false   MCP 信息
+
+
+---- ConfigSchema   node.Parameters     false   授权配置
+
+
+---- AuthInfo       meta.AuthInfo       false   认证信息
+
+
+---- Version        string              false   版本
+
+
+---- Published      bool                false   是否发布
+
+
+---- Released       bool                true    是否上架
+
+
+---- Dirty          bool                false   是否变更
+---- configurable    bool                  true    是否可配置
+
+
+---- configured      bool                  false   是否已配置
+
+
+---- Favorite        bool                  false   // 租户是否已配置
+                                                   (210 废弃)
+                                                   25: optional bool
+                                                   TenantConfigured
+                                                   收藏状态
+
+
+---- Builtin         bool                  true    是否是内置的
+
+
+---- Tools           list[meta.ToolItem]   false   工具列表
+
+
+---- CreatedAt       string                true    // 配置内容 (210
+                                                   废弃)
+                                                   29: optional
+                                                   ConfigItem
+                                                   ConfigItem
+
+---- CreateUserID    string                true
+
+
+---- UpdatedAt       string                false
+
+
+---- UpdateUserID    string                false
+
+
+----                 string                false
+ReleaseUserID
+
+---- LastVisitTime   string                false   最近访问时间
+
+
+---- ReleasedAt      string                false   上架时间
+
+
+---- FavoriteCount   i64                   false   收藏数
+
+
+---- Usage           i64                   false   租户内引用数
+
+
+---- Readme          meta.Readme           false   多语言 Readme 信
+                                                   息
+---- SourceType       meta.Source       false   SourceType 来源
+                                                类型
+
+
+---- SourceCode       string            false   SourceCode 来源
+                                                代码
+
+获取插件
+Action: GetPlugin
+Version: 2023-08-01
+Method: Post
+
+请求 (meta.GetByIDAndWorkspaceReq):
+
+
+参数                    类型                是否必填    说明
+
+
+WorkspaceID           string            true    工作空间 ID
+
+
+ID                    string            true    ID
+
+响应 (meta.PluginItem):
+
+
+参数                    类型                是否必填    说明
+
+
+ResponseMetadat       base.ResponseM    true    响应的元数据
+a                     etadata
+
+Result                map[string]any    false   响应内容
+
+
+---- WorkspaceID      string            false   工作空间 ID
+
+
+---- ID               string            true
+
+
+---- Name             string            true    名称
+
+
+---- Description      string            true    描述
+
+
+---- Type             meta.PluginType   true    类型
+
+
+---- Icon             string            true    图标
+
+
+---- Uniqcode         string            true    编码
+---- Labels         list[string]          false   标签
+
+
+---- I18nInfo       meta.PluginI18nIn     false   多语言信息
+                    fo
+
+---- DisplayName    string                true    显示的名字
+
+
+---- RequestInfo    meta.RequestInfo      false   请求信息
+
+
+---- SystemInfo     meta.SystemInfo       false   系统信息
+
+
+---- McpInfo        meta.McpInfo          false   MCP 信息
+
+
+---- ConfigSchema   node.Parameters       false   授权配置
+
+
+---- AuthInfo       meta.AuthInfo         false   认证信息
+
+
+---- Version        string                false   版本
+
+
+---- Published      bool                  false   是否发布
+
+
+---- Released       bool                  true    是否上架
+
+
+---- Dirty          bool                  false   是否变更
+
+
+---- configurable   bool                  true    是否可配置
+
+
+---- configured     bool                  false   是否已配置
+
+
+---- Favorite       bool                  false   // 租户是否已配置
+                                                  (210 废弃)
+                                                  25: optional bool
+                                                  TenantConfigured
+                                                  收藏状态
+
+
+---- Builtin        bool                  true    是否是内置的
+
+
+---- Tools          list[meta.ToolItem]   false   工具列表
+---- CreatedAt        string        true    // 配置内容 (210
+                                            废弃)
+                                            29: optional
+                                            ConfigItem
+                                            ConfigItem
+
+---- CreateUserID     string        true
+
+
+---- UpdatedAt        string        false
+
+
+---- UpdateUserID     string        false
+
+
+----                  string        false
+ReleaseUserID
+
+---- LastVisitTime    string        false   最近访问时间
+
+
+---- ReleasedAt       string        false   上架时间
+
+
+---- FavoriteCount    i64           false   收藏数
+
+
+---- Usage            i64           false   租户内引用数
+
+
+---- Readme           meta.Readme   false   多语言 Readme 信
+                                            息
+
+
+---- SourceType       meta.Source   false   SourceType 来源
+                                            类型
+
+
+---- SourceCode       string        false   SourceCode 来源
+                                            代码
+
+获取授权信息
+Action: GetPluginConfig
+Version: 2023-08-01
+Method: Post
+
+请求 (plugin.GetConfigReq):
+
+
+参数                    类型            是否必填    说明
+WorkspaceID           string             true    工作空间 ID
+
+
+PluginID              string             true    插件 ID
+
+响应 (meta.ConfigItem):
+
+
+参数                    类型                 是否必填    说明
+
+
+ResponseMetadat       base.ResponseM     true    响应的元数据
+a                     etadata
+
+Result                map[string]any     false   响应内容
+
+
+---- WorkspaceID      string             true    工作空间 ID
+
+
+---- PluginID         string             true
+
+
+---- Config           binary             true
+
+
+---- Scope            meta.ConfigScope   true
+
+
+---- CreatedAt        string             true
+
+
+---- CreateUserID     string             true
+
+
+---- UpdatedAt        string             false
+
+
+---- UpdateUserID     string             false
+
+通过 Name 获取插件 ID
+Action: GetPluginIDByName
+Version: 2023-08-01
+Method: Post
+
+请求 (plugin.GetByNameReq):
+
+
+参数                    类型                 是否必填    说明
+
+
+WorkspaceID           string             true    工作空间 ID
+Name                  string           true    名称
+
+响应 (meta.IDResp):
+
+
+参数                    类型               是否必填    说明
+
+
+ResponseMetadat       base.ResponseM   true    响应的元数据
+a                     etadata
+
+Result                map[string]any   false   响应内容
+
+
+---- ID               string           true
+
+获取已经上架的插件
+Action: GetReleasedPlugin
+Version: 2023-08-01
+Method: Post
+
+请求 (meta.GetByIDReq):
+
+
+参数                    类型               是否必填    说明
+
+
+ID                    string           true    ID
+
+响应 (meta.PluginItem):
+
+
+参数                    类型               是否必填    说明
+
+
+ResponseMetadat       base.ResponseM   true    响应的元数据
+a                     etadata
+
+Result                map[string]any   false   响应内容
+
+
+---- WorkspaceID      string           false   工作空间 ID
+
+
+---- ID               string           true
+
+
+---- Name             string           true    名称
+---- Description    string              true    描述
+
+
+---- Type           meta.PluginType     true    类型
+
+
+---- Icon           string              true    图标
+
+
+---- Uniqcode       string              true    编码
+
+
+---- Labels         list[string]        false   标签
+
+
+---- I18nInfo       meta.PluginI18nIn   false   多语言信息
+                    fo
+
+---- DisplayName    string              true    显示的名字
+
+
+---- RequestInfo    meta.RequestInfo    false   请求信息
+
+
+---- SystemInfo     meta.SystemInfo     false   系统信息
+
+
+---- McpInfo        meta.McpInfo        false   MCP 信息
+
+
+---- ConfigSchema   node.Parameters     false   授权配置
+
+
+---- AuthInfo       meta.AuthInfo       false   认证信息
+
+
+---- Version        string              false   版本
+
+
+---- Published      bool                false   是否发布
+
+
+---- Released       bool                true    是否上架
+
+
+---- Dirty          bool                false   是否变更
+
+
+---- configurable   bool                true    是否可配置
+
+
+---- configured     bool                false   是否已配置
+
+
+---- Favorite       bool                false   // 租户是否已配置
+                                                (210 废弃)
+                                                25: optional bool
+                                                   TenantConfigured
+                                                   收藏状态
+
+
+---- Builtin         bool                  true    是否是内置的
+
+
+---- Tools           list[meta.ToolItem]   false   工具列表
+
+
+---- CreatedAt       string                true    // 配置内容 (210
+                                                   废弃)
+                                                   29: optional
+                                                   ConfigItem
+                                                   ConfigItem
+
+---- CreateUserID    string                true
+
+
+---- UpdatedAt       string                false
+
+
+---- UpdateUserID    string                false
+
+
+----                 string                false
+ReleaseUserID
+
+---- LastVisitTime   string                false   最近访问时间
+
+
+---- ReleasedAt      string                false   上架时间
+
+
+---- FavoriteCount   i64                   false   收藏数
+
+
+---- Usage           i64                   false   租户内引用数
+
+
+---- Readme          meta.Readme           false   多语言 Readme 信
+                                                   息
+
+
+---- SourceType      meta.Source           false   SourceType 来源
+                                                   类型
+
+
+---- SourceCode      string                false   SourceCode 来源
+                                                   代码
+
+获取 runtime 运行工具
+Action: GetRunnablePluginToolInner
+Version: 2023-08-01
+Method: Post
+
+请求 (plugin.GetRunnablePluginToolInnerReq):
+
+
+参数                    类型                 是否必填    说明
+
+
+WorkspaceID           string             true    工作空间 ID, 插件
+                                                 调用方的空间 ID
+
+
+PluginID              string             true    插件 ID
+
+
+ToolID                string             true    工具 ID
+
+
+AgentID               string             false   智能体 ID
+
+
+UserID                string             true    用户 ID
+
+
+UserChannel           string             true    用户类型
+
+
+RunnableContext       plugin.RunnableC   false   运行上下文
+                      ontext
+
+响应 (plugin.GetRunnablePluginToolInnerResp):
+
+
+参数                    类型                 是否必填    说明
+
+
+ResponseMetadat       base.ResponseM     true    响应的元数据
+a                     etadata
+
+Result                map[string]any     false   响应内容
+
+
+---- ToolType         string             true    类型
+
+
+---- Name             string             true    名称
+
+
+---- Description      string             true    描述
+
+
+---- ToolParams       string             true    参数 json encode
+---- PluginID         string             true    插件 ID
+
+
+---- ToolID           string             true    工具 ID
+
+
+----                  string             true    插件所属的空间 ID
+PluginWorkspaceI
+D
+
+ImportPluginFromOpenAPI
+Action: ImportPluginFromOpenAPI
+Version: 2023-08-01
+Method: Post
+
+请求 (plugin.ImportPluginFromOpenAPIReq):
+
+
+参数                    类型                 是否必填    说明
+
+
+WorkspaceID           string             true    工作空间 ID
+
+
+Content               binary             true    文件内容 json or
+                                                 yaml
+
+Name                  string             true    名称
+
+
+Description           string             true    描述
+
+
+Type                  string             true    类型
+
+
+RequestInfo           meta.RequestInfo   true    请求信息
+
+
+AuthInfo              meta.AuthInfo      false   认证信息
+
+
+Icon                  string             false   图标
+
+响应 (meta.IDResp):
+
+
+参数                    类型                 是否必填    说明
+
+
+ResponseMetadat       base.ResponseM     true    响应的元数据
+a                     etadata
+Result                map[string]any   false   响应内容
+
+
+---- ID               string           true
+
+ImportToolFromCurl
+Action: ImportToolFromCurl
+Version: 2023-08-01
+Method: Post
+
+请求 (plugin.ImportToolFromCurlReq):
+
+
+参数                    类型               是否必填    说明
+
+
+WorkspaceID           string           true    工作空间 ID
+
+
+PluginID              string           true    插件 ID
+
+
+Name                  string           true    名称
+
+
+Script                string           true    脚本内容
+
+
+Description           string           true    描述
+
+响应 (meta.IDResp):
+
+
+参数                    类型               是否必填    说明
+
+
+ResponseMetadat       base.ResponseM   true    响应的元数据
+a                     etadata
+
+Result                map[string]any   false   响应内容
+
+
+---- ID               string           true
+
+ImportToolFromOpenAPI
+Action: ImportToolFromOpenAPI
+Version: 2023-08-01
+Method: Post
+
+请求 (plugin.ImportToolFromOpenAPIReq):
+参数                    类型                  是否必填    说明
+
+
+WorkspaceID           string              true    工作空间 ID
+
+
+Content               binary              true    文件内容 json or
+                                                  yaml
+
+PluginID              string              true    插件 ID
+
+响应 (meta.BatchIDResp):
+
+
+参数                    类型                  是否必填    说明
+
+
+ResponseMetadat       base.ResponseM      true    响应的元数据
+a                     etadata
+
+Result                map[string]any      false   响应内容
+
+
+---- IDs              list[string]        true
+
+ListArchivedPlugin
+Action: ListArchivedPlugin
+Version: 2023-08-01
+Method: Post
+
+请求 (plugin.ListArchivedReq):
+
+
+参数                    类型                  是否必填    说明
+
+
+WorkspaceID           string              true    工作空间 ID
+
+
+Pagination            common.Paginatio    false   分页条件
+                      n
+
+SortBy                meta.ReleasedPlu    false   排序条件
+                      ginSortBy
+
+Filter                meta.PluginArchiv   false   过滤条件
+                      eFilters
+
+WithInfo              plugin.WithInfo     false   额外查询字段
+响应 (plugin.ListResp):
+
+
+参数                    类型                    是否必填    说明
+
+
+ResponseMetadat       base.ResponseM        true    响应的元数据
+a                     etadata
+
+Result                map[string]any        false   响应内容
+
+
+---- Total            i64                   true
+
+
+---- Items            list[meta.PluginIte   true
+                      m]
+
+ListArchivedPluginBrief
+Action: ListArchivedPluginBrief
+Version: 2023-08-01
+Method: Post
+
+请求 (plugin.ListArchivedPluginBriefReq):
+
+
+参数                    类型                    是否必填    说明
+
+
+WorkspaceID           string                true    工作空间 ID
+
+
+Pagination            common.Paginatio      false   分页条件
+                      n
+
+SortBy                meta.SortByCreat      false   排序条件
+                      edAt
+
+Filter                meta.PluginArchiv     false   过滤条件
+                      eBriefFilters
+
+响应 (plugin.ListBriefResp):
+
+
+参数                    类型                    是否必填    说明
+
+
+ResponseMetadat       base.ResponseM        true    响应的元数据
+a                     etadata
+
+Result                map[string]any        false   响应内容
+---- Total            i64                   true
+
+
+---- Items            list[meta.PluginBri   true
+                      ef]
+
+获取可用的插件分类
+Action: ListAvailablePluginCategory
+Version: 2023-08-01
+Method: Post
+
+请求 (common.EmptyRequest):
+
+
+参数                    类型                    是否必填    说明
+
+响应 (plugin.ListAvailablePluginCategoryResp):
+
+
+参数                    类型                    是否必填    说明
+
+
+ResponseMetadat       base.ResponseM        true    响应的元数据
+a                     etadata
+
+Result                map[string]any        false   响应内容
+
+
+---- Total            i64                   true
+
+
+---- Items            list[common.KeyV      true
+                      alue]
+
+获取插件列表
+Action: ListPlugin
+Version: 2023-08-01
+Method: Post
+
+请求 (plugin.ListReq):
+
+
+参数                    类型                    是否必填    说明
+
+
+WorkspaceID           string                true    工作空间 ID
+
+
+Pagination            common.Paginatio      false   分页条件
+                      n
+SortBy                meta.SortByCreat      false   排序条件
+                      edAt
+
+Filter                meta.PluginFilters    false   过滤条件
+
+响应 (plugin.ListResp):
+
+
+参数                    类型                    是否必填    说明
+
+
+ResponseMetadat       base.ResponseM        true    响应的元数据
+a                     etadata
+
+Result                map[string]any        false   响应内容
+
+
+---- Total            i64                   true
+
+
+---- Items            list[meta.PluginIte   true
+                      m]
+
+操作记录
+Action: ListPluginUpdateLog
+Version: 2023-08-01
+Method: Post
+
+请求 (plugin.ListPluginUpdateLogReq):
+
+
+参数                    类型                    是否必填    说明
+
+
+WorkspaceID           string                true    工作空间 ID
+
+
+Pagination            common.Paginatio      false   分页条件
+                      n
+
+PluginID              string                true    插件 ID
+
+响应 (plugin.ListPluginUpdateLogResp):
+
+
+参数                    类型                    是否必填    说明
+
+
+ResponseMetadat       base.ResponseM        true    响应的元数据
+a                     etadata
+Result                map[string]any        false   响应内容
+
+
+---- Total            i64                   true
+
+
+---- Items            list[plugin.PluginU   true
+                      pdateLogItem]
+
+ListReleasedPlugin
+Action: ListReleasedPlugin
+Version: 2023-08-01
+Method: Post
+
+请求 (plugin.ListReleasedPluginReq):
+
+
+参数                    类型                    是否必填    说明
+
+
+Filter                meta.ListReleased     false   过滤条件
+                      PluginFilter
+
+Pagination            common.Paginatio      false   分页条件
+                      n
+
+SortBy                meta.ReleasedPlu      false   排序条件
+                      ginSortBy
+
+WithTool              bool                  false   是否返回工具信息
+
+响应 (plugin.ListResp):
+
+
+参数                    类型                    是否必填    说明
+
+
+ResponseMetadat       base.ResponseM        true    响应的元数据
+a                     etadata
+
+Result                map[string]any        false   响应内容
+
+
+---- Total            i64                   true
+
+
+---- Items            list[meta.PluginIte   true
+                      m]
+
+ListReleasedPluginBrief
+Action: ListReleasedPluginBrief
+Version: 2023-08-01
+Method: Post
+
+请求 (plugin.ListReleasedPluginBriefReq):
+
+
+参数                      类型                    是否必填    说明
+
+
+Pagination              common.Paginatio      false   分页条件
+                        n
+
+SortBy                  meta.SortByCreat      false   排序条件
+                        edAt
+
+Filter                  meta.PluginRelea      false   过滤条件
+                        sedBriefFilters
+
+响应 (plugin.ListBriefResp):
+
+
+参数                      类型                    是否必填    说明
+
+
+ResponseMetadat         base.ResponseM        true    响应的元数据
+a                       etadata
+
+Result                  map[string]any        false   响应内容
+
+
+---- Total              i64                   true
+
+
+---- Items              list[meta.PluginBri   true
+                        ef]
+
+发布插件
+Action: PublishPlugin
+Version: 2023-08-01
+Method: Post
+
+请求 (meta.GetByIDAndWorkspaceReq):
+
+
+参数                      类型                    是否必填    说明
+
+
+WorkspaceID             string                true    工作空间 ID
+ID                    string           true    ID
+
+响应 (common.EmptyResponse):
+
+
+参数                    类型               是否必填    说明
+
+
+ResponseMetadat       base.ResponseM   true    响应的元数据
+a                     etadata
+
+Result                map[string]any   false   响应内容
+
+上架插件
+Action: ReleasePlugin
+Version: 2023-08-01
+Method: Post
+
+请求 (plugin.ReleasePluginReq):
+
+
+参数                    类型               是否必填    说明
+
+
+WorkspaceID           string           true    工作空间 ID
+
+
+ID                    string           true    ID
+
+Labels                list[string]     true    标签
+
+
+Description           string           true    描述
+
+
+Icon                  string           false   图标
+
+响应 (common.EmptyResponse):
+
+
+参数                    类型               是否必填    说明
+
+
+ResponseMetadat       base.ResponseM   true    响应的元数据
+a                     etadata
+
+Result                map[string]any   false   响应内容
+
+删除插件授权配置(取消授权)
+Action: RemovePluginConfig
+Version: 2023-08-01
+Method: Post
+
+请求 (meta.GetByIDAndWorkspaceReq):
+
+
+参数                    类型               是否必填    说明
+
+
+WorkspaceID           string           true    工作空间 ID
+
+
+ID                    string           true    ID
+
+响应 (common.EmptyResponse):
+
+
+参数                    类型               是否必填    说明
+
+
+ResponseMetadat       base.ResponseM   true    响应的元数据
+a                     etadata
+
+Result                map[string]any   false   响应内容
+
+保存插件授权配置(授权)
+Action: SavePluginConfig
+Version: 2023-08-01
+Method: Post
+
+请求 (plugin.SaveConfigReq):
+
+
+参数                    类型               是否必填    说明
+
+
+WorkspaceID           string           true    工作空间 ID
+
+
+PluginID              string           true    插件 ID
+
+
+Config                string           true    配置内容 json 格
+                                               式
+
+响应 (common.EmptyResponse):
+
+
+参数                    类型               是否必填    说明
+
+
+ResponseMetadat       base.ResponseM   true    响应的元数据
+a                     etadata
+
+Result                map[string]any   false   响应内容
+收藏
+Action: SetPluginVisitTime
+Version: 2023-08-01
+Method: Post
+
+请求 (meta.GetByIDReq):
+
+
+参数                    类型               是否必填    说明
+
+
+ID                    string           true    ID
+
+响应 (common.EmptyResponse):
+
+
+参数                    类型               是否必填    说明
+
+
+ResponseMetadat       base.ResponseM   true    响应的元数据
+a                     etadata
+
+Result                map[string]any   false   响应内容
+
+UnfavoritePlugin
+Action: UnfavoritePlugin
+Version: 2023-08-01
+Method: Post
+
+请求 (meta.GetByIDReq):
+
+
+参数                    类型               是否必填    说明
+
+
+ID                    string           true    ID
+
+响应 (common.EmptyResponse):
+
+
+参数                    类型               是否必填    说明
+
+
+ResponseMetadat       base.ResponseM   true    响应的元数据
+a                     etadata
+
+Result                map[string]any   false   响应内容
+修改插件
+Action: UpdatePlugin
+Version: 2023-08-01
+Method: Post
+
+请求 (plugin.UpdateReq):
+
+
+参数                     类型                 是否必填    说明
+
+
+WorkspaceID            string             true    工作空间 ID
+
+
+ID                     string             true    ID
+
+Name                   string             false   名称
+
+
+Description            string             false   描述
+
+
+Icon                   string             false   图标
+
+
+Type                   meta.PluginType    true    类型
+
+
+RequestInfo            meta.RequestInfo   false   请求信息
+
+
+McpInfo                meta.McpInfo       false   Mcp 信息
+
+
+AuthInfo               meta.AuthInfo      false   认证信息
+
+
+ReadmeZh               string             false   Readme 简体中文
+                                                  信息
+
+
+ReadmeZhHant           string             false   Readme 繁体中文
+                                                  信息
+
+
+ReadmeEn               string             false   Readme 英文信息
+
+
+ReadmeJa               string             false   Readme 日文信息
+
+响应 (common.EmptyResponse):
+
+
+参数                     类型                 是否必填    说明
+ResponseMetadat       base.ResponseM   true    响应的元数据
+a                     etadata
+
+Result                map[string]any   false   响应内容
+
+服务：PluginToolService
+该服务名称用来指定 top 的 service header
+
+API 接口
+插件
+通过 Name 查工具 Id
+Action: GetToolIDByName
+Version: 2023-08-01
+Method: Post
+
+请求 (plugin.GetToolByNameReq):
+
+
+参数                    类型               是否必填    说明
+
+
+WorkspaceID           string           true    工作空间 ID
+
+
+Name                  string           true    名称
+
+
+PluginID              string           true    ID
+
+响应 (meta.IDResp):
+
+
+参数                    类型               是否必填    说明
+
+
+ResponseMetadat       base.ResponseM   true    响应的元数据
+a                     etadata
+
+Result                map[string]any   false   响应内容
+
+
+---- ID               string           true
+
+
+服务：PluginAdminService
+该服务名称用来指定 top 的 service header
+
+API 接口
+插件
+获取插件详情
+Action: GetPluginForAdmin
+Version: 2023-08-01
+Method: Post
+
+请求 (plugin.GetForAdminReq):
+
+
+参数                    类型                  是否必填    说明
+
+
+ID                    string              true    插件 ID
+
+
+WithTool              bool                false   是否级联查询工具
+                                                  信息
+
+响应 (meta.PluginItem):
+
+
+参数                    类型                  是否必填    说明
+
+
+ResponseMetadat       base.ResponseM      true    响应的元数据
+a                     etadata
+
+Result                map[string]any      false   响应内容
+
+
+---- WorkspaceID      string              false   工作空间 ID
+
+
+---- ID               string              true
+
+
+---- Name             string              true    名称
+
+
+---- Description      string              true    描述
+
+
+---- Type             meta.PluginType     true    类型
+
+
+---- Icon             string              true    图标
+
+
+---- Uniqcode         string              true    编码
+
+
+---- Labels           list[string]        false   标签
+
+
+---- I18nInfo         meta.PluginI18nIn   false   多语言信息
+                      fo
+---- DisplayName    string                true    显示的名字
+
+
+---- RequestInfo    meta.RequestInfo      false   请求信息
+
+
+---- SystemInfo     meta.SystemInfo       false   系统信息
+
+
+---- McpInfo        meta.McpInfo          false   MCP 信息
+
+
+---- ConfigSchema   node.Parameters       false   授权配置
+
+
+---- AuthInfo       meta.AuthInfo         false   认证信息
+
+
+---- Version        string                false   版本
+
+
+---- Published      bool                  false   是否发布
+
+
+---- Released       bool                  true    是否上架
+
+
+---- Dirty          bool                  false   是否变更
+
+
+---- configurable   bool                  true    是否可配置
+
+
+---- configured     bool                  false   是否已配置
+
+
+---- Favorite       bool                  false   // 租户是否已配置
+                                                  (210 废弃)
+                                                  25: optional bool
+                                                  TenantConfigured
+                                                  收藏状态
+
+
+---- Builtin        bool                  true    是否是内置的
+
+
+---- Tools          list[meta.ToolItem]   false   工具列表
+
+
+---- CreatedAt      string                true    // 配置内容 (210
+                                                  废弃)
+                                                  29: optional
+                                                  ConfigItem
+                                                  ConfigItem
+---- CreateUserID     string                true
+
+
+---- UpdatedAt        string                false
+
+
+---- UpdateUserID     string                false
+
+
+----                  string                false
+ReleaseUserID
+
+---- LastVisitTime    string                false   最近访问时间
+
+
+---- ReleasedAt       string                false   上架时间
+
+
+---- FavoriteCount    i64                   false   收藏数
+
+
+---- Usage            i64                   false   租户内引用数
+
+
+---- Readme           meta.Readme           false   多语言 Readme 信
+                                                    息
+
+
+---- SourceType       meta.Source           false   SourceType 来源
+                                                    类型
+
+
+---- SourceCode       string                false   SourceCode 来源
+                                                    代码
+
+获取所有插件列表
+Action: ListAllPluginForAdmin
+Version: 2023-08-01
+Method: Post
+
+请求 (plugin.ListAllForAdminReq):
+
+
+参数                    类型                    是否必填    说明
+
+
+Pagination            common.Paginatio      false   分页条件
+                      n
+
+Filter                meta.AllPluginFilte   false   排序条件
+                      rs                            3: optional
+                                                    meta.SortByCreat
+                                                    edAt SortBy
+                                                    过滤条件
+
+
+WithTool              bool                  false   是否级联查询工具
+                                                    信息
+
+响应 (plugin.ListResp):
+
+
+参数                    类型                    是否必填    说明
+
+
+ResponseMetadat       base.ResponseM        true    响应的元数据
+a                     etadata
+
+Result                map[string]any        false   响应内容
+
+
+---- Total            i64                   true
+
+
+---- Items            list[meta.PluginIte   true
+                      m]
+
+获取插件列表
+Action: ListPluginForAdmin
+Version: 2023-08-01
+Method: Post
+
+请求 (plugin.ListForAdminReq):
+
+
+参数                    类型                    是否必填    说明
+
+
+Pagination            common.Paginatio      false   分页条件
+                      n
+
+SortBy                meta.SortByCreat      false   排序条件
+                      edAt
+
+Filter                meta.PluginFilters    false   过滤条件
+
+
+WithTool              bool                  false   是否级联查询工具
+                                                    信息
+
+响应 (plugin.ListResp):
+参数                    类型                    是否必填    说明
+
+
+ResponseMetadat       base.ResponseM        true    响应的元数据
+a                     etadata
+
+Result                map[string]any        false   响应内容
+
+
+---- Total            i64                   true
+
+
+---- Items            list[meta.PluginIte   true
+                      m]
+
+插件/制品管理
+租户管理端: 批量下架租户插件
+Action: BatchDeprecatePluginForAdmin
+Version: 2023-08-01
+Method: Post
+
+请求 (artifact.PluginIDListReq):
+
+
+参数                    类型                    是否必填    说明
+
+
+PluginIDs             list[string]          true    原生插件 ID 列表
+
+响应 (common.EmptyResponse):
+
+
+参数                    类型                    是否必填    说明
+
+
+ResponseMetadat       base.ResponseM        true    响应的元数据
+a                     etadata
+
+Result                map[string]any        false   响应内容
+
+租户管理端: 批量上架租户插件
+Action: BatchReleasePluginForAdmin
+Version: 2023-08-01
+Method: Post
+
+请求 (artifact.PluginIDListReq):
+
+
+参数                    类型                    是否必填    说明
+PluginIDs             list[string]     true    原生插件 ID 列表
+
+响应 (common.EmptyResponse):
+
+
+参数                    类型               是否必填    说明
+
+
+ResponseMetadat       base.ResponseM   true    响应的元数据
+a                     etadata
+
+Result                map[string]any   false   响应内容
+
+租户管理端: 下架租户插件
+Action: DeprecatePluginForAdmin
+Version: 2023-08-01
+Method: Post
+
+请求 (meta.GetByIDReq):
+
+
+参数                    类型               是否必填    说明
+
+
+ID                    string           true    ID
+
+响应 (common.EmptyResponse):
+
+
+参数                    类型               是否必填    说明
+
+
+ResponseMetadat       base.ResponseM   true    响应的元数据
+a                     etadata
+
+Result                map[string]any   false   响应内容
+
+租户管理端: 获取租户下的原生插件列表
+Action: GetArchivedPluginForAdmin
+Version: 2023-08-01
+Method: Post
+
+请求 (meta.GetByIDReq):
+
+
+参数                    类型               是否必填    说明
+
+
+ID                    string           true    ID
+响应 (meta.PluginItem):
+
+
+参数                  类型                  是否必填    说明
+
+
+ResponseMetadat     base.ResponseM      true    响应的元数据
+a                   etadata
+
+Result              map[string]any      false   响应内容
+
+
+---- WorkspaceID    string              false   工作空间 ID
+
+
+---- ID             string              true
+
+
+---- Name           string              true    名称
+
+
+---- Description    string              true    描述
+
+
+---- Type           meta.PluginType     true    类型
+
+
+---- Icon           string              true    图标
+
+
+---- Uniqcode       string              true    编码
+
+
+---- Labels         list[string]        false   标签
+
+
+---- I18nInfo       meta.PluginI18nIn   false   多语言信息
+                    fo
+
+---- DisplayName    string              true    显示的名字
+
+
+---- RequestInfo    meta.RequestInfo    false   请求信息
+
+
+---- SystemInfo     meta.SystemInfo     false   系统信息
+
+
+---- McpInfo        meta.McpInfo        false   MCP 信息
+
+
+---- ConfigSchema   node.Parameters     false   授权配置
+
+
+---- AuthInfo       meta.AuthInfo       false   认证信息
+
+
+---- Version        string              false   版本
+---- Published       bool                  false   是否发布
+
+
+---- Released        bool                  true    是否上架
+
+
+---- Dirty           bool                  false   是否变更
+
+
+---- configurable    bool                  true    是否可配置
+
+
+---- configured      bool                  false   是否已配置
+
+
+---- Favorite        bool                  false   // 租户是否已配置
+                                                   (210 废弃)
+                                                   25: optional bool
+                                                   TenantConfigured
+                                                   收藏状态
+
+
+---- Builtin         bool                  true    是否是内置的
+
+
+---- Tools           list[meta.ToolItem]   false   工具列表
+
+
+---- CreatedAt       string                true    // 配置内容 (210
+                                                   废弃)
+                                                   29: optional
+                                                   ConfigItem
+                                                   ConfigItem
+
+---- CreateUserID    string                true
+
+
+---- UpdatedAt       string                false
+
+
+---- UpdateUserID    string                false
+
+
+----                 string                false
+ReleaseUserID
+
+---- LastVisitTime   string                false   最近访问时间
+
+
+---- ReleasedAt      string                false   上架时间
+---- FavoriteCount    i64               false   收藏数
+
+
+---- Usage            i64               false   租户内引用数
+
+
+---- Readme           meta.Readme       false   多语言 Readme 信
+                                                息
+
+
+---- SourceType       meta.Source       false   SourceType 来源
+                                                类型
+
+
+---- SourceCode       string            false   SourceCode 来源
+                                                代码
+
+租户管理端: 获取租户原生插件授权配置
+Action: GetPluginTenantConfig
+Version: 2023-08-01
+Method: Post
+
+请求 (artifact.NativePluginIDReq):
+
+
+参数                    类型                是否必填    说明
+
+
+ID                    string            true
+
+
+响应 (artifact.PluginTenantConfigResp):
+
+
+参数                    类型                是否必填    说明
+
+
+ResponseMetadat       base.ResponseM    true    响应的元数据
+a                     etadata
+
+Result                map[string]any    false   响应内容
+
+
+---- PluginID         string            true
+
+
+----                  string            true
+MaskedTenantCo
+nfig
+
+租户管理端: 获取租户下的原生插件列表
+Action: ListArchivedPluginForAdmin
+Version: 2023-08-01
+Method: Post
+
+请求 (artifact.ListArchivePluginForAdminReq):
+
+
+参数                    类型                     是否必填    说明
+
+
+Pagination            common.Paginatio       false   分页条件
+                      n
+
+SortBy                meta.SortByCreat       false   排序条件
+                      edAt
+
+Filter                artifact.ListArchive   false   过滤条件
+                      PluginForAdminFil
+                      ter
+
+响应 (plugin.ListResp):
+
+
+参数                    类型                     是否必填    说明
+
+
+ResponseMetadat       base.ResponseM         true    响应的元数据
+a                     etadata
+
+Result                map[string]any         false   响应内容
+
+
+---- Total            i64                    true
+
+
+---- Items            list[meta.PluginIte    true
+                      m]
+
+租户管理端: 上架租户插件
+Action: ReleasePluginForAdmin
+Version: 2023-08-01
+Method: Post
+
+请求 (meta.GetByIDWithDryRunReq):
+
+
+参数                    类型                     是否必填    说明
+
+
+DryRun                bool                   false   试运行
+
+
+ID                    string                 true    ID
+响应 (common.EmptyResponse):
+
+
+参数                    类型               是否必填    说明
+
+
+ResponseMetadat       base.ResponseM   true    响应的元数据
+a                     etadata
+
+Result                map[string]any   false   响应内容
+
+租户管理端: 设置插件分类
+Action: SetPluginLabelsForAdmin
+Version: 2023-08-01
+Method: Post
+
+请求 (artifact.SetNativePluginLabelsReq):
+
+
+参数                    类型               是否必填    说明
+
+
+PluginIDs             list[string]     true    原生插件 ID 列表
+
+
+Labels                list[string]     true    插件标签
+
+响应 (common.EmptyResponse):
+
+
+参数                    类型               是否必填    说明
+
+
+ResponseMetadat       base.ResponseM   true    响应的元数据
+a                     etadata
+
+Result                map[string]any   false   响应内容
+
+租户管理端: 设置租户原生插件授权配置
+Action: SetPluginTenantConfig
+Version: 2023-08-01
+Method: Post
+
+请求 (plugin.SetTenantConfigReq):
+
+
+参数                    类型               是否必填    说明
+PluginID          string           true    插件 ID
+
+
+Config            string           false   配置内容 json 格
+                                           式, null 表示删除
+
+响应 (common.EmptyResponse):
+
+
+参数                类型               是否必填    说明
+
+
+ResponseMetadat   base.ResponseM   true    响应的元数据
+a                 etadata
+
+Result            map[string]any   false   响应内容
+

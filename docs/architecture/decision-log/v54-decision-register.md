@@ -5,14 +5,34 @@ document_type: reference
 domain: architecture
 status: accepted
 authority: normative
-version: 1.4
-effective_date: 2026-07-15
+version: 1.7
+effective_date: 2026-07-20
 owner: project-owner
 ---
 
 # V5.4 平台决策登记册
 
 状态：已由项目负责人逐组确认。本文只记录已批准的架构选择；不代表平台功能已经实现。
+
+## 2026-07-27 HiAgent 2.5.1 能力边界修订
+
+最新帮助资料与实际节点截图覆盖此前将 Flowise 交互节点直接称为 HiAgent 能力的模糊表述。HiAgent 已确认的交互语义是消息、信息收集和选择器/条件组合；未取得 `Human Input` 原生节点或固定 `Proceed/Reject` 按钮的证据。Flowise `humanInputAgentflow` 仅保留为个人/办公电脑本机适配器，跨平台同源合同不得引用节点名或按钮名。HiAgent 目标环境还必须重新验证插件/MCP注册、Skill上传/调试/发布、视觉能力和网络可达性。完整编号与映射见 [`HiAgent/Flowise 能力边界基线`](../overview/hiagent-flowise-capability-boundary-v1.md)，该结论覆盖本文后续同类冲突，但不改写历史 Flowise 运行证据。
+
+## 2026-07-20 I8 平台、工具与知识边界修订
+
+本节覆盖本文后续所有与 I8 冲突的 Coze/Dify 未来目标，但不改写 I0—I7 历史证据。完整定义见 [`Flowise、SQLite 与 HiAgent 架构基线`](../overview/flowise-sqlite-hiagent-regression-baseline-v1.md)。
+
+- 个人/办公电脑唯一入口改为 Windows 原生 Flowise 3.0.12 Agentflow V2；测试环境最终入口为 HiAgent。
+- Flowise 只负责自然语言、语义检索、案例结构化、最小澄清、意图计划、人工确认、工具编排和结果解释。
+- 本地 MCP/Harness/Builder/Midscene/Playwright 负责鉴权、权威状态、确定性执行、脚本生成、证据、调度和审计；Flowise 外部调用只能经过 MCP。
+- Flowise 平台知识库保存业务和操作语义；Flowise `database.sqlite` 保存平台配置、流程、会话和知识元数据；Harness `regression_platform.sqlite` 保存结构化执行知识与全部回归状态。仓库 RAG 只服务开发，完整产品不包含自研 RAG 结构。
+- 两个 SQLite 物理隔离，Flowise 与 Harness 不跨库写入。两类知识只传递版本化快照引用和 MCP 脱敏摘要，不复制正文或状态。
+- Flowise 成功不证明 HiAgent 成功；只有 HiAgent 已证明能力的交集可以进入正式同源 Workflow。
+- I8 动作上下文统一命名为 `CTX-L1/CTX-L2/CTX-L3`，MCP 输出预算统一命名为 `OUT-L0/OUT-L1/OUT-L2/OUT-L3`；后者默认/上限依次为 `4/8`、`8/16`、`32/64`、`64/128 KiB`，绝对上限 128 KiB。
+- 稳定性证书固定要求桌面与窄屏两个视口各连续 3 次，共 6 次独立纯 Playwright 全部通过。
+- 外部案例适配和视频案例是 I8 后延期需求，不得因当前规格列为非目标而被解释为取消。
+- 多轮协作追踪编号和文档更新事务由 [`docs/control/technical-control-register.md`](../../control/technical-control-register.md) 维护；该登记册不拥有实施顺序或任务状态。
+- `HZ-C17` 冻结模型窗口：Midscene 视觉 LLM 完整上下文 16,000 tokens（输入最多12,000、至少4,000输出保留）；主控 LLM 完整上下文1,000,000 tokens（输入最多967,232、至少32,768输出保留）。容量上限不构成读取完整仓库、SQLite、完整历史或其他案例的授权。
 
 ## 2026-07-15 职责边界修订
 

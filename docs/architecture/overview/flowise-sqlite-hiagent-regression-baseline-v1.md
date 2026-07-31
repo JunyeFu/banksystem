@@ -5,7 +5,7 @@ document_type: architecture-baseline
 domain: regression-platform
 status: accepted
 authority: normative
-version: 1.6
+version: 1.7
 effective_date: 2026-07-21
 owner: project-owner
 supersedes:
@@ -33,7 +33,7 @@ Flowise Windows 隔离探针已经证明 Windows 原生启动、Flowise SQLite�
 → Flowise Agentflow V2
 → Flowise 平台知识查询
 → 主控 LLM 形成结构化意图
-→ Human Input（只有业务歧义或风险需要时）
+→ 信息收集/确认适配层（Flowise本机可由 Human Input 渲染）
 → MCP Client
 → 衡准 MCP Server
 → Harness / regression_platform.sqlite
@@ -57,6 +57,8 @@ Flowise Windows 隔离探针已经证明 Windows 原生启动、Flowise SQLite�
 
 ## 4. Flowise Agent 平台操作
 
+> 兼容边界：Flowise `humanInputAgentflow`、`Proceed`、`Reject` 和暂停检查点只属于本机适配层。HiAgent 目标流程必须改写为“消息 + 信息收集 + 选择器/条件 + 状态回流”；不得把 Flowise 节点名或按钮名当作 HiAgent 原生能力。逐节点映射以 [`hiagent-flowise-capability-boundary-v1.md`](hiagent-flowise-capability-boundary-v1.md) 为准。
+
 Flowise 只执行以下操作：
 
 | 操作 | 输入 | 输出 | 禁止事项 |
@@ -68,7 +70,7 @@ Flowise 只执行以下操作：
 | 验收摘要 | 案例草案 | 人类可读目标、步骤、断言、证据和风险 | 不宣称脚本已通过 |
 | 意图规划 | 已确认草案 | `IntentPlan` 候选 | 不生成定位器、Playwright API 或脚本源码 |
 | 工具编排 | Harness 返回的 ID/状态 | 下一次已注册 MCP 工具调用 | 不自行构造本地路径、SQL、Shell 或任意 URL |
-| 人工确认 | 候选、风险、调度摘要 | `APPROVE/REJECT/SAVE_ONLY/ACTIVATE` | 不代表 Harness 状态已改变 |
+| 人工确认 | 候选、风险、调度摘要 | 信息收集得到的确认值，再由选择器/条件映射为 `APPROVE/REJECT/SAVE_ONLY/ACTIVATE` | 不代表 Harness 状态已改变 |
 | 结果解释 | Harness 状态、断言摘要、证据元数据 | 中文结果说明和下一步选择 | 不改写失败为成功，不内联秘密或完整日志 |
 | 调度语义转换 | “每周一九点”等自然语言 | 规范化时间候选和人类可读回显 | 不直接创建调度，确认后才调 MCP |
 

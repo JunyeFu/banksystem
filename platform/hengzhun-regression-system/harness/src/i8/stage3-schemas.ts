@@ -10,6 +10,13 @@ export const dslOperationSchema = z.enum([
   'fill',
   'click',
   'select',
+  'check',
+  'upload',
+  'download',
+  'switchPage',
+  'enterFrame',
+  'exitFrame',
+  'humanVerification',
   'waitForURL',
   'waitForResponse',
   'expectVisible',
@@ -18,7 +25,7 @@ export const dslOperationSchema = z.enum([
   'screenshot'
 ]);
 
-export const locatorKindSchema = z.enum(['ROLE', 'LABEL', 'TEST_ID']);
+export const locatorKindSchema = z.enum(['ROLE', 'LABEL', 'TEST_ID', 'PLACEHOLDER', 'TEXT', 'CSS']);
 
 export const pageSignatureSchema = z.object({
   routePatternRef: safeRef,
@@ -30,6 +37,10 @@ export const executableActionSchema = z.object({
   actionId: safeRef,
   ordinal: z.number().int().positive().max(100),
   operation: dslOperationSchema,
+  instruction: boundedText(1000).optional(),
+  expected: boundedText(1000).optional(),
+  inputValue: z.string().max(2000).optional(),
+  inputValueSource: z.enum(['USER_TEXT', 'CREDENTIAL_REF', 'RUNTIME_USER_INPUT', 'NONE']).optional(),
   pageSignature: pageSignatureSchema,
   semanticTargetRef: safeRef.optional(),
   comparisonTargetRef: safeRef.optional(),
@@ -46,9 +57,16 @@ export const executableActionSchema = z.object({
   branchRules: z.array(boundedText(500)).max(10),
   failureExit: z.enum(['FAIL_ACTION', 'PLAYWRIGHT_ONLY', 'WAITING_USER']),
   evidencePolicy: z.enum(['NONE', 'FACTS', 'SCREENSHOT', 'FACTS_AND_SCREENSHOT']),
+  verificationPolicy: z.object({
+    mode: z.enum(['NONE', 'AUTO_PERSISTED_UKEY', 'EXTERNAL_CONFIRM_REQUIRED']),
+    triggerAfterTargetRef: safeRef.optional(),
+    expectedRoutes: z.array(z.string().regex(/^\//)).max(4).optional(),
+    successRoute: z.string().regex(/^\//).optional(),
+    successEvidenceTargetRef: safeRef.optional()
+  }).strict().optional(),
   sourceIntentStepId: safeRef
 }).strict().superRefine((value, context) => {
-  const targetOperations = new Set(['fill', 'click', 'select', 'expectVisible', 'expectText', 'expectEqual']);
+  const targetOperations = new Set(['fill', 'click', 'select', 'check', 'upload', 'download', 'enterFrame', 'expectVisible', 'expectText', 'expectEqual']);
   if (targetOperations.has(value.operation) && !value.semanticTargetRef) {
     context.addIssue({ code: 'custom', path: ['semanticTargetRef'], message: '目标操作必须引用受控语义目标。' });
   }
@@ -73,13 +91,18 @@ export const executableActionSchema = z.object({
 });
 
 export const executableActionPlanSchema = z.object({
-  schemaVersion: z.literal('i8-executable-action-plan-v1'),
+  schemaVersion: z.enum(['i8-executable-action-plan-v1', 'hengzhun-executable-action-plan-v2']),
   executablePlanId: safeRef,
   caseId: safeRef,
   caseVersion: z.number().int().positive(),
   intentPlanHash: sha256Schema,
   planVersion: z.number().int().positive(),
-  fixtureProfile: z.literal('LOGIN_PROFILE'),
+  fixtureProfile: z.enum(['LOGIN_PROFILE', 'TRANSFER_UKEY_ORDER_QUERY', 'GENERIC_WEB']),
+  fixtureValues: z.record(safeRef, boundedText(500)).default({}),
+  targetProfileId: safeRef.optional(),
+  targetProfileVersion: z.number().int().positive().optional(),
+  targetProfileHash: sha256Schema.optional(),
+  targetProfileSnapshot: z.record(z.string(), z.unknown()).optional(),
   actions: z.array(executableActionSchema).min(1).max(100)
 }).strict().superRefine((value, context) => {
   const ids = new Set<string>();
@@ -91,12 +114,12 @@ export const executableActionPlanSchema = z.object({
 });
 
 export const verifiedActionRecordSchema = z.object({
-  schemaVersion: z.literal('i8-verified-action-record-v1'),
+  schemaVersion: z.enum(['i8-verified-action-record-v1', 'hengzhun-verified-action-record-v2', 'hengzhun-verified-action-record-v3']),
   executablePlanId: safeRef,
   actionId: safeRef,
   ordinal: z.number().int().positive().max(100),
   outcome: z.literal('VERIFIED_PASSED'),
-  locator: z.object({ kind: locatorKindSchema, value: boundedText(256) }).strict().optional(),
+  locator: z.object({ kind: locatorKindSchema, value: boundedText(1024) }).strict().optional(),
   pageSignatureHash: sha256Schema,
   factsHash: sha256Schema,
   verification: z.object({ dom: z.boolean(), url: z.boolean(), request: z.boolean(), business: z.boolean() }).strict(),
@@ -105,10 +128,25 @@ export const verifiedActionRecordSchema = z.object({
   visualEvidence: z.object({
     invocation: z.literal('REAL'),
     provider: z.literal('MIDSCENE'),
+    role: z.literal('LOCATOR_PROPOSAL').optional(),
     model: boundedText(160).regex(/^[A-Za-z0-9._:/-]+$/),
     promptHash: sha256Schema,
-    locatorMatched: z.literal(true)
+    locatorMatched: z.literal(true),
+    screenshotHash: sha256Schema.optional(),
+    proposalHash: sha256Schema.optional(),
+    modelCenter: z.array(z.number().finite()).min(2).max(2).optional(),
+    playwrightLocatorHash: sha256Schema.optional()
   }).strict().optional(),
+  playwrightEvidence: z.object({
+    role: z.literal('EXECUTOR'),
+    locatorHash: sha256Schema,
+    operation: dslOperationSchema,
+    domPassed: z.literal(true),
+    urlPassed: z.literal(true),
+    requestPassed: z.literal(true),
+    businessPassed: z.literal(true)
+  }).strict().optional(),
+  verificationLocator: z.object({ kind: locatorKindSchema, value: boundedText(1024) }).strict().optional(),
   verifiedAt: z.string().datetime({ offset: true })
 }).strict().superRefine((value, context) => {
   if (!Object.values(value.verification).every(Boolean)) {
@@ -124,6 +162,13 @@ export const dslStepSchema = z.discriminatedUnion('operation', [
   dslTarget.extend({ operation: z.literal('fill'), fixtureValueRef: safeRef }).strict(),
   dslTarget.extend({ operation: z.literal('click') }).strict(),
   dslTarget.extend({ operation: z.literal('select'), optionRef: safeRef }).strict(),
+  dslTarget.extend({ operation: z.literal('check') }).strict(),
+  dslTarget.extend({ operation: z.literal('upload'), fixtureValueRef: safeRef }).strict(),
+  dslTarget.extend({ operation: z.literal('download'), timeoutPolicyRef: safeRef }).strict(),
+  dslBase.extend({ operation: z.literal('switchPage'), pageRef: safeRef }).strict(),
+  dslTarget.extend({ operation: z.literal('enterFrame') }).strict(),
+  dslBase.extend({ operation: z.literal('exitFrame') }).strict(),
+  dslBase.extend({ operation: z.literal('humanVerification'), verificationType: safeRef }).strict(),
   dslBase.extend({ operation: z.literal('waitForURL'), routePatternRef: safeRef, timeoutPolicyRef: safeRef }).strict(),
   dslBase.extend({ operation: z.literal('waitForResponse'), responsePatternRef: safeRef, timeoutPolicyRef: safeRef }).strict(),
   dslTarget.extend({ operation: z.literal('expectVisible') }).strict(),
@@ -133,7 +178,7 @@ export const dslStepSchema = z.discriminatedUnion('operation', [
 ]);
 
 export const dslDocumentSchema = z.object({
-  schemaVersion: z.literal('HENGZHUN_DSL_V1'),
+  schemaVersion: z.enum(['HENGZHUN_DSL_V1', 'HENGZHUN_DSL_V2']),
   executablePlanId: safeRef,
   steps: z.array(dslStepSchema).min(1).max(100)
 }).strict();
@@ -143,7 +188,9 @@ export const i8CandidateCompileSchema = z.object({
   idempotencyKey: idempotencyKeySchema,
   preparationId: safeRef,
   expectedPreparationVersion: z.number().int().positive(),
-  stabilityPolicyVersion: z.enum(['I8_2X3_V1', 'I10_2X2_V1']).default('I8_2X3_V1')
+  stabilityPolicyVersion: z.enum(['I8_2X3_V1', 'I10_2X2_V1']).default('I8_2X3_V1'),
+  retryFailed: z.boolean().default(false),
+  revisionReason: z.string().trim().min(8).max(500).optional()
 }).strict();
 
 export const i8CandidateGetSchema = z.object({
@@ -156,6 +203,16 @@ export const i8CandidateBuildCompletionSchema = z.object({
   planHash: sha256Schema,
   outcome: z.enum(['VERIFIED_PASSED', 'FAILED']),
   errorCode: safeRef.optional(),
+  diagnostic: z.object({
+    stage: safeRef,
+    actionOrdinal: z.number().int().positive().max(100).optional(),
+    semanticTargetRef: safeRef.optional(),
+    verificationPolicy: z.enum(['NONE', 'AUTO_PERSISTED_UKEY', 'EXTERNAL_CONFIRM_REQUIRED']).optional(),
+    pageFingerprint: sha256Schema.optional(),
+    routePath: z.string().regex(/^\//).optional(),
+    safeErrorCode: safeRef,
+    modelStatus: z.enum(['NOT_CALLED', 'CALLED', 'TIMEOUT', 'FAILED'])
+  }).strict().optional(),
   verifiedActionRecords: z.array(verifiedActionRecordSchema).max(100)
 }).strict().superRefine((value, context) => {
   if (value.outcome === 'VERIFIED_PASSED' && value.verifiedActionRecords.length === 0) {

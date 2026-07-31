@@ -90,7 +90,13 @@ function validateAgentflow(flow) {
 
   const stateIn = new Map(flow.nodes.map(node => [node.id, new Set(declaredState)]))
   const stateOut = new Map(flow.nodes.map(node => [node.id, new Set(declaredState)]))
-  if (startId) { stateIn.set(startId, new Set()); stateOut.set(startId, new Set(producedState.get(startId))) }
+  if (startId) {
+    stateIn.set(startId, new Set())
+    // Flowise initializes every declared startState key before the first edge is
+    // evaluated. Treating those values as merely declared (but not produced)
+    // creates false path-safety failures for persisted multi-turn state.
+    stateOut.set(startId, new Set([...declaredState, ...producedState.get(startId)]))
+  }
   for (let iteration = 0; iteration < flow.nodes.length * 4; iteration += 1) {
     let changed = false
     for (const node of flow.nodes) {
@@ -115,7 +121,7 @@ function validateAgentflow(flow) {
 
 if (require.main === module) {
   const productRoot = path.resolve(__dirname, '..')
-  const flowPath = process.argv[2] ? path.resolve(process.argv[2]) : path.join(productRoot, 'flowise/i10/agentflow-v2.json')
+  const flowPath = process.argv[2] ? path.resolve(process.argv[2]) : path.join(productRoot, 'flowise/i10/agentflow-v6.json')
   const failures = validateAgentflow(JSON.parse(fs.readFileSync(flowPath, 'utf8')))
   if (failures.length) {
     process.stderr.write(`${failures.join('\n')}\n`)

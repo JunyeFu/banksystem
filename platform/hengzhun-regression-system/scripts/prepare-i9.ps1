@@ -1,8 +1,13 @@
-[CmdletBinding()]
-param()
+﻿[CmdletBinding()]
+param(
+    [ValidateSet('All', 'Tokens', 'Runtime')]
+    [string]$Mode = 'All'
+)
 $ErrorActionPreference = 'Stop'
 $root = Split-Path -Parent $PSScriptRoot
-& (Join-Path $PSScriptRoot 'prepare-i2.ps1') | Out-Null
+if ($Mode -eq 'All') {
+    & (Join-Path $PSScriptRoot 'prepare-i2.ps1') | Out-Null
+}
 
 $runtimeEnv = Join-Path $root '.data\runtime.env'
 function New-I9RandomValue([int]$Bytes = 48) {
@@ -16,14 +21,27 @@ function Add-I9EnvValue([System.Collections.Generic.List[string]]$Lines, [string
         $Lines.Add($Name + '=' + (New-I9RandomValue))
     }
 }
-$lines = [System.Collections.Generic.List[string]]::new()
-Get-Content -LiteralPath $runtimeEnv -Encoding UTF8 | ForEach-Object { $lines.Add($_) }
-Add-I9EnvValue $lines 'HENGZHUN_WORKER_TOKEN'
-Add-I9EnvValue $lines 'HENGZHUN_MCP_TOKEN'
-[System.IO.File]::WriteAllLines($runtimeEnv, $lines, [System.Text.UTF8Encoding]::new($false))
+if ($Mode -in @('All', 'Tokens')) {
+    $lines = [System.Collections.Generic.List[string]]::new()
+    Get-Content -LiteralPath $runtimeEnv -Encoding UTF8 | ForEach-Object { $lines.Add($_) }
+    Add-I9EnvValue $lines 'HENGZHUN_WORKER_TOKEN'
+    Add-I9EnvValue $lines 'HENGZHUN_MCP_TOKEN'
+    $temporary = $runtimeEnv + '.' + $PID + '.tmp'
+    [System.IO.File]::WriteAllLines($temporary, $lines, [System.Text.UTF8Encoding]::new($false))
+    if (Test-Path -LiteralPath $runtimeEnv) {
+        $backup = $runtimeEnv + '.' + $PID + '.bak'
+        [System.IO.File]::Replace($temporary, $runtimeEnv, $backup)
+        Remove-Item -LiteralPath $backup -Force -ErrorAction SilentlyContinue
+    } else {
+        [System.IO.File]::Move($temporary, $runtimeEnv)
+    }
+}
 
-. (Join-Path $PSScriptRoot 'import-i9-runtime-env.ps1')
-& (Join-Path $root 'runtime\node-v20.20.2-win-x64\node.exe') (Join-Path $PSScriptRoot 'apply-i9-flowise-overlays.cjs') | Out-Null
-if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-& (Join-Path $root 'runtime\node-v20.20.2-win-x64\node.exe') (Join-Path $PSScriptRoot 'i9-lifecycle.cjs') prepare
-exit $LASTEXITCODE
+if ($Mode -in @('All', 'Runtime')) {
+    . (Join-Path $PSScriptRoot 'import-i9-runtime-env.ps1')
+    & (Join-Path $root 'runtime\node-v20.20.2-win-x64\node.exe') (Join-Path $PSScriptRoot 'apply-i9-flowise-overlays.cjs') | Out-Null
+    if ($LASTEXITCODE -ne 0) { throw "PREPARE_I9_OVERLAY_FAILED:$LASTEXITCODE" }
+    & (Join-Path $root 'runtime\node-v20.20.2-win-x64\node.exe') (Join-Path $PSScriptRoot 'i9-lifecycle.cjs') prepare
+    if ($LASTEXITCODE -ne 0) { throw "PREPARE_I9_LIFECYCLE_FAILED:$LASTEXITCODE" }
+}
+return

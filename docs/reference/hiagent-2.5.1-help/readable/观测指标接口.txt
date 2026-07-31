@@ -1,0 +1,375 @@
+  观测指标接口
+
+  背景
+     HiAgent 平台提供将智能体作为后端服务 API 被业务请求的能力，用户希望获取平台内的
+  指标数据作为导出，完成自身的特殊指标的后处理相关的需求。
+
+  调用步骤
+1. 第一步：在平台内的密钥管理页面申请自己的 access key 和 secret key。
+
+1. 第二步：使用对应的 sdk 对请求做签名。（具体可以参考 HiAgent 平台 API 调用示例）
+
+  API 列表概览（更多接口说明参考文档：数据统计接口.pdf）
+                 接口名                                描述
+
+
+  GetAgentMetricTokenCostByAgent       智能体 token 费用统计按智能体分类
+
+
+  GetAgentMetricTokenCostByInout       智能体 token 费用统计按 input output
+                                       分类
+
+
+  GetAgentMetricTokenCostByModelType   智能体 token 费用统计按模型类型分类
+
+
+  GetAgentMetricTokenCount             智能体 token 数量统计
+
+
+  GetAgentMetricTokenCountByModelTyp   智能体 token 数量统计按模型类型分类
+  e
+
+  GetAgentMetricTokenCountByAgent      智能体 token 数量统计按智能体分类
+
+
+  GetAgentMetricLatency                智能体延迟统计
+
+
+  GetAgentMetricQPS                    智能体 QPS 统计
+
+
+  GetAgentMetricReqCount               智能体请求次数统计
+
+
+  GetAgentMetricReqSuccRate            智能体请求成功率统计
+
+
+  ListAgentMetricOverview              智能体指标概览
+GetAgentMetricMessageOverview        智能体消息概览
+
+
+GetAgentMetricMessageTrading         智能体消息趋势
+
+
+GetAgentMetricChannelOverview        智能体渠道概览
+
+
+GetAgentMetricChannelTrading         智能体渠道趋势
+
+
+GetAgentMetricUserTrading            智能体用户趋势
+
+
+GetAgentMetricConversationMessageN   智能体会话消息数趋势
+umTrading
+
+GetAgentMetricUserRequestNumTradin   智能体用户请求数趋势
+g
+
+GetAgentMetricTotalView              智能体总览
+
+
+GetAgentMetricAbnLatency             智能体异常分析，输出耗时
+
+
+GetAgentMetricAbnTopLatency          智能体异常分析，输出耗时 top 10
+
+
+GetAgentMetricAbnFailureRate         智能体异常分析，失败率
+
+
+GetAgentMetricAbnTopFailureRate      智能体异常分析，失败率 top 10
+
+
+GetAgentMetricAbnFailureTimes        智能体异常分析，失败次数
+
+
+GetAgentMetricAbnSpanLatency         智能体异常分析，span 耗时
+
+
+GetAgentMetricAbnSpanFailureRate     智能体异常分析，span 失败率
+
+
+GetAgentMetricAbnSpanFailureTimes    智能体异常分析，span 失败次数
+
+
+GetAgentMetricCostTop                智能体费用消耗 top
+
+
+GetAgentMetricCostMsgTrading         智能体的消息的费用消耗趋势
+
+
+GetAgentMetricCostUserTrading        智能体的用户的费用消耗趋势
+GetAgentMetricCostChannelTrading    智能体费用渠道趋势
+
+
+GetAgentMetricCostChannelOverview   智能体费用渠道分布
+
+
+GetAgentMetricModelCostTrading      智能体对应的模型服务费用消耗趋势
+
+
+GetAgentMetricModelCostTop          智能体对应的模型服务费用消耗 top
+
+
+GetWorkflowMetricCostTop            工作流费用消耗 top
+
+
+GetCustomAppMetricTokenRate         自定义应用 token 速率统计
+
+
+GetCustomAppMetricTokenCost         自定义应用 token 费用统计
+
+
+GetCustomAppMetricTokenCount        自定义应用 token 数量统计
+
+
+GetCustomAppMetricTokenCountByMo    自定义应用 token 数量统计按模型类型
+delType                             分类
+
+
+GetCustomAppMetricLatency           自定义应用延迟统计
+
+
+GetCustomAppMetricQPS               自定义应用 QPS 统计
+
+
+GetCustomAppMetricReqCount          自定义应用请求次数统计
+
+
+GetCustomAppMetricReqSuccRate       自定义应用请求成功率统计
+
+
+ListCustomAppMetricOverview         自定义应用指标概览
+
+
+GetCustomAppMetricMessageOverview   自定义应用消息概览
+
+
+GetCustomAppMetricMessageTrading    自定义应用消息趋势
+
+
+GetCustomAppMetricChannelOverview   自定义应用渠道概览
+
+
+GetCustomAppMetricChannelTrading    自定义应用渠道趋势
+
+
+GetModelMetricReqCount              模型请求数量统计
+
+
+GetModelMetricReqSuccRate           模型请求成功率统计
+GetModelMetricLatency                模型延迟统计
+
+
+GetModelMetricActiveApp              模型活跃应用统计
+
+
+GetModelMetricActiveSvc              模型活跃服务统计
+
+
+GetModelMetricTokenCount             模型 token 数量统计
+
+
+GetModelMetricTokenCountByModelTy    模型 token 数量统计按模型类型分类
+pe
+
+GetModelMetricTokenCountByModelSv    模型 token 数量统计按模型服务分类
+c
+
+GetModelMetricResCPU                 模型 CPU 使用统计
+
+
+GetModelMetricResMemory              模型内存使用统计
+
+
+GetModelMetricResGPU                 模型 GPU 使用统计
+
+
+GetModelMetricTokenRate              模型 token 速率统计
+
+
+GetModelMetricMessageOverview        模型消息概览
+
+
+GetModelMetricMessageTrading         模型消息趋势
+
+
+GetModelMetricChannelOverview        模型渠道概览
+
+
+GetModelMetricChannelTrading         模型渠道趋势
+
+
+GetModelMetricTotalView              模型总览
+
+
+GetModelMetricTokenCost              模型 token 费用统计
+
+
+GetModelMetricTokenCostByModelType   模型 token 费用统计按模型类型分类
+
+
+GetModelMetricTokenCostByModelSvc    模型 token 费用统计按模型服务分类
+
+
+GetModelMetricTokenCostByInout       模型 token 费用统计按 input output 分
+                                     类
+GetModelMetricAbnLatency                模型异常分析，输出耗时
+
+
+GetModelMetricAbnTopFirstTokenLaten     模型异常分析，首 token top 10
+cy
+
+GetModelMetricAbnFailureRate            模型异常分析，失败率
+
+
+GetModelMetricAbnTopFailureRate         模型异常分析，失败率 top 10
+
+
+GetModelMetricAbnFailureTimes           模型异常分析，失败次数
+
+
+GetModelMetricCostTop                   模型服务费用消耗 top
+
+
+GetModelMetricCostChannelTrading        模型服务费用渠道趋势
+
+
+GetModelMetricCostChannelOverview       模型服务费用渠道分布
+
+
+GetOperationMetricStatisticMap          运营端、平台管理端资源统计图表通用
+                                        接口
+
+
+GetOperationMetricStatisticMapWithGro   运营端、平台管理端资源统计图表通用
+up                                      接口含有分组统计
+
+
+GetOperationMetricStatisticTopk         运营端、平台管理端资源统计 topk 通用
+                                        接口
+
+
+GetOperationMetricDosageOverview        获取运营端用量概览
+
+
+GetOperationMetricFlowOverview          运营端、平台管理流量分析概览
+
+
+GetOperationMetricAgentOverview         智能体概览
+
+
+GetOperationMetricPluginOverview        插件概览
+
+
+GetOperationMetricWorkflowOverview      工作流概览
+
+
+GetOperationMetricKwgDatasetOvervie     知识库数据集概览
+w
+
+GetOperationMetricKwgDatabaseOvervi     知识库数据库概览
+  ew
+
+  GetOperationMetricDatasetOverview     数据集概览
+
+
+  GetOperationMetricEvaOverview         运营端、平台管理评测概览
+
+
+  CreateOperationMetricExportAgent      运营端、平台管理 agent 导出任务创建
+
+
+  ListOperationMetricExportAgent        运营端、平台管理 agent 导出任务列表
+
+
+  CreateOperationMetricExportModel      运营端、平台管理 model 导出任务创建
+
+
+  ListOperationMetricExportModel        运营端、平台管理 model 导出任务列表
+
+
+  GetOperationMetricTableAgentOvervie   运营端、平台管理 agent 表格数据
+  w
+
+  GetOperationMetricTableModelOvervie   运营端、平台管理 model 表格数据
+  w
+
+  API 接口调用方式（具体可以参考 HiAgent 平台 API 调用示例）X
+  获取智能体 token 消耗数量（GetAgentMetricTokenCount）
+1. 接口说明：针对智能体相关的 token 消耗的数量
+
+1. 请求 header 说明（适用如下所有接口）：
+
+  1. 请求 header 需要加上 Authorization，参考 HiAgent 平台 API 调用示例利用 sdk 的签名生
+       成 Authorization。
+
+  1. 请求 header 需要加上 Content-Type: application/json
+
+  POST /GetAgentMetricTokenCount
+
+  YAML
+  Url: {endpoint}/?Action=GetAgentMetricTokenCount&Version=2025-05-
+  01
+  Method: POST
+  Query: Action=GetAgentMetricTokenCount&Version=2025-05-01
+  Header:
+       "Content-Type": "application/json"
+       "Authorization": "xxx"
+  Body:
+       {
+          "Aggregator": {
+        "StartTime": "2026-03-06T05:54:23.983Z",
+        "EndTime": "2026-03-09T05:54:23.983Z",
+        "Step": 3600
+       },
+       "CommonFilter": {
+          "AgentID": {
+             "Value": ["xxx"], //过滤指定的智能体       ID
+              "Operator": "RawIn"
+           }
+        },
+        "WorkspaceID": "personal-d2rh64ucckeegtm1ro70" //   智能体所
+在的工作空间
+      }
+
+Response:
+    {
+      "ResponseMetadata": {
+         "RequestId":
+"02177303566350400000000000000000000ffff0ae958e2e4a081",
+         "Action": "GetAgentMetricTokenCount",
+         "Version": "2025-05-01",
+         "Service": "observe",
+         "Region": "cn-north-1"
+      },
+      "Result": {
+         "Data": {
+           "completion": [ //输出的         数量
+                                       token
+              {
+                                                  对应时间点消耗的
+                  "Time": "2026-03-06T08:00:00Z", //
+token 数量
+                  "Value": 1962
+                }
+             ],
+             "prompt": [ //输入的         数量
+                                     token
+                {
+                   "Time": "2026-03-06T08:00:00Z",
+                   "Value": 6951
+                }
+             ],
+             "total": [ //总的        数量
+                                  token
+                {
+                   "Time": "2026-03-06T08:00:00Z",
+                   "Value": 8913
+                }
+            ]
+        }
+    }
+}
+

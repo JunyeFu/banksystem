@@ -1,6 +1,6 @@
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { Alert, Button, Empty, Form, Input, Modal, Skeleton, Table, Tag } from 'antd';
+import { Alert, Button, Empty, Form, Input, Modal, Select, Skeleton, Space, Table, Tag } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
 import type { Beneficiary } from '@localbank/bank-api-client';
 import { customerApi } from '@/api/client';
@@ -11,6 +11,8 @@ export function Beneficiaries(): JSX.Element {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [open, setOpen] = useState(false);
+  const [keyword, setKeyword] = useState('');
+  const [status, setStatus] = useState<'ALL' | 'VERIFIED'>('ALL');
   const [form] = Form.useForm<{ displayName: string; accountNumber: string }>();
   const query = useQuery({ queryKey: ['beneficiaries'], queryFn: () => customerApi.listBeneficiaries() });
   const create = useMutation({
@@ -18,6 +20,11 @@ export function Beneficiaries(): JSX.Element {
     onSuccess: async () => { setOpen(false); form.resetFields(); await queryClient.invalidateQueries({ queryKey: ['beneficiaries'] }); },
   });
   const items = query.data?.items ?? [];
+  const filteredItems = useMemo(() => items.filter((item) => {
+    if (status === 'VERIFIED' && !item.beneficiaryId) return false;
+    const candidate = `${item.displayName} ${item.maskedAccountNumber}`.toLowerCase();
+    return !keyword.trim() || candidate.includes(keyword.trim().toLowerCase());
+  }), [items, keyword, status]);
   const columns: ColumnsType<Beneficiary> = [
     { title: '姓名', dataIndex: 'displayName', key: 'name' },
     { title: '账户号', dataIndex: 'maskedAccountNumber', key: 'account' },
@@ -30,7 +37,10 @@ export function Beneficiaries(): JSX.Element {
       <div className="customer-page-head"><div><h1>收款人管理</h1><p>维护经过复兴银行账户目录核验的常用收款人。</p></div><Button type="primary" size="large" onClick={() => setOpen(true)}>＋ 新增收款人</Button></div>
       {query.isError ? <Alert type="error" showIcon message="收款人加载失败" action={<Button onClick={() => query.refetch()}>重新加载</Button>} /> : null}
       <div className="bank-card customer-table-card">
-        {query.isLoading ? <Skeleton active paragraph={{ rows: 7 }} /> : items.length ? <Table columns={columns} dataSource={items} rowKey="beneficiaryId" pagination={{ pageSize: 20, showTotal: (total) => `共 ${total} 条` }} /> : !query.isError ? <div className="customer-empty"><Empty description="暂无收款人" /></div> : null}
+        <Space wrap style={{ marginBottom: 16 }}><Input.Search value={keyword} onChange={(event) => setKeyword(event.target.value)} placeholder="搜索收款人姓名或掩码账号" data-testid="beneficiary-search" style={{ width: 280 }} />
+          <Select value={status} onChange={setStatus} options={[{ value: 'ALL', label: '全部状态' }, { value: 'VERIFIED', label: '已核验' }]} data-testid="beneficiary-status-filter" style={{ width: 130 }} />
+          <Button onClick={() => { setKeyword(''); setStatus('ALL'); }} data-testid="beneficiary-filter-reset">重置</Button></Space>
+        {query.isLoading ? <Skeleton active paragraph={{ rows: 7 }} /> : items.length ? filteredItems.length ? <Table columns={columns} dataSource={filteredItems} rowKey="beneficiaryId" pagination={{ pageSize: 20, showTotal: (total) => `共 ${total} 条` }} /> : <Empty description="没有符合筛选条件的收款人" /> : !query.isError ? <div className="customer-empty"><Empty description="暂无收款人" /></div> : null}
       </div>
       <Modal title="新增收款人" open={open} okText="确认添加" cancelText="取消" confirmLoading={create.isPending} onCancel={() => setOpen(false)} onOk={() => form.submit()}>
         {create.isError ? <Alert type="error" message="添加失败，请核对账户信息后重试" showIcon /> : null}

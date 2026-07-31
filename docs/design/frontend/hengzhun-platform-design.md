@@ -5,8 +5,8 @@ document_type: reference
 domain: frontend
 status: accepted
 authority: normative
-version: 1.0
-effective_date: 2026-07-15
+version: 1.1
+effective_date: 2026-07-20
 owner: project-owner
 related_code: [apps/quality-case-portal]
 ---
@@ -15,7 +15,7 @@ related_code: [apps/quality-case-portal]
 
 ## 设计输入与边界
 
-**状态：暂缓，不构成当前实现授权。** 衡准没有包含在 PV-0001—PV-0201 银行页面预览包中，不占用银行 PV 编号，也不以错误标注的银行截图推导平台页面。恢复实施时以 Coze/Harness 职责边界、只读观测契约和本设计为准；不得把既有前端、浏览器夹具或旧 B0—B7 方案当作有效需求。
+**状态：暂缓，不构成当前实现授权。** 衡准没有包含在 PV-0001—PV-0201 银行页面预览包中，不占用银行 PV 编号，也不以错误标注的银行截图推导平台页面。恢复实施时以 Flowise/SQLite/HiAgent 当前架构、只读观测契约和本设计为准；不得把既有前端、浏览器夹具或旧 B0—B7 方案当作有效需求。
 
 衡准不是 Coze Agent 的配置、知识、案例、脚本、基线、调度、恢复或审批入口。所有用户写入与任务控制都在 Coze 中完成，再由 Harness 受控执行；衡准只读取 Harness 观测投影。
 

@@ -3,10 +3,10 @@ id: EVIDENCE-HENGZHUN-I8-STAGE5-20260720
 title: 衡准I8阶段5受控交付与按需执行证据
 document_type: evidence
 domain: regression-platform
-status: accepted
-authority: informative
-version: 1.0
-effective_date: 2026-07-20
+status: verified
+authority: evidence
+version: 1.1
+effective_date: 2026-07-21
 owner: 傅钧烨
 ---
 

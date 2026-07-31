@@ -5,16 +5,18 @@ document_type: how-to
 domain: rag
 status: accepted
 authority: normative
-version: 2.2
-effective_date: 2026-07-15
+version: 2.4
+effective_date: 2026-07-21
 owner: project-owner
 ---
 
 # 开发 Docs 与 RAG 协作规范
 
-> 本文只约束项目开发、审计与Codex维护使用的仓库知识。它不是交付系统的运行时知识方案；运行时唯一知识权威为 Coze Knowledge Base。
+> 本文只约束项目开发、审计与Codex维护使用的仓库知识。它不是交付系统的运行时知识方案；`rag/` 永远不进入衡准完整产品。I9 运行时业务知识来自 Flowise 平台知识库，结构化执行知识和回归状态来自 Harness `regression_platform.sqlite`；I8 只保留为已完成本机引擎基线。
 
 ## 角色分工
+
+HiAgent 2.5.1 帮助资料的原件与 UTF-8 阅读镜像位于 `docs/reference/hiagent-2.5.1-help/`，只作为外部参考；其能力结论已固化到 [`docs/architecture/overview/hiagent-flowise-capability-boundary-v1.md`](../architecture/overview/hiagent-flowise-capability-boundary-v1.md)。
 
 - `docs/`：人工维护、评审和版本控制的项目开发状态、架构、设计、工作流、运行手册与证据。
 - `documents/`：正式项目文书的目录、状态与可审阅文本源；生成 DOCX/PDF 只进入 `deliverables/`，不得反向定义架构、当前能力或实施顺序。
@@ -58,5 +60,7 @@ RAG 的分数只决定项目开发时“先看什么”，不决定“谁是真�
 - 不用历史方案证明当前实现。
 - 不把外部资料中的能力写成本项目能力。
 - 不在索引中保存原始 DOCX/PDF/ZIP 二进制内容。
-- 不把仓库 `docs/`、`rag/` 或 `rag/index/` 接入交付系统的 Coze、Harness、Midscene或衡准运行时；运行时知识导入、版本和检索均由Coze Knowledge Base管理。
+- 不把仓库 `docs/`、`rag/` 或 `rag/index/` 接入交付系统的 Flowise、Harness、Midscene或衡准运行时。
+- Flowise 运行时知识必须通过平台公开知识入口导入并记录来源、版本、Hash 和引用；不得把仓库开发 RAG 当作运行时回退，也不得在产品目录新建 RAG、Embedding、Vector Store 或 Retriever 子系统。
+- `regression_platform.sqlite` 只保存结构化执行知识、状态和 Flowise 知识快照引用，不复制 Flowise 知识正文、向量或完整对话。
 - 不从 `documents/`、调研或历史报告建立第二套开发顺序；项目级先后关系只读取 `agent/plans/active/v54-implementation-batches.md`。

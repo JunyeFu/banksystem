@@ -3,10 +3,10 @@ id: EVIDENCE-HENGZHUN-I8-STAGE6-20260720
 title: 衡准 I8 阶段6精确版本调度与离线结果收件箱证据
 document_type: evidence
 domain: regression-platform
-status: accepted
-authority: informative
-version: 1.0
-effective_date: 2026-07-20
+status: verified
+authority: evidence
+version: 1.1
+effective_date: 2026-07-21
 owner: 傅钧烨
 ---
 

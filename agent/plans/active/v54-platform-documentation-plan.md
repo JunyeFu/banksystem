@@ -3,6 +3,7 @@
 > 状态：规划基线，非实现完成证明
 > 更新：2026-07-14
 > 2026-07-16 修订：本文只描述产品范围，不定义实施先后。唯一实施顺序见 [`v54-implementation-batches.md`](v54-implementation-batches.md)；最新职责边界见 [`docs/architecture/overview/coze-harness-midscene-observability-boundary.md`](../../../docs/architecture/overview/coze-harness-midscene-observability-boundary.md)，衡准实现已暂缓。
+> 2026-07-20 修订：本文的 Track B 仅保留 I0—I7 历史范围；I8 当前平台、工具和知识边界见 [`flowise-sqlite-hiagent-regression-baseline-v1.md`](../../../docs/architecture/overview/flowise-sqlite-hiagent-regression-baseline-v1.md)，不得继续按下文 Coze 目标新增能力。
 
 ## 目标
 

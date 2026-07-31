@@ -5,12 +5,28 @@ const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const path = require('node:path');
 const { chromium } = require('../runtime/node_modules/playwright');
+const { ProgressReporter, enabledFromEnvironment } = require('./progress.cjs');
 
 const root = path.resolve(__dirname, '..');
+const reporter = new ProgressReporter('START', { enabled: enabledFromEnvironment() });
 function endpoint(base) { const value = String(base).replace(/\/$/, ''); return value.endsWith('/chat/completions') ? value : `${value}/chat/completions`; }
-async function call(label, base, key, body) {
+async function call(label, base, key, body, description) {
   for (let attempt = 1; attempt <= 3; attempt += 1) {
-    const response = await fetch(endpoint(base), { method: 'POST', headers: { authorization: `Bearer ${key}`, 'content-type': 'application/json' }, body: JSON.stringify(body), signal: AbortSignal.timeout(90_000) });
+    reporter.throwIfCancelled();
+    reporter.activity(`${description}，第${attempt}/3次，本次最长90秒`);
+    let response;
+    try {
+      response = await fetch(endpoint(base), { method: 'POST', headers: { authorization: `Bearer ${key}`, 'content-type': 'application/json' }, body: JSON.stringify(body), signal: AbortSignal.timeout(90_000) });
+    } catch (error) {
+      if (attempt === 3) {
+        const failure = new Error(`MODEL_PROBE_${label}_NETWORK_FAILURE_AFTER_${attempt}_ATTEMPTS`);
+        failure.code = `MODEL_PROBE_${label}_NETWORK_FAILURE`;
+        throw failure;
+      }
+      reporter.activity(`${description}第${attempt}/3次网络失败，将进行下一次尝试`);
+      await new Promise(resolve => setTimeout(resolve, attempt * 1_000));
+      continue;
+    }
     if (response.ok) {
       const value = await response.json();
       return { content: value?.choices?.[0]?.message?.content, usage: value?.usage || null, attempts: attempt };
@@ -23,11 +39,13 @@ async function call(label, base, key, body) {
   assert.fail(`MODEL_PROBE_${label}_RETRY_STATE_INVALID`);
 }
 async function main() {
+  reporter.installCancellation();
   for (const name of ['CONTROL_API_KEY','CONTROL_BASE_URL','CONTROL_MODEL_NAME','VISION_API_KEY','VISION_BASE_URL','VISION_MODEL_NAME']) assert.ok(process.env[name], `${name}_MISSING`);
+  reporter.startStage(6, 8, '验证主控模型结构化输出与时间语义', { maxWaitHint: '两个请求；每个最多3次，每次90秒' });
   const controller = await call('CONTROL_STRUCTURE', process.env.CONTROL_BASE_URL, process.env.CONTROL_API_KEY, {
     model: process.env.CONTROL_MODEL_NAME, temperature: 0, max_tokens: 256, response_format: { type: 'json_object' },
     messages: [{ role: 'user', content: '仅输出JSON对象，字段probe必须为HENGZHUN_I10_CONTROL_OK，字段toolBoundary必须为MCP_ONLY。' }]
-  });
+  }, '主控结构化输出');
   const controllerJson = JSON.parse(controller.content);
   assert.equal(controllerJson.probe, 'HENGZHUN_I10_CONTROL_OK');
   assert.equal(controllerJson.toolBoundary, 'MCP_ONLY');
@@ -38,12 +56,14 @@ async function main() {
       { role: 'system', content: '把用户已经确认的执行方式解析为JSON。若文本包含ISO 8601时间，runAt必须逐字符复制，尤其不得把Z改成+08:00或在不换算时钟值时改写偏移。只输出scheduleType、runAt、timezone。' },
       { role: 'user', content: `确认单次定时（ONE_TIME），执行时间${probeRunAt}，时区Asia/Shanghai。` }
     ]
-  });
+  }, '主控时间语义保持');
   const scheduleJson = JSON.parse(schedule.content);
   assert.equal(scheduleJson.scheduleType, 'ONE_TIME');
   assert.equal(scheduleJson.runAt, probeRunAt, 'CONTROL_SCHEDULE_ISO_INSTANT_NOT_PRESERVED');
   assert.equal(scheduleJson.timezone, 'Asia/Shanghai');
 
+  reporter.activity('主控模型两个探针均已通过');
+  reporter.startStage(7, 8, '验证视觉模型真实截图理解', { maxWaitHint: '最多3次，每次90秒' });
   const outputRoot = path.join(root, '.data', 'evidence', 'i10', 'model-probes');
   fs.mkdirSync(outputRoot, { recursive: true });
   const browser = await chromium.launch({ headless: true, executablePath: path.join(root, 'runtime', 'browsers', 'chromium-1217', 'chrome-win64', 'chrome.exe') });
@@ -57,7 +77,7 @@ async function main() {
       { type: 'text', text: '观察截图并只输出JSON：title、buttonText、pageId。不得猜测不可见内容。' },
       { type: 'image_url', image_url: { url: `data:image/png;base64,${screenshot.toString('base64')}` } }
     ] }]
-  });
+  }, '视觉截图理解');
   const visionJson = JSON.parse(vision.content);
   assert.match(String(visionJson.title), /衡准/);
   assert.equal(String(visionJson.pageId), 'I10-VISION-01');
@@ -68,13 +88,16 @@ async function main() {
     completedAt: new Date().toISOString()
   };
   fs.writeFileSync(path.join(outputRoot, 'result.json'), `${JSON.stringify(evidence, null, 2)}\n`);
+  reporter.activity('视觉模型真实截图理解通过');
+  if (process.env.HENGZHUN_PROGRESS_SUBTASK !== '1') reporter.finish('模型探针完成');
   process.stdout.write(`${JSON.stringify(evidence, null, 2)}\n`);
 }
 main().catch(error => {
+  reporter.fail(error, '.data/evidence/i10/model-probes');
   const safeMessage = String(error.message || error)
     .replace(/sk-[A-Za-z0-9_-]+/g, '[REDACTED]')
     .replace(/Bearer\s+[A-Za-z0-9._~-]+/gi, 'Bearer [REDACTED]')
     .slice(0, 320);
   process.stderr.write(`${safeMessage}\n`);
-  process.exitCode = 2;
+  process.exitCode = error.exitCode || 2;
 });

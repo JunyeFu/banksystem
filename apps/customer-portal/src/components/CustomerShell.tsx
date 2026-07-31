@@ -19,6 +19,8 @@ import { SecuritySettings } from '@/pages/SecuritySettings';
 import { TransferCreate } from '@/pages/TransferCreate';
 import { TransferList } from '@/pages/TransferList';
 import { TransferResult } from '@/pages/TransferResult';
+import { TransferVerification } from '@/pages/TransferVerification';
+import { OrderQuery } from '@/pages/OrderQuery';
 
 const navigation = [
   ['/dashboard', '账户概览'], ['/accounts', '账户'], ['/transfers', '转账'], ['/beneficiaries', '收款人'], ['/loans', '贷款'],
@@ -76,6 +78,8 @@ export function CustomerShell(): JSX.Element {
           <Route path="/accounts/:accountId" element={<AccountDetail />} />
           <Route path="/transfers" element={<TransferList />} />
           <Route path="/transfers/new" element={<TransferCreate />} />
+          <Route path="/verification" element={<TransferVerification />} />
+          <Route path="/orders/query" element={<OrderQuery />} />
           <Route path="/transfers/:transferId" element={<TransferResult />} />
           <Route path="/beneficiaries" element={<Beneficiaries />} />
           <Route path="/loans" element={<LoanList />} />

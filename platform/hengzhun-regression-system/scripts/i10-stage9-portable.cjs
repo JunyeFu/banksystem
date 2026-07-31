@@ -6,6 +6,8 @@ const childProcess = require('node:child_process')
 const crypto = require('node:crypto')
 const fs = require('node:fs')
 const path = require('node:path')
+const { ProgressReporter, enabledFromEnvironment } = require('./progress.cjs')
+const { RecoveryStore, fingerprint } = require('./recovery.cjs')
 
 const productRoot = path.resolve(__dirname, '..')
 const repoRoot = path.resolve(productRoot, '..', '..')
@@ -84,13 +86,26 @@ function copyRuntimeTree(relative, candidateRoot) {
   assert.ok(result.status >= 0 && result.status <= 7, `I10_S9_RUNTIME_COPY_FAILED:${relative}:${result.status}`)
 }
 
-function listFiles(root) {
+function listFiles(root, options = {}) {
   const files = []
+  // Source-control/editor metadata belongs to the local development checkout,
+  // not to the portable payload. It must not influence package verification.
+  // These directories are development or execution by-products.  They are
+  // neither portable payload nor governed source: `.data` holds mutable
+  // state, and `midscene_run` is created by the visual runtime for local
+  // reports/logs.  Treat both consistently so a completed browser run cannot
+  // make VERIFY reject the package itself.
+  const ignoredDirectoryNames = new Set(['.git', '.idea', '.data', 'midscene_run'])
   const visit = directory => {
     for (const entry of fs.readdirSync(directory, { withFileTypes: true }).sort((a, b) => a.name.localeCompare(b.name, 'en'))) {
       const absolute = path.join(directory, entry.name)
+      const relative = posix(path.relative(root, absolute))
       if (entry.isSymbolicLink()) throw new Error(`I10_S9_UNSUPPORTED_LINK:${posix(path.relative(root, absolute))}`)
-      if (entry.isDirectory()) visit(absolute)
+      if (entry.isDirectory()) {
+        if (ignoredDirectoryNames.has(entry.name.toLowerCase())) continue
+        if (typeof options.skipDirectory === 'function' && options.skipDirectory(relative)) continue
+        visit(absolute)
+      }
       else if (entry.isFile()) files.push(absolute)
       else throw new Error(`I10_S9_UNSUPPORTED_FILESYSTEM_ENTRY:${posix(path.relative(root, absolute))}`)
     }
@@ -116,12 +131,14 @@ function matchesGlobName(name, pattern) {
   return new RegExp(`^${escaped}$`, 'i').test(name)
 }
 
-function forbiddenCoreFindings(candidateRoot) {
+function forbiddenCoreFindings(candidateRoot, onProgress = null, filesOverride = null) {
   const findings = []
   const secretRegexes = policy.secretContentPatterns.map(pattern => new RegExp(pattern, 'i'))
   const absoluteRegexes = policy.absolutePathPatterns.map(pattern => new RegExp(pattern, 'i'))
   const textExtensions = new Set(['.cjs', '.cmd', '.js', '.json', '.md', '.ps1', '.ts', '.txt', '.yaml', '.yml'])
-  for (const absolute of listFiles(candidateRoot)) {
+  const files = filesOverride || listFiles(candidateRoot)
+  let completed = 0
+  for (const absolute of files) {
     const relative = posix(path.relative(candidateRoot, absolute))
     if (isMutable(relative)) continue
     const top = relative.toLowerCase().split('/')[0]
@@ -137,21 +154,95 @@ function forbiddenCoreFindings(candidateRoot) {
       if (secretRegexes.some(pattern => pattern.test(content))) findings.push(`SECRET_CONTENT:${relative}`)
       if (absoluteRegexes.some(pattern => pattern.test(content))) findings.push(`ABSOLUTE_PATH:${relative}`)
     }
+    completed += 1
+    if (onProgress) onProgress(completed, files.length, relative)
   }
   return [...new Set(findings)].sort()
 }
 
-function hashTree(root) {
+function hashTree(root, onProgress = null) {
   const aggregate = crypto.createHash('sha256')
   let totalBytes = 0
   const files = listFiles(root)
+  let completed = 0
   for (const absolute of files) {
     const relative = posix(path.relative(root, absolute))
     const size = fs.statSync(absolute).size
     aggregate.update(`${relative}\0${size}\0${sha256File(absolute)}\n`, 'utf8')
     totalBytes += size
+    completed += 1
+    if (onProgress) onProgress(completed, files.length, relative)
   }
   return { algorithm: 'sha256(sorted-posix-relative-path\\0byte-length\\0file-sha256\\n)', sha256: aggregate.digest('hex'), fileCount: files.length, totalBytes }
+}
+
+function fileMetadata(absolute, relative) {
+  const stat = fs.statSync(absolute)
+  return { relative, size: stat.size, mtimeMs: Math.trunc(stat.mtimeMs) }
+}
+
+function fileListFingerprint(root, files, onProgress = null, throwIfCancelled = null) {
+  const aggregate = crypto.createHash('sha256')
+  for (let index = 0; index < files.length; index += 1) {
+    if (throwIfCancelled) throwIfCancelled()
+    const absolute = files[index]
+    const relative = posix(path.relative(root, absolute))
+    const metadata = fileMetadata(absolute, relative)
+    aggregate.update(`${metadata.relative}\0${metadata.size}\0${metadata.mtimeMs}\n`, 'utf8')
+    if (onProgress && ((index + 1) % 5000 === 0 || index + 1 === files.length)) onProgress(index + 1, files.length, relative)
+  }
+  return aggregate.digest('hex')
+}
+
+function readHashJournal(journalPath) {
+  if (!fs.existsSync(journalPath)) return []
+  const records = []
+  for (const line of fs.readFileSync(journalPath, 'utf8').split(/\r?\n/)) {
+    if (!line) continue
+    try {
+      const value = JSON.parse(line)
+      if (typeof value.relative !== 'string' || !Number.isFinite(value.size) ||
+          !Number.isFinite(value.mtimeMs) || !/^[a-f0-9]{64}$/.test(value.sha256)) break
+      records.push(value)
+    } catch { break }
+  }
+  return records
+}
+
+function hashTreeResumable(root, journalPath, onProgress = null, throwIfCancelled = null) {
+  const aggregate = crypto.createHash('sha256')
+  let totalBytes = 0
+  const files = listFiles(root)
+  const cached = readHashJournal(journalPath)
+  const valid = []
+  let cacheValid = true
+  for (let index = 0; index < files.length; index += 1) {
+    if (throwIfCancelled) throwIfCancelled()
+    const absolute = files[index]
+    const relative = posix(path.relative(root, absolute))
+    const metadata = fileMetadata(absolute, relative)
+    const previous = cacheValid ? cached[index] : null
+    let digest
+    if (previous && previous.relative === relative && previous.size === metadata.size && previous.mtimeMs === metadata.mtimeMs) {
+      digest = previous.sha256
+      valid.push(previous)
+    } else {
+      cacheValid = false
+      digest = sha256File(absolute)
+      valid.push({ ...metadata, sha256: digest })
+    }
+    aggregate.update(`${relative}\0${metadata.size}\0${digest}\n`, 'utf8')
+    totalBytes += metadata.size
+    if (onProgress) onProgress(index + 1, files.length, relative)
+  }
+  fs.mkdirSync(path.dirname(journalPath), { recursive: true })
+  const temporary = `${journalPath}.${process.pid}.tmp`
+  fs.writeFileSync(temporary, valid.map(value => JSON.stringify(value)).join('\n') + (valid.length ? '\n' : ''), 'utf8')
+  fs.renameSync(temporary, journalPath)
+  return {
+    result: { algorithm: 'sha256(sorted-posix-relative-path\\0byte-length\\0file-sha256\\n)', sha256: aggregate.digest('hex'), fileCount: files.length, totalBytes },
+    resumedFileCount: Math.min(cached.length, valid.length)
+  }
 }
 
 function lockComponents(lockFile, scope) {
@@ -191,53 +282,215 @@ function writeComplianceFiles(candidateRoot, sourceCommit) {
 
 function writeGeneratedFiles(candidateRoot, sourceCommit) {
   const wrappers = {
-    'PREPARE.cmd': '@echo off\r\npowershell.exe -NoProfile -ExecutionPolicy Bypass -File "%~dp0scripts\\prepare-i10.ps1"\r\n',
-    'START.cmd': '@echo off\r\npowershell.exe -NoProfile -ExecutionPolicy Bypass -File "%~dp0scripts\\start-i10.ps1"\r\n',
-    'STATUS.cmd': '@echo off\r\npowershell.exe -NoProfile -ExecutionPolicy Bypass -File "%~dp0scripts\\status-i10.ps1"\r\n',
-    'STOP.cmd': '@echo off\r\npowershell.exe -NoProfile -ExecutionPolicy Bypass -File "%~dp0scripts\\stop-i10.ps1"\r\n',
-    'VERIFY.cmd': '@echo off\r\n"%~dp0runtime\\node-v20.20.2-win-x64\\node.exe" "%~dp0scripts\\i10-stage9-portable.cjs" verify --candidate "%~dp0"\r\n'
+    'PREPARE.cmd': '@echo off\r\ncall "%~dp0scripts\\cmd-entry.cmd" PREPARE %*\r\nexit /b %ERRORLEVEL%\r\n',
+    'START.cmd': '@echo off\r\ncall "%~dp0scripts\\cmd-entry.cmd" START %*\r\nexit /b %ERRORLEVEL%\r\n',
+    'STATUS.cmd': '@echo off\r\ncall "%~dp0scripts\\cmd-entry.cmd" STATUS %*\r\nexit /b %ERRORLEVEL%\r\n',
+    'STOP.cmd': '@echo off\r\ncall "%~dp0scripts\\cmd-entry.cmd" STOP %*\r\nexit /b %ERRORLEVEL%\r\n',
+    'VERIFY.cmd': '@echo off\r\ncall "%~dp0scripts\\cmd-entry.cmd" VERIFY %*\r\nexit /b %ERRORLEVEL%\r\n'
   }
   for (const [name, content] of Object.entries(wrappers)) fs.writeFileSync(path.join(candidateRoot, name), content, 'utf8')
-  fs.writeFileSync(path.join(candidateRoot, 'README.md'), `# 衡准自动化回归测试系统 I10 Windows x64 正式版\n\n本目录自带Node.js、Flowise、Chromium、FFmpeg、OCR、Harness、Worker和SQLite迁移，不要求WSL、Docker或全局Node。\n\n1. 在目标目录运行 \`VERIFY.cmd\`。\n2. 运行 \`PREPARE.cmd\`，只在本机 \`.data/\` 生成运行配置和内部服务凭据。\n3. 使用 \`START.cmd\`、\`STATUS.cmd\` 和 \`STOP.cmd\` 管理服务。\n4. 模型配置只使用 \`CONTROL_*\` 与 \`VISION_*\` 通用变量；两组模型的API Key与API Base以及银行账号不在发布包内。Flowise本地界面使用包内固定演示管理员身份。\n\n目录可放在Windows 10/11 x64可写磁盘的含空格或中文路径中。平台使用相对路径，不建立机器专属验收流程。\n\n冻结源提交：\`${sourceCommit}\`。\n`, 'utf8')
+  const readmeSource = path.join(root, 'README.md')
+  assert.ok(fs.existsSync(readmeSource), 'I10_PORTABLE_README_SOURCE_MISSING')
+  const readme = fs.readFileSync(readmeSource, 'utf8')
+    .replace(/冻结源提交：`[^`]+`。?\s*$/u, `冻结源提交：\`${sourceCommit}\`。\n`)
+  fs.writeFileSync(path.join(candidateRoot, 'README.md'), readme, 'utf8')
   writeJson(path.join(candidateRoot, 'manifest', 'candidate.json'), {
     schemaVersion: 'hengzhun-i10-windows-x64-release-v1', stage: 'I10_S9_PORTABLE_RELEASE', candidateName: policy.candidateName,
     sourceCommit, sourceFrozen: true, platform: policy.platform, portabilityContract: policy.portabilityContract,
     supportedOperatingSystems: policy.supportedOperatingSystems, requiredPathScenarios: policy.requiredPathScenarios,
-    bundled: { node: '20.20.2', flowise: '3.0.12', chromium: '1217', ffmpeg: true, ocr: ['chi_sim', 'eng'] },
+    bundled: {
+      node: '20.20.2',
+      flowise: '3.0.12',
+      chromium: '1217',
+      ffmpeg: true,
+      ocr: ['PP-OCRv5-mobile-ONNX-zh-en'],
+      legacyVideoOcr: ['chi_sim', 'eng']
+    },
     runtimeDataRoot: '.data', modelApiKeysAndBasesBundled: false, fixedLocalPlatformLoginBundled: true, machineSpecificAcceptanceRequired: false
   })
   writeComplianceFiles(candidateRoot, sourceCommit)
 }
 
-function buildManifest(candidateRoot, sourceCommit) {
-  const assets = {}
-  for (const relative of policy.runtimeTrees) assets[relative] = hashTree(path.join(candidateRoot, ...relative.split('/')))
+function buildManifest(candidateRoot, sourceCommit, options = {}) {
+  const assets = options.assetsOverride || {}
+  if (!options.assetsOverride) {
+    for (const relative of policy.runtimeTrees) assets[relative] = hashTree(path.join(candidateRoot, ...relative.split('/')))
+  }
   const coreFiles = {}
-  for (const absolute of listFiles(candidateRoot)) {
+  const coreCandidates = listFiles(candidateRoot, {
+    // Runtime trees are verified independently above. Do not materialize their
+    // entire file list only to discard it from the core-file manifest.
+    skipDirectory: relative => isMutable(`${relative}/`) || policy.runtimeTrees.some(prefix => under(relative, prefix))
+  })
+  for (const absolute of coreCandidates) {
     const relative = posix(path.relative(candidateRoot, absolute))
     if (relative === 'manifest/files.sha256.json' || isMutable(relative) || isRuntimeAsset(relative)) continue
     coreFiles[relative] = { sha256: sha256File(absolute), byteLength: fs.statSync(absolute).size }
   }
-  return { schemaVersion: 'hengzhun-i10-file-manifest-v1', sourceCommit, algorithm: 'sha256', assets, coreFiles }
+  // This folder is deliberately usable after a plain copy. Its upstream
+  // sourceCommit is frozen at export time; the copied package does not claim
+  // a current Git revision or worktree status, because a parent checkout may
+  // contain multi-gigabyte bundled assets unrelated to this package.
+  const currentPackageRevision = null
+  const currentPackageWorktreeState = 'PORTABLE_FOLDER_NOT_A_GIT_AUTHORITY'
+  return {
+    schemaVersion: 'hengzhun-i10-file-manifest-v1',
+    sourceCommit,
+    sourceProvenance: {
+      frozenUpstreamSourceCommit: sourceCommit,
+      currentPackageRevision,
+      currentPackageWorktreeState
+    },
+    algorithm: 'sha256',
+    assetHashRefreshMode: options.assetsOverride ? 'PRESERVED_LOCKED_ASSET_BASELINE' : 'FULL_REHASH',
+    assets, coreFiles
+  }
 }
 
-function verifyCandidate(candidateRoot) {
+function refreshManifest(candidateRoot, { rehashAssets = false } = {}) {
   const resolved = path.resolve(candidateRoot)
   const manifestPath = path.join(resolved, 'manifest', 'files.sha256.json')
-  assert.ok(fs.existsSync(manifestPath), 'I10_S9_HASH_MANIFEST_MISSING')
-  const manifest = JSON.parse(fs.readFileSync(manifestPath, 'utf8'))
-  assert.equal(manifest.schemaVersion, 'hengzhun-i10-file-manifest-v1')
-  for (const [relative, expected] of Object.entries(manifest.assets || {})) assert.deepEqual(hashTree(path.join(resolved, ...relative.split('/'))), expected, `I10_S9_ASSET_HASH_MISMATCH:${relative}`)
-  const actualCore = {}
-  for (const absolute of listFiles(resolved)) {
-    const relative = posix(path.relative(resolved, absolute))
-    if (relative === 'manifest/files.sha256.json' || isMutable(relative) || isRuntimeAsset(relative)) continue
-    actualCore[relative] = { sha256: sha256File(absolute), byteLength: fs.statSync(absolute).size }
+  const candidatePath = path.join(resolved, 'manifest', 'candidate.json')
+  let sourceCommit = 'LOCAL_DESKTOP_RELEASE'
+  let lockedAssets = null
+  if (fs.existsSync(manifestPath)) {
+    const existing = JSON.parse(fs.readFileSync(manifestPath, 'utf8'))
+    if (typeof existing.sourceCommit === 'string' && existing.sourceCommit.trim()) sourceCommit = existing.sourceCommit.trim()
+    if (existing.assets && typeof existing.assets === 'object') lockedAssets = existing.assets
+  } else if (fs.existsSync(candidatePath)) {
+    const candidate = JSON.parse(fs.readFileSync(candidatePath, 'utf8'))
+    if (typeof candidate.sourceCommit === 'string' && candidate.sourceCommit.trim()) sourceCommit = candidate.sourceCommit.trim()
   }
-  assert.deepEqual(actualCore, manifest.coreFiles, 'I10_S9_CORE_FILE_MANIFEST_MISMATCH')
-  const findings = forbiddenCoreFindings(resolved)
-  assert.deepEqual(findings, [], `I10_S9_FORBIDDEN_CONTENT:${findings.slice(0, 10).join(',')}`)
-  return { status: 'I10_PORTABLE_FOLDER_VERIFIED', sourceCommit: manifest.sourceCommit, manifestSha256: sha256File(manifestPath), assetCount: Object.keys(manifest.assets).length, coreFileCount: Object.keys(manifest.coreFiles).length, forbiddenFindingCount: 0 }
+  const temporaryPath = `${manifestPath}.tmp`
+  // Source-only refreshes preserve the immutable runtime baseline.  A
+  // deliberate runtime rebuild (for example TypeScript dist) must opt into a
+  // fresh asset digest so VERIFY never relies on a stale locked baseline.
+  writeJson(temporaryPath, buildManifest(resolved, sourceCommit, { assetsOverride: rehashAssets ? undefined : lockedAssets || undefined }))
+  fs.renameSync(temporaryPath, manifestPath)
+  return { status: 'I10_HASH_MANIFEST_REFRESHED', candidate: resolved, sourceCommit }
+}
+
+function verifyCandidate(candidateRoot, reporter = null) {
+  const resolved = path.resolve(candidateRoot)
+  const manifestPath = path.join(resolved, 'manifest', 'files.sha256.json')
+  const recovery = new RecoveryStore(resolved, 'VERIFY', 'i10-verify-recovery-v1')
+  try {
+    reporter?.startStage(1, 5, '加载并校验Hash清单', { heartbeat: false })
+    assert.ok(fs.existsSync(manifestPath), 'I10_S9_HASH_MANIFEST_MISSING')
+    const manifestDigest = sha256File(manifestPath)
+    const manifest = JSON.parse(fs.readFileSync(manifestPath, 'utf8'))
+    assert.equal(manifest.schemaVersion, 'hengzhun-i10-file-manifest-v1')
+    const recoveryStart = recovery.begin(fingerprint({ manifestDigest, resolved, algorithm: manifest.algorithm }))
+    reporter?.activity(`${recoveryStart.resumed ? '发现有效断点并自动恢复；' : ''}已加载：核心文件${Object.keys(manifest.coreFiles || {}).length}，运行时资产${Object.keys(manifest.assets || {}).length}`)
+
+    const allFiles = listFiles(resolved)
+    const fingerprintFiles = allFiles.filter(absolute => !isMutable(posix(path.relative(resolved, absolute))))
+    const listDigest = fileListFingerprint(resolved, fingerprintFiles, (completed, total) => {
+      reporter?.activity(`正在建立恢复文件集合指纹：${completed}/${total}`, false)
+    }, () => reporter?.throwIfCancelled())
+    const coreFiles = allFiles.filter(absolute => {
+      const relative = posix(path.relative(resolved, absolute))
+      return relative !== 'manifest/files.sha256.json' && !isMutable(relative) && !isRuntimeAsset(relative)
+    })
+    const previousCore = recovery.state.coreCache || {}
+    const actualCore = {}
+    reporter?.startStage(2, 5, '核心文件Hash', { completed: 0, total: Object.keys(manifest.coreFiles || {}).length, maxWaitHint: '受磁盘速度影响，可能需要数分钟' })
+    let coreCompleted = 0
+    for (const absolute of coreFiles) {
+      reporter?.throwIfCancelled()
+      const relative = posix(path.relative(resolved, absolute))
+      const metadata = fileMetadata(absolute, relative)
+      const cached = previousCore[relative]
+      actualCore[relative] = cached && cached.size === metadata.size && cached.mtimeMs === metadata.mtimeMs
+        ? { sha256: cached.sha256, byteLength: metadata.size }
+        : { sha256: sha256File(absolute), byteLength: metadata.size }
+      coreCompleted += 1
+      reporter?.update(coreCompleted, Object.keys(manifest.coreFiles || {}).length, relative)
+      if (coreCompleted % 10 === 0 || coreCompleted === coreFiles.length) {
+        const coreCache = Object.fromEntries(Object.entries(actualCore).map(([key, value]) => {
+          const absolutePath = path.join(resolved, ...key.split('/'))
+          const metadataValue = fileMetadata(absolutePath, key)
+          return [key, { sha256: value.sha256, size: metadataValue.size, mtimeMs: metadataValue.mtimeMs }]
+        }))
+        recovery.checkpoint(2, '核心文件Hash', Object.keys(actualCore), { coreCache, listDigest })
+      }
+    }
+
+    const assetEntries = Object.entries(manifest.assets || {})
+    const completedAssets = new Set(recovery.state.completedAssets || [])
+    reporter?.startStage(3, 5, '运行时资产Hash', { completed: 0, total: assetEntries.length, maxWaitHint: '受磁盘速度影响，可能需要数分钟' })
+    let assetCompleted = 0
+    for (const [relative, expected] of assetEntries) {
+      reporter?.throwIfCancelled()
+      const journalName = `verify-${crypto.createHash('sha256').update(relative).digest('hex').slice(0, 16)}.jsonl`
+      const journalPath = path.join(resolved, '.data', 'recovery', journalName)
+      const { result: actual, resumedFileCount } = hashTreeResumable(path.join(resolved, ...relative.split('/')), journalPath, (completed, total, file) => {
+        reporter?.throwIfCancelled()
+        reporter?.activity(`资产${assetCompleted + 1}/${assetEntries.length}：${relative}，内部文件${completed}/${total}，当前${file}`, false)
+      }, () => reporter?.throwIfCancelled())
+      assert.deepEqual(actual, expected, `I10_S9_ASSET_HASH_MISMATCH:${relative}`)
+      completedAssets.add(relative)
+      assetCompleted += 1
+      recovery.checkpoint(3, '运行时资产Hash', [...completedAssets], { coreCache: recovery.state.coreCache, completedAssets: [...completedAssets], listDigest })
+      reporter?.update(assetCompleted, assetEntries.length, `已完成${relative}${resumedFileCount ? `，复用${resumedFileCount}个安全缓存` : ''}`, true)
+    }
+
+    reporter?.startStage(4, 5, '敏感内容与绝对路径扫描', { completed: 0, total: allFiles.length, maxWaitHint: '持续扫描并按真实文件数计数' })
+    const previousScan = recovery.state.scanCache?.listDigest === listDigest ? recovery.state.scanCache : { index: 0, findings: [] }
+    const secretRegexes = policy.secretContentPatterns.map(pattern => new RegExp(pattern, 'i'))
+    const absoluteRegexes = policy.absolutePathPatterns.map(pattern => new RegExp(pattern, 'i'))
+    const textExtensions = new Set(['.cjs', '.cmd', '.js', '.json', '.md', '.ps1', '.ts', '.txt', '.yaml', '.yml'])
+    const findings = [...(previousScan.findings || [])]
+    let scanIndex = Number(previousScan.index || 0)
+    for (; scanIndex < allFiles.length; scanIndex += 1) {
+      reporter?.throwIfCancelled()
+      const absolute = allFiles[scanIndex]
+      const relative = posix(path.relative(resolved, absolute))
+      if (!isMutable(relative)) {
+        const top = relative.toLowerCase().split('/')[0]
+        if (policy.forbiddenPathSegments.map(value => value.toLowerCase()).includes(top)) findings.push(`FORBIDDEN_TOP_LEVEL:${relative}`)
+        const basename = path.basename(relative)
+        if (!isRuntimeAsset(relative) && policy.forbiddenFilePatterns.some(pattern => matchesGlobName(basename, pattern))) findings.push(`FORBIDDEN_FILE:${relative}`)
+        if (!isRuntimeAsset(relative) && textExtensions.has(path.extname(relative).toLowerCase()) && fs.statSync(absolute).size <= 4 * 1024 * 1024) {
+          const content = fs.readFileSync(absolute, 'utf8')
+          if (secretRegexes.some(pattern => pattern.test(content))) findings.push(`SECRET_CONTENT:${relative}`)
+          if (absoluteRegexes.some(pattern => pattern.test(content))) findings.push(`ABSOLUTE_PATH:${relative}`)
+        }
+      }
+      const completed = scanIndex + 1
+      reporter?.update(completed, allFiles.length, relative)
+      if (completed % 1000 === 0 || completed === allFiles.length) {
+        recovery.checkpoint(4, '敏感内容与绝对路径扫描', completedAssets.size ? [...completedAssets] : [], {
+          coreCache: recovery.state.coreCache,
+          completedAssets: [...completedAssets],
+          listDigest,
+          scanCache: { index: completed, findings: [...new Set(findings)], listDigest }
+        })
+      }
+    }
+
+    reporter?.startStage(5, 5, '核对文件集合并生成最终结果', { heartbeat: false })
+    assert.equal(sha256File(manifestPath), manifestDigest, 'I10_S9_MANIFEST_CHANGED_DURING_VERIFY')
+    const finalFiles = listFiles(resolved)
+    const finalFingerprintFiles = finalFiles.filter(absolute => !isMutable(posix(path.relative(resolved, absolute))))
+    const finalDigest = fileListFingerprint(resolved, finalFingerprintFiles, (completed, total) => {
+      reporter?.activity(`正在复核恢复文件集合指纹：${completed}/${total}`, false)
+    }, () => reporter?.throwIfCancelled())
+    assert.equal(finalDigest, listDigest, 'I10_S9_FILE_SET_CHANGED_DURING_VERIFY')
+    assert.deepEqual(actualCore, manifest.coreFiles, 'I10_S9_CORE_FILE_MANIFEST_MISMATCH')
+    const uniqueFindings = [...new Set(findings)].sort()
+    assert.deepEqual(uniqueFindings, [], `I10_S9_FORBIDDEN_CONTENT:${uniqueFindings.slice(0, 10).join(',')}`)
+    reporter?.activity('核心集合、运行时资产和违规项全部一致')
+    const result = { status: 'I10_PORTABLE_FOLDER_VERIFIED', sourceCommit: manifest.sourceCommit, manifestSha256: manifestDigest, assetCount: Object.keys(manifest.assets).length, coreFileCount: Object.keys(manifest.coreFiles).length, forbiddenFindingCount: 0 }
+    recovery.complete({ status: result.status, manifestSha256: manifestDigest })
+    reporter?.finish('完成', `${result.coreFileCount}个核心文件，${result.assetCount}个运行时资产`)
+    return result
+  } catch (error) {
+    recovery.fail(error, !['RECOVERY_STATE_INVALID', 'I10_S9_HASH_MANIFEST_MISSING'].includes(error.code), error.code === 'USER_CANCELLED')
+    throw error
+  } finally {
+    recovery.release()
+  }
 }
 
 function validateArchiveListing(archivePath) {
@@ -341,23 +594,37 @@ function argument(name) {
 }
 
 if (require.main === module) {
+  let reporter = null
   try {
     const command = process.argv[2]
     if (command === 'preflight') {
       const result = preflight()
       if (!process.argv.includes('--report-only') && result.status !== 'I10_S9_PREFLIGHT_READY') process.exitCode = 3
     } else if (command === 'package') packageRelease()
+    else if (command === 'refresh-compliance') {
+      const candidate = argument('--candidate') || productRoot
+      const candidateMetadata = JSON.parse(fs.readFileSync(path.join(candidate, 'manifest', 'candidate.json'), 'utf8'))
+      writeComplianceFiles(candidate, String(candidateMetadata.sourceCommit))
+      process.stdout.write(`${JSON.stringify({ status: 'I10_COMPLIANCE_REFRESHED', candidate }, null, 2)}\n`)
+    }
+    else if (command === 'refresh-manifest') {
+      const result = refreshManifest(argument('--candidate') || productRoot, { rehashAssets: process.argv.includes('--rehash-assets') })
+      process.stdout.write(`${JSON.stringify(result, null, 2)}\n`)
+    }
     else if (command === 'verify') {
-      const result = verifyCandidate(argument('--candidate') || productRoot)
+      reporter = new ProgressReporter('VERIFY', { enabled: enabledFromEnvironment() })
+      reporter.installCancellation()
+      const result = verifyCandidate(argument('--candidate') || productRoot, reporter)
       process.stdout.write(`${JSON.stringify(result, null, 2)}\n`)
     } else if (command === 'verify-release') {
       const result = verifyRelease(argument('--candidate'), argument('--archive'), argument('--checksum'))
       process.stdout.write(`${JSON.stringify(result, null, 2)}\n`)
-    } else throw new Error('USAGE: i10-stage9-portable.cjs preflight [--report-only] | package | verify --candidate path | verify-release --candidate path --archive path --checksum path')
+    } else throw new Error('USAGE: i10-stage9-portable.cjs preflight [--report-only] | package | refresh-compliance [--candidate path] | refresh-manifest [--candidate path] [--rehash-assets] | verify --candidate path | verify-release --candidate path --archive path --checksum path')
   } catch (error) {
+    reporter?.fail(error)
     process.stderr.write(`${error.message}\n`)
-    process.exitCode = 2
+    process.exitCode = error.exitCode || 2
   }
 }
 
-module.exports = { forbiddenCoreFindings, hashTree, preflight, verifyCandidate, verifyRelease }
+module.exports = { buildManifest, forbiddenCoreFindings, hashTree, preflight, refreshManifest, verifyCandidate, verifyRelease }

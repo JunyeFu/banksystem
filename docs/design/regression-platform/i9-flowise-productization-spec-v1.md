@@ -12,6 +12,8 @@ owner: 傅钧烨
 
 # 衡准I9 Flowise正式产品化与便携交付规格
 
+> 历史兼容说明：本文中的 `Human Input` 仅指 Flowise 本机适配器；HiAgent 没有被本文证明具有同名原生节点或 `Proceed/Reject` 按钮。跨平台迁移必须按 [`HiAgent/Flowise 能力边界基线`](../../architecture/overview/hiagent-flowise-capability-boundary-v1.md) 重写为消息、信息收集和选择器/条件。
+
 > 本文是I9代码级辅助规格，只解释参数、目录、门禁和验收方法，不拥有项目实施顺序或任务状态。实施先后只看[`agent/plans/active/v54-implementation-batches.md`](../../../agent/plans/active/v54-implementation-batches.md)，状态只看[`agent/backlog.yaml`](../../../agent/backlog.yaml)。
 
 ## 1. 目标与事实起点

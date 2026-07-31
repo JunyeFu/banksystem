@@ -63,4 +63,46 @@ export class ArtifactStore {
       createdAt
     };
   }
+
+  getMetadata(namespace: string, artifactId: string): Record<string, unknown> {
+    return this.database.read(db => {
+      const row = db.prepare(`
+        SELECT artifact_id, artifact_type, relative_path, sha256, byte_size,
+               media_type, redaction_status, metadata_json, created_at
+        FROM artifacts
+        WHERE namespace = ? AND artifact_id = ?
+      `).get(namespace, artifactId) as Record<string, unknown> | undefined;
+      if (!row) throw new HarnessError(404, 'ARTIFACT_NOT_FOUND', 'DOMAIN', 'Artifact 不存在。');
+      return {
+        artifactId: row.artifact_id,
+        type: row.artifact_type,
+        relativePath: row.relative_path,
+        sha256: row.sha256,
+        byteSize: row.byte_size,
+        mediaType: row.media_type,
+        redactionStatus: row.redaction_status,
+        metadata: JSON.parse(String(row.metadata_json)),
+        createdAt: row.created_at
+      };
+    });
+  }
+
+  read(namespace: string, artifactId: string): { content: Buffer; metadata: Record<string, unknown> } {
+    const metadata = this.getMetadata(namespace, artifactId);
+    if (metadata.redactionStatus === 'QUARANTINED') {
+      throw new HarnessError(409, 'ARTIFACT_QUARANTINED', 'SECURITY', '隔离制品不可下载。', false, false);
+    }
+    const relativePath = String(metadata.relativePath);
+    const absolutePath = path.resolve(this.root, ...relativePath.split('/'));
+    const resolvedRoot = `${path.resolve(this.root)}${path.sep}`;
+    if (!absolutePath.startsWith(resolvedRoot) || !fs.existsSync(absolutePath)) {
+      throw new HarnessError(409, 'ARTIFACT_CONTENT_MISSING', 'EVIDENCE', '制品内容缺失。', false, true);
+    }
+    const content = fs.readFileSync(absolutePath);
+    if (sha256(content) !== metadata.sha256) {
+      content.fill(0);
+      throw new HarnessError(409, 'ARTIFACT_HASH_MISMATCH', 'EVIDENCE', '制品Hash校验失败。', false, false);
+    }
+    return { content, metadata };
+  }
 }

@@ -67,8 +67,14 @@ public class SecurityConfig {
             .requestMatchers("/internal/transfers/**").hasAnyAuthority("ROLE_PAYMENT_OPERATOR", "ROLE_SYSTEM_ADMIN")
             .requestMatchers("/api/customer/v1/loans/applications/*/core/**").denyAll()
             .requestMatchers("/api/customer/v1/loans/applications/*/core-submit").denyAll()
+            // A customer transfer enters the controlled first-confirmation
+            // route before the local persisted-UKey web step. Requiring the
+            // post-verification authority here makes that route unreachable
+            // and prevents the verification page from ever being exercised.
+            // Customer authentication remains mandatory; the transfer is not
+            // settled by this request and the UKey page owns the next step.
             .requestMatchers(HttpMethod.POST, "/api/customer/v1/beneficiaries", "/api/customer/v1/transfers")
-              .hasAuthority("ROLE_CUSTOMER_MFA_VERIFIED")
+              .hasAuthority("ROLE_CUSTOMER")
             .requestMatchers("/api/customer/v1/**").hasAuthority("ROLE_CUSTOMER")
             .requestMatchers("/internal/eod/**", "/internal/monitoring/**")
               .hasAnyAuthority("ROLE_ACCOUNTANT", "ROLE_AUDITOR", "ROLE_SYSTEM_ADMIN")

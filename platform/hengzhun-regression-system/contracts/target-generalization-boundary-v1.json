@@ -1,0 +1,245 @@
+{
+  "schemaVersion": "hengzhun-target-generalization-boundary-v1",
+  "purpose": "Classify current Fuxing-bank-specific references before phased generalization.",
+  "status": "GZ-00_COMPLETE",
+  "markers": [
+    "复兴银行",
+    "Fuxing",
+    "/portal/",
+    "customer-profile-",
+    "transfer-",
+    "LOGIN_PROFILE",
+    "TRANSFER_UKEY_ORDER_QUERY",
+    "ACCOUNT_OWNERSHIP",
+    "AUTH_REJECTION_RECOVERY"
+  ],
+  "classifications": [
+    {
+      "path": "harness/src/context-envelope.ts",
+      "classification": "LEGACY_CONTRACT",
+      "owner": "GZ-01",
+      "reason": "Carries historical execution profile vocabulary across the old and I10 context contracts."
+    },
+    {
+      "path": "harness/src/schemas.ts",
+      "classification": "LEGACY_CONTRACT",
+      "owner": "GZ-01",
+      "reason": "Defines historical and current IntentPlan execution profile compatibility."
+    },
+    {
+      "path": "harness/src/i8/stage3-schemas.ts",
+      "classification": "LEGACY_CONTRACT",
+      "owner": "GZ-01",
+      "reason": "Defines executable plan fixture profile compatibility."
+    },
+    {
+      "path": "harness/src/i10/service.ts",
+      "classification": "DEMO_EXAMPLE",
+      "owner": "GZ-05",
+      "reason": "Contains local portal examples in interaction guidance while target profile behavior remains generic."
+    },
+    {
+      "path": "harness/src/i8/script-package-builder.ts",
+      "classification": "EXPLICIT_ADAPTER_CONSUMER",
+      "owner": "GZ-04",
+      "reason": "Consumes the controlled template only after an explicit, hash-verified adapter binding; it no longer owns Fuxing routes or locators."
+    },
+    {
+      "path": "harness/src/i8/adapters/fuxing-bank-demo.ts",
+      "classification": "EXPLICIT_ADAPTER_IMPLEMENTATION",
+      "owner": "GZ-04",
+      "reason": "Versioned code-owned Fuxing demo routes, locators and deterministic templates; never selected from prose, brand or route."
+    },
+    {
+      "path": "harness/src/i8/target-adapter-registry.ts",
+      "classification": "EXPLICIT_ADAPTER_REGISTRY",
+      "owner": "GZ-01",
+      "reason": "The sole registry entry for the opt-in Fuxing demonstration adapter."
+    },
+    {
+      "path": "harness/src/service.ts",
+      "classification": "LEGACY_COMPAT",
+      "owner": "GZ-04",
+      "reason": "Keeps legacy worker execution profiles callable for historical tasks."
+    },
+    {
+      "path": "worker/src/index.cjs",
+      "classification": "LEGACY_COMPAT",
+      "owner": "GZ-04",
+      "reason": "Loads legacy controlled worker executors alongside the I10 candidate path."
+    },
+    {
+      "path": "worker/src/login-profile.cjs",
+      "classification": "LEGACY_ADAPTER_SHIM",
+      "owner": "GZ-04",
+      "reason": "Historical script path that forwards to the explicit Fuxing demo adapter implementation."
+    },
+    {
+      "path": "worker/src/account-ownership.cjs",
+      "classification": "LEGACY_ADAPTER_SHIM",
+      "owner": "GZ-04",
+      "reason": "Historical script path that forwards to the explicit Fuxing demo adapter implementation."
+    },
+    {
+      "path": "worker/src/auth-rejection-recovery.cjs",
+      "classification": "LEGACY_ADAPTER_SHIM",
+      "owner": "GZ-04",
+      "reason": "Historical script path that forwards to the explicit Fuxing demo adapter implementation."
+    },
+    {
+      "path": "worker/src/adapters/fuxing-bank-demo/login-profile.cjs",
+      "classification": "EXPLICIT_ADAPTER_IMPLEMENTATION",
+      "owner": "GZ-04",
+      "reason": "Controlled Fuxing demo login and profile consistency executor."
+    },
+    {
+      "path": "worker/src/adapters/fuxing-bank-demo/account-ownership.cjs",
+      "classification": "EXPLICIT_ADAPTER_IMPLEMENTATION",
+      "owner": "GZ-04",
+      "reason": "Controlled Fuxing demo account ownership executor."
+    },
+    {
+      "path": "worker/src/adapters/fuxing-bank-demo/auth-rejection-recovery.cjs",
+      "classification": "EXPLICIT_ADAPTER_IMPLEMENTATION",
+      "owner": "GZ-04",
+      "reason": "Controlled Fuxing demo authentication rejection and recovery executor."
+    },
+    {
+      "path": "worker/src/i10-midscene-candidate-authoring.cjs",
+      "classification": "GENERIC_CORE_WITH_CONTROLLED_FALLBACK",
+      "owner": "GZ-02",
+      "reason": "Implements generic visual location but retains controlled portal fallback routes."
+    },
+    {
+      "path": "worker/src/i8-formal-runner.cjs",
+      "classification": "GENERIC_CORE_WITH_CONTROLLED_ASSERTIONS",
+      "owner": "GZ-02",
+      "reason": "Executes candidate scripts but retains controlled portal assertion helpers."
+    },
+    {
+      "path": "worker/src/i8-stability-runner.cjs",
+      "classification": "GENERIC_CORE_WITH_CONTROLLED_ASSERTIONS",
+      "owner": "GZ-02",
+      "reason": "Performs stability checks and retains controlled portal assertions."
+    },
+      {
+        "path": "worker/src/i10-verification-policy.cjs",
+        "classification": "GENERIC_CORE_WITH_CONTROLLED_FALLBACK",
+        "owner": "GZ-04",
+        "reason": "Generic policy dispatcher; controlled U-key behavior is selected only by the frozen explicit adapter binding."
+      },
+      {
+        "path": "worker/src/adapters/fuxing-bank-demo/index.cjs",
+        "classification": "EXPLICIT_ADAPTER_IMPLEMENTATION",
+        "owner": "GZ-04",
+        "reason": "Controlled Fuxing demo selectors and route references used only by the explicit adapter path."
+      },
+      {
+        "path": "worker/src/adapters/fuxing-bank-demo/verification-policy.cjs",
+        "classification": "EXPLICIT_ADAPTER_IMPLEMENTATION",
+        "owner": "GZ-04",
+        "reason": "Controlled Fuxing demo U-key verification policy, including its three-observation behavior."
+      },
+    {
+      "path": "mcp/src/server.cjs",
+      "classification": "LEGACY_COMPAT",
+      "owner": "GZ-01",
+      "reason": "Retains controlled portal route normalization for legacy flat intent inputs."
+    },
+    {
+      "path": "scripts/i10-stage8-controlled-portal.cjs",
+      "classification": "DEMO_FIXTURE",
+      "owner": "GZ-05",
+      "reason": "Local controlled portal fixture used only for acceptance evidence."
+    },
+    {
+      "path": "flowise/i8/knowledge/portal-login-consistency.md",
+      "classification": "DEMO_KNOWLEDGE",
+      "owner": "GZ-05",
+      "reason": "Fuxing demo knowledge, not generic controller policy."
+    },
+    {
+      "path": "flowise/i9/knowledge/portal-login-consistency-v1.md",
+      "classification": "DEMO_KNOWLEDGE",
+      "owner": "GZ-05",
+      "reason": "Fuxing demo knowledge, not generic controller policy."
+    },
+    {
+      "path": "scripts/build-i10-agentflow.cjs",
+      "classification": "HISTORICAL_GENERATOR",
+      "owner": "GZ-05",
+      "reason": "Legacy v2 generator; not the v6 build authority."
+    },
+    {
+      "path": "scripts/build-i10-agentflow-v4.cjs",
+      "classification": "HISTORICAL_GENERATOR",
+      "owner": "GZ-05",
+      "reason": "Historical v4 generator retained for migration context."
+    },
+    {
+      "path": "scripts/build-i10-agentflow-v5.cjs",
+      "classification": "GENERIC_CONTROLLER_SOURCE",
+      "owner": "GZ-05",
+      "reason": "Current v6 builder delegates to this source; the IntentPlan prompt is constrained to GENERIC_WEB and cannot infer an adapter from prose or route."
+    },
+    {
+      "path": "scripts/i10-case-draft-normalizer.cjs",
+      "classification": "DEMO_EXAMPLE",
+      "owner": "GZ-05",
+      "reason": "Uses local portal examples for normalization fixtures."
+    },
+    {
+      "path": "scripts/i10-case-draft-normalizer.selftest.cjs",
+      "classification": "TEST_FIXTURE",
+      "owner": "GZ-05",
+      "reason": "Contains local portal test fixtures."
+    },
+    {
+      "path": "scripts/i10-l1-live-bootstrap.cjs",
+      "classification": "DEMO_FIXTURE",
+      "owner": "GZ-05",
+      "reason": "Bootstraps the local portal acceptance fixture."
+    },
+    {
+      "path": "scripts/i10-l2-generic-screenshot-live.cjs",
+      "classification": "TEST_FIXTURE",
+      "owner": "GZ-05",
+      "reason": "Contains generic path acceptance fixtures and known portal examples."
+    },
+    {
+      "path": "scripts/i10-gz04-adapter-replay-live.cjs",
+      "classification": "EXPLICIT_ADAPTER_ACCEPTANCE",
+      "owner": "GZ-04",
+      "reason": "Local acceptance driver that invokes the explicit controlled adapter and its historical compatibility alias without writing credentials."
+    },
+    {
+      "path": "scripts/i10-multimodal-live.cjs",
+      "classification": "TEST_FIXTURE",
+      "owner": "GZ-05",
+      "reason": "Contains image and portal acceptance fixtures."
+    },
+    {
+      "path": "scripts/i10-stage8-live.cjs",
+      "classification": "DEMO_FIXTURE",
+      "owner": "GZ-05",
+      "reason": "Live acceptance driver for the controlled portal."
+    },
+    {
+      "path": "scripts/i10-stage8-orchestrator.cjs",
+      "classification": "DEMO_FIXTURE",
+      "owner": "GZ-05",
+      "reason": "Controlled portal acceptance orchestration."
+    },
+    {
+      "path": "scripts/verify-i10-target-boundary.cjs",
+      "classification": "BOUNDARY_TOOL",
+      "owner": "GZ-00",
+      "reason": "Inspects the declared boundary markers."
+    }
+  ],
+  "pathRules": [
+    { "prefix": "scripts/verification/", "classification": "TEST_FIXTURE" },
+    { "prefix": "flowise/i8/", "classification": "HISTORICAL_OR_DEMO_FLOWISE" },
+    { "prefix": "flowise/i10/", "classification": "HISTORICAL_OR_CONTROL_DOCUMENT" }
+  ]
+}

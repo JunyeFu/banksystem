@@ -45,7 +45,7 @@ const recentFactsSchema = z.object({
 const minimalDependencyConeSchema = z.object({
   caseId: z.string().min(8).max(80),
   caseVersion: z.number().int().positive(),
-  executionProfile: z.enum(['LOGIN_PROFILE', 'ACCOUNT_OWNERSHIP', 'AUTH_REJECTION_RECOVERY']).nullable(),
+  executionProfile: z.enum(['LOGIN_PROFILE', 'ACCOUNT_OWNERSHIP', 'AUTH_REJECTION_RECOVERY', 'GENERIC_WEB']).nullable(),
   assertionCount: z.number().int().nonnegative().max(50).nullable()
 }).strict();
 
@@ -75,15 +75,10 @@ export const modelUsageSchema = z.object({
 const currentActionSchema = z.object({
   actionType: z.enum(['LOCATE', 'INPUT', 'TAP', 'SCROLL']),
   prompt: z.string().trim().min(1).max(500),
-  targetRef: z.enum([
-    'PAGE', 'LOGIN_USERNAME', 'LOGIN_PASSWORD', 'LOGIN_SSO_TAB', 'LOGIN_SUBMIT',
-    'HEADER_DISPLAY_NAME', 'HEADER_AVATAR', 'HEADER_PROFILE_LINK',
-    'PROFILE_DISPLAY_NAME', 'PROFILE_AVATAR'
-  ]),
+  targetRef: z.string().trim().min(1).max(160).regex(/^[A-Za-z0-9._:-]+$/),
   valueRef: z.enum(['SYNTHETIC_TEXT', 'CREDENTIAL_USERNAME', 'CREDENTIAL_PASSWORD']).nullable(),
   riskLevel: z.enum(['LOW', 'MEDIUM', 'HIGH']),
   executionMode: z.enum([
-    'MIDSCENE_EXECUTE_PLAYWRIGHT_VERIFY',
     'MIDSCENE_LOCATE_PLAYWRIGHT_EXECUTE',
     'PLAYWRIGHT_ONLY'
   ])
@@ -225,8 +220,38 @@ export function buildActionContextEnvelope(input: ActionContextBuildInput): Acti
   return actionContextEnvelopeSchema.parse(envelope);
 }
 
-export function buildMidscenePrompt(envelope: ActionContextEnvelope): string {
+/**
+ * Normalizes only presentation assumptions that were historically embedded in
+ * persisted visual contexts.  This is deliberately part of the shared
+ * contract: Worker invocation and Harness evidence verification must hash the
+ * same prompt for an existing preparation to remain verifiable.
+ */
+export function normalizeMidscenePromptEnvelope(envelope: ActionContextEnvelope): ActionContextEnvelope {
   const parsed = actionContextEnvelopeSchema.parse(envelope);
+  const targetRef = parsed.currentAction.targetRef;
+  if (targetRef === 'HEADER_DISPLAY_NAME') {
+    return actionContextEnvelopeSchema.parse({
+      ...parsed,
+      currentAction: {
+        ...parsed.currentAction,
+        prompt: '仅定位页面右上角用户区中、头像右侧显示的当前已登录客户姓名文本；只定位姓名文字本身，不假设具体姓名。'
+      }
+    });
+  }
+  if (targetRef === 'PROFILE_DISPLAY_NAME') {
+    return actionContextEnvelopeSchema.parse({
+      ...parsed,
+      currentAction: {
+        ...parsed.currentAction,
+        prompt: '仅定位个人资料主卡片中“客户姓名”标签对应的当前已登录客户姓名值；只定位姓名值本身，不假设具体姓名。'
+      }
+    });
+  }
+  return parsed;
+}
+
+export function buildMidscenePrompt(envelope: ActionContextEnvelope): string {
+  const parsed = normalizeMidscenePromptEnvelope(envelope);
   if (parsed.budgetDecision !== 'ALLOW') {
     throw new HarnessError(409, 'VISION_CONTEXT_NOT_AUTHORIZED', 'CONTRACT', '当前上下文未获视觉模型调用授权。');
   }

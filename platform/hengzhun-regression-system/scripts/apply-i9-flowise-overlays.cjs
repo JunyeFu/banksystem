@@ -14,6 +14,10 @@ const customMcpCoreTarget = path.join(root, 'flowise/app/node_modules/flowise-co
 const agentflowToolTarget = path.join(root, 'flowise/app/node_modules/flowise-components/dist/nodes/agentflow/Tool/Tool.js')
 const agentflowLlmTarget = path.join(root, 'flowise/app/node_modules/flowise-components/dist/nodes/agentflow/LLM/LLM.js')
 const agentflowRuntimeTarget = path.join(root, 'flowise/app/node_modules/flowise/dist/utils/buildAgentflow.js')
+const flowiseUiBuildRoot = path.join(root, 'flowise/app/node_modules/flowise-ui/build')
+const attachmentBridgeSource = path.join(root, 'flowise/i10/hengzhun-attachment-bridge-v1.js')
+const attachmentBridgeTarget = path.join(flowiseUiBuildRoot, 'hengzhun-attachment-bridge.js')
+const flowiseUiIndexTarget = path.join(flowiseUiBuildRoot, 'index.html')
 const frozenUpstreamHash = '6164ee560a979738fd1827e802a2e91d8697ca019fadbe9a29a20dbf53c4c3f1'
 const frozenStructuredOutputHash = '7a33b1205cd0fa9d661e0a93aa5632aae0e511ea7a3494fcd23e2da6246499c1'
 const frozenCustomMcpHash = '28a617e861c21d1b9b468602c7dcf2b10ea791c66a72facf709f58804ea17347'
@@ -29,11 +33,17 @@ const legacyMcpFailClosedMarker = 'I9_MCP_TOOL_ERROR_FAIL_CLOSED'
 const previousMcpFailClosedMarker = 'I9_MCP_TOOL_ERROR_FAIL_CLOSED_V2'
 const mcpFailClosedMarker = 'I9_MCP_TOOL_ERROR_FAIL_CLOSED_V3'
 const i10ToolArgumentCoercionMarker = 'I10_FLOWISE_SCHEMA_AWARE_TOOL_ARGUMENT_COERCION_V1'
+const i10ToolInputSchemaDiagnosticsMarker = 'I10_FLOWISE_TOOL_INPUT_SCHEMA_DIAGNOSTICS_V1'
+const i10ToolInputSchemaDiagnosticsV2Marker = 'I10_FLOWISE_TOOL_INPUT_SCHEMA_DIAGNOSTICS_V2'
 const i10McpStatePayloadMarker = 'I10_FLOWISE_MCP_STATE_PAYLOAD_UNWRAP_V1'
 const i10McpArgumentDiagnosticsMarker = 'I10_FLOWISE_MCP_ARGUMENT_TYPE_DIAGNOSTICS_V1'
 const i10McpArgumentChecksMarker = 'I10_FLOWISE_MCP_ARGUMENT_CONSTRAINT_CHECKS_V1'
 const i10McpTypedSchemaMarker = 'I10_FLOWISE_MCP_TYPED_SCHEMA_V1'
-const i10UploadMetadataMarker = 'I10_FLOWISE_CONTROLLED_ATTACHMENT_METADATA_V1'
+const previousI10UploadMetadataMarker = 'I10_FLOWISE_CONTROLLED_ATTACHMENT_METADATA_V1'
+const i10UploadMetadataMarker = 'I10_FLOWISE_CONTROLLED_ATTACHMENT_METADATA_V2'
+const previousI10AttachmentOnlyInputMarkers = ['I10_FLOWISE_ATTACHMENT_ONLY_INPUT_V1', 'I10_FLOWISE_ATTACHMENT_ONLY_INPUT_V2']
+const i10AttachmentOnlyInputMarker = 'I10_FLOWISE_CONTROLLED_ATTACHMENT_ENVELOPE_V3'
+const i10AttachmentBridgeMarker = 'I10_FLOWISE_ATTACHMENT_BRIDGE_V2'
 const previousI10ConditionalMergeMarkers = ['I10_FLOWISE_OUTERMOST_CONDITION_MERGE_V1', 'I10_FLOWISE_OUTERMOST_CONDITION_MERGE_V2']
 const i10ConditionalMergeMarker = 'I10_FLOWISE_OUTERMOST_CONDITION_MERGE_V3'
 
@@ -192,6 +202,7 @@ function applyAgentflowToolOverlay() {
                     const innerText = Array.isArray(content) ? content.find((item) => item?.type === 'text')?.text : undefined;
                     const payload = typeof innerText === 'string' ? JSON.parse(innerText) : undefined;
                     if (payload?.errorCode && payload?.category && Number(payload?.status) >= 400) governedMcpErrorCode = String(payload.errorCode);
+                    if (!governedMcpErrorCode && /MCP error -32602: Input validation error/.test(String(innerText || ''))) governedMcpErrorCode = 'MCP_INPUT_VALIDATION_ERROR';
                 }
                 catch { }
                 if (governedMcpErrorCode || /MCP error -\\d+/.test(toolOutput)) {
@@ -201,6 +212,16 @@ function applyAgentflowToolOverlay() {
                     const safeReferencePattern = /^[A-Za-z0-9._:-]+$/;
                     const safeArgumentChecks = {
                         references: Object.fromEntries(['preparationId', 'confirmationRef', 'caseId', 'sessionRef'].map((key) => [key, typeof toolCallArgs[key] === 'string' && toolCallArgs[key].length >= 3 && toolCallArgs[key].length <= 160 && safeReferencePattern.test(toolCallArgs[key])])),
+                        stringLengths: Object.fromEntries(Object.entries(toolCallArgs).filter(([, value]) => typeof value === 'string').map(([key, value]) => [key, value.length])),
+                        imageShape: Array.isArray(toolCallArgs.images) ? toolCallArgs.images.map((item) => ({
+                            keys: item && typeof item === 'object' && !Array.isArray(item) ? Object.keys(item).sort() : [],
+                            fieldTypes: item && typeof item === 'object' && !Array.isArray(item)
+                                ? Object.fromEntries(Object.entries(item).map(([key, value]) => [key, value === null ? 'null' : Array.isArray(value) ? 'array' : typeof value]))
+                                : {},
+                            fieldLengths: item && typeof item === 'object' && !Array.isArray(item)
+                                ? Object.fromEntries(Object.entries(item).filter(([, value]) => typeof value === 'string').map(([key, value]) => [key, value.length]))
+                                : {}
+                        })) : [],
                         versions: Object.fromEntries(['expectedVersion', 'caseVersion'].map((key) => [key, Number.isInteger(toolCallArgs[key]) && toolCallArgs[key] > 0])),
                         routeLength: typeof toolCallArgs.route === 'string' ? toolCallArgs.route.length : -1,
                         arrays: Object.fromEntries(['intentStepIds', 'actions', 'expectedOutcomes', 'riskLevels', 'assertions'].map((key) => [key, Array.isArray(toolCallArgs[key]) && toolCallArgs[key].every((item) => typeof item === 'string' && item.length > 0 && item.length <= 500)])),
@@ -315,6 +336,64 @@ function applyI10ToolArgumentCoercionOverlay() {
   return true
 }
 
+function applyI10ToolInputSchemaDiagnosticsOverlay() {
+  assert.ok(fs.existsSync(agentflowToolTarget), 'I10_FLOWISE_AGENTFLOW_TOOL_RUNTIME_MISSING')
+  let current = fs.readFileSync(agentflowToolTarget, 'utf8')
+  if (current.includes(i10ToolInputSchemaDiagnosticsV2Marker)) return false
+  if (!current.includes(i10ToolInputSchemaDiagnosticsMarker)) {
+    const tryPatchPoint = `        try {
+            let toolOutput;`
+    assert.ok(current.includes(tryPatchPoint), 'I10_FLOWISE_TOOL_INPUT_SCHEMA_TRY_PATCH_POINT_MISSING')
+    current = current.replace(tryPatchPoint, `        // ${i10ToolInputSchemaDiagnosticsMarker}: schema failures expose
+        // only field names, types, lengths, and object keys. Argument values
+        // remain unavailable to logs and user-visible errors.
+        const safeToolInputDiagnostics = () => {
+            const actual = Object.fromEntries(Object.entries(toolCallArgs).map(([key, value]) => [key, {
+                    type: Array.isArray(value) ? 'array' : value === null ? 'null' : typeof value,
+                    length: Array.isArray(value) || typeof value === 'string' ? value.length : undefined,
+                    itemTypes: Array.isArray(value) ? [...new Set(value.map((item) => item === null ? 'null' : Array.isArray(item) ? 'array' : typeof item))] : undefined,
+                    itemKeys: Array.isArray(value) ? [...new Set(value.flatMap((item) => item && typeof item === 'object' && !Array.isArray(item) ? Object.keys(item) : []))].sort() : undefined
+                }]));
+            const expected = Object.fromEntries(Object.entries(toolArgumentProperties).map(([key, schema]) => [key, {
+                    type: schema?.type,
+                    required: Array.isArray(schema?.required) ? schema.required : undefined,
+                    itemRequired: Array.isArray(schema?.items?.required) ? schema.items.required : undefined,
+                    itemKeys: schema?.items?.properties ? Object.keys(schema.items.properties).sort() : undefined
+                }]));
+            return { actual, expected };
+        };
+        try {
+            let toolOutput;`)
+  }
+  const catchPatchPoint = current.includes(i10ToolInputSchemaDiagnosticsMarker)
+    ? `        catch (e) {
+            const safeMessage = e instanceof Error ? e.message : String(e);
+            if (/Received tool input did not match expected schema|ToolInputParsingException/i.test(safeMessage)) {
+                throw new Error(\`I10_MCP_TOOL_INPUT_SCHEMA_FAILED:\${JSON.stringify(safeToolInputDiagnostics())}\`);
+            }
+            throw new Error(e);
+        }`
+    : `        catch (e) {
+            throw new Error(e);
+        }`
+  assert.ok(current.includes(catchPatchPoint), 'I10_FLOWISE_TOOL_INPUT_SCHEMA_CATCH_PATCH_POINT_MISSING')
+  current = current.replace(catchPatchPoint, `        catch (e) {
+            const safeMessage = e instanceof Error ? e.message : String(e);
+            if (/Received tool input did not match expected schema|ToolInputParsingException/i.test(safeMessage)) {
+                // ${i10ToolInputSchemaDiagnosticsV2Marker}: schema paths/types
+                // only; values, credentials and free-form input stay redacted.
+                const schemaError = safeMessage
+                    .replace(/sk-[A-Za-z0-9_-]+/g, '[REDACTED]')
+                    .replace(/Bearer\\s+[^\\s"']+/gi, 'Bearer [REDACTED]')
+                    .slice(0, 1200);
+                throw new Error(\`I10_MCP_TOOL_INPUT_SCHEMA_FAILED:\${JSON.stringify({ ...safeToolInputDiagnostics(), schemaError })}\`);
+            }
+            throw new Error(e);
+        }`)
+  fs.writeFileSync(agentflowToolTarget, current)
+  return true
+}
+
 function applyI10McpStatePayloadOverlay() {
   assert.ok(fs.existsSync(agentflowToolTarget), 'I10_FLOWISE_AGENTFLOW_TOOL_RUNTIME_MISSING')
   let current = fs.readFileSync(agentflowToolTarget, 'utf8')
@@ -345,45 +424,56 @@ function applyI10McpStatePayloadOverlay() {
 
 function applyI10UploadMetadataOverlay() {
   assert.ok(fs.existsSync(agentflowLlmTarget), 'I10_FLOWISE_LLM_RUNTIME_MISSING')
-  const current = fs.readFileSync(agentflowLlmTarget, 'utf8')
+  let current = fs.readFileSync(agentflowLlmTarget, 'utf8')
   if (current.includes(i10UploadMetadataMarker)) return false
-  assert.equal(sha256(current), frozenAgentflowLlmHash, 'I10_FLOWISE_LLM_UPSTREAM_HASH_DRIFT')
-  const patchPoint = `            else if (!runtimeChatHistory.length) {
-                /*`
+  if (current.includes(previousI10UploadMetadataMarker)) {
+    const legacyStart = current.indexOf(`            else if (!runtimeChatHistory.length) {
+                // ${previousI10UploadMetadataMarker}`)
+    const legacyEnd = current.indexOf('                /*', legacyStart)
+    assert.ok(legacyStart >= 0 && legacyEnd > legacyStart, 'I10_FLOWISE_UPLOAD_METADATA_V1_BLOCK_INVALID')
+    current = `${current.slice(0, legacyStart)}            else if (!runtimeChatHistory.length) {
+${current.slice(legacyEnd)}`
+  } else {
+    assert.equal(sha256(current), frozenAgentflowLlmHash, 'I10_FLOWISE_LLM_UPSTREAM_HASH_DRIFT')
+  }
+  const patchPoint = `            if (enableMemory) {`
   assert.ok(current.includes(patchPoint), 'I10_FLOWISE_UPLOAD_METADATA_PATCH_POINT_MISSING')
-  const governedMetadata = `            else if (!runtimeChatHistory.length) {
-                // ${i10UploadMetadataMarker}: expose only platform-governed upload metadata
-                // to the I10 classifier. File bytes and machine paths never enter model context.
-                if (nodeData.id === 'llmAgentflow_i10_input' && Array.isArray(options.uploads) && options.uploads.length > 0) {
-                    const controlledAttachments = options.uploads
-                        .filter((upload) => upload && (upload.type === 'stored-file' || upload.type === 'stored-file:full'))
-                        .map((upload) => {
-                        const filename = String(upload.name || '').replace(/^FILE-STORAGE::/, '');
-                        if (!filename || filename.length > 260 || /[\\/\\\\\\u0000-\\u001f]/.test(filename)) {
-                            throw new Error('I10_FLOWISE_UPLOAD_FILENAME_INVALID');
-                        }
-                        const descriptor = {
-                            version: 1,
-                            orgId: String(options.orgId || ''),
-                            chatflowId: String(options.chatflowid || ''),
-                            chatId: String(options.chatId || ''),
-                            filename
-                        };
-                        for (const key of ['orgId', 'chatflowId', 'chatId']) {
-                            if (!/^[A-Za-z0-9_-]{8,100}$/.test(descriptor[key])) throw new Error('I10_FLOWISE_UPLOAD_SCOPE_INVALID');
-                        }
-                        return {
-                            flowiseFileRef: 'flowise-v1.' + Buffer.from(JSON.stringify(descriptor), 'utf8').toString('base64url'),
-                            originalFilename: filename,
-                            mime: String(upload.mime || ''),
-                            source: 'FLOWISE_MANAGED_UPLOAD'
-                        };
-                    });
-                    if (controlledAttachments.length > 0) {
-                        messages.push({ role: 'user', content: 'FLOWISE_CONTROLLED_ATTACHMENTS=' + JSON.stringify(controlledAttachments) });
+  const governedMetadata = `            // ${i10UploadMetadataMarker}: expose the current user turn's
+            // platform-governed upload metadata to the I10 classifier even
+            // when chat history already exists. File bytes and machine paths
+            // never enter controller context.
+            if (['llmAgentflow_i10_input', 'llmAgentflow_i10_v3_classify'].includes(nodeData.id) && Array.isArray(options.uploads) && options.uploads.length > 0) {
+                if (options.uploads.length > 16) throw new Error('I10_FLOWISE_UPLOAD_COUNT_INVALID');
+                const controlledAttachments = [...new Map(options.uploads
+                    .filter((upload) => upload && (upload.type === 'stored-file' || upload.type === 'stored-file:full'))
+                    .map((upload) => {
+                    const filename = String(upload.name || '').replace(/^FILE-STORAGE::/, '');
+                    if (!filename || filename.length > 260 || /[\\/\\\\\\u0000-\\u001f]/.test(filename)) {
+                        throw new Error('I10_FLOWISE_UPLOAD_FILENAME_INVALID');
                     }
+                    const descriptor = {
+                        version: 1,
+                        orgId: String(options.orgId || ''),
+                        chatflowId: String(options.chatflowid || ''),
+                        chatId: String(options.chatId || ''),
+                        filename
+                    };
+                    for (const key of ['orgId', 'chatflowId', 'chatId']) {
+                        if (!/^[A-Za-z0-9_-]{8,100}$/.test(descriptor[key])) throw new Error('I10_FLOWISE_UPLOAD_SCOPE_INVALID');
+                    }
+                    const flowiseFileRef = 'flowise-v1.' + Buffer.from(JSON.stringify(descriptor), 'utf8').toString('base64url');
+                    return [flowiseFileRef, {
+                        flowiseFileRef,
+                        originalFilename: filename,
+                        mime: String(upload.mime || upload.mimeType || ''),
+                        source: 'FLOWISE_MANAGED_UPLOAD'
+                    }];
+                })).values()];
+                if (controlledAttachments.length > 0) {
+                    messages.push({ role: 'user', content: 'FLOWISE_CONTROLLED_ATTACHMENTS=' + JSON.stringify(controlledAttachments) });
                 }
-                /*`
+            }
+${patchPoint}`
   fs.writeFileSync(agentflowLlmTarget, current.replace(patchPoint, governedMetadata))
   return true
 }
@@ -403,6 +493,98 @@ function applyI10ConditionalMergeOverlay() {
   return true
 }
 
+function applyI10AttachmentOnlyInputOverlay() {
+  assert.ok(fs.existsSync(agentflowRuntimeTarget), 'I10_FLOWISE_AGENTFLOW_RUNTIME_MISSING')
+  let current = fs.readFileSync(agentflowRuntimeTarget, 'utf8')
+  if (current.includes(i10AttachmentOnlyInputMarker)) return false
+  for (const legacyMarker of previousI10AttachmentOnlyInputMarkers) {
+    const legacyStart = current.indexOf(`        // ${legacyMarker}:`)
+    if (legacyStart < 0) continue
+    const resolvePoint = current.indexOf('        const reactFlowNodeData = await (0, exports.resolveVariables)', legacyStart)
+    if (resolvePoint < 0) continue
+    current = `${current.slice(0, legacyStart)}${current.slice(resolvePoint)}`
+  }
+  const patchPoint = `        const reactFlowNodeData = await (0, exports.resolveVariables)(flowNodeData, incomingInput.question ?? '', incomingInput.form ?? agentflowRuntime.form ?? {}, flowConfig, availableVariables, variableOverrides, uploadedFilesContent, chatHistory, componentNodes, agentFlowExecutedData, iterationContext, loopCounts);`
+  assert.ok(current.includes(patchPoint), 'I10_FLOWISE_ATTACHMENT_ONLY_INPUT_PATCH_POINT_MISSING')
+  const replacement = `        // ${i10AttachmentOnlyInputMarker}: represent only the current turn's
+        // Flowise-managed uploads as signed, opaque references. This envelope
+        // contains no file bytes, machine path, or user secret and is available
+        // to initial and resumed Human Input paths.
+        const i10ControlledAttachments = (() => {
+            if (!Array.isArray(fileUploads) || fileUploads.length === 0)
+                return [];
+            if (fileUploads.length > 16)
+                throw new Error('I10_FLOWISE_UPLOAD_COUNT_INVALID');
+            const governed = new Map();
+            for (const upload of fileUploads) {
+                if (!upload || (upload.type !== 'stored-file' && upload.type !== 'stored-file:full'))
+                    continue;
+                const filename = String(upload.name || '').replace(/^FILE-STORAGE::/, '');
+                if (!filename || filename.length > 260 || /[\\/\\\\\\u0000-\\u001f]/.test(filename))
+                    throw new Error('I10_FLOWISE_UPLOAD_FILENAME_INVALID');
+                const descriptor = {
+                    version: 1,
+                    orgId: String(orgId || ''),
+                    chatflowId: String(chatflow.id || ''),
+                    chatId: String(chatId || ''),
+                    filename
+                };
+                for (const key of ['orgId', 'chatflowId', 'chatId']) {
+                    if (!/^[A-Za-z0-9_-]{8,100}$/.test(descriptor[key]))
+                        throw new Error('I10_FLOWISE_UPLOAD_SCOPE_INVALID');
+                }
+                const flowiseFileRef = 'flowise-v1.' + Buffer.from(JSON.stringify(descriptor), 'utf8').toString('base64url');
+                governed.set(flowiseFileRef, {
+                    flowiseFileRef,
+                    originalFilename: filename,
+                    mime: String(upload.mime || upload.mimeType || ''),
+                    source: 'FLOWISE_MANAGED_UPLOAD'
+                });
+            }
+            return [...governed.values()];
+        })();
+        const i10AttachmentEnvelope = i10ControlledAttachments.length > 0
+            ? 'FLOWISE_CONTROLLED_ATTACHMENTS=' + JSON.stringify(i10ControlledAttachments)
+            : '';
+        if (!String(incomingInput.question || '').trim() && i10AttachmentEnvelope) {
+            incomingInput.question = '[I10_ATTACHMENT_ONLY_INPUT]';
+        }
+        if (i10AttachmentEnvelope && !String(incomingInput.question || '').includes('FLOWISE_CONTROLLED_ATTACHMENTS=')) {
+            incomingInput.question = String(incomingInput.question || '').trim() + '\\n' + i10AttachmentEnvelope;
+        }
+        if (humanInput && nodeId === humanInput.startNodeId && i10AttachmentEnvelope &&
+            !String(humanInput.feedback || '').includes('FLOWISE_CONTROLLED_ATTACHMENTS=')) {
+            humanInput.feedback = String(humanInput.feedback || '').trim() +
+                (String(humanInput.feedback || '').trim() ? '\\n' : '') +
+                i10AttachmentEnvelope;
+        }
+${patchPoint}`
+  fs.writeFileSync(agentflowRuntimeTarget, current.replace(patchPoint, replacement))
+  return true
+}
+
+function applyI10AttachmentBridgeOverlay() {
+  for (const required of [flowiseUiBuildRoot, attachmentBridgeSource, flowiseUiIndexTarget]) {
+    assert.ok(fs.existsSync(required), 'I10_FLOWISE_ATTACHMENT_BRIDGE_INPUT_MISSING')
+  }
+  const source = fs.readFileSync(attachmentBridgeSource, 'utf8')
+  assert.ok(source.includes(i10AttachmentBridgeMarker), 'I10_FLOWISE_ATTACHMENT_BRIDGE_MARKER_MISSING')
+  const previousBridge = fs.existsSync(attachmentBridgeTarget) ? fs.readFileSync(attachmentBridgeTarget, 'utf8') : ''
+  if (previousBridge !== source) fs.writeFileSync(attachmentBridgeTarget, source)
+
+  let index = fs.readFileSync(flowiseUiIndexTarget, 'utf8')
+  const scriptTag = '        <script src="/hengzhun-attachment-bridge.js"></script>'
+  let indexChanged = false
+  if (!index.includes('/hengzhun-attachment-bridge.js')) {
+    const patchPoint = '    </body>'
+    assert.ok(index.includes(patchPoint), 'I10_FLOWISE_ATTACHMENT_BRIDGE_INDEX_PATCH_POINT_MISSING')
+    index = index.replace(patchPoint, `${scriptTag}\n${patchPoint}`)
+    fs.writeFileSync(flowiseUiIndexTarget, index)
+    indexChanged = true
+  }
+  return previousBridge !== source || indexChanged
+}
+
 function applyAdditionalOverlays() {
   const structured = applyStructuredOutputOverlay()
   const customMcp = applyCustomMcpOverlay()
@@ -411,10 +593,13 @@ function applyAdditionalOverlays() {
   const mcpArgumentDiagnostics = applyI10McpArgumentDiagnosticsOverlay()
   const mcpArgumentChecks = applyI10McpArgumentChecksOverlay()
   const toolArgumentCoercion = applyI10ToolArgumentCoercionOverlay()
+  const toolInputSchemaDiagnostics = applyI10ToolInputSchemaDiagnosticsOverlay()
   const mcpStatePayload = applyI10McpStatePayloadOverlay()
   const uploadMetadata = applyI10UploadMetadataOverlay()
   const conditionalMerge = applyI10ConditionalMergeOverlay()
-  return structured || customMcp || typedMcpSchema || agentflowTool || mcpArgumentDiagnostics || mcpArgumentChecks || toolArgumentCoercion || mcpStatePayload || uploadMetadata || conditionalMerge
+  const attachmentOnlyInput = applyI10AttachmentOnlyInputOverlay()
+  const attachmentBridge = applyI10AttachmentBridgeOverlay()
+  return structured || customMcp || typedMcpSchema || agentflowTool || mcpArgumentDiagnostics || mcpArgumentChecks || toolArgumentCoercion || toolInputSchemaDiagnostics || mcpStatePayload || uploadMetadata || conditionalMerge || attachmentOnlyInput || attachmentBridge
 }
 
 assert.ok(fs.existsSync(target), 'I9_FLOWISE_RETRIEVER_RUNTIME_MISSING')

@@ -34,3 +34,4 @@ async function main(){
   const directory=path.join(root,'.data/evidence/i10/multimodal-verification');fs.mkdirSync(directory,{recursive:true});const rendered=`${JSON.stringify(evidence,null,2)}\n`;fs.writeFileSync(path.join(directory,'result.json'),rendered);fs.writeFileSync(path.join(directory,'result.sha256'),`${sha(rendered)}  result.json\n`);fs.rmSync(targetRoot,{recursive:true,force:true});process.stdout.write(`${JSON.stringify(evidence,null,2)}\n`)
 }
 main().catch(error=>{process.stderr.write(`${JSON.stringify({status:'FAILED',errorCode:error.code||'I10_MULTIMODAL_LIVE_FAILED',message:String(error.message||'').replace(/sk-[A-Za-z0-9_-]+/g,'[REDACTED]').slice(0,500)})}\n`);process.exitCode=1})
+

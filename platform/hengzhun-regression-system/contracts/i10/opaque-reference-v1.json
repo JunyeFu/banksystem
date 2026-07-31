@@ -1,0 +1,20 @@
+{
+  "schemaVersion": "hengzhun-i10-opaque-reference-v1",
+  "description": "Authoritative non-secret opaque identifier formats shared by Flowise builders, Harness-adjacent Node drivers, Workers and acceptance tooling.",
+  "references": {
+    "journey": { "prefix": "journey_", "suffixPattern": "[0-9a-f-]{36}" },
+    "preparation": { "prefix": "prep_", "suffixPattern": "[0-9a-f-]{36}" },
+    "candidate": { "prefix": "candidate_", "suffixPattern": "[0-9a-f]{40}" },
+    "certificate": { "prefix": "certificate_", "suffixPattern": "[0-9a-f]{40}" },
+    "script": { "prefix": "script_", "suffixPattern": "[0-9a-f]{40}" },
+    "buildjob": { "prefix": "buildjob_", "suffixPattern": "[0-9a-f-]{36}" },
+    "task": { "prefix": "task_", "suffixPattern": "[0-9a-f-]{36}" },
+    "run": { "prefix": "run_", "suffixPattern": "[0-9a-f-]{36}" },
+    "schedule": { "prefix": "schedule_", "suffixPattern": "[0-9a-f-]{36}" },
+    "inbox": { "prefix": "inbox_", "suffixPattern": "[0-9a-f-]{36}" },
+    "targetprofile": { "prefix": "targetprofile_", "suffixPattern": "[0-9a-f-]{36}" },
+    "imageingest": { "prefix": "imageingest_", "suffixPattern": "[0-9a-f-]{36}" },
+    "ingest": { "prefix": "ingest_", "suffixPattern": "[0-9a-f-]{36}" },
+    "verification": { "prefix": "verification_", "suffixPattern": "[0-9a-f-]{36}" }
+  }
+}

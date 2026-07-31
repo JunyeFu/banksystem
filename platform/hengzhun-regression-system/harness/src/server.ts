@@ -1,4 +1,5 @@
 import http from 'node:http';
+import fs from 'node:fs';
 import path from 'node:path';
 import crypto from 'node:crypto';
 import { z, ZodError } from 'zod';
@@ -46,12 +47,22 @@ import {
   ingestWorkerFailureSchema,
   imageIngestSubmitSchema,
   imageIngestGetSchema,
+  imageIngestDecisionSubmitSchema,
   imageIngestWorkerCompletionSchema,
   imageIngestWorkerFailureSchema,
   verificationChallengeReportSchema,
+  verificationAttemptReportSchema,
   verificationGetSchema,
   verificationResumeSchema,
-  verificationDecisionSubmitSchema
+  verificationDecisionSubmitSchema,
+  journeyPrepareSchema,
+  journeyGetSchema,
+  journeyInputSubmitSchema,
+  journeyDecisionSubmitSchema,
+  artifactDownloadGrantSchema,
+  targetProfilePrepareSchema,
+  targetProfileDecisionSubmitSchema,
+  targetProfileGetSchema
 } from './i10/schemas';
 
 const MAX_REQUEST_BYTES = 256 * 1024;
@@ -77,6 +88,15 @@ const workerCompletionSchema = z.object({
   errorCategory: z.enum(['TEST_FAILURE', 'ENVIRONMENT', 'EVIDENCE']).optional(),
   retryable: z.boolean().optional(),
   userActionRequired: z.boolean().optional(),
+  failureDiagnostic: z.object({
+    schemaVersion: z.literal('i8-formal-diagnostic-v2'),
+    failureStage: z.string().trim().min(1).max(80),
+    stepId: z.string().trim().min(1).max(160).nullable(),
+    operation: z.string().trim().min(1).max(80).nullable(),
+    targetRef: z.string().trim().min(1).max(160).regex(/^[A-Z][A-Z0-9_:-]{1,159}$/).nullable(),
+    pageLocation: z.string().trim().max(2048).nullable(),
+    pageFingerprint: z.string().trim().max(160).nullable()
+  }).strict().optional(),
   evidence: z.array(z.object({
     artifactType: z.enum(['JSON', 'TEXT', 'SCREENSHOT', 'LOG', 'REPORT', 'DIAGNOSTIC']),
     mediaType: z.string().trim().min(1).max(128),
@@ -224,6 +244,20 @@ function omitNullValues(value: Record<string, unknown>): Record<string, unknown>
   return Object.fromEntries(Object.entries(value).filter(([, item]) => item !== null && item !== undefined));
 }
 
+function runtimeFileSetHash(productRoot: string, relativePaths: string[]): string {
+  const hash = crypto.createHash('sha256');
+  for (const relativePath of relativePaths) {
+    const absolutePath = path.join(productRoot, relativePath);
+    hash.update(relativePath).update('\0');
+    if (!fs.existsSync(absolutePath)) {
+      hash.update('MISSING\0');
+      continue;
+    }
+    hash.update(fs.readFileSync(absolutePath)).update('\0');
+  }
+  return hash.digest('hex');
+}
+
 export async function createHarnessApplication(options: HarnessApplicationOptions): Promise<HarnessApplication> {
   const database = await HarnessDatabase.open({
     databasePath: options.databasePath ?? path.join(options.productRoot, '.data', 'sqlite', 'regression_platform.sqlite'),
@@ -238,7 +272,11 @@ export async function createHarnessApplication(options: HarnessApplicationOption
   const schedulerTick = async () => {
     if (schedulerRunning) return;
     schedulerRunning = true;
-    try { await service.tickSchedules(); } finally { schedulerRunning = false; }
+    try {
+      await service.tickSchedules();
+      await service.i10.cleanupAbandonedImageIngests();
+      await service.i10.reconcileExpiredRuntimeState();
+    } finally { schedulerRunning = false; }
   };
   await schedulerTick();
   const scheduler = schedulerIntervalMs > 0 ? setInterval(() => void schedulerTick().catch(() => undefined), schedulerIntervalMs) : undefined;
@@ -250,11 +288,55 @@ export async function createHarnessApplication(options: HarnessApplicationOption
     try {
       const url = new URL(request.url ?? '/', 'http://hengzhun.local');
       if (request.method === 'GET' && url.pathname === '/health') {
+        const migrations = database.migrationStatus();
+        const workerHealthPath = path.join(options.productRoot, '.data', 'runtime', 'worker-health.json');
+        const expectedWorkerCodeVersion = runtimeFileSetHash(options.productRoot, [
+          'worker/src/index.cjs',
+          'worker/src/i10-midscene-candidate-authoring.cjs',
+          'worker/src/i8-candidate-runner.cjs',
+          'worker/src/i8-formal-runner.cjs',
+          'worker/src/i10-verification-execution.cjs'
+        ]);
+        let worker: Record<string, unknown> = { status: 'UNAVAILABLE', expectedCodeVersion: expectedWorkerCodeVersion, versionMatch: false };
+        try {
+          const workerHealth = JSON.parse(fs.readFileSync(workerHealthPath, 'utf8')) as Record<string, unknown>;
+          const observedCodeVersion = typeof workerHealth.workerCodeVersion === 'string' ? workerHealth.workerCodeVersion : null;
+          worker = {
+            status: workerHealth.status ?? 'UNKNOWN',
+            expectedCodeVersion: expectedWorkerCodeVersion,
+            observedCodeVersion,
+            versionMatch: observedCodeVersion === expectedWorkerCodeVersion,
+            updatedAt: workerHealth.updatedAt ?? null
+          };
+        } catch { /* Worker may not be running while Harness starts. */ }
+        const manifestPath = path.join(options.productRoot, 'flowise', 'i10', 'publication-manifest-v1.json');
+        let agentflow: Record<string, unknown> = { status: 'UNAVAILABLE' };
+        try {
+          const manifest = JSON.parse(fs.readFileSync(manifestPath, 'utf8')) as Record<string, unknown>;
+          agentflow = {
+            status: manifest.deployed === true && typeof manifest.deployedFlowDataSha256 === 'string' ? 'PUBLISHED' : 'NOT_PUBLISHED',
+            flowVersion: manifest.primaryFlowVersion ?? null,
+            sourceHash: manifest.primaryFlowSha256 ?? null,
+            deployedHash: manifest.deployedFlowDataSha256 ?? null,
+            publishState: manifest.publishState ?? null
+          };
+        } catch { agentflow = { status: 'UNAVAILABLE' }; }
         return sendJson(response, 200, {
-          status: 'ok',
+          status: migrations.pending.length === 0 && agentflow.status === 'PUBLISHED' && worker.versionMatch === true ? 'ok' : 'degraded',
           service: 'hengzhun-harness',
           version: '1.1.0',
-          database: { engine: 'sqlite', quickCheck: database.quickCheck() }
+          database: {
+            engine: 'sqlite',
+            quickCheck: database.quickCheck(),
+            migrations
+          },
+          agentflow,
+          runtime: {
+            expectedMigrationVersion: migrations.expectedVersion,
+            actualMigrationVersion: migrations.appliedVersion,
+            migrationsReady: migrations.pending.length === 0
+          },
+          worker
         }, 'L0', requestId);
       }
 
@@ -269,6 +351,38 @@ export async function createHarnessApplication(options: HarnessApplicationOption
           'cache-control': 'no-store',
           'x-content-type-options': 'nosniff',
           'x-content-sha256': String(download.sha256),
+          'x-request-id': requestId
+        });
+        return response.end(content);
+      }
+
+      const i10ArtifactDownloadMatch = url.pathname.match(/^\/v1\/i10\/artifacts\/(download_[0-9a-f-]{36})$/);
+      if (request.method === 'GET' && i10ArtifactDownloadMatch) {
+        const download = await service.i10.consumeArtifactDownload(i10ArtifactDownloadMatch[1] as string);
+        const content = download.content as Buffer;
+        response.writeHead(200, {
+          'content-type': String(download.mediaType),
+          'content-disposition': `attachment; filename*=UTF-8''${encodeURIComponent(String(download.filename))}`,
+          'content-length': content.byteLength,
+          'cache-control': 'no-store',
+          'x-content-type-options': 'nosniff',
+          'x-content-sha256': String(download.sha256),
+          'x-request-id': requestId
+        });
+        return response.end(content);
+      }
+
+      const i10ImagePreviewMatch = url.pathname.match(/^\/v1\/i10\/images\/previews\/(preview_[0-9a-f-]{36})$/);
+      if (request.method === 'GET' && i10ImagePreviewMatch) {
+        const preview = await service.i10.consumeImagePreview(i10ImagePreviewMatch[1] as string);
+        const content = preview.content as Buffer;
+        response.writeHead(200, {
+          'content-type': String(preview.mediaType),
+          'content-length': content.byteLength,
+          'cache-control': 'no-store, max-age=0',
+          'content-security-policy': "default-src 'none'; frame-ancestors 'none'",
+          'x-content-type-options': 'nosniff',
+          'x-content-sha256': String(preview.sha256),
           'x-request-id': requestId
         });
         return response.end(content);
@@ -294,7 +408,11 @@ export async function createHarnessApplication(options: HarnessApplicationOption
       if (request.method === 'POST' && url.pathname === '/internal/worker/tasks:claim') {
         authorizeWorker(request.headers.authorization, workerToken);
         const input = workerClaimSchema.parse(await readJson(request));
-        return sendJson(response, 200, await service.claimNextRun(input.workerId), 'L0', requestId);
+        // A formal run claim includes the validated case definition and
+        // candidate execution binding. It is not a conversational summary and
+        // can legitimately exceed the L0 8 KiB hard limit after image facts are
+        // merged. L1 remains bounded at 16 KiB and exposes no credential value.
+        return sendJson(response, 200, await service.claimNextRun(input.workerId), 'L1', requestId);
       }
       if (request.method === 'POST' && url.pathname === '/internal/worker/i10/ingest:claim') {
         authorizeWorker(request.headers.authorization, workerToken);
@@ -326,15 +444,22 @@ export async function createHarnessApplication(options: HarnessApplicationOption
         const input = imageIngestWorkerFailureSchema.parse(await readJson(request));
         return sendJson(response, 200, await service.i10.failImageIngest(input.workerId,input.imageIngestId,input.errorCode,input.retryable), 'L0', requestId);
       }
-      if (request.method === 'POST' && url.pathname === '/internal/worker/i10/verification:report') {
+        if (request.method === 'POST' && url.pathname === '/internal/worker/i10/verification:report') {
         authorizeWorker(request.headers.authorization, workerToken);
         const input = verificationChallengeReportSchema.parse(await readJson(request));
         return sendJson(response, 200, await service.i10.reportVerificationChallenge(input), 'L0', requestId);
-      }
+        }
+        if (request.method === 'POST' && url.pathname === '/internal/worker/i10/verification:attempt') {
+          authorizeWorker(request.headers.authorization, workerToken);
+          const input = verificationAttemptReportSchema.parse(await readJson(request));
+          return sendJson(response, 200, await service.i10.recordVerificationAttempt(input), 'L0', requestId);
+        }
       if (request.method === 'POST' && url.pathname === '/internal/worker/i10/verification:get') {
         authorizeWorker(request.headers.authorization, workerToken);
         const input = verificationGetSchema.parse(await readJson(request));
-        return sendJson(response, 200, service.i10.getVerification(input.namespace,input.challengeId), 'L0', requestId);
+        return sendJson(response, 200, input.challengeId
+          ? service.i10.getVerification(input.namespace,input.challengeId)
+          : service.i10.getVerificationByTask(input.namespace,input.taskRef!), 'L0', requestId);
       }
       if (request.method === 'POST' && url.pathname === '/internal/worker/i10/verification:resume') {
         authorizeWorker(request.headers.authorization, workerToken);
@@ -458,6 +583,18 @@ export async function createHarnessApplication(options: HarnessApplicationOption
         const input = credentialSessionCreateSchema.parse(await readJson(request));
         return sendJson(response, 200, await service.i10.createCredentialSession(input, context), 'L0', requestId);
       }
+      if (request.method === 'POST' && url.pathname === '/v1/i10/target-profiles:prepare') {
+        const input = targetProfilePrepareSchema.parse(await readJson(request));
+        return sendJson(response, 200, await service.i10.prepareTargetProfile(input), 'L1', requestId);
+      }
+      if (request.method === 'POST' && url.pathname === '/v1/i10/target-profiles:get') {
+        const input = targetProfileGetSchema.parse(await readJson(request));
+        return sendJson(response, 200, service.i10.getTargetProfile(input), 'L1', requestId);
+      }
+      if (request.method === 'POST' && url.pathname === '/v1/i10/target-profiles:decide') {
+        const input = targetProfileDecisionSubmitSchema.parse(await readJson(request));
+        return sendJson(response, 200, await service.i10.decideTargetProfile(input), 'L1', requestId);
+      }
       if (request.method === 'POST' && url.pathname === '/v1/i10/credentials:sessions-get') {
         const input = credentialSessionGetSchema.parse(await readJson(request));
         return sendJson(response, 200, await service.i10.getCredentialSession(input.namespace, input.sessionId), 'L0', requestId);
@@ -484,15 +621,41 @@ export async function createHarnessApplication(options: HarnessApplicationOption
       }
       if (request.method === 'POST' && url.pathname === '/v1/i10/images:get') {
         const input = imageIngestGetSchema.parse(await readJson(request));
-        return sendJson(response, 200, service.i10.getImageIngest(input.namespace,input.imageIngestId), 'L1', requestId);
+        return sendJson(response, 200, await service.i10.getImageIngest(input.namespace,input.imageIngestId), 'L1', requestId);
+      }
+      if (request.method === 'POST' && url.pathname === '/v1/i10/images:decide') {
+        const input = imageIngestDecisionSubmitSchema.parse(await readJson(request));
+        return sendJson(response, 200, await service.i10.decideImageIngest(input,context), 'L1', requestId);
       }
       if (request.method === 'POST' && url.pathname === '/v1/i10/verification:get') {
         const input = verificationGetSchema.parse(await readJson(request));
-        return sendJson(response, 200, service.i10.getVerification(input.namespace,input.challengeId), 'L0', requestId);
+        return sendJson(response, 200, input.challengeId
+          ? service.i10.getVerification(input.namespace,input.challengeId)
+          : service.i10.getVerificationByTask(input.namespace,input.taskRef!), 'L0', requestId);
       }
       if (request.method === 'POST' && url.pathname === '/v1/i10/verification:decide') {
         const input = verificationDecisionSubmitSchema.parse(await readJson(request));
         return sendJson(response, 200, await service.i10.decideVerification(input,context), 'L0', requestId);
+      }
+      if (request.method === 'POST' && url.pathname === '/v1/i10/journeys:prepare') {
+        const input = journeyPrepareSchema.parse(await readJson(request));
+        return sendJson(response, 200, await service.i10.prepareJourney(input,context), 'L1', requestId);
+      }
+      if (request.method === 'POST' && url.pathname === '/v1/i10/journeys:get') {
+        const input = journeyGetSchema.parse(await readJson(request));
+        return sendJson(response, 200, await service.i10.getJourney(input), 'L1', requestId);
+      }
+      if (request.method === 'POST' && url.pathname === '/v1/i10/journeys:submit-input') {
+        const input = journeyInputSubmitSchema.parse(await readJson(request));
+        return sendJson(response, 200, await service.i10.submitJourneyInput(input,context), 'L1', requestId);
+      }
+      if (request.method === 'POST' && url.pathname === '/v1/i10/journeys:decide') {
+        const input = journeyDecisionSubmitSchema.parse(await readJson(request));
+        return sendJson(response, 200, await service.i10.decideJourney(input,context), 'L1', requestId);
+      }
+      if (request.method === 'POST' && url.pathname === '/v1/i10/artifacts:grant-download') {
+        const input = artifactDownloadGrantSchema.parse(await readJson(request));
+        return sendJson(response, 200, await service.i10.grantArtifactDownload(input.namespace,input.artifactId), 'L1', requestId);
       }
       if (request.method === 'POST' && url.pathname === '/v1/platform/knowledge-snapshots:register') {
         const input = i9KnowledgeSnapshotRegistrationSchema.parse(await readJson(request));

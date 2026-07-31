@@ -4,25 +4,31 @@ const fs = require('node:fs');
 const path = require('node:path');
 const { chromium } = require('../../runtime/node_modules/playwright');
 const { executeCandidatePackage } = require('./i8-candidate-runner.cjs');
-const { artifact, resolveCredential, sha256 } = require('./login-profile.cjs');
-const { classifyVerificationChallenge } = require('./i10-midscene-candidate-authoring.cjs');
+const { artifact, resolveCredential, sha256 } = require('./i10-worker-utils.cjs');
+const { policyForAction } = require('./i10-verification-policy.cjs');
+const { requiresVisibleVerification, runVerificationPolicy } = require('./i10-verification-execution.cjs');
 
 const EMPTY_SCREENSHOT = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=', 'base64');
-
-const LOCATOR_ERROR_CODES = Object.freeze([
-  ['login-username', 'LOGIN_USERNAME_LOCATOR_NOT_FOUND'],
-  ['login-password', 'LOGIN_PASSWORD_LOCATOR_NOT_FOUND'],
-  ['login-submit', 'LOGIN_SUBMIT_LOCATOR_NOT_FOUND'],
-  ['customer-profile-name', 'PROFILE_NAME_LOCATOR_NOT_FOUND'],
-  ['/portal/profile', 'PROFILE_LINK_LOCATOR_NOT_FOUND'],
-  ['profile-display-name', 'PROFILE_DISPLAY_NAME_LOCATOR_NOT_FOUND']
-]);
 
 function fail(code, message, category = 'ENVIRONMENT') {
   throw Object.assign(new Error(message), { code, category });
 }
 
 function formalBaseUrl(task, environment, options) {
+  const targetProfile = task.execution?.targetProfile;
+  if (targetProfile) {
+    const parsed = new URL(targetProfile.launchUrl);
+    if (!['http:', 'https:'].includes(parsed.protocol) || parsed.username || parsed.password
+      || targetProfile.status !== 'ACTIVE') {
+      fail('I10_TARGET_PROFILE_BINDING_INVALID', '目标站点档案无效或未激活。', 'AUTHORIZATION');
+    }
+    // Candidate packages resolve their frozen route references against a site
+    // origin, not the launch page.  A TargetProfile may legitimately use a
+    // page such as /portal/login as its launch URL, but passing that pathname
+    // through makes the candidate runner reject the base URL before it can
+    // execute its (possibly absolute) frozen routes.
+    return new URL('/', parsed).href;
+  }
   const i10EntryUrl = options.entryUrl || task.execution?.entryUrl;
   if (i10EntryUrl) {
     let parsed;
@@ -36,6 +42,55 @@ function formalBaseUrl(task, environment, options) {
     return new URL('/', parsed).href;
   }
   return (environment.HENGZHUN_PORTAL_BASE_URL || 'http://127.0.0.1:18082').replace(/\/$/, '') + '/';
+}
+
+function runtimeAllowedOrigins(task, baseUrl) {
+  const targetProfile = task.execution?.targetProfile;
+  const origins = new Set(targetProfile
+    ? [
+        ...(Array.isArray(targetProfile.allowedNavigationOrigins) ? targetProfile.allowedNavigationOrigins : []),
+        ...(Array.isArray(targetProfile.allowedInteractionOrigins) ? targetProfile.allowedInteractionOrigins : []),
+        ...(Array.isArray(targetProfile.credentialOrigins) ? targetProfile.credentialOrigins : [])
+      ]
+    : [new URL(baseUrl).origin, 'http://127.0.0.1:18443', 'http://127.0.0.1:19000']);
+  const adapter = targetProfile?.adapterBinding;
+  // A dependency origin is an adapter property, never a target-name or
+  // launch-path inference. Generic targets may only use frozen origins.
+  if (adapter?.adapterId === 'fuxing-bank-demo' && adapter?.adapterVersion === '1.0.0') {
+    origins.add('http://127.0.0.1:19000');
+  }
+  return origins;
+}
+
+function safePageLocation(page) {
+  try {
+    const value = new URL(page.url());
+    return `${value.origin}${value.pathname}`;
+  } catch {
+    return null;
+  }
+}
+
+async function safePageFingerprint(page) {
+  try {
+    const snapshot = await page.evaluate(() => ({
+      title: document.title || '',
+      path: location.pathname || '',
+      testIds: [...document.querySelectorAll('[data-testid]')]
+        .map(node => node.getAttribute('data-testid') || '')
+        .filter(Boolean)
+        .sort()
+        .slice(0, 128)
+    }));
+    return sha256(JSON.stringify(snapshot));
+  } catch {
+    return null;
+  }
+}
+
+function ordinalForStep(step) {
+  const match = String(step?.stepId || '').match(/^dsl_(\d{2,})$/);
+  return match ? Number(match[1]) : 0;
 }
 
 async function executeI8FormalRun(task, environment = process.env, options = {}) {
@@ -54,14 +109,23 @@ async function executeI8FormalRun(task, environment = process.env, options = {})
     || path.join(runtimeProductRoot, 'runtime', 'browsers', 'chromium-1217', 'chrome-win64', 'chrome.exe');
   if (!fs.existsSync(executablePath)) fail('CHROMIUM_UNAVAILABLE', '固定 Chromium 不可用。');
   const baseUrl = formalBaseUrl(task, environment, options);
-  const allowedOrigins = new Set([new URL(baseUrl).origin, 'http://127.0.0.1:18443', 'http://127.0.0.1:19000']);
-  const browser = await chromium.launch({ executablePath, headless: true });
+  const targetProfile = task.execution?.targetProfile;
+  const allowedOrigins = runtimeAllowedOrigins(task, baseUrl);
+  const candidateManifestPath = path.resolve(productRoot, descriptor.relativeDirectory, 'manifest.json');
+  let candidateManifest;
+  try { candidateManifest = JSON.parse(fs.readFileSync(candidateManifestPath, 'utf8')); }
+  catch { fail('I8_CANDIDATE_MANIFEST_UNREADABLE', '正式执行无法读取冻结候选清单。', 'CONTRACT'); }
+  // A handoff can only work when the original browser context is visible from
+  // the beginning.  Headless runs remain the default for ordinary policies.
+  const visibleHandoff = requiresVisibleVerification(candidateManifest, typeof options.onVerificationChallenge === 'function');
+  const browser = await chromium.launch({ executablePath, headless: !visibleHandoff });
   const context = await browser.newContext({
     locale: 'zh-CN', timezoneId: 'Asia/Shanghai', viewport: { width: 1440, height: 900 },
-    storageState: { cookies: [], origins: [] }, ignoreHTTPSErrors: false
+    storageState: { cookies: [], origins: [] }, ignoreHTTPSErrors: targetProfile?.tlsPolicy === 'ALLOW_SELF_SIGNED'
   });
   const page = await context.newPage();
   let screenshot = EMPTY_SCREENSHOT;
+  let currentStep = null;
   try {
     await context.route('**/*', async route => {
       const url = new URL(route.request().url());
@@ -71,19 +135,54 @@ async function executeI8FormalRun(task, environment = process.env, options = {})
     const result = await executeCandidatePackage({ productRoot, ...descriptor }, {
       baseUrl,
       page,
-      fixtures: { 'LOGIN_PROFILE.USERNAME': credential.username, 'LOGIN_PROFILE.PASSWORD': credential.password },
+      fixtures: {
+        'LOGIN_PROFILE.USERNAME': credential.username,
+        'LOGIN_PROFILE.PASSWORD': credential.password,
+        'CREDENTIAL.USERNAME': credential.username,
+        'CREDENTIAL.PASSWORD': credential.password
+      },
       capture: async (_name, currentPage) => {
         screenshot = await currentPage.screenshot({
           fullPage: true,
-          mask: [
+          mask: targetProfile ? [
+            currentPage.locator('input[type="password"]'),
+            currentPage.locator('input[autocomplete*="username"],input[autocomplete*="email"],input[autocomplete*="tel"]')
+          ] : [
             currentPage.getByTestId('login-username'), currentPage.getByTestId('login-password'),
             currentPage.getByTestId('customer-profile-name'), currentPage.getByTestId('customer-profile-avatar'),
             currentPage.getByTestId('profile-display-name'), currentPage.getByTestId('profile-avatar'),
-            currentPage.getByTestId('profile-customer-id'), currentPage.getByTestId('profile-email'), currentPage.getByTestId('profile-phone')
+            currentPage.getByTestId('profile-customer-id'), currentPage.getByTestId('profile-email'), currentPage.getByTestId('profile-phone'),
+            currentPage.getByTestId('transfer-recipient-name'), currentPage.getByTestId('transfer-recipient-account'),
+            currentPage.getByTestId('transfer-amount'), currentPage.getByTestId('transfer-purpose')
           ],
           maskColor: '#202020'
         });
-      }
+      },
+      afterStep: async (step, currentPage, storedPolicy) => {
+        const policy = storedPolicy || policyForAction(
+          { semanticTargetRef: step.targetRef }, task.execution?.fixtureProfile, targetProfile?.adapterBinding
+        );
+        await runVerificationPolicy(currentPage, policy, {
+          namespace: task.namespace,
+          taskRef: task.taskId,
+          actionOrdinal: ordinalForStep(step),
+          onVerificationAttempt: options.onVerificationAttempt,
+          allowExternalFallback: visibleHandoff,
+          onExternalChallenge: options.onVerificationChallenge
+            ? attempts => options.onVerificationChallenge({
+              verificationType: 'USER_ASSISTED',
+              userPreparation: '请在当前可见浏览器会话中完成页面验证后再点击 proceed。',
+              namespace: task.namespace,
+              taskRef: task.taskId,
+              actionOrdinal: ordinalForStep(step),
+              attempts
+            })
+            : undefined,
+          assertSuccessEvidence: async targetRef => currentPage.getByTestId(targetRef === 'ORDER_NUMBER' ? 'transfer-order-number' : targetRef)
+            .waitFor({ state: 'visible', timeout: 15_000 })
+        });
+      },
+      onStep: async (step) => { currentStep = { ...step, pageUrl: safePageLocation(page) }; }
     });
     const facts = Array.isArray(result.facts) ? result.facts.map(item => ({ stepId: item.stepId, operation: item.operation, passed: item.passed })) : [];
     const passed = result.outcome === 'PASSED' && facts.length > 0 && facts.every(item => item.passed === true);
@@ -103,21 +202,40 @@ async function executeI8FormalRun(task, environment = process.env, options = {})
       ? { outcome: 'PASSED', summary: '已激活脚本通过纯 Playwright 正式回归。', evidence }
       : { outcome: 'FAILED', summary: '已激活脚本正式回归断言失败。', errorCode: 'I8_FORMAL_ASSERTION_FAILED', errorCategory: 'TEST_FAILURE', retryable: false, userActionRequired: false, evidence };
   } catch (error) {
-    const challenge=classifyVerificationChallenge(await page.locator('body').innerText().catch(()=>''));
-    if(challenge){
-      if(typeof options.onVerificationChallenge==='function')await options.onVerificationChallenge({...challenge,namespace:task.namespace,taskRef:task.taskId});
-      error=Object.assign(new Error('运行中出现必须由用户完成的验证，自动/定时任务已失败关闭。'),{code:'I10_HUMAN_IN_LOOP_REQUIRED',category:'ENVIRONMENT'});
-    }
-    const errorMessage = String(error?.message || '');
-    const locatorFailure = LOCATOR_ERROR_CODES.find(([needle]) => errorMessage.includes(needle));
-    if (locatorFailure && (!error.code || error.name === 'TimeoutError')) {
-      error.code = locatorFailure[1];
+    if (!error.code && error.name === 'TimeoutError' && currentStep?.stepId) {
+      // Do not infer a page control from arbitrary timeout text.  The frozen
+      // step reference in the diagnostic is the factual boundary; a later
+      // repair flow can choose a locator candidate from that evidence.
+      error.code = 'I8_CANDIDATE_STEP_TIMEOUT';
       error.category = 'TEST_FAILURE';
     }
-    const diagnostic = { schemaVersion: 'i8-formal-diagnostic-v1', taskId: task.taskId, runId: task.runId, candidateId: descriptor.candidateId, errorCode: error.code || 'I8_FORMAL_EXECUTION_FAILED' };
+    const diagnostic = {
+      schemaVersion: 'i8-formal-diagnostic-v2', taskId: task.taskId, runId: task.runId,
+      candidateId: descriptor.candidateId, errorCode: error.code || 'I8_FORMAL_EXECUTION_FAILED',
+      errorClass: String(error?.name || 'Error').slice(0, 80),
+      failureStage: currentStep?.phase || 'BEFORE_FIRST_STEP',
+      stepId: currentStep?.stepId || null,
+      operation: currentStep?.operation || null,
+      targetRef: currentStep?.targetRef || null,
+      pageLocation: safePageLocation(page),
+      pageFingerprint: await safePageFingerprint(page)
+    };
+    // This boundary is intentionally duplicated in the completion envelope:
+    // the Harness needs the same structured fact to distinguish a frozen
+    // locator failure from generic candidate-script logic.  No raw error text,
+    // page content or credentials cross this boundary.
+    error.failureDiagnostic = diagnostic;
     error.evidence = [
       artifact('DIAGNOSTIC', 'application/json', 'REDACTED', 'json', JSON.stringify(diagnostic, null, 2), { containsCredentials: false }),
-      artifact('SCREENSHOT', 'image/png', 'REDACTED', 'png', await page.screenshot({ fullPage: true, mask: [page.getByTestId('login-username'), page.getByTestId('login-password')], maskColor: '#202020' }).catch(() => EMPTY_SCREENSHOT), { masked: true })
+      artifact('SCREENSHOT', 'image/png', 'REDACTED', 'png', await page.screenshot({
+        fullPage: true,
+        mask: [
+          page.getByTestId('login-username'), page.getByTestId('login-password'),
+          page.getByTestId('transfer-recipient-name'), page.getByTestId('transfer-recipient-account'),
+          page.getByTestId('transfer-amount'), page.getByTestId('transfer-purpose')
+        ],
+        maskColor: '#202020'
+      }).catch(() => EMPTY_SCREENSHOT), { masked: true })
     ];
     if (!error.category) error.category = error.name === 'TimeoutError' ? 'ENVIRONMENT' : 'TEST_FAILURE';
     throw error;
@@ -127,4 +245,4 @@ async function executeI8FormalRun(task, environment = process.env, options = {})
   }
 }
 
-module.exports = { executeI8FormalRun };
+module.exports = { executeI8FormalRun, formalBaseUrl, ordinalForStep, runtimeAllowedOrigins };

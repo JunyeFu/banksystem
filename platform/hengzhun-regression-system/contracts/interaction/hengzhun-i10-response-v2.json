@@ -1,0 +1,43 @@
+{
+  "schemaVersion": "hengzhun-i10-interaction-response-v2",
+  "language": "zh-CN",
+  "moduleOrder": [
+    "WARNING",
+    "BRIEF",
+    "PROGRESS",
+    "ARTIFACTS",
+    "INPUT_REQUEST",
+    "CONFIRMATION",
+    "USER_STEPS",
+    "TECHNICAL_REFERENCE"
+  ],
+  "moduleSelection": {
+    "BRIEF": "always",
+    "WARNING": "failed-only",
+    "PROGRESS": "processing-only",
+    "ARTIFACTS": "durable-artifact-present",
+    "INPUT_REQUEST": "missing-information-only",
+    "CONFIRMATION": "choice-only-human-gate",
+    "USER_STEPS": "action-required-only",
+    "TECHNICAL_REFERENCE": "download-or-explicit-request-only"
+  },
+  "artifactDelivery": {
+    "authority": "HARNESS",
+    "transport": "SHORT_LIVED_ONE_TIME_HTTP_LINK",
+    "flowiseNativeAttachment": "OPTIONAL_ENHANCEMENT",
+    "formats": ["md", "txt", "json", "cjs", "csv", "zip"],
+    "secretContentAllowed": false
+  },
+  "confirmation": {
+    "mode": "CHOICE_ONLY",
+    "freeTextAllowed": false,
+    "secretInputAllowed": false
+  },
+  "chatRules": {
+    "defaultDetail": "CONCISE",
+    "rawMcpOutputAllowed": false,
+    "internalEnumAllowed": false,
+    "professionalJargonInlineAllowed": false,
+    "singleExplicitUserExit": true
+  }
+}

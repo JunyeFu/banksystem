@@ -11,8 +11,31 @@ export const i8IncidentClassificationSchema = z.enum([
 
 export type I8IncidentClassification = z.infer<typeof i8IncidentClassificationSchema>;
 
-export function classifyI8Failure(errorCategory?: string, errorCode?: string): I8IncidentClassification {
+/**
+ * The worker may attach a deliberately small, redacted execution boundary to
+ * a formal-run failure.  It is evidence, not a free-form error message: the
+ * only fact used for classification is whether the failed browser step had a
+ * concrete locator reference.
+ */
+export type I8FailureDiagnosticBoundary = {
+  stepId?: string | null;
+  operation?: string | null;
+  targetRef?: string | null;
+};
+
+export function classifyI8Failure(
+  errorCategory?: string,
+  errorCode?: string,
+  diagnostic?: I8FailureDiagnosticBoundary
+): I8IncidentClassification {
   const code = String(errorCode ?? '').toUpperCase();
+  // A bounded Playwright timeout at a step with a frozen target reference is
+  // a locator incident.  Checking this before the generic CANDIDATE_STEP rule
+  // preserves the actual repair boundary instead of sending it to a new,
+  // unrelated authoring attempt.
+  if (code === 'I8_CANDIDATE_STEP_TIMEOUT' &&
+      typeof diagnostic?.targetRef === 'string' &&
+      /^[A-Z][A-Z0-9_:-]{1,159}$/.test(diagnostic.targetRef)) return 'LOCATOR';
   if (/FIXTURE|TEST_DATA|DATA_PREPARATION/.test(code)) return 'FIXTURE_DATA';
   if (/PRODUCT_DEFECT|SUT_DEFECT|BUSINESS_DEFECT/.test(code)) return 'PRODUCT_DEFECT';
   if (/FLAKY|TIMING|RACE|EVENT_TIMEOUT/.test(code)) return 'FLAKY_TIMING';

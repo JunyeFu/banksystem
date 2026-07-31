@@ -5,8 +5,8 @@ document_type: how-to
 domain: workflow
 status: accepted
 authority: normative
-version: 1.0
-effective_date: 2026-07-15
+version: 1.1
+effective_date: 2026-07-20
 owner: project-owner
 ---
 
@@ -36,4 +36,4 @@ owner: project-owner
 8. 对需要身份与业务数据绑定的演示环境，分别验证身份登录、身份到核心客户映射、核心业务数据和授权范围；不得用“登录成功”替代“客户数据已就绪”。
 9. 只在 Docker 本机可重复启动、重置、验收并形成证据后完成切片；有状态身份服务必须挂载持久卷，并执行一次重建后数据仍存在的验证。
 
-当前推荐切片顺序：前端缺陷修复与验收、客户转账闭环、运营审批闭环、Coze/Harness 回归核心，再扩展贷款、清算、对账、日终和通知。衡准观测 UI 已暂缓，不属于当前切片。
+当前项目级顺序只读取唯一实施顺序文件。I8 确定性脚本作者化引擎已完成；I9 当前切片聚焦正式 Flowise Agentflow、MCP、双知识库/双 SQLite、真实正反向对话、跨电脑便携验收和 P9 最终可压缩提交文件夹；银行前端只按首个登录案例收敛，衡准观测 UI 继续暂缓。

@@ -6,3 +6,4 @@ $root = Split-Path -Parent $PSScriptRoot
 $node = Join-Path $root 'runtime\node-v20.20.2-win-x64\node.exe'
 & $node (Join-Path $PSScriptRoot 'i10-multimodal-live.cjs')
 exit $LASTEXITCODE
+

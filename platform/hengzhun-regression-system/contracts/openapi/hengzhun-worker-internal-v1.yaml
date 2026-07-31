@@ -354,7 +354,7 @@ components:
             targetRef: {type: string, enum: [PAGE, LOGIN_USERNAME, LOGIN_SSO_TAB, LOGIN_SUBMIT]}
             valueRef: {type: string, nullable: true, enum: [SYNTHETIC_TEXT]}
             riskLevel: {type: string, enum: [LOW, MEDIUM, HIGH]}
-            executionMode: {type: string, enum: [MIDSCENE_EXECUTE_PLAYWRIGHT_VERIFY, MIDSCENE_LOCATE_PLAYWRIGHT_EXECUTE, PLAYWRIGHT_ONLY]}
+            executionMode: {type: string, enum: [MIDSCENE_LOCATE_PLAYWRIGHT_EXECUTE, PLAYWRIGHT_ONLY]}
         nextActionPreview:
           type: object
           nullable: true

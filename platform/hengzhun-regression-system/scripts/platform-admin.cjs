@@ -55,6 +55,33 @@ function flowiseUserCount(targetDatabase) {
   } finally { database.close() }
 }
 
+function flowiseRegistrationCredential(password) {
+  // Flowise 3.0.12 requires a special character during registration. The
+  // portable UI contract intentionally keeps the user-facing fixed password
+  // unchanged, so use a one-time in-memory bootstrap credential and rotate the
+  // stored hash immediately after the account transaction commits.
+  return /[^a-zA-Z0-9]/.test(password) ? password : `${password}!`
+}
+
+function rotateRegisteredCredential(targetDatabase, admin) {
+  const { Database, bcrypt } = dependencies()
+  const database = new Database(targetDatabase)
+  try {
+    const credential = bcrypt.hashSync(admin.password, bcrypt.genSaltSync(Number(process.env.PASSWORD_SALT_HASH_ROUNDS || 5)))
+    const now = new Date().toISOString()
+    const changed = database.transaction(() => {
+      const users = database.prepare('SELECT id, email FROM "user" ORDER BY createdDate, id').all()
+      assert.equal(users.length, 1, 'PLATFORM_ADMIN_ROTATION_REQUIRES_SINGLE_USER_DATABASE')
+      assert.equal(String(users[0].email).toLowerCase(), admin.email.toLowerCase(), 'PLATFORM_ADMIN_ROTATION_IDENTITY_MISMATCH')
+      return database.prepare('UPDATE "user" SET credential = ?, updatedDate = ?, updatedBy = ? WHERE id = ? AND lower(email) = lower(?)')
+        .run(credential, now, users[0].id, users[0].id, admin.email).changes
+    })()
+    assert.equal(changed, 1, 'PLATFORM_ADMIN_ROTATION_WRITE_FAILED')
+  } finally {
+    database.close()
+  }
+}
+
 function reconcileExisting(options = {}) {
   const admin = configuration()
   const targetDatabase = options.databasePath || databasePath
@@ -111,10 +138,18 @@ async function ensureLive(options = {}) {
     assert.equal(flowiseUserCount(targetDatabase), 0, 'PLATFORM_ADMIN_EXISTING_LOGIN_FAILED_STOP_AND_PREPARE')
     const registration = await request(`${base}/api/v1/account/register`, {
       method: 'POST', headers: { 'content-type': 'application/json' },
-      body: JSON.stringify({ user: { name: admin.name, email: admin.email, type: 'pro', credential: admin.password } })
+      body: JSON.stringify({
+        user: {
+          name: admin.name,
+          email: admin.email,
+          type: 'pro',
+          credential: flowiseRegistrationCredential(admin.password)
+        }
+      })
     })
     assert.ok(registration.response.ok, `PLATFORM_ADMIN_REGISTRATION_FAILED:${registration.response.status}`)
     registered = true
+    rotateRegisteredCredential(targetDatabase, admin)
     result = await login(base, admin)
   }
   assert.ok(result.response.ok, `PLATFORM_ADMIN_LOGIN_FAILED:${result.response.status}`)

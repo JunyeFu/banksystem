@@ -4,6 +4,7 @@
 const fs = require('node:fs')
 const path = require('node:path')
 const crypto = require('node:crypto')
+const { flowiseFunctionSource } = require('./i10-case-draft-normalizer.cjs')
 
 const root = path.resolve(__dirname, '..')
 const sourcePath = path.join(root, 'flowise/i8/agentflow-v2.json')
@@ -34,7 +35,8 @@ start.data.inputs.startPersistState = false
 start.data.inputs.startState = [
   'requestIntent', 'inputType', 'naturalLanguage', 'flowiseFileRef', 'originalFilename', 'credentialRef',
   'supportingImages', 'imageIngestId', 'imageFactsJson', 'ingestJobId', 'ingestJobVersion', 'caseDraftJson', 'acceptanceSummaryJson', 'preparationId',
-  'preparationVersion', 'caseId', 'caseVersion', 'taskId', 'scheduleId'
+  'preparationVersion', 'caseId', 'caseVersion', 'taskId', 'scheduleId',
+  'draftStatus', 'draftClarificationQuestion', 'draftDisplayJson'
 ].map(key => ({ key, value: '' }))
 start.data.inputs.startState.find(item=>item.key==='imageIngestId').value='NONE'
 start.data.inputs.startState.find(item=>item.key==='imageFactsJson').value='[]'
@@ -385,7 +387,7 @@ flow.edges.push(
 flow.nodes.push(classifier, caseIntentCondition, resultIntentCondition, managementInbox, managementReply, disableConfirm, disableTool, disableReply, disableCancelled, credentialCondition, credentialCreate, credentialHuman, credentialGet, inputReady, supportingImageCondition,imageSubmit,imageWait,imageGet,imageReady,imageConfirm,imageFailed,naturalCondition, videoCondition, ingestVideo, ingestFile, ingestWait, ingestGet, ingestReadyCondition, ingestProcessingCondition, ingestFailedReply, ingestConfirm, ingestDecisionParser, ingestCorrectionCondition, ingestCorrect, ingestDecide, ingestReject, scheduleIntent, scheduleCondition, oneTimeCondition, recurringCondition, positiveSchedule, recurringSchedule, scheduleInvalid, positiveScheduleGet, scheduledReply, repairScheduleIntent, repairOneTimeCondition, repairRecurringCondition, repairRecurringSchedule, repairScheduleInvalid, repairScheduleGet, resultInbox, repairResultInbox, candidateReadyCondition, candidateAuthoringFailed, candidateValidationFailed, candidateFailedReply, repairReadyCondition, repairValidationFailed, repairValidationFailedReply)
 
 const structure = flow.nodes.find(item => item.id === 'llmAgentflow_structure')
-structure.data.inputs.llmMessages[0].content = '将自然语言案例与已确认的图片事实拆成结构化字段，由MCP组装权威CaseDraft。必须把每个文本输入动作的具体值写进actionStepsV2，并带inputValueSource与provenanceRefs；未知或敏感值不得猜测，凭据用CREDENTIAL_REF，验证码或PIN用RUNTIME_USER_INPUT。识别短信、TOTP、验证码、扫码、U盾、移动证书、生物识别或人工审批时必须生成verificationRequirements，统一unattendedPolicy=HUMAN_IN_LOOP_REQUIRED。preconditions、actions、expectedOutcomes、assertions和missingFields必须是JSON字符串数组。actions与expectedOutcomes必须等长。不得生成定位器、代码、SQL、Shell、账号或密码。credentialRef由Flowise状态直接交给MCP。信息不完整时列出missingFields。multimodalContextJson必须是合法JSON对象字符串，包含supportingImageIngestId、caseFacts、actionStepsV2、verificationRequirements。'
+structure.data.inputs.llmMessages[0].content = '将自然语言案例与已确认的图片事实拆成结构化字段，随后由确定性节点规范化并由MCP组装权威CaseDraft。必须把每个文本输入动作的来源写进actionStepsV2；未知或敏感值不得猜测，凭据用CREDENTIAL_REF，验证码或PIN用RUNTIME_USER_INPUT。识别短信、TOTP、验证码、扫码、U盾、移动证书、生物识别或人工审批时必须生成verificationRequirements数组，统一unattendedPolicy=HUMAN_IN_LOOP_REQUIRED。preconditions、actions、expectedOutcomes、assertions和missingFields必须是数组，actions与expectedOutcomes必须等长。不得生成定位器、代码、SQL、Shell、账号或密码。credentialRef由Flowise状态直接交给确定性节点，模型不得生成或修改。元素定位由Midscene作者化完成，不属于missingFields。multimodalContext必须是JSON对象，包含supportingImageIngestId、caseFacts、actionStepsV2、verificationRequirements。'
 structure.data.inputs.llmMessages[1].content = '案例描述：{{$flow.state.naturalLanguage}}\ncredentialRef：{{$flow.state.credentialRef}}\n已确认图片事实：{{$flow.state.imageFactsJson}}\n图片任务：{{$flow.state.imageIngestId}}\n知识：{{retrieverAgentflow_i8.output}}'
 structure.data.inputs.llmStructuredOutput = [
   { key: 'caseTitle', type: 'string', description: '案例名称' },
@@ -398,34 +400,101 @@ structure.data.inputs.llmStructuredOutput = [
   { key: 'expectedOutcomes', type: 'stringArray', description: '与actions等长的预期结果数组' },
   { key: 'assertions', type: 'stringArray', description: '验收断言数组' },
   { key: 'missingFields', type: 'stringArray', description: '信息缺口，完整时为空数组' },
-  { key: 'multimodalContextJson', type: 'string', description: 'CaseDraft多模态扩展的严格JSON对象字符串' },
+  { key: 'multimodalContext', type: 'object', description: 'CaseDraft多模态扩展JSON对象，包含supportingImageIngestId、caseFacts、actionStepsV2、verificationRequirements数组' },
   { key: 'acceptanceSummary', type: 'string', description: '向用户展示的简明验收摘要，不是JSON' },
   { key: 'clarificationRequired', type: 'boolean', description: '是否需要最小业务澄清' },
   { key: 'clarificationQuestion', type: 'string', description: '至多一个业务澄清问题' }
 ]
 structure.data.inputs.llmUpdateState = []
+
+const normalizer = {
+  id: 'customFunctionAgentflow_case_normalize',
+  position: { x: 1020, y: 200 },
+  type: 'customNode',
+  data: {
+    id: 'customFunctionAgentflow_case_normalize',
+    label: '确定性规范化并冻结案例草案',
+    name: 'customFunctionAgentflow',
+    version: 1.1,
+    type: 'CustomFunction',
+    baseClasses: ['CustomFunction'],
+    category: 'Agent Flows',
+    inputs: {
+      customFunctionInputVariables: [
+        { variableName: 'rawDraft', variableValue: '{{llmAgentflow_structure.output}}' },
+        { variableName: 'credentialRef', variableValue: stateValue('credentialRef') },
+        { variableName: 'naturalLanguage', variableValue: stateValue('naturalLanguage') }
+      ],
+      customFunctionJavascriptFunction: flowiseFunctionSource(),
+      customFunctionUpdateState: [
+        { key: 'draftStatus', value: '{{ output.status }}' },
+        { key: 'draftClarificationQuestion', value: '{{ output.clarificationQuestion }}' },
+        { key: 'acceptanceSummaryJson', value: '{{ output.acceptanceSummary }}' },
+        { key: 'caseDraftJson', value: '{{ output.draftJson }}' },
+        { key: 'draftDisplayJson', value: '{{ output.displayJson }}' }
+      ]
+    }
+  }
+}
+flow.nodes.push(normalizer)
+
+const clarifyCondition = flow.nodes.find(item => item.id === 'conditionAgentflow_clarify')
+clarifyCondition.position = { x: 1360, y: 200 }
+clarifyCondition.data.inputs.conditions = [
+  { type: 'string', value1: stateValue('draftStatus'), operation: 'equal', value2: 'NEEDS_CLARIFICATION' }
+]
+const clarifyHuman = flow.nodes.find(item => item.id === 'humanInputAgentflow_clarify')
+clarifyHuman.data.inputs.humanInputDescription = stateValue('draftClarificationQuestion')
+const structureEdge = flow.edges.find(item => item.source === 'llmAgentflow_structure' && item.target === 'conditionAgentflow_clarify')
+if (!structureEdge) throw new Error('I10_STRUCTURE_TO_CLARIFY_EDGE_MISSING')
+structureEdge.target = normalizer.id
+structureEdge.targetHandle = normalizer.id
+flow.edges.push(edge('i10-e-case-normalize', normalizer.id, 'customFunctionAgentflow', clarifyCondition.id))
+
 const prepare = flow.nodes.find(item => item.id === 'toolAgentflow_prepare')
 prepare.data.inputs.toolInputArgs[0].inputArgValue = stateValue('naturalLanguage')
-prepare.data.inputs.toolInputArgs = prepare.data.inputs.toolInputArgs.filter(arg => !['draftJson', 'acceptanceSummaryJson', 'draftArray'].includes(arg.inputArgName))
-for (const key of ['caseTitle', 'objective', 'summary', 'targetSystem', 'entryUrl', 'preconditions', 'actions', 'expectedOutcomes', 'assertions', 'missingFields']) {
-  prepare.data.inputs.toolInputArgs.push({ inputArgName: key, inputArgValue: `{{llmAgentflow_structure.output.${key}}}` })
-}
-prepare.data.inputs.toolInputArgs.push({inputArgName:'multimodalContextJson',inputArgValue:'{{llmAgentflow_structure.output.multimodalContextJson}}'})
-if (!prepare.data.inputs.toolInputArgs.some(arg => arg.inputArgName === 'credentialRef')) {
-  prepare.data.inputs.toolInputArgs.push({ inputArgName: 'credentialRef', inputArgValue: stateValue('credentialRef') })
-}
+prepare.data.inputs.toolInputArgs = prepare.data.inputs.toolInputArgs.filter(arg =>
+  ['caseDescription', 'sessionRef'].includes(arg.inputArgName)
+)
+prepare.data.inputs.toolInputArgs.push(
+  { inputArgName: 'draftJson', inputArgValue: stateValue('caseDraftJson') },
+  { inputArgName: 'credentialRef', inputArgValue: stateValue('credentialRef') }
+)
 const naturalConfirmation = flow.nodes.find(item => item.id === 'humanInputAgentflow_confirm')
-naturalConfirmation.data.inputs.humanInputDescription = '请确认以下案例草案、所有文本输入值的来源及验证要求后再写入衡准：{{llmAgentflow_structure.output.acceptanceSummary}}；多模态扩展：{{llmAgentflow_structure.output.multimodalContextJson}}'
+naturalConfirmation.position = { x: 1700, y: 380 }
+naturalConfirmation.data.inputs.humanInputEnableFeedback = false
+naturalConfirmation.data.inputs.humanInputDescription = '请检查以下已经过确定性校验并冻结的案例草案，然后仅选择“批准”或“拒绝”。不得在此输入账号、密码、验证码、PIN或其他秘密。摘要：{{$flow.state.acceptanceSummaryJson}}；规范化草案：{{$flow.state.draftDisplayJson}}'
+prepare.position = { x: 2040, y: 380 }
 prepare.data.inputs.toolUpdateState = [
   updateFromOutput('preparationId'), updateFromOutput('preparationVersion', 'version'),
   updateFromOutput('caseId'), updateFromOutput('caseVersion'), updateFromOutput('caseDraftJson', 'intentSource')
 ]
 const intent = flow.nodes.find(item => item.id === 'llmAgentflow_intent')
-intent.data.inputs.llmMessages[0].content = '以JSON格式根据已确认草案形成严格IntentPlan业务字段。当前受控案例的route必须精确输出/portal/login，不得输出完整entryUrl、域名、协议、查询或锚点。动作、预期和风险三个数组必须等长且顺序一致；assertions为字符串数组。步骤ID由MCP按数组顺序确定性生成，模型不得输出、复制、改写或猜测ID。只能描述业务动作和期望，不得生成定位器、代码、SQL、Shell、凭据或可执行脚本。系统标识、权威ID和版本由MCP或Flow State生成并提交。'
+intent.data.inputs.llmMessages[0].content = '以JSON格式根据已确认草案形成严格IntentPlan业务字段。若存在已确认的targetProfile，则executionProfile必须为GENERIC_WEB，route使用其冻结launchUrl，并逐字保留targetProfileId、targetProfileVersion、targetProfileHash与targetProfileSnapshot；不得由模型生成或修改这些字段。仅当没有targetProfile且使用历史复兴银行模板时，route才使用/portal/login：包含转账信息填写、第一次确认、U盾人工验证和单号查询时使用TRANSFER_UKEY_ORDER_QUERY，其他登录资料一致性案例使用LOGIN_PROFILE。actions、expectedOutcomes、riskLevels、inputValues、inputValueSources五个数组必须等长。业务文本输入使用USER_TEXT；用户名和密码只使用CREDENTIAL_REF且inputValues为空字符串；无输入动作使用NONE且inputValues为空字符串。人工验证使用独立动作，由运行时暂停恢复处理。不得生成定位器、代码、凭据明文或可执行脚本。'
 intent.data.inputs.llmMessages[1].content = '已由MCP或导入链路确认的统一意图来源：{{$flow.state.caseDraftJson}}'
 intent.data.inputs.llmStructuredOutput = intent.data.inputs.llmStructuredOutput.filter(item => !['preparationId', 'preparationVersion', 'caseId', 'caseVersion', 'intentStepIds'].includes(item.key))
+intent.data.inputs.llmStructuredOutput = [
+  { key: 'route', type: 'string', description: '已确认目标站点使用冻结launchUrl；历史模板使用/portal/login' },
+  { key: 'executionProfile', type: 'string', description: 'LOGIN_PROFILE或TRANSFER_UKEY_ORDER_QUERY' },
+  { key: 'actions', type: 'stringArray', description: '业务动作数组' },
+  { key: 'expectedOutcomes', type: 'stringArray', description: '与动作对应的预期数组' },
+  { key: 'riskLevels', type: 'stringArray', description: '与动作对应的LOW、MEDIUM或HIGH风险数组' },
+  { key: 'inputValues', type: 'stringArray', description: '业务输入值；凭据和无输入动作使用空字符串' },
+  { key: 'inputValueSources', type: 'stringArray', description: 'USER_TEXT、CREDENTIAL_REF或NONE' },
+  { key: 'assertions', type: 'stringArray', description: '已确认的断言数组' }
+]
 const submit = flow.nodes.find(item => item.id === 'toolAgentflow_submit')
 submit.data.inputs.toolInputArgs = submit.data.inputs.toolInputArgs.filter(arg => arg.inputArgName !== 'intentStepIds')
+const intentArguments = new Map(submit.data.inputs.toolInputArgs.map(arg => [arg.inputArgName, arg]))
+for (const [inputArgName, inputArgValue] of Object.entries({
+  executionProfile: '{{llmAgentflow_intent.output.executionProfile}}',
+  inputValues: '{{llmAgentflow_intent.output.inputValues}}',
+  inputValueSources: '{{llmAgentflow_intent.output.inputValueSources}}'
+})) {
+  if (!intentArguments.has(inputArgName)) {
+    submit.data.inputs.toolInputArgs.push({ inputArgName, inputArgValue })
+  }
+}
 for (const arg of submit.data.inputs.toolInputArgs) {
   const stateKeys = { preparationId: 'preparationId', expectedVersion: 'preparationVersion', caseId: 'caseId', caseVersion: 'caseVersion' }
   if (stateKeys[arg.inputArgName]) arg.inputArgValue = stateValue(stateKeys[arg.inputArgName])
@@ -442,6 +511,8 @@ const run = flow.nodes.find(item => item.id === 'toolAgentflow_run')
 run.data.inputs.toolUpdateState = [updateFromOutput('taskId')]
 const task = flow.nodes.find(item => item.id === 'toolAgentflow_task')
 task.data.inputs.toolInputArgs.find(arg => arg.inputArgName === 'taskId').inputArgValue = stateValue('taskId')
+task.data.inputs.toolInputArgs.find(arg => arg.inputArgName === 'waitForTerminal').inputArgValue = true
+task.data.inputs.toolInputArgs.find(arg => arg.inputArgName === 'waitTimeoutSeconds').inputArgValue = 45
 const repairRerun = flow.nodes.find(item => item.id === 'toolAgentflow_repair_rerun')
 repairRerun.data.inputs.toolUpdateState = [updateFromOutput('taskId')]
 const repairTask = flow.nodes.find(item => item.id === 'toolAgentflow_repair_task')

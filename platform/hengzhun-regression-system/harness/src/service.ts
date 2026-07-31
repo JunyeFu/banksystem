@@ -22,8 +22,10 @@ import type {
   ScheduleDisableInput,
   I9KnowledgeSnapshotRegistrationInput
 } from './schemas';
+import { intentPlanSchema } from './schemas';
 import type { I8AuthoringSubmitInput, I8CasePrepareInput } from './i8/stage2-schemas';
 import {
+  executableActionPlanSchema,
   i8CandidateBuildCompletionSchema,
   type ExecutableActionPlan,
   type I8CandidateBuildCompletionInput,
@@ -75,23 +77,41 @@ type VisualActionType = Parameters<typeof buildActionContextEnvelope>[0]['curren
 
 const I10_VISUAL_TARGETS = new Set<VisualTargetRef>([
   'LOGIN_USERNAME', 'LOGIN_PASSWORD', 'LOGIN_SUBMIT', 'HEADER_DISPLAY_NAME', 'HEADER_AVATAR',
-  'HEADER_PROFILE_LINK', 'PROFILE_DISPLAY_NAME', 'PROFILE_AVATAR'
+  'HEADER_PROFILE_LINK', 'PROFILE_DISPLAY_NAME', 'PROFILE_AVATAR', 'TRANSFER_ENTRY',
+  'TRANSFER_NEW', 'TRANSFER_RECIPIENT_NAME', 'TRANSFER_RECIPIENT_ACCOUNT', 'TRANSFER_AMOUNT',
+  'TRANSFER_PURPOSE', 'TRANSFER_SUBMIT', 'TRANSFER_REVIEW', 'TRANSFER_FIRST_CONFIRM', 'UKEY_VERIFY',
+  'ORDER_NUMBER', 'ORDER_STATUS'
 ]);
 
 const I10_VISUAL_TARGET_DESCRIPTIONS: Readonly<Record<string, string>> = Object.freeze({
   LOGIN_USERNAME: '账号密码登录卡片中“用户名 / 手机号”标签下的文本输入框',
   LOGIN_PASSWORD: '账号密码登录卡片中“密码”标签下的密码输入框',
   LOGIN_SUBMIT: '账号密码登录卡片底部写有“账号密码登录”的主按钮',
-  HEADER_DISPLAY_NAME: '页面右上角用户区中、头像右侧显示的当前客户姓名“张三”，只定位姓名文字本身',
+  // Display names are test-data dependent. Do not hardcode a fixture identity
+  // into a visual prompt; Playwright performs the deterministic equality check.
+  HEADER_DISPLAY_NAME: '页面右上角用户区中、头像右侧显示的当前已登录客户姓名文本；只定位姓名文字本身，不假设具体姓名',
   HEADER_AVATAR: '页面右上角用户区中显示单个姓氏字符“张”的圆形头像，只定位头像本身',
   HEADER_PROFILE_LINK: '页面右上角用户区中的“个人资料”链接',
-  PROFILE_DISPLAY_NAME: '个人资料主卡片中“客户姓名”标签对应的姓名“张三”，只定位姓名值本身',
-  PROFILE_AVATAR: '个人资料主卡片左侧显示单个姓氏字符“张”的圆形大头像，只定位头像本身'
+  PROFILE_DISPLAY_NAME: '个人资料主卡片中“客户姓名”标签对应的当前已登录客户姓名值；只定位姓名值本身，不假设具体姓名',
+  PROFILE_AVATAR: '个人资料主卡片左侧显示单个姓氏字符“张”的圆形大头像，只定位头像本身',
+  TRANSFER_ENTRY: '受控门户导航中用于进入转账列表的业务入口',
+  TRANSFER_NEW: '转账列表页面中写有“新增转账”的按钮',
+  TRANSFER_RECIPIENT_NAME: '转账表单中“收款户名”标签下的文本输入框',
+  TRANSFER_RECIPIENT_ACCOUNT: '转账表单中“收款账号”标签下的文本输入框',
+  TRANSFER_AMOUNT: '转账表单中“转账金额”标签下的文本输入框',
+  TRANSFER_PURPOSE: '转账表单中“转账用途”标签下的文本输入框',
+  TRANSFER_SUBMIT: '转账表单底部用于提交填写信息并进入摘要页的按钮',
+  TRANSFER_REVIEW: '转账摘要页中展示收款人、金额和用途的确认区域',
+  TRANSFER_FIRST_CONFIRM: '转账信息填写完成后写有“确认转账信息”的第一次业务确认按钮',
+  UKEY_VERIFY: '网页验证页中用于确认已持久化U盾验证的按钮',
+  ORDER_NUMBER: '单号查询页面中“转账单号”标签对应的单号值',
+  ORDER_STATUS: '单号查询页面中“受理状态”标签对应的状态值'
 });
 
 function visualActionType(operation: ExecutableActionPlan['actions'][number]['operation']): VisualActionType {
   if (operation === 'fill') return 'INPUT';
-  if (operation === 'click') return 'TAP';
+  if (['click', 'select', 'check', 'upload', 'download'].includes(operation)) return 'TAP';
+  if (operation === 'switchPage') return 'SCROLL';
   return 'LOCATE';
 }
 
@@ -99,7 +119,8 @@ function buildI10CandidateContexts(plan: ExecutableActionPlan, workerId: string,
   const visualActions = plan.actions.filter(action => Boolean(action.semanticTargetRef));
   return visualActions.map((action, index) => {
     const targetRef = action.semanticTargetRef as VisualTargetRef;
-    if (!I10_VISUAL_TARGETS.has(targetRef)) throw new HarnessError(409, 'I10_VISUAL_TARGET_NOT_SUPPORTED', 'CONTRACT', 'I10视觉目标不在上下文白名单中。');
+    const generic = plan.fixtureProfile === 'GENERIC_WEB';
+    if (!generic && !I10_VISUAL_TARGETS.has(targetRef)) throw new HarnessError(409, 'I10_VISUAL_TARGET_NOT_SUPPORTED', 'CONTRACT', 'I10视觉目标不在上下文白名单中。');
     const previous = visualActions[index - 1];
     const next = visualActions[index + 1];
     const actionType = visualActionType(action.operation);
@@ -112,10 +133,16 @@ function buildI10CandidateContexts(plan: ExecutableActionPlan, workerId: string,
       leaseExpiresAt,
       currentAction: {
         actionType,
-        prompt: `仅定位受控目标 ${targetRef}：${I10_VISUAL_TARGET_DESCRIPTIONS[targetRef]}。用于动作 ${action.operation}；必须排除相邻文字、链接和容器，不得读取或返回输入内容。`,
+        prompt: generic
+          ? `仅定位已确认目标站点中的目标 ${targetRef}：${action.instruction ?? action.expected ?? targetRef}。用于动作 ${action.operation}；不得读取、返回或猜测凭据内容。`
+          : `仅定位受控目标 ${targetRef}：${I10_VISUAL_TARGET_DESCRIPTIONS[targetRef]}。用于动作 ${action.operation}；必须排除相邻文字、链接和容器，不得读取或返回输入内容。`,
         targetRef,
         valueRef: action.operation === 'fill'
-          ? targetRef === 'LOGIN_PASSWORD' ? 'CREDENTIAL_PASSWORD' : 'CREDENTIAL_USERNAME'
+          ? action.inputValueSource === 'CREDENTIAL_REF' && /password|密码/i.test(action.instruction ?? targetRef)
+            ? 'CREDENTIAL_PASSWORD'
+            : action.inputValueSource === 'CREDENTIAL_REF'
+              ? 'CREDENTIAL_USERNAME'
+              : 'SYNTHETIC_TEXT'
           : null,
         riskLevel: action.riskLevel,
         executionMode: 'MIDSCENE_LOCATE_PLAYWRIGHT_EXECUTE'
@@ -155,6 +182,15 @@ export interface WorkerCompletionInput {
   errorCategory?: 'TEST_FAILURE' | 'ENVIRONMENT' | 'EVIDENCE';
   retryable?: boolean;
   userActionRequired?: boolean;
+  failureDiagnostic?: {
+    schemaVersion: 'i8-formal-diagnostic-v2';
+    failureStage: string;
+    stepId: string | null;
+    operation: string | null;
+    targetRef: string | null;
+    pageLocation: string | null;
+    pageFingerprint: string | null;
+  };
   evidence: WorkerEvidenceInput[];
 }
 
@@ -185,7 +221,10 @@ function classifyFailure(errorCategory?: string, errorCode?: string): FailureCla
 function i8FailureDisposition(classification: I8IncidentClassification): 'REPORT_ONLY' | 'RETRY_ALLOWED' | 'REAUTHOR_REQUIRED' | 'PATCH_ALLOWED' {
   if (['PRODUCT_DEFECT', 'CONTRACT', 'AUTHENTICATION'].includes(classification)) return 'REPORT_ONLY';
   if (['ENVIRONMENT', 'MODEL', 'TOOL', 'FIXTURE_DATA'].includes(classification)) return 'RETRY_ALLOWED';
-  if (classification === 'LOCATOR') return 'REAUTHOR_REQUIRED';
+  // A locator failure is eligible for a narrowly allowlisted mapping patch.
+  // It must not be sent back to a broad authoring retry: that loses the exact
+  // failed action and can repeat the same failure indefinitely.
+  if (classification === 'LOCATOR') return 'PATCH_ALLOWED';
   return 'PATCH_ALLOWED';
 }
 
@@ -201,7 +240,7 @@ export class HarnessService {
 
   constructor(readonly database: HarnessDatabase, artifactRoot: string, readonly productRoot: string) {
     this.artifacts = new ArtifactStore(database, artifactRoot);
-    this.i10 = new I10Service(database, productRoot);
+    this.i10 = new I10Service(database, productRoot, this.artifacts);
   }
 
   private validatedPlan(db: import('better-sqlite3').Database, namespace: string, planId: string, caseId: string, expectedCaseVersion: number): {
@@ -769,10 +808,219 @@ export class HarnessService {
           response: { preparationId: row.preparation_id, version: nextVersion, status: 'REJECTED', nextAction: 'NONE' }
         };
       }
-      const intentPlan = input.intentPlan as NonNullable<I8AuthoringSubmitInput['intentPlan']>;
-      if (intentPlan.caseId !== row.case_id || intentPlan.caseVersion !== row.case_version) {
-        throw new HarnessError(409, 'I8_INTENT_CASE_MISMATCH', 'CONTRACT', 'IntentPlan 与已准备案例版本不一致。');
+      // Do not trust parallel arrays passed by an Agentflow/MCP node. Native
+      // Flowise can stringify arrays and stale branches can retain old values.
+      // The prepared CaseDraft is immutable at this point, so it is the sole
+      // authority for actions, expected outcomes and assertions.
+      const legacyPlan = input.intentPlan as I8AuthoringSubmitInput['intentPlan'];
+      let authoringContext = input.authoringContext ?? (legacyPlan ? {
+        route: legacyPlan.route,
+        executionProfile: legacyPlan.executionProfile,
+        targetProfileId: legacyPlan.targetProfileId,
+        targetProfileVersion: legacyPlan.targetProfileVersion,
+        targetProfileHash: legacyPlan.targetProfileHash,
+        targetProfileSnapshot: legacyPlan.targetProfileSnapshot,
+        adapterBinding: legacyPlan.adapterBinding
+      } : undefined);
+      const versionRow = db.prepare(`
+        SELECT definition_json FROM case_versions WHERE case_id = ? AND version = ?
+      `).get(row.case_id, row.case_version) as { definition_json: string } | undefined;
+      if (!versionRow) throw new HarnessError(409, 'I8_CASE_VERSION_NOT_FOUND', 'DOMAIN', '已准备案例版本不存在。');
+      const definition = JSON.parse(versionRow.definition_json) as {
+        steps?: Array<{ action?: unknown; expected?: unknown }>;
+        actionStepsV2?: Array<{
+          ordinal?: unknown; instruction?: unknown; inputValue?: unknown; inputValueSource?: unknown;
+        }>;
+        assertions?: unknown[];
+        credentialRef?: unknown;
+        title?: unknown;
+        objective?: unknown;
+        summary?: unknown;
+        preconditions?: unknown[];
+        businessInputs?: unknown;
+      };
+      // A Flowise Human Input confirmation may lose its transient
+      // authoringContext.  Recover only from the immutable CaseDraft's
+      // credentialRef and the exact ACTIVE TargetProfile that was bound to
+      // that credential during TargetProfile approval.  This is deliberately
+      // narrower than looking up a profile by title, URL, or most-recent row.
+      if (!authoringContext) {
+        const credentialRef = typeof definition.credentialRef === 'string'
+          ? definition.credentialRef : undefined;
+        const persisted = credentialRef
+          ? db.prepare(`
+              SELECT p.target_profile_id,p.launch_url,p.launch_origin,
+                     p.allowed_navigation_origins_json,p.allowed_interaction_origins_json,
+                     p.credential_origins_json,p.redirect_rules_json,p.tls_policy,
+                     p.network_mode,p.profile_hash,p.version,p.adapter_binding_json
+              FROM i10_credential_refs c
+              JOIN i10_target_profiles p
+                ON p.namespace=c.namespace AND p.target_profile_id=c.target_profile_id
+              WHERE c.namespace=? AND c.credential_ref=?
+                AND p.status='ACTIVE' AND p.credential_ref=?
+              LIMIT 1
+            `).get(input.namespace, credentialRef, credentialRef) as {
+              target_profile_id: string; launch_url: string; launch_origin: string;
+              allowed_navigation_origins_json: string; allowed_interaction_origins_json: string;
+              credential_origins_json: string; redirect_rules_json: string; tls_policy: string;
+              network_mode: string; profile_hash: string; version: number; adapter_binding_json: string;
+            } | undefined
+          : undefined;
+        if (persisted) {
+          const parsedAdapterBinding = JSON.parse(persisted.adapter_binding_json || 'null') as Record<string, unknown> | null;
+          const adapterBinding = parsedAdapterBinding
+            && typeof parsedAdapterBinding.adapterId === 'string'
+            && typeof parsedAdapterBinding.adapterVersion === 'string'
+            && typeof parsedAdapterBinding.manifestHash === 'string'
+            ? {
+                adapterId: parsedAdapterBinding.adapterId,
+                adapterVersion: parsedAdapterBinding.adapterVersion,
+                manifestHash: parsedAdapterBinding.manifestHash
+              }
+            : undefined;
+          authoringContext = {
+            route: persisted.launch_url,
+            executionProfile: 'GENERIC_WEB',
+            targetProfileId: persisted.target_profile_id,
+            targetProfileVersion: persisted.version,
+            targetProfileHash: persisted.profile_hash,
+            targetProfileSnapshot: {
+              schemaVersion: 'hengzhun-target-profile-v1',
+              status: 'ACTIVE',
+              targetProfileId: persisted.target_profile_id,
+              launchUrl: persisted.launch_url,
+              launchOrigin: persisted.launch_origin,
+              allowedNavigationOrigins: JSON.parse(persisted.allowed_navigation_origins_json),
+              allowedInteractionOrigins: JSON.parse(persisted.allowed_interaction_origins_json),
+              credentialOrigins: JSON.parse(persisted.credential_origins_json),
+              redirectRules: JSON.parse(persisted.redirect_rules_json),
+              tlsPolicy: persisted.tls_policy,
+              networkMode: persisted.network_mode,
+              adapterBinding,
+              profileHash: persisted.profile_hash,
+              version: persisted.version
+            },
+            ...(adapterBinding ? { adapterBinding } : {})
+          };
+        }
       }
+      if (!authoringContext) {
+        throw new HarnessError(409, 'I8_AUTHORING_CONTEXT_REQUIRED', 'CONTRACT', '案例尚未绑定可用的已确认目标站点档案。请先完成站点档案确认后重试。', false, true);
+      }
+      const actions = Array.isArray(definition.steps)
+        ? definition.steps.map(step => String(step?.action ?? '').trim()) : [];
+      const expectedOutcomes = Array.isArray(definition.steps)
+        ? definition.steps.map(step => String(step?.expected ?? '').trim()) : [];
+      const assertions = Array.isArray(definition.assertions)
+        ? definition.assertions.map(item => String(item ?? '').trim()).filter(Boolean) : [];
+      if (!actions.length || actions.length > 50 || actions.some(item => !item || item.length > 500) ||
+          expectedOutcomes.length !== actions.length || expectedOutcomes.some(item => !item || item.length > 500) ||
+          !assertions.length || assertions.length > 50 || assertions.some(item => item.length > 500)) {
+        throw new HarnessError(409, 'I8_PERSISTED_CASE_INVALID', 'CONTRACT', '冻结案例不满足作者化所需的步骤或断言约束。', false, true);
+      }
+      // The route/profile data comes from an ACTIVE TargetProfile frozen before
+      // authoring.  If Flowise lost the compiled context and used its scalar
+      // fallback, recover the controlled transfer profile only from the
+      // persisted case actions plus the already-approved adapter binding.  A
+      // target name or URL alone can never select an adapter.
+      const contextBinding = authoringContext.adapterBinding
+        ?? (authoringContext.targetProfileSnapshot && typeof authoringContext.targetProfileSnapshot === 'object'
+          ? (authoringContext.targetProfileSnapshot as Record<string, unknown>).adapterBinding
+          : undefined);
+      const isApprovedFuxingBinding = Boolean(contextBinding
+        && typeof contextBinding === 'object'
+        && (contextBinding as Record<string, unknown>).adapterId === 'fuxing-bank-demo');
+      const transferRequested = actions.some(action => /(?:转账|汇款|付款|transfer|payment)/i.test(action));
+      if (authoringContext.executionProfile === 'GENERIC_WEB' && isApprovedFuxingBinding && transferRequested) {
+        authoringContext.executionProfile = 'TRANSFER_UKEY_ORDER_QUERY';
+        authoringContext.adapterBinding = contextBinding as NonNullable<typeof authoringContext.adapterBinding>;
+      }
+      if (authoringContext.executionProfile === 'TRANSFER_UKEY_ORDER_QUERY') {
+        const inputs = definition.businessInputs as { values?: Record<string, unknown> } | undefined;
+        const values = inputs?.values;
+        const missingTransferInputs = ['payeeRef', 'amount', 'currency', 'purpose']
+          .filter(field => typeof values?.[field] !== 'string' || !String(values?.[field]).trim());
+        if (missingTransferInputs.length > 0) {
+          throw new HarnessError(
+            409,
+            'I10_TYPED_BUSINESS_INPUT_REQUIRED',
+            'CONTRACT',
+            `转账案例尚缺少已确认的业务字段：${missingTransferInputs.join('、')}。`,
+            false,
+            true
+          );
+        }
+      }
+      const credentialPattern = /账号|用户名|密码|手机号|credential|凭据/i;
+      const hasCredentialRef = typeof definition.credentialRef === 'string' && /^credential_[0-9a-f-]{36}$/i.test(definition.credentialRef);
+      const declaredCaseText = [
+        definition.title,
+        definition.objective,
+        definition.summary,
+        ...(Array.isArray(definition.preconditions) ? definition.preconditions : []),
+        ...actions,
+        ...expectedOutcomes
+      ].map(value => String(value ?? '')).join('\n');
+      const credentialLoginDeclared = hasCredentialRef && /(?:登录|login|sign[ _-]?in)/i.test(declaredCaseText);
+      // OCR is allowed to contribute page facts, but it must not erase the
+      // user's already-confirmed credential-login intent.  Some compact
+      // controller summaries reduce “use saved credentials to log in” to
+      // “登录系统”; relying only on username/password words then turns that
+      // step into a generic click and leaves Midscene searching for protected
+      // navigation on the login page.  Promote only the first explicit login
+      // action of a case that already owns a validated credential reference.
+      const credentialLoginActionIndex = credentialLoginDeclared
+        ? actions.findIndex(action => /(?:登录|login|sign[ _-]?in)/i.test(action))
+        : -1;
+      // CaseDraft.actionStepsV2 is part of the already-confirmed case version.
+      // It is the only permitted origin for a non-secret business fixture.
+      // Earlier code collapsed it to parallel strings, which meant values such
+      // as an explicitly supplied amount were lost before the deterministic
+      // builder ran.  Preserve only the matching ordinal value/source; never
+      // infer a value from controller prose at this boundary.
+      const actionStepsV2 = Array.isArray(definition.actionStepsV2) ? definition.actionStepsV2 : [];
+      const persistedStepInput = (index: number) => {
+        const candidate = actionStepsV2.find(step => Number(step?.ordinal) === index + 1) ?? actionStepsV2[index];
+        const inputValue = typeof candidate?.inputValue === 'string' ? candidate.inputValue.trim() : '';
+        const inputValueSource = candidate?.inputValueSource;
+        return {
+          inputValue: inputValue || undefined,
+          inputValueSource: inputValue && ['USER_TEXT', 'RUNTIME_USER_INPUT'].includes(String(inputValueSource))
+            ? String(inputValueSource) as 'USER_TEXT' | 'RUNTIME_USER_INPUT'
+            : undefined
+        };
+      };
+      const intentPlan = intentPlanSchema.parse({
+        schemaVersion: 'i8-intent-plan-v1',
+        caseId: row.case_id,
+        caseVersion: row.case_version,
+        route: authoringContext.route,
+        executionProfile: authoringContext.executionProfile,
+        ...(authoringContext.executionProfile === 'GENERIC_WEB' ? {
+          targetProfileId: authoringContext.targetProfileId,
+          targetProfileVersion: authoringContext.targetProfileVersion,
+          targetProfileHash: authoringContext.targetProfileHash,
+          targetProfileSnapshot: authoringContext.targetProfileSnapshot
+        } : { adapterBinding: authoringContext.adapterBinding }),
+        ...(authoringContext.executionProfile === 'TRANSFER_UKEY_ORDER_QUERY' ? {
+          inputContractVersion: 'TypedBusinessInputsV1',
+          typedBusinessInputs: definition.businessInputs
+        } : {}),
+        steps: actions.map((action, index) => {
+          const persisted = persistedStepInput(index);
+          return {
+            intentStepId: `intent-${String(index + 1).padStart(3, '0')}`,
+            action,
+            expected: expectedOutcomes[index]!,
+            riskLevel: /转账|支付|提交|确认/i.test(action) ? 'MEDIUM' : 'LOW',
+            ...(persisted.inputValue ? { inputValue: persisted.inputValue } : {}),
+            inputValueSource: credentialPattern.test(action) || index === credentialLoginActionIndex
+              ? 'CREDENTIAL_REF'
+              : persisted.inputValueSource ?? 'NONE'
+          };
+        }),
+        assertions
+      });
       const intentJson = canonicalJson(intentPlan);
       const intentHash = sha256(intentJson);
       db.prepare(`
@@ -844,12 +1092,109 @@ export class HarnessService {
         throw new HarnessError(409, 'I8_INTENT_PLAN_NOT_READY', 'DOMAIN', '只有已确认的 IntentPlan 才能进入阶段3。', false, true);
       }
       const existing = db.prepare(`
-        SELECT p.executable_plan_id, p.plan_hash, p.status, p.version, j.job_id, j.status AS job_status
+        SELECT p.executable_plan_id, p.plan_json, p.plan_hash, p.status, p.version,
+               j.job_id, j.status AS job_status, c.candidate_id, c.status AS candidate_status,
+               b.status AS stability_status
         FROM i8_executable_plans p
         JOIN i8_candidate_build_jobs j ON j.executable_plan_id = p.executable_plan_id
+        LEFT JOIN i8_script_candidates c ON c.executable_plan_id = p.executable_plan_id
+        LEFT JOIN i8_stability_batches b ON b.candidate_id = c.candidate_id
         WHERE p.namespace = ? AND p.preparation_id = ?
+        ORDER BY j.created_at DESC LIMIT 1
       `).get(input.namespace, input.preparationId) as Record<string, unknown> | undefined;
       if (existing) {
+        if (input.retryFailed === true && existing.stability_status === 'FAILED') {
+          if (!input.revisionReason) {
+            throw new HarnessError(409, 'I10_CANDIDATE_REVISION_REASON_REQUIRED', 'CONTRACT',
+              '稳定性失败后的新候选必须提供限域修订说明。', false, true);
+          }
+          const previousPlan = executableActionPlanSchema.parse(JSON.parse(String(existing.plan_json)));
+          const revisionSeed = canonicalJson({
+            previousPlanId: existing.executable_plan_id,
+            previousCandidateId: existing.candidate_id,
+            revisionReason: input.revisionReason
+          });
+          const revisedPlan = {
+            ...previousPlan,
+            executablePlanId: `plan_i10_revision_${sha256(revisionSeed).slice(0, 40)}`
+          };
+          const revisedPlanJson = canonicalJson(revisedPlan);
+          const revisedPlanHash = sha256(revisedPlanJson);
+          const retryJobId = opaqueId('buildjob');
+          db.prepare(`
+            INSERT INTO i8_executable_plans(
+              executable_plan_id, namespace, preparation_id, case_id, case_version,
+              intent_plan_hash, plan_json, plan_hash, status, version, created_at, updated_at
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'EXECUTABLE_PLAN_READY', 1, ?, ?)
+          `).run(
+            revisedPlan.executablePlanId, input.namespace, input.preparationId,
+            preparation.case_id, preparation.case_version, preparation.intent_plan_hash,
+            revisedPlanJson, revisedPlanHash, timestamp, timestamp
+          );
+          db.prepare(`
+            INSERT INTO i8_candidate_build_jobs(
+              job_id, namespace, executable_plan_id, status, stability_policy_version,
+              version, created_at, updated_at
+            ) VALUES (?, ?, ?, 'QUEUED', ?, 1, ?, ?)
+          `).run(retryJobId, input.namespace, revisedPlan.executablePlanId,
+            input.stabilityPolicyVersion, timestamp, timestamp);
+          this.audit(db, context, {
+            namespace: input.namespace,
+            action: 'i10_candidate_revision_submit',
+            objectType: 'I8_EXECUTABLE_PLAN',
+            objectId: revisedPlan.executablePlanId,
+            outcome: 'SUCCEEDED',
+            details: {
+              previousPlanId: existing.executable_plan_id,
+              previousCandidateId: existing.candidate_id,
+              previousStabilityStatus: existing.stability_status,
+              revisionReasonHash: sha256(input.revisionReason)
+            }
+          });
+          return {
+            status: 202,
+            objectType: 'I8_EXECUTABLE_PLAN',
+            objectId: revisedPlan.executablePlanId,
+            response: {
+              preparationId: input.preparationId,
+              executablePlanId: revisedPlan.executablePlanId,
+              planHash: revisedPlanHash,
+              status: 'EXECUTABLE_PLAN_READY',
+              version: 1,
+              jobId: retryJobId,
+              jobStatus: 'QUEUED',
+              retriedFromJobId: existing.job_id,
+              revisedFromCandidateId: existing.candidate_id,
+              nextAction: 'AUTHORING_WORKER_REQUIRED'
+            }
+          };
+        }
+        if (input.retryFailed === true && existing.job_status === 'FAILED') {
+          const retryJobId = opaqueId('buildjob');
+          db.prepare(`
+            INSERT INTO i8_candidate_build_jobs(job_id, namespace, executable_plan_id, status, stability_policy_version, version, created_at, updated_at)
+            VALUES (?, ?, ?, 'QUEUED', ?, 1, ?, ?)
+          `).run(retryJobId, input.namespace, existing.executable_plan_id, input.stabilityPolicyVersion, timestamp, timestamp);
+          db.prepare(`UPDATE i8_executable_plans
+            SET status='EXECUTABLE_PLAN_READY',version=version+1,updated_at=?
+            WHERE executable_plan_id=?`).run(timestamp, existing.executable_plan_id);
+          return {
+            status: 202,
+            objectType: 'I8_EXECUTABLE_PLAN',
+            objectId: String(existing.executable_plan_id),
+            response: {
+              preparationId: input.preparationId,
+              executablePlanId: existing.executable_plan_id,
+              planHash: existing.plan_hash,
+              status: 'EXECUTABLE_PLAN_READY',
+              version: Number(existing.version) + 1,
+              jobId: retryJobId,
+              jobStatus: 'QUEUED',
+              retriedFromJobId: existing.job_id,
+              nextAction: 'AUTHORING_WORKER_REQUIRED'
+            }
+          };
+        }
         return {
           status: 200,
           objectType: 'I8_EXECUTABLE_PLAN',
@@ -936,6 +1281,7 @@ export class HarnessService {
         LEFT JOIN i8_stability_certificates cert ON cert.candidate_id = c.candidate_id
         LEFT JOIN i10_stability_policy_bindings policy ON policy.object_type='CANDIDATE_BATCH' AND policy.object_id=b.batch_id
         WHERE p.namespace = ? AND p.preparation_id = ?
+        ORDER BY j.created_at DESC LIMIT 1
       `).get(namespace, preparationId) as Record<string, unknown> | undefined;
       if (!row) throw new HarnessError(404, 'I8_EXECUTABLE_PLAN_NOT_FOUND', 'DOMAIN', '阶段3可执行计划不存在。');
       return {
@@ -1035,7 +1381,13 @@ export class HarnessService {
         ORDER BY j.created_at LIMIT 1
       `).get() as Record<string, unknown> | undefined;
       if (!row) return { status: 'EMPTY' };
-      const leaseExpiresAt = new Date(Date.now() + 120_000).toISOString();
+      // A visual action can make three independent real-model attempts, each
+      // bounded at 90 seconds.  The candidate lease must outlive that bounded
+      // transport recovery window plus browser/Builder work; otherwise a
+      // healthy Worker can lose ownership while still following the declared
+      // retry policy.  Five minutes retains failed-worker recovery while
+      // covering one full visual retry sequence.
+      const leaseExpiresAt = new Date(Date.now() + 300_000).toISOString();
       db.prepare(`
         UPDATE i8_candidate_build_jobs
         SET status = 'RUNNING', lease_owner = ?, lease_expires_at = ?, attempt_count = attempt_count + 1,
@@ -1060,6 +1412,7 @@ export class HarnessService {
         executablePlanId: row.executable_plan_id,
         planHash: row.plan_hash,
         plan,
+        preparationId: row.preparation_id,
         stabilityPolicyVersion: row.stability_policy_version,
         ...(authoringContexts.length > 0 ? { authoringContexts } : {}),
         ...(typeof definition.credentialRef === 'string' ? { credentialRef: definition.credentialRef } : {}),
@@ -1086,6 +1439,10 @@ export class HarnessService {
         const timestamp = nowIso();
         db.prepare(`UPDATE i8_candidate_build_jobs SET status = 'FAILED', error_code = ?, lease_owner = NULL, lease_expires_at = NULL, version = version + 1, completed_at = ?, updated_at = ? WHERE job_id = ?`)
           .run(input.errorCode, timestamp, timestamp, jobId);
+        if (input.diagnostic) {
+          db.prepare(`INSERT INTO i10_execution_diagnostics(diagnostic_id,job_id,stage,action_ordinal,semantic_target_ref,verification_policy,page_fingerprint,route_path,safe_error_code,model_status,created_at) VALUES (?,?,?,?,?,?,?,?,?,?,?)`)
+            .run(opaqueId('diagnostic'), jobId, input.diagnostic.stage, input.diagnostic.actionOrdinal ?? null, input.diagnostic.semanticTargetRef ?? null, input.diagnostic.verificationPolicy ?? null, input.diagnostic.pageFingerprint ?? null, input.diagnostic.routePath ?? null, input.diagnostic.safeErrorCode, input.diagnostic.modelStatus, timestamp);
+        }
         db.prepare(`UPDATE i8_executable_plans SET status = 'FAILED', version = version + 1, updated_at = ? WHERE executable_plan_id = ?`)
           .run(timestamp, job.executable_plan_id);
       });
@@ -1104,10 +1461,15 @@ export class HarnessService {
         const contextEnvelope = context ? JSON.parse(context.envelope_json) : undefined;
         const contextHashValid = context ? sha256(canonicalJson(contextEnvelope)) === context.envelope_hash : false;
         const expectedPromptHash = contextEnvelope && contextHashValid ? sha256(buildMidscenePrompt(contextEnvelope)) : undefined;
-        if (!context || !record || record.contextEnvelopeHash !== context.envelope_hash || record.contextLevel !== context.context_level
+        if (!context || !record || record.schemaVersion !== 'hengzhun-verified-action-record-v3'
+          || record.contextEnvelopeHash !== context.envelope_hash || record.contextLevel !== context.context_level
           || !contextHashValid || record.visualEvidence?.invocation !== 'REAL' || record.visualEvidence.provider !== 'MIDSCENE'
-          || record.visualEvidence.promptHash !== expectedPromptHash || record.visualEvidence.locatorMatched !== true) {
-          throw new HarnessError(409, 'I10_REAL_VISUAL_EVIDENCE_REQUIRED', 'EVIDENCE', 'I10候选缺少与Harness上下文绑定的真实Midscene视觉证据。', false, true, { actionId: action.actionId });
+          || record.visualEvidence.role !== 'LOCATOR_PROPOSAL' || record.visualEvidence.promptHash !== expectedPromptHash
+          || !record.visualEvidence.screenshotHash || !record.visualEvidence.proposalHash
+          || !record.visualEvidence.playwrightLocatorHash || record.visualEvidence.locatorMatched !== true
+          || record.playwrightEvidence?.role !== 'EXECUTOR' || record.playwrightEvidence.locatorHash !== record.visualEvidence.playwrightLocatorHash
+          || record.playwrightEvidence.operation !== action.operation) {
+          throw new HarnessError(409, 'I10_LOCATE_EXECUTE_EVIDENCE_REQUIRED', 'EVIDENCE', 'I10候选必须同时具备Midscene定位建议和Playwright执行事实。', false, true, { actionId: action.actionId });
         }
       }
     }
@@ -2138,16 +2500,20 @@ export class HarnessService {
 
       const row = db.prepare(`
         SELECT t.task_id, t.namespace, t.case_id, t.run_id, t.payload_json,
-               r.case_version, r.plan_id, cv.definition_json
+               r.case_version, r.plan_id, cv.definition_json,
+               candidate.manifest_json AS candidate_manifest_json
         FROM tasks t
         JOIN runs r ON r.task_id = t.task_id
         JOIN case_versions cv ON cv.case_id = r.case_id AND cv.version = r.case_version
+        LEFT JOIN i8_script_candidates candidate
+          ON candidate.candidate_id = json_extract(t.payload_json, '$.candidate.candidateId')
         WHERE t.task_type = 'RUN_EXECUTE' AND t.status = 'QUEUED'
         ORDER BY t.created_at ASC
         LIMIT 1
       `).get() as {
         task_id: string; namespace: string; case_id: string; run_id: string;
         payload_json: string; case_version: number; plan_id: string; definition_json: string;
+        candidate_manifest_json: string | null;
       } | undefined;
       if (!row) return { status: 'EMPTY' };
 
@@ -2175,9 +2541,34 @@ export class HarnessService {
         opaqueId('worker'), JSON.stringify({ workerId, leaseExpiresAt }), timestamp);
       const definition = JSON.parse(row.definition_json) as Record<string, unknown>;
       const execution = JSON.parse(row.payload_json) as Record<string, unknown>;
+      // A CaseDraft is frozen before TargetProfile confirmation, so its
+      // definition intentionally does not carry the later profile binding.
+      // The candidate manifest is the immutable execution artifact and is the
+      // authoritative place to recover that exact confirmed profile at run
+      // claim time.  Falling back to the case definition keeps legacy cases
+      // compatible without widening any origin allow-list.
+      let candidateTargetProfileId: string | undefined;
+      try {
+        const manifest = row.candidate_manifest_json ? JSON.parse(row.candidate_manifest_json) as Record<string, unknown> : undefined;
+        if (typeof manifest?.targetProfileId === 'string') candidateTargetProfileId = manifest.targetProfileId;
+      } catch {
+        // A malformed candidate manifest must not grant a target profile. The
+        // formal runner will fail closed using the ordinary entry-url rules.
+      }
       const isI10Candidate = Boolean(execution.candidate)
         && typeof definition.credentialRef === 'string'
         && typeof definition.entryUrl === 'string';
+      const targetProfileId = typeof definition.targetProfileId === 'string'
+        ? definition.targetProfileId
+        : candidateTargetProfileId;
+      const targetProfile = typeof targetProfileId === 'string'
+        ? db.prepare(`SELECT * FROM i10_target_profiles WHERE namespace=? AND target_profile_id=? AND status='ACTIVE'`)
+          .get(row.namespace, targetProfileId) as {
+            target_profile_id: string; version: number; profile_hash: string; launch_url: string;
+            allowed_navigation_origins_json: string; allowed_interaction_origins_json: string;
+            credential_origins_json: string; tls_policy: string; network_mode: string; status: string;
+          } | undefined
+        : undefined;
       return {
         status: 'CLAIMED',
         taskId: row.task_id,
@@ -2191,7 +2582,21 @@ export class HarnessService {
           ...execution,
           ...(isI10Candidate ? {
             credentialRef: definition.credentialRef,
-            entryUrl: definition.entryUrl
+            entryUrl: definition.entryUrl,
+            ...(targetProfile ? {
+              targetProfile: {
+                targetProfileId: targetProfile.target_profile_id,
+                version: targetProfile.version,
+                profileHash: targetProfile.profile_hash,
+                launchUrl: targetProfile.launch_url,
+                allowedNavigationOrigins: JSON.parse(targetProfile.allowed_navigation_origins_json),
+                allowedInteractionOrigins: JSON.parse(targetProfile.allowed_interaction_origins_json),
+                credentialOrigins: JSON.parse(targetProfile.credential_origins_json),
+                tlsPolicy: targetProfile.tls_policy,
+                networkMode: targetProfile.network_mode,
+                status: targetProfile.status
+              }
+            } : {})
           } : {})
         },
         leaseExpiresAt
@@ -2245,9 +2650,9 @@ export class HarnessService {
       const risk = String(row.risk_level);
       const capability = String(row.capability_status ?? 'UNVERIFIED');
       const locateCapability = String(row.locate_capability_status ?? 'UNVERIFIED');
-      const executionMode: 'MIDSCENE_EXECUTE_PLAYWRIGHT_VERIFY' | 'MIDSCENE_LOCATE_PLAYWRIGHT_EXECUTE' | 'PLAYWRIGHT_ONLY' = risk !== 'HIGH' && capability === 'VERIFIED'
-        ? 'MIDSCENE_EXECUTE_PLAYWRIGHT_VERIFY'
-        : locateCapability === 'VERIFIED'
+      // Midscene is an observation-only locator provider.  It never receives
+      // an execution capability, including for a previously verified action.
+      const executionMode: 'MIDSCENE_LOCATE_PLAYWRIGHT_EXECUTE' | 'PLAYWRIGHT_ONLY' = locateCapability === 'VERIFIED'
           ? 'MIDSCENE_LOCATE_PLAYWRIGHT_EXECUTE'
           : 'PLAYWRIGHT_ONLY';
       const contextLevel = String(row.context_level ?? 'CTX-L1') as ContextLevel;
@@ -2627,7 +3032,7 @@ export class HarnessService {
             classification, input.errorCode ?? 'WORKER_EXECUTION_FAILED', input.summary,
             resultArtifact?.artifactId ?? null, timestamp, timestamp
           );
-          const i8Classification = classifyI8Failure(input.errorCategory, input.errorCode);
+          const i8Classification = classifyI8Failure(input.errorCategory, input.errorCode, input.failureDiagnostic);
           const disposition = i8FailureDisposition(i8Classification);
           const envelopeId = opaqueId('failureenv');
           const envelope = {
@@ -2637,7 +3042,11 @@ export class HarnessService {
             errorCode: input.errorCode ?? 'WORKER_EXECUTION_FAILED',
             classification: i8Classification,
             inputSummary: { environment: 'local', originScheduleId: task.origin_schedule_id ?? null },
-            outputSummary: { outcome: input.outcome, resultArtifactId: resultArtifact?.artifactId ?? null },
+            outputSummary: {
+              outcome: input.outcome,
+              resultArtifactId: resultArtifact?.artifactId ?? null,
+              ...(input.failureDiagnostic ? { failureDiagnostic: input.failureDiagnostic } : {})
+            },
             artifactRefs: artifacts.map(item => item.artifactId),
             allowedRepairScope: disposition,
             contextLevel: 'CTX-L1',
@@ -2698,8 +3107,16 @@ export class HarnessService {
         LEFT JOIN i10_stability_policy_bindings policy ON policy.object_type='REPAIR_BATCH' AND policy.object_id=b.batch_id
         WHERE fi.namespace=? AND fi.incident_id=?`).get(namespace, incidentId) as Record<string, unknown> | undefined;
       if (!row) throw new HarnessError(404, 'I8_FAILURE_INCIDENT_NOT_FOUND', 'DOMAIN', 'I8 失败事故不存在。');
+      const envelopePayload = JSON.parse(String(row.envelope_json)) as {
+        outputSummary?: { failureDiagnostic?: { targetRef?: unknown } };
+      };
+      const diagnosticTargetRef = typeof envelopePayload.outputSummary?.failureDiagnostic?.targetRef === 'string'
+        ? envelopePayload.outputSummary.failureDiagnostic.targetRef
+        : undefined;
       const repairTarget = row.classification === 'LOCATOR'
-        ? Object.keys(I8_CONTROLLED_CATALOG.repairTargets).find(targetRef => String(row.reason_code).startsWith(targetRef))
+        ? (diagnosticTargetRef && Object.prototype.hasOwnProperty.call(I8_CONTROLLED_CATALOG.repairTargets, diagnosticTargetRef)
+            ? diagnosticTargetRef
+            : Object.keys(I8_CONTROLLED_CATALOG.repairTargets).find(targetRef => String(row.reason_code).startsWith(targetRef)))
         : undefined;
       const approvedRepairOptions = repairTarget
         ? I8_CONTROLLED_CATALOG.repairTargets[repairTarget as keyof typeof I8_CONTROLLED_CATALOG.repairTargets]
@@ -2710,7 +3127,7 @@ export class HarnessService {
         scriptVersion: row.script_version, classification: row.classification, reasonCode: row.reason_code,
         disposition: row.disposition, status: row.status, approvedRepairOptions,
         failureEnvelope: { envelopeId: row.envelope_id, contextLevel: row.context_level, envelopeHash: row.envelope_hash,
-          attemptCount: row.attempt_count, maxAttempts: row.max_attempts, payload: JSON.parse(String(row.envelope_json)) },
+          attemptCount: row.attempt_count, maxAttempts: row.max_attempts, payload: envelopePayload },
         ...(row.proposal_id ? { proposal: { proposalId: row.proposal_id, repairCandidateId: row.repair_candidate_id,
           status: row.proposal_status, version: row.proposal_version, scriptVersion: row.repair_script_version,
           scriptHash: row.script_sha256, manifestHash: row.manifest_sha256,

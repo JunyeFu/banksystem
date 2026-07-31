@@ -1,0 +1,134 @@
+'use strict'
+
+const test = require('node:test')
+const assert = require('node:assert/strict')
+const fs = require('node:fs')
+const os = require('node:os')
+const path = require('node:path')
+const {
+  semanticEquivalent,
+  semanticProjection,
+  comparisonProjection,
+  fileBodies,
+  pairStatus,
+  recordKey,
+  acceptanceNaturalLanguage
+} = require('../i10-18-chain-acceptance-live.cjs')
+
+function draft(overrides = {}) {
+  return semanticProjection({
+    targetSystem: '复兴银行门户',
+    entryUrl: 'http://127.0.0.1:28887/portal/login',
+    objective: '验证登录后主页和个人资料页的姓名和头像一致',
+    actions: ['使用已保存安全凭据登录', '进入个人资料页面', '确认姓名和头像一致'],
+    expectedOutcomes: ['成功登录至首页', '成功进入个人资料页面', '姓名和头像一致'],
+    assertions: ['姓名一致', '头像一致'],
+    ...overrides
+  })
+}
+
+test('I10 acceptance allows equivalent L1 controller wording across OCR variants', () => {
+  const text = draft()
+  const image = draft({
+    objective: '验证登录后个人资料页的姓名和头像与主页一致',
+    actions: ['使用已保存安全凭据登录', '进入个人资料页面', '验证主页与个人资料页的姓名和头像一致'],
+    expectedOutcomes: ['成功登录复兴银行门户', '成功进入个人资料页面', '姓名和头像一致']
+  })
+  assert.equal(semanticEquivalent('L1', text, image).status, 'SEMANTIC_MATCH')
+})
+
+test('I10 acceptance accepts an OCR-added terminal read-only confirmation that restates the same outcome', () => {
+  const text = draft({
+    objective: '验证登录后账户页面信息正常',
+    actions: ['登录复兴银行门户', '打开账户页面'],
+    expectedOutcomes: ['成功登录门户', '账户卡片、余额和账户状态正常显示']
+  })
+  const image = draft({
+    objective: '验证账户卡片、余额和账户状态正常显示',
+    actions: ['登录复兴银行门户', '打开账户页面', '确认账户卡片、余额和账户状态正常显示'],
+    expectedOutcomes: ['登录成功', '成功打开账户页面', '账户卡片、余额和账户状态均正常显示']
+  })
+  assert.equal(semanticEquivalent('L2', text, image).status, 'SEMANTIC_MATCH')
+})
+
+test('I10 acceptance accepts a detailed terminal list inspection when its original outcome is generic', () => {
+  const text = draft({
+    objective: '验证收款人列表显示正确',
+    actions: ['登录复兴银行门户', '进入收款人页面', '查看收款人列表', '确认姓名、账户掩码和状态展示正确'],
+    expectedOutcomes: ['成功登录系统', '收款人页面加载', '列表正常显示', '数据展示正确']
+  })
+  const image = draft({
+    objective: '确认收款人列表中姓名、账户掩码和状态展示正确',
+    actions: ['登录复兴银行门户', '进入收款人页面', '查看收款人列表', '确认姓名、账户掩码和状态展示正确'],
+    expectedOutcomes: ['成功登录', '进入收款人页面', '显示收款人列表', '姓名、账户掩码和状态展示正确']
+  })
+  assert.equal(semanticEquivalent('M2', text, image).status, 'SEMANTIC_MATCH')
+})
+
+test('I10 acceptance does not collapse a terminal U-key confirmation', () => {
+  const semantic = draft({
+    actions: ['提交转账', '确认U盾验证'],
+    expectedOutcomes: ['进入验证页', 'U盾验证成功']
+  })
+  assert.equal(comparisonProjection(semantic).actions.length, 2)
+  assert.equal(semanticEquivalent('H2', semantic, semantic).status, 'SEMANTIC_MATCH')
+})
+
+test('I10 acceptance does not collapse a terminal transfer submission as a read-only confirmation', () => {
+  const text = draft({
+    actions: ['填写转账信息', '提交转账'],
+    expectedOutcomes: ['信息已填写', '转账提交成功']
+  })
+  const image = draft({
+    actions: ['填写转账信息'],
+    expectedOutcomes: ['信息已填写']
+  })
+  assert.equal(semanticEquivalent('H1', text, image).reason, 'ACTION_OR_OUTCOME_CARDINALITY_CHANGED')
+})
+
+test('I10 acceptance rejects changed target URL even when wording is equivalent', () => {
+  const result = semanticEquivalent('L1', draft(), draft({ entryUrl: 'https://example.invalid/login' }))
+  assert.equal(result.status, 'SEMANTIC_MISMATCH')
+  assert.equal(result.reason, 'ENTRY_URL_CHANGED')
+})
+
+test('I10 acceptance treats a per-run controlled loopback port as fixture infrastructure', () => {
+  const result = semanticEquivalent('L1', draft(), draft({ entryUrl: 'http://127.0.0.1:28960/portal/login' }))
+  assert.equal(result.status, 'SEMANTIC_MATCH')
+})
+
+test('I10 acceptance pair status uses semantic contract rather than raw hash', () => {
+  const ledger = {
+    records: {
+      [recordKey('L1', 'TEXT_ONLY')]: { status: 'PASSED', semanticHash: 'a', semantic: draft() },
+      [recordKey('L1', 'TEXT_WITH_IMAGE')]: { status: 'PASSED', semanticHash: 'b', semantic: draft({ objective: '验证主页和个人资料页姓名头像一致' }) }
+    }
+  }
+  assert.equal(pairStatus(ledger, 'L1'), 'SEMANTIC_MATCH')
+})
+
+test('I10 recovery excludes a partial acceptance record from the Flowise transcript', () => {
+  const directory = fs.mkdtempSync(path.join(os.tmpdir(), 'hengzhun-i10-recovery-'))
+  try {
+    fs.writeFileSync(path.join(directory, 'M1-01-terminal.json'), JSON.stringify({ text: '回归执行已结束' }))
+    fs.writeFileSync(path.join(directory, 'acceptance-record.json'), JSON.stringify({ status: 'PASSED' }))
+    const transcript = fileBodies(directory)
+    assert.equal(transcript.length, 1)
+    assert.equal(transcript[0].value.text, '回归执行已结束')
+  } finally {
+    fs.rmSync(directory, { recursive: true, force: true })
+  }
+})
+
+test('high-risk controlled acceptance input explicitly selects the adapter and supplies non-secret transfer data', () => {
+  const input = acceptanceNaturalLanguage({ naturalLanguage: '创建演示转账' }, 'H2')
+  assert.match(input, /明确选择复兴银行演示适配器\s+fuxing-bank-demo/)
+  assert.match(input, /金额为\s*1\.00/)
+  assert.match(input, /用途为\s*自动化回归测试/)
+  assert.match(input, /U盾验证页/)
+})
+
+test('high-risk acceptance runs explicitly arm the controlled U-key path before authoring', () => {
+  const source = fs.readFileSync(path.join(__dirname, '..', 'i10-18-chain-acceptance-live.cjs'), 'utf8')
+  assert.match(source, /caseId\.startsWith\('H'\).*stage8\.setFailureMode\(scenario\.failureControlUrl, 'verification'\)/)
+})

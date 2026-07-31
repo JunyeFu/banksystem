@@ -1,15 +1,31 @@
 {
   "schemaVersion": "hengzhun-i10-formal-workflow-spec-v1",
   "name": "衡准自动化回归主控-I10正式版",
+  "authority": {
+    "currentFact": "IMPLEMENTATION_SQLITE_RUNTIME_EVIDENCE",
+    "targetDesign": "WORKSPACE_FULL_CHAIN_AUDIT_DOCUMENT",
+    "derivedArtifacts": ["AGENTFLOW_JSON", "RUNTIME_CONFIG", "MACHINE_CONTRACTS"],
+    "conflictRule": "MARK_IMPLEMENTATION_DESIGN_MISMATCH"
+  },
   "entry": "FLOWISE_CHAT",
   "controllerProfile": "flowise/i10/controller-profile-v1.json",
   "visualProfile": "flowise/i10/visual-profile-v1.json",
   "mcpOnlyExternalTools": true,
+  "interactionResponseContract": "contracts/interaction/hengzhun-i10-response-v2.json",
+  "interactionMatrix": "flowise/i10/interaction-matrix-v2.json",
+  "interactionRules": {
+    "defaultPresentation": "ADAPTIVE_MODULES",
+    "durableOutcomesAsFiles": true,
+    "shortBriefInChat": true,
+    "technicalDetailsInline": false,
+    "singleExplicitUserExit": true,
+    "decisionGateFreeTextAllowed": false
+  },
   "forwardStages": [
     "CLASSIFY_INPUT", "CREATE_OR_RESOLVE_CREDENTIAL_REF", "INGEST_SUPPORTING_IMAGES", "BILINGUAL_OCR_AND_REDACTION", "CONTROLLER_SELECT_CASE_FACTS", "HUMAN_CONFIRM_IMAGE_FACTS", "INGEST_OR_STRUCTURE_CASE", "CLARIFY_MISSING_INFORMATION",
     "HUMAN_CONFIRM_CASE", "COMPILE_INTENT", "MIDSCENE_AUTHORING", "PLAYWRIGHT_FACT_COLLECTION",
     "DETERMINISTIC_BUILD", "PURE_PLAYWRIGHT_VALIDATE", "I10_2X2_STABILITY", "HUMAN_CONFIRM_SCRIPT",
-    "DELIVER_FULL_SOURCE", "SELECT_ON_DEMAND_ONE_TIME_RECURRING", "HUMAN_CONFIRM_SCHEDULE", "DETECT_AND_PAUSE_VERIFICATION", "EXECUTE_AND_REPLY"
+    "DELIVER_FULL_SOURCE", "SELECT_ON_DEMAND_ONE_TIME_RECURRING", "HUMAN_CONFIRM_SCHEDULE", "DETECT_RESOLVE_OR_PAUSE_VERIFICATION", "EXECUTE_AND_REPLY"
   ],
   "reverseStages": [
     "CLASSIFY_FAILURE", "BOUND_REPAIR_CONTEXT", "CONTROLLER_PATCH_CANDIDATE_ONLY", "PURE_PLAYWRIGHT_VALIDATE",
@@ -17,6 +33,18 @@
   ],
   "humanGates": ["IMAGE_FACT_CONFIRMATION", "CASE_CONFIRMATION", "LOW_CONFIDENCE_VIDEO_CORRECTION", "VERIFICATION_USER_PREPARATION", "VERIFICATION_USER_ACTION", "SCRIPT_ACTIVATION", "SCHEDULE_CONFIRMATION", "REPAIR_ACTIVATION"],
   "verificationTypes": ["SMS_OTP", "TOTP", "CAPTCHA", "QR_CODE", "UKEY", "MOBILE_CERTIFICATE", "BIOMETRIC", "MANUAL_APPROVAL"],
+  "verificationHandling": {
+    "currentImplementation": ["NONE", "AUTO_PERSISTED_UKEY", "EXTERNAL_CONFIRM_REQUIRED"],
+    "targetDesign": {
+      "mode": "AUTO_ASSIST_THEN_HANDOFF",
+      "maxAutoAttempts": 3,
+      "handoffMode": "VISIBLE_BROWSER",
+      "sameBrowserContextRequired": true,
+      "postResumeVerificationRequired": true,
+      "automationAssessmentRequired": true
+    },
+    "targetStatus": "DESIGN_PENDING_IMPLEMENTATION"
+  },
   "ukeyBoundary": "Browser coordination and wait/resume only; private key, PIN, physical button and secure desktop remain user/device controlled.",
   "failClosed": ["MIMO_UNAVAILABLE", "CONTROL_MODEL_UNAVAILABLE", "CREDENTIAL_REF_MISSING", "INCOMPLETE_CASE", "IMAGE_OCR_OR_FACT_SELECTION_FAILED", "HUMAN_IN_LOOP_REQUIRED_FOR_UNATTENDED_RUN", "ANY_STABILITY_FAILURE", "HASH_DRIFT", "UNCONFIRMED_SCHEDULE"]
 }

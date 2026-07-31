@@ -3,15 +3,17 @@ id: DOC-ARCH-COZE-HARNESS-BOUNDARY
 title: Coze、Harness、Midscene 与衡准职责边界基线
 document_type: reference
 domain: architecture
-status: accepted
-authority: normative
-version: 1.7
+status: superseded
+authority: historical
+version: 1.8
 effective_date: 2026-07-18
 owner: project-owner
 ---
 
 # Coze、Harness、Midscene 与衡准职责边界基线
 
+> 2026-07-20 起本文只记录 I0—I7 的 Coze 历史边界；I8 当前边界已由 [`flowise-sqlite-hiagent-regression-baseline-v1.md`](flowise-sqlite-hiagent-regression-baseline-v1.md) 覆盖。
+>
 > 本文固化项目负责人确认的最新产品理解。它覆盖现行文档中与 Codex/GPT 运行时作者化、衡准可写控制面、外部 Agent 禁用相关的旧表述，但不构成功能已实现证明。实施顺序只以 [`../../../agent/plans/active/v54-implementation-batches.md`](../../../agent/plans/active/v54-implementation-batches.md) 为准。
 
 ## 1. 已确认的产品边界

@@ -48,11 +48,13 @@ $seeded = Invoke-RestMethod -Method Post -Uri 'http://127.0.0.1:18443/internal/t
 if ($seeded.status -ne 'SEEDED') { throw 'Synthetic bank fixture seeding failed.' }
 $linked = Invoke-RestMethod -Method Post -Uri 'http://127.0.0.1:18443/internal/test-support/v1/identities:link' -Headers $testSupportHeaders -Body (@{subject=$customerSubject;logicalRef='customer.alice'} | ConvertTo-Json -Compress) -TimeoutSec 30
 if ($linked.status -ne 'LINKED') { throw 'Synthetic customer identity link failed.' }
+$scenario = Invoke-RestMethod -Method Post -Uri 'http://127.0.0.1:18443/internal/test-support/v1/customer-scenario:seed' -Headers $testSupportHeaders -Body (@{subject=$customerSubject;logicalCustomerRef='customer.alice';destinationCustomerRef='customer.bob'} | ConvertTo-Json -Compress) -TimeoutSec 60
+if ($scenario.status -ne 'READY') { throw 'Synthetic browser/OCR scenario initialization failed.' }
 [ordered]@{
     status = 'READY'
     batch = 'I4'
     persistence = 'SQLite only'
     cases = @('LOGIN_PROFILE','ACCOUNT_OWNERSHIP','AUTH_REJECTION_RECOVERY')
-    fixture = 'customer.alice linked through authorized test-support API'
+    fixture = 'customer.alice linked and browser/OCR scenario initialized through authorized test-support API'
     secrets = 'stored-only-in-ignored-runtime-env'
 } | ConvertTo-Json -Compress

@@ -5,7 +5,24 @@ const fs = require('node:fs');
 const path = require('node:path');
 const { chromium } = require('../../runtime/node_modules/playwright');
 const { executeCandidatePackage } = require('./i8-candidate-runner.cjs');
-const { resolveCredential } = require('./login-profile.cjs');
+const { resolveCredential } = require('./i10-worker-utils.cjs');
+const { policyForAction } = require('./i10-verification-policy.cjs');
+const { runVerificationPolicy, verificationModes } = require('./i10-verification-execution.cjs');
+
+function stabilityAllowedOrigins(targetProfile, baseUrl) {
+  const origins = new Set(targetProfile
+    ? [
+        ...(Array.isArray(targetProfile.allowedNavigationOrigins) ? targetProfile.allowedNavigationOrigins : []),
+        ...(Array.isArray(targetProfile.allowedInteractionOrigins) ? targetProfile.allowedInteractionOrigins : []),
+        ...(Array.isArray(targetProfile.credentialOrigins) ? targetProfile.credentialOrigins : [])
+      ]
+    : [new URL(baseUrl).origin, 'http://127.0.0.1:18443', 'http://127.0.0.1:19000']);
+  const adapter = targetProfile?.adapterBinding;
+  if (adapter?.adapterId === 'fuxing-bank-demo' && adapter?.adapterVersion === '1.0.0') {
+    origins.add('http://127.0.0.1:19000');
+  }
+  return [...origins];
+}
 
 const VIEWPORTS = Object.freeze([
   Object.freeze({ viewportId: 'DESKTOP_1440X900', width: 1440, height: 900, suffix: 'desktop' }),
@@ -25,6 +42,11 @@ function stableJson(value) {
 
 function fail(code, message, category = 'ENVIRONMENT') {
   throw Object.assign(new Error(message), { code, category });
+}
+
+function ordinalForStep(step) {
+  const match = String(step?.stepId || '').match(/^dsl_(\d{2,})$/);
+  return match ? Number(match[1]) : 0;
 }
 
 function assertClaim(claim) {
@@ -97,7 +119,7 @@ async function executeRun(browser, claim, run, options, credential, fingerprint)
     timezoneId: 'Asia/Shanghai',
     viewport: { width: run.viewportWidth, height: run.viewportHeight },
     storageState: { cookies: [], origins: [] },
-    ignoreHTTPSErrors: false
+    ignoreHTTPSErrors: options.ignoreHTTPSErrors === true
   });
   const initialState = await context.storageState();
   if (initialState.cookies.length !== 0 || initialState.origins.length !== 0) {
@@ -128,12 +150,17 @@ async function executeRun(browser, claim, run, options, credential, fingerprint)
       page,
       fixtures: {
         'LOGIN_PROFILE.USERNAME': credential.username,
-        'LOGIN_PROFILE.PASSWORD': credential.password
+        'LOGIN_PROFILE.PASSWORD': credential.password,
+        'CREDENTIAL.USERNAME': credential.username,
+        'CREDENTIAL.PASSWORD': credential.password
       },
       capture: async (_name, currentPage) => {
         screenshot = await currentPage.screenshot({
           fullPage: true,
-          mask: [
+          mask: options.genericTarget ? [
+            currentPage.locator('input[type="password"]'),
+            currentPage.locator('input[autocomplete*="username"],input[autocomplete*="email"],input[autocomplete*="tel"]')
+          ] : [
             currentPage.getByTestId('customer-profile-name'),
             currentPage.getByTestId('customer-profile-avatar'),
             currentPage.getByTestId('profile-display-name'),
@@ -144,11 +171,34 @@ async function executeRun(browser, claim, run, options, credential, fingerprint)
           ],
           maskColor: '#202020'
         });
+      },
+      afterStep: async (step, currentPage, storedPolicy) => {
+        const policy = storedPolicy || policyForAction(
+          { semanticTargetRef: step.targetRef },
+          claim.fixtureProfile,
+          options.candidateManifest?.targetProfileSnapshot?.adapterBinding
+        );
+        await runVerificationPolicy(currentPage, policy, {
+          namespace: claim.namespace,
+          taskRef: claim.batchId,
+          actionOrdinal: ordinalForStep(step),
+          onVerificationAttempt: options.onVerificationAttempt,
+          // Stability certification has no user-facing browser handoff.  A
+          // challenge which cannot be completed automatically must invalidate
+          // the sample rather than pretend that a later user click passed it.
+          allowExternalFallback: false,
+          assertSuccessEvidence: async targetRef => currentPage.getByTestId(targetRef === 'ORDER_NUMBER' ? 'transfer-order-number' : targetRef)
+            .waitFor({ state: 'visible', timeout: 15_000 })
+        });
       }
     });
     facts = result.facts;
     outcome = result.outcome === 'PASSED' ? 'PASSED' : 'FAILED';
     if (outcome !== 'PASSED') errorCode = 'STABILITY_CANDIDATE_FAILED';
+    if (options.forceFailureValidationRunId === run.validationRunId) {
+      outcome = 'FAILED';
+      errorCode = 'I10_ACCEPTANCE_STABILITY_SAMPLE_FAILED';
+    }
   } catch (error) {
     errorCode = error.code || (error.name === 'TimeoutError' ? 'STABILITY_BROWSER_TIMEOUT' : 'STABILITY_EXECUTION_FAILED');
     screenshot = await page.screenshot({
@@ -186,6 +236,7 @@ async function executeRun(browser, claim, run, options, credential, fingerprint)
     assertionSetHash,
     evidenceSetHash,
     outcome,
+    verificationPolicyModes: verificationModes(options.candidateManifest),
     ...(errorCode ? { errorCode } : {})
   };
   const log = assertionSet.map(item => `${item.passed ? 'PASS' : 'FAIL'} ${item.stepId} ${item.operation}`).join('\n') + '\n';
@@ -221,9 +272,19 @@ async function executeStabilityBatch(claim, options = {}) {
   const productRoot = path.resolve(options.productRoot || path.resolve(__dirname, '..', '..'));
   const runtimeProductRoot = path.resolve(options.runtimeProductRoot || path.resolve(__dirname, '..', '..'));
   const executablePath = options.executablePath || path.join(runtimeProductRoot, 'runtime', 'browsers', 'chromium-1217', 'chrome-win64', 'chrome.exe');
-  const baseUrl = (options.baseUrl || claim.entryUrl || process.env.HENGZHUN_PORTAL_BASE_URL || 'http://127.0.0.1:18082').replace(/\/portal\/login(?:[?#].*)?$/, '').replace(/\/$/, '') + '/';
+  const manifestPath = path.resolve(productRoot, claim.relativeDirectory, 'manifest.json');
+  const candidateManifest = JSON.parse(fs.readFileSync(manifestPath, 'utf8'));
+  const targetProfile = candidateManifest.targetProfileSnapshot;
+  const genericTarget = Boolean(targetProfile);
+  // The candidate executor requires an origin-root base URL.  The frozen
+  // TargetProfile launch URL remains authoritative for navigation routes, but
+  // must not be used verbatim when it contains a page pathname.
+  const baseUrl = genericTarget
+    ? new URL('/', String(targetProfile.launchUrl)).href
+    : (options.baseUrl || claim.entryUrl || process.env.HENGZHUN_PORTAL_BASE_URL || 'http://127.0.0.1:18082').replace(/\/portal\/login(?:[?#].*)?$/, '').replace(/\/$/, '') + '/';
   const parsedBase = new URL(baseUrl);
-  if (parsedBase.protocol !== 'http:' || !['127.0.0.1', 'localhost'].includes(parsedBase.hostname) || parsedBase.username || parsedBase.password) {
+  if ((!genericTarget && (parsedBase.protocol !== 'http:' || !['127.0.0.1', 'localhost'].includes(parsedBase.hostname)))
+      || !['http:', 'https:'].includes(parsedBase.protocol) || parsedBase.username || parsedBase.password) {
     fail('STABILITY_BASE_URL_NOT_ALLOWED', '稳定性运行只允许受控本机门户地址。', 'CONTRACT');
   }
   const credential = options.credential || resolveCredential(claim.credentialAlias, options.environment || process.env);
@@ -231,9 +292,22 @@ async function executeStabilityBatch(claim, options = {}) {
   const fingerprint = runtimeFingerprint(runtimeProductRoot, executablePath);
   const browser = await chromium.launch({ executablePath, headless: options.headless !== false });
   const results = [];
+  if (options.forceFailureValidationRunId &&
+      !claim.runs.some(run => run.validationRunId === options.forceFailureValidationRunId)) {
+    fail('I10_ACCEPTANCE_STABILITY_INJECTION_TARGET_INVALID', '受控稳定性失败样本不属于当前批次。', 'CONTRACT');
+  }
   try {
     for (const run of claim.runs) {
-      results.push(await executeRun(browser, claim, run, { ...options, productRoot, executablePath, baseUrl }, credential, fingerprint));
+      results.push(await executeRun(browser, claim, run, {
+        ...options,
+        productRoot,
+        executablePath,
+        baseUrl,
+        genericTarget,
+        allowedOrigins: genericTarget ? stabilityAllowedOrigins(targetProfile, baseUrl) : options.allowedOrigins,
+        ignoreHTTPSErrors: targetProfile?.tlsPolicy === 'ALLOW_SELF_SIGNED',
+        candidateManifest
+      }, credential, fingerprint));
     }
   } finally {
     await browser.close();
@@ -247,4 +321,4 @@ async function executeStabilityBatch(claim, options = {}) {
   };
 }
 
-module.exports = { VIEWPORTS, assertClaim, executeStabilityBatch, runtimeFingerprint, safeEvidenceDirectory };
+module.exports = { VIEWPORTS, assertClaim, executeStabilityBatch, ordinalForStep, runtimeFingerprint, safeEvidenceDirectory, stabilityAllowedOrigins };

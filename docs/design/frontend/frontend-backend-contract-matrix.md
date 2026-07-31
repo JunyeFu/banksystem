@@ -5,8 +5,8 @@ document_type: reference
 domain: contract
 status: accepted
 authority: normative
-version: 1.1
-effective_date: 2026-07-15
+version: 1.2
+effective_date: 2026-07-20
 owner: project-owner
 related_contracts: [contracts/openapi/customer-api.yaml, contracts/openapi/operations-api.yaml, contracts/openapi/test-support-api.yaml, contracts/openapi/quality-platform-api.yaml]
 ---
@@ -25,7 +25,7 @@ related_contracts: [contracts/openapi/customer-api.yaml, contracts/openapi/opera
 | 运营贷款/风险 | 评分、批准、风险决策 | 未完整声明 | 缺口 | 完成 OpenAPI 后才能重构交互 |
 | 清算/对账/日终 | 触发、查询最新结果 | 未完整声明 | 缺口 | 明确内部/运营边界与错误码 |
 | 测试支撑 | Fixture、断言、业务日期 | `test-support-api.yaml` | 基础较完整 | 保持 local/test 与角色限制 |
-| 衡准观测（暂缓） | 运行、失败、证据、环境、发布质量 | `quality-platform-api.yaml`（只读草案） | `HZ-OBSERVABILITY-001` 为 `BLOCKED`；既有前端不构成当前能力 | 恢复后只实现只读投影；案例、基线、知识、调度、恢复和脚本写操作只经 Coze + Harness |
+| 衡准观测（暂缓） | 运行、失败、证据、环境、发布质量 | `quality-platform-api.yaml`（只读草案） | `HZ-OBSERVABILITY-001` 为 `BLOCKED`；既有前端不构成当前能力 | 恢复后只实现只读投影；案例、基线、知识、调度、恢复和脚本写操作只经 Flowise + MCP + Harness |
 
 ## 首批五页面实现结论
 
