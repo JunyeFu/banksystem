@@ -52,6 +52,10 @@ owner: project-owner
 ### R4 生产切流关闭
 - 受管重启 + 真实案例探测（case_prepare i10 路径正常）+ batch CLOSED + 全景终态达成
 
+## 3.5 决策记录
+
+- **DP-R5-1（用户 2026-08-03 决策）**：`I8_DRAFT_JSON_INVALID`（现用于 i10 草案 JSON 解析）**改名为 `I10_CASE_DRAFT_INVALID`**（语义准确）；`I8_ACCEPTANCE_JSON_INVALID` 随 acceptanceSummaryJson 退场删除；两者登记 matrix 与 B4-S1 清单联动。
+
 ## 4. 切片链建议
 
 1. **RF-005-S1** 双路由考古与基线（零代码：C1-C5 现状断言、v7 消费面复核、差异表）
