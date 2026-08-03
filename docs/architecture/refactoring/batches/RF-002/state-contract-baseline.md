@@ -42,7 +42,17 @@ owner: project-owner
 - 断言 A5：harness i10 验证挑战状态机 SQL 存在（WAITING_USER_PREPARATION/WAITING_USER_ACTION）与 verification:get taskRef 路由
 - 这些断言是 S2/S3 切换的**反向锚点**：S2 完成后"无字段"断言将更新为"有字段"，S3 完成后"硬编码集合"断言将删除——防止回归
 
-## 4. 证据来源
+## 4. 实现状态（2026-08-03，S2 已落地）
+
+| 契约点 | 状态 | 证据 |
+|---|---|---|
+| tasks:get verificationGate | ✅ G1 已实现（活跃挑战三分支：有/无/过期；resumeAllowed=WAITING_USER_ACTION） | `harness/src/service.ts` getTask + `rf002-s2-state-contract.test.cjs` |
+| tasks:get terminal | ✅ G3 已实现（SUCCEEDED/FAILED/WAITING_USER/CANCELLED 或 run_status=BLOCKED 或 gate 存在） | 同上 |
+| candidates:get terminal/verificationGate | ✅ G2 已实现（nextAction 终止集判定 + job_id→task_ref gate） | `harness/src/service.ts` getI8Candidate + 同上 |
+| 双源一致性 | ✅ verificationGate 与 verification:get 同源（i10_verification_challenges），合同测试断言 | `rf002-s2-state-contract.test.cjs` |
+| S1 反向锚点 | ✅ A2 已翻转为"有字段"（A3/A4 MCP 锚点留待 S3） | `rf002-s1-state-contract-baseline.test.cjs` |
+
+## 5. 证据来源
 
 - `harness/src/server.ts`、`harness/src/service.ts`、`harness/src/i10/service.ts`
 - `mcp/src/server.cjs`

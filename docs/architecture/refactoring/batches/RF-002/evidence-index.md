@@ -19,5 +19,7 @@ owner: project-owner
 | 范围授权 | **已授权**：L1全景（2026-08-03）与target-design v2.0（2026-08-03）经用户批准 | `v54-implementation-batches.md`重构章节、`target-design.md` |
 | S1状态契约考古 | PASS（CONTRACT）：A2-A5现状缺口机器断言、差异表产出、零代码改动 | `state-contract-baseline.md`、`rf002-s1-state-contract-baseline.test.cjs` |
 | S1聚焦测试 | PASS：48/48（含RF-001回归43） | `node --test` 8个验证文件（exit 0） |
+| S2 Harness状态契约扩展 | PASS：G1/G2/G3落地（terminal/verificationGate），tasks五分支+candidates两分支+双源一致性 3/3 | `rf002-s2-state-contract.test.cjs`、`harness/src/service.ts` |
+| S2聚焦测试 | PASS：51/51（含S1锚点翻转）、TS 0错误、身份632ad5ee | `node --test` 9个验证文件（exit 0） |
 
-RF-002当前：L1全景+target-design已批准，S1完成（考古基线冻结）。下一门禁S2（Harness契约扩展：terminal/verificationGate字段+合同测试）。
+RF-002当前：L1全景+target-design已批准，S1完成（考古基线），S2完成（Harness契约扩展）。下一门禁S3（MCP收敛：删除硬编码终止集合与跨端点验证投影）。

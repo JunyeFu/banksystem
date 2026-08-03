@@ -21,15 +21,16 @@ const harnessService = read('harness/src/service.ts')
 const harnessI10 = read('harness/src/i10/service.ts')
 const mcpServer = read('mcp/src/server.cjs')
 
-test('A2 baseline: candidates:get response carries no terminal/verificationGate fields yet', () => {
-  // getI8Candidate builds the response from the SQL projection; until S2 the
-  // response must NOT contain the future state-semantic fields.
+test('A2 baseline: candidates:get response now emits terminal/verificationGate (S2 landed)', () => {
+  // S2 (RF-002) added the state-semantic fields; the S1 reverse anchor flips:
+  // the fields MUST now be present so the convergence is regression-guarded.
   assert.match(harnessService, /getI8Candidate\(namespace: string, preparationId: string\)/, 'getI8Candidate must exist')
   const fnStart = harnessService.indexOf('getI8Candidate(namespace: string, preparationId: string)')
-  const fnBody = harnessService.slice(fnStart, fnStart + 6000)
-  assert.doesNotMatch(fnBody, /terminal/, 'S1 baseline: getI8Candidate must not emit a terminal field yet')
-  assert.doesNotMatch(fnBody, /verificationGate/, 'S1 baseline: getI8Candidate must not emit verificationGate yet')
-  // the route still maps to the plain service read
+  const fnBody = harnessService.slice(fnStart, fnStart + 9000)
+  assert.match(fnBody, /terminal: Boolean\(gate\)/, 'S2: getI8Candidate must emit a terminal field')
+  assert.match(fnBody, /verificationGate: \{/, 'S2: getI8Candidate must emit verificationGate')
+  assert.match(fnBody, /challenge_id/, 'S2: verificationGate must read from i10_verification_challenges')
+  assert.match(fnBody, /WAITING_USER_PREPARATION/, 'S2: gate must cover WAITING_USER_PREPARATION')
   assert.match(harnessServer, /service\.getI8Candidate\(input\.namespace, input\.preparationId\)/)
 })
 
