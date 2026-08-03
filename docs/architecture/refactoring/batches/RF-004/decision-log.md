@@ -17,3 +17,5 @@ owner: project-owner
 3. **范围未细化声明**：target-design v1.0 为草案（B1-B4 子项），经用户批准前不构成实施授权（RC-D0）。
 
 2. 2026-08-03（S1完成）：凭据绑定考古与基线。用户批准 target-design v1.0 后执行 S1：C1-C5 现状机器断言（MCP 冻结 i3-customer、enqueueRun 持久化、验证路径 credentialRef 透传先例、schemas 类型、v7 零 credentialAlias 调用）；rf004-s1-credential-baseline.test.cjs 5/5、全聚焦 67/67、校验器×3、身份 632ad5ee、git diff --check 全过；零运行时代码改动、未读取任何凭据。**RC-D1同步链**：任务包→切片→contract-delta（S1 基线表）→batch→L2 C2 保持；无顶层冲突。下一门禁 S2（MCP 绑定契约）。
+
+3. 2026-08-03（S2完成，DP-S4-1=A）：MCP 凭据注入退场。**DP-S4-1**（target-design B1 假设 MCP 解析 credentialRef 与事实冲突——case 权威凭据在 Harness 侧且端点 credentialAlias 必填）：用户批准选 A（凭据解析所有权归 Harness，与 RF-002 同哲学）。normalizeCredentialBinding 变更为默认不注入（legacy=false 返回空绑定+审计摘要）；`HENGZHUN_RF004_LEGACY_CREDENTIAL=1` 为唯一 i3-customer 注入通道；run_submit/schedule_create 默认请求不携带 credentialAlias（条件装配）。边界合同 until 更新（13 别名计数不变、校验器 PASS）。S1 C1 锚点翻转（注入→停注入+LEGACY 分支）；B3-S3 冻结断言更新；rf004-s2-mcp-credential-exit.test.cjs 3/3；全聚焦 70/70、校验器×3、身份 632ad5ee、git diff --check 全过。**RC-D1同步链**：任务包→切片→target-design（B1 修正登记）→contract-delta→L2 C2 推进→batch；无顶层冲突。下一门禁 S3（Harness 端点解析）。

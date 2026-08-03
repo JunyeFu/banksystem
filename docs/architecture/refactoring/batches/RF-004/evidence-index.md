@@ -20,4 +20,7 @@ owner: project-owner
 | S1凭据绑定基线 | PASS（CONTRACT）：C1-C5 现状冻结、v7 零 credentialAlias 调用复核 | `rf004-s1-credential-baseline.test.cjs`（5/5）、`contract-delta.md` |
 | S1聚焦测试 | PASS：67/67（含RF-001/002/003回归62） | `node --test` 14个验证文件（exit 0） |
 
-RF-004当前：target-design已批准、S1完成（凭据绑定基线冻结）。下一门禁S2（MCP绑定契约）。
+| S2 MCP凭据注入退场 | PASS：默认停注入、LEGACY唯一回退通道、条件装配、DP-S4-1=A决策 | `rf004-s2-mcp-credential-exit.test.cjs`（3/3）、`mcp/src/rf001-contract-adapter.cjs` |
+| S2聚焦测试 | PASS：70/70（含RF-001/002/003回归67） | `node --test` 15个验证文件（exit 0） |
+
+RF-004当前：target-design已批准、S1完成（凭据绑定基线）、S2完成（MCP注入退场）。下一门禁S3（Harness端点解析）。

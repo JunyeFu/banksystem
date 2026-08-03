@@ -18,15 +18,17 @@ const harnessService = fs.readFileSync(path.join(root, 'harness/src/service.ts')
 const harnessSchemas = fs.readFileSync(path.join(root, 'harness/src/schemas.ts'), 'utf8')
 const agentflow = JSON.parse(fs.readFileSync(path.join(root, 'flowise/i10/agentflow-v7.json'), 'utf8'))
 
-test('C1: MCP run_submit/schedule_create freeze the implicit i3-customer binding', () => {
-  assert.match(mcpAdapter, /FROZEN_EXECUTION_CREDENTIAL_ALIAS = Object\.freeze\(\{ credentialAlias: 'i3-customer' \}\)/, 'frozen alias must exist')
-  assert.match(mcpAdapter, /I10_EXECUTION_CREDENTIAL_BINDING_FROZEN/, 'non-frozen value must fail closed')
+test('C1 (S2 flipped): MCP run_submit/schedule_create no longer inject a credential by default', () => {
+  // RF-004-S2 (DP-S4-1=A): default path injects no credential; the frozen
+  // i3-customer value survives only behind the explicit legacy channel.
+  assert.match(mcpAdapter, /FROZEN_EXECUTION_CREDENTIAL_ALIAS = Object\.freeze\(\{ credentialAlias: 'i3-customer' \}\)/, 'frozen alias constant must remain as the legacy value')
+  assert.match(mcpAdapter, /function normalizeCredentialBinding\(legacy = false\)/, 'binding must default to no injection')
   const runBlock = mcpServer.slice(mcpServer.indexOf("registerTool('run_submit'"), mcpServer.indexOf("registerTool('schedule_create'"))
-  assert.match(runBlock, /normalizeCredentialBinding\(\)/, 'run_submit must assemble the binding through the adapter')
-  assert.match(runBlock, /credentialAlias: binding\.credentialAlias/, 'run_submit must inject the frozen alias')
+  assert.match(runBlock, /normalizeCredentialBinding\(legacyCredentialBinding\)/, 'run_submit must pass the legacy switch')
+  assert.match(runBlock, /\.\.\.\(binding\.credentialAlias \? \{ credentialAlias: binding\.credentialAlias \} : \{\}\)/, 'run_submit must attach the alias conditionally')
   const scheduleBlock = mcpServer.slice(mcpServer.indexOf("registerTool('schedule_create'"), mcpServer.indexOf("registerTool('schedule_get'"))
-  assert.match(scheduleBlock, /normalizeCredentialBinding\(\)/, 'schedule_create must assemble the binding through the adapter')
-  assert.match(scheduleBlock, /credentialAlias: binding\.credentialAlias/, 'schedule_create must inject the frozen alias')
+  assert.match(scheduleBlock, /normalizeCredentialBinding\(legacyCredentialBinding\)/, 'schedule_create must pass the legacy switch')
+  assert.match(scheduleBlock, /\.\.\.\(binding\.credentialAlias \? \{ credentialAlias: binding\.credentialAlias \} : \{\}\)/, 'schedule_create must attach the alias conditionally')
 })
 
 test('C2: Harness enqueueRun persists credentialAlias into the run payload', () => {
