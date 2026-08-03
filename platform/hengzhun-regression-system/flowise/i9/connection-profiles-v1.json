@@ -1,0 +1,23 @@
+{
+  "schemaVersion": "hengzhun-i9-connection-profiles-v1",
+  "model": {
+    "provider": "MiMo",
+    "adapter": "ChatOpenAI",
+    "modelName": "mimo-v2.5",
+    "baseUrl": "https://api.xiaomimimo.com/v1",
+    "apiKeyVariable": "MIMO_API_KEY",
+    "actualConnectivityStage": "I9-P4"
+  },
+  "mcp": {
+    "transport": "streamable-http",
+    "url": "http://127.0.0.1:18789/mcp",
+    "bearerTokenVariable": "HENGZHUN_MCP_TOKEN",
+    "namespace": "hengzhun-demo",
+    "actualConnectivityStage": "I9-P4"
+  },
+  "constraints": {
+    "secretsStoredInFlowiseVariables": false,
+    "externalToolsOnlyThroughMcp": true,
+    "repositoryRagRuntimeDependency": false
+  }
+}

@@ -3,7 +3,7 @@ project: banksystem
 root: D:\Agent\banksystem
 defaultBranch: main
 statusSource: agent/backlog.yaml
-updatedAt: '2026-07-15T00:00:00+08:00'
+updatedAt: '2026-07-21T22:40:00+08:00'
 
 allowedStatuses: [PROPOSED, READY, IN_PROGRESS, BLOCKED, REVIEW, DONE, CANCELLED]
 
@@ -16,7 +16,7 @@ tracks:
         status: REVIEW
         owner: 傅钧烨
         dependsOn: []
-        allowedPaths: [AGENTS.md, apps/AGENTS.md, services/AGENTS.md, contracts/AGENTS.md, tests/AGENTS.md, docs/**, knowledge-sources/**, rag/**, agent/**, scripts/docs/**, scripts/rag/**, scripts/knowledge/**, .gitignore]
+        allowedPaths: [AGENTS.md, apps/AGENTS.md, services/AGENTS.md, contracts/AGENTS.md, tests/AGENTS.md, docs/**, documents/**, knowledge-sources/**, rag/**, agent/**, scripts/docs/**, scripts/rag/**, scripts/knowledge/**, .gitignore]
         acceptance:
           - Docs are the reviewed knowledge source and archives are separated.
           - Agent backlog is the only task-status source.
@@ -28,17 +28,200 @@ tracks:
           - python scripts/rag/validate_rag.py
         evidence: [docs/current-state/repository-knowledge-baseline.md]
 
-  - id: V54
-    name: regression-platform
+  - id: PRIORITY-20260715
+    name: internship-regression-platform-first
     workItems:
-      - {id: B0, title: Platform baseline and brand mapping, status: READY, owner: 傅钧烨, dependsOn: [GOV-001]}
-      - {id: B1, title: Quality Case and Baseline, status: PROPOSED, owner: 傅钧烨, dependsOn: [B0]}
-      - {id: B2, title: Artifact and Evidence, status: PROPOSED, owner: 傅钧烨, dependsOn: [B1]}
-      - {id: B3, title: Deterministic validation, status: PROPOSED, owner: 傅钧烨, dependsOn: [B2]}
-      - {id: B4, title: Scheduled regression, status: PROPOSED, owner: 傅钧烨, dependsOn: [B3]}
-      - {id: B5, title: Codex knowledge and authoring control, status: PROPOSED, owner: 傅钧烨, dependsOn: [B4]}
-      - {id: B6, title: Codex visual authoring and controlled execution, status: PROPOSED, owner: 傅钧烨, dependsOn: [B5]}
-      - {id: B7, title: Recovery benchmark and delivery, status: PROPOSED, owner: 傅钧烨, dependsOn: [B6]}
+      - id: FE-DEFECT-001
+        title: Frontend defect inventory, remediation and acceptance
+        status: IN_PROGRESS
+        owner: 傅钧烨
+        dependsOn: [FE-PLAN-001]
+        allowedPaths: [apps/**, services/**, contracts/**, tests/**, docs/design/frontend/**, docs/evidence/**, agent/**]
+        acceptance:
+          - Current customer and operations frontend defects are recorded against real API contracts and split into independently verifiable batches.
+          - The identified batches are fixed in scoped implementation work before this parent item is marked DONE.
+          - Each changed flow passes relevant frontend build, contract, browser and visual acceptance checks.
+          - No v5.4 Coze/Harness or 衡准 implementation is started in this item.
+        evidence: [docs/evidence/frontend/frontend-defect-inventory-2026-07-15.md, docs/evidence/frontend/customer-live-read-remediation-2026-07-16.md]
+      - id: FE-DEFECT-002
+        title: Fail closed for EOD when authoritative status is unavailable
+        status: IN_PROGRESS
+        owner: 傅钧烨
+        dependsOn: [FE-PLAN-001]
+        allowedPaths: [apps/operations-console/**, tests/e2e/frontend-operations-settlement/**, docs/evidence/**, agent/**]
+        acceptance:
+          - A failed or unavailable EOD status query disables both the start and confirm execution controls.
+          - The UI provides an explicit retry path and never infers a business date or executable state from unavailable data.
+          - Mocked and live-browser safety checks cover the failure branch without executing EOD.
+      - id: FE-DEFECT-003
+        title: Restore customer portal live read paths and recoverability
+        status: IN_PROGRESS
+        owner: 傅钧烨
+        dependsOn: [FE-PLAN-001]
+        allowedPaths: [apps/customer-portal/**, services/**, contracts/**, tests/**, docs/evidence/**, agent/**]
+        acceptance:
+          - A persistent bank-customer identity completes user-entered graphical username/password login from /portal/login without exposing credentials, then reaches the customer dashboard and its uniquely linked core account.
+          - Identity readiness covers enabled/no-required-action state, default CUSTOMER role, unique customer_identity mapping and restart re-verification; phone-number login is not claimed until its contract exists.
+          - Dashboard, security settings and transfer list consume contract-valid data in the local authenticated demo.
+          - Each error state exposes safe retry and actionable, non-sensitive recovery feedback.
+          - Root cause and remediation evidence distinguish client, gateway, authorization and downstream dependency failures.
+        evidence: [docs/evidence/frontend/customer-live-read-remediation-2026-07-16.md, docs/evidence/frontend/customer-password-login-gap-2026-07-16.md]
+      - id: FE-DEFECT-004
+        title: Restore operations console live read paths
+        status: IN_PROGRESS
+        owner: 傅钧烨
+        dependsOn: [FE-PLAN-001]
+        allowedPaths: [apps/operations-console/**, services/**, contracts/**, tests/**, docs/evidence/**, agent/**]
+        acceptance:
+          - EOD and payment monitoring consume contract-valid data in the local authenticated demo.
+          - Failures remain explicit and are not converted to a misleading empty state.
+          - Remediation evidence identifies the responsible integration boundary without exposing credentials.
+      - id: FE-DEFECT-005
+        title: Add live frontend integration health gates
+        status: IN_PROGRESS
+        owner: 傅钧烨
+        dependsOn: [FE-DEFECT-002, FE-DEFECT-003, FE-DEFECT-004]
+        allowedPaths: [tests/**, apps/**, services/**, contracts/**, docs/evidence/**, agent/**]
+        acceptance:
+          - A deterministic local smoke suite avoids page.route for the covered read paths.
+          - It covers customer and operations reads, authorization/error recovery, and EOD fail-closed behavior.
+          - Evidence is synthetic/redacted and captures contract version, route, status and assertion outcome.
+      - id: FE-DEFECT-006
+        title: Establish frontend performance budgets and route-level code splitting
+        status: READY
+        owner: 傅钧烨
+        dependsOn: [FE-PLAN-001]
+        allowedPaths: [apps/customer-portal/**, apps/operations-console/**, tests/**, docs/evidence/**, agent/**]
+        acceptance:
+          - Each portal has a documented and automated initial JavaScript budget.
+          - Route-level splitting is introduced where necessary without weakening accessibility, visual acceptance or banking controls.
+      - id: COZE-HARNESS-CORE-001
+        title: Coze-only regression authoring and deterministic execution core
+        status: DONE
+        owner: 傅钧烨
+        dependsOn: []
+        evidence: [docs/evidence/platform/hengzhun-i1-platform-baseline-2026-07-16.md, docs/evidence/platform/hengzhun-i2-safe-kernel-2026-07-16.md, docs/evidence/platform/hengzhun-i4-three-case-midscene-2026-07-17.md, docs/evidence/platform/hengzhun-i5-import-repair-2026-07-17.md, docs/evidence/platform/hengzhun-i6-scheduling-offline-2026-07-18.md, platform/hengzhun-regression-system/tests/conformance/status.yaml]
+        allowedPaths: [platform/**, contracts/**, tests/**, docs/architecture/**, docs/current-state/**, docs/evidence/**, documents/**, rag/**, agent/**, infra/**, scripts/platform/**]
+        acceptance:
+          - Platform runtime, Coze deployment, Harness OpenAPI, SQLite, Artifact and Worker foundations may start while unrelated frontend defects remain open.
+          - Each bank case must pass its own route, API, role, fixture, stable-locator and redacted-browser-evidence gate before Harness integrates that case; one blocked case does not block platform foundations or other ready cases.
+          - The internship minimum closes three low-risk cases: customer password login/profile consistency, customer account list/detail isolation, and safe rejection/recovery for invalid credentials, authorization or expired sessions.
+          - Coze is the only user-facing authoring and task-control entry.
+          - Harness provides the audited SQLite-backed tool boundary and deterministic Playwright execution.
+          - Midscene is model-backed and risk-routed; formal schedules execute only validated Playwright scripts.
+          - 衡准 UI implementation is excluded.
+      - id: HENGZHUN-DELIVERY-001
+        title: Hengzhun internship delivery freeze and reproducible acceptance
+        status: DONE
+        owner: 傅钧烨
+        dependsOn: [COZE-HARNESS-CORE-001]
+        evidence: [docs/evidence/platform/hengzhun-i7-internship-delivery-2026-07-18.md]
+        allowedPaths: [platform/hengzhun-regression-system/**, docs/current-state/**, docs/evidence/platform/**, agent/**, rag/**]
+        acceptance:
+          - The internship delivery scope is frozen without expanding bank business or Hengzhun UI.
+          - One command verifies I1-I7 and writes a redacted machine-readable acceptance record.
+          - A clean source commit produces a complete three-image offline package and restores it into a fresh directory.
+          - SQLite integrity, schema version, package hashes, SBOM and source commit binding are verified.
+          - This conversation stops at the verified local demonstration; target-tenant capacity and target-HiAgent networking are handed off to a separate future conversation.
+      - id: HENGZHUN-I8-FLOWISE-001
+        title: Platform-neutral deterministic regression engine completion
+        status: DONE
+        owner: 傅钧烨
+        dependsOn: [HENGZHUN-DELIVERY-001]
+        evidence: [docs/evidence/platform/hengzhun-i8-stage2-agentflow-mcp-2026-07-20.md, docs/evidence/platform/hengzhun-i8-stage3-deterministic-builder-2026-07-20.md, docs/evidence/platform/hengzhun-i8-stage4-stability-certificate-2026-07-20.md, docs/evidence/platform/hengzhun-i8-stage5-controlled-delivery-2026-07-20.md, docs/evidence/platform/hengzhun-i8-stage6-scheduling-inbox-2026-07-20.md, docs/evidence/platform/hengzhun-i8-stage7-restricted-repair-2026-07-21.md]
+        allowedPaths: [platform/hengzhun-regression-system/**, docs/architecture/**, docs/control/**, docs/design/regression-platform/**, docs/current-state/**, docs/evidence/platform/**, agent/**]
+        acceptance:
+          - Portable Flowise artifacts target Flowise 3.0.12 on bundled Node 20.20.2; all declared platform-external operations use authenticated MCP tools and real platform publication is deferred to I9.
+          - The artifact contract assigns natural language, semantic retrieval, case normalization, minimal clarification, intent planning, human input and result explanation to the Agent platform; local tools own authoritative state, deterministic execution, scripts, evidence and audit.
+          - Visual and controller LLM requests both enforce a 16000-token total window with at most 12000 input tokens and at least 4000 reserved output tokens; MiMo v2.5 uses only the confirmed Qwen3.5-compatible non-thinking, non-streaming OpenAI Chat Completions JSON-string contract and never calls MCP natively.
+          - Harness emits a strict ActionContextEnvelope, defaults to CTX-L1 and upgrades to CTX-L2/CTX-L3 only by deterministic insufficiency rules; the Worker demonstrably passes the complete governed envelope rather than only currentAction.prompt to the visual model adapter.
+          - Migration 009 and audit records persist consumer, context level, estimated and provider-reported token usage, image estimate, tokenizer, budget decision and redaction profile reference without secret content; deterministic over-budget paths return the frozen visual/controller error codes.
+          - Flowise platform knowledge, Flowise database.sqlite and Harness regression_platform.sqlite have separate authority, permissions, backup and restore paths with no domain-state or knowledge-body dual writes; repository RAG is development-only and no RAG subsystem exists in the product.
+          - A plain-language login/profile consistency case produces a deterministic Playwright candidate through the limited DSL and passes the six-run StabilityCertificate gate.
+          - Candidate preview, explicit activation, exact-version recurring and one-time schedules, offline result inbox and bounded repair all pass contract, migration, integration and browser E2E tests.
+          - Every Flowise capability declared by the portable definition has an evidenced HiAgent mapping; local artifact or engine success is not reported as Flowise publication or HiAgent success.
+      - id: HENGZHUN-I9-FLOWISE-PRODUCT-001
+        title: Flowise portable productization and real conversational acceptance
+        status: DONE
+        owner: 傅钧烨
+        dependsOn: [HENGZHUN-I8-FLOWISE-001]
+        evidence:
+          - docs/evidence/platform/hengzhun-i9-p1-runtime-baseline-2026-07-21.md
+          - docs/evidence/platform/hengzhun-i9-p2-four-service-lifecycle-2026-07-21.md
+          - docs/evidence/platform/hengzhun-i9-p3-platform-resources-sqlite-2026-07-21.md
+          - docs/evidence/platform/hengzhun-i9-p4-mcp-connectivity-2026-07-21.md
+          - docs/evidence/platform/hengzhun-i9-p5-agentflow-publication-2026-07-21.md
+          - docs/evidence/platform/hengzhun-i9-p6-forward-conversation-2026-07-21.md
+          - docs/evidence/platform/hengzhun-i9-p7-reverse-conversation-2026-07-21.md
+          - docs/evidence/platform/hengzhun-i9-qwen35-compatibility-ceiling-2026-07-21.md
+          - docs/evidence/platform/hengzhun-i9-closeout-folder-export-2026-07-21.md
+        allowedPaths: [platform/hengzhun-regression-system/**, docs/architecture/**, docs/control/**, docs/design/regression-platform/**, docs/current-state/**, docs/evidence/platform/**, agent/**, D:/Agent/全局端口注册表.md]
+        acceptance:
+          - Bundled Flowise 3.0.12, Node 20.20.2 and all runtime dependencies start on Windows 10/11 x64 without WSL, Docker, global Node or runtime downloads.
+          - One product-owned command prepares, starts, stops and reports Flowise, Harness, MCP and Worker without relying on untracked probes; all runtime state stays under .data.
+          - Flowise platform SQLite, platform knowledge and Harness regression SQLite preserve separate authority, backup and restore paths; no direct Flowise database mutation bypasses public registration or import.
+          - MiMo v2.5 and all 14 authenticated MCP tools work through a published Agentflow that uses only HiAgent-mapped capabilities.
+          - One plain-language case completes the real forward conversation through six-run validation, preview, activation and user-selected on-demand or scheduled execution.
+          - One controlled regression failure completes the real reverse conversation through classification, bounded repair, a new six-run certificate, explicit activation and user-selected rerun or repaired schedule.
+          - Restart and session continuation preserve governed state and expose deterministic errors without leaking secrets, local paths or unredacted evidence.
+          - A secret-free portable folder with hashes, SBOM, backup and restore evidence passes all five current-clean-directory machine gates; second-computer evidence is deferred to the office-computer restore stage and is never inferred from local evidence.
+          - One reproducible platform/hengzhun-regression-system/.release/hengzhun-regression-system-windows-x64 folder contains all runtime dependencies, README, configuration template, lifecycle entrypoints, SBOM, hashes and machine acceptance entrypoint without manual edits.
+          - The final exported folder excludes source-development material, probes, .git, .env, secrets, runtime databases, logs, caches, PIDs, worker outputs and artifact bodies; no compressed archive is generated in this closeout.
+          - Flowise implementation is complete on the current branch; freezing main, preserving coze and creating hiagent remain explicit branch operations and are never auto-merged or force-updated.
+      - id: HENGZHUN-I10-FLOWISE-FORMAL-001
+        title: Flowise formal regression product with unified intake, real visual authoring and portable Windows release
+        status: DONE
+        owner: 傅钧烨
+        dependsOn: [HENGZHUN-I9-FLOWISE-PRODUCT-001]
+        evidence: [docs/evidence/platform/hengzhun-i10-current-implementation-2026-07-22.md, platform/hengzhun-regression-system/flowise/i10/i10-18-chain-acceptance-issue-register-v1.md]
+        allowedPaths: [platform/hengzhun-regression-system/**, docs/architecture/**, docs/control/**, docs/design/regression-platform/**, docs/current-state/**, docs/evidence/platform/**, agent/**, D:/Agent/全局端口注册表.md]
+        acceptance:
+          - I10-G01 through I10-G20 each has implementation, automated tests and truthful runtime evidence.
+          - Portable runtime configuration uses CONTROL_* and VISION_* variables; real structured controller and screenshot vision probes pass without mocks or degraded fallback.
+          - Plaintext credentials enter only the local capture form, are protected with Windows DPAPI CurrentUser, and all other layers use credentialRef.
+          - Natural language, XLSX/CSV/DOCX/JSON and MP4/H.264 inputs accept governed supplementary images and converge on the same confirmed CaseDraft contract through twenty-three authenticated MCP tools.
+          - Local Chinese/English OCR, redaction and controller fact selection populate provenance-bound ActionStepV2 input values without exposing secrets or allowing unsupported guesses.
+          - Midscene pauses on SMS/TOTP/CAPTCHA/QR/UKey and other governed verification challenges; versioned human confirmation resumes the same session while unattended execution fails closed.
+          - UKey support is limited to browser coordination; PIN, private keys, physical confirmation and secure desktop remain user or authorized-middleware controlled and are never falsely claimed as hardware-verified.
+          - New and repaired candidates use real Midscene visual authoring, deterministic Builder, pure Playwright validation and I10_2X2_V1 four-run certification; I9 six-run evidence remains readable and unchanged.
+          - Full .cjs source is delivered by short-lived authorized download with an execution-identical SHA-256.
+          - ON_DEMAND, ONE_TIME and RECURRING are produced from natural-language time intent and require timezone/frequency human confirmation; no fixed 2030 schedule remains.
+          - Forward and reverse Flowise conversations pass for natural-language, case-file and video entry points without model-native tool calls or project-source edits.
+          - The current desktop I10 folder has a refreshed VERIFY manifest covering core files and runtime asset trees, an independently reported manifest SHA-256, zero forbidden findings and a successful I10_PORTABLE_FOLDER_VERIFIED result; no new folder or ZIP is required, and this local result is not a cross-computer portability claim.
+          - No automatic merge, force push, main/coze/hiagent rewrite, or I9 release/evidence mutation occurs.
+      - id: REFACTOR-RF-001-HENGZHUN-CONTRACTS
+        title: Standardize Hengzhun MCP-to-Harness fields, error codes and adapters without changing runtime semantics
+        status: IN_PROGRESS
+        owner: 傅钧烨
+        dependsOn: [HENGZHUN-I10-FLOWISE-FORMAL-001]
+        evidence: [docs/architecture/refactoring/batches/RF-001/evidence-index.md, docs/evidence/platform/hengzhun-i10-post-backfill-baseline-2026-08-02.md]
+        allowedPaths: [platform/hengzhun-regression-system/mcp/**, platform/hengzhun-regression-system/harness/src/i10/**, platform/hengzhun-regression-system/contracts/**, platform/hengzhun-regression-system/scripts/verification/**, scripts/architecture/validate_rf001_contract.py, docs/architecture/refactoring/batches/RF-001/**, docs/current-state/**, agent/backlog.yaml, agent/plans/active/v54-implementation-batches.md]
+        acceptance:
+          - RF-001 remains limited to hengzhun.mcp and hengzhun.harness with no Flowise, Worker or banking-system behavior change.
+          - RF-001-B1 inventoried all 33 MCP tools, 12 adapter categories and 9 contract/boundary findings; B2 froze the machine-checkable shared contract; B3 has entered IMPLEMENTING with one-response shadow comparison and the credential_session_get thin slice, without cutover.
+          - Existing MCP-33 names remain compatible while shared field names, error envelopes and adapter ownership become explicit contracts.
+          - The frozen ReleaseIdentity and 18/18 acceptance baseline remain unchanged during the baseline and shadow phases.
+          - Contract, adapter, compatibility and failure-path tests pass before any cutover request.
+          - RF-002 is not started until RF-001 reaches CLOSED or an explicit rollback/abort state.
+      - id: HENGZHUN-POST-I8-INPUTS-001
+        title: External case adapters and video-case authoring extensions
+        status: DONE
+        supersededBy: HENGZHUN-I10-FLOWISE-FORMAL-001
+        owner: 傅钧烨
+        dependsOn: [HENGZHUN-I8-FLOWISE-001]
+        allowedPaths: [platform/hengzhun-regression-system/**, contracts/**, docs/architecture/**, docs/control/**, docs/design/regression-platform/**, docs/evidence/platform/**, agent/**]
+        acceptance:
+          - Playwright, Selenium, Cypress, Postman and Gherkin imports preserve source, version, normalized intent and unsupported semantics without executing untrusted source directly.
+          - Video inputs are processed locally into redacted, reviewable action candidates and never sent to the Agent platform as raw sensitive media.
+          - Imported or video-derived candidates pass the same Harness, Midscene, deterministic Builder, six-run Playwright stability and explicit-activation gates as natural-language cases.
+      - id: HZ-OBSERVABILITY-001
+        title: Hengzhun read-only observability implementation
+        status: BLOCKED
+        owner: 傅钧烨
+        dependsOn: [COZE-HARNESS-CORE-001]
+        allowedPaths: [platform/**, apps/**, contracts/**, tests/**, docs/**, agent/**]
+        acceptance:
+          - Deferred by project-owner decision; no implementation work is authorized until explicitly resumed.
 
   - id: FRONTEND-TRANSFER-SLICE
     name: five-page-transfer-vertical-slice

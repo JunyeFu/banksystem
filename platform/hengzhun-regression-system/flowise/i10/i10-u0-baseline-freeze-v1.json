@@ -1,0 +1,35 @@
+{
+  "schemaVersion": "hengzhun-i10-u0-baseline-freeze-v1",
+  "capturedAt": "2026-07-30T00:00:00.000Z",
+  "git": {
+    "branch": "agent/i10-agentflow-audit-closure",
+    "head": "fde0f7f3d10d3a3df1c787556f9237b66d16dbd9",
+    "worktreeDirtyEntryCount": 97,
+    "preservationRule": "Existing dirty and untracked files remain user-owned unless explicitly changed by an I10 upgrade step."
+  },
+  "agentflow": {
+    "sourcePath": "flowise/i10/agentflow-v6.json",
+    "sourceSha256": "ab2ebf6c6d4c616710763cbc8ee794a3bb42414b072b30b2a62dd0a94273e1ce",
+    "nodes": 220,
+    "edges": 268,
+    "publicationStateAtCapture": "BUILT_NOT_PUBLISHED"
+  },
+  "database": {
+    "migrationVersion": 35,
+    "verificationAttemptsAtCapture": 0
+  },
+  "runtime": {
+    "harnessPid": 17724,
+    "mcpPid": 40692,
+    "workerPid": 33984,
+    "flowisePid": 25592,
+    "processHealthy": true,
+    "businessReady": false,
+    "businessReadiness": "NOT_PUBLISHED"
+  },
+  "acceptance": {
+    "browserOcrEvidence": "BROWSER_AND_CONTROLLED_ATTACHMENT_ONLY",
+    "flowise18ChainAccepted": false,
+    "localAccepted": false
+  }
+}

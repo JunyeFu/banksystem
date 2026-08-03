@@ -1,0 +1,36 @@
+{
+  "description": "衡准I8阶段7反向修复续办流：读取脱敏事故，主控只在当前StepFailureEnvelope内生成受限补丁；Harness执行白名单校验和六轮纯Playwright复验，用户再决定激活或拒绝。",
+  "entryContract": {
+    "userTechnicalInputRequired": false,
+    "controllerStateRequired": ["incidentId"],
+    "acceptedNaturalLanguageExamples": ["分析这次失败", "按建议生成修复候选", "激活已验证修复"],
+    "sourceCodeInputForbidden": true
+  },
+  "allowedSemantics": ["structured_llm", "condition", "human_input", "loop", "mcp_tool", "direct_reply"],
+  "forbiddenSemantics": ["code", "http", "database", "filesystem", "shell", "browser", "arbitrary_url"],
+  "patchContract": {
+    "schemaVersion": "i8-script-patch-proposal-v1",
+    "allowedOperations": ["TARGET_MAPPING", "WAIT_CONDITION", "ACTION_PARAMETER", "STEP_ORDER", "ASSERTION_IMPLEMENTATION"],
+    "forbidden": ["source", "javascript", "typescript", "shell", "sql", "url", "path", "credential", "removeAssertion", "skipAuthentication"],
+    "maximumAttemptsPerStage": 3,
+    "defaultContextLevel": "CTX-L1"
+  },
+  "nodes": [
+    {"id":"failure","semantic":"mcp_tool","tool":"failure_get","arguments":{"incidentId":"{{$state.incidentId}}"}},
+    {"id":"route","semantic":"condition","expression":"failure.disposition","routes":{"REPORT_ONLY":"report","RETRY_ALLOWED":"report","REAUTHOR_REQUIRED":"patch","PATCH_ALLOWED":"patch"}},
+    {"id":"proposal","semantic":"structured_llm","condition":"route == patch","temperature":0,"input":"{{failure.failureEnvelope.payload}}","constraint":"只输出patchContract允许的JSON；不得生成源码、路径、命令、凭据、任意定位器或弱化断言。"},
+    {"id":"proposalConfirm","semantic":"human_input","condition":"proposal exists","prompt":"展示事故分类、补丁操作、影响步骤和六轮复验要求。确认仅代表创建候选，不代表激活。","choices":["CREATE_CANDIDATE","CANCEL"]},
+    {"id":"propose","semantic":"mcp_tool","tool":"repair_propose","condition":"proposalConfirm == CREATE_CANDIDATE","arguments":{"incidentId":"{{$state.incidentId}}","patchJson":"{{proposal}}","sessionRef":"{{$flow.sessionId}}"}},
+    {"id":"poll","semantic":"loop","condition":"propose.proposalId exists","maximumIterations":40,"body":{"semantic":"mcp_tool","tool":"failure_get","arguments":{"incidentId":"{{$state.incidentId}}"}},"stopWhen":"poll.proposal.status in [WAITING_USER, VALIDATION_FAILED]"},
+    {"id":"decision","semantic":"human_input","condition":"poll.proposal.status == WAITING_USER","prompt":"六轮纯Playwright验证已全部通过。请选择激活或拒绝；激活不会自动复跑或迁移旧调度。","choices":["ACTIVATE","REJECT"]},
+    {"id":"submitDecision","semantic":"mcp_tool","tool":"decision_submit","condition":"decision in [ACTIVATE, REJECT]","arguments":{"incidentId":"{{$state.incidentId}}","proposalId":"{{poll.proposal.proposalId}}","choice":"{{decision}}","confirmationRef":"{{$flow.sessionId}}","reason":"用户对已完成六轮验证的修复候选作出明确决定","sessionRef":"{{$flow.sessionId}}"}},
+    {"id":"report","semantic":"direct_reply","message":"返回真实事故分类、CTX级别、允许处置、候选Hash、六轮验证状态和人工决定；不得把提案生成写成修复完成，不得自动复跑或迁移调度。"}
+  ],
+  "invariants": [
+    "正式或调度运行期间不调用主控LLM或Midscene",
+    "每次补丁产生新candidateId、scriptVersion和Hash",
+    "任一六轮样本失败不得进入人工激活",
+    "主控不能修改复兴银行、Harness、Worker、Flowise、依赖或仓库源码",
+    "激活、复跑和调度迁移是三个独立用户决定"
+  ]
+}

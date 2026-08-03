@@ -25,6 +25,7 @@
     "reference": {
       "retrieval_domains": ["reference", "normative", "current", "planning"],
       "excluded_statuses": ["cancelled"],
+      "source_classes": ["external_reference", "research", "historical"],
       "domain_boosts": {"reference": 1.15, "normative": 1.0, "current": 1.0, "planning": 0.8},
       "class_boosts": {"external_reference": 1.20, "research": 1.15, "historical": 1.05},
       "max_chunks_per_source": 2

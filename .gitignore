@@ -26,11 +26,14 @@ rag/index/
 rag/eval/reports/*.json
 agent/runs/
 deliverables/
+**/.data/
 
 # Third-party binary originals stay local; extracted reviewed text may be committed.
 knowledge-sources/raw/
+nodejs20-midscene/
 
 # Browser and worker runtime artifacts.
+output/playwright/
 **/playwright-report/
 **/test-results/
 **/traces/

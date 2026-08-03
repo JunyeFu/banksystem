@@ -1,0 +1,56 @@
+{
+  "schemaVersion": "hengzhun-i9-qwen35-capability-envelope-v1",
+  "purpose": "MiMo v2.5 运行设计的 Qwen3.5 能力上限契约",
+  "runtimeProvider": "MiMo",
+  "compatibilityCeiling": "Qwen3.5",
+  "wireProtocol": {
+    "api": "openai_chat_completions",
+    "endpointSuffix": "/v1/chat/completions",
+    "requestMessages": {
+      "allowedRoles": ["system", "user", "assistant"],
+      "contentType": "string",
+      "developerRoleAllowed": false,
+      "multimodalContentAllowed": false
+    },
+    "response": {
+      "sourceField": "choices[0].message.content",
+      "contentType": "json_string",
+      "responseFormat": {"type": "json_object"},
+      "promptMustContainJsonKeyword": true,
+      "localSchemaValidationRequired": true
+    }
+  },
+  "generation": {
+    "enableThinking": false,
+    "stream": false,
+    "temperature": 0,
+    "maximumOutputTokens": 4000,
+    "timeoutMs": 60000,
+    "maximumTotalAttempts": 3
+  },
+  "context": {
+    "controller": {"totalTokens": 16000, "maximumInputTokens": 12000, "reservedOutputTokens": 4000},
+    "visual": {"totalTokens": 16000, "maximumInputTokens": 12000, "reservedOutputTokens": 4000},
+    "overflowPolicy": ["drop_oldest_completed_turn", "fold_oldest_tool_result", "retain_current_user_request", "split_workflow", "fail_closed"]
+  },
+  "modelNativeCapabilitiesForbidden": [
+    "tools",
+    "tool_choice",
+    "tool_calls",
+    "parallel_tool_calls",
+    "reasoning_content",
+    "streaming",
+    "developer_messages",
+    "multimodal_messages"
+  ],
+  "orchestration": {
+    "mcpOwner": "Flowise workflow MCP nodes",
+    "modelMayCallMcpDirectly": false,
+    "modelMayMutateProjectCode": false
+  },
+  "officialEvidence": [
+    "https://help.aliyun.com/en/model-studio/qwen-api-via-openai-chat-completions",
+    "https://help.aliyun.com/en/model-studio/qwen-structured-output",
+    "https://qwenlm.github.io/Qwen-Agent/en/guide/core_moduls/context/"
+  ]
+}

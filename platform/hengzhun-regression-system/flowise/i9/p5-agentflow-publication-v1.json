@@ -1,0 +1,28 @@
+{
+  "schemaVersion": "hengzhun-i9-p5-agentflow-publication-v1",
+  "flowId": "7c14bafe-4c5b-4b4e-9d5a-000000000009",
+  "name": "衡准自动化回归主控",
+  "type": "AGENTFLOW",
+  "deployed": true,
+  "isPublic": false,
+  "primaryFlowDataPath": "flowise/i8/agentflow-v2.json",
+  "modelCapabilityEnvelope": "flowise/i9/qwen35-capability-envelope-v1.json",
+  "sourceParts": [
+    {"path": "flowise/i8/agentflow-v2.json", "sha256": "ebe3ffd9450577db8a1a1a29d1bf45475e5f6d1342ac314c11b297e65553abb4"},
+    {"path": "flowise/i8/stage5-delivery-agentflow-v1.json", "sha256": "9e946e8e892fb7c29db8e5f6d0d0567dbf50fc8c4108be9f445d05bf8df7d0e8"},
+    {"path": "flowise/i8/stage6-scheduling-agentflow-v1.json", "sha256": "d057c4a254c9c939293e3f410444ff8d62cc378364b071dfa0cb0b34725d4084"},
+    {"path": "flowise/i8/stage7-repair-agentflow-v1.json", "sha256": "567e427af85b4007ff6befc13ee043537a30369a3eb423df371ca03542b3e598"}
+  ],
+  "credential": {
+    "id": "b6fd091d-30c6-4bd6-a081-000000000009",
+    "name": "衡准 MiMo v2.5",
+    "credentialName": "openAIApi",
+    "runtimeVariable": "MIMO_API_KEY"
+  },
+  "knowledgeStoreId": "8b7b962b-74b2-4c11-969f-46b7ebac6901",
+  "knowledgeStoreName": "衡准平台知识-门户登录一致性-v1",
+  "importPath": "/api/v1/export-import/import",
+  "publishPath": "/api/v1/chatflows/{id}",
+  "exportPath": "/api/v1/export-import/export",
+  "allowedNodeSemantics": ["chat_input", "knowledge_retrieval", "structured_llm", "condition", "loop", "human_input", "mcp_tool", "direct_reply"]
+}

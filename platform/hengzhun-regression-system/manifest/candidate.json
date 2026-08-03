@@ -1,0 +1,35 @@
+{
+  "schemaVersion": "hengzhun-i10-windows-x64-release-v1",
+  "stage": "I10_S9_PORTABLE_RELEASE",
+  "candidateName": "hengzhun-regression-system-windows-x64-i10",
+  "sourceCommit": "eede4f7af804c009222b53932547918ff9f57001",
+  "sourceFrozen": true,
+  "platform": "win32-x64",
+  "portabilityContract": "PATH_INDEPENDENT_MODEL_CONNECTION_SECRET_FREE_SELF_CONTAINED",
+  "supportedOperatingSystems": [
+    "Windows 10 x64",
+    "Windows 11 x64"
+  ],
+  "requiredPathScenarios": [
+    "ascii-path",
+    "path-with-spaces",
+    "path-with-chinese-characters"
+  ],
+  "bundled": {
+    "node": "20.20.2",
+    "flowise": "3.0.12",
+    "chromium": "1217",
+    "ffmpeg": true,
+    "ocr": [
+      "PP-OCRv5-mobile-ONNX-zh-en"
+    ],
+    "legacyVideoOcr": [
+      "chi_sim",
+      "eng"
+    ]
+  },
+  "runtimeDataRoot": ".data",
+  "modelApiKeysAndBasesBundled": false,
+  "fixedLocalPlatformLoginBundled": true,
+  "machineSpecificAcceptanceRequired": false
+}

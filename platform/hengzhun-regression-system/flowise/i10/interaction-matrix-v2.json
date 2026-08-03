@@ -1,0 +1,84 @@
+{
+  "schemaVersion": "hengzhun-i10-interaction-matrix-v2",
+  "principle": "The response is composed from required modules; no fixed text-file-text layout is imposed.",
+  "inputs": [
+    {
+      "type": "NATURAL_LANGUAGE",
+      "mainAttachment": "none",
+      "supportingImages": "optional",
+      "normalizationTarget": "CaseDraft"
+    },
+    {
+      "type": "CASE_FILE",
+      "mainAttachment": "xlsx|csv|docx|json",
+      "supportingImages": "optional",
+      "normalizationTarget": "CaseDraft"
+    },
+    {
+      "type": "VIDEO",
+      "mainAttachment": "mp4-h264",
+      "supportingImages": "optional",
+      "normalizationTarget": "CaseDraft"
+    }
+  ],
+  "intents": [
+    {
+      "intent": "CASE_AUTHORING",
+      "possibleOutputs": ["NEEDS_INPUT", "PROCESSING", "AWAITING_USER", "FAILED"],
+      "durableArtifacts": ["case-draft.md", "case-draft.json", "playwright.cjs", "validation-report.json"]
+    },
+    {
+      "intent": "RESULT_QUERY",
+      "possibleOutputs": ["PROCESSING", "COMPLETED", "FAILED"],
+      "durableArtifacts": ["execution-report.json", "evidence-index.md"]
+    },
+    {
+      "intent": "SCHEDULE_DISABLE",
+      "possibleOutputs": ["NEEDS_INPUT", "AWAITING_USER", "COMPLETED", "FAILED"],
+      "durableArtifacts": []
+    },
+    {
+      "intent": "JOURNEY_RESUME",
+      "possibleOutputs": ["NEEDS_INPUT", "PROCESSING", "AWAITING_USER", "COMPLETED", "FAILED", "CANCELLED"],
+      "durableArtifacts": "inherit-current-journey"
+    },
+    {
+      "intent": "HELP",
+      "possibleOutputs": ["COMPLETED"],
+      "durableArtifacts": []
+    },
+    {
+      "intent": "UNSUPPORTED",
+      "possibleOutputs": ["FAILED"],
+      "durableArtifacts": []
+    }
+  ],
+  "statusModules": {
+    "NEEDS_INPUT": ["BRIEF", "INPUT_REQUEST", "USER_STEPS"],
+    "PROCESSING": ["BRIEF", "PROGRESS", "USER_STEPS"],
+    "AWAITING_USER_WITH_ARTIFACT": ["BRIEF", "ARTIFACTS", "CONFIRMATION"],
+    "AWAITING_USER": ["BRIEF", "CONFIRMATION"],
+    "COMPLETED_WITH_ARTIFACT": ["BRIEF", "ARTIFACTS"],
+    "COMPLETED": ["BRIEF"],
+    "FAILED": ["WARNING", "BRIEF", "USER_STEPS"],
+    "CANCELLED": ["BRIEF"]
+  },
+  "gates": {
+    "informationCollection": {
+      "freeTextAllowed": true,
+      "secretInputAllowed": false,
+      "singleQuestionPerTurn": true
+    },
+    "decisionConfirmation": {
+      "freeTextAllowed": false,
+      "secretInputAllowed": false,
+      "optionsOnly": true
+    }
+  },
+  "delivery": {
+    "authoritative": "Harness short-lived one-time link",
+    "flowiseNativeFile": "optional enhancement",
+    "inlineTechnicalDetail": false,
+    "rawToolOutput": false
+  }
+}

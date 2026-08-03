@@ -63,7 +63,7 @@ public class CustomerController {
     Object currency = source.getOrDefault("currency", source.getOrDefault("currencyCode", ""));
     if (currency instanceof Map<?, ?> map) { Object code = map.get("code"); currency = code == null ? "" : code; }
     Map<String, Object> result = new LinkedHashMap<>();
-    result.put("accountId", String.valueOf(source.getOrDefault("id", source.getOrDefault("accountId", ""))));
+    result.put("accountId", String.valueOf(source.getOrDefault("id", source.getOrDefault("accountId", source.getOrDefault("savingsAccountId", "")))));
     result.put("maskedAccountNumber", masked);
     result.put("currency", String.valueOf(currency));
     result.put("balance", decimal(balance));

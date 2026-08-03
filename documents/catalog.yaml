@@ -1,0 +1,41 @@
+schemaVersion: 1
+authority: documents/catalog.yaml
+implementationOrderAuthority: agent/plans/active/v54-implementation-batches.md
+generatedOutputRoot: deliverables
+generatedOutputsIndexedByRag: false
+documentTypes:
+  - id: PROJECT_INITIATION
+    name: 立项报告
+    status: DRAFT_LOCAL
+    sourceRoots: [docs/current-state, docs/architecture, docs/research/bank-project-document-chain]
+    outputPattern: 衡准自动化回归测试平台立项报告_*.docx
+  - id: REQUIREMENTS_SPECIFICATION
+    name: 需求规格说明书
+    status: PLANNED
+    sourceRoots: [docs/current-state, docs/design, contracts]
+    outputPattern: 衡准自动化回归测试平台需求规格说明书_*.docx
+  - id: SYSTEM_DESIGN
+    name: 系统设计说明书
+    status: PLANNED
+    sourceRoots: [docs/architecture, docs/design, contracts]
+    outputPattern: 衡准自动化回归测试平台系统设计说明书_*.docx
+  - id: TEST_PLAN_AND_REPORT
+    name: 测试方案与测试报告
+    status: PLANNED
+    sourceRoots: [tests, docs/evidence, docs/architecture/v54-coze-harness-acceptance-matrix.md]
+    outputPattern: 衡准自动化回归测试平台测试文书_*.docx
+  - id: RELEASE_AND_DEPLOYMENT
+    name: 发布与部署说明
+    status: PLANNED
+    sourceRoots: [docs/operations, platform/hengzhun-regression-system]
+    outputPattern: 衡准自动化回归测试平台发布部署说明_*.docx
+  - id: ACCEPTANCE_REPORT
+    name: 验收报告
+    status: PLANNED
+    sourceRoots: [docs/evidence, docs/current-state, agent/backlog.yaml]
+    outputPattern: 衡准自动化回归测试平台验收报告_*.docx
+  - id: HANDOVER_PACKAGE
+    name: 交付与运维交接文书
+    status: PLANNED
+    sourceRoots: [docs/operations, docs/evidence, documents/catalog.yaml]
+    outputPattern: 衡准自动化回归测试平台交付运维交接_*.docx

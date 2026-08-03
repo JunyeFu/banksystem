@@ -1,0 +1,15 @@
+{
+  "schemaVersion": "hengzhun-i10-case-catalog-v1",
+  "catalogVersion": 1,
+  "cases": {
+    "L1": { "class": "LOW", "fixture": "customer-profile", "verificationPolicy": "NONE", "scheduleMode": "ON_DEMAND", "requiredInputs": [], "screenshotPolicy": "PROFILE_FACTS" },
+    "L2": { "class": "LOW", "fixture": "account-summary", "verificationPolicy": "NONE", "scheduleMode": "ON_DEMAND", "requiredInputs": [], "screenshotPolicy": "ACCOUNT_FACTS" },
+    "L3": { "class": "LOW", "fixture": "message-summary", "verificationPolicy": "NONE", "scheduleMode": "ON_DEMAND", "requiredInputs": [], "screenshotPolicy": "MESSAGE_FACTS" },
+    "M1": { "class": "MEDIUM", "fixture": "transaction-filter", "verificationPolicy": "NONE", "scheduleMode": "ONE_TIME", "requiredInputs": ["dateRange", "filter"], "screenshotPolicy": "TRANSACTION_FACTS" },
+    "M2": { "class": "MEDIUM", "fixture": "payee-search", "verificationPolicy": "NONE", "scheduleMode": "ONE_TIME", "requiredInputs": ["filter"], "screenshotPolicy": "PAYEE_FACTS" },
+    "M3": { "class": "MEDIUM", "fixture": "document-search", "verificationPolicy": "NONE", "scheduleMode": "ONE_TIME", "requiredInputs": ["filter"], "screenshotPolicy": "DOCUMENT_FACTS" },
+    "H1": { "class": "HIGH", "fixture": "transfer-confirm", "verificationPolicy": "AUTO_PERSISTED_UKEY", "scheduleMode": "RECURRING", "requiredInputs": ["payeeRef", "amount", "currency", "purpose"], "screenshotPolicy": "TRANSFER_FACTS" },
+    "H2": { "class": "HIGH", "fixture": "transfer-verification", "verificationPolicy": "AUTO_PERSISTED_UKEY", "scheduleMode": "RECURRING", "requiredInputs": ["payeeRef", "amount", "currency", "purpose"], "screenshotPolicy": "VERIFICATION_FACTS" },
+    "H3": { "class": "HIGH", "fixture": "transfer-order-query", "verificationPolicy": "AUTO_PERSISTED_UKEY", "scheduleMode": "RECURRING", "requiredInputs": ["payeeRef", "amount", "currency", "purpose"], "screenshotPolicy": "ORDER_FACTS" }
+  }
+}

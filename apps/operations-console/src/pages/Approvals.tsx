@@ -44,7 +44,7 @@ export function Approvals(): JSX.Element {
           <Card><span>今日已处理</span><strong className="success">{query.data?.filter((item) => item.status !== 'PENDING').length ?? 0}</strong><small>批准及拒绝合计</small></Card>
         </>}
       </div>
-      <Card className="ops-risk-filter ops-approval-filter"><Select value={status} allowClear placeholder="全部状态" onChange={setStatus} options={Object.entries(statusLabels).map(([value,label]) => ({ value,label }))} data-testid="approval-status-filter" /><Input value={keyword} onChange={(event) => setKeyword(event.target.value)} placeholder="交易编号、创建人或申请原因" allowClear /><Button type="primary">查询</Button></Card>
+      <Card className="ops-risk-filter ops-approval-filter"><Select value={status} allowClear placeholder="全部状态" onChange={setStatus} options={Object.entries(statusLabels).map(([value,label]) => ({ value,label }))} data-testid="approval-status-filter" /><Input value={keyword} onChange={(event) => setKeyword(event.target.value)} placeholder="交易编号、创建人或申请原因" allowClear /><Button type="primary" onClick={() => void query.refetch()}>查询</Button></Card>
       <Card className="ops-risk-table" title="审批事项" extra={<span>共 {rows.length} 条</span>}>
         {query.isLoading ? <Skeleton active paragraph={{ rows: 8 }} /> : rows.length === 0 ? <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description={status ? '当前状态下暂无审批事项' : '暂无审批事项'} /> : <Table rowKey="approvalId" dataSource={rows} pagination={{ pageSize: 10 }} columns={[
           { title: '审批编号', dataIndex: 'approvalId', width: 120, render: (value: string) => <code>{value.slice(0,8).toUpperCase()}</code> },

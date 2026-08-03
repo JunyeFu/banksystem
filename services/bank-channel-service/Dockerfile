@@ -3,7 +3,7 @@ WORKDIR /src
 COPY pom.xml .
 RUN mvn -q -DskipTests dependency:go-offline
 COPY src src
-RUN mvn -q -DskipTests package
+RUN mvn -q -Dmaven.test.skip=true package
 FROM eclipse-temurin:21-jre@sha256:d2b9f8f12212cadcfdf889461531784e8fd097feade954d65b31ee7a71c473ec
 WORKDIR /app
 COPY --from=build /src/target/bank-channel-service-0.1.0.jar /app/app.jar

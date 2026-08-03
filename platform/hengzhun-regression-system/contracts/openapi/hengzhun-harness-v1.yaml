@@ -1,0 +1,628 @@
+openapi: 3.0.3
+info:
+  title: 衡准回归 Harness
+  version: 1.4.0
+  description: >-
+    Coze/HiAgent 公开 OpenAPI 插件使用的十一工具安全边界。为兼容 Coze Studio 0.5.1，
+    所有操作统一使用 POST JSON body，Operation 内不使用 Parameter 或 Schema 引用。
+    所有长任务立即返回 taskId，不返回凭据、文件字节、完整日志、截图或本机绝对路径。
+servers:
+  - url: http://hengzhun-harness:18788
+    description: 本机隔离 Docker 网络
+security:
+  - bearerAuth: []
+paths:
+  /v1/plugin/cases:create-draft:
+    post:
+      operationId: case_create_draft
+      summary: 创建结构化回归案例草稿
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [namespace, idempotencyKey, title, objective, summary, riskLevel, route, steps, assertions]
+              properties:
+                namespace:
+                  type: string
+                  pattern: '^[a-z0-9][a-z0-9._-]{2,63}$'
+                  example: demo-local
+                idempotencyKey:
+                  type: string
+                  minLength: 8
+                  maxLength: 128
+                  pattern: '^[A-Za-z0-9._:-]+$'
+                actorRef: {type: string, minLength: 1, maxLength: 128, default: coze-agent}
+                title: {type: string, minLength: 1, maxLength: 160}
+                objective: {type: string, minLength: 1, maxLength: 2000}
+                summary: {type: string, minLength: 1, maxLength: 1000}
+                riskLevel: {type: string, enum: [LOW, MEDIUM, HIGH]}
+                route: {type: string, minLength: 1, maxLength: 512}
+                executionProfile:
+                  type: string
+                  enum: [LOGIN_PROFILE, ACCOUNT_OWNERSHIP, AUTH_REJECTION_RECOVERY]
+                steps:
+                  type: array
+                  minItems: 1
+                  maxItems: 50
+                  items:
+                    type: object
+                    required: [action, expected]
+                    properties:
+                      action: {type: string, minLength: 1, maxLength: 500}
+                      expected: {type: string, minLength: 1, maxLength: 500}
+                assertions:
+                  type: array
+                  minItems: 1
+                  maxItems: 50
+                  items: {type: string, minLength: 1, maxLength: 500}
+                authoringActions:
+                  type: array
+                  minItems: 1
+                  maxItems: 50
+                  items:
+                    type: object
+                    required: [actionType, prompt, targetRef, riskLevel]
+                    properties:
+                      actionType: {type: string, enum: [LOCATE, INPUT, TAP, SCROLL]}
+                      prompt: {type: string, minLength: 1, maxLength: 500}
+                      targetRef: {type: string, enum: [PAGE, LOGIN_USERNAME, LOGIN_SSO_TAB, LOGIN_SUBMIT]}
+                      valueRef: {type: string, enum: [SYNTHETIC_TEXT]}
+                      riskLevel: {type: string, enum: [LOW, MEDIUM, HIGH]}
+                credentialAlias: {type: string, minLength: 1, maxLength: 128}
+                knowledgeRetrieval:
+                  type: object
+                  required: [sourceAuthority, query, resultSummary, citationRefs]
+                  properties:
+                    sourceAuthority: {type: string, enum: [COZE_KNOWLEDGE_BASE]}
+                    query: {type: string, minLength: 1, maxLength: 1000}
+                    resultSummary: {type: string, minLength: 1, maxLength: 2000}
+                    citationRefs:
+                      type: array
+                      minItems: 1
+                      maxItems: 20
+                      items: {type: string, minLength: 1, maxLength: 256}
+      responses:
+        '200':
+          description: 案例已创建
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [caseId, version, status, validationIssues, summary, replayed]
+                properties:
+                  caseId: {type: string}
+                  version: {type: integer}
+                  status: {type: string, enum: [VALIDATED]}
+                  validationIssues: {type: array, items: {type: string}}
+                  summary: {type: string}
+                  replayed: {type: boolean}
+                  knowledgeRetrievalId: {type: string}
+  /v1/plugin/cases:get:
+    post:
+      operationId: case_get
+      summary: 获取当前案例版本和短摘要
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [namespace, caseId]
+              properties:
+                namespace:
+                  type: string
+                  pattern: '^[a-z0-9][a-z0-9._-]{2,63}$'
+                  example: demo-local
+                caseId: {type: string, minLength: 8, maxLength: 80}
+      responses:
+        '200':
+          description: 案例详情
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [caseId, namespace, version, status, title, summary, riskLevel, definition, contentHash, updatedAt]
+                properties:
+                  caseId: {type: string}
+                  namespace: {type: string}
+                  version: {type: integer}
+                  status: {type: string}
+                  title: {type: string}
+                  summary: {type: string}
+                  riskLevel: {type: string}
+                  definition: {type: object}
+                  contentHash: {type: string}
+                  updatedAt: {type: string}
+  /v1/plugin/cases:import:
+    post:
+      operationId: case_import_submit
+      summary: 原子导入衡准结构化 JSON 案例批次
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [namespace, idempotencyKey, sourceFormat, sourceRef, cases]
+              properties:
+                namespace: {type: string, pattern: '^[a-z0-9][a-z0-9._-]{2,63}$'}
+                idempotencyKey: {type: string, minLength: 8, maxLength: 128, pattern: '^[A-Za-z0-9._:-]+$'}
+                actorRef: {type: string, minLength: 1, maxLength: 128, default: coze-agent}
+                sourceFormat: {type: string, enum: [HENGZHUN_JSON_V1]}
+                sourceRef: {type: string, minLength: 1, maxLength: 256}
+                cases:
+                  type: array
+                  minItems: 1
+                  maxItems: 50
+                  items:
+                    type: object
+                    required: [externalCaseRef, title, objective, summary, riskLevel, route, executionProfile, steps, assertions]
+                    properties:
+                      externalCaseRef: {type: string, minLength: 1, maxLength: 128}
+                      title: {type: string, minLength: 1, maxLength: 160}
+                      objective: {type: string, minLength: 1, maxLength: 2000}
+                      summary: {type: string, minLength: 1, maxLength: 1000}
+                      riskLevel: {type: string, enum: [LOW, MEDIUM, HIGH]}
+                      route: {type: string, minLength: 1, maxLength: 512}
+                      executionProfile: {type: string, enum: [LOGIN_PROFILE, ACCOUNT_OWNERSHIP, AUTH_REJECTION_RECOVERY]}
+                      steps:
+                        type: array
+                        minItems: 1
+                        maxItems: 50
+                        items:
+                          type: object
+                          required: [action, expected]
+                          properties:
+                            action: {type: string, minLength: 1, maxLength: 500}
+                            expected: {type: string, minLength: 1, maxLength: 500}
+                      assertions:
+                        type: array
+                        minItems: 1
+                        maxItems: 50
+                        items: {type: string, minLength: 1, maxLength: 500}
+      responses:
+        '200':
+          description: 整批校验通过并原子导入；任一项不合法时整批不写入
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [batchId, status, itemCount, sourceHash, imported, replayed]
+                properties:
+                  batchId: {type: string}
+                  status: {type: string, enum: [IMPORTED]}
+                  itemCount: {type: integer, minimum: 1, maximum: 50}
+                  sourceHash: {type: string, minLength: 64, maxLength: 64}
+                  imported: {type: array, items: {type: object}}
+                  replayed: {type: boolean}
+  /v1/plugin/plans:compile:
+    post:
+      operationId: plan_compile
+      summary: 编译确定性执行计划
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [namespace, idempotencyKey, caseId, expectedCaseVersion]
+              properties:
+                namespace:
+                  type: string
+                  pattern: '^[a-z0-9][a-z0-9._-]{2,63}$'
+                  example: demo-local
+                idempotencyKey:
+                  type: string
+                  minLength: 8
+                  maxLength: 128
+                  pattern: '^[A-Za-z0-9._:-]+$'
+                caseId: {type: string, minLength: 8, maxLength: 80}
+                expectedCaseVersion: {type: integer, minimum: 1}
+                executionRoute: {type: string, enum: [PLAYWRIGHT, AUTHORING_REQUIRED], default: PLAYWRIGHT}
+      responses:
+        '200':
+          description: 计划编译任务已受理
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [taskId, planId, scriptId, status, planStatus, caseId, caseVersion, planVersion, replayed]
+                properties:
+                  taskId: {type: string}
+                  planId: {type: string}
+                  scriptId: {type: string}
+                  status: {type: string}
+                  planStatus: {type: string}
+                  caseId: {type: string}
+                  caseVersion: {type: integer}
+                  planVersion: {type: integer, minimum: 1}
+                  replayed: {type: boolean}
+  /v1/plugin/runs:submit:
+    post:
+      operationId: run_submit
+      summary: 提交已允许的案例执行
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [namespace, idempotencyKey, caseId, expectedCaseVersion, planId, environment, credentialAlias]
+              properties:
+                namespace:
+                  type: string
+                  pattern: '^[a-z0-9][a-z0-9._-]{2,63}$'
+                  example: demo-local
+                idempotencyKey:
+                  type: string
+                  minLength: 8
+                  maxLength: 128
+                  pattern: '^[A-Za-z0-9._:-]+$'
+                caseId: {type: string, minLength: 8, maxLength: 80}
+                expectedCaseVersion: {type: integer, minimum: 1}
+                planId: {type: string, minLength: 8, maxLength: 80}
+                environment: {type: string, enum: [local]}
+                credentialAlias: {type: string, minLength: 1, maxLength: 128}
+      responses:
+        '200':
+          description: 回归任务已排队
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [taskId, runId, status, namespace, caseId, replayed]
+                properties:
+                  taskId: {type: string}
+                  runId: {type: string}
+                  status: {type: string, enum: [QUEUED]}
+                  namespace: {type: string}
+                  caseId: {type: string}
+                  replayed: {type: boolean}
+  /v1/plugin/tasks:get:
+    post:
+      operationId: task_get
+      summary: 查询异步任务状态
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [namespace, taskId]
+              properties:
+                namespace:
+                  type: string
+                  pattern: '^[a-z0-9][a-z0-9._-]{2,63}$'
+                  example: demo-local
+                taskId: {type: string, minLength: 8, maxLength: 80}
+      responses:
+        '200':
+          description: 任务短状态
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [taskId, type, status, progress, version, retryable, userActionRequired, updatedAt]
+                properties:
+                  taskId: {type: string}
+                  runId: {type: string}
+                  caseId: {type: string}
+                  type: {type: string}
+                  status: {type: string, enum: [QUEUED, RUNNING, WAITING_USER, SUCCEEDED, FAILED, CANCELLED]}
+                  progress: {type: integer, minimum: 0, maximum: 100}
+                  version: {type: integer}
+                  runVersion: {type: integer}
+                  summary: {type: string}
+                  resultArtifactId: {type: string}
+                  errorCode: {type: string}
+                  errorCategory: {type: string}
+                  retryable: {type: boolean}
+                  userActionRequired: {type: boolean}
+                  updatedAt: {type: string}
+  /v1/plugin/artifacts:get-metadata:
+    post:
+      operationId: artifact_get_metadata
+      summary: 获取受控 Artifact 元数据
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [namespace, artifactId]
+              properties:
+                namespace:
+                  type: string
+                  pattern: '^[a-z0-9][a-z0-9._-]{2,63}$'
+                  example: demo-local
+                artifactId: {type: string, minLength: 8, maxLength: 80}
+      responses:
+        '200':
+          description: 脱敏元数据；不返回文件内容和本机路径
+          content:
+            application/json:
+              schema:
+                type: object
+                description: Harness 可能返回额外受控字段，但不返回文件路径或内容。
+                required: [artifactId, type, sha256, byteSize, mediaType, redactionStatus, createdAt]
+                properties:
+                  artifactId: {type: string}
+                  type: {type: string}
+                  sha256: {type: string, minLength: 64, maxLength: 64}
+                  byteSize: {type: integer, minimum: 0}
+                  mediaType: {type: string}
+                  redactionStatus: {type: string, enum: [NOT_REQUIRED, REDACTED, QUARANTINED]}
+                  createdAt: {type: string}
+  /v1/plugin/decisions:submit:
+    post:
+      operationId: decision_submit
+      summary: 记录脚本激活、修复候选激活、运行恢复或调度恢复决定
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [namespace, idempotencyKey, targetType, targetId, expectedVersion, choice, reason, confirmationRef]
+              properties:
+                namespace:
+                  type: string
+                  pattern: '^[a-z0-9][a-z0-9._-]{2,63}$'
+                  example: demo-local
+                idempotencyKey:
+                  type: string
+                  minLength: 8
+                  maxLength: 128
+                  pattern: '^[A-Za-z0-9._:-]+$'
+                targetType: {type: string, enum: [SCRIPT_ACTIVATION, RUN_RECOVERY, REPAIR_CANDIDATE_ACTIVATION, SCHEDULE_RECOVERY]}
+                targetId: {type: string, minLength: 8, maxLength: 80}
+                expectedVersion: {type: integer, minimum: 1}
+                choice: {type: string, enum: [APPROVE, REJECT, RETRY, CANCEL]}
+                reason: {type: string, minLength: 1, maxLength: 1000}
+                confirmationRef: {type: string, minLength: 1, maxLength: 160}
+      responses:
+        '200':
+          description: 决策已审计记录；修复候选仅在隔离验证通过且版本一致时可由用户激活
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [decisionId, targetType, targetId, status, version, effect, replayed]
+                properties:
+                  decisionId: {type: string}
+                  targetType: {type: string}
+                  targetId: {type: string}
+                  status: {type: string, enum: [RECORDED]}
+                  version: {type: integer}
+                  effect: {type: string, enum: [DEFERRED_TO_FUTURE_BATCH, SCRIPT_VALIDATED_AND_PLAN_READY, SCRIPT_RETIRED, REPAIR_CANDIDATE_ACTIVATED, REPAIR_CANDIDATE_REJECTED, SCHEDULE_RESUMED, SCHEDULE_REMAINS_PAUSED]}
+                  replayed: {type: boolean}
+  /v1/plugin/failures:get:
+    post:
+      operationId: failure_get
+      summary: 获取失败分类、诊断状态和修复候选短摘要
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [namespace, incidentId]
+              properties:
+                namespace: {type: string, pattern: '^[a-z0-9][a-z0-9._-]{2,63}$'}
+                incidentId: {type: string, minLength: 8, maxLength: 80}
+      responses:
+        '200':
+          description: 不返回日志正文、凭据或本机路径
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [incidentId, runId, caseId, scriptId, scriptVersion, classification, reasonCode, summary, diagnosticStatus, version, updatedAt]
+                properties:
+                  incidentId: {type: string}
+                  runId: {type: string}
+                  caseId: {type: string}
+                  scriptId: {type: string}
+                  scriptVersion: {type: integer}
+                  classification: {type: string, enum: [ENVIRONMENT, AUTHENTICATION, CONTRACT, LOCATOR, ASSERTION, MODEL, TOOL]}
+                  reasonCode: {type: string}
+                  summary: {type: string}
+                  evidenceArtifactId: {type: string}
+                  diagnosticStatus: {type: string, enum: [CLASSIFIED, DIAGNOSED, CANDIDATE_READY, RESOLVED, UNRESOLVED]}
+                  diagnosis: {type: object}
+                  version: {type: integer}
+                  candidate: {type: object}
+                  updatedAt: {type: string}
+  /v1/plugin/repairs:create-candidate:
+    post:
+      operationId: repair_candidate_create
+      summary: 为已分类的定位器事故生成受控修复候选并排队隔离验证
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [namespace, idempotencyKey, incidentId, credentialAlias]
+              properties:
+                namespace: {type: string, pattern: '^[a-z0-9][a-z0-9._-]{2,63}$'}
+                idempotencyKey: {type: string, minLength: 8, maxLength: 128, pattern: '^[A-Za-z0-9._:-]+$'}
+                incidentId: {type: string, minLength: 8, maxLength: 80}
+                credentialAlias: {type: string, minLength: 1, maxLength: 128}
+      responses:
+        '200':
+          description: 候选仅排队验证，不激活正式脚本
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [candidateId, status, version, replayed]
+                properties:
+                  candidateId: {type: string}
+                  jobId: {type: string}
+                  status: {type: string, enum: [VALIDATION_QUEUED, VALIDATING, WAITING_USER, ACTIVE]}
+                  version: {type: integer}
+                  riskLevel: {type: string, enum: [MEDIUM]}
+                  diagnosis: {type: object}
+                  activationRequired: {type: boolean}
+                  reused: {type: boolean}
+                  replayed: {type: boolean}
+  /v1/plugin/repairs:get-candidate:
+    post:
+      operationId: repair_candidate_get
+      summary: 获取候选差异、隔离验证结果和待确认版本
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [namespace, candidateId]
+              properties:
+                namespace: {type: string, pattern: '^[a-z0-9][a-z0-9._-]{2,63}$'}
+                candidateId: {type: string, minLength: 8, maxLength: 80}
+      responses:
+        '200':
+          description: 仅返回白名单补丁和受控验证元数据
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [candidateId, incidentId, scriptId, baseScriptVersion, candidateScriptVersion, patchType, patch, patchHash, riskLevel, status, version, validation, activationRequired, updatedAt]
+                properties:
+                  candidateId: {type: string}
+                  incidentId: {type: string}
+                  scriptId: {type: string}
+                  baseScriptVersion: {type: integer}
+                  candidateScriptVersion: {type: integer}
+                  patchType: {type: string, enum: [LOCATOR_OVERRIDE]}
+                  patch: {type: object}
+                  patchHash: {type: string, minLength: 64, maxLength: 64}
+                  riskLevel: {type: string, enum: [LOW, MEDIUM, HIGH]}
+                  status: {type: string, enum: [VALIDATION_QUEUED, VALIDATING, WAITING_USER, ACTIVE, REJECTED, VALIDATION_FAILED]}
+                  version: {type: integer}
+                  validation: {type: object}
+                  activationRequired: {type: boolean}
+                  updatedAt: {type: string}
+  /v1/plugin/schedules:create:
+    post:
+      operationId: schedule_create
+      summary: 创建只执行已验证 Playwright 脚本的确定性调度
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [namespace, idempotencyKey, caseId, expectedCaseVersion, planId, credentialAlias, cronExpression, timezone, environment, fixtureScope]
+              properties:
+                namespace: {type: string, pattern: '^[a-z0-9][a-z0-9._-]{2,63}$'}
+                idempotencyKey: {type: string, minLength: 8, maxLength: 128, pattern: '^[A-Za-z0-9._:-]+$'}
+                caseId: {type: string, minLength: 8, maxLength: 80}
+                expectedCaseVersion: {type: integer, minimum: 1}
+                planId: {type: string, minLength: 8, maxLength: 80}
+                credentialAlias: {type: string, minLength: 1, maxLength: 128}
+                cronExpression: {type: string, minLength: 1, maxLength: 128, example: '0 9 * * 1-5'}
+                timezone: {type: string, minLength: 1, maxLength: 80, example: Asia/Shanghai}
+                environment: {type: string, enum: [local]}
+                fixtureScope: {type: string, minLength: 1, maxLength: 128, pattern: '^[A-Za-z0-9._:-]+$'}
+                misfirePolicy: {type: string, enum: [SKIP, RUN_ONCE], default: RUN_ONCE}
+                misfireGraceSeconds: {type: integer, minimum: 0, maximum: 86400, default: 300}
+                maxRetries: {type: integer, minimum: 0, maximum: 5, default: 1}
+      responses:
+        '200':
+          description: 调度已创建
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [scheduleId, status, version, nextFireAt, cronExpression, timezone, replayed]
+                properties:
+                  scheduleId: {type: string}
+                  status: {type: string, enum: [ACTIVE]}
+                  version: {type: integer}
+                  nextFireAt: {type: string}
+                  cronExpression: {type: string}
+                  timezone: {type: string}
+                  replayed: {type: boolean}
+  /v1/plugin/schedules:get:
+    post:
+      operationId: schedule_get
+      summary: 查询调度、下次触发和最近执行状态
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [namespace, scheduleId]
+              properties:
+                namespace: {type: string, pattern: '^[a-z0-9][a-z0-9._-]{2,63}$'}
+                scheduleId: {type: string, minLength: 8, maxLength: 80}
+      responses:
+        '200':
+          description: 调度短摘要
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [scheduleId, caseId, caseVersion, planId, cronExpression, timezone, environment, fixtureScope, misfirePolicy, misfireGraceSeconds, maxRetries, status, executionCount, version, updatedAt]
+                properties:
+                  scheduleId: {type: string}
+                  caseId: {type: string}
+                  caseVersion: {type: integer}
+                  planId: {type: string}
+                  cronExpression: {type: string}
+                  timezone: {type: string}
+                  environment: {type: string, enum: [local]}
+                  fixtureScope: {type: string}
+                  misfirePolicy: {type: string, enum: [SKIP, RUN_ONCE]}
+                  misfireGraceSeconds: {type: integer}
+                  maxRetries: {type: integer}
+                  status: {type: string, enum: [ACTIVE, PAUSED_FAILURE, DISABLED]}
+                  nextFireAt: {type: string}
+                  lastEvaluatedAt: {type: string}
+                  pausedIncidentId: {type: string}
+                  executionCount: {type: integer}
+                  lastExecutionStatus: {type: string}
+                  version: {type: integer}
+                  updatedAt: {type: string}
+  /v1/plugin/schedules:disable:
+    post:
+      operationId: schedule_disable
+      summary: 按版本显式停用调度
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [namespace, idempotencyKey, scheduleId, expectedVersion, reason]
+              properties:
+                namespace: {type: string, pattern: '^[a-z0-9][a-z0-9._-]{2,63}$'}
+                idempotencyKey: {type: string, minLength: 8, maxLength: 128, pattern: '^[A-Za-z0-9._:-]+$'}
+                scheduleId: {type: string, minLength: 8, maxLength: 80}
+                expectedVersion: {type: integer, minimum: 1}
+                reason: {type: string, minLength: 1, maxLength: 1000}
+      responses:
+        '200':
+          description: 调度已停用
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [scheduleId, status, version, reason, replayed]
+                properties:
+                  scheduleId: {type: string}
+                  status: {type: string, enum: [DISABLED]}
+                  version: {type: integer}
+                  reason: {type: string}
+                  replayed: {type: boolean}
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: opaque-service-token

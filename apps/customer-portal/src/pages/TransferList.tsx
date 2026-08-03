@@ -38,7 +38,7 @@ export function TransferList(): JSX.Element {
   return (
     <PageContainer pageId="customer.transfers" state="READY">
       <section className="bank-page" data-view-state={isLoading ? 'LOADING' : isError ? 'ERROR' : data?.items.length ? 'NORMAL' : 'EMPTY'}>
-        <div className="transfer-list-head"><h1>转账记录</h1><Button type="primary" className="bank-primary-btn" onClick={() => navigate('/transfers/new')} data-testid="transfer-list-new">新建转账</Button></div>
+        <div className="transfer-list-head"><h1>转账记录</h1><Button type="primary" className="bank-primary-btn" onClick={() => navigate('/transfers/new?i10Scenario=1')} data-testid="transfer-list-new">新建转账</Button></div>
         <div className="bank-toolbar">
           <span className="transfer-filter-label">状态：</span>
           <Select value={status} onChange={(value) => { setStatus(value); setPage(0); }} allowClear placeholder="全部状态" style={{ width: 230 }} options={Object.entries(transferStatusText).map(([value, label]) => ({ value, label }))} data-testid="transfer-status-filter" />

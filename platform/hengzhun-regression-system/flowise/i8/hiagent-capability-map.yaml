@@ -1,0 +1,36 @@
+schemaVersion: hengzhun-i8-hiagent-capability-map-v1
+flowiseVersion: 3.0.12
+scope: stage7-local-artifact-only
+claimsHiAgentRuntimeVerified: false
+mappings:
+  - flowise: chat_input
+    hiagent: workflow_input_or_message
+    evidence: photographed-workflow-input
+  - flowise: knowledge_retrieval
+    hiagent: knowledge_base_retrieval
+    evidence: photographed-knowledge-node
+  - flowise: structured_llm
+    hiagent: large_model_node_with_declared_outputs
+    evidence: photographed-large-model-node
+  - flowise: condition
+    hiagent: selector
+    evidence: photographed-selector-node
+  - flowise: human_input
+    hiagent: workflow_human_confirmation_boundary
+    evidence: requirement-frozen-awaiting-target-runtime-verification
+  - flowise: loop
+    hiagent: loop
+    evidence: photographed-loop-node
+  - flowise: mcp_tool
+    hiagent: registered_mcp_plugin_or_plugin_node
+    evidence: photographed-mcp-plugin-registration-and-plugin-node
+  - flowise: direct_reply
+    hiagent: end_or_message
+    evidence: photographed-end-and-message-node
+failClosedRules:
+  - no_unmapped_flowise_node
+  - no_code_node
+  - no_http_node_for_platform_external_tools
+  - no_direct_sqlite_or_filesystem
+  - no_platform_internal_api
+  - local_flowise_success_is_not_hiagent_success

@@ -30,7 +30,9 @@ services:
     ports:
       - "127.0.0.1:19000:8080"
     volumes:
+      - keycloak_data:/opt/keycloak/data
       - ./infra/keycloak/realms:/opt/keycloak/data/import:ro
+      - ./infra/keycloak/themes:/opt/keycloak/themes:ro
     networks:
       - bank-channel-front
       - bank-channel-net
@@ -100,6 +102,9 @@ services:
       - ./infra/gateway/customer-portal-nginx.conf:/etc/nginx/conf.d/default.conf:ro
     networks:
       - bank-channel-front
+    depends_on:
+      gateway:
+        condition: service_healthy
     healthcheck:
       test: ["CMD-SHELL", "wget -q --spider http://localhost:80/portal/ || exit 1"]
       interval: 10s
@@ -115,6 +120,9 @@ services:
       - ./infra/gateway/operations-console-nginx.conf:/etc/nginx/conf.d/default.conf:ro
     networks:
       - bank-channel-front
+    depends_on:
+      gateway:
+        condition: service_healthy
     healthcheck:
       test: ["CMD-SHELL", "wget -q --spider http://localhost:80/ops/ || exit 1"]
       interval: 10s
@@ -133,8 +141,6 @@ services:
     depends_on:
       bank-channel-service:
         condition: service_healthy
-      customer-portal:
-        condition: service_started
     healthcheck:
       test: ["CMD-SHELL", "wget -q -O /dev/null http://127.0.0.1:8080/health || exit 1"]
       interval: 10s
@@ -210,6 +216,7 @@ networks:
 
 volumes:
   bank_channel_pg_data: {}
+  keycloak_data: {}
   prometheus_data: {}
   grafana_data: {}
   loki_data: {}

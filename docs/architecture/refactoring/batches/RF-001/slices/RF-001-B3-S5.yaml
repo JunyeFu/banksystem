@@ -1,0 +1,151 @@
+schemaVersion: 1
+id: RF-001-B3-S5
+title: 隔离运行态影子验证、运行时身份复算与证据新鲜度收口
+status: APPROVED
+owner: project-owner
+authorizedBy: agent/plans/active/v54-implementation-batches.md (重构控制执行顺序第2项, RF-001)
+parentBatch: docs/architecture/refactoring/batches/RF-001/batch.yaml
+baseline:
+  gitCommit: dacd79580ec73f3580594ab2134acf8cc3d99f35
+  releaseIdentity: 632ad5ee7981b59f00824d0072d28da6075eef095d55a898d51c0103a897988f
+  slicePredecessor: RF-001-B3-S4 (COMPLETED, 2026-08-02)
+  evidence: docs/evidence/platform/hengzhun-i10-post-backfill-baseline-2026-08-02.md
+  capturedAt: "2026-08-02"
+
+# 单业务目标：在隔离运行态证明 MCP 影子观测零重复写入、旧/新投影在真实流量下零差异，
+# 并用产品自有模块完成运行时身份复算；公共API回读新鲜度按环境可用性收口或登记残余风险。
+# 单功能点：隔离运行态影子验证（B3-S5）。不跨切片。
+businessGoal:
+  - 隔离运行态（隔离DB副本+计数代理+HENGZHUN_RF001_SHADOW=1的MCP）驱动确定性流量矩阵（≥20次Harness往返）
+  - 计数代理证明：每个工具调用恰有一次Harness请求（零重复写入）；影子观测 observed=往返数、mismatched=0
+  - 运行时身份复算：`node scripts/i10-release-identity.cjs` identityHash 与基线 632ad5ee… 一致
+  - 公共API实时回读：环境可用则刷新（替代过期缓存证据）；不可用则记录确切原因与残余风险，不冒充
+  - 达到证据等级 RUNTIME_SHADOW；切流不在本切片
+functionalPoint: 隔离运行态影子验证与身份/新鲜度收口
+evidenceLevel: RUNTIME_SHADOW
+
+# 运行态事实（B3-S3/S4 之后现状）
+currentState:
+  - mcp/src/server.cjs 影子开关: HENGZHUN_RF001_SHADOW=1 启用 createShadowObserver（sink=stderr），默认关闭
+  - 10个直接编排/复合工具前置读与写路径全部经 shadowedRequest/callHarness 观测（B3-S2~S4）
+  - 13项别名投影已接线（B3-S3）；聚焦测试30/30为CONTRACT级，无运行态证据
+  - dist/harness/src/index.js 已编译（dist/ 被gitignore）；生产DB .data/sqlite/regression_platform.sqlite
+  - scripts/i10-release-identity.cjs 为文件级身份计算模块（publication-manifest + agentflow-v7 + harness/src/i10/service.ts + worker + migration 36 + case-catalog）
+  - inspect-i10.ps1 缺失（batch.yaml命令引用），B3-S3/S4 仅能受限复算；本切片用 i10-release-identity.cjs 关闭该缺口
+  - 公共API回读证据 CACHED_EVIDENCE_FILE 且已过新鲜度窗口（登记于 evidence-index.md）
+
+# 允许路径
+allowedPaths:
+  - platform/hengzhun-regression-system/scripts/verification/rf001-b3s5-shadow-live.test.cjs   # 【新增】隔离运行态影子验证测试（含计数代理与进程编排）
+  - platform/hengzhun-regression-system/scripts/verification/rf001-b3s5-shadow-live.cjs         # 【可选新增】可独立运行的驱动脚本（若测试需分两步）
+  - docs/architecture/refactoring/batches/RF-001/decision-log.md
+  - docs/architecture/refactoring/batches/RF-001/evidence-index.md
+  - docs/architecture/refactoring/batches/RF-001/shadow-implementation-report.md
+  - docs/architecture/refactoring/batches/RF-001/slices/**
+  - platform/hengzhun-regression-system/.data/tests/rf001-shadow/**   # 运行态产物（隔离DB副本/日志），gitignore覆盖，用完清理
+
+# 禁止路径
+forbiddenPaths:
+  - platform/hengzhun-regression-system/mcp/src/**       # 本切片不改MCP代码（影子开关已存在）
+  - platform/hengzhun-regression-system/harness/**       # 不改Harness
+  - platform/hengzhun-regression-system/flowise/**、worker/**、contracts/**
+  - .data/sqlite/regression_platform.sqlite（生产DB只读，禁止写）；生产MCP/Harness/Flowise进程禁止触碰
+  - apps/**, services/**, infra/**, data/**, secrets/**, .env
+  - agent/backlog.yaml, agent/plans/active/v54-implementation-batches.md   # 批层批准
+  - scripts/architecture/**（校验器只读）
+  - 任何新SQLite迁移、任何生产端口（18788/18789/18889等）、正式流量影子
+
+budgets:
+  maxChangedFiles: 4
+  maxNewFiles: 2
+  maxChangedLines: 500
+  maxContractsChanged: 0
+  maxMigrationsAdded: 0
+  maxOpenModules: 1             # 代码零改动；运行时使用 hengzhun.mcp + hengzhun.harness
+  runtimeIsolation: true        # 全部运行态产物在 .data/tests/rf001-shadow/，隔离端口 28887/28889，用完停止并清理
+
+# 不可变不变量
+invariants:
+  - 零重复写入：计数代理按route统计POST数 == 工具调用数（含多往返工具按往返计数）
+  - 影子观测：stderr事件 observed==预期往返数、mismatched==0；事件只含操作名/字段形状/摘要，无凭据/请求体
+  - 隔离性：不写生产DB、不碰生产进程、不读生产Token（临时随机Token仅注入隔离进程）
+  - 完成后进程全部停止、隔离目录清理；测试可重复执行
+  - ReleaseIdentity 复算一致；18/18 账本不重跑（B4门禁）
+
+# 工作步骤（执行顺序固定）
+workSteps:
+  - step: S5-1 预检
+    action: 校验 dist/harness/src/index.js 存在、.data/flowise/app 存在、端口28887/28889空闲；生成临时随机Token（≥32 hex，不读生产环境）
+  - step: S5-2 隔离运行态编排
+    action: 新建 .data/tests/rf001-shadow/；SQLite备份API复制生产DB→隔离副本（或空库由Harness自动迁移，二选一并在报告记录）；启动计数代理（http代理→28887，按route计数）；启动隔离Harness（dist，PORT=28887，隔离DB）；启动隔离MCP（PORT=28889，HENGZHUN_RF001_SHADOW=1，HENGZHUN_HARNESS_URL=计数代理）
+  - step: S5-3 流量矩阵
+    action: 经MCP JSON-RPC驱动确定性流量：credential_session_create×3（幂等，成功写）、credential_session_get×3（成功读）、case_prepare×1（i8路由，验收别名投影真实流量）、task_get/schedule_get/candidate_get/candidate_decide/schedule_disable/repair_propose/decision_submit/failure_get/run_submit/authoring_submit/ingest_submit各1（404/错误路径）、verification_get×1（MCP级错误，0往返）；预期≥20次往返
+  - step: S5-4 断言与证据
+    action: 计数代理route计数==预期；影子stderr observed==往返数、mismatched==0、无凭据泄漏；响应形状符合旧投影；写命令、退出码、往返明细入报告
+  - step: S5-5 身份与新鲜度收口
+    action: node scripts/i10-release-identity.cjs 复算identityHash并与基线632ad5ee…对照；公共API实时回读：若正式Flowise运行环境可用（含模型密钥环境），按既有验收脚本刷新部署Hash回读；不可用则记录确切原因+残余风险（切流前置）
+  - step: S5-6 清理
+    action: 停止隔离MCP/Harness/代理（finally），删除 .data/tests/rf001-shadow/，确认生产进程与端口不受影响
+  - step: S5-7 证据与逐级同步（RC-D1）
+    action: 更新 shadow-implementation-report.md（RUNTIME_SHADOW小节）/evidence-index.md/decision-log.md；任务包→切片→batch.yaml→v54，无顶层冲突
+
+# 命令级 done 条件（可现场复算）
+verification:
+  requiredCommands:
+    - name: rf001-b3s5-shadow-live
+      command: runtime/node-v20.20.2-win-x64/node.exe --test scripts/verification/rf001-b3s5-shadow-live.test.cjs
+      expectedExitCode: 0
+      expectedOutput: 隔离运行态影子验证通过（observed==往返数、mismatched==0、零重复写入、无凭据泄漏）
+      evidence: docs/architecture/refactoring/batches/RF-001/shadow-implementation-report.md
+      blocking: true
+    - name: rf001-focused-tests
+      command: runtime/node-v20.20.2-win-x64/node.exe --test scripts/verification/rf001-contract-adapter.test.cjs scripts/verification/mcp-interaction-contract.test.cjs scripts/verification/rf001-b3s3-aliases.test.cjs
+      expectedExitCode: 0
+      expectedOutput: 全部通过（30 passed / 0 failed，回归）
+      evidence: docs/architecture/refactoring/batches/RF-001/evidence-index.md
+      blocking: true
+    - name: runtime-release-identity
+      command: runtime/node-v20.20.2-win-x64/node.exe scripts/i10-release-identity.cjs
+      expectedExitCode: 0
+      expectedOutput: identityHash == 632ad5ee7981b59f00824d0072d28da6075eef095d55a898d51c0103a897988f
+      evidence: docs/architecture/refactoring/batches/RF-001/evidence-index.md
+      blocking: true
+    - name: refactoring-contracts / rf001-mcp-boundary-contract / documentation
+      command: python scripts/architecture/validate_refactoring.py && python scripts/architecture/validate_rf001_contract.py && python scripts/docs/validate_docs.py
+      expectedExitCode: 0
+      expectedOutput: 三者PASS（tools=33 aliases=13 不变）
+      evidence: docs/architecture/refactoring/batches/RF-001/evidence-index.md
+      blocking: true
+    - name: public-api-readback-freshness
+      command: 正式Flowise环境可用时执行实时回读（脚本存在性校验）；不可用则记录原因
+      expectedExitCode: 0 或 记录残余风险
+      expectedOutput: 回读部署Hash与发布清单一致 或 登记环境阻塞
+      evidence: docs/architecture/refactoring/batches/RF-001/evidence-index.md
+      blocking: false
+    - name: whitespace
+      command: git diff --check
+      expectedExitCode: 0
+      blocking: false
+
+rollback:
+  triggerConditions:
+    - 计数代理显示任何重复写入（route计数>调用数）
+    - 影子mismatched>0或observed!=往返数
+    - ReleaseIdentity复算不一致；生产DB/进程被触碰
+    - 越出 allowedPaths
+  recoveryPoint: dacd795 + RF-001 baseline；运行态产物可整体删除重建
+  maxRtoMinutes: 30
+  maxRpoMinutes: 0
+
+# 明确排除
+exclusions:
+  - 切流（错误信封切换、旧投影退役）——B4
+  - 正式Flowise对话/18链重跑——B4 及之后
+  - 生产流量影子（本切片只允许隔离运行态）
+  - 适配器/合同/测试文件的新增投影变更
+  - RF-002
+
+risks:
+  - 公共API回读依赖正式Flowise与模型密钥环境；不可用时只登记残余风险，不冒充新鲜证据（SHADOW_VERIFIED申请口径随证据等级如实声明）
+  - 隔离DB副本若含运行态脏数据可能导致个别404/错误路径形状与预期偏差：矩阵断言只锁定"往返数+零重复+零mismatch"，不断言业务成功（成功路径仅 credential_session_* 与 case_prepare 明确断言）
+  - 端口冲突/残留进程：预检+finally清理+启动失败即失败关闭

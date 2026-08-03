@@ -1,0 +1,9 @@
+{
+  "schemaVersion": "hengzhun-local-platform-admin-v1",
+  "mode": "FIXED_LOCAL_PORTABLE_ADMIN",
+  "name": "衡准本机管理员",
+  "email": "admin@hengzhun.local",
+  "password": "Hengzhun123",
+  "scope": "FLOWISE_LOCAL_UI_ONLY",
+  "modelAccessAllowed": false
+}

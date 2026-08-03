@@ -1,0 +1,62 @@
+databaseChangeLog:
+  - changeSet:
+      id: v8-transfer-receipt-reference-type
+      author: codex
+      preConditions:
+        - onFail: HALT
+        - dbms:
+            type: postgresql
+        - tableExists:
+            tableName: transfer_receipt
+        - columnExists:
+            tableName: transfer_receipt
+            columnName: transfer_id
+        - sqlCheck:
+            expectedResult: "0"
+            sql: >-
+              SELECT count(*) FROM transfer_receipt
+              WHERE btrim(transfer_id) !~* '^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$'
+        - sqlCheck:
+            expectedResult: "0"
+            sql: >-
+              SELECT count(*) FROM transfer_receipt r
+              WHERE NOT EXISTS (
+                SELECT 1 FROM transfer_order t
+                WHERE t.transfer_id::text = btrim(r.transfer_id)
+              )
+        - sqlCheck:
+            expectedResult: "0"
+            sql: >-
+              SELECT count(*) FROM (
+                SELECT btrim(transfer_id) FROM transfer_receipt
+                GROUP BY btrim(transfer_id) HAVING count(*) > 1
+              ) duplicate_receipts
+      changes:
+        - sql:
+            dbms: postgresql
+            sql: >-
+              ALTER TABLE transfer_receipt
+              ALTER COLUMN transfer_id TYPE uuid USING btrim(transfer_id)::uuid
+        - addUniqueConstraint:
+            tableName: transfer_receipt
+            columnNames: transfer_id
+            constraintName: uq_transfer_receipt_transfer_id
+        - addForeignKeyConstraint:
+            baseTableName: transfer_receipt
+            baseColumnNames: transfer_id
+            referencedTableName: transfer_order
+            referencedColumnNames: transfer_id
+            constraintName: fk_transfer_receipt_transfer_order
+            onDelete: CASCADE
+      rollback:
+        - dropForeignKeyConstraint:
+            baseTableName: transfer_receipt
+            constraintName: fk_transfer_receipt_transfer_order
+        - dropUniqueConstraint:
+            tableName: transfer_receipt
+            constraintName: uq_transfer_receipt_transfer_id
+        - sql:
+            dbms: postgresql
+            sql: >-
+              ALTER TABLE transfer_receipt
+              ALTER COLUMN transfer_id TYPE char(64) USING transfer_id::text

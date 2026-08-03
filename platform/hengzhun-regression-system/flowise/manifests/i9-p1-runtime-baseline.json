@@ -1,0 +1,47 @@
+{
+  "schemaVersion": "hengzhun-i9-p1-runtime-baseline-v1",
+  "recordedAt": "2026-07-21",
+  "i8BaselineCommit": "29c3428",
+  "platform": "win32-x64",
+  "versions": {
+    "node": "20.20.2",
+    "flowise": "3.0.12",
+    "flowiseComponents": "3.0.12",
+    "flowiseUi": "3.0.12",
+    "connectSqlite3": "0.9.15",
+    "chromiumRevision": "1217",
+    "ffmpegRevision": "1011"
+  },
+  "formalPaths": {
+    "nodeExecutable": "runtime/node-v20.20.2-win-x64/node.exe",
+    "flowiseApp": "flowise/app",
+    "flowiseEntrypoint": "flowise/app/node_modules/flowise/bin/run",
+    "chromiumExecutable": "runtime/browsers/chromium-1217/chrome-win64/chrome.exe",
+    "dependencyDeclaration": "flowise/runtime-package.json",
+    "dependencyLock": "flowise/runtime-package-lock.json"
+  },
+  "ports": {
+    "flowise": 3006,
+    "harness": 18788,
+    "mcp": 18789
+  },
+  "hashes": {
+    "dependencyDeclarationSha256": "61e050ac0876114f87a074cd2865240e84ef6d5dde409ddd7b8b7ab374321655",
+    "dependencyLockSha256": "3cc2128e633468729b8acdf6afb6a2cd3a9f8f43cfe4f8a7e024853d47bd24cd",
+    "runtimeTree": {
+      "algorithm": "sha256(sorted-posix-relative-path\\0byte-length\\0file-sha256\\n)",
+      "sha256": "2759821d293b4ef4de18e1034d399091291c0f791974e8f67268d66af0567543",
+      "fileCount": 288538,
+      "totalBytes": 1966409491
+    }
+  },
+  "runtimePolicy": {
+    "loopbackOnly": true,
+    "offlineStaticVerification": true,
+    "bundledDependenciesOnly": true,
+    "runtimeDataRoot": ".data",
+    "sourceEvidence": "FLOWISE_WINDOWS_PROBE_VERIFIED_2026_07_21",
+    "finalOverlayScript": "scripts/apply-i9-flowise-overlays.cjs",
+    "baselineSemantics": "final-governed-runtime-after-i9-overlays"
+  }
+}

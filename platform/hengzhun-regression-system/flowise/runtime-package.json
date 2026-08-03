@@ -1,0 +1,14 @@
+{
+  "name": "hengzhun-flowise-runtime",
+  "private": true,
+  "description": "衡准 I9 固定的 Windows 原生 Flowise 运行时依赖声明",
+  "engines": {
+    "node": "20.20.2"
+  },
+  "dependencies": {
+    "connect-sqlite3": "0.9.15",
+    "flowise": "3.0.12",
+    "flowise-components": "3.0.12",
+    "flowise-ui": "3.0.12"
+  }
+}

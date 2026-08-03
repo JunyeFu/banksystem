@@ -1,8 +1,13 @@
 {
   "realm": "bank-internal",
+  "displayName": "复兴银行员工统一身份认证",
   "enabled": true,
   "registrationAllowed": false,
   "loginWithEmailAllowed": false,
+  "internationalizationEnabled": true,
+  "defaultLocale": "zh-CN",
+  "supportedLocales": ["zh-CN"],
+  "loginTheme": "fuxing-bank",
   "roles": {
     "realm": [
       {"name": "TELLER"},

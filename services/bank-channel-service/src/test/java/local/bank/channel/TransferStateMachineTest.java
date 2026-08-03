@@ -1,9 +1,14 @@
 package local.bank.channel;
 
+import java.util.UUID;
 import org.junit.jupiter.api.Test;
+import org.springframework.jdbc.core.JdbcTemplate;
 import local.bank.channel.payments.statemachine.TransferStateMachine;
 import local.bank.channel.payments.statemachine.TransferStateMachine.Status;
 import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.*;
 
 class TransferStateMachineTest {
 
@@ -67,6 +72,21 @@ class TransferStateMachineTest {
   @Test
   void returnedIsTerminal() {
     assertTrue(isAllowed("RETURNED", "REVERSAL_PENDING") == false);
+  }
+
+  @Test
+  void transitionPopulatesLegacyAndAggregateOutboxKeys() {
+    JdbcTemplate jdbc = mock(JdbcTemplate.class);
+    when(jdbc.update(anyString(), any(Object[].class))).thenReturn(1);
+    UUID transferId = UUID.randomUUID();
+
+    new TransferStateMachine(jdbc).transitionState(
+        transferId, Status.CREATED, Status.VALIDATING, "SYSTEM", "test");
+
+    verify(jdbc).update(
+        startsWith("INSERT INTO outbox_event(id,transfer_id,aggregate_type,aggregate_id"),
+        eq(transferId), eq(transferId), eq("Transfer"), eq(transferId),
+        eq("transfer.status.changed"), eq(1), anyString(), eq("{}"), eq("PENDING"));
   }
 
   private boolean isAllowed(String from, String to) {

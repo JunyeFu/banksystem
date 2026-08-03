@@ -19,4 +19,15 @@ export default defineConfig({
       },
     },
   },
+  build: {
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          'vendor-react': ['react', 'react-dom', 'react-router-dom'],
+          'vendor-ui': ['antd', '@ant-design/icons'],
+          'vendor-bank': ['@localbank/bank-api-client', '@localbank/bank-ui-kit'],
+        },
+      },
+    },
+  },
 });

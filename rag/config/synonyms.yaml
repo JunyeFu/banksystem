@@ -10,7 +10,7 @@
     ["银行状态机", "银行转账业务状态机", "phase 1 state machines", "transfer state machine", "RECEIVED PENDING_REVIEW PROCESSING POSTED", "banking-state-machines.md"],
     ["基线定义", "BaselineDefinition", "baseline.schema.json", "baselineId visibleTexts businessState"],
     ["安全配置", "security configuration audit", "security-config.md", "authentication tenant boundary idempotency"],
-    ["实施批次", "V5.4 平台实施批次", "B0 平台基线", "B0 品牌同步交付", "B1 Case Baseline", "v54-implementation-batches.md"],
+    ["实施顺序", "Coze Harness 回归核心", "前端缺陷优先", "namespace runId", "v54-implementation-batches.md"],
     ["仓库规则", "Bank System Repository Rules", "AGENTS.md"],
     ["前端规则", "Frontend Rules", "apps/AGENTS.md"],
     ["后端服务规则", "Backend Service Rules", "services/AGENTS.md"],

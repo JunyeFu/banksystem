@@ -15,7 +15,6 @@ owner: project-owner
 > 状态：V4 落地调整基线
 > 更新：2026-07-14
 > 适用范围：V4 银行业务目标系统、外网演示版、后续公司内网迁移
-> 上游方案：`_implementation_plan/Apache_Fineract_Mifos_Agent_Implementation_Plan.md`
 
 ## 1. 目标
 
@@ -25,7 +24,7 @@ V4 不再只是“能运行的数字银行沙箱”。V4 落地后必须成为 v
 V4 银行业务系统
   -> 提供稳定页面、正式业务 API、可重置 Fixture、业务终态和审计证据
 v5.4 回归平台
-  -> 读取案例与 RAG、生成/验证脚本、定时执行、比较 Baseline、解释失败并恢复
+  -> 由 Coze 读取运行时知识并经 Harness 创建/验证脚本、定时执行、比较 Baseline、解释失败并恢复
 ```
 
 Fineract 仍是核心账务唯一事实源。v5.4 只能通过正式渠道和经过授权的测试支持边界操作 V4，不得绕过 Bank Channel Service 或直接写核心数据库。
@@ -121,7 +120,6 @@ V4 不得仅以“页面能打开”或“接口返回 200”作为交付。至�
 
 ## 8. 关联文档
 
-- [V4 上层实施规范（历史）](../archive/implementation-plans/Apache_Fineract_Mifos_Agent_Implementation_Plan.md)
 - [V5.4 外网演示系统与内网迁移基线](v5.4-external-demo-baseline.md)
 - [V5.4 平台文档规划](../../agent/plans/active/v54-platform-documentation-plan.md)
 - [Docs 与 RAG 协作规范](../workflows/rag-governance.md)

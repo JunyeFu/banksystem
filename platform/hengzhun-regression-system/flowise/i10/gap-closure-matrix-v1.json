@@ -1,0 +1,50 @@
+{
+  "schemaVersion": "hengzhun-i10-gap-closure-matrix-v1",
+  "scope": "I10-S0-S8-R0-R7",
+  "status": "HISTORICAL_BASELINE_ONLY",
+  "supersededBy": "flowise/i10/i10-18-chain-acceptance-issue-register-v1.md",
+  "acceptanceBoundary": "This matrix records pre-18-chain component evidence only. It must never be used to assert I10_FLOWISE_18_CHAIN_ACCEPTED or I10_FLOWISE_LOCAL_ACCEPTED.",
+  "stage8Evidence": {
+    "path": ".data/evidence/i10/stage8/result.json",
+    "sha256": "00f4c3d4599dbfca93671a1928a280f2c029049ba1a1946044c535f8a95c5d94",
+    "forwardScenarioCount": 1,
+    "reverseScenarioCount": 0,
+    "mock": false,
+    "degraded": false
+  },
+  "multimodalVerificationEvidence": {
+    "path": ".data/evidence/i10/multimodal-verification/result.json",
+    "available": false,
+    "reason": "Historical evidence path is absent from the current local runtime; it cannot support current acceptance."
+  },
+  "supportingRuntimeEvidence": [
+    ".data/evidence/i10/model-probes/result.json",
+    ".data/evidence/i10/flowise/publication.json"
+  ],
+  "gaps": [
+    { "id": "I10-G01", "status": "VERIFIED", "implementation": ["harness/src/i10/case-file-parser.ts", "harness/src/i10/service.ts"], "tests": ["tests/i10/case-file-import.test.cjs"], "runtimeEvidence": ["CASE_FILE"] },
+    { "id": "I10-G02", "status": "VERIFIED", "implementation": ["worker/src/i10-video-ingest-runner.cjs", "harness/src/i10/service.ts"], "tests": ["tests/i10/video-ingest.test.cjs"], "runtimeEvidence": ["VIDEO"] },
+    { "id": "I10-G03", "status": "VERIFIED", "implementation": ["harness/src/i10/dpapi.ts", "harness/src/i10/service.ts", "scripts/verify-i10-secret-leaks.cjs"], "tests": ["tests/i10/credential-and-bridge.test.cjs"], "runtimeEvidence": ["credentialRef", "secret-scan-zero-findings"] },
+    { "id": "I10-G04", "status": "VERIFIED", "implementation": ["worker/src/i10-midscene-candidate-authoring.cjs", "harness/src/service.ts"], "tests": ["tests/i10/stability-policy.test.cjs"], "runtimeEvidence": ["REAL", "MIDSCENE", "PLAYWRIGHT_VERIFIED"] },
+    { "id": "I10-G05", "status": "VERIFIED", "implementation": ["harness/src/i8/script-package-builder.ts", "worker/src/i10-midscene-candidate-authoring.cjs"], "tests": ["tests/i10/stability-policy.test.cjs"], "runtimeEvidence": ["actionTraceHash", "playwrightFactHash"] },
+    { "id": "I10-G06", "status": "VERIFIED", "implementation": ["harness/src/service.ts", "worker/src/i8-stability-runner.cjs"], "tests": ["tests/i10/stability-policy.test.cjs"], "runtimeEvidence": ["I10_2X2_V1", "uniqueRuns=4"] },
+    { "id": "I10-G07", "status": "VERIFIED", "implementation": ["harness/src/service.ts", "mcp/src/server.cjs"], "tests": ["tests/i10/stability-policy.test.cjs"], "runtimeEvidence": ["sourceDownload", "sha256-match"] },
+    { "id": "I10-G08", "status": "VERIFIED", "implementation": ["harness/src/cron.ts", "harness/src/service.ts", "flowise/i10/agentflow-v2.json"], "tests": ["tests/i10/stability-policy.test.cjs", "tests/i10/stage8-live-contract.test.cjs"], "runtimeEvidence": ["ON_DEMAND", "ONE_TIME", "RECURRING"] },
+    { "id": "I10-G09", "status": "VERIFIED", "implementation": ["flowise/i10/agentflow-v2.json", "flowise/i10/input-and-schedule-contract-v1.json"], "tests": ["tests/i10/formal-contract.test.cjs"], "runtimeEvidence": ["no-fixed-2030-schedule"] },
+    { "id": "I10-G10", "status": "VERIFIED", "implementation": ["flowise/i10/controller-profile-v1.json", "scripts/verify-i10-model-probes.cjs"], "tests": ["tests/i10/formal-contract.test.cjs"], "runtimeEvidence": ["controller-structured-output", "mock=false", "degraded=false"] },
+    { "id": "I10-G11", "status": "VERIFIED", "implementation": ["flowise/i10/visual-profile-v1.json", "flowise/i10/intranet-qwen35-capability-gate-v1.json", "worker/src/i10-midscene-candidate-authoring.cjs"], "tests": ["tests/i10/formal-contract.test.cjs", "tests/i10/video-ingest.test.cjs"], "runtimeEvidence": ["vision-real-screenshot", "16K/12K/4K"] },
+    { "id": "I10-G12", "status": "VERIFIED", "implementation": ["flowise/i10/agentflow-v2.json", "scripts/i10-stage8-live.cjs"], "tests": ["tests/i10/stage8-live-contract.test.cjs"], "runtimeEvidence": ["forward=9", "reverse=3", "resultCount=12"] },
+    { "id": "I10-G13", "status": "VERIFIED", "implementation": ["harness/src/i10/schemas.ts", "harness/src/i10/service.ts", "flowise/i10/agentflow-v2.json"], "tests": ["tests/i10/multimodal-verification.test.cjs"], "runtimeEvidence": ["NATURAL_LANGUAGE+images", "CASE_FILE+images", "VIDEO+images"] },
+    { "id": "I10-G14", "status": "VERIFIED", "implementation": ["worker/src/i10-image-ingest-runner.cjs", "worker/src/i10-video-ingest-runner.cjs"], "tests": ["tests/i10/multimodal-verification.test.cjs"], "runtimeEvidence": ["zh+en OCR", "redacted-image-evidence", "controllerInvocation=REAL"] },
+    { "id": "I10-G15", "status": "VERIFIED", "implementation": ["harness/src/i10/service.ts", "scripts/build-i10-agentflow.cjs"], "tests": ["tests/i10/multimodal-verification.test.cjs", "tests/i10/agentflow-path-contract.test.cjs"], "runtimeEvidence": ["image facts merged with primary input", "CaseDraft provenance"] },
+    { "id": "I10-G16", "status": "VERIFIED", "implementation": ["harness/src/i10/schemas.ts", "harness/src/i10/service.ts"], "tests": ["tests/i10/multimodal-verification.test.cjs"], "runtimeEvidence": ["ActionStepV2 inputValue", "fact provenance refs"] },
+    { "id": "I10-G17", "status": "VERIFIED", "implementation": ["worker/src/i10-midscene-candidate-authoring.cjs", "worker/src/i8-formal-runner.cjs"], "tests": ["tests/i10/multimodal-verification.test.cjs", "tests/i10/stability-policy.test.cjs"], "runtimeEvidence": ["SMS/TOTP/CAPTCHA/QR/UKEY detection", "unattended fail-closed"] },
+    { "id": "I10-G18", "status": "VERIFIED", "implementation": ["harness/src/i10/service.ts", "harness/src/server.ts", "worker/src/index.cjs"], "tests": ["tests/i10/multimodal-verification.test.cjs"], "runtimeEvidence": ["WAITING_USER_PREPARATION", "WAITING_USER_ACTION", "VERIFICATION_CONFIRMED", "RESUMED"] },
+    { "id": "I10-G19", "status": "VERIFIED", "implementation": ["worker/src/i10-midscene-candidate-authoring.cjs", "harness/src/i10/schemas.ts"], "tests": ["tests/i10/multimodal-verification.test.cjs"], "runtimeEvidence": ["UKEY browser coordination boundary", "hardwareOperationVerified=false"] },
+    { "id": "I10-G20", "status": "VERIFIED", "implementation": ["scripts/i10-multimodal-live.cjs", "scripts/verify-i10-multimodal-live.ps1"], "tests": ["tests/i10/multimodal-verification.test.cjs"], "runtimeEvidence": ["imageCount=1", "factCount=6", "mock=false", "degraded=false"] }
+  ],
+  "releaseBoundary": {
+    "i10Stage9Included": false,
+    "reason": "S9 export remains paused by user instruction; this matrix closes I10-G01 through I10-G20 across S0-S8 and remediation R0-R7."
+  }
+}

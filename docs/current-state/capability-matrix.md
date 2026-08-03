@@ -5,19 +5,19 @@ document_type: reference
 domain: current-state
 status: verified
 authority: evidence
-version: 1.0
-effective_date: 2026-07-15
+version: 1.8
+effective_date: 2026-07-31
 owner: project-owner
 ---
 
 # Current capability matrix
 
-> This matrix describes the current banking-core evidence. It is not a completion claim for the v5.4 regression platform. The combined external-demo target and migration boundary are defined in [`../architecture/v5.4-external-demo-baseline.md`](../architecture/v5.4-external-demo-baseline.md).
+> This matrix describes banking-core implementation and accepted evidence, not automatic readiness of every newly created identity. A Keycloak user becomes a usable banking customer only after an explicit `customer_identity` link to a Fineract client exists. Historical synthetic-user E2E evidence does not prove that an independently created demo user is linked. It is not a completion claim for the v5.4 regression platform. The combined external-demo target and migration boundary are defined in [`../architecture/v5.4-external-demo-baseline.md`](../architecture/v5.4-external-demo-baseline.md).
 
 | Capability | Implemented | Runtime evidence | Status |
 |---|---:|---|---|
 | Phase 0 baseline and backup | Yes | Hash, OpenAPI parse, restore drill | VERIFIED |
-| Customer login and account query | Yes | Authorized profile/account E2E, Gateway-only Customer Web, API 401 without token, foreign account HTTP 404 | VERIFIED |
+| Customer login and account query | Yes | Portal username/password form, customer Realm/Client and a temporary synthetic-user graphical smoke are proven; persistent demo credentials still need user-entered browser acceptance, explicit Fineract identity linking and restart re-verification. Phone-number login and session renewal are not yet verified | PARTIALLY_VERIFIED |
 | Beneficiary tokenization | Yes | Authorized customer create/list returned masked `****7890`; temporary data removed | VERIFIED |
 | Notifications | Yes | Customer transfer produced one subject-scoped `TRANSFER_SETTLED` notification | VERIFIED |
 | Transfer receipts/statements | Yes | Repeatable customer E2E verifies JSON/PDF receipts, 64-digit SHA-256, CSV/PDF statements, balance equation, and identical statement replay | VERIFIED |
@@ -34,16 +34,39 @@ owner: project-owner
 | EOD/reconciliation orchestration | Yes | Authorized EOD plus all three reconciliation types returned MATCHED with zero differences and balanced debit/credit totals | VERIFIED |
 | Cashier/freeze/close/maturity operations | Partial | Authorized cashier read, block/unblock, business-date move/restore, one-period maturity schedule, post-maturity close, and premature-close HTTP 409 passed | PARTIALLY_VERIFIED |
 | Final full regression | Partial | Repeatable smoke regression and backup drills pass; E2E-001 to E2E-014 are not all automated/executed | PARTIALLY_VERIFIED |
+| Local identity-data readiness | Partial | Keycloak persistence and default `CUSTOMER` role are configured; each persistent demo customer still requires enabled/no-required-action checks, a unique Fineract client link and credential-private graphical acceptance | PARTIALLY_VERIFIED |
+
+Customer graphical password-login qualification and its local-demo/production boundary are detailed in [`../evidence/frontend/customer-password-login-gap-2026-07-16.md`](../evidence/frontend/customer-password-login-gap-2026-07-16.md).
 
 ## v5.4 regression-platform target status
 
 | Capability | Current status | Evidence/qualification |
 |---|---|---|
-| RegressionCase, Fixture, Baseline and human-success evidence | PARTIAL / PLANNED | Existing contracts and test assets exist; v5.4 full workflow is not yet implemented end to end |
-| RAG template/rule retrieval | PARTIAL | Project RAG exists with sharded index; v5.4 ActionListTemplateCatalog governance is a target |
-| Codex/GPT authoring adapter | PLANNED | Codex/GPT boundary and required interfaces are documented; no runtime adapter has been implemented |
-| Midscene atomic action plus Playwright fact collection | POC / PARTIAL | Local v5.4 references and PoC evidence exist; full integration with this repo is not complete |
-| Independent Playwright script validation | PLANNED | Required by v5.4; current final regression is not equivalent |
-| Scheduled regression and automatic failure pause | PLANNED | Banking EOD/recovery exists; v5.4 script Schedule/FailureIncident loop is separate |
-| Reverse recovery with exactly two options | PLANNED | v5.4 target; not claimed as implemented in the current banking services |
-| Hengzhun quality platform frontend | IMPLEMENTED / BACKEND PENDING | Nine contract-backed routes, generated OpenAPI types, 15 Playwright visual/interaction checks and nine multimodal-reviewed baselines; browser fixtures are not backend completion evidence |
+| Dedicated Node/Playwright/Midscene runtime | VERIFIED | `platform/hengzhun-regression-system/runtime` now contains the product-local verified copy of Node 20.20.2, Playwright/Test/Core 1.59.1, Midscene Web/CLI 1.10.5, Chromium revision 1217 and FFmpeg revision 1011; legacy `platform/runtime` is retained temporarily as rollback source |
+| Hengzhun I0-I7 single-directory product skeleton | VERIFIED_HISTORICAL | Product root, module boundaries, `.data` isolation, fixed runtime, Harness, Worker, Model Gateway, OpenAPI, Coze public configuration and I1-I7 verifier are present and pass; this does not prove the I8 Flowise target is implemented |
+| RegressionCase, Fixture, Baseline and human-success evidence | VERIFIED | I4 三条低风险案例使用独立 BrowserContext、Fixture 隔离和脱敏证据通过；正式脚本需 `SCRIPT_VALIDATED` |
+| Repository development RAG | NOT_BUILT / DEVELOPMENT_ONLY | 当前 `rag/index/manifest.json` 不存在；开发索引可按需重建，但不属于产品目录、运行时、验收或交付前置条件 |
+| Coze runtime knowledge base | VERIFIED_HISTORICAL_DEMO | I3/I4/I6 的 Knowledge Base 历史演示证据保留；I8 不继续扩展 Coze |
+| Coze Agent orchestration plus Harness tools | VERIFIED_HISTORICAL_DEMO | Coze 公开 Agent 已完成 I3/I5/I6 历史闭环；该证据不证明 Flowise 或 HiAgent 当前可用 |
+| Flowise Windows technical probe | VERIFIED_PROBE_ONLY | Flowise 3.0.12、Bundled Node 20.20.2、SQLite、MiMo v2.5、MCP、Human Input、平台知识查询、流程导出和整目录复制重启通过隔离探针；只授权 I9 P1 正式运行时收编，不是产品验收 |
+| I8 platform-neutral deterministic authoring engine | VERIFIED_I8_STAGE7_LOCAL | 阶段1—7本机代码链、累计32/32、阶段7固定Chromium修复候选6/6、全量verify和文档校验完成；真实Flowise产品化已移交I9 |
+| I8 Flowise Agentflow artifact | VERIFIED_STAGE3_ARTIFACT | Flowise 3.0.12节点类可加载；唯一用户输入为案例描述；知识、结构化、澄清、Human Input、MCP、候选编译和回显均有HiAgent映射；未做真实Agentflow发布/MiMo对话 |
+| I8 MCP control channel | VERIFIED_I8_STAGE7_LOCAL | Bearer Streamable HTTP、14工具白名单全部ACTIVE；`failure_get/repair_propose/decision_submit`仅映射受控Harness操作，技术版本、Fixture和凭据别名由MCP/Harness注入；不能外推为Flowise发布或HiAgent网络已通 |
+| I8 case-to-intent handoff | VERIFIED_I8_STAGE2 | migration 010、严格Schema、幂等、Hash、不可变源字段、人工APPROVE/REJECT及`AWAITING_STAGE3`最小状态查询通过测试 |
+| I8 deterministic script candidate | VERIFIED_I8_STAGE3_LOCAL | migration 011、严格ExecutableActionPlan、10操作DSL、固定模板Builder、候选版本/Hash/来源链和不可变SQLite记录通过；同输入生成字节一致脚本 |
+| I8 candidate Worker allowlist | VERIFIED_I8_STAGE3_CONTRACT | 受控候选目录、manifest/脚本Hash、固定模块契约和危险能力拒绝通过Fake Page集成测试；真实Chromium证据与签证由独立阶段4门禁提供 |
+| I8 Playwright stability certificate | VERIFIED_I8_STAGE4_LOCAL | migration 012、固定1440×900/390×844各3次、全新BrowserContext、空认证状态、独立Fixture、候选/运行时/证据Hash和不可变证书已落地；合成门户和真实复兴银行门户均由固定Chromium完成6/6，不能外推为Flowise/MiMo/HiAgent已验收 |
+| I8 controlled script delivery | VERIFIED_I8_STAGE5_LOCAL | migration 013、持证Hash复核、完整行分页预览、5分钟一次性下载、SAVE_ONLY/ACTIVATE/REJECT不可变决策、精确版本激活和并发冲突拒绝通过；激活不自动运行或调度 |
+| I8 activated on-demand regression | VERIFIED_I8_STAGE5_LOCAL | 已激活候选由常驻Worker以固定Chromium和纯Playwright执行；合成门户和真实复兴银行门户正式复跑均通过，任务状态可查询；阶段6另已完成周期/一次性调度 |
+| I8 exact-version scheduling | VERIFIED_I8_STAGE6_LOCAL | migration 014回填历史周期调度并冻结案例/计划/脚本版本和Hash；支持五字段Cron与带偏移runAt，一次性终态自动停用；脚本current_version漂移后仍由固定Chromium运行冻结版本 |
+| I8 offline result inbox | VERIFIED_I8_STAGE6_LOCAL | 每个正式Run终态按namespace+runId幂等写入不可删除SQLite收件箱；支持倒序分页、未读筛选与确认已读，只返回脱敏摘要和Artifact元数据 |
+| I8 restricted reverse repair | VERIFIED_I8_STAGE7_LOCAL | migration 015、十一类事故、CTX-L1/L2/L3证据升级、最多3候选、严格补丁白名单、每候选独立Hash和六次重新签证、显式激活、修复版本按需运行和新调度精确绑定已通过自动测试；不自动迁移既有调度，不修改被测项目 |
+| I9 Flowise portable product | VERIFIED_LOCAL_I9_P9_FOLDER_EXPORTED | P1—P9本机范围已关闭：正向20节点、反向37节点、两次固定Chromium 6/6、14项MCP、双SQLite恢复和当前电脑最终目录5/5机器门禁均通过。冻结提交`3884b6d843a47f48ab4880d68589d411bde99969`导出唯一未压缩目录，清单SHA-256为`3b088ec9f42d127c3b19f6f9ab97174a8476413164d83e960b75e043f8a0e7ae`；第二台电脑与HiAgent仍是后续环境证据 |
+| I10 Flowise formal regression product（统一受理、真实视觉作者化、本机Windows交付） | VERIFIED_LOCAL_I10 | 2026-08-02回灌后以ReleaseIdentity `632ad5ee7981b59f00824d0072d28da6075eef095d55a898d51c0103a897988f`重算：当前账本18/18、9/9语义匹配、`full18ChainAccepted=true`；Harness迁移36/36，Worker代码身份匹配，Flowise v7由公开API回读为`deployed=true/isPublic=false`且部署Hash一致；DeepSeek V4 Flash与MiMo v2.5真实探针均`mock=false/degraded=false`；清单重算后`VERIFY`为285个核心文件、6组资产、禁止项0并返回`I10_PORTABLE_FOLDER_VERIFIED`。证据见`docs/evidence/platform/hengzhun-i10-post-backfill-baseline-2026-08-02.md`。该结论只覆盖当前本机，不证明第二台电脑、HiAgent服务器或任意Windows环境。 |
+| Harness governed action context | VERIFIED_I8_STAGE1 | migration 009、严格Envelope、Hash、单动作租约、不可变预算审计和L1→L2→L3通过自动测试；历史SQLite游标和Playwright推进继续有效 |
+| Controller-to-visual sliding context | PARTIALLY_IMPLEMENTED_STAGE3 | Worker已消费完整获批Envelope，Flowise已交接IntentPlan并生成ExecutableActionPlan；真实MiMo视觉E2E仍未运行，usage未公开时只记录`NOT_EXPOSED` |
+| Midscene visual Agent plus Playwright fact collection | PARTIALLY_VERIFIED_WITH_FALLBACK | `INPUT/TAP/SCROLL` 通过五视口门禁；`LOCATE` 降级并强制 Playwright-only，所有事实仍由 Playwright 独立验证 |
+| Independent Playwright script validation | VERIFIED | 三案例脚本、隔离 Worker、独立 BrowserContext、断言和证据 Hash 已通过，未验证脚本不能正式执行 |
+| Scheduled regression and automatic failure pause | VERIFIED | I6 验证互斥、misfire、补跑、重启去重、有限重试、最终失败暂停和人工恢复；正式调度不调用模型 |
+| Reverse recovery with exactly two options | VERIFIED | 修复候选与 Schedule 恢复均由 Harness 保持版本化状态并要求 Coze 用户显式二选一，旧版本重复决策被拒绝 |
+| Hengzhun observability frontend | DEFERRED | Legacy UI assets and browser fixtures exist but are outside the approved read-only boundary; they are not current capability evidence and must not be extended until `HZ-OBSERVABILITY-001` is resumed |

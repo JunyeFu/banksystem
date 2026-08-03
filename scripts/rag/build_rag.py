@@ -105,8 +105,8 @@ def classify(path: Path, metadata: dict) -> dict:
         source_class, retrieval_domain, domain = "workflow", "normative", metadata.get("domain", "workflow")
     elif rel.startswith("docs/operations/"):
         source_class, retrieval_domain, domain = "operations", "normative", "operations"
-    elif rel.startswith("docs/archive/") or rel.startswith("agent/archive/"):
-        source_class, retrieval_domain, domain = "historical", "reference", "history"
+    elif rel.startswith("documents/"):
+        source_class, retrieval_domain, domain = "documentation", "normative", metadata.get("domain", "formal-documents")
     elif rel.startswith("docs/research/"):
         source_class, retrieval_domain, domain = "research", "reference", "research"
     elif rel.startswith("knowledge-sources/imported/"):

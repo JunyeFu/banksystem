@@ -1,0 +1,672 @@
+openapi: 3.0.3
+info:
+  title: 衡准 Worker 内部接口
+  version: 1.5.0
+  description: 仅供本机 Playwright/Midscene Worker 领取和完成 SQLite 持久化任务，不导入 Flowise/HiAgent。
+servers:
+  - url: http://127.0.0.1:18788
+security:
+  - workerBearer: []
+paths:
+  /internal/worker/tasks:claim:
+    post:
+      operationId: workerClaimTask
+      summary: 领取一个带租约的正式回归任务
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: {$ref: '#/components/schemas/WorkerClaimRequest'}
+            example: {workerId: worker-local-01}
+      responses:
+        '200':
+          description: 已领取任务或当前队列为空
+          content:
+            application/json:
+              schema: {type: object, additionalProperties: true}
+        '401': {$ref: '#/components/responses/Problem'}
+        '403': {$ref: '#/components/responses/Problem'}
+  /internal/worker/tasks/{taskId}:complete:
+    post:
+      operationId: workerCompleteTask
+      summary: 提交确定性断言结果和受控证据
+      parameters:
+        - name: taskId
+          in: path
+          required: true
+          schema: {type: string, minLength: 8, maxLength: 80}
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: {$ref: '#/components/schemas/WorkerCompletionRequest'}
+      responses:
+        '200':
+          description: 任务和运行状态已原子更新
+          content:
+            application/json:
+              schema: {type: object, additionalProperties: true}
+        '400': {$ref: '#/components/responses/Problem'}
+        '401': {$ref: '#/components/responses/Problem'}
+        '403': {$ref: '#/components/responses/Problem'}
+        '409': {$ref: '#/components/responses/Problem'}
+  /internal/worker/authoring:claim:
+    post:
+      operationId: workerClaimAuthoringAction
+      summary: 领取一个受三动作窗口约束的作者化动作
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: {$ref: '#/components/schemas/AuthoringWorkerClaimRequest'}
+      responses:
+        '200':
+          description: 已领取单动作租约或当前队列为空
+          content:
+            application/json:
+              schema:
+                oneOf:
+                  - {$ref: '#/components/schemas/AuthoringClaimResponse'}
+                  - {$ref: '#/components/schemas/EmptyClaimResponse'}
+        '401': {$ref: '#/components/responses/Problem'}
+        '403': {$ref: '#/components/responses/Problem'}
+  /internal/worker/authoring/{taskId}/actions:complete:
+    post:
+      operationId: workerCompleteAuthoringAction
+      summary: 提交 Playwright 独立验证后的作者化动作结果
+      parameters:
+        - name: taskId
+          in: path
+          required: true
+          schema: {type: string, minLength: 8, maxLength: 80}
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: {$ref: '#/components/schemas/AuthoringActionCompletionRequest'}
+      responses:
+        '200':
+          description: 动作状态与游标已原子处理
+          content:
+            application/json:
+              schema: {type: object, additionalProperties: true}
+        '400': {$ref: '#/components/responses/Problem'}
+        '401': {$ref: '#/components/responses/Problem'}
+        '403': {$ref: '#/components/responses/Problem'}
+        '409': {$ref: '#/components/responses/Problem'}
+  /internal/worker/midscene-capabilities:record:
+    post:
+      operationId: workerRecordMidsceneCapability
+      summary: 记录 PLAT-V014 原子动作稳定性门禁结果
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: {$ref: '#/components/schemas/MidsceneCapabilityRequest'}
+      responses:
+        '200':
+          description: 动作能力已按零失败规则更新
+          content:
+            application/json:
+              schema: {type: object, additionalProperties: true}
+        '400': {$ref: '#/components/responses/Problem'}
+        '401': {$ref: '#/components/responses/Problem'}
+        '403': {$ref: '#/components/responses/Problem'}
+  /internal/worker/repairs:claim:
+    post:
+      operationId: workerClaimRepairValidation
+      summary: 领取一个隔离修复候选验证租约
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: {$ref: '#/components/schemas/WorkerClaimRequest'}
+      responses:
+        '200':
+          description: 返回白名单脚本、受控配置和全新浏览器上下文隔离要求，或队列为空
+          content:
+            application/json:
+              schema: {type: object, additionalProperties: true}
+        '401': {$ref: '#/components/responses/Problem'}
+        '403': {$ref: '#/components/responses/Problem'}
+  /internal/worker/repairs/{jobId}:complete:
+    post:
+      operationId: workerCompleteRepairValidation
+      summary: 提交隔离 Playwright 候选验证结果
+      parameters:
+        - name: jobId
+          in: path
+          required: true
+          schema: {type: string, minLength: 8, maxLength: 80}
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: {$ref: '#/components/schemas/WorkerCompletionRequest'}
+      responses:
+        '200':
+          description: 候选进入 WAITING_USER 或 VALIDATION_FAILED；不会自动激活脚本
+          content:
+            application/json:
+              schema: {type: object, additionalProperties: true}
+        '400': {$ref: '#/components/responses/Problem'}
+        '401': {$ref: '#/components/responses/Problem'}
+        '403': {$ref: '#/components/responses/Problem'}
+        '409': {$ref: '#/components/responses/Problem'}
+  /internal/worker/i8/candidates:claim:
+    post:
+      operationId: workerClaimI8CandidateBuild
+      summary: 领取一个I8确定性计划作者化作业
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: {$ref: '#/components/schemas/WorkerClaimRequest'}
+      responses:
+        '200':
+          description: 已领取计划或当前队列为空
+          content:
+            application/json:
+              schema:
+                oneOf:
+                  - {$ref: '#/components/schemas/I8CandidateBuildClaimResponse'}
+                  - {$ref: '#/components/schemas/EmptyClaimResponse'}
+        '401': {$ref: '#/components/responses/Problem'}
+        '403': {$ref: '#/components/responses/Problem'}
+  /internal/worker/i8/candidates/{jobId}:complete:
+    post:
+      operationId: workerCompleteI8CandidateBuild
+      summary: 提交Playwright事实并触发确定性候选包生成
+      parameters:
+        - name: jobId
+          in: path
+          required: true
+          schema: {type: string, minLength: 8, maxLength: 80}
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: {$ref: '#/components/schemas/I8CandidateBuildCompletionRequest'}
+      responses:
+        '200':
+          description: 验证事实和候选元数据已原子写入
+          content:
+            application/json:
+              schema: {type: object, additionalProperties: true}
+        '400': {$ref: '#/components/responses/Problem'}
+        '401': {$ref: '#/components/responses/Problem'}
+        '403': {$ref: '#/components/responses/Problem'}
+        '409': {$ref: '#/components/responses/Problem'}
+  /internal/worker/i8/stability:claim:
+    post:
+      operationId: workerClaimI8Stability
+      summary: 领取固定2视口各3次的稳定性验证批次
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: {$ref: '#/components/schemas/WorkerClaimRequest'}
+      responses:
+        '200':
+          description: 已领取六次稳定性样本或当前队列为空
+          content:
+            application/json:
+              schema:
+                oneOf:
+                  - {$ref: '#/components/schemas/I8StabilityClaimResponse'}
+                  - {$ref: '#/components/schemas/EmptyClaimResponse'}
+        '401': {$ref: '#/components/responses/Problem'}
+        '403': {$ref: '#/components/responses/Problem'}
+  /internal/worker/i8/stability/{batchId}:complete:
+    post:
+      operationId: workerCompleteI8Stability
+      summary: 原子提交六次真实Chromium验证结果并按硬门禁签发证书
+      parameters:
+        - name: batchId
+          in: path
+          required: true
+          schema: {type: string, minLength: 8, maxLength: 80}
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: {$ref: '#/components/schemas/I8StabilityCompletionRequest'}
+      responses:
+        '200':
+          description: 六次全通过时签发证书；任一次失败时整批失败且不重试
+          content:
+            application/json:
+              schema: {type: object, additionalProperties: true}
+        '400': {$ref: '#/components/responses/Problem'}
+        '401': {$ref: '#/components/responses/Problem'}
+        '403': {$ref: '#/components/responses/Problem'}
+        '409': {$ref: '#/components/responses/Problem'}
+components:
+  securitySchemes:
+    workerBearer: {type: http, scheme: bearer, bearerFormat: opaque-worker-token}
+  schemas:
+    WorkerClaimRequest:
+      type: object
+      additionalProperties: false
+      required: [workerId]
+      properties:
+        workerId: {type: string, minLength: 3, maxLength: 128, pattern: '^[A-Za-z0-9._:-]+$'}
+    AuthoringWorkerClaimRequest:
+      type: object
+      additionalProperties: false
+      required: [workerId, visualContext]
+      properties:
+        workerId: {type: string, minLength: 3, maxLength: 128, pattern: '^[A-Za-z0-9._:-]+$'}
+        visualContext:
+          type: object
+          additionalProperties: false
+          required: [viewportWidth, viewportHeight, tokenizerId]
+          properties:
+            viewportWidth: {type: integer, minimum: 320, maximum: 16384}
+            viewportHeight: {type: integer, minimum: 240, maximum: 16384}
+            tokenizerId: {type: string, minLength: 1, maxLength: 160, pattern: '^[A-Za-z0-9._:/-]+$'}
+    EmptyClaimResponse:
+      type: object
+      additionalProperties: false
+      required: [status]
+      properties:
+        status: {type: string, enum: [EMPTY]}
+    ActionContextEnvelope:
+      type: object
+      additionalProperties: false
+      required:
+        - schemaVersion
+        - consumerType
+        - contextLevel
+        - modelContextLimitTokens
+        - inputBudgetTokens
+        - reservedOutputTokens
+        - estimatedInputTokens
+        - imageTokenEstimate
+        - tokenizerId
+        - budgetDecision
+        - redactionProfileId
+        - pageSignature
+        - invariants
+        - allowedTargets
+        - fixtureRefs
+        - recentFacts
+        - previousActionSummary
+        - currentAction
+        - nextActionPreview
+        - minimalDependencyCone
+        - lease
+      properties:
+        schemaVersion: {type: string, enum: [i8-action-context-v1]}
+        consumerType: {type: string, enum: [VISION_LLM]}
+        contextLevel: {type: string, enum: [CTX-L1, CTX-L2, CTX-L3]}
+        modelContextLimitTokens: {type: integer, enum: [16000]}
+        inputBudgetTokens: {type: integer, enum: [12000]}
+        reservedOutputTokens: {type: integer, enum: [4000]}
+        estimatedInputTokens: {type: integer, minimum: 0}
+        imageTokenEstimate: {type: integer, minimum: 0}
+        tokenizerId: {type: string, minLength: 1, maxLength: 160, pattern: '^[A-Za-z0-9._:/-]+$'}
+        budgetDecision: {type: string, enum: [ALLOW, REDUCE, SPLIT, PLAYWRIGHT_ONLY, WAITING_USER]}
+        redactionProfileId: {type: string, enum: [HZ_REDACTION_V1]}
+        pageSignature:
+          type: object
+          additionalProperties: false
+          required: [route, signature, source]
+          properties:
+            route: {type: string, nullable: true, maxLength: 512}
+            signature: {type: string, minLength: 1, maxLength: 256}
+            source: {type: string, enum: [PLAYWRIGHT_VERIFIED, INITIAL_UNKNOWN]}
+        invariants: {type: array, minItems: 1, maxItems: 16, items: {type: string, minLength: 1, maxLength: 160}}
+        allowedTargets: {type: array, minItems: 1, maxItems: 16, items: {type: string, minLength: 1, maxLength: 128}}
+        fixtureRefs: {type: array, maxItems: 16, items: {type: string, minLength: 1, maxLength: 128}}
+        recentFacts:
+          type: object
+          nullable: true
+          additionalProperties: false
+          required: [summary, verification]
+          properties:
+            summary: {type: string, minLength: 1, maxLength: 1000}
+            verification:
+              type: object
+              additionalProperties: false
+              required: [dom, url, request, business]
+              properties:
+                dom: {type: boolean}
+                url: {type: boolean}
+                request: {type: boolean}
+                business: {type: boolean}
+        previousActionSummary:
+          type: object
+          nullable: true
+          additionalProperties: false
+          required: [ordinal, actionType, summary]
+          properties:
+            ordinal: {type: integer, minimum: 1}
+            actionType: {type: string, enum: [LOCATE, INPUT, TAP, SCROLL]}
+            summary: {type: string, minLength: 1, maxLength: 1000}
+        currentAction:
+          type: object
+          additionalProperties: false
+          required: [actionType, prompt, targetRef, valueRef, riskLevel, executionMode]
+          properties:
+            actionType: {type: string, enum: [LOCATE, INPUT, TAP, SCROLL]}
+            prompt: {type: string, minLength: 1, maxLength: 500}
+            targetRef: {type: string, enum: [PAGE, LOGIN_USERNAME, LOGIN_SSO_TAB, LOGIN_SUBMIT]}
+            valueRef: {type: string, nullable: true, enum: [SYNTHETIC_TEXT]}
+            riskLevel: {type: string, enum: [LOW, MEDIUM, HIGH]}
+            executionMode: {type: string, enum: [MIDSCENE_LOCATE_PLAYWRIGHT_EXECUTE, PLAYWRIGHT_ONLY]}
+        nextActionPreview:
+          type: object
+          nullable: true
+          additionalProperties: false
+          required: [actionType, prompt]
+          properties:
+            actionType: {type: string, enum: [LOCATE, INPUT, TAP, SCROLL]}
+            prompt: {type: string, minLength: 1, maxLength: 500}
+        minimalDependencyCone:
+          type: object
+          nullable: true
+          additionalProperties: false
+          required: [caseId, caseVersion, executionProfile, assertionCount]
+          properties:
+            caseId: {type: string, minLength: 8, maxLength: 80}
+            caseVersion: {type: integer, minimum: 1}
+            executionProfile: {type: string, nullable: true, enum: [LOGIN_PROFILE, ACCOUNT_OWNERSHIP, AUTH_REJECTION_RECOVERY]}
+            assertionCount: {type: integer, nullable: true, minimum: 0, maximum: 50}
+        lease:
+          type: object
+          additionalProperties: false
+          required: [slotId, owner, expiresAt]
+          properties:
+            slotId: {type: string, minLength: 8, maxLength: 80}
+            owner: {type: string, minLength: 3, maxLength: 128}
+            expiresAt: {type: string, minLength: 20, maxLength: 40}
+    AuthoringClaimResponse:
+      type: object
+      additionalProperties: false
+      required: [status, taskId, planId, scriptId, slotId, actionId, contextAuditId, contextEnvelopeHash, contextEnvelope]
+      properties:
+        status: {type: string, enum: [CLAIMED]}
+        taskId: {type: string, minLength: 8, maxLength: 80}
+        planId: {type: string, minLength: 8, maxLength: 80}
+        scriptId: {type: string, minLength: 8, maxLength: 80}
+        slotId: {type: string, minLength: 8, maxLength: 80}
+        actionId: {type: string, minLength: 8, maxLength: 80}
+        contextAuditId: {type: string, minLength: 8, maxLength: 80}
+        contextEnvelopeHash: {type: string, pattern: '^[0-9a-f]{64}$'}
+        contextEnvelope: {$ref: '#/components/schemas/ActionContextEnvelope'}
+    WorkerEvidence:
+      type: object
+      additionalProperties: false
+      required: [artifactType, mediaType, redactionStatus, extension, base64Content]
+      properties:
+        artifactType: {type: string, enum: [JSON, TEXT, SCREENSHOT, LOG, REPORT, DIAGNOSTIC]}
+        mediaType: {type: string, minLength: 1, maxLength: 128}
+        redactionStatus: {type: string, enum: [NOT_REQUIRED, REDACTED, QUARANTINED]}
+        extension: {type: string, minLength: 1, maxLength: 10, pattern: '^[A-Za-z0-9]+$'}
+        base64Content: {type: string, minLength: 1, description: Base64 编码且不得包含凭据或真实个人信息。}
+        metadata: {type: object, additionalProperties: true}
+    WorkerCompletionRequest:
+      type: object
+      additionalProperties: false
+      required: [workerId, outcome, summary, evidence]
+      properties:
+        workerId: {type: string, minLength: 3, maxLength: 128}
+        outcome: {type: string, enum: [PASSED, FAILED, BLOCKED]}
+        summary: {type: string, minLength: 1, maxLength: 1000}
+        errorCode: {type: string, minLength: 1, maxLength: 128}
+        errorCategory: {type: string, enum: [TEST_FAILURE, ENVIRONMENT, EVIDENCE]}
+        retryable: {type: boolean}
+        userActionRequired: {type: boolean}
+        evidence:
+          type: array
+          maxItems: 8
+          items: {$ref: '#/components/schemas/WorkerEvidence'}
+    AuthoringActionCompletionRequest:
+      type: object
+      additionalProperties: false
+      required: [workerId, slotId, outcome, summary, contextAuditId, contextEnvelopeHash, modelUsage, pageState, verification]
+      properties:
+        workerId: {type: string, minLength: 3, maxLength: 128, pattern: '^[A-Za-z0-9._:-]+$'}
+        slotId: {type: string, minLength: 8, maxLength: 80}
+        outcome: {type: string, enum: [VERIFIED_PASSED, FAILED, AMBIGUOUS]}
+        summary: {type: string, minLength: 1, maxLength: 1000}
+        contextAuditId: {type: string, minLength: 8, maxLength: 80}
+        contextEnvelopeHash: {type: string, pattern: '^[0-9a-f]{64}$'}
+        modelUsage:
+          type: object
+          additionalProperties: false
+          required: [status]
+          properties:
+            status: {type: string, enum: [PROVIDER_REPORTED, NOT_EXPOSED, NOT_INVOKED]}
+            provider: {type: string, enum: [mimo]}
+            model: {type: string, minLength: 1, maxLength: 160, pattern: '^[A-Za-z0-9._:/-]+$'}
+            inputTokens: {type: integer, minimum: 0}
+            outputTokens: {type: integer, minimum: 0}
+            totalTokens: {type: integer, minimum: 0}
+        pageState: {type: object, additionalProperties: true}
+        verification:
+          type: object
+          additionalProperties: false
+          required: [dom, url, request, business]
+          properties:
+            dom: {type: boolean}
+            url: {type: boolean}
+            request: {type: boolean}
+            business: {type: boolean}
+    MidsceneCapabilityRequest:
+      type: object
+      additionalProperties: false
+      required: [actionType, viewportCount, attemptCount, failureCount, falseSuccessCount, verificationRef]
+      properties:
+        actionType: {type: string, enum: [LOCATE, INPUT, TAP, SCROLL]}
+        viewportCount: {type: integer, minimum: 0}
+        attemptCount: {type: integer, minimum: 0}
+        failureCount: {type: integer, minimum: 0}
+        falseSuccessCount: {type: integer, minimum: 0}
+        verificationRef: {type: string, minLength: 8, maxLength: 256}
+    I8CandidateBuildClaimResponse:
+      type: object
+      required: [status, jobId, namespace, executablePlanId, planHash, plan, leaseExpiresAt]
+      properties:
+        status: {type: string, enum: [CLAIMED]}
+        jobId: {type: string, minLength: 8, maxLength: 80}
+        namespace: {type: string, minLength: 3, maxLength: 64}
+        executablePlanId: {type: string, minLength: 8, maxLength: 80}
+        planHash: {type: string, pattern: '^[0-9a-f]{64}$'}
+        plan: {$ref: '#/components/schemas/I8ExecutableActionPlan'}
+        leaseExpiresAt: {type: string, format: date-time}
+      additionalProperties: false
+    I8ExecutableActionPlan:
+      type: object
+      required: [schemaVersion, executablePlanId, caseId, caseVersion, intentPlanHash, planVersion, fixtureProfile, actions]
+      properties:
+        schemaVersion: {type: string, enum: [i8-executable-action-plan-v1]}
+        executablePlanId: {type: string, minLength: 8, maxLength: 80}
+        caseId: {type: string, minLength: 8, maxLength: 80}
+        caseVersion: {type: integer, minimum: 1}
+        intentPlanHash: {type: string, pattern: '^[0-9a-f]{64}$'}
+        planVersion: {type: integer, minimum: 1}
+        fixtureProfile: {type: string, enum: [LOGIN_PROFILE]}
+        actions:
+          type: array
+          minItems: 1
+          maxItems: 100
+          items: {$ref: '#/components/schemas/I8ExecutableAction'}
+      additionalProperties: false
+    I8ExecutableAction:
+      type: object
+      required: [actionId, ordinal, operation, pageSignature, fixtureRefs, preconditions, invariants, postconditions, riskLevel, retryPolicy, branchRules, failureExit, evidencePolicy, sourceIntentStepId]
+      properties:
+        actionId: {type: string, minLength: 3, maxLength: 160}
+        ordinal: {type: integer, minimum: 1, maximum: 100}
+        operation: {type: string, enum: [goto, fill, click, select, waitForURL, waitForResponse, expectVisible, expectText, expectEqual, screenshot]}
+        pageSignature:
+          type: object
+          required: [routePatternRef, landmarkRef, requiredAriaRefs]
+          properties:
+            routePatternRef: {type: string}
+            landmarkRef: {type: string}
+            requiredAriaRefs: {type: array, items: {type: string}, maxItems: 20}
+          additionalProperties: false
+        semanticTargetRef: {type: string}
+        comparisonTargetRef: {type: string}
+        routeRef: {type: string}
+        routePatternRef: {type: string}
+        responsePatternRef: {type: string}
+        optionRef: {type: string}
+        fixtureRefs: {type: array, items: {type: string}, maxItems: 10}
+        preconditions: {type: array, items: {type: string}, maxItems: 20}
+        invariants: {type: array, items: {type: string}, minItems: 1, maxItems: 20}
+        postconditions: {type: array, items: {type: string}, maxItems: 20}
+        riskLevel: {type: string, enum: [LOW, MEDIUM, HIGH]}
+        retryPolicy:
+          type: object
+          required: [maximumRetries, sideEffectFree]
+          properties:
+            maximumRetries: {type: integer, minimum: 0, maximum: 1}
+            sideEffectFree: {type: boolean}
+          additionalProperties: false
+        branchRules: {type: array, items: {type: string}, maxItems: 10}
+        failureExit: {type: string, enum: [FAIL_ACTION, PLAYWRIGHT_ONLY, WAITING_USER]}
+        evidencePolicy: {type: string, enum: [NONE, FACTS, SCREENSHOT, FACTS_AND_SCREENSHOT]}
+        sourceIntentStepId: {type: string}
+      additionalProperties: false
+    I8VerifiedActionRecord:
+      type: object
+      required: [schemaVersion, executablePlanId, actionId, ordinal, outcome, pageSignatureHash, factsHash, verification, verifiedAt]
+      properties:
+        schemaVersion: {type: string, enum: [i8-verified-action-record-v1]}
+        executablePlanId: {type: string}
+        actionId: {type: string}
+        ordinal: {type: integer, minimum: 1, maximum: 100}
+        outcome: {type: string, enum: [VERIFIED_PASSED]}
+        locator:
+          type: object
+          required: [kind, value]
+          properties:
+            kind: {type: string, enum: [ROLE, LABEL, TEST_ID]}
+            value: {type: string, minLength: 1, maxLength: 256}
+          additionalProperties: false
+        pageSignatureHash: {type: string, pattern: '^[0-9a-f]{64}$'}
+        factsHash: {type: string, pattern: '^[0-9a-f]{64}$'}
+        verification:
+          type: object
+          required: [dom, url, request, business]
+          properties:
+            dom: {type: boolean}
+            url: {type: boolean}
+            request: {type: boolean}
+            business: {type: boolean}
+          additionalProperties: false
+        verifiedAt: {type: string, format: date-time}
+      additionalProperties: false
+    I8CandidateBuildCompletionRequest:
+      type: object
+      required: [workerId, planHash, outcome, verifiedActionRecords]
+      properties:
+        workerId: {type: string, minLength: 3, maxLength: 128}
+        planHash: {type: string, pattern: '^[0-9a-f]{64}$'}
+        outcome: {type: string, enum: [VERIFIED_PASSED, FAILED]}
+        errorCode: {type: string, minLength: 3, maxLength: 160}
+        verifiedActionRecords:
+          type: array
+          maxItems: 100
+          items: {$ref: '#/components/schemas/I8VerifiedActionRecord'}
+      additionalProperties: false
+    I8StabilityRunSpec:
+      type: object
+      additionalProperties: false
+      required: [validationRunId, viewportId, viewportWidth, viewportHeight, sequenceNo, fixtureRef]
+      properties:
+        validationRunId: {type: string, minLength: 3, maxLength: 160}
+        viewportId: {type: string, enum: [DESKTOP_1440X900, NARROW_390X844]}
+        viewportWidth: {type: integer, enum: [1440, 390]}
+        viewportHeight: {type: integer, enum: [900, 844]}
+        sequenceNo: {type: integer, minimum: 1, maximum: 3}
+        fixtureRef: {type: string, minLength: 3, maxLength: 160}
+    I8StabilityClaimResponse:
+      type: object
+      additionalProperties: false
+      required: [status, batchId, namespace, candidateId, scriptVersion, caseVersion, executablePlanVersion, relativeDirectory, scriptHash, manifestHash, credentialAlias, leaseOwner, leaseExpiresAt, runs]
+      properties:
+        status: {type: string, enum: [CLAIMED]}
+        batchId: {type: string, minLength: 8, maxLength: 80}
+        namespace: {type: string, minLength: 3, maxLength: 64}
+        candidateId: {type: string, pattern: '^candidate_[0-9a-f]{40}$'}
+        scriptVersion: {type: integer, minimum: 1}
+        caseVersion: {type: integer, minimum: 1}
+        executablePlanVersion: {type: integer, minimum: 1}
+        relativeDirectory: {type: string, pattern: '^\\.data/candidates/[a-z0-9][a-z0-9._-]{2,63}/candidate_[0-9a-f]{40}$'}
+        scriptHash: {type: string, pattern: '^[0-9a-f]{64}$'}
+        manifestHash: {type: string, pattern: '^[0-9a-f]{64}$'}
+        credentialAlias: {type: string, enum: [i3-customer]}
+        leaseOwner: {type: string, minLength: 3, maxLength: 128}
+        leaseExpiresAt: {type: string, format: date-time}
+        runs:
+          type: array
+          minItems: 6
+          maxItems: 6
+          items: {$ref: '#/components/schemas/I8StabilityRunSpec'}
+    I8StabilityEvidence:
+      type: object
+      additionalProperties: false
+      required: [artifactType, mediaType, redactionStatus, relativePath, sha256, byteLength]
+      properties:
+        artifactType: {type: string, enum: [REPORT, SCREENSHOT, LOG]}
+        mediaType: {type: string, enum: [application/json, image/png, 'text/plain; charset=utf-8']}
+        redactionStatus: {type: string, enum: [REDACTED]}
+        relativePath: {type: string, minLength: 20, maxLength: 500}
+        sha256: {type: string, pattern: '^[0-9a-f]{64}$'}
+        byteLength: {type: integer, minimum: 1, maximum: 8388608}
+    I8StabilityRunResult:
+      type: object
+      additionalProperties: false
+      required: [validationRunId, viewportId, viewportWidth, viewportHeight, sequenceNo, fixtureRef, outcome, durationMs, assertionSetHash, evidenceSetHash, evidence]
+      properties:
+        validationRunId: {type: string, minLength: 3, maxLength: 160}
+        viewportId: {type: string, enum: [DESKTOP_1440X900, NARROW_390X844]}
+        viewportWidth: {type: integer, enum: [1440, 390]}
+        viewportHeight: {type: integer, enum: [900, 844]}
+        sequenceNo: {type: integer, minimum: 1, maximum: 3}
+        fixtureRef: {type: string, minLength: 3, maxLength: 160}
+        outcome: {type: string, enum: [PASSED, FAILED]}
+        durationMs: {type: integer, minimum: 0, maximum: 600000}
+        assertionSetHash: {type: string, pattern: '^[0-9a-f]{64}$'}
+        evidenceSetHash: {type: string, pattern: '^[0-9a-f]{64}$'}
+        evidence:
+          type: array
+          minItems: 3
+          maxItems: 3
+          items: {$ref: '#/components/schemas/I8StabilityEvidence'}
+        errorCode: {type: string, minLength: 3, maxLength: 160}
+    I8StabilityCompletionRequest:
+      type: object
+      additionalProperties: false
+      required: [workerId, candidateId, scriptHash, runtimeFingerprint, runs]
+      properties:
+        workerId: {type: string, minLength: 3, maxLength: 128}
+        candidateId: {type: string, pattern: '^candidate_[0-9a-f]{40}$'}
+        scriptHash: {type: string, pattern: '^[0-9a-f]{64}$'}
+        runtimeFingerprint: {type: string, pattern: '^[0-9a-f]{64}$'}
+        runs:
+          type: array
+          minItems: 6
+          maxItems: 6
+          items: {$ref: '#/components/schemas/I8StabilityRunResult'}
+  responses:
+    Problem:
+      description: 受控问题响应
+      content:
+        application/json:
+          schema:
+            type: object
+            additionalProperties: false
+            required: [errorCode, category, message, retryable, userActionRequired, requestId]
+            properties:
+              errorCode: {type: string}
+              category: {type: string}
+              message: {type: string}
+              retryable: {type: boolean}
+              userActionRequired: {type: boolean}
+              requestId: {type: string}

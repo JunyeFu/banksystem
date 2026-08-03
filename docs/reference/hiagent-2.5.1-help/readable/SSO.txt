@@ -1,0 +1,187 @@
+ SSO
+ 如何对接飞书 SSO 登录？
+ 飞书开发者平台配置操作
+1. 登录飞书开发者平台
+
+    https://open.feishu.cn （外网地址，适用于非字节内部人员）
+
+    https://open.larkoffice.com（内网地址，适用于字节内部人员）
+
+1. 点击【开发者后台】
+
+1. 点击【创建企业自建应用】
+
+
+
+
+1. 输入【应用名称】和【应用描述】，点击【创建】
+1. 选择【网页应用】，点击添加
+
+
+
+
+1. 左边侧边栏选择【网页应用】，桌面端主页填写 HiAgent 地址 http://$IP:32300 ，【打开方式
+  配置】按照自己的喜好选择，点击【保存】
+
+
+
+
+1. 左边侧边栏点击【安全设置】，填写【重定向 URL】，点击【添加】
+
+     【重定向 URL】参考下图中的 RedurectUri
+1. 点击【创建版本】，填写【应用版本号】和【更新说明】，【桌面端的默认能力】选择【网页
+ 应用】，点击【保存】，成功保存之后点击右上角的【确认发布】
+1. 左边侧边栏点击【凭证与基础信息】，获取 App ID（ClientId） 和 App Secret
+  （ClientSecret）
+1. 点击【开发文档】-->【开发指南】-->【应用登录与用户授权】-->【网页应用登录】-->【登录
+  流程概述】
+
+
+
+
+1. 点击【接口文档:获取登录授权码 code】获取 AuthorizeUri
+
+  1. AuthorizeUri ：
+
+     1.外网/内网：https://accounts.feishu.cn/open-apis/authen/v1/authorize
+
+     1.点击【接口文档:获取 user_access_token】获取 TokenUri
+
+  1. TokenUri：
+
+     1.外网：https://open.feishu.cn/open-apis/authen/v2/oauth/token
+
+     1.内网：https://open.larkoffice.com/open-apis/authen/v2/oauth/token
+1. 点击【接口文档:获取用户身份信息】获取【用户信息传递方式】等信息
+
+  1. 【用户信息获取地址】：
+
+    1.外网：https://open.feishu.cn/open-apis/authen/v1/user_info
+
+    1.内网：https://open.larkoffice.com/open-apis/authen/v1/user_info
+
+
+
+
+   从下面【响应体示例】中选择【用户名参数】和【用户显示名参数】，如需展示邮箱和
+   userID 等信息，需要在右侧应用【权限配置】中开通对应的权限
+Shell
+{
+    "code": 0,
+    "msg": "success",
+    "data": {
+        #用户中文姓名
+        "name": "zhangsan",
+        #用户英文姓名
+        "en_name": "zhangsan",
+        #用户头像的完整 地址    URL
+        "avatar_url": "www.feishu.cn/avatar/icon",
+        #用户头像缩略图的 地址     URL
+        "avatar_thumb": "www.feishu.cn/avatar/icon_thumb",
+        #用户头像中等尺寸图片的 地址        URL
+        "avatar_middle": "www.feishu.cn/avatar/icon_middle",
+        #用户头像大尺寸图片的 地址       URL
+        "avatar_big": "www.feishu.cn/avatar/icon_big",
+        #飞书开放平台为用户生成的唯一标识，在同一个应用内，每个用户
+的  open_id是唯一的。它用于在应用中识别用户，确保用户身份的唯一性
+        "open_id": "ou-
+caecc734c2e3328a62489fe0648c4b98779515d3",
+     在飞书开放平台体系下，
+        #                           是跨应用的用户唯一标识。对
+                              union_id
+于同一个用户，在不同的应用中其                     是相同的，方便进行用户身份的
+                             union_id
+统一管理和关联
+        "union_id": "on-
+d89jhsdhjsajkda7828enjdj328ydhhw3u43yjhdj",
+        #用户的飞书邮箱地址
+        "email": "zhangsan@feishu.cn",
+        #用户的企业邮箱地址
+        "enterprise_email": "demo@mail.com",
+            #飞书系统内部为用户分配的唯一标识
+            "user_id": "5d9bdxxx",
+            #用户的手机号码
+            "mobile": "+86130002883xx",
+            #用户所属企业的唯一标识
+            "tenant_key": "736xxx75d",
+            #用户的员工编号
+            "employee_no": "111222333"
+        }
+    }
+
+  配置示例
+1. 登录 HiAgent 平台管理端，点击【第三方认证】-->【SSO 配置】-->【创建第三方认证】
+
+
+
+
+1. 配置 SSO 名称，选择需要配置的租户，第三方认证选择 OAuth 2.0 SSO
+1. 将从飞书开发者平台获取的信息填入配置中
+
+  1. ClientId 对应 App ID
+
+  1. ClientSecret 对应 App Secret
+
+  1. URL 对应 HiAgent 平台登录地址（http://$IP:32300）
+
+  1. RedirectUri 对应上述步骤 7 中的 RedurectUri
+
+  1. AuthorizeUri ： https://accounts.feishu.cn/open-apis/authen/v1/authorize
+
+  1. TokenUri：参考上面的获取填写
+
+  1. 用户信息获取地址：参考上面的获取填写
+
+  1. 用户名参数和用户显示名参数从上方响应体示例中获取
+
+  1. 其余参数保持默认
+
+
+
+
+1. 点击提交，SSO 状态为启用
+
+
+
+
+1. 联系火山运维同学进行以下操作
+
+     修改 configs.yaml 配置文件，将 useSSO 设置为 true
+    Shell
+    volcWeb:
+           llmops:
+             强制 登陆功能，控制页面是否强制跳转 SSO 页面;
+             #     SSO
+             设置为 时，前置需要设置 useSSO 为 true,tenantMode 为
+             #       true
+    single
+             isForceSSO: false
+             #全局开启 ，如果用户端需要用 sso，则需要为 true
+                        SSO
+             useSSO: "true"
+                          用户端登录方式：单租户、多租户
+             # 'single' | 'multiple',
+             tenantMode: "multiple"
+
+
+
+    # 打开  llmops-base模块开关，其余模块设置为 false
+    modules:
+      - name: llmops-base
+        version: v1.3.0
+        enable: true
+
+    重新部署 llmops-base 模块
+
+    Bash
+    /vecps/cadm product install --config-file /vecps/configs.yaml
+    --kubeconfig /root/.kube/config
+
+1. 登录 HiAgent 平台，输入租户名称，点击下一步
+
+
+
+
+1. 点击 SSO 登录，点击授权
+1. 登录成功，点击头像显示配置的信息
+

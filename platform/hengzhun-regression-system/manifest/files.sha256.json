@@ -1,0 +1,1191 @@
+{
+  "schemaVersion": "hengzhun-i10-file-manifest-v1",
+  "sourceCommit": "eede4f7af804c009222b53932547918ff9f57001",
+  "sourceProvenance": {
+    "frozenUpstreamSourceCommit": "eede4f7af804c009222b53932547918ff9f57001",
+    "currentPackageRevision": null,
+    "currentPackageWorktreeState": "PORTABLE_FOLDER_NOT_A_GIT_AUTHORITY"
+  },
+  "algorithm": "sha256",
+  "assetHashRefreshMode": "FULL_REHASH",
+  "assets": {
+    "dist": {
+      "algorithm": "sha256(sorted-posix-relative-path\\0byte-length\\0file-sha256\\n)",
+      "sha256": "e7ffc4adf18064e5ac01f7c84d0a9d59663a07abbe7e3977dc422d3d16c31030",
+      "fileCount": 84,
+      "totalBytes": 1369618
+    },
+    "node_modules": {
+      "algorithm": "sha256(sorted-posix-relative-path\\0byte-length\\0file-sha256\\n)",
+      "sha256": "241e319e0597bc7eb6ee17da14e70f04fa4b904c761902e93db2eedb4bcaf58f",
+      "fileCount": 5540,
+      "totalBytes": 405489776
+    },
+    "flowise/app": {
+      "algorithm": "sha256(sorted-posix-relative-path\\0byte-length\\0file-sha256\\n)",
+      "sha256": "1f2201c7b4a292999de1778a4eb17199a1840e879c9422796e4ca7466e5a929e",
+      "fileCount": 288469,
+      "totalBytes": 1966329532
+    },
+    "runtime/node-v20.20.2-win-x64": {
+      "algorithm": "sha256(sorted-posix-relative-path\\0byte-length\\0file-sha256\\n)",
+      "sha256": "9129c28fbc4692a22fa59a0e90cae739d98acb34365a45ffb6aad33a21748c2b",
+      "fileCount": 1982,
+      "totalBytes": 84759695
+    },
+    "runtime/browsers": {
+      "algorithm": "sha256(sorted-posix-relative-path\\0byte-length\\0file-sha256\\n)",
+      "sha256": "146154e00c08f3bcf95451da678e1983f6e21ed39aa131c9d77c5e68bd5a819c",
+      "fileCount": 313,
+      "totalBytes": 430307784
+    },
+    "runtime/node_modules": {
+      "algorithm": "sha256(sorted-posix-relative-path\\0byte-length\\0file-sha256\\n)",
+      "sha256": "5faaedb9cf0cdb146a833c0315f2754c1f013c3c9de1ea6612130abefc311dc5",
+      "fileCount": 23075,
+      "totalBytes": 366045716
+    }
+  },
+  "coreFiles": {
+    ".agents/skills/hengzhun-evidence-discipline/SKILL.md": {
+      "sha256": "559a32fc8bad58058d5f4c21f3d9b6052e29c9f312b44edb401326d31e6a002f",
+      "byteLength": 6759
+    },
+    ".gitignore": {
+      "sha256": "b8ea0f645796ad47472358ae590976292c98a83a2c9cf241c49101f2753c45ca",
+      "byteLength": 604
+    },
+    "config/demo-runtime-freeze.json": {
+      "sha256": "a37fff9cb2e9bb503ea5569a346fc348047e30f1fb0de31a32dfea0746a7694c",
+      "byteLength": 697
+    },
+    "config/i10.runtime.example.json": {
+      "sha256": "0430d02c4b8e953b9936ead4452bf274cf1bd7b1428285122eac64e415f6ff03",
+      "byteLength": 1443
+    },
+    "config/i9.runtime.example.json": {
+      "sha256": "992dff0397ea09952d35be00ed26cfe733cd38f987137ec6068bcce7452a7116",
+      "byteLength": 745
+    },
+    "config/i9.runtime.schema.json": {
+      "sha256": "04b1b7b99b2f28ca4624d300cdb8528c578728fd69d7e4dccbf1e306ebc24413",
+      "byteLength": 2379
+    },
+    "config/internship-delivery-freeze.json": {
+      "sha256": "9fa3521eda1c871661cb7431e4ff5621810f4317400cc7be6327d13be8642d75",
+      "byteLength": 1189
+    },
+    "config/platform-admin.json": {
+      "sha256": "5298b72225f7dd099ecc8833cbb6c12412605df789f1a53870e71097009b7a10",
+      "byteLength": 264
+    },
+    "contracts/i10/case-catalog-v1.json": {
+      "sha256": "61a18b4906294f21b7c339e145e205b19fd362f7484d6ec0ee1a4b6cab5c43a7",
+      "byteLength": 1936
+    },
+    "contracts/i10/journey-transition-v2.json": {
+      "sha256": "0dce9373b5b05023cbce6cf6efe5b92e65a5818a91708ad915637a5415782521",
+      "byteLength": 759
+    },
+    "contracts/i10/opaque-reference-v1.json": {
+      "sha256": "9972745d946feca598be4f196039ca4e9823a83c673ae0cb10323d2d04c1fcb8",
+      "byteLength": 1314
+    },
+    "contracts/interaction/hengzhun-i10-response-v2.json": {
+      "sha256": "8bb0d594c16748a1fc43c34ca0e98cdd24981ffaccb93bee0667587679083e3f",
+      "byteLength": 1189
+    },
+    "contracts/mcp/hengzhun-i8.json": {
+      "sha256": "40cc74e0cea2d08ec15db621cfd8471ddeb5aba3251c00f7e75c044854897ee6",
+      "byteLength": 2831
+    },
+    "contracts/openapi/hengzhun-harness-v1.yaml": {
+      "sha256": "f6607b1eacd854d4336177e9eddb95cf4d8c010511531c48b2af97d34a01a6ba",
+      "byteLength": 27756
+    },
+    "contracts/openapi/hengzhun-worker-internal-v1.yaml": {
+      "sha256": "a5afa3bfbcab968837a7bcf81e8e13bde313bfbde5251d06ea370c31a078d31b",
+      "byteLength": 29831
+    },
+    "contracts/openapi/i1-conformance.yaml": {
+      "sha256": "ca4de6ecb13c36d904790b886f6239bef37326dadfb10b2f1d707672087e490a",
+      "byteLength": 4337
+    },
+    "contracts/README.md": {
+      "sha256": "062181a0688b559ae1443ede0de2042bdcac1c527046da7c813b057cb3fad90c",
+      "byteLength": 2659
+    },
+    "contracts/target-generalization-boundary-v1.json": {
+      "sha256": "d8dedbf3ee99ee4e8d2feddd74a417d42eaad1917b82a2190a59b205d3bb2870",
+      "byteLength": 9436
+    },
+    "flowise/i10/acceptance-ledger-execution-matrix-v1.json": {
+      "sha256": "742454f5958d17c7fe76c038d84f3f90731bc5ec6898254346c8796dd2aafaa7",
+      "byteLength": 3535
+    },
+    "flowise/i10/agentflow-v2.json": {
+      "sha256": "61ca9a9a944a642d45a556c21ca17f5e063b5330db90e515abe875804eefe1f5",
+      "byteLength": 214359
+    },
+    "flowise/i10/agentflow-v3.json": {
+      "sha256": "2a627b2dfc88e7a6074d3e2901f1766ade5dbdc9fe1039c9e08d46c704106549",
+      "byteLength": 219814
+    },
+    "flowise/i10/agentflow-v4-layout.json": {
+      "sha256": "1d0aebadd2835fedd7c0e11b814e61f0c67d7118bf58c4ab1dbdcfa711605d29",
+      "byteLength": 32300
+    },
+    "flowise/i10/agentflow-v4.json": {
+      "sha256": "424690600aab2100e17ef8b880f0de9ed122b39ec1a6e634b5259412e788ceb1",
+      "byteLength": 587455
+    },
+    "flowise/i10/agentflow-v5-layout.json": {
+      "sha256": "38a179b097dc928f658bdc516cc8082baf46e90021f4b23517c13ddf37afe075",
+      "byteLength": 32876
+    },
+    "flowise/i10/agentflow-v5.json": {
+      "sha256": "13ae550202dad982ddf3dbd75c2b7721bbb752312d8abc5b7165ecc5af0caacc",
+      "byteLength": 602546
+    },
+    "flowise/i10/agentflow-v6-layout.json": {
+      "sha256": "87294ffff0753b579976af30bc992cc348f0328f8f409233eeccdbdb15a22b62",
+      "byteLength": 32896
+    },
+    "flowise/i10/agentflow-v6.json": {
+      "sha256": "18353bfccf9eb6130b95b5fb58ab51bb9d16fe943d51c2c00eb1542aa01e20a7",
+      "byteLength": 881645
+    },
+    "flowise/i10/agentflow-v7-layout.json": {
+      "sha256": "47b4b0610af78ba3207c875ca3aad416d5c7529f55b84b9ae72e20b3c227bb04",
+      "byteLength": 32896
+    },
+    "flowise/i10/agentflow-v7.json": {
+      "sha256": "65bc36cd6e849c8a00bc797bbea06daa18cefa4170fd256fd4375ff9b772664c",
+      "byteLength": 882013
+    },
+    "flowise/i10/chatbot-config-v1.json": {
+      "sha256": "606c928a275a24ad0034b447a751d13cac46b3530bb94fe15b57757f0efad004",
+      "byteLength": 400
+    },
+    "flowise/i10/controller-profile-v1.json": {
+      "sha256": "9e7127430285e8a288a62038e1759bda720188795306e0de807d8d21c363ab16",
+      "byteLength": 788
+    },
+    "flowise/i10/formal-workflow-spec-v1.json": {
+      "sha256": "3ec6b99b6f8f0a42eada2b2bec5838e82fbefb0b0e231ad1f2d3bafcfd97cd30",
+      "byteLength": 3063
+    },
+    "flowise/i10/full-human-interaction-reasoning-ledger-v1.md": {
+      "sha256": "3821c667361e7c158d6d6e63c6d1a649d5479bbfb6d9b249ed8fbbd7f6f084c7",
+      "byteLength": 134585
+    },
+    "flowise/i10/gap-closure-matrix-v1.json": {
+      "sha256": "559ee4e770018cdb6f53331abf705a341c0532db2fc9d9852dc952119f8532a9",
+      "byteLength": 6812
+    },
+    "flowise/i10/hengzhun-attachment-bridge-v1.js": {
+      "sha256": "9c9948c305bcb1c899d8e3f91455ab19356f8c24b3544b0a9736a7491316b8a3",
+      "byteLength": 8994
+    },
+    "flowise/i10/i10-18-chain-acceptance-issue-register-v1.md": {
+      "sha256": "b1d1af39a550c57e9c3923e50d6db40a720ce5532ac5aa423ce2287b70c914af",
+      "byteLength": 18604
+    },
+    "flowise/i10/i10-acceptance-ledger-gap-remediation-plan-v2.md": {
+      "sha256": "6d5180098b8cbc9033a4265639c4ab2cf2734ba2c128190fabb486da1e4713e4",
+      "byteLength": 15550
+    },
+    "flowise/i10/i10-acceptance-ledger-gap-remediation-plan-v3.md": {
+      "sha256": "25cdf8d53ad017efee8fddb60a94b29d7e7e9961def12c9c69d4e1be21832780",
+      "byteLength": 26484
+    },
+    "flowise/i10/i10-acceptance-ledger-gap-remediation-plan-v4.md": {
+      "sha256": "e223d3a23e2f38a8fb5a31cf7bf1541144dfb88cd1c35efe9aa37ee5934e77bc",
+      "byteLength": 14781
+    },
+    "flowise/i10/i10-acceptance-ledger-gap-remediation-plan-v5.md": {
+      "sha256": "12bbc2de91426dd989c34a3d8cd35faf413ce3949746fd12ab73d70dd54862f0",
+      "byteLength": 16461
+    },
+    "flowise/i10/i10-agentflow-v6-closure.md": {
+      "sha256": "06b18e201004c1dae1354ed0993cdb5401a23e2ec4eefb8305c5fa0df18d482e",
+      "byteLength": 1713
+    },
+    "flowise/i10/i10-browser-ocr-dual-path-execution-plan.md": {
+      "sha256": "eb3829e67af684921e79ac47f56fb808b4eb8ce760c18594e6366fe4064ed752",
+      "byteLength": 8749
+    },
+    "flowise/i10/i10-continuous-flow-gap-remediation-plan-v1.md": {
+      "sha256": "f27bc7d7788dd555a6d4893011eaa3cd209b83352217c04d31a658afdc946468",
+      "byteLength": 28377
+    },
+    "flowise/i10/i10-final-standardization-upgrade-v1.md": {
+      "sha256": "228373a79ba8f09a6afba4d546cf0c7b995366c8046a93a217bdd939bad5f799",
+      "byteLength": 13216
+    },
+    "flowise/i10/i10-final-standardization-upgrade-v2.md": {
+      "sha256": "44fac3d8a4a487b239e6f18c87cd77b7b74b6f36b03b67c735ab4f34d3ab8c0a",
+      "byteLength": 16714
+    },
+    "flowise/i10/i10-target-generalization-upgrade-plan-v1.md": {
+      "sha256": "be48568609ad194fcb22061c392ab876d92d85179f6b01779ca4c8cec1b75e8d",
+      "byteLength": 10899
+    },
+    "flowise/i10/i10-u0-baseline-freeze-v1.json": {
+      "sha256": "cf7738844f3aa0714d9c88a031846d821431dda1440a5effbe2c5c9224cb5f72",
+      "byteLength": 1098
+    },
+    "flowise/i10/input-and-schedule-contract-v1.json": {
+      "sha256": "eb116b301e09a6c44fdc72ee2a649cc96c9f8c7691cb2a27613355c935fcc7fe",
+      "byteLength": 2014
+    },
+    "flowise/i10/interaction-matrix-v2.json": {
+      "sha256": "b02d64406e33cbcd8eefd55d83c57787e89ed5d2372aa6870f15dd37ec387be6",
+      "byteLength": 2586
+    },
+    "flowise/i10/interaction-matrix-v3.json": {
+      "sha256": "d9bf2b38c53ca10503a1dcee628cb33c06aa3623bdd7da092b7e48a9d5d55dde",
+      "byteLength": 3154
+    },
+    "flowise/i10/intranet-qwen35-capability-gate-v1.json": {
+      "sha256": "12afa7e6b4d97a493694a287d6ccb3143afa8e47d3c7f4147237711417fb00ac",
+      "byteLength": 1732
+    },
+    "flowise/i10/publication-manifest-v1.json": {
+      "sha256": "8c0e703a71237e49f3a3e9904be0f436f273380b6b0bfe12f2795a0e6920baf2",
+      "byteLength": 1751
+    },
+    "flowise/i10/s9-portability-policy-v1.json": {
+      "sha256": "2054b19d051e607614115fd5ed33ec5b1dafb7c810a7cf0968908dc9de457276",
+      "byteLength": 2978
+    },
+    "flowise/i10/stage8-acceptance-matrix-v1.json": {
+      "sha256": "44f75dad2ef952e8df8777fc4f954b49683c80a366c509ed463321e041ad3e9c",
+      "byteLength": 1531
+    },
+    "flowise/i10/visual-profile-v1.json": {
+      "sha256": "3a04975a2e36100f6502bb6bece319cef52f69996faa654bc1283a9f99deada0",
+      "byteLength": 811
+    },
+    "flowise/i8/agentflow-v2.json": {
+      "sha256": "ebe3ffd9450577db8a1a1a29d1bf45475e5f6d1342ac314c11b297e65553abb4",
+      "byteLength": 50436
+    },
+    "flowise/i8/deployment-manifest.json": {
+      "sha256": "1d732871e48f95f2e815583a577f1227cad601142a0cc77e27b0ca7877a5821c",
+      "byteLength": 1471
+    },
+    "flowise/i8/hiagent-capability-map.yaml": {
+      "sha256": "b5c8cb735e66128fcf5eba6d8f2a32bd8d5908d9cf52d052b1c54ea4a8621ce8",
+      "byteLength": 1264
+    },
+    "flowise/i8/knowledge/portal-login-consistency.md": {
+      "sha256": "aac7c3415bc03a0eea53c550699965d7b110fa86cdd59d964992801730bd3117",
+      "byteLength": 1038
+    },
+    "flowise/i8/stage5-delivery-agentflow-v1.json": {
+      "sha256": "9e946e8e892fb7c29db8e5f6d0d0567dbf50fc8c4108be9f445d05bf8df7d0e8",
+      "byteLength": 3217
+    },
+    "flowise/i8/stage6-scheduling-agentflow-v1.json": {
+      "sha256": "d057c4a254c9c939293e3f410444ff8d62cc378364b071dfa0cb0b34725d4084",
+      "byteLength": 4659
+    },
+    "flowise/i8/stage7-repair-agentflow-v1.json": {
+      "sha256": "567e427af85b4007ff6befc13ee043537a30369a3eb423df371ca03542b3e598",
+      "byteLength": 3745
+    },
+    "flowise/i9/connection-profiles-v1.json": {
+      "sha256": "a9cb7239b08f73d1c0cc2e1c572eaf3fcb9f74f28e6d4d2777ed17435c38a59e",
+      "byteLength": 656
+    },
+    "flowise/i9/knowledge/portal-login-consistency-v1.md": {
+      "sha256": "28e7dc39896fd396774c8d0ae9e2fe2c5715272a28f7f43ba11073951bafc33c",
+      "byteLength": 1270
+    },
+    "flowise/i9/p4-controller-profile-v1.json": {
+      "sha256": "dfb04c4858cd6dc9ba6455bcb70250cd02017509f0e3952cd0ab1b8254743739",
+      "byteLength": 1496
+    },
+    "flowise/i9/p5-agentflow-publication-v1.json": {
+      "sha256": "044c3c32f0a88fe6f5bc3ac8e4e958e626b27dd6131d7e5b60ef7bd22030acde",
+      "byteLength": 1521
+    },
+    "flowise/i9/p8-portability-policy-v1.json": {
+      "sha256": "013bf7076542a64031280566c1cf8ec65b90339cc568ef904a259182282b7be8",
+      "byteLength": 2303
+    },
+    "flowise/i9/platform-resource-manifest-v1.json": {
+      "sha256": "4a21202636704195db6d10129e99de8e9910da05fe9088aa7c4764601148886a",
+      "byteLength": 1144
+    },
+    "flowise/i9/qwen35-capability-envelope-v1.json": {
+      "sha256": "cd42309287550f24dbae1911e0e0300fc5bea1c5c87efd81d475fd78563983f2",
+      "byteLength": 1918
+    },
+    "flowise/manifests/i9-p1-runtime-baseline.json": {
+      "sha256": "05d49a9b76c0eab3cfef904cdde89533b24b3541e9d85f9a2994a97074ca8ebb",
+      "byteLength": 1682
+    },
+    "flowise/runtime-package-lock.json": {
+      "sha256": "3cc2128e633468729b8acdf6afb6a2cd3a9f8f43cfe4f8a7e024853d47bd24cd",
+      "byteLength": 1651593
+    },
+    "flowise/runtime-package.json": {
+      "sha256": "61e050ac0876114f87a074cd2865240e84ef6d5dde409ddd7b8b7ab374321655",
+      "byteLength": 333
+    },
+    "harness/migrations/001_i2_core.sql": {
+      "sha256": "7b0314002b2cbbb481466fff54efba74b5253f0f3c44c07fd8f3a5f68420d22b",
+      "byteLength": 7831
+    },
+    "harness/migrations/002_i3_execution.sql": {
+      "sha256": "ff2c10f752c528f70f6a2a2e1aaa9193b187205c5cecb26de4365f7efea3776f",
+      "byteLength": 1293
+    },
+    "harness/migrations/003_i4_midscene_authoring.sql": {
+      "sha256": "77aa489e9d33451f69ae7b4a1b5e3d2c55007f648c15b6a352576d458805b825",
+      "byteLength": 3501
+    },
+    "harness/migrations/004_i4_capability_failures.sql": {
+      "sha256": "51a4e80d36ac580d6d3eba3276dc1cdc325966706ddaa8d4a9c19f2ff36c2209",
+      "byteLength": 121
+    },
+    "harness/migrations/005_i4_action_target_refs.sql": {
+      "sha256": "50f74c08a53b9836b8beb01d46553ad34a89376c94642216f8f9f332457d8736",
+      "byteLength": 164
+    },
+    "harness/migrations/006_i5_repair_loop.sql": {
+      "sha256": "4544e5e8df419b041d2a5da584a25389b48762ead35aaf7a1435d65a566837c8",
+      "byteLength": 4879
+    },
+    "harness/migrations/007_i5_decision_immutability.sql": {
+      "sha256": "6906902dd81d686a88690ea04bba446dbced8826fafdb1b8e5730bd496ae9e27",
+      "byteLength": 323
+    },
+    "harness/migrations/008_i6_scheduling.sql": {
+      "sha256": "4683a2c09c68589025a3fde094400d757821c3bafb6fd52e8ba2961f98c7291e",
+      "byteLength": 3460
+    },
+    "harness/migrations/009_i8_context_budget.sql": {
+      "sha256": "4f518c9d4385f818c3ab3578186494253aea92c62f3a1ac6237eecf4ef60a7ef",
+      "byteLength": 2927
+    },
+    "harness/migrations/010_i8_agentflow_handoff.sql": {
+      "sha256": "f3cb84a5a55a818b8073a6789f2d0395933416f111202d2af65f9eb62dd50538",
+      "byteLength": 1868
+    },
+    "harness/migrations/011_i8_deterministic_builder.sql": {
+      "sha256": "9abb9a32481e711985914d0d876d5ea219613dd20202927a458ba07f3f3eea01",
+      "byteLength": 4602
+    },
+    "harness/migrations/012_i8_stability_certificate.sql": {
+      "sha256": "68d49ed794cc6a50d937f5dc73c4263a33f22f4e5061c7e9a06efb6bba959c12",
+      "byteLength": 6366
+    },
+    "harness/migrations/013_i8_controlled_delivery.sql": {
+      "sha256": "364e1b07f2267bf5359d2d4ca3d15744321cd487e4d2d60a973014da898bf195",
+      "byteLength": 3067
+    },
+    "harness/migrations/014_i8_scheduling_inbox.sql": {
+      "sha256": "ae1a20ed201bf43a7361d137811d64fa30f6a7e18db7246048f1dffa4ab5a9ae",
+      "byteLength": 3827
+    },
+    "harness/migrations/015_i8_restricted_repair.sql": {
+      "sha256": "c61b2e748307129d3b7fe18f76fe4319629e6a2879c8e45d024275b1f0766923",
+      "byteLength": 9748
+    },
+    "harness/migrations/016_i9_platform_knowledge_refs.sql": {
+      "sha256": "60c01baef67a3f90d5173198c925cb51d293ce52f75558192eab8f2e59ca3e6b",
+      "byteLength": 969
+    },
+    "harness/migrations/017_i10_formal_intake_credentials.sql": {
+      "sha256": "5165b917df410c71716cadfe65165b913c32a9132ffcaf7640e8c6d9bfaa2dc9",
+      "byteLength": 8474
+    },
+    "harness/migrations/018_i10_authoring_context_binding.sql": {
+      "sha256": "3aafb203813645deb4706dd137fb8119ca1839eea2f7ed2ac8d422f28156c3df",
+      "byteLength": 968
+    },
+    "harness/migrations/019_i10_case_file_batch_reporting.sql": {
+      "sha256": "5fa0dc8b343c68383b4bc45992ab98e4971d1789db4a17d99915ec985d460f42",
+      "byteLength": 2138
+    },
+    "harness/migrations/020_i10_multimodal_verification.sql": {
+      "sha256": "96cae5b28a85bf3d186d1ac842cf67b0fb7b3c059fb205b3bf57d43516ed1903",
+      "byteLength": 6061
+    },
+    "harness/migrations/021_i10_image_controller_evidence.sql": {
+      "sha256": "f391bd9d9bdf68bb2d41797cd4d5569754f7737025ac3db92e7bcd043b5bac94",
+      "byteLength": 801
+    },
+    "harness/migrations/022_i10_interaction_journeys.sql": {
+      "sha256": "cd787a744fbf81b00a94f7e54117f0e4d8ae00d5e0a3bb5ebd00efb1421349f9",
+      "byteLength": 2754
+    },
+    "harness/migrations/023_i10_interaction_artifacts.sql": {
+      "sha256": "60b44607f79c3f6fb41c91fc78077fb0a7ce3e4ab7f81e1132c563075e4088aa",
+      "byteLength": 832
+    },
+    "harness/migrations/024_i10_image_fact_decisions.sql": {
+      "sha256": "af5c279666cf4e2d7f01b54e5966d85aa9117b5e9be955563fec2ccad7f2bcad",
+      "byteLength": 1338
+    },
+    "harness/migrations/025_i10_ingest_item_decisions.sql": {
+      "sha256": "2da74c664e0e4a8600554d4993d7f13023d8a9861b8db0d51d1dd28438d0bd4c",
+      "byteLength": 1012
+    },
+    "harness/migrations/026_i10_image_dual_model_evidence.sql": {
+      "sha256": "cf0217afd7de355f9195793cd3a003775dda736e68efff3447ce6b82d0da9723",
+      "byteLength": 1471
+    },
+    "harness/migrations/027_i10_candidate_build_retry.sql": {
+      "sha256": "1609c6971e1d7f1a0c8488da11b4fe237b5280014ccc8055ae21677413c13fcb",
+      "byteLength": 3071
+    },
+    "harness/migrations/028_i10_image_parallel_delivery.sql": {
+      "sha256": "392461687b7d1ddacb9b3b6f119bef93c87abd94516a2f8e5c8d707d32c8a170",
+      "byteLength": 1187
+    },
+    "harness/migrations/029_i10_image_ocr_only_delivery.sql": {
+      "sha256": "899b30e3fad859b953b76e836b3fea626b93e252932fd8d5a996a8a72d7d811c",
+      "byteLength": 1899
+    },
+    "harness/migrations/030_i10_video_ocr_only.sql": {
+      "sha256": "c0a866a4abee0fc7f938cbceaa7b8052430a3926ee7262987e233fb121b062d3",
+      "byteLength": 807
+    },
+    "harness/migrations/031_i10_target_profiles.sql": {
+      "sha256": "553975977e67efebb04b6fdb288d4d8dead568581d09232cc221409d790be98d",
+      "byteLength": 1167
+    },
+    "harness/migrations/032_i10_verification_diagnostics.sql": {
+      "sha256": "eed9eb5439b038986a2e5bd176846864ce829e93e9a5b6ef26e1579d6ee63573",
+      "byteLength": 845
+    },
+    "harness/migrations/033_i10_verification_attempts.sql": {
+      "sha256": "c9361b666246f8ffd9dc7ef5f49cea274e1a3825362f4b83f5a2313331ff24c9",
+      "byteLength": 1134
+    },
+    "harness/migrations/034_i10_target_adapter_binding.sql": {
+      "sha256": "784d5d271fbe6253433b4e9fe2dd8e93113a0035b68f935cccb85ebb083fb715",
+      "byteLength": 96
+    },
+    "harness/migrations/035_i10_application_profiles.sql": {
+      "sha256": "05231ac12bec3ad2673d5ec262f8a8716fdb49ac85b7be03b1fd42ea6e3089bb",
+      "byteLength": 1260
+    },
+    "harness/migrations/036_i10_image_resume_context.sql": {
+      "sha256": "bbb77a5e5e687b3961d6c09897d66e920021dc9bb3057bb1f10ac7e7bdacb4e0",
+      "byteLength": 414
+    },
+    "harness/src/artifact-store.ts": {
+      "sha256": "ca9faa8b08d7b00729b544ae2052403cf77b1ce3b3c4a983f43cf2994d020e59",
+      "byteLength": 4628
+    },
+    "harness/src/context-envelope.ts": {
+      "sha256": "6cb9b0e5e9f3f2dcbe195f27e98b7f4bf53f20f96c1fac8ee812c5ac84c7bf66",
+      "byteLength": 12419
+    },
+    "harness/src/cron.ts": {
+      "sha256": "1a9d096f82beb3d509f602e1984cd21f3cfecad763c74811e1f42b6cf7495a0b",
+      "byteLength": 4299
+    },
+    "harness/src/database.ts": {
+      "sha256": "6141e529d9274380c0d3fb735d93df3bf4ce08adceed3bee9a01593b1aabd8cb",
+      "byteLength": 5906
+    },
+    "harness/src/errors.ts": {
+      "sha256": "1a1698eaa1f4a8960a3010305dfe2874d7ea7ccaad5f475c1b574341ba8e0cc1",
+      "byteLength": 613
+    },
+    "harness/src/i10/case-file-parser.ts": {
+      "sha256": "d85ce0596276538d499eedca836bd10b31309f4aceb7fb7db715905a9d799729",
+      "byteLength": 11187
+    },
+    "harness/src/i10/cross-source-conflicts.ts": {
+      "sha256": "235a7b1373b77190d400e856193caa4a2d4b963859408050ee2dfeebebff23a3",
+      "byteLength": 5539
+    },
+    "harness/src/i10/dpapi.ts": {
+      "sha256": "db60416642bb3370dd133e014194bc4dafb755fb5632d910e397ad0db7006776",
+      "byteLength": 2045
+    },
+    "harness/src/i10/flowise-attachment-ref.ts": {
+      "sha256": "fd26789e61a7a7e2dc9763b846c369a36d61d604507a346a4475ea4b8ce9660b",
+      "byteLength": 1972
+    },
+    "harness/src/i10/interaction-response.ts": {
+      "sha256": "ed0fc0582835235ff0e5459c1bd270564a780be9604b438c957f719c80a0c8d9",
+      "byteLength": 12045
+    },
+    "harness/src/i10/schemas.ts": {
+      "sha256": "697eba75d4d621c8b35510db6f3aa9e6feed931774c57c9c98764a519eb81dad",
+      "byteLength": 23272
+    },
+    "harness/src/i10/service.ts": {
+      "sha256": "acffaaeaf66d4f982f5a6ed9b4538ea336a803bdce012c3d745f022be04abd16",
+      "byteLength": 200263
+    },
+    "harness/src/i8/adapters/fuxing-bank-demo.ts": {
+      "sha256": "54bc4085ba6f0bf29f8c147bef7c22c2e97342c750bc67d483c161d0ec18fcb2",
+      "byteLength": 7743
+    },
+    "harness/src/i8/script-package-builder.ts": {
+      "sha256": "4bf6b6fe0d4225a630e39e4f821240a08c768ddc3f6d10bc922a2018643c7a7f",
+      "byteLength": 41970
+    },
+    "harness/src/i8/stage2-schemas.ts": {
+      "sha256": "e1719032f0d98c28cb95a12b53a07be25ffafb9abb647220ff9d75bd09a33805",
+      "byteLength": 4317
+    },
+    "harness/src/i8/stage3-schemas.ts": {
+      "sha256": "58c9f6e36dc9663817ead3205a49ca64117c7759eeca61691937d2f1a57af7d1",
+      "byteLength": 11259
+    },
+    "harness/src/i8/stage4-schemas.ts": {
+      "sha256": "e63442aef89332278744b026ceb20e379dfa7a2642a429b76dd251808b2f3626",
+      "byteLength": 3632
+    },
+    "harness/src/i8/stage5-schemas.ts": {
+      "sha256": "d31561917627c71fe95bd6d9dd206d097711837582bbccb4ba1c7dc24681cbf3",
+      "byteLength": 1354
+    },
+    "harness/src/i8/stage6-schemas.ts": {
+      "sha256": "2012c2bc7ced5d66a2db732522ba8a47d75d200d60bc9d543da392f324082bf3",
+      "byteLength": 1878
+    },
+    "harness/src/i8/stage7-schemas.ts": {
+      "sha256": "5f7e375826541453912027acfed35449ba56ab794cbb77ed735d6d6dbd40418f",
+      "byteLength": 4142
+    },
+    "harness/src/i8/target-adapter-registry.ts": {
+      "sha256": "68435a128387672d4792299f75859b72368f42cbbfd34cd4a4cf57c2581d5d1c",
+      "byteLength": 1442
+    },
+    "harness/src/index.ts": {
+      "sha256": "7f622caf609bde92428f673020f49124ceafcddc87e30a13b631baec40e6f743",
+      "byteLength": 1417
+    },
+    "harness/src/output-budget.ts": {
+      "sha256": "a17f6b1b404a2a2cc759b49fd2759c45773bfaba978770eefdfb411f8c7b59c8",
+      "byteLength": 2103
+    },
+    "harness/src/schemas.ts": {
+      "sha256": "8d9d0a8e006e09d810b650e16f31c87060e7d33fa36a3aca967882c2d26d9d23",
+      "byteLength": 12571
+    },
+    "harness/src/security.ts": {
+      "sha256": "6f3b4b3e1648a9287fef0892cb4082f4c7404e91aa23210c136db639b4caf166",
+      "byteLength": 3375
+    },
+    "harness/src/server.ts": {
+      "sha256": "e123ef7e9e4a98cde72cb71eccc4f24c8ec12dd0b66efe1f4d72262be3e868a7",
+      "byteLength": 49265
+    },
+    "harness/src/service.ts": {
+      "sha256": "b81461c0bc2b12c942b84a3af95f9bd561bccf7ca657d6dc8ed8ede6d3ad17fb",
+      "byteLength": 236327
+    },
+    "harness/src/utils.ts": {
+      "sha256": "935e2cbfcd0be57c49ca6282937f5a74303e42fa292611d7208e8ac296068789",
+      "byteLength": 1072
+    },
+    "manifest/candidate.json": {
+      "sha256": "4e2fee6135e19d610f36a3078f2f07273be43903489d73bce4a3dc2bc591024c",
+      "byteLength": 942
+    },
+    "manifest/cyclonedx-sbom.json": {
+      "sha256": "26e64f96535395a07c85b8ad0294481ab0e0a09938a7a82be760aad521f75cbd",
+      "byteLength": 821376
+    },
+    "manifest/licenses.json": {
+      "sha256": "551da20c54e0daf826602902d7f5df70c4c2e7be40ed99bc574f1cd170be1d1c",
+      "byteLength": 535979
+    },
+    "mcp/src/server.cjs": {
+      "sha256": "118dd88b1e60427898963299b98d0e6b610992cdbe7108c224ca8502049d6b81",
+      "byteLength": 73594
+    },
+    "package-lock.json": {
+      "sha256": "18be3dbdb894ad042e4a38de777140b3839bb10a2f9ab282f6fa2fd388544b61",
+      "byteLength": 73621
+    },
+    "package.json": {
+      "sha256": "b16d123be8b82f0cca10dece663556628e664b27f5b447e2f3a423cf021234c5",
+      "byteLength": 16192
+    },
+    "PREPARE.cmd": {
+      "sha256": "013008e190599d6c379c62bb43dfb5ad6876ea335130e717170637e77434d36f",
+      "byteLength": 79
+    },
+    "README.md": {
+      "sha256": "b4e0e167438cd333dfb5c41fb5bfc048951397ba8b3117521da2b9099d57309c",
+      "byteLength": 23140
+    },
+    "runtime/ocr-models/ppocr-v5-mobile/detection.onnx": {
+      "sha256": "d7fe3ea74652890722c0f4d02458b7261d9f5ae6c92904d05707c9eb155c7924",
+      "byteLength": 4748769
+    },
+    "runtime/ocr-models/ppocr-v5-mobile/dictionary.txt": {
+      "sha256": "9dfc80c50b6cb07399a47a7cf25d11db475fb4ad0e1fc96b2eff6467c8166ff3",
+      "byteLength": 74014
+    },
+    "runtime/ocr-models/ppocr-v5-mobile/LICENSE": {
+      "sha256": "c71d239df91726fc519c6eb72d318ec65820627232b2f796219e87dcf35d0ab4",
+      "byteLength": 11357
+    },
+    "runtime/ocr-models/ppocr-v5-mobile/README.md": {
+      "sha256": "eb314169854d30408755d82addcd0e032d65064194797658b2878060cf4e5b1e",
+      "byteLength": 1161
+    },
+    "runtime/ocr-models/ppocr-v5-mobile/recognition.onnx": {
+      "sha256": "d253c3cbee6e507828a5271a30ab0ec8ae7c2a99d0cc8e6f844fe380809d22b3",
+      "byteLength": 16559278
+    },
+    "scripts/apply-i9-flowise-overlays.cjs": {
+      "sha256": "015706660b2fcf1d156b39ad17c433225feb7ba497ce49d02bbffb20715c2f6e",
+      "byteLength": 43029
+    },
+    "scripts/assert-i9-ports-free.ps1": {
+      "sha256": "f6b3570497bb381ca823caf3ffe5cfe791925712bc9fbc7b47344369bb89de8d",
+      "byteLength": 384
+    },
+    "scripts/backup-i9.ps1": {
+      "sha256": "3cdc339ea172b1500ace92d2153ab840d87e9b9082769625038bb3d9be91e941",
+      "byteLength": 223
+    },
+    "scripts/build-i10-agentflow-v3.cjs": {
+      "sha256": "3fdcfbe8c8cb38b70cd24f8fba231d034e42bb8217d24e70fa9ded881150bcc2",
+      "byteLength": 39225
+    },
+    "scripts/build-i10-agentflow-v4.cjs": {
+      "sha256": "3fd6fc3806d6f5020635bd297c7beaf1a35cb8904d7ece64ed8e800d6ba686ca",
+      "byteLength": 153518
+    },
+    "scripts/build-i10-agentflow-v5.cjs": {
+      "sha256": "3f13d264efa78c9d48dcb6f1b5169491f596f95563f052bcfde70d0eaba4b97b",
+      "byteLength": 190926
+    },
+    "scripts/build-i10-agentflow-v6.cjs": {
+      "sha256": "a0a2780894495dcf7cad135eff5c517b8bb68c857de7150002d05c40d596eba9",
+      "byteLength": 108621
+    },
+    "scripts/build-i10-agentflow-v7.cjs": {
+      "sha256": "a0822821e1bd5847c031c2cb1a28ba80f132e060cf1b090f6d5ceadc2a1d980b",
+      "byteLength": 3302
+    },
+    "scripts/build-i10-agentflow.cjs": {
+      "sha256": "b4bf735335bdb813a6783ddea0f18f08ef16413fa8f84df150a9b40fe44bbb8e",
+      "byteLength": 59791
+    },
+    "scripts/cmd-entry.cmd": {
+      "sha256": "4132ef84d2090aa95fc6cb3235b8549d60e309aa06b17fe32266fe324f1ef8bd",
+      "byteLength": 1872
+    },
+    "scripts/create-sqlite-backup.cjs": {
+      "sha256": "0822353d3909057c9b77f7e557552b96ed119ead611836b12d602e8d29cd0aae",
+      "byteLength": 596
+    },
+    "scripts/diagnose-i10-midscene-locate.cjs": {
+      "sha256": "4e771b5adbfd185d35a36a04340574699c0c6dd9fdcf1bcaa9199409349bee4f",
+      "byteLength": 3830
+    },
+    "scripts/i10-18-chain-acceptance-live.cjs": {
+      "sha256": "8d5c8cfb5b781c33cd6d83f7de858737e25ebbffa58c4f74e2c58e784ea0892f",
+      "byteLength": 52713
+    },
+    "scripts/i10-acceptance-ledger-v3.cjs": {
+      "sha256": "85fb41d253afc9ca3c64dc71a98cb5a3d713e5e0d320c46c39b9e8086e925e5f",
+      "byteLength": 12706
+    },
+    "scripts/i10-agentflow-capabilities.cjs": {
+      "sha256": "9ba2b38224f545164e77dd6eba03149681b18a6c8f3682ca8c9634121b644ea8",
+      "byteLength": 13997
+    },
+    "scripts/i10-agentflow-publish.cjs": {
+      "sha256": "86f67a99af7d19f880f33eb49f21280f07eecad7e459684474f6524238cf6205",
+      "byteLength": 12640
+    },
+    "scripts/i10-browser-ocr-case-suite-live.cjs": {
+      "sha256": "fd06b4ee709014c87d55a582371da281169cfd634757e219828e57390e11ec98",
+      "byteLength": 21908
+    },
+    "scripts/i10-case-draft-normalizer.cjs": {
+      "sha256": "8aea0569318a47ff9acc7241467f829536170bb0263da52e9d9f7b400e1fac86",
+      "byteLength": 30012
+    },
+    "scripts/i10-case-draft-normalizer.selftest.cjs": {
+      "sha256": "a4d40ea979bb0d6b5e415f7f360633268e4da0e6198ffbba867f349aa802bd5c",
+      "byteLength": 7813
+    },
+    "scripts/i10-disable-schedule-once.cjs": {
+      "sha256": "5fd1fffc5f02585de81fc7c31cd94d4d425845528430c148535cf84eb08118ee",
+      "byteLength": 583
+    },
+    "scripts/i10-enroll-current-user-credential.cjs": {
+      "sha256": "2242a757be118f87b5597aeca49b19a729b9f28a9867aa33b11cf4c5f146ade2",
+      "byteLength": 4313
+    },
+    "scripts/i10-flowise-export-import-isolated.cjs": {
+      "sha256": "b3de02c8c19c34dba143f40351f2fad1d1bd8b382549895116529ebee43d2630",
+      "byteLength": 9389
+    },
+    "scripts/i10-flowise-export-package.cjs": {
+      "sha256": "d72070ade2e8b32bff292101cb1e1cba62ff8a1833f8f3562e6e7e30017063c1",
+      "byteLength": 8257
+    },
+    "scripts/i10-gz04-adapter-replay-live.cjs": {
+      "sha256": "0d8a1d2819c2e6e931fc55152f56a13347b4adf913b516fe9a7f11c29d83c2eb",
+      "byteLength": 6630
+    },
+    "scripts/i10-gz05-unregistered-target-live.cjs": {
+      "sha256": "3ee4439d3f0fb4571adbdb20464bc1f140463c2ba14f0bc7888446c4db6595f0",
+      "byteLength": 5888
+    },
+    "scripts/i10-gz06-account-ownership-image-live.cjs": {
+      "sha256": "e1121433513ee60c6a7c0c305e886896e3ed7b5927d8f8dd6a3b0ad5ad39b0ab",
+      "byteLength": 9297
+    },
+    "scripts/i10-gz06-account-ownership-live.cjs": {
+      "sha256": "44685f1d72e688d32e5785ff72504a4ac6812a0f82d51f098af9002b278943fb",
+      "byteLength": 4865
+    },
+    "scripts/i10-input-safety.cjs": {
+      "sha256": "6c9aa5ab1088b859c2f08b4dda8a46cfaffc27f661ee1f3868736043834ea37a",
+      "byteLength": 1789
+    },
+    "scripts/i10-l1-live-bootstrap.cjs": {
+      "sha256": "b9a9d0791d2502ab90a810cd4295b5ad872d285ef1051690c2582b8788d2b100",
+      "byteLength": 6043
+    },
+    "scripts/i10-l2-generic-screenshot-live.cjs": {
+      "sha256": "ad8fc6b732d8308bd4e340efecab1c63aeb685f8aeeb072a364305802d82a9ff",
+      "byteLength": 13139
+    },
+    "scripts/i10-ledger-runner.cjs": {
+      "sha256": "4dfa8fbe947f148bf63edf40ad90144fdd090dde021e17b1fa3f02d874e670e3",
+      "byteLength": 41643
+    },
+    "scripts/i10-multimodal-live.cjs": {
+      "sha256": "21fd9cd12712e7a30e7881536d6736a6448f734c23a1620ebc3fdd87e4d1f793",
+      "byteLength": 5410
+    },
+    "scripts/i10-provision-fuxing-demo-customer.ps1": {
+      "sha256": "a80949a1fb83132643f3ffcf31d6fd5e3749b13d84305668d9be483fb7332d12",
+      "byteLength": 8066
+    },
+    "scripts/i10-reference-contracts.cjs": {
+      "sha256": "3c8f957a8580437a231f39728f349d52a665a47f8556441121df4503eb781e14",
+      "byteLength": 1819
+    },
+    "scripts/i10-release-identity.cjs": {
+      "sha256": "15b2fbc29b11fff665a005afbfba100b274a62b6024edf71259021481881365b",
+      "byteLength": 2775
+    },
+    "scripts/i10-stage8-controlled-portal.cjs": {
+      "sha256": "a3e39c03f187c6fe8a2ebe2b5be95b4594ad30fbe8d822e485513b0333270b83",
+      "byteLength": 19822
+    },
+    "scripts/i10-stage8-live.cjs": {
+      "sha256": "99d63462dd2c7b72e4dd05072bc93b3ddcb2dac2347d66cb4ba7116d5101a8ed",
+      "byteLength": 88674
+    },
+    "scripts/i10-stage8-orchestrator.cjs": {
+      "sha256": "0622d55b318988668945ab19afd487d3f0ce85fb633315854b46702091567488",
+      "byteLength": 15381
+    },
+    "scripts/i10-stage9-portable.cjs": {
+      "sha256": "9f3dbf5d4e09d77cd1a42116b3e21e6674c248197a81c8bce87d7c50454ee9fd",
+      "byteLength": 35163
+    },
+    "scripts/i9-lifecycle.cjs": {
+      "sha256": "d81571f4851323a758a65ce9f804bf8b0b3e60db640cefc1124bc8b269ad32f5",
+      "byteLength": 30004
+    },
+    "scripts/i9-platform-bootstrap.cjs": {
+      "sha256": "6f6c67b9f33e44ec32aafd67ba6c8133c48275c492f63734a31283055bc7d615",
+      "byteLength": 10653
+    },
+    "scripts/i9-sqlite-snapshot.cjs": {
+      "sha256": "604dacb9dc57de17815e0414c5f595e224dd0c2ab1bfee5fe6a00a4025c6f8a0",
+      "byteLength": 7960
+    },
+    "scripts/import-i10-runtime-env.ps1": {
+      "sha256": "66e01c3dcf8509a4ea647e4a931c46e10437e438dfff978017659476f0c6cf26",
+      "byteLength": 2724
+    },
+    "scripts/import-i9-runtime-env.ps1": {
+      "sha256": "2bc2606f71b9e104ec7952c7c28f7db8d89abacb3f09037d583d620d43214e57",
+      "byteLength": 568
+    },
+    "scripts/platform-admin.cjs": {
+      "sha256": "406ee3952851ccb8ccba1f5fd53d8ccd7f6cda19745cd3bbde5fb449ff89ecc4",
+      "byteLength": 8233
+    },
+    "scripts/prepare-i10.ps1": {
+      "sha256": "debb5d02fe6033cc7ebbb498e394b683f3e77f7cb943581c05706a80d9c601d7",
+      "byteLength": 7101
+    },
+    "scripts/prepare-i2.ps1": {
+      "sha256": "96ca5ceec9ae271aacbc151729f9b32e19c8c961a904c2b20c99379a8ba5a463",
+      "byteLength": 2788
+    },
+    "scripts/prepare-i9.ps1": {
+      "sha256": "38d7b0dc8f62073b185ecc69401fba5c46b11ac09bae5fd743c4a9b6e0473606",
+      "byteLength": 2173
+    },
+    "scripts/progress.cjs": {
+      "sha256": "0dcf8d9d00cec4ef03fcfd978082221753c4c252f43de2de59dc0b9736fb35e1",
+      "byteLength": 6028
+    },
+    "scripts/progress.ps1": {
+      "sha256": "7f2b2e293299148a92ec28a343bc6b91867780df01a56eddd5d388bc99aed792",
+      "byteLength": 3586
+    },
+    "scripts/progress.selftest.cjs": {
+      "sha256": "ca31b631cac31b166dbbba4864bf47c67e7a38d40374ae09acf655b9b81dec46",
+      "byteLength": 3790
+    },
+    "scripts/recovery.cjs": {
+      "sha256": "43a77933fad1856a4f3fcbbb17d277fb477aa3d5121ca0f8a05df15a6b9abca4",
+      "byteLength": 6506
+    },
+    "scripts/recovery.ps1": {
+      "sha256": "9da811ed06bca1b3443a4f577cb4fbbb8e98dc64c4a1a3349b904f32f8067733",
+      "byteLength": 5419
+    },
+    "scripts/recovery.selftest.cjs": {
+      "sha256": "820b1bbfe002e567d96dde3074785a138c97b3e68178283940bed2e6478f703f",
+      "byteLength": 2517
+    },
+    "scripts/refresh-i10-manifest-full.cjs": {
+      "sha256": "cb25b30f17bb13950a376e8d44bcf78a8da9a224369ec963226006af01e98c0c",
+      "byteLength": 786
+    },
+    "scripts/refresh-i10-manifest.cjs": {
+      "sha256": "875bdf16180167229f6e38f86fca6ec132a3c26c9041a4410d546e75189d5c2f",
+      "byteLength": 655
+    },
+    "scripts/restore-i9.ps1": {
+      "sha256": "7821eeddbe4995ebc342089ad4583fc29855a63a0513bbf6cac7579028a72ccb",
+      "byteLength": 297
+    },
+    "scripts/run-compat-suite.cjs": {
+      "sha256": "0f135a343a8c1cb4479706ba7aede8bf496e48c39d2e2dbf6b7a4f3be19aa368",
+      "byteLength": 2234
+    },
+    "scripts/start-i10.ps1": {
+      "sha256": "f25f0a107d99f7c58fbb44bf9ec403b373b4690c2ab0a0712cdda6b8f4eb2901",
+      "byteLength": 7405
+    },
+    "scripts/status-i10.ps1": {
+      "sha256": "9d29b156f152737b6b48f69fd210d129fb983fa64c5712d8aa44381c911983f2",
+      "byteLength": 231
+    },
+    "scripts/stop-i10.ps1": {
+      "sha256": "82c0018a4ca1fdc66e93e6b07d3ddfc29edf6deb879b17a16dd8f3502c4bfa71",
+      "byteLength": 604
+    },
+    "scripts/verification/agentflow-capability-preservation.test.cjs": {
+      "sha256": "e4756e5084992218cd8d7c0ec39432def43c02defe0d542c0b5507e858aa9ad2",
+      "byteLength": 12791
+    },
+    "scripts/verification/batch-item-decision.test.cjs": {
+      "sha256": "9743fb4ff87ba4566833386df4700ec3ccbde30ec060a058d18145f3c31c495f",
+      "byteLength": 5569
+    },
+    "scripts/verification/case-draft-normalizer.test.cjs": {
+      "sha256": "60f57663f25b6aaf47b8458dcb246b3ee3d559c31c0160fafed47b04d71e191e",
+      "byteLength": 13518
+    },
+    "scripts/verification/cross-source-conflict.test.cjs": {
+      "sha256": "100bf12e7e7d57a936a6b0e76d4871da993ddbd1a7b43acbc76de35f071997a1",
+      "byteLength": 4782
+    },
+    "scripts/verification/flowise-upload-config.test.cjs": {
+      "sha256": "16cf345ed07f77e7cbecf1ef3af58c34ba4c17b76de939dfe4d040cc7e5ce4aa",
+      "byteLength": 4148
+    },
+    "scripts/verification/flowise-upload-routing.test.cjs": {
+      "sha256": "bacce21bf7265ff3302e27bd95c987cbbf4713d113a66866091f39faeeb7da1f",
+      "byteLength": 2368
+    },
+    "scripts/verification/generic-worker-routing.test.cjs": {
+      "sha256": "460cc3d9247d65f2cec429ca2e96d4cc7ff8074f716abef5169e9a00946427b0",
+      "byteLength": 9062
+    },
+    "scripts/verification/i10-18-chain-acceptance.test.cjs": {
+      "sha256": "9ed53e80f9194b2120864bb2db48404b64f2d52489f1922bce17f9073c350677",
+      "byteLength": 9148
+    },
+    "scripts/verification/i10-final-standardization-contracts.test.cjs": {
+      "sha256": "4968945594efdc35f5f5f6e41577228c1ba8030e77d600d2283d2de4faf6d03b",
+      "byteLength": 3451
+    },
+    "scripts/verification/i10-l1-live-bootstrap.test.cjs": {
+      "sha256": "fec2471efb7b4a143a144ef7f39bb93bb789157b43d42700561277bf567643ac",
+      "byteLength": 694
+    },
+    "scripts/verification/image-dual-model-evidence.test.cjs": {
+      "sha256": "4428cba9669051675a805fe6759fbb1dc6a7d0912177db3e1d7cdbc8d980b8df",
+      "byteLength": 2847
+    },
+    "scripts/verification/image-fact-decision.test.cjs": {
+      "sha256": "22c431a90cb1e4f29308f91c428e0571bc3d5ea20e4d242649875b1bab4037f7",
+      "byteLength": 5215
+    },
+    "scripts/verification/image-multimodal-ingest.test.cjs": {
+      "sha256": "cec3238049c30c035aced030b8fb6fa281bb814f8a98cee32db1cb4a04c52fb0",
+      "byteLength": 7667
+    },
+    "scripts/verification/image-onnx-ocr.test.cjs": {
+      "sha256": "024d983918e2672dbc69964f38bbdfefe165e958e66ecd3c349dcdc0f2c8b2fb",
+      "byteLength": 1015
+    },
+    "scripts/verification/image-parallel-delivery.test.cjs": {
+      "sha256": "2f5041bb0bae7603ad91aaff5c0d5fd5b3038d3d136ddfa2b4f2e506b4c34db1",
+      "byteLength": 7367
+    },
+    "scripts/verification/ingest-lease-recovery.test.cjs": {
+      "sha256": "11778aeadc2142add6b2cdb164479069a941b68b1060047ca0aab2214287b908",
+      "byteLength": 6199
+    },
+    "scripts/verification/input-safety.test.cjs": {
+      "sha256": "d51c3a8905dbc72c0434c21d13042f5fb19b57e0c2bc27ce39b227e57db68098",
+      "byteLength": 1747
+    },
+    "scripts/verification/interaction-response.test.cjs": {
+      "sha256": "e748c8fe107fbf23e63ab501b70ea98a9acdd3616f81820284d250b509acfffb",
+      "byteLength": 4190
+    },
+    "scripts/verification/journey-state-machine.test.cjs": {
+      "sha256": "a8f9255ab460e76ec1d66398075cc7907cf44d3a82f1e7b7112d4ea89a72a1ea",
+      "byteLength": 34959
+    },
+    "scripts/verification/ledger-runner.test.cjs": {
+      "sha256": "22a3965522b3523f4bd3fe045af726ba483f429a11287fcb244a9f52ffb8e383",
+      "byteLength": 5000
+    },
+    "scripts/verification/mcp-interaction-contract.test.cjs": {
+      "sha256": "3625bf407bb2e0394d68eacf6e43c0cb2940b2e179f641204826622257bd51d5",
+      "byteLength": 9943
+    },
+    "scripts/verification/midscene-diagnostics.test.cjs": {
+      "sha256": "9adc7dd53350b297c9f82157b3a203dded3de9fb1489aa7e25b381ff53386547",
+      "byteLength": 7760
+    },
+    "scripts/verification/neutral-target-fixtures.test.cjs": {
+      "sha256": "d6233300d8b8ef55e4c11633eb6fef309ccd9c5a530026601aa0d63975843b53",
+      "byteLength": 3994
+    },
+    "scripts/verification/runtime-state-recovery.test.cjs": {
+      "sha256": "dcedb1d1ff028640748a08061b3947e526db8492d88956f2a739070141f15fe5",
+      "byteLength": 6063
+    },
+    "scripts/verification/runtime-verification.test.cjs": {
+      "sha256": "460979b9996ad4e504b21dd6a1e56ad4b7092ad6e558bddf84cff29fdf9b962b",
+      "byteLength": 4230
+    },
+    "scripts/verification/stage8-terminal-evidence.test.cjs": {
+      "sha256": "a051ab22f30ea6ca8d36a3298732766e88bb9d6b80dd01e89936c529e9d9bbae",
+      "byteLength": 8802
+    },
+    "scripts/verification/target-profile-prerequisite.test.cjs": {
+      "sha256": "f05bf3890731853a659a4463900ca7d3c8ccac6e4a84bda2f2235a1bad803f79",
+      "byteLength": 3355
+    },
+    "scripts/verification/target-profile.test.cjs": {
+      "sha256": "ff33dc0b2e23991ab4a75868a039ceda3c8ed10109982bda51a6f56ce06eac85",
+      "byteLength": 27186
+    },
+    "scripts/verification/verification-attempts.test.cjs": {
+      "sha256": "0f840a1ea341c7ccb07c8424a14341f7f0969225c5bb90067798ef5fb552bb3e",
+      "byteLength": 1670
+    },
+    "scripts/verification/verification-policy.test.cjs": {
+      "sha256": "47de3fb9fd53748179ce91f0f5d995390775b8e48dcb55ffd88ed2828ce3ced5",
+      "byteLength": 7309
+    },
+    "scripts/verification/video-low-confidence-safety.test.cjs": {
+      "sha256": "bdc69ff8809bea222942ce6b065a96b98db9b81d8fbba18891466a6b5d2cb69e",
+      "byteLength": 2367
+    },
+    "scripts/verification/video-onnx-live-probe.cjs": {
+      "sha256": "104ed02a7c3da0f4c8f7fb3cea447910d0a164ff90400d0392333869ecc24236",
+      "byteLength": 3732
+    },
+    "scripts/verification/video-onnx-ocr.test.cjs": {
+      "sha256": "8e4b8b7387643e0dead72fa9097ad2161c855bc4a256b4eab50effcad0696171",
+      "byteLength": 4882
+    },
+    "scripts/verification/worker-claim-output-budget.test.cjs": {
+      "sha256": "178b5bcf79713f3720d5cd2de4e16f8c2f54972020fccc51a1c674e3f98185ca",
+      "byteLength": 575
+    },
+    "scripts/verify-i10-agentflow-paths.cjs": {
+      "sha256": "cf25485ee4590065e13c32ccc22c200ea6652307ba901f68917482ce0a440408",
+      "byteLength": 5972
+    },
+    "scripts/verify-i10-agentflow-v3.cjs": {
+      "sha256": "26b0d6fe669749d8c503092553e30395ad989ed0a3e3ff37314dcac44f57509d",
+      "byteLength": 3179
+    },
+    "scripts/verify-i10-agentflow-v4.cjs": {
+      "sha256": "a88423aa24b514fb94da7c8e7a699de5d728add3f0cf6f5767dbb460f1ed7d8c",
+      "byteLength": 27201
+    },
+    "scripts/verify-i10-agentflow-v5.cjs": {
+      "sha256": "feff3f09520770dfbad1c76ad55affef13c3f776101a812e6997962089b84014",
+      "byteLength": 29523
+    },
+    "scripts/verify-i10-agentflow-v6.cjs": {
+      "sha256": "16020467eb94151ebc2bd3bd074b3ccadb189a3457f5df7009170e8f59aa04f1",
+      "byteLength": 3380
+    },
+    "scripts/verify-i10-agentflow-v7.cjs": {
+      "sha256": "c45a281aa30dc86ed6a2967f3cfb647451fdd206a4dae5e9af0ae5792d57f59e",
+      "byteLength": 2567
+    },
+    "scripts/verify-i10-final-standardization.cjs": {
+      "sha256": "2bbd877beaada608c86318797399cf18b94d261ab67dd72387b3dcafdbffc531",
+      "byteLength": 3691
+    },
+    "scripts/verify-i10-gap-closure.cjs": {
+      "sha256": "02a227cdc1c7568dc232b557e6f7b8401c6572201a0ef9dcbb22914314d20393",
+      "byteLength": 3601
+    },
+    "scripts/verify-i10-model-probes.cjs": {
+      "sha256": "dc03f438a76554eb54c40e27a12d20976ce30c6c3d789ef2136d77112d45002c",
+      "byteLength": 6798
+    },
+    "scripts/verify-i10-model-probes.ps1": {
+      "sha256": "49703b7b5c19ed5a87bfa3c51689e2bd15bb04e379d739894e5b0cfcc0e90257",
+      "byteLength": 305
+    },
+    "scripts/verify-i10-multimodal-live.ps1": {
+      "sha256": "ecdf121612e9322531d4301c66b22a3fae6e078bb0f014c6309dac6d4c94b8f4",
+      "byteLength": 301
+    },
+    "scripts/verify-i10-secret-leaks.cjs": {
+      "sha256": "5b6eae835bd9fb40b60e82a1471a65741deccc5b3e812a9cdb456179279f7085",
+      "byteLength": 3368
+    },
+    "scripts/verify-i10-secret-leaks.ps1": {
+      "sha256": "f5964f15024f77c757084007f05adef85403e1c493b3b4763b01308cee41a44e",
+      "byteLength": 304
+    },
+    "scripts/verify-i10-stage8-live.ps1": {
+      "sha256": "727541ea462a7849868973e56f9cd5de8c658f718b487d7db9da25f6fed00546",
+      "byteLength": 545
+    },
+    "scripts/verify-i10-target-boundary.cjs": {
+      "sha256": "3cef6453b6e6d43074a183d65f21c79354896cf4fd347617fdce3e3d5c01c5e5",
+      "byteLength": 3262
+    },
+    "START.cmd": {
+      "sha256": "87e7cae15f8e492de3bce5d4ec99adc8b173e4e0c0e2319379c1502fb74d616b",
+      "byteLength": 77
+    },
+    "STATUS.cmd": {
+      "sha256": "75fb24b6d5c185b3030d77618e206d118e6fb46d3068777685c53be3bcb84f8d",
+      "byteLength": 75
+    },
+    "STOP.cmd": {
+      "sha256": "2947da6646f7352a40b3a38c9433689772aeada37f4f03a55b3cddf6c4c16d1b",
+      "byteLength": 76
+    },
+    "THIRD-PARTY-NOTICES.md": {
+      "sha256": "bac6fd736a04ee61cf48d553b3aad20ba2c99a1b5ba352ac282909df29928c2b",
+      "byteLength": 85457
+    },
+    "tsconfig.json": {
+      "sha256": "1c2ad65f863f47379e665d1ab4cd83f639100300c547fb8eea613dca3cfbb1f7",
+      "byteLength": 489
+    },
+    "VERIFY.cmd": {
+      "sha256": "abd10f228553e370ed0e17da6f8a46873ab7d69932855d320ae77b3977d34816",
+      "byteLength": 78
+    },
+    "worker/fixtures/i10-ocr-chinese-bank.png": {
+      "sha256": "35c91ced45040516d0c8d2bef16f3d313befb3e614091aecc59491acf653301c",
+      "byteLength": 42083
+    },
+    "worker/src/account-ownership.cjs": {
+      "sha256": "82b92a2c03bbfe91afffde21cc25e5bceb223eaa58aca04fc7f4898cbd4b15c5",
+      "byteLength": 216
+    },
+    "worker/src/adapters/fuxing-bank-demo/account-ownership.cjs": {
+      "sha256": "6f4d0fdcf3290916cf4ec8c703bdce0c16b13db0091fbb82a7404448d7165f9d",
+      "byteLength": 8052
+    },
+    "worker/src/adapters/fuxing-bank-demo/auth-rejection-recovery.cjs": {
+      "sha256": "3fcc23716990b61a978fe45c6fd54a819f273c6253a07400f9f8600ddcfe1bf3",
+      "byteLength": 5037
+    },
+    "worker/src/adapters/fuxing-bank-demo/index.cjs": {
+      "sha256": "c9bcbc2e02988117202426772d59c52fc2b304cd03b9c4032fc2c90ffd154ce6",
+      "byteLength": 3256
+    },
+    "worker/src/adapters/fuxing-bank-demo/login-profile.cjs": {
+      "sha256": "3cc1cbebf8583cf4d29a332bb22395aa34a7ac08c2442740dd210e335151190f",
+      "byteLength": 8896
+    },
+    "worker/src/adapters/fuxing-bank-demo/verification-policy.cjs": {
+      "sha256": "13882a37183f4f8284861dd1927ffe98874c66063973e9f2c58e083febe0aba4",
+      "byteLength": 5654
+    },
+    "worker/src/auth-rejection-recovery.cjs": {
+      "sha256": "39d2a6669e1d39ad20217204570ce1f69f9d266ca4c204f93ec0e7d7a55e15c5",
+      "byteLength": 222
+    },
+    "worker/src/i10-image-ingest-runner.cjs": {
+      "sha256": "cd0b90c22785936f7137e08e0e0480317b6da4dd74f9c2a8a66258aaed67a5d8",
+      "byteLength": 9658
+    },
+    "worker/src/i10-midscene-candidate-authoring.cjs": {
+      "sha256": "3f5c348e80a0cd794429d58955362b522895834c712bdaa6077b47d1ea9fcdbd",
+      "byteLength": 55333
+    },
+    "worker/src/i10-onnx-ocr.cjs": {
+      "sha256": "02cfd127016eb936f1c17591ea46f452706abcfce2dd81e1d7b14777a7e2f329",
+      "byteLength": 4109
+    },
+    "worker/src/i10-verification-execution.cjs": {
+      "sha256": "f3b2e20ddc0e5b66e01ae66fef1a352df22c1cae31c6a492d64f82e75cfe731e",
+      "byteLength": 3103
+    },
+    "worker/src/i10-verification-policy.cjs": {
+      "sha256": "82802a268a7b02fa236cfa644beb67ca22c197ecd10a37517a52699d9a905c34",
+      "byteLength": 887
+    },
+    "worker/src/i10-video-ingest-runner.cjs": {
+      "sha256": "dff9422bc3c0f5c20783b58f958525fc3175898b18afa31d6169fcc64a453750",
+      "byteLength": 15173
+    },
+    "worker/src/i10-worker-utils.cjs": {
+      "sha256": "39c076ad3f877eb4d40d0cc6c395c6becbf2216b868587cc537a4713cabc6954",
+      "byteLength": 1182
+    },
+    "worker/src/i8-candidate-runner.cjs": {
+      "sha256": "9f5f7ab1fea469482a1e2e5c59674bb112ed32a3ac823043f4ad36674bd6e7b0",
+      "byteLength": 4600
+    },
+    "worker/src/i8-formal-runner.cjs": {
+      "sha256": "fa3480c152dc83e5c6573fbd5dbfbe51a1617b0ca07f78cf090d9078cce943ab",
+      "byteLength": 13386
+    },
+    "worker/src/i8-stability-runner.cjs": {
+      "sha256": "1c4a65ba671d65f81009c92bfcdba4020ebbb2898b442db596e907866210a5b0",
+      "byteLength": 16240
+    },
+    "worker/src/index.cjs": {
+      "sha256": "94398d1439d9dfe3bd3dbd178bbb6f3ba24425d48dfeb0a1837c8b316277b1fc",
+      "byteLength": 27312
+    },
+    "worker/src/login-profile.cjs": {
+      "sha256": "cdec3c49a3df357129de0c97e81c3d12c3980c63ffcc496cf77744964523359a",
+      "byteLength": 212
+    }
+  }
+}

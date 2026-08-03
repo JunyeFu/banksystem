@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { Alert, Button, Card, Empty, Input, Select, Skeleton, Table, Tag } from 'antd';
+import { Alert, Button, Card, Descriptions, Drawer, Empty, Input, Select, Skeleton, Table, Tag } from 'antd';
 import type { OperationsRiskAlert, OperationsRiskAlertStatus } from '@localbank/bank-api-client';
 import { operationsApi } from '@/api/client';
 
@@ -9,9 +9,16 @@ const severityColors: Record<string, string> = { LOW: 'green', MEDIUM: 'gold', H
 
 export function RiskAlerts(): JSX.Element {
   const [status, setStatus] = useState<OperationsRiskAlertStatus | undefined>();
+  const [severity, setSeverity] = useState<OperationsRiskAlert['severity'] | undefined>();
   const [keyword, setKeyword] = useState('');
+  const [selected, setSelected] = useState<OperationsRiskAlert | null>(null);
   const query = useQuery({ queryKey: ['operations-risk-alerts', status], queryFn: () => operationsApi.listRiskAlerts(status), retry: false });
-  const rows = useMemo(() => (query.data ?? []).filter((item) => !keyword || `${item.ruleName}${item.entityId}${item.description}`.toLowerCase().includes(keyword.toLowerCase())), [query.data, keyword]);
+  const rows = useMemo(
+    () => (query.data ?? []).filter((item) =>
+      (!severity || item.severity === severity)
+      && (!keyword || `${item.ruleName}${item.entityId}${item.description}`.toLowerCase().includes(keyword.toLowerCase()))),
+    [query.data, keyword, severity],
+  );
   const active = query.data?.filter((item) => item.status === 'ACTIVE').length ?? 0;
   const critical = query.data?.filter((item) => item.severity === 'CRITICAL').length ?? 0;
   const state = query.isLoading ? 'LOADING' : query.isError ? 'ERROR' : rows.length === 0 ? 'EMPTY' : status ?? 'NORMAL';
@@ -26,7 +33,7 @@ export function RiskAlerts(): JSX.Element {
           <Card><span>已解决</span><strong className="success">{query.data?.filter((item) => item.status === 'RESOLVED').length ?? 0}</strong><small>已完成复核处置</small></Card>
         </>}
       </div>
-      <Card className="ops-risk-filter"><Select value={status} allowClear placeholder="全部状态" onChange={setStatus} options={[{ value: 'ACTIVE', label: '活跃' }, { value: 'RESOLVED', label: '已解决' }]} data-testid="risk-alert-status-filter" /><Select allowClear placeholder="全部级别" options={Object.entries(severityLabels).map(([value,label]) => ({ value,label }))} /><Input value={keyword} onChange={(event) => setKeyword(event.target.value)} placeholder="规则、交易编号或描述" allowClear data-testid="risk-alert-search" /><Button type="primary">查询</Button></Card>
+      <Card className="ops-risk-filter"><Select value={status} allowClear placeholder="全部状态" onChange={setStatus} options={[{ value: 'ACTIVE', label: '活跃' }, { value: 'RESOLVED', label: '已解决' }]} data-testid="risk-alert-status-filter" /><Select value={severity} allowClear placeholder="全部级别" onChange={setSeverity} options={Object.entries(severityLabels).map(([value,label]) => ({ value,label }))} data-testid="risk-alert-severity-filter" /><Input value={keyword} onChange={(event) => setKeyword(event.target.value)} placeholder="规则、交易编号或描述" allowClear data-testid="risk-alert-search" /><Button type="primary" onClick={() => void query.refetch()}>查询</Button></Card>
       <Card className="ops-risk-table" title="告警列表" extra={<span>共 {rows.length} 条</span>}>
         {query.isLoading ? <Skeleton active paragraph={{ rows: 8 }} /> : rows.length === 0 ? <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description={status ? '当前状态下暂无风险告警' : '暂无风险告警'} /> : <Table rowKey="alertId" dataSource={rows} pagination={{ pageSize: 10 }} columns={[
           { title: '告警编号', dataIndex: 'alertId', width: 115, render: (value: string) => <code>{value.slice(0,8).toUpperCase()}</code> },
@@ -37,9 +44,16 @@ export function RiskAlerts(): JSX.Element {
           { title: '风险分', dataIndex: 'score', width: 70, render: (value: number) => <b className={value >= 80 ? 'danger' : ''}>{value}</b> },
           { title: '触发时间', dataIndex: 'triggeredAt', width: 155, render: (value: string) => new Date(value).toLocaleString('zh-CN', { hour12: false }) },
           { title: '状态', dataIndex: 'status', width: 90, render: (value: string) => <Tag color={value === 'ACTIVE' ? 'red' : 'green'}>{value === 'ACTIVE' ? '活跃' : '已解决'}</Tag> },
-          { title: '操作', width: 70, render: (_: unknown, record: OperationsRiskAlert) => <Button type="link">{record.status === 'ACTIVE' ? '处置' : '详情'}</Button> },
+          { title: '操作', width: 70, render: (_: unknown, record: OperationsRiskAlert) => <Button type="link" onClick={() => setSelected(record)} data-testid={`risk-alert-open-${record.alertId}`}>{record.status === 'ACTIVE' ? '处置详情' : '详情'}</Button> },
         ]} />}
       </Card>
     </>}
+    <Drawer title="风险告警详情" width={620} open={selected !== null} onClose={() => setSelected(null)} data-testid="risk-alert-drawer">
+      {selected ? <><Alert type="warning" showIcon message="当前页面仅提供告警审阅" description="告警处置必须通过已授权的风险工作流执行；本页不会直接改变交易、告警或风险决策状态。" /><Descriptions column={1} bordered size="small" style={{ marginTop: 16 }} items={[
+        { key: 'id', label: '告警编号', children: selected.alertId }, { key: 'rule', label: '规则名称', children: selected.ruleName }, { key: 'entity', label: '关联交易', children: selected.entityId },
+        { key: 'severity', label: '告警级别', children: <Tag color={severityColors[selected.severity]}>{severityLabels[selected.severity]}</Tag> }, { key: 'score', label: '风险评分', children: selected.score },
+        { key: 'description', label: '告警描述', children: selected.description }, { key: 'status', label: '状态', children: <Tag color={selected.status === 'ACTIVE' ? 'red' : 'green'}>{selected.status === 'ACTIVE' ? '活跃' : '已解决'}</Tag> },
+      ]} /></> : null}
+    </Drawer>
   </section>;
 }

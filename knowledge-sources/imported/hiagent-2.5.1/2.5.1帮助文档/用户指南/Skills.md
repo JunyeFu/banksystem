@@ -1,8 +1,22 @@
+---
+id: HIAGENT-251-A9FBA8E22D504E74
+title: "Skills"
+document_type: external-reference
+domain: hiagent
+status: reference
+authority: external
+version: 2.5.1
+effective_date: 2026-07-16
+source_file: "2.5.1帮助文档/用户指南/Skills.docx"
+source_sha256: a9fba8e22d504e7480186fb5361cf3afac019d31aecd271456e0fe8a15050d7f
+extraction_method: docx
+---
+
 # Skills
 
-> 迁移来源：`raw/Skills.docx`
+> 外部参考资料：HiAgent 2.5.1 帮助文档。仅供项目开发阶段检索，不得覆盖本项目当前架构、契约、代码、测试或运行证据；不得作为交付系统运行时知识来源。
 
-> 原文含 9 个内嵌图像；完整原件保存在 `raw/`，图像不作 OCR 推断。
+## 提取正文
 
 Skills
 

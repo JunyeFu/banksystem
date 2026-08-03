@@ -16,7 +16,12 @@
 .login-card .ant-alert { margin-top: 16px; }
 .login-options { display: flex; justify-content: space-between; margin: 18px 0; }
 .login-options a { color: #d9161c; }
+.login-option-links { display: inline-flex; align-items: center; gap: 16px; }
+.login-option-links .ant-btn-link { height: auto; padding: 0; color: #d9161c; font: inherit; }
 .login-card > .ant-btn { min-height: 52px; font-size: 17px; font-weight: 650; }
+.login-sso-panel { padding: 8px 0 2px; }
+.login-sso-panel > p { color: #656d79; line-height: 1.7; margin: 0 0 18px; }
+.login-sso-panel .ant-btn { min-height: 52px; font-size: 17px; font-weight: 650; }
 .login-progress { text-align: center; margin: 12px 0 0 !important; }
 .login-divider { display: flex; align-items: center; gap: 18px; color: #737b87; margin: 22px 0 16px; }
 .login-divider::before, .login-divider::after { content: ''; flex: 1; height: 1px; background: #e1e4e8; }
@@ -46,8 +51,10 @@
 .customer-nav a.active::after { content: ''; position: absolute; left: 0; right: 0; bottom: 0; height: 3px; background: #e20d18; }
 .customer-actions { display: flex; justify-content: flex-end; align-items: center; gap: 18px; }
 .customer-bell { font-size: 24px; color: #3f454f; }
-.customer-profile { height: 46px; font-size: 15px; display: flex; align-items: center; gap: 8px; }
-.customer-avatar { display: grid; place-items: center; width: 34px; height: 34px; border-radius: 50%; background: #eceef1; color: #5e6672; }
+.customer-profile { height: 46px; min-width: 0; font-size: 15px; display: flex; align-items: center; gap: 8px; }
+.customer-avatar { flex: 0 0 34px; display: grid; place-items: center; width: 34px; height: 34px; border-radius: 50%; background: #eceef1; color: #5e6672; }
+.customer-profile-label { min-width: 0; display: inline-flex; align-items: center; }
+.customer-profile-name { max-width: 76px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .customer-content { max-width: 1440px; margin: 0 auto; padding: 54px 40px 70px; }
 .customer-page { width: 100%; }
 .customer-page-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 32px; margin-bottom: 34px; }

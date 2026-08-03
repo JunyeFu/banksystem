@@ -1,0 +1,95 @@
+{
+  "schemaVersion": "hengzhun-i10-interaction-matrix-v3",
+  "principle": "每次只解决一个用户任务；输入、状态和精确确认使用不同模块，proceed/reject不映射多选业务动作。",
+  "inputs": [
+    {
+      "type": "NATURAL_LANGUAGE",
+      "mainAttachment": "none",
+      "supportingImages": "optional",
+      "normalizationTarget": "CaseDraft"
+    },
+    {
+      "type": "CASE_FILE",
+      "mainAttachment": "xlsx|csv|docx|json",
+      "supportingImages": "optional",
+      "normalizationTarget": "CaseDraft"
+    },
+    {
+      "type": "VIDEO",
+      "mainAttachment": "mp4-h264",
+      "supportingImages": "optional",
+      "normalizationTarget": "CaseDraft"
+    }
+  ],
+  "intents": [
+    {
+      "intent": "CASE_AUTHORING",
+      "possibleOutputs": ["INPUT_REQUIRED", "STATUS_ONLY", "CONFIRM_EXACT", "FAILED"],
+      "durableArtifacts": ["case-draft.md", "case-draft.json", "playwright.cjs", "validation-report.json"]
+    },
+    {
+      "intent": "RESULT_QUERY",
+      "possibleOutputs": ["STATUS_ONLY", "FAILED"],
+      "durableArtifacts": ["execution-report.json", "evidence-index.md"]
+    },
+    {
+      "intent": "SCHEDULE_DISABLE",
+      "possibleOutputs": ["INPUT_REQUIRED", "CONFIRM_EXACT", "STATUS_ONLY", "FAILED"],
+      "durableArtifacts": []
+    },
+    {
+      "intent": "JOURNEY_RESUME",
+      "possibleOutputs": ["INPUT_REQUIRED", "STATUS_ONLY", "CONFIRM_EXACT", "FAILED"],
+      "durableArtifacts": "inherit-current-journey"
+    },
+    {
+      "intent": "HELP",
+      "possibleOutputs": ["STATUS_ONLY"],
+      "durableArtifacts": []
+    },
+    {
+      "intent": "UNSUPPORTED",
+      "possibleOutputs": ["FAILED"],
+      "durableArtifacts": []
+    }
+  ],
+  "interactionModes": {
+    "STATUS_ONLY": {
+      "modules": ["BRIEF", "PROGRESS_OR_RESULT", "ARTIFACTS_OPTIONAL"],
+      "humanInput": false
+    },
+    "INPUT_REQUIRED": {
+      "modules": ["BRIEF", "INPUT_REQUEST", "EXAMPLES", "USER_STEPS", "BUTTON_MEANING", "SAFETY"],
+      "humanInput": true,
+      "freeTextAllowed": true,
+      "proceedEffect": "只提交当前反馈进行安全检查、结构化和确定性校验",
+      "rejectEffect": "按当前阶段放弃输入或保留现状"
+    },
+    "CONFIRM_EXACT": {
+      "modules": ["BRIEF", "PROPOSAL", "ARTIFACTS_OPTIONAL", "BUTTON_MEANING", "SAFETY"],
+      "humanInput": true,
+      "freeTextAllowed": false,
+      "proceedEffect": "只执行页面所示的唯一冻结提案",
+      "rejectEffect": "执行页面所示的退回、保留或取消效果"
+    }
+  },
+  "inputRules": {
+    "naturalLanguageAllowed": true,
+    "strictJsonRequired": false,
+    "secretInputAllowed": false,
+    "blankInputCallsBusinessMcp": false,
+    "currentHumanInputFeedbackOnly": true
+  },
+  "decisionRules": {
+    "allowedActionsCompatibilityOnly": true,
+    "primaryDecisionAllowed": false,
+    "proposalIdentityRequired": ["proposalId", "payloadHash", "version"],
+    "secondConfirmationBeforeMutation": true
+  },
+  "delivery": {
+    "authoritative": "Harness short-lived one-time link",
+    "flowiseNativeFile": "optional enhancement",
+    "inlineTechnicalDetail": false,
+    "rawToolOutput": false
+  }
+}

@@ -133,8 +133,8 @@ public class TransferController {
         currency.toUpperCase(), "CREATED", jwt.getSubject(), correlationId, hash, blankToNull(reference));
     stateMachine.recordTransitionHistory(transferId, null, TransferStateMachine.Status.CREATED,
         "USER", jwt.getSubject(), null, "{\"idempotencyKey\":\"" + key + "\"}");
-    jdbc.update("INSERT INTO outbox_event(id,aggregate_type,aggregate_id,event_type,event_version,payload,headers,status) VALUES (?,?,?,?,?,?::jsonb,?::jsonb,?)",
-        UUID.randomUUID(), "Transfer", transferId, "transfer.status.changed", 1, body, "{}", "PENDING");
+    jdbc.update("INSERT INTO outbox_event(id,transfer_id,aggregate_type,aggregate_id,event_type,event_version,payload,headers,status) VALUES (?,?,?,?,?,?,?::jsonb,?::jsonb,?)",
+        UUID.randomUUID(), transferId, "Transfer", transferId, "transfer.status.changed", 1, body, "{}", "PENDING");
     audit.record("TRANSFER_CREATED", "USER", jwt.getSubject(), "Transfer", transferId.toString(),
         "CREATE", "SUCCESS", null, response);
     return ResponseEntity.status(HttpStatus.ACCEPTED).body(response);
@@ -311,8 +311,28 @@ public class TransferController {
   private void assertCustomerOwnsSource(Jwt jwt, String sourceAccountId) {
     var clientRows = jdbc.query("SELECT fineract_client_id FROM customer_identity WHERE subject=?",
         (rs, n) -> rs.getLong(1), jwt.getSubject());
-    if (clientRows.isEmpty() || fineract.clientAccounts(clientRows.get(0)).stream()
-        .noneMatch(account -> String.valueOf(account.get("id")).equals(sourceAccountId))) {
+    if (clientRows.isEmpty()) {
+      throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Source account is not owned by customer");
+    }
+    boolean ownsSource = false;
+    try {
+      Map<String, Object> detail = fineract.accountDetails(Long.parseLong(sourceAccountId));
+      // Account detail carries the authoritative core owner even when the
+      // compact account-list representation omits or renames its ID field.
+      Object coreClientId = detail.get("clientId");
+      ownsSource = coreClientId != null && String.valueOf(clientRows.get(0)).equals(String.valueOf(coreClientId));
+    } catch (RuntimeException ignored) {
+      // The controlled list fallback preserves compatibility with older local
+      // Fineract fixtures that do not expose clientId on account detail.
+    }
+    if (!ownsSource) {
+      // Fineract account-list responses differ by version: some expose `id`,
+      // others only `accountId` or `savingsAccountId`.  Match all supported
+      // forms before rejecting a source.
+      ownsSource = fineract.clientAccounts(clientRows.get(0)).stream()
+          .anyMatch(account -> sourceAccountId.equals(String.valueOf(account.getOrDefault("id", account.getOrDefault("accountId", account.get("savingsAccountId"))))));
+    }
+    if (!ownsSource) {
       throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Source account is not owned by customer");
     }
   }

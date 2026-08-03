@@ -1,0 +1,16 @@
+{
+  "schemaVersion": "hengzhun-i10-journey-transition-v2",
+  "description": "Versioned, non-secret handoff between independent Flowise executions. The Harness is authoritative for every transition.",
+  "required": ["schemaVersion", "journeyId", "journeyVersion", "stage", "status", "action", "payloadHash", "references", "recoverable"],
+  "actionKinds": [
+    "PROVIDE_INPUT", "CONFIRM_EXACT", "CALL_CASE_PREPARE", "CALL_RUN_SUBMIT",
+    "CALL_SCHEDULE_CREATE", "CALL_SCHEDULE_DISABLE", "RESUME_RUN", "CALL_REPAIR_RERUN", "NONE"
+  ],
+  "rules": {
+    "oneMutatingActionPerFlowiseExecution": true,
+    "referencesAreOpaque": true,
+    "payloadIsFrozenByHash": true,
+    "chatHistoryIsNotATransitionSource": true,
+    "credentialsAreReferencesOnly": true
+  }
+}

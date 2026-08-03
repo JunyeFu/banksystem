@@ -16,14 +16,31 @@ const transactions = [
 async function json(route: Route, body: unknown, status = 200): Promise<void> { await route.fulfill({ status, contentType: 'application/json', body: JSON.stringify(body) }); }
 async function freeze(page: Page): Promise<void> { await page.addInitScript(() => { const fixed = new Date('2026-07-15T02:30:00Z').valueOf(); const NativeDate = Date; class FixedDate extends NativeDate { constructor(...args: ConstructorParameters<typeof Date>) { super(args.length ? args[0] : fixed); } static now(): number { return fixed; } } Object.defineProperty(window, 'Date', { value: FixedDate }); }); }
 async function screenshot(page: Page, pv: string): Promise<void> { await page.evaluate(() => window.scrollTo(0, 0)); await expect(page).toHaveScreenshot(`${pv}.png`, { fullPage: false }); }
-async function common(page: Page): Promise<void> { await freeze(page); await page.route('**/api/customer/v1/customers/me', (route) => json(route, { customerId: 'customer-demo', displayName: '张三' })); }
+async function common(page: Page): Promise<void> { await freeze(page); await page.route('**/api/customer/v1/customers/me', (route) => json(route, { customerId: 'customer-demo', displayName: '张三' })); await page.route('**/api/customer/v1/profile', (route) => json(route, { customerId: 'customer-demo', displayName: '张三' })); }
 
 test('PV-0001 login shell reference', async ({ page }) => { await freeze(page); await page.goto(`${CUSTOMER}/login`); await expect(page.locator('.login-main')).toHaveScreenshot('PV-0001.png'); });
-test('PV-0002 customer portal shell reference', async ({ page }) => { await common(page); await page.route('**/api/customer/v1/accounts', () => new Promise(() => undefined)); await page.goto(`${CUSTOMER}/dashboard`); await expect(page.locator('.customer-header')).toHaveScreenshot('PV-0002.png'); });
+test('PV-0002 customer portal shell reference', async ({ page }) => { await common(page); await page.route('**/api/customer/v1/accounts', () => new Promise(() => undefined)); await page.goto(`${CUSTOMER}/dashboard`); await expect(page.getByTestId('customer-profile-name')).toHaveText('张三'); await expect(page.locator('.customer-header')).toHaveScreenshot('PV-0002.png'); });
 
 test('PV-0006 customer login default', async ({ page }) => { await freeze(page); await page.goto(`${CUSTOMER}/login`); await screenshot(page, 'PV-0006'); });
 test('PV-0007 customer login submitting', async ({ page }) => { await freeze(page); await page.addInitScript(() => { sessionStorage.setItem('oidc_state', 'visual-state'); sessionStorage.setItem('pkce_verifier', 'visual-verifier'); }); await page.route('**/protocol/openid-connect/token', () => new Promise(() => undefined)); await page.goto(`${CUSTOMER}/login/callback?code=visual-code&state=visual-state`); await expect(page.locator('[data-view-state]')).toHaveAttribute('data-view-state', 'SUBMITTING'); await screenshot(page, 'PV-0007'); });
 test('PV-0008 customer login failure', async ({ page }) => { await freeze(page); await page.addInitScript(() => { sessionStorage.setItem('oidc_state', 'visual-state'); sessionStorage.setItem('pkce_verifier', 'visual-verifier'); }); await page.route('**/protocol/openid-connect/token', (route) => json(route, { error: 'invalid_grant' }, 401)); await page.goto(`${CUSTOMER}/login/callback?code=visual-code&state=visual-state`); await expect(page.getByTestId('login-error')).toBeVisible(); await screenshot(page, 'PV-0008'); });
+
+test('customer login modes are executable', async ({ page }) => {
+  await freeze(page); await page.goto(`${CUSTOMER}/login`);
+  await expect(page.getByTestId('login-title')).toHaveText('账号密码登录');
+  await expect(page.getByTestId('login-username')).toBeEditable();
+  await expect(page.getByTestId('login-password')).toBeEditable();
+  await page.getByTestId('login-register').click();
+  await expect(page.getByRole('dialog', { name: '在线开户注册' })).toBeVisible();
+  await page.getByRole('button', { name: '我知道了' }).click();
+  await page.getByRole('button', { name: '统一身份认证登录', exact: true }).click();
+  await expect(page.getByTestId('login-sso-submit')).toBeVisible();
+  await expect(page.getByTestId('login-title')).toHaveText('统一身份认证登录');
+  await expect(page.getByText('客户可通过复兴银行统一身份认证登录')).toBeVisible();
+  await expect(page.getByText('完成认证后将返回门户')).toBeVisible();
+  await page.getByRole('button', { name: '账号密码登录', exact: true }).first().click();
+  await expect(page.getByTestId('login-submit')).toHaveText('账号密码登录');
+});
 
 for (const [pv, state] of [['PV-0009', 'loading'], ['PV-0010', 'normal'], ['PV-0011', 'empty'], ['PV-0012', 'error']] as const) test(`${pv} dashboard ${state}`, async ({ page }) => {
   await common(page); await page.route('**/api/customer/v1/accounts', (route) => state === 'loading' ? new Promise(() => undefined) : state === 'error' ? json(route, { title: 'Unavailable' }, 503) : json(route, { items: state === 'empty' ? [] : accounts }));

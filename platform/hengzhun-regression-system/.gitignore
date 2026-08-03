@@ -1,0 +1,38 @@
+# Local runtime state and user data. Never version these files.
+.data/
+*.db
+*.sqlite
+*.sqlite3
+*.log
+logs/
+runs/
+evidence/
+
+# Private configuration and credentials.
+.env
+.env.*
+!.env.example
+config/runtime.env
+config/*.local.json
+
+# Bundled/generated dependencies are release assets, not source history.
+node_modules/
+flowise/node_modules/
+runtime/node-v*/
+runtime/chromium/
+runtime/ffmpeg/
+runtime/browsers/
+runtime/node_modules/
+runtime/ocr-models/
+
+# Generated output and editor/OS files.
+dist/
+coverage/
+*.tmp
+*.bak
+.DS_Store
+Thumbs.db
+
+# Never add archive copies of the portable package.
+*.zip
+*.7z

@@ -1,0 +1,136 @@
+schemaVersion: 1
+id: RF-001-B3-S4
+title: candidate_decide与schedule_disable前置读观测接入（直接编排工具观测收尾）
+status: APPROVED
+owner: project-owner
+authorizedBy: agent/plans/active/v54-implementation-batches.md (重构控制执行顺序第2项, RF-001)
+parentBatch: docs/architecture/refactoring/batches/RF-001/batch.yaml
+baseline:
+  gitCommit: dacd79580ec73f3580594ab2134acf8cc3d99f35
+  releaseIdentity: 632ad5ee7981b59f00824d0072d28da6075eef095d55a898d51c0103a897988f
+  slicePredecessor: RF-001-B3-S3 (COMPLETED, 2026-08-02)
+  evidence: docs/evidence/platform/hengzhun-i10-post-backfill-baseline-2026-08-02.md
+  capturedAt: "2026-08-02"
+
+# 单业务目标：完成直接编排工具的观测覆盖收尾——candidate_decide 与 schedule_disable
+# 的前置读 requestHarness 调用迁移到 shadowedRequest 工具级观测，使全部 10 个直接编排/
+# 复合工具（B3-S2 的 8 个 + 本切片 2 个）的每个 Harness 往返恰好观测一次。
+# 单功能点：2 个工具的前置读观测接线 + 观测覆盖静态断言。不跨切片。
+businessGoal:
+  - candidate_decide 前置读 `/v1/i8/candidates:get` 经 `shadowedRequest('candidate_decide', ...)` 观测
+  - schedule_disable 前置读 `/v1/i8/schedules:get` 经 `shadowedRequest('schedule_disable', ...)` 观测
+  - 两个工具的写路径继续走已观测的 `callHarness`，载荷与错误码逐字节不变
+  - 静态断言：两个工具块不再含裸 `requestHarness(`；ORCHESTRATION_TOOLS 覆盖 10 个工具
+  - ReleaseIdentity 与 18/18 验收基线不变
+functionalPoint: 直接编排工具前置读的 shadowedRequest 观测接线（2 工具）
+evidenceLevel: CONTRACT
+
+# 现状事实（B3-S2 遗留项，登记于 shadow-implementation-report.md 与 decision-log.md 条目20）
+currentState:
+  - tool: candidate_decide
+    preRead: requestHarness('/v1/i8/candidates:get', { namespace, preparationId })   # 未观测
+    write: callHarness('/v1/i8/candidates:decide', ...)                              # 已观测（shadowOperation=route）
+  - tool: schedule_disable
+    preRead: requestHarness('/v1/i8/schedules:get', { namespace, scheduleId })       # 未观测
+    write: callHarness('/v1/plugin/schedules:disable', ...)                          # 已观测（shadowOperation=route）
+  - 已观测直接编排工具（B3-S2）：candidate_get/candidate_preview/task_get/schedule_get/result_inbox_list/failure_get/repair_propose/decision_submit
+
+# 允许路径（收窄于批次 includePaths）
+allowedPaths:
+  - platform/hengzhun-regression-system/mcp/src/server.cjs   # 仅 candidate_decide 与 schedule_disable 两个工具块的 preRead 迁移
+  - platform/hengzhun-regression-system/scripts/verification/rf001-contract-adapter.test.cjs   # ORCHESTRATION_TOOLS 扩为10个 + 新增前置读观测断言
+  - docs/architecture/refactoring/batches/RF-001/decision-log.md
+  - docs/architecture/refactoring/batches/RF-001/evidence-index.md
+  - docs/architecture/refactoring/batches/RF-001/shadow-implementation-report.md
+  - docs/architecture/refactoring/batches/RF-001/slices/**
+
+# 禁止路径
+forbiddenPaths:
+  - platform/hengzhun-regression-system/mcp/src/rf001-contract-adapter.cjs   # 本切片不新增投影（观测接线专用）
+  - platform/hengzhun-regression-system/harness/**（批次级不变）、flowise/**、worker/**、contracts/**
+  - apps/**, services/**, infra/**, data/**, .data/**, secrets/**, .env
+  - agent/backlog.yaml, agent/plans/active/v54-implementation-batches.md   # 状态变更由用户在批层批准，切片内不改
+  - scripts/architecture/**（校验器只读）
+  - 任何新测试文件、SQLite 迁移、进程启停、切流
+
+budgets:
+  maxChangedFiles: 4
+  maxNewFiles: 0
+  maxChangedLines: 80
+  maxContractsChanged: 0
+  maxMigrationsAdded: 0
+  maxOpenModules: 1             # 仅 hengzhun.mcp
+
+# 不可变不变量
+invariants:
+  - 每个 Harness 往返恰好一次请求（shadowedRequest 单请求包装不变）；写路径仍走 callHarness，载荷/幂等键/错误码不变
+  - 旧工具输出与 Flowise 可见行为不变；HENGZHUN_RF001_SHADOW 仍为可选项，不切流
+  - candidate_decide/schedule_disable 错误路径错误码不变（I8_CANDIDATE_VERSION_UNAVAILABLE / I8_SCHEDULE_STATUS_UNAVAILABLE）
+  - 不读取、不记录、不输出任何密钥与凭据
+
+# 工作步骤（执行顺序固定）
+workSteps:
+  - step: S4-1 前置读迁移（已完成）
+    action: server.cjs 两个工具块的 preRead 由 requestHarness 改为 shadowedRequest('candidate_decide'/'schedule_disable', route, payload)；写路径与错误分支不动
+  - step: S4-2 观测覆盖断言（已完成）
+    action: ORCHESTRATION_TOOLS 扩为10个；新增断言：两工具块恰好1次 shadowedRequest(<tool>,、无裸 requestHarness(、写路径保持 callHarness、错误码保留；聚焦测试30/30通过
+  - step: S4-3 验证与证据（已完成）
+    action: 聚焦测试30/30、静态校验×3、git diff --check 全过；身份受限复算 sourceFlowHash一致；shadow-implementation-report.md / evidence-index.md / decision-log.md 已更新
+  - step: S4-4 逐级向上同步（已完成，RC-D1）
+    action: 任务包→本切片（完成标记）→batch.yaml（预算消耗记录于决策日志条目24）→v54实施顺序（B3条目更新）；无顶层事实冲突
+    evidence: docs/architecture/refactoring/batches/RF-001/decision-log.md 条目24
+
+# 命令级 done 条件（可现场复算）
+verification:
+  requiredCommands:
+    - name: rf001-focused-tests
+      command: runtime/node-v20.20.2-win-x64/node.exe --test scripts/verification/rf001-contract-adapter.test.cjs scripts/verification/mcp-interaction-contract.test.cjs scripts/verification/rf001-b3s3-aliases.test.cjs
+      expectedExitCode: 0
+      expectedOutput: 全部通过（含10工具观测覆盖断言，累计 ≥31 passed / 0 failed）
+      evidence: docs/architecture/refactoring/batches/RF-001/shadow-implementation-report.md
+      blocking: true
+    - name: refactoring-contracts
+      command: python scripts/architecture/validate_refactoring.py
+      expectedExitCode: 0
+      expectedOutput: REFACTOR_VALIDATION=PASS batches=2 modules=25
+      evidence: docs/architecture/refactoring/batches/RF-001/evidence-index.md
+      blocking: true
+    - name: rf001-mcp-boundary-contract
+      command: python scripts/architecture/validate_rf001_contract.py
+      expectedExitCode: 0
+      expectedOutput: RF001_CONTRACT_VALIDATION=PASS tools=33 aliases=13 conditional_mutations=3 error_fields=8
+      evidence: docs/architecture/refactoring/batches/RF-001/evidence-index.md
+      blocking: true
+    - name: documentation
+      command: python scripts/docs/validate_docs.py
+      expectedExitCode: 0
+      evidence: docs/architecture/refactoring/batches/RF-001/evidence-index.md
+      blocking: true
+    - name: identity-limited
+      command: 快照对照（inspect-i10.ps1缺失，沿用B3-S3受限复算方式）：sourceFlowHash重算一致、identityHash不变
+      expectedExitCode: 0
+      evidence: docs/architecture/refactoring/batches/RF-001/evidence-index.md
+      blocking: true
+    - name: whitespace
+      command: git diff --check
+      expectedExitCode: 0
+      blocking: false
+
+rollback:
+  triggerConditions:
+    - 任一工具块出现第二次 Harness 请求（观测包装破坏单请求不变量）
+    - 写路径载荷、幂等键或错误码与基线不一致
+    - ReleaseIdentity/18/18 非预期变化；越出 allowedPaths
+  recoveryPoint: dacd79580ec73f3580594ab2134acf8cc3d99f35 + RF-001 baseline + 回滚 server.cjs 两个工具块与测试列表
+  maxRtoMinutes: 30
+  maxRpoMinutes: 0
+
+# 明确排除（后续切片，不在本切片）
+exclusions:
+  - 隔离运行态 HENGZHUN_RF001_SHADOW=1 真实流量影子与零重复写入证明（B3-S5，SHADOW_VERIFIED 硬门禁）
+  - 公共API实时回读刷新与 inspect-i10.ps1 运行时身份复算（B3-S5 前置）
+  - 切流、错误信封切换、B4、RF-002
+  - 13项别名适配（B3-S3 已完成）、适配器新增投影（本切片零投影变更）
+
+risks:
+  - 风险极低：仅两处 preRead 单行级迁移，行为由既有 callHarness 语义覆盖；仍保持 CONTRACT 级证据，不冒充运行态影子

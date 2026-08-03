@@ -114,9 +114,9 @@ public class TransferStateMachine {
     String payload = "{\"transferId\":\"" + transferId + "\",\"status\":\"" + to.name() + "\""
         + (reason != null ? ",\"reason\":\"" + sanitize(reason) + "\"" : "") + "}";
     jdbc.update(
-        "INSERT INTO outbox_event(id,aggregate_type,aggregate_id,event_type,event_version,payload,headers,status) " +
-        "VALUES (?,?,?,?,?,?::jsonb,?::jsonb,?)",
-        UUID.randomUUID(), "Transfer", transferId, "transfer.status.changed", 1,
+        "INSERT INTO outbox_event(id,transfer_id,aggregate_type,aggregate_id,event_type,event_version,payload,headers,status) " +
+        "VALUES (?,?,?,?,?,?,?::jsonb,?::jsonb,?)",
+        UUID.randomUUID(), transferId, "Transfer", transferId, "transfer.status.changed", 1,
         payload, "{}", "PENDING");
   }
 

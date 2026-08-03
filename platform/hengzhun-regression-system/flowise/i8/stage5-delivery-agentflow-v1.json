@@ -1,0 +1,23 @@
+{
+  "description": "衡准I8阶段5续办流：控制器从会话状态注入preparationId，查询持证候选、分页预览、人工SAVE_ONLY/ACTIVATE/REJECT，并仅在激活后按用户选择提交一次回归。",
+  "entryContract": {
+    "userTechnicalInputRequired": false,
+    "controllerStateRequired": ["preparationId"],
+    "resumeTrigger": "用户在原会话选择查看已持证脚本或继续处理"
+  },
+  "allowedSemantics": ["mcp_tool", "condition", "human_input", "structured_llm", "direct_reply"],
+  "forbiddenSemantics": ["code", "http", "database", "filesystem", "shell", "browser", "arbitrary_url"],
+  "nodes": [
+    {"id":"candidateStatus","semantic":"mcp_tool","tool":"candidate_get","arguments":{"preparationId":"{{$state.preparationId}}","sessionRef":"{{$flow.sessionId}}"}},
+    {"id":"certifiedGate","semantic":"condition","expression":"candidateStatus.nextAction in [HUMAN_DELIVERY_DECISION_REQUIRED,ACTIVATE_OR_REJECT_AVAILABLE,ON_DEMAND_RUN_AVAILABLE]","routes":{"ON_DEMAND_RUN_AVAILABLE":"runHuman","HUMAN_DELIVERY_DECISION_REQUIRED":"preview","ACTIVATE_OR_REJECT_AVAILABLE":"preview"},"falseReply":"候选仍在受控作者化或稳定性验证中，未向用户展示未经签证的脚本。"},
+    {"id":"preview","semantic":"mcp_tool","tool":"candidate_preview","condition":"candidateStatus.nextAction != ON_DEMAND_RUN_AVAILABLE","arguments":{"preparationId":"{{$state.preparationId}}","cursor":"line:0","limit":40,"includeDownload":true}},
+    {"id":"deliveryHuman","semantic":"human_input","condition":"preview.scriptHash exists","prompt":"请审阅持证脚本预览，选择仅保存、激活或拒绝。只有明确选择才继续。","choices":["SAVE_ONLY","ACTIVATE","REJECT"]},
+    {"id":"deliveryChoice","semantic":"structured_llm","temperature":0,"schema":{"choice":{"enum":["SAVE_ONLY","ACTIVATE","REJECT"]}},"constraint":"只能原样映射deliveryHuman的明确选择；缺失或歧义时停止。"},
+    {"id":"decide","semantic":"mcp_tool","tool":"candidate_decide","condition":"deliveryChoice.choice exists","arguments":{"preparationId":"{{$state.preparationId}}","choice":"{{deliveryChoice.choice}}","confirmationRef":"{{$flow.sessionId}}","reason":"用户在人工确认节点明确选择","sessionRef":"{{$flow.sessionId}}"}},
+    {"id":"activationGate","semantic":"condition","expression":"decide.effect == SCRIPT_VERSION_ACTIVATED or candidateStatus.nextAction == ON_DEMAND_RUN_AVAILABLE"},
+    {"id":"runHuman","semantic":"human_input","condition":"activationGate == true","prompt":"脚本已激活但不会自动执行。是否立即运行一次纯Playwright回归？","choices":["RUN_NOW","LATER"]},
+    {"id":"runSubmit","semantic":"mcp_tool","tool":"run_submit","condition":"runHuman == RUN_NOW","arguments":{"preparationId":"{{$state.preparationId}}","sessionRef":"{{$flow.sessionId}}"}},
+    {"id":"taskGet","semantic":"mcp_tool","tool":"task_get","condition":"runSubmit.taskId exists","arguments":{"taskId":"{{runSubmit.taskId}}"}},
+    {"id":"reply","semantic":"direct_reply","message":"返回脚本预览、不可变人工决策、精确激活身份，以及按需任务的最小状态；不得声称后台未完成的任务已经通过。"}
+  ]
+}

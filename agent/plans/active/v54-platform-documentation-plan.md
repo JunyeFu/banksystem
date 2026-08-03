@@ -2,7 +2,8 @@
 
 > 状态：规划基线，非实现完成证明
 > 更新：2026-07-14
-> 历史参考：`docs/archive/architecture/v5.4-reference/` 仅保留调研与冻结证据，不再作为实施工作流依据。
+> 2026-07-16 修订：本文只描述产品范围，不定义实施先后。唯一实施顺序见 [`v54-implementation-batches.md`](v54-implementation-batches.md)；最新职责边界见 [`docs/architecture/overview/coze-harness-midscene-observability-boundary.md`](../../../docs/architecture/overview/coze-harness-midscene-observability-boundary.md)，衡准实现已暂缓。
+> 2026-07-20 修订：本文的 Track B 仅保留 I0—I7 历史范围；I8 当前平台、工具和知识边界见 [`flowise-sqlite-hiagent-regression-baseline-v1.md`](../../../docs/architecture/overview/flowise-sqlite-hiagent-regression-baseline-v1.md)，不得继续按下文 Coze 目标新增能力。
 
 ## 目标
 
@@ -12,22 +13,29 @@
 
 ### Track A：银行核心目标系统
 
-继续使用当前 S0-S7 计划、Fineract 唯一账务事实源、Bank Channel Service、Customer Portal、Operations Console、Mifos X、资金安全、审计、对账、恢复和现有质量门禁。V4 落地必须同时满足 [`v4-v54-compatibility-baseline.md`](../docs/architecture/v4-v54-compatibility-baseline.md)，使银行系统从第一天就具备可重复流程、可重置 Fixture、页面/账务双 Baseline、稳定控件和证据关联能力。
+继续使用当前 S0-S7 计划、Fineract 唯一账务事实源、Bank Channel Service、Customer Portal、Operations Console、Mifos X、资金安全、审计、对账、恢复和现有质量门禁。V4 落地继续满足 [`v4-v54-compatibility-baseline.md`](../../../docs/architecture/v4-v54-compatibility-baseline.md)。实习阶段只按首批案例需要收敛银行目标，不要求 Track A 全部完成后才启动 Track B。
 
-### Track B：回归测试平台
+### Track B：Coze 编排、Harness 工具链与衡准观测
+
+Track B 是当前实习交付主线，与 Track A 的案例级修复并行启动。
 
 按 v5.4 四阶段推进：
 
-1. 测试目标、人工成功案例、Fixture、Baseline 和案例导出；
-2. Playwright 脚本资产、独立验证、定时回归和失败事件；
-3. Codex 开发执行、RAG、受控 GPT LLM 作者化适配、三动作窗口、Midscene 原子动作、事实采集、脚本生成和反向恢复；
-4. 双 Track 集成、基准评测、企业联调、安全、交付和内网迁移准备。
+1. Coze 自定义 Agent/Workflow 接收自然语言、格式化案例和视频，负责知识、澄清、计划、任务控制和恢复编排；
+2. Harness 提供结构化工具、任务状态、安全门禁、三动作窗口、Midscene视觉 Agent、Playwright事实采集与脚本验证；
+3. Playwright 已验证脚本承担正式定时回归，失败后重新进入 Coze 编排的诊断与作者化链；
+4. 衡准在未来恢复后只读展示运行、指标、失败、修复、证据、环境和发布质量，不承担 Agent 支持或写控制；
+5. Coze/Harness 核心完成后再进行基准评测、安全、交付和迁移准备。
 
 ## 状态规则
 
 - 当前银行核心状态不得因 v5.4 目标文档变更而自动变为 DONE。
 - v5.4 平台能力使用 `PLANNED`、`POC_VERIFIED`、`LOCALLY_VERIFIED`、`PENDING_ENTERPRISE_VALIDATION`、`ACCEPTED`。
 - 正式定时回归只执行 `SCRIPT_VALIDATED` 脚本，不调用 LLM、Midscene 或视觉模型。
+- Codex 只负责项目开发，不属于运行时作者化、编排或执行链。
+- Harness 的 SQLite `regression_platform` 数据库是测试领域唯一事实来源；Coze只保存 Agent 配置、会话和 Workflow 编排状态，衡准只读。SQLite是新建平台持久化的唯一数据库引擎，使用 WAL、外键、单写入队列、备份与完整性校验，数据库文件不入库；既有 Fineract/Mifos和银行渠道 PostgreSQL 核心依赖不在替换范围。
+- Coze Knowledge Base 是运行时唯一知识权威；仓库 `docs/ + rag/` 仅用于项目开发、审计和Codex维护。
+- 已冻结：Harness Schedule、自托管 Coze Studio + HTTP OpenAPI Plugin、服务令牌 + 内网 allowlist、脱敏截图外发/内网本地视觉模型、人工激活、衡准全路由只读、五类导入 + Adapter SDK、本机视频处理 + Artifact ID、`namespace + runId`、Harness outbox 投影、版本化离线包与独立 v5.4 验收矩阵。衡准实现保持暂停，不维护旧 B0-B7 排期。
 - v5.4 目标计划不授权直接修改银行核心数据库、既有 Liquibase changeset、现有 API 契约或生产凭据。
 
 ## 外网演示门槛

@@ -1,0 +1,175 @@
+  Skills
+  1. Skills 概述
+  HiAgent 平台内置官方 Skills，并提供自定义 Skills 能力，支持 Skill 管理、Agent 编排 和
+  Agent 运行全生命周期管理。为对话型（ChatBot）和规划协作型（AgentPro）智能体赋予专
+  家级的任务执行能力，显著提升复杂任务的处理效率与产出质量。
+
+  2. Skills 中心
+  Skills 中心汇聚优质 Agent Skill，助力 Agent 获取更多流程化知识能力。Skills 中心展示已上
+  架的、在整个租户范围内共享的 Skill。
+
+  Skills 中心包含以下两个入口：
+
+  Skills 中心入口 1
+1. 登录 HiAgent。
+
+1. 进入目标工作空间，在左侧导航栏选择应用 > Skills 菜单。
+
+1. 在 Skills 中心页签，选择需使用的 Skills。
+
+   1. Skills
+
+       1.支持在 Skills 中心按关键词模糊搜索，或通过收藏查看 Skills。
+
+       1.支持对 Skills 收藏和取消收藏。
+
+       1.支持按最近上架和最受欢迎排序。
+
+           1. 最受欢迎：根据智能体编排里直接使用数和收藏数定义，倒序排列。
+
+           1. 最近上架：根据 Skills 的最近上架时间，倒序排列。
+
+       1.单击 Skills 名称进入 Skills 详情页，可查阅文件信息。
+   1. 探索 Marketplace：内嵌 SkillHub Marketplace，支持一键安装技能到工作空间。
+
+
+
+
+      1.支持关键词模糊搜索 Skill。
+
+      1.单击 Skill 卡片进入详情页，可查阅 Skill 详细介绍信息，右上角支持快速安装或下载
+         ZIP 压缩包。
+
+  Skills 中心入口 2
+1. 登录 HiAgent。
+
+1. 进入目标工作空间，在左侧导航栏选择探索 > Skills 中心菜单。
+
+1. 在 Skills 中心页面，选择需使用的 Skills。
+
+   1. 默认展示全部 Skills、可选择我的收藏、我的提交查阅。
+
+   1. 支持对 Skills 收藏和取消收藏。
+
+   1. 支持输入 Skills 名称关键词模糊搜索 Skills。
+   1. 支持按最近上架和最受欢迎排序。
+
+       1.最受欢迎：根据智能体编排里直接使用数和收藏数定义，倒序排列。
+
+       1.最近上架：根据 Skills 的最近上架时间，倒序排列。
+
+   1. 单击 Skills 名称进入 Skills 详情页，可查阅文件信息。
+
+
+
+
+  3. 自定义 Skills
+  自定义 Skills 页签用于管理当前工作空间内的私有 Skill。支持以下两种新增方式：
+
+1. 本地上传：上传符合规范的.zip 或 .skill 包，并填写元数据。平台解析包结构，验证
+  SKILL.md ，如果成功将 Skill 注册到平台，成为空间级别的自定义 Skill。
+
+      Skill 官方规范请参考：https://agentskills.io/specification。
+
+1. 从 Marketplace 安装：跳转 Marketplace，选择需要的 Skill 卡片，安装为空间级别的自定义
+  Skill。
+
+  3.1 上传 Skills
+1. 登录 HiAgent。
+
+1. 进入目标工作空间，选择 Skills 后进入自定义 Skills 页面。
+
+1. 单击本地上传，在弹窗中选择本地上传或从 Marketplace 安装。
+
+   1. 本地上传：支持 zip、skill 格式文件，单个文件不超过 10 MiB。
+
+   1. 从 Marketplace 安装：跳转 Marketplace，单击需要的 Skill 卡片进入详情页，在页面右上
+      角单击安装。确认 Skill 信息后，自动安装至自定义 Skills 列表中。
+1. 上传成功后，Skill 显示在列表中，支持发布、上架、以及管理操作。
+
+  3.2 Skills 发布
+  Skills 创建完成后，在 Skills 详情页执行发布操作。Skills 发布后才可以被智能体使用，已发布
+  的 Skills 支持更新发布。
+
+1. 登录 HiAgent。
+
+1. 进入目标工作空间，在左侧导航栏选择应用 > Skills。
+
+1. 在自定义 Skills 页签，单击 Skills 名称进入 Skills 详情页。
+
+1. 在详情页面右上角单击发布，完成 Skills 发布。
+
+   1. 支持在线编辑 Skill，编辑完成后需要单击保存所有修改。在 Skill 调试框中选择模型进行
+      调试，调试成功后，重新发布生效。
+
+   1. 在页面右上角单击更新记录按钮支持查看 Skills 更新记录。
+
+   1. 智能体会自动使用 Skills 最新发布的版本。
+
+
+
+
+  3.3 Skills 上架
+  已发布的 Skills 支持上架到 Skills 中心，供其他团队空间用户查找使用。
+
+1. 单个上架
+
+  1. 登录 HiAgent。
+
+  1. 进入目标工作空间，在左侧导航栏选择应用 > Skills。
+
+  1. 选择自定义 Skills 页签。
+
+  1. 在待上架 Skill 的操作列，单击上架图标。
+
+  1. 确认 Skill 信息，单击确定即可完成 Skill 上架。
+
+
+
+
+1. 批量上架
+
+  1. 登录 HiAgent。
+
+  1. 进入目标工作空间，在左侧导航栏选择应用 > Skills。
+
+  1. 在自定义 Skills 页签，单击上架 Skills。
+
+  1. 选择需要上架的 Skills，单击下一步。
+
+
+
+
+  1. 确认 Skill 信息，单击确定即可完成 Skill 上架。
+
+1. 已上架的 Skill 支持在左侧导航栏探索 > Skills 中心 > 我的提交页面中查看，支持搜索关键词
+  查询查找使用。
+
+1. Skill 上架后，你只需要再次发布就可以将修改的信息同步到 Skills 中心。
+   3.4 Skills 管理
+1. 编辑 Skills
+
+   1. 编辑 Skill 环境变量
+
+          在自定义 Skills 页签中，单击操作列的编辑按钮，支持编辑 Skill 的环境变量。
+
+
+
+
+   1. 编辑 Skill 文件
+
+       1.在自定义 Skills 页签中，单击 Skill 名称。
+
+       1.进入 Skill 详情页，支持在线编辑 Skill，编辑完成后需要单击保存所有修改。在 Skill 调
+          试框中选择模型进行调试，调试成功后，重新发布生效。
+
+               说明：Skills 被修改后，再次发布之前，智能体将继续使用之前发布版本的
+               Skills。
+
+
+
+
+1. 删除 Skills
+
+      在自定义 Skills 页签中，单击操作列的删除按钮。
+
