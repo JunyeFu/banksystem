@@ -1,0 +1,93 @@
+schemaVersion: 1
+id: RF-004
+title: 执行凭据绑定迁移（run_submit/schedule_create 隐式 i3-customer → 权威 credentialRef，RF001-F08）
+status: PROPOSED
+owner: project-owner
+authorizedBy: agent/plans/active/v54-implementation-batches.md
+scope:
+  includePaths:
+    - platform/hengzhun-regression-system/mcp/src
+    - platform/hengzhun-regression-system/harness/src/i10
+    - platform/hengzhun-regression-system/harness/src/service.ts
+    - platform/hengzhun-regression-system/contracts
+    - platform/hengzhun-regression-system/scripts/verification
+    - docs/architecture/refactoring/batches/RF-004
+    - docs/current-state
+  excludePaths:
+    - platform/hengzhun-regression-system/flowise
+    - platform/hengzhun-regression-system/worker
+    - apps
+    - services
+    - infra
+    - data
+    - .data
+    - secrets
+    - .env
+budgets:
+  maxChangedFiles: 16
+  maxNewFiles: 6
+  maxChangedLines: 1200
+  maxContractsChanged: 1
+  maxMigrationsAdded: 0
+  maxOpenModules: 2
+baseline:
+  gitCommit: 70cf25f48d630f24f324f53f7f1811a539843149
+  dirtyTreeManifest: docs/architecture/refactoring/batches/RF-004/baseline.md
+  releaseIdentity: 632ad5ee7981b59f00824d0072d28da6075eef095d55a898d51c0103a897988f
+  capturedAt: "2026-08-03T05:00:00+08:00"
+architecture:
+  businessCapability: hengzhun-execution-credential-binding
+  publicContract: platform/hengzhun-regression-system/contracts/mcp/hengzhun-i8.json
+  dependencyManifest: docs/architecture/refactoring/module-boundaries-v1.yaml
+  allowedModules:
+    - hengzhun.mcp
+    - hengzhun.harness
+  forbiddenModules:
+    - hengzhun.flowise
+    - hengzhun.worker
+    - bank.identity
+    - bank.accounts
+    - bank.payments
+mustPreserve:
+  - 33 工具名/13 别名/8 字段错误信封/状态契约（RF-001/002/003 基线）
+  - v7 消费者零改动（Flowise 不传 credentialAlias，迁移在 MCP/Harness 内部）
+  - RF-002-G4 预读版本绑定组装模式（仅替换凭据来源）
+  - ReleaseIdentity 632ad5ee；18 链 18/18
+  - 不读取记录或输出任何密钥与凭据
+verification:
+  requiredCommands:
+    - name: rf004-credential-binding
+      command: 权威凭据绑定测试（credentialRef 解析、缺失失败关闭、无凭据泄漏）
+      expectedExitCode: 0
+      evidence: docs/architecture/refactoring/batches/RF-004/evidence-index.md
+      blocking: true
+    - name: rf003-focused-tests
+      command: runtime/node-v20.20.2-win-x64/node.exe --test scripts/verification/rf001-*.cjs scripts/verification/rf002-*.cjs scripts/verification/rf003-*.cjs（全聚焦）
+      expectedExitCode: 0
+      evidence: docs/architecture/refactoring/batches/RF-004/evidence-index.md
+      blocking: true
+    - name: refactoring-contracts
+      command: python scripts/architecture/validate_refactoring.py
+      expectedExitCode: 0
+      evidence: docs/architecture/refactoring/batches/RF-004/evidence-index.md
+      blocking: true
+    - name: documentation
+      command: python scripts/docs/validate_docs.py
+      expectedExitCode: 0
+      evidence: docs/architecture/refactoring/batches/RF-004/evidence-index.md
+      blocking: true
+    - name: diff-format
+      command: git diff --check
+      expectedExitCode: 0
+      evidence: docs/architecture/refactoring/batches/RF-004/evidence-index.md
+      blocking: true
+rollback:
+  triggerConditions:
+    - 凭据解析回归；任何凭据泄漏；ReleaseIdentity 变化；修改越出授权范围
+  recoveryPoint: 70cf25f plus RF-004 baseline
+  maxRtoMinutes: 30
+  maxRpoMinutes: 0
+exceptions:
+  allowedVagueNames: []
+  crossModule:
+    - hengzhun.mcp may depend on hengzhun.harness only through the frozen public contract and explicit adapter
