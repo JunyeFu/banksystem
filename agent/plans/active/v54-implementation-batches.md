@@ -516,7 +516,7 @@ I10 的 S0—S9 及 R0—R7 已按当前本机交付边界完成。2026-08-02回
 |---|---|---|---|---|
 | RF-000 | 重构治理控制体系 | CLOSED（2026-08-02） | — | — |
 | RF-001 | MCP→Harness 字段/错误码/适配器标准化 + 8字段错误信封切流 | CLOSED（2026-08-03） | — | — |
-| **RF-002** | **状态所有权收敛**：terminal/verificationGate 归 Harness；MCP 删除状态推断 | PROPOSED（基线已建，target-design v2.0 待批准） | RF-001 CLOSED ✓ | target-design 批准 → 切片链全过 → 切流（回退开关）→ 观察 → CLOSED |
+| **RF-002** | **状态所有权收敛**：terminal/verificationGate 归 Harness；MCP 删除状态推断 | **CLOSED（2026-08-03）**：S1考古→S2 Harness契约→S3 MCP收敛（DP-S3-1=A）→S4条件写退场（schedule_get READ_ONLY，3→2）→S5生产切流观察（56/56、身份/18链一致） | RF-001 CLOSED ✓ | 全部切片完成；**RF-003解禁登记**（待用户批准） |
 | RF-003 | 版本来源统一（F09：8.0.0/10.0.0/10.1.0 单一来源） | CANDIDATE（待逐批批准） | RF-002 CLOSED | 合同/健康/清单三源版本一致断言 |
 | RF-004 | 执行凭据绑定迁移（F08：run_submit/schedule_create 隐式 i3-customer → 权威 credentialRef 绑定） | CANDIDATE | RF-003 CLOSED 或经评估并行 | 边界合同"until B4"→已迁移；冻结别名退场 |
 | RF-005 | 历史兼容层退场（F07：case_prepare I10/I8 双路由与 I8 草案入口） | CANDIDATE | RF-002 CLOSED + 消费者证据（v7 无 I8 草案调用） | 双路由单一路径；删除验收（引用/路由/任务/配置/观察期+回滚演练） |
@@ -536,6 +536,12 @@ I10 的 S0—S9 及 R0—R7 已按当前本机交付边界完成。2026-08-02回
 - 数据库（SQLite）迁移预算 0，除非 target-design 显式授权并经用户批准；
 - 候选批次（RF-003/RF-004/RF-005）列入本表仅为排期与缺陷归属，**不构成授权**；逐批经用户批准后方可启动；
 - 任何批次不得反向改写已关闭批次（I0-I7/I8/I9/I10/RF-000/RF-001）的历史证据。
+
+#### 5.5 RF-002 关闭记录（2026-08-03）
+
+- 切片链：S1（考古基线）→ S2（Harness 状态契约 G1/G2/G3/G1.1，terminal/verificationGate）→ S3（MCP 收敛：删除硬编码终止集合与跨端点 verification:get，轮询由 Harness terminal 驱动，展示投影为 gate 冻结映射，DP-S3-1=A）→ S4（条件写收口：schedule_get 依据 v7 零 DISABLE 消费者证据退场为 READ_ONLY，条件写 3→2，G4 版本绑定确认）→ S5（生产切流与观察：56/56、身份 632ad5ee、18 链 18/18、发布回读三项 Hash 一致）。
+- 终态指标达成：MCP 业务状态推断 0；重复业务入口 0；工具响应状态语义机器可验证 100%。
+- 后续：RF-003（版本来源统一 F09）解禁登记，待用户批准；RF-004（凭据迁移 F08）、RF-005（双路由退场 F07）保持候选。
 
 #### 6. 缺陷归属登记（RF-001-B1 九项）
 

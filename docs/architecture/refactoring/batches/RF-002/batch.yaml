@@ -1,7 +1,7 @@
 schemaVersion: 1
 id: RF-002
 title: 状态所有权重构（范围待 target-design 细化）
-status: PROPOSED
+status: CLOSED
 owner: project-owner
 authorizedBy: agent/plans/active/v54-implementation-batches.md
 scope:

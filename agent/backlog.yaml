@@ -206,7 +206,7 @@ tracks:
           - CLOSED 2026-08-03: B1-B4 complete (archaeology, frozen contract, shadow RUNTIME_SHADOW, cutover RUNTIME_CUTOVER with canonical 8-field error envelope + HENGZHUN_RF001_LEGACY_ERROR fallback, observation RUNTIME_OBSERVE); batch.yaml CLOSED; ReleaseIdentity 632ad5ee unchanged; 18/18 no regression; focused suite 43/43.
       - id: REFACTOR-RF-002-STATE-OWNERSHIP
         title: Converge state ownership - Harness exposes terminal/verificationGate contracts, MCP drops business-state inference
-        status: PROPOSED
+        status: DONE
         owner: 傅钧烨
         dependsOn: [REFACTOR-RF-001-HENGZHUN-CONTRACTS]
         evidence: [docs/architecture/refactoring/batches/RF-002/evidence-index.md]
