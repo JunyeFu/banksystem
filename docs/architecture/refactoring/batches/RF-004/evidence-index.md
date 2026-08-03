@@ -16,4 +16,8 @@ owner: project-owner
 |---|---|---|
 | 执行基线 | 冻结：HEAD`70cf25f`、identity`632ad5ee`、凭据绑定现状（C1-C5） | `baseline.md` |
 | 批次骨架 | PROPOSED：9 制品齐全，校验器可过 | `batch.yaml`、`python scripts/architecture/validate_refactoring.py` |
-| 范围授权 | **未授权**：target-design v1.0 草案待用户批准，RC-D0 拦截实施 | `target-design.md`、`decision-log.md`条目3 |
+| 范围授权 | ✅ 已授权：target-design v1.0 用户批准（2026-08-03） | `target-design.md`、`decision-log.md`条目3 |
+| S1凭据绑定基线 | PASS（CONTRACT）：C1-C5 现状冻结、v7 零 credentialAlias 调用复核 | `rf004-s1-credential-baseline.test.cjs`（5/5）、`contract-delta.md` |
+| S1聚焦测试 | PASS：67/67（含RF-001/002/003回归62） | `node --test` 14个验证文件（exit 0） |
+
+RF-004当前：target-design已批准、S1完成（凭据绑定基线冻结）。下一门禁S2（MCP绑定契约）。
