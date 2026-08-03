@@ -533,7 +533,6 @@
       "canonicalRequest": [
         "caseDescription",
         "draft",
-        "acceptanceSummary",
         "caseTitle",
         "objective",
         "summary",
@@ -544,31 +543,15 @@
         "expectedOutcomes",
         "assertions",
         "missingFields",
-        "multimodalContext",
         "credentialRef",
         "journeyId",
         "sessionRef"
       ],
       "acceptedAliases": [
         {
-          "alias": "draftArray",
-          "canonical": "draft",
-          "until": "B4 Flowise and I8 consumer proof"
-        },
-        {
           "alias": "draftJson",
           "canonical": "draft",
-          "until": "B4 Flowise and I8 consumer proof"
-        },
-        {
-          "alias": "acceptanceSummaryJson",
-          "canonical": "acceptanceSummary",
-          "until": "B4 consumer evidence"
-        },
-        {
-          "alias": "multimodalContextJson",
-          "canonical": "multimodalContext",
-          "until": "B4 consumer evidence"
+          "until": "RF-005-S2 (2026-08-03): single i10 route; draftArray/acceptanceSummaryJson/multimodalContextJson retired with zero v7 consumers"
         }
       ],
       "adapterProfiles": [

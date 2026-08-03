@@ -64,44 +64,18 @@ test('B3-S3 alias journey_prepare draftJson is a self-mapping: parsed, field nam
   assert.match(block, /\.\.\.\(normalizedDraft \? \{ draftJson: normalizedDraft \} : \{\}\)/, 'journey_prepare must keep draftJson at the Harness boundary (DEC-2 self-mapping)')
 })
 
-// ---- aliases 5-6: case_prepare.draftArray/draftJson -> draft ----
-test('B3-S3 alias case_prepare draftArray and draftJson project to canonical draft', () => {
+// ---- alias 5: case_prepare.draftJson -> draft (RF-005-S2 single route) ----
+test('B3-S3 alias case_prepare draftJson projects to canonical draft on the single i10 route', () => {
   const draftInput = { schemaVersion: 'hengzhun-i10-case-draft-v1', title: 'T', steps: [{ action: 'a', expected: 'b' }] }
-  const fromArray = adapter.normalizeCasePrepareRequest({ caseDescription: 'd', draftArray: [draftInput], credentialRef: '' })
   const fromJson = adapter.normalizeCasePrepareRequest({ caseDescription: 'd', draftJson: JSON.stringify(draftInput), credentialRef: '' })
   const fromObject = adapter.normalizeCasePrepareRequest({ caseDescription: 'd', draftJson: draftInput, credentialRef: '' })
-  assert.deepEqual(fromArray.draft, draftInput)
   assert.deepEqual(fromJson.draft, draftInput)
   assert.deepEqual(fromObject.draft, draftInput)
-  // both sources at once fails closed (pre-RF-001 rule preserved)
-  assert.throws(() => adapter.normalizeCasePrepareRequest({ caseDescription: 'd', draftArray: [draftInput], draftJson: draftInput, credentialRef: '' }), /I10_DRAFT_SOURCE_AMBIGUOUS/)
-})
-
-// ---- alias 7: case_prepare.acceptanceSummaryJson -> acceptanceSummary ----
-test('B3-S3 alias case_prepare acceptanceSummaryJson projects to canonical acceptanceSummary', () => {
-  assert.deepEqual(adapter.normalizeCaseAcceptanceSummary('{"goal":"G"}'), { goal: 'G' })
-  assert.deepEqual(adapter.normalizeCaseAcceptanceSummary({ goal: 'G' }), { goal: 'G' })
-  assert.throws(() => adapter.normalizeCaseAcceptanceSummary('[1]'), /I8_ACCEPTANCE_JSON_INVALID/)
-})
-
-// ---- alias 8: case_prepare.multimodalContextJson merge (flat-draft path) ----
-test('B3-S3 alias case_prepare multimodalContextJson merges into the flat draft only', () => {
-  const out = adapter.normalizeCasePrepareRequest({
-    caseDescription: 'd', caseTitle: 'T', objective: 'O', summary: 'S', targetSystem: '复兴银行',
-    entryUrl: 'https://bank.example.com/portal/login', preconditions: ['P'], actions: ['登录'], expectedOutcomes: ['成功'],
-    assertions: ['A'], missingFields: [], credentialRef: '',
-    multimodalContextJson: { supportingImageIngestId: 'img_9', caseFacts: [{ fact: 'f' }], actionStepsV2: [], verificationRequirements: [{ kind: 'SMS' }] }
-  })
-  assert.equal(out.draft.supportingImageIngestId, 'img_9')
-  assert.deepEqual(out.draft.caseFacts, [{ fact: 'f' }])
-  assert.deepEqual(out.draft.verificationRequirements, [{ kind: 'SMS' }])
-  // invalid actionStepsV2 shape fails closed
-  assert.throws(() => adapter.normalizeCasePrepareRequest({
-    caseDescription: 'd', caseTitle: 'T', objective: 'O', summary: 'S', targetSystem: '复兴银行',
-    entryUrl: 'https://bank.example.com/portal/login', preconditions: ['P'], actions: ['a'], expectedOutcomes: ['b'],
-    assertions: ['A'], credentialRef: '',
-    multimodalContextJson: { actionStepsV2: 'not-array' }
-  }), /I10_ACTION_STEPS_INVALID/)
+  // draftArray is retired: passing it no longer contributes a draft source
+  const ambiguous = adapter.normalizeCasePrepareRequest({ caseDescription: 'd', draftJson: draftInput, credentialRef: '' })
+  assert.deepEqual(ambiguous.draft, draftInput)
+  // malformed draft JSON fails closed with the renamed error code (DP-R5-1)
+  assert.throws(() => adapter.normalizeCasePrepareRequest({ caseDescription: 'd', draftJson: 'not-json', credentialRef: '' }), /I10_CASE_DRAFT_INVALID/)
 })
 
 // ---- alias 9: authoring_submit seven array fields declared no-effect (DEC-1) ----
@@ -183,7 +157,7 @@ test('B3-S3 tool handlers route alias fields through the adapter projections', (
   assert.match(source, /normalizeIngestDecisionSubmitRequest\(\{ correctionsJson, itemDecisionsJson \}\)/)
   assert.match(source, /const normalizedDraft = normalizeJourneyPrepareDraft\(draftJson\)/)
   assert.match(source, /const \{ normalizedCredentialRef, draft \} = normalizeCasePrepareRequest\(/)
-  assert.match(source, /const acceptanceSummary = normalizeCaseAcceptanceSummary\(acceptanceSummaryJson\)/)
+  assert.doesNotMatch(source, /normalizeCaseAcceptanceSummary/, 'acceptance summary path must be retired (RF-005-S2)')
   assert.match(source, /const \{ patch \} = normalizeRepairProposeRequest\(/)
   assert.match(source, /const binding = normalizeCredentialBinding\(legacyCredentialBinding\)/)
   // the deleted local duplicates must not return

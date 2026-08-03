@@ -29,7 +29,7 @@ const BASELINE_IDENTITY_HASH = '632ad5ee7981b59f00824d0072d28da6075eef095d55a898
 const ROUTE_EXPECTATIONS = {
   '/v1/i10/credentials:sessions-create': 3,
   '/v1/i10/credentials:sessions-get': 3,
-  '/v1/i8/cases:prepare': 1,
+  '/v1/i10/cases:prepare': 1,
   '/v1/i8/candidates:get': 2,
   '/v1/i8/authoring:get': 1,
   '/v1/i8/tasks:get': 1,
@@ -203,8 +203,7 @@ test('B3-S5 isolated runtime shadow: zero duplicate writes and zero projection m
     }
     await mcpCall('case_prepare', {
       caseDescription: 'rf001-b3s5-shadow-case',
-      draftJson: JSON.stringify({ schemaVersion: 'hengzhun-i8-case-draft-v1', title: 'T', objective: 'O', summary: 'S', targetSystem: '复兴银行', entryUrl: 'https://bank.example.com/portal/login', preconditions: ['P'], steps: [{ action: 'a', expected: 'b' }], assertions: ['A'] }),
-      acceptanceSummaryJson: JSON.stringify({ goal: 'g' }),
+      draftJson: JSON.stringify({ schemaVersion: 'hengzhun-i10-case-draft-v1', title: 'T', objective: 'O', summary: 'S', targetSystem: '复兴银行', entryUrl: 'https://bank.example.com/portal/login', preconditions: ['P'], steps: [{ action: 'a', expected: 'b' }], assertions: ['A'], credentialRef: '', missingFields: ['credentialRef'] }),
       sessionRef: 'sess-case'
     })
     await mcpCall('candidate_get', { preparationId: 'prep_nonexistent_0001', sessionRef: 'sess' })

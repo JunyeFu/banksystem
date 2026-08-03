@@ -6,7 +6,6 @@ const path = require('node:path')
 const {
   createShadowObserver,
   normalizeAuthoringSubmitRequest,
-  normalizeCaseAcceptanceSummary,
   normalizeCasePrepareRequest,
   normalizeCredentialBinding,
   normalizeCredentialSessionGetRequest,
@@ -691,12 +690,10 @@ function createServer() {
   })
 
   server.registerTool('case_prepare', {
-    description: '将自然语言案例的已澄清统一CaseDraft提交给衡准权威状态库；继续兼容历史I8草案。',
+    description: '将自然语言案例的已澄清统一CaseDraft提交给衡准权威状态库（RF-005-S2：单 i10 路由，历史 I8 草案入口已退场）。',
     inputSchema: {
       caseDescription: z.string().trim().min(1).max(2000),
-      draftArray: singleJsonObjectArrayArgument.optional(),
       draftJson: jsonObjectArgument.optional(),
-      acceptanceSummaryJson: jsonObjectArgument.optional(),
       caseTitle: z.string().trim().min(1).max(160).optional(),
       objective: z.string().trim().min(1).max(2000).optional(),
       summary: z.string().trim().min(1).max(1000).optional(),
@@ -707,42 +704,31 @@ function createServer() {
       expectedOutcomes: z.array(z.string().trim().min(1).max(500)).min(1).max(50).optional(),
       assertions: z.array(z.string().trim().min(1).max(500)).min(1).max(50).optional(),
       missingFields: z.array(z.string().trim().min(1).max(160)).max(30).optional(),
-      multimodalContextJson: jsonObjectArgument.optional(),
       credentialRef: z.string().trim().max(160).optional(),
       journeyId: safeRef.optional(),
       sessionRef: safeRef
     }
   }, async ({
-    caseDescription, draftArray, draftJson, acceptanceSummaryJson,
+    caseDescription, draftJson,
     caseTitle, objective, summary, targetSystem, entryUrl, preconditions,
-    actions, expectedOutcomes, assertions, missingFields, multimodalContextJson, credentialRef, journeyId, sessionRef
+    actions, expectedOutcomes, assertions, missingFields, credentialRef, journeyId, sessionRef
   }) => {
     try {
       const { normalizedCredentialRef, draft } = normalizeCasePrepareRequest({
-        caseDescription, draftArray, draftJson, caseTitle, objective, summary, targetSystem, entryUrl, preconditions,
-        actions, expectedOutcomes, assertions, missingFields, multimodalContextJson, credentialRef
+        caseDescription, draftJson, caseTitle, objective, summary, targetSystem, entryUrl, preconditions,
+        actions, expectedOutcomes, assertions, missingFields, credentialRef
       })
-      if (draft.schemaVersion === 'hengzhun-i10-case-draft-v1' || typeof draft.credentialRef === 'string') {
-        const normalizedDraft = normalizeI10NaturalDraft(draft, caseDescription, sessionRef, normalizedCredentialRef)
-        return callHarness('/v1/i10/cases:prepare', {
-          namespace,
-          idempotencyKey: idempotencyKey('case_prepare', sessionRef, { caseDescription, draft: normalizedDraft }),
-          actorRef: 'flowise-controller',
-          ...(journeyId ? { journeyId } : {}),
-          caseDescription,
-          draft: normalizedDraft
-        })
-      }
-      const acceptanceSummary = normalizeCaseAcceptanceSummary(acceptanceSummaryJson)
-      const payload = {
+      // RF-005-S2: single i10 route; legacy i8 draft shapes are normalized by
+      // the deterministic i10 draft normalizer.
+      const normalizedDraft = normalizeI10NaturalDraft(draft, caseDescription, sessionRef, normalizedCredentialRef)
+      return callHarness('/v1/i10/cases:prepare', {
         namespace,
-        idempotencyKey: idempotencyKey('case_prepare', sessionRef, { caseDescription, draft, acceptanceSummary }),
+        idempotencyKey: idempotencyKey('case_prepare', sessionRef, { caseDescription, draft: normalizedDraft }),
         actorRef: 'flowise-controller',
+        ...(journeyId ? { journeyId } : {}),
         caseDescription,
-        draft,
-        acceptanceSummary
-      }
-      return callHarness('/v1/i8/cases:prepare', payload)
+        draft: normalizedDraft
+      })
     } catch (error) {
       return textResult({ errorCode: error.code || 'MCP_ARGUMENT_INVALID' }, true)
     }

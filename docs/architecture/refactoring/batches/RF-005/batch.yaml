@@ -1,0 +1,91 @@
+schemaVersion: 1
+id: RF-005
+title: case_prepare I10/I8 双路由退场与 I8 草案入口删除（RF001-F07）
+status: CLOSED
+owner: project-owner
+authorizedBy: agent/plans/active/v54-implementation-batches.md
+scope:
+  includePaths:
+    - platform/hengzhun-regression-system/mcp/src
+    - platform/hengzhun-regression-system/contracts
+    - platform/hengzhun-regression-system/scripts/verification
+    - docs/architecture/refactoring/batches/RF-005
+    - docs/current-state
+  excludePaths:
+    - platform/hengzhun-regression-system/flowise
+    - platform/hengzhun-regression-system/worker
+    - platform/hengzhun-regression-system/harness
+    - apps
+    - services
+    - infra
+    - data
+    - .data
+    - secrets
+    - .env
+budgets:
+  maxChangedFiles: 14
+  maxNewFiles: 5
+  maxChangedLines: 1000
+  maxContractsChanged: 1
+  maxMigrationsAdded: 0
+  maxOpenModules: 1
+baseline:
+  gitCommit: d914998ee4adbb8623add1570da5bc2143359832
+  dirtyTreeManifest: docs/architecture/refactoring/batches/RF-005/baseline.md
+  releaseIdentity: 632ad5ee7981b59f00824d0072d28da6075eef095d55a898d51c0103a897988f
+  capturedAt: "2026-08-03T06:00:00+08:00"
+architecture:
+  businessCapability: hengzhun-case-route-retirement
+  publicContract: platform/hengzhun-regression-system/contracts/mcp/hengzhun-i8.json
+  dependencyManifest: docs/architecture/refactoring/module-boundaries-v1.yaml
+  allowedModules:
+    - hengzhun.mcp
+  forbiddenModules:
+    - hengzhun.harness
+    - hengzhun.flowise
+    - hengzhun.worker
+    - bank.identity
+    - bank.accounts
+    - bank.payments
+mustPreserve:
+  - 33 工具名不变（case_prepare 保留，仅删内部 i8 路由与 I8 草案入口）
+  - v7 消费者证据：agentflow-v7 仅 draftJson（i10 路由）调用 case_prepare；draftArray/acceptanceSummaryJson/multimodalContextJson 零调用
+  - 8 字段错误信封、状态契约、版本单一来源（RF-001/002/003 基线）；凭据绑定权威化（RF-004 基线）
+  - ReleaseIdentity 632ad5ee；18 链 18/18
+  - 不读取记录或输出任何密钥与凭据
+verification:
+  requiredCommands:
+    - name: rf005-single-route
+      command: case_prepare 单路由测试（i10 全路径 + i8 入口失败关闭/移除断言）
+      expectedExitCode: 0
+      evidence: docs/architecture/refactoring/batches/RF-005/evidence-index.md
+      blocking: true
+    - name: rf004-focused-tests
+      command: runtime/node-v20.20.2-win-x64/node.exe --test scripts/verification/rf001-*.cjs scripts/verification/rf002-*.cjs scripts/verification/rf003-*.cjs scripts/verification/rf004-*.cjs scripts/verification/rf005-*.cjs（全聚焦）
+      expectedExitCode: 0
+      evidence: docs/architecture/refactoring/batches/RF-005/evidence-index.md
+      blocking: true
+    - name: refactoring-contracts
+      command: python scripts/architecture/validate_refactoring.py
+      expectedExitCode: 0
+      evidence: docs/architecture/refactoring/batches/RF-005/evidence-index.md
+      blocking: true
+    - name: documentation
+      command: python scripts/docs/validate_docs.py
+      expectedExitCode: 0
+      evidence: docs/architecture/refactoring/batches/RF-005/evidence-index.md
+      blocking: true
+    - name: diff-format
+      command: git diff --check
+      expectedExitCode: 0
+      evidence: docs/architecture/refactoring/batches/RF-005/evidence-index.md
+      blocking: true
+rollback:
+  triggerConditions:
+    - 双路由删除后 v7 回归；错误码清单漂移；ReleaseIdentity 变化；修改越出授权范围
+  recoveryPoint: d914998 plus RF-005 baseline
+  maxRtoMinutes: 30
+  maxRpoMinutes: 0
+exceptions:
+  allowedVagueNames: []
+  crossModule: []
