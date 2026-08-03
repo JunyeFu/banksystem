@@ -1032,25 +1032,14 @@ function createServer() {
   })
 
   server.registerTool('schedule_get', {
-    description: '读取调度状态及其精确绑定的案例、计划和脚本版本；仅在用户明确确认时可停用指定调度。',
+    description: '读取调度状态及其精确绑定的案例、计划和脚本版本；停用调度请使用独立的 schedule_disable 工具（RF-002-S4 G5 退场：v7 零 DISABLE 调用）。',
     inputSchema: {
-      scheduleId: safeRef,
-      action: z.enum(['READ', 'DISABLE']).default('READ'),
-      reason: z.string().trim().min(1).max(1000).optional(),
-      sessionRef: safeRef.optional()
+      scheduleId: safeRef
     }
-  }, async ({ scheduleId, action, reason, sessionRef }) => {
+  }, async ({ scheduleId }) => {
     const current = await shadowedRequest('schedule_get', '/v1/i8/schedules:get', { namespace, scheduleId })
     if (!current.response.ok) return textResult({ errorCode: current.body.errorCode || 'I8_SCHEDULE_STATUS_UNAVAILABLE', status: current.response.status }, true)
-    if (action === 'READ') return textResult(current.body)
-    if (!reason || !sessionRef) return textResult({ errorCode: 'I8_SCHEDULE_DISABLE_CONFIRMATION_REQUIRED' }, true)
-    return callHarness('/v1/plugin/schedules:disable', {
-      namespace,
-      idempotencyKey: idempotencyKey('schedule_disable', sessionRef, { scheduleId, expectedVersion: current.body.version, reason }),
-      scheduleId,
-      expectedVersion: current.body.version,
-      reason
-    })
+    return textResult(current.body)
   })
 
   server.registerTool('schedule_disable', {

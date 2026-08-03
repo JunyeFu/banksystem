@@ -820,15 +820,10 @@
     {
       "name": "schedule_get",
       "canonicalRequest": [
-        "scheduleId",
-        "action",
-        "reason",
-        "sessionRef"
+        "scheduleId"
       ],
       "acceptedAliases": [],
-      "adapterProfiles": [
-        "COMPAT-EMPTY-TO-UNDEFINED"
-      ],
+      "adapterProfiles": [],
       "harnessEndpoints": [
         "/v1/i8/schedules:get",
         "/v1/plugin/schedules:disable"
@@ -837,7 +832,7 @@
         "mode": "COMPOSITE",
         "maxBytes": 8192
       },
-      "sideEffect": "CONDITIONAL_MUTATION",
+      "sideEffect": "READ_ONLY",
       "mutationTriggers": [
         "action=DISABLE"
       ],

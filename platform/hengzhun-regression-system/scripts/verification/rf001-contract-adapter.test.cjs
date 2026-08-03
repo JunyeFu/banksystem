@@ -103,9 +103,13 @@ test('B3-S2 all ten orchestration tools observe every direct Harness round-trip'
   }
 })
 
-test('B3-S2 conditional-write tools declare a single write side effect per invocation', () => {
+test('B3-S2/S4 conditional-write tools declare their side effects: schedule_get retired to read-only', () => {
   const source = fs.readFileSync(path.join(root, 'mcp/src/server.cjs'), 'utf8')
-  assert.equal((toolBlock(source, 'schedule_get').match(/\/v1\/plugin\/schedules:disable/g) || []).length, 1, 'schedule_get DISABLE must call schedules:disable exactly once')
+  // RF-002-S4 (G5): schedule_get is read-only since the v7 consumer evidence
+  // showed zero action=DISABLE calls; the authoritative disable path is
+  // schedule_disable only.
+  assert.equal((toolBlock(source, 'schedule_get').match(/\/v1\/plugin\/schedules:disable/g) || []).length, 0, 'schedule_get must no longer call schedules:disable')
+  assert.doesNotMatch(toolBlock(source, 'schedule_get'), /z\.enum\(\['READ', 'DISABLE'\]/, 'schedule_get must no longer carry the DISABLE enum')
   assert.equal((toolBlock(source, 'candidate_get').match(/\/v1\/i8\/candidates:compile/g) || []).length, 1, 'candidate_get compile path must call candidates:compile exactly once')
   assert.equal((toolBlock(source, 'result_inbox_list').match(/\/v1\/i8\/results:inbox-list/g) || []).length, 1, 'result_inbox_list must call inbox-list exactly once')
 })

@@ -130,6 +130,7 @@ code, category, retryable, safeMessage, fieldErrors, correlationRef
 | RF001-F07 | P1 | `case_prepare`同时承担三种输入形状和I8/I10分流。 | 兼容逻辑集中、回归面大。 | B2冻结别名映射及退场门槛。 |
 | RF001-F08 | P1 | run/schedule由MCP写死`i3-customer`。 | 通用站点与内网迁移存在隐式业务耦合。 | B2确定权威credentialRef到执行别名的映射。 |
 | RF001-F09 | P2 | MCP工具版本仍报告`8.0.0`，健康接口报告`10.0.0`，合同为`10.1.0`。 | 运行身份难以从单一版本判断。 | B2统一版本来源设计。 |
+| RF001-F04-RETIRED | P1（已关闭） | 2026-08-03 RF-002-S4 G5：`schedule_get(action=DISABLE)` 依据 v7 零消费者证据退场（恢复纯读）；权威停用路径为 `schedule_disable`。退场错误码 `I8_SCHEDULE_DISABLE_CONFIRMATION_REQUIRED` 从 MCP 删除并登记（回滚演练 corpus 保留该文本以保持文档化）。 | — | 边界合同 sideEffect `CONDITIONAL_MUTATION → READ_ONLY`，条件写计数 3→2。 |
 
 ## 6. B2入口条件
 
