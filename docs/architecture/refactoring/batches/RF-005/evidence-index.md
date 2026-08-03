@@ -23,4 +23,6 @@ owner: project-owner
 | S2单路由实现 | PASS：i8路由/三输入退场（v7零消费者）、DP-R5-1改名、aliases 13→10、锚点翻转 | `rf005-s2-single-route.test.cjs`（3/3）、`mcp/src/rf001-contract-adapter.cjs` |
 | S2聚焦测试 | PASS：81/81（含RF-001/002/003/004回归80） | `node --test` 18个验证文件（exit 0） |
 
-RF-005当前：target-design已批准、S1-S2完成（基线/单路由实现）。下一门禁S3（生产切流关闭，全景终态验收）。
+| S3生产切流与关闭 | ✅（RUNTIME_CUTOVER+OBSERVE）：case_prepare i10链路实测、工具规范信封、run_submit 202、批次CLOSED、**全景终态8/8** | `batch.yaml`（CLOSED）、`.data/logs/i10-start-rf005-s3.log` |
+
+**L1 重构全景 CLOSED（2026-08-03）**：RF-000~RF-005 全部完成；终态指标 8/8 达成（状态推断 0、条件副作用 0、重复入口 0、状态语义可验证 100%、缺陷归属全关闭、版本来源 1、凭据绑定 100%、兼容层退场 100%）。

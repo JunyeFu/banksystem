@@ -233,7 +233,7 @@ tracks:
           - Candidate per L1 roadmap; not authorized until user approves batch entry.
       - id: REFACTOR-RF-005-CASE-ROUTE-RETIREMENT
         title: Retire case_prepare I10/I8 dual routing and legacy I8 draft entry (RF001-F07)
-        status: PROPOSED
+        status: DONE
         owner: 傅钧烨
         dependsOn: [REFACTOR-RF-002-STATE-OWNERSHIP]
         acceptance:

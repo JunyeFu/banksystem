@@ -1,7 +1,7 @@
 schemaVersion: 1
 id: RF-005
 title: case_prepare I10/I8 双路由退场与 I8 草案入口删除（RF001-F07）
-status: PROPOSED
+status: CLOSED
 owner: project-owner
 authorizedBy: agent/plans/active/v54-implementation-batches.md
 scope:
