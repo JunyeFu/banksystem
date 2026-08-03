@@ -1,3 +1,15 @@
+---
+id: DOC-ARCHITECTURE-CURRENT-CAPABILITY-MATRIX.MD
+title: Current Capability Matrix
+document_type: reference
+domain: banking
+status: accepted
+authority: evidence
+version: 1.0
+effective_date: 2026-07-10
+owner: project-owner
+---
+
 # Current capability matrix
 
 | Capability | Implemented | Runtime evidence | Status |

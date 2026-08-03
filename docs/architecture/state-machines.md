@@ -1,3 +1,15 @@
+---
+id: DOC-ARCHITECTURE-STATE-MACHINES.MD
+title: State Machines
+document_type: reference
+domain: banking
+status: accepted
+authority: evidence
+version: 1.0
+effective_date: 2026-07-10
+owner: project-owner
+---
+
 # Phase 1 state machines
 
 ## Transfer

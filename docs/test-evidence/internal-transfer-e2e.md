@@ -1,3 +1,15 @@
+---
+id: DOC-TEST-EVIDENCE-INTERNAL-TRANSFER-E2E.MD
+title: Internal Transfer E2E
+document_type: evidence
+domain: banking
+status: accepted
+authority: evidence
+version: 1.0
+effective_date: 2026-07-10
+owner: project-owner
+---
+
 # Internal transfer E2E evidence (BANK-0304)
 
 Run date: 2026-07-10. This was executed against the local sandbox only.

@@ -1,3 +1,15 @@
+---
+id: DOC-TEST-EVIDENCE-CORE-BACKUP-VERIFICATION.MD
+title: Core Backup Verification
+document_type: evidence
+domain: banking
+status: accepted
+authority: evidence
+version: 1.0
+effective_date: 2026-07-10
+owner: project-owner
+---
+
 # BANK-0004 verified core backup
 
 Created at UTC `2026-07-10T03:50:08.7137626Z` from the running local PostgreSQL
