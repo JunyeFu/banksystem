@@ -1,0 +1,102 @@
+schemaVersion: 1
+id: RF-003-S2
+title: 版本统一实现（SDK 注册与健康接口从合同 contractVersion 派生）
+status: PROPOSED
+owner: project-owner
+authorizedBy: agent/plans/active/v54-implementation-batches.md (L1全景, RF-003)
+parentBatch: docs/architecture/refactoring/batches/RF-003/batch.yaml
+targetDesign: docs/architecture/refactoring/batches/RF-003/target-design.md (v1.0, 用户已批准, V1/V2/V3)
+baseline:
+  gitCommit: 5460d7c（RF-003 分支，S1 已完成）
+  releaseIdentity: 632ad5ee7981b59f00824d0072d28da6075eef095d55a898d51c0103a897988f
+
+# 单业务目标：版本单一来源——MCP SDK 注册版本与健康接口版本均从运行时合同
+# contractVersion（contracts/mcp/hengzhun-i8.json，当前 10.1.0）派生，
+# 启动时校验格式失败关闭；三源一致性机器断言。
+# 单功能点：版本统一实现（V1/V2/V3）。
+businessGoal:
+  - V1：server.cjs McpServer 构造 version 由合同 contractVersion 派生（替换硬编码 8.0.0）
+  - V2：/health 响应 version 同源（替换硬编码 10.0.0）
+  - V3：三源一致性断言（合同 == 健康响应 == SDK 注册来源），启动校验失败关闭（缺版本/格式非法 → HENGZHUN_CONTRACT_VERSION_INVALID 类错误）
+  - S1 反转锚点：三源漂移断言 → 三源一致断言（唯一版本 10.1.0）
+  - 隔离运行态探测：/health version == 合同值；工具调用正常（行为零变化）
+  - 聚焦回归 + 身份 632ad5ee 不变
+functionalPoint: 版本统一实现
+evidenceLevel: CONTRACT + 隔离运行态验证
+
+allowedPaths:
+  - platform/hengzhun-regression-system/mcp/src/server.cjs   # 版本派生（两处）
+  - platform/hengzhun-regression-system/scripts/verification/rf003-s2-version-unify.test.cjs   # 【新增】
+  - platform/hengzhun-regression-system/scripts/verification/rf003-s1-version-baseline.test.cjs   # 锚点翻转
+  - docs/architecture/refactoring/batches/RF-003/**（decision-log/evidence-index/contract-delta 更新）
+  - platform/hengzhun-regression-system/.data/tests/rf003-s2/**   # 隔离产物，用完清理
+
+forbiddenPaths:
+  - contracts/**（合同零变更，contractVersion 即权威）；harness/**、flowise/**、worker/**
+  - 生产进程/DB 操作（验证用隔离运行态）；SQLite 迁移；切流
+  - agent/backlog.yaml, agent/plans/active/v54-implementation-batches.md
+  - scripts/architecture/**（校验器只读）
+
+budgets:
+  maxChangedFiles: 6
+  maxNewFiles: 1
+  maxChangedLines: 300
+  maxContractsChanged: 0
+  maxMigrationsAdded: 0
+  maxOpenModules: 1（hengzhun.mcp）
+
+invariants:
+  - 合同 contractVersion 为唯一权威版本；SDK/健康仅派生
+  - 启动失败关闭：合同缺失/版本非法 → 明确错误，不静默回退旧版本
+  - 工具行为零变化（版本字段非工具语义）；ReleaseIdentity 不变（S1 已验证合同非身份输入）
+  - 不读取/输出任何密钥与凭据
+
+workSteps:
+  - step: S2-1 版本派生实现
+    action: server.cjs 读取合同 contractVersion（productRoot 相对路径），启动校验（存在+语义版本格式，失败关闭）；McpServer version 与 /health version 均用派生值
+  - step: S2-2 锚点翻转
+    action: rf003-s1 测试三源互异断言 → 三源一致断言（唯一版本=合同值）
+  - step: S2-3 新增测试
+    action: 'rf003-s2-version-unify.test.cjs：静态断言（无硬编码 8.0.0/10.0.0 于版本字段、version: contractVersion 派生）；隔离运行态（真实 MCP /health 返回 version==合同值；工具调用正常）'
+  - step: S2-4 验证
+    action: 新测试 + 全聚焦回归（60→N）+ 校验器×3 + git diff --check + 身份复算
+  - step: S2-5 RC-D1 同步与提交
+    action: contract-delta（V1/V2/V3 已实现）、decision-log 条目 3、evidence-index、任务包
+
+verification:
+  requiredCommands:
+    - name: rf003-s2-version-unify
+      command: runtime/node-v20.20.2-win-x64/node.exe --test scripts/verification/rf003-s2-version-unify.test.cjs
+      expectedExitCode: 0
+      expectedOutput: 三源一致、/health 探测、工具正常
+      blocking: true
+    - name: rf002-focused-tests
+      command: runtime/node-v20.20.2-win-x64/node.exe --test scripts/verification/rf001-*.cjs scripts/verification/rf002-*.cjs scripts/verification/rf003-*.cjs（全聚焦）
+      expectedExitCode: 0
+      expectedOutput: 全部通过（含 S1 锚点翻转）
+      blocking: true
+    - name: refactoring-contracts / rf001-mcp-boundary-contract / documentation
+      command: python scripts/architecture/validate_refactoring.py && python scripts/architecture/validate_rf001_contract.py && python scripts/docs/validate_docs.py
+      expectedExitCode: 0
+      blocking: true
+    - name: runtime-release-identity
+      command: runtime/node-v20.20.2-win-x64/node.exe scripts/i10-release-identity.cjs
+      expectedExitCode: 0
+      expectedOutput: identityHash=632ad5ee…
+      blocking: true
+    - name: whitespace
+      command: git diff --check
+      expectedExitCode: 0
+      blocking: true
+
+rollback:
+  triggerConditions: 三源不一致；启动失败关闭异常；工具行为回归；身份变化
+  recoveryPoint: 5460d7c + RF-003 baseline；回滚 server.cjs 版本派生与测试
+  maxRtoMinutes: 30
+  maxRpoMinutes: 0
+
+exclusions: S3（生产切流关闭）；合同变更；任何工具行为变更
+
+risks:
+  - /health version 从 10.0.0 → 10.1.0 属预期消费者可见变化（版本字段非语义契约，登记即可）
+  - 合同读取路径须与生产运行目录一致（FLOWISE_APP_PATH 等不受影响；合同在产品根固定路径）

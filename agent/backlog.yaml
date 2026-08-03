@@ -219,7 +219,7 @@ tracks:
           - Shadow comparison mismatched=0, ReleaseIdentity 632ad5ee and 18/18 unchanged, cutover with fallback switch, observation then CLOSED.
       - id: REFACTOR-RF-003-VERSION-SOURCE
         title: Unify version source (8.0.0/10.0.0/10.1.0 drift, RF001-F09)
-        status: PROPOSED
+        status: DONE
         owner: 傅钧烨
         dependsOn: [REFACTOR-RF-002-STATE-OWNERSHIP]
         acceptance:
