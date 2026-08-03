@@ -1,0 +1,107 @@
+schemaVersion: 1
+id: RF-002-S2
+title: Harness 状态契约扩展（tasks/candidates:get 暴露 terminal 与 verificationGate）
+status: PROPOSED
+owner: project-owner
+authorizedBy: agent/plans/active/v54-implementation-batches.md (L1全景已批准, RF-002)
+parentBatch: docs/architecture/refactoring/batches/RF-002/batch.yaml
+targetDesign: docs/architecture/refactoring/batches/RF-002/target-design.md (v2.0 已批准, G1/G2/G3)
+baseline:
+  gitCommit: 5a8e06d（RF-002 分支，S1 已完成）
+  releaseIdentity: 632ad5ee7981b59f00824d0072d28da6075eef095d55a898d51c0103a897988f
+  archaeology: docs/architecture/refactoring/batches/RF-002/state-contract-baseline.md（A1-A5 现状）
+
+# 单业务目标：把状态语义推断收敛到 Harness 权威契约——/v1/i8/tasks:get 与
+# /v1/i8/candidates:get 响应显式输出 terminal: boolean 与 verificationGate 字段
+# （数据源 = Harness SQLite 既有状态机，只读查询，零表结构/状态机变更）。
+# 单功能点：G1/G2/G3 Harness 状态契约扩展。
+businessGoal:
+  - 'G3：getTask 响应附加 terminal: boolean（status ∈ {SUCCEEDED,FAILED,BLOCKED,WAITING_USER,CANCELLED}）'
+  - 'G1：getTask 响应附加 verificationGate?: {challengeId,status,kind,resumeAllowed}（task_ref 存在活跃挑战：status ∈ {WAITING_USER_PREPARATION,WAITING_USER_ACTION} 且未过期；无则省略）'
+  - 'G2：getI8Candidate 响应附加 terminal: boolean（nextAction ∉ 终止集 ⟺ false；终止集与 MCP 现状一致）与 verificationGate（按 job_id 关联 task_ref）'
+  - '合同测试：字段行为（有挑战/无挑战/过期挑战/terminal 一致性）机器断言'
+  - 'S1 反向锚点翻转：A2"无字段"断言 → "有字段"断言'
+  - '身份 632ad5ee、18 链不变；verification:get 双源一致性断言'
+functionalPoint: Harness 状态契约扩展（G1/G2/G3）
+evidenceLevel: CONTRACT + 隔离运行态验证
+
+allowedPaths:
+  - platform/hengzhun-regression-system/harness/src/service.ts   # getTask/getI8Candidate 响应增强
+  - platform/hengzhun-regression-system/harness/src/i10/**         # 只读引用（verification 查询语义）
+  - platform/hengzhun-regression-system/scripts/verification/rf002-s2-state-contract.test.cjs   # 【新增】合同测试（隔离DB单元级+隔离运行态）
+  - platform/hengzhun-regression-system/scripts/verification/rf002-s1-state-contract-baseline.test.cjs   # A2 锚点翻转（S2 落地后）
+  - docs/architecture/refactoring/batches/RF-002/**（decision-log/evidence-index/state-contract-baseline 更新）
+  - platform/hengzhun-regression-system/.data/tests/rf002-s2/**    # 隔离测试产物，用完清理
+
+forbiddenPaths:
+  - platform/hengzhun-regression-system/mcp/**（S3 才收敛 MCP；本切片零 MCP 改动）
+  - flowise/**、worker/**、contracts/**（响应字段不进公开合同；边界合同零变更）
+  - 生产进程/DB 操作（验证用隔离运行态）；SQLite 表结构/迁移；切流
+  - agent/backlog.yaml, agent/plans/active/v54-implementation-batches.md
+  - scripts/architecture/**（校验器只读）
+
+budgets:
+  maxChangedFiles: 8
+  maxNewFiles: 2
+  maxChangedLines: 600
+  maxContractsChanged: 0
+  maxMigrationsAdded: 0
+  maxOpenModules: 1（hengzhun.harness）
+
+invariants:
+  - 零表结构/状态机/迁移变更；新增字段只读派生，不改写入路径
+  - 无活跃挑战时 verificationGate 字段省略（不输出 null）
+  - terminal 与 nextAction 一致性可机器断言（合同测试）
+  - 不读取/输出任何密钥与凭据
+
+workSteps:
+  - step: S2-1 getTask 增强（G3+G1）
+    action: service.ts getTask 返回对象附加 terminal（status 集合判定）与 verificationGate（查询 i10_verification_challenges WHERE task_ref=? AND status IN ('WAITING_USER_PREPARATION','WAITING_USER_ACTION') AND (expires_at IS NULL OR expires_at>now) LIMIT 1）
+  - step: S2-2 getI8Candidate 增强（G2）
+    action: getI8Candidate 返回对象附加 terminal（nextAction 终止集判定，枚举与 MCP 现状一致：HUMAN_DELIVERY_DECISION_REQUIRED/ACTIVATE_OR_REJECT_AVAILABLE/ON_DEMAND_RUN_AVAILABLE/CANDIDATE_REPAIR_REQUIRED/AUTHORING_REVIEW_REQUIRED/NONE）与 verificationGate（job_id → task_ref 查询）
+  - step: S2-3 合同测试
+    action: rf002-s2-state-contract.test.cjs——隔离 DB 单元级（插入任务/挑战，断言 terminal 判定、verificationGate 有/无/过期三分支、resumeAllowed、双源一致性：verificationGate.status == verification:get 同 challenge 查询）；隔离运行态集成级（复用 B3-S5 编排模式，真实响应含新字段）
+  - step: S2-4 S1 锚点翻转
+    action: rf002-s1-state-contract-baseline.test.cjs 的 A2 断言从"无 terminal/verificationGate"翻转为"有字段"（S3 才翻 A3/A4 MCP 锚点）
+  - step: S2-5 验证
+    action: 新测试 + 全聚焦回归（48→N）+ 校验器×3 + git diff --check + 身份复算
+  - step: S2-6 RC-D1 同步
+    action: state-contract-baseline 差异表标记 G1/G2/G3 已实现；decision-log 条目 7；evidence-index；L2 衔接点 C1 登记（RF-003 消费新契约）
+
+verification:
+  requiredCommands:
+    - name: rf002-s2-state-contract
+      command: runtime/node-v20.20.2-win-x64/node.exe --test scripts/verification/rf002-s2-state-contract.test.cjs
+      expectedExitCode: 0
+      expectedOutput: terminal/verificationGate 三分支与双源一致性全过
+      blocking: true
+    - name: rf001-focused-tests
+      command: runtime/node-v20.20.2-win-x64/node.exe --test scripts/verification/rf001-contract-adapter.test.cjs scripts/verification/mcp-interaction-contract.test.cjs scripts/verification/rf001-b3s3-aliases.test.cjs scripts/verification/rf001-b3s5-shadow-live.test.cjs scripts/verification/rf001-b4s1-compat-error-baseline.test.cjs scripts/verification/rf001-b4s3-rollback-drill.test.cjs scripts/verification/rf001-b4s4-cutover.test.cjs scripts/verification/rf002-s1-state-contract-baseline.test.cjs
+      expectedExitCode: 0
+      expectedOutput: 全部通过（含翻转后的 S1 锚点）
+      blocking: true
+    - name: refactoring-contracts / rf001-mcp-boundary-contract / documentation
+      command: python scripts/architecture/validate_refactoring.py && python scripts/architecture/validate_rf001_contract.py && python scripts/docs/validate_docs.py
+      expectedExitCode: 0
+      blocking: true
+    - name: runtime-release-identity
+      command: runtime/node-v20.20.2-win-x64/node.exe scripts/i10-release-identity.cjs
+      expectedExitCode: 0
+      expectedOutput: identityHash=632ad5ee…
+      blocking: true
+    - name: whitespace
+      command: git diff --check
+      expectedExitCode: 0
+      blocking: false
+
+rollback:
+  triggerConditions: 新字段破坏既有消费者（verification:get 双源不一致）；terminal 判定与 nextAction 漂移；身份变化
+  recoveryPoint: 5a8e06d + RF-002 baseline；回滚 service.ts 两处增强与测试
+  maxRtoMinutes: 30
+  maxRpoMinutes: 0
+
+exclusions: S3（MCP 收敛，下一门禁）、S4（条件写收口）、S5（切流关闭）；mcp/flowise/worker/contracts 改动；生产操作
+
+risks:
+  - getI8Candidate 返回对象结构大（多表 JOIN），verificationGate 附加需按 job_id 二次查询；S2-2 实现时以只读子查询保持幂等
+  - 双源一致性（verificationGate vs verification:get）以同一 SQLite 行为数据源，合同测试同源断言
