@@ -191,7 +191,7 @@ tracks:
           - No automatic merge, force push, main/coze/hiagent rewrite, or I9 release/evidence mutation occurs.
       - id: REFACTOR-RF-001-HENGZHUN-CONTRACTS
         title: Standardize Hengzhun MCP-to-Harness fields, error codes and adapters without changing runtime semantics
-        status: IN_PROGRESS
+        status: DONE
         owner: 傅钧烨
         dependsOn: [HENGZHUN-I10-FLOWISE-FORMAL-001]
         evidence: [docs/architecture/refactoring/batches/RF-001/evidence-index.md, docs/evidence/platform/hengzhun-i10-post-backfill-baseline-2026-08-02.md]
@@ -203,6 +203,41 @@ tracks:
           - The frozen ReleaseIdentity and 18/18 acceptance baseline remain unchanged during the baseline and shadow phases.
           - Contract, adapter, compatibility and failure-path tests pass before any cutover request.
           - RF-002 is not started until RF-001 reaches CLOSED or an explicit rollback/abort state.
+          - CLOSED 2026-08-03: B1-B4 complete (archaeology, frozen contract, shadow RUNTIME_SHADOW, cutover RUNTIME_CUTOVER with canonical 8-field error envelope + HENGZHUN_RF001_LEGACY_ERROR fallback, observation RUNTIME_OBSERVE); batch.yaml CLOSED; ReleaseIdentity 632ad5ee unchanged; 18/18 no regression; focused suite 43/43.
+      - id: REFACTOR-RF-002-STATE-OWNERSHIP
+        title: Converge state ownership - Harness exposes terminal/verificationGate contracts, MCP drops business-state inference
+        status: PROPOSED
+        owner: 傅钧烨
+        dependsOn: [REFACTOR-RF-001-HENGZHUN-CONTRACTS]
+        evidence: [docs/architecture/refactoring/batches/RF-002/evidence-index.md]
+        allowedPaths: [platform/hengzhun-regression-system/mcp/**, platform/hengzhun-regression-system/harness/src/i10/**, platform/hengzhun-regression-system/contracts/**, platform/hengzhun-regression-system/scripts/verification/**, scripts/architecture/validate_rf001_contract.py, docs/architecture/refactoring/batches/RF-002/**, docs/current-state/**, agent/backlog.yaml, agent/plans/active/v54-implementation-batches.md]
+        acceptance:
+          - L1 roadmap v1 approved (v54 refactoring section); target-design v2.0 approved 2026-08-03.
+          - G1-G3: tasks/candidates:get expose terminal + verificationGate from Harness; MCP task_get/candidate_get drop hardcoded terminal sets and cross-endpoint verification projection.
+          - G4 version-binding pre-reads stay MCP-assembled, Harness-validated (contract confirmation, no behavior change).
+          - G5 schedule_get(DISABLE) retirement evaluated with v7 consumer evidence; G6 result_inbox_list side-effect contract asserted.
+          - Shadow comparison mismatched=0, ReleaseIdentity 632ad5ee and 18/18 unchanged, cutover with fallback switch, observation then CLOSED.
+      - id: REFACTOR-RF-003-VERSION-SOURCE
+        title: Unify version source (8.0.0/10.0.0/10.1.0 drift, RF001-F09)
+        status: PROPOSED
+        owner: 傅钧烨
+        dependsOn: [REFACTOR-RF-002-STATE-OWNERSHIP]
+        acceptance:
+          - Candidate per L1 roadmap; not authorized until user approves batch entry.
+      - id: REFACTOR-RF-004-CREDENTIAL-BINDING
+        title: Migrate implicit i3-customer execution credential binding to authoritative credentialRef (RF001-F08)
+        status: PROPOSED
+        owner: 傅钧烨
+        dependsOn: [REFACTOR-RF-002-STATE-OWNERSHIP]
+        acceptance:
+          - Candidate per L1 roadmap; not authorized until user approves batch entry.
+      - id: REFACTOR-RF-005-CASE-ROUTE-RETIREMENT
+        title: Retire case_prepare I10/I8 dual routing and legacy I8 draft entry (RF001-F07)
+        status: PROPOSED
+        owner: 傅钧烨
+        dependsOn: [REFACTOR-RF-002-STATE-OWNERSHIP]
+        acceptance:
+          - Candidate per L1 roadmap; not authorized until user approves batch entry.
       - id: HENGZHUN-POST-I8-INPUTS-001
         title: External case adapters and video-case authoring extensions
         status: DONE
