@@ -1,0 +1,108 @@
+schemaVersion: 1
+id: RF-005-S3
+title: 生产切流、观察与批次关闭（L1 重构全景终态验收）
+status: PROPOSED
+owner: project-owner
+authorizedBy: agent/plans/active/v54-implementation-batches.md (L1全景, RF-005)
+parentBatch: docs/architecture/refactoring/batches/RF-005/batch.yaml
+targetDesign: docs/architecture/refactoring/batches/RF-005/target-design.md (v1.0 已批准)
+baseline:
+  gitCommit: 872ef54（RF-005 分支，S1/S2 已完成）
+  releaseIdentity: 632ad5ee7981b59f00824d0072d28da6075eef095d55a898d51c0103a897988f
+  environment: 正式环境运行中（RF-004 S4 切流后状态；生产 MCP 仍为 S2 前代码）
+
+# 单业务目标：把 case_prepare 单路由化（S2）通过受管重启上线生产，实时探测，
+# 观察收口后关闭批次，并完成 L1 重构全景终态指标验收。
+# 单功能点：生产切流、观察与批次关闭（全景终态验收）。
+businessGoal:
+  - 生产切流：受管 stop → start-i10.ps1（新 MCP 加载单路由；发布回读三项 Hash 与基线一致）
+  - 生产实时探测：case_prepare（draftJson i10 草案）→ i10 端点业务响应（无 MCP 层错误）；task_get/schedule_get 规范信封；run_submit 无注入正常
+  - 观察：身份 632ad5ee、18 链 18/18、四服务健康、生产影子关闭
+  - 批次关闭：batch.yaml PROPOSED→CLOSED；v54 RF-005 条目更新；backlog RF-005 DONE
+  - '**L1 全景终态验收**：8 项终态指标全部达成（MCP 状态推断 0、条件副作用显式、重复入口 0、状态语义可验证、缺陷归属全关闭、单一版本来源、凭据绑定权威化、历史兼容层退场）——v54 更新为"重构全景完成"'
+functionalPoint: 生产切流与批次关闭 + 全景终态验收（RUNTIME）
+evidenceLevel: RUNTIME_CUTOVER + RUNTIME_OBSERVE
+
+allowedPaths:
+  - docs/architecture/refactoring/batches/RF-005/batch.yaml（status → CLOSED）
+  - docs/architecture/refactoring/batches/RF-005/**（decision-log/evidence-index/verification-plan/cutover/rollback runbook 收口）
+  - docs/architecture/refactoring/l2-batch-preplan.md（C3/C4 闭合登记）
+  - agent/plans/active/v54-implementation-batches.md（RF-005 条目 + 全景终态，用户已批准本切片）
+  - agent/backlog.yaml（RF-005 DONE，用户已批准本切片）
+  - 生产环境受管操作：stop/start/实时探测（用户授权）
+
+forbiddenPaths:
+  - 运行时代码零改动；SQLite 迁移；新功能
+  - scripts/architecture/**（校验器只读）；生产 DB 直接写入
+
+budgets:
+  maxChangedFiles: 10
+  maxNewFiles: 0
+  maxChangedLines: 150
+  maxContractsChanged: 0
+  maxMigrationsAdded: 0
+  maxOpenModules: 0
+
+invariants:
+  - 切流只经受管命令；不伪造观察证据
+  - 任何探测失败即暂停关闭并如实记录（批次保持 PROPOSED）
+  - 密钥不输出；生产 DB 不直写
+  - 终态验收逐项以证据索引/矩阵/合同为依据，不虚构
+
+workSteps:
+  - step: S3-1 预检
+    action: 全聚焦 81/81 复跑、身份复算、18 链账本、切流前状态记录
+  - step: S3-2 生产切流
+    action: 受管 stop → start-i10.ps1（新 MCP 加载单路由）；确认四服务健康、模型探针 mock=false、发布回读三项 Hash 与基线一致
+  - step: S3-3 生产实时探测
+    action: case_prepare（draftJson i10 草案）→ 业务响应（无 MCP 层错误，i10 链路）；task_get/schedule_get/verification_get 规范 8 字段信封+errorCode；run_submit 无注入+credentialRef → 202
+  - step: S3-4 观察与身份
+    action: 身份 632ad5ee、18 链 18/18、生产影子保持关闭、观察记录
+  - step: S3-5 批次关闭与全景终态
+    action: batch.yaml PROPOSED→CLOSED（validate_refactoring PASS）；v54 RF-005 条目（CLOSED）+ L1 全景终态声明（8 项指标全达成）；backlog RF-005 DONE；L2 C3/C4 闭合
+  - step: S3-6 RC-D1 同步与提交
+    action: decision-log 条目 4、evidence-index（终态验收表）、cutover/rollback runbook 收口、任务包；提交
+
+verification:
+  requiredCommands:
+    - name: preflight-focused
+      command: runtime/node-v20.20.2-win-x64/node.exe --test scripts/verification/rf001-*.cjs scripts/verification/rf002-*.cjs scripts/verification/rf003-*.cjs scripts/verification/rf004-*.cjs scripts/verification/rf005-*.cjs（全聚焦）
+      expectedExitCode: 0
+      expectedOutput: 81 passed / 0 failed
+      blocking: true
+    - name: production-cutover
+      command: 受管 stop + start-i10.ps1
+      expectedExitCode: 0
+      expectedOutput: 四服务健康、探针 mock=false、回读三项 Hash 一致
+      blocking: true
+    - name: production-probes
+      command: 生产 MCP 实时探测（case_prepare i10 + 工具规范信封 + run_submit）
+      expectedExitCode: 0
+      expectedOutput: case_prepare 业务响应、工具规范信封、run_submit 202
+      blocking: true
+    - name: runtime-release-identity / 18chain
+      command: i10-release-identity.cjs + i10-18-chain-acceptance-live.cjs status
+      expectedExitCode: 0
+      expectedOutput: identityHash=632ad5ee…、18/18
+      blocking: true
+    - name: refactoring-contracts / rf001-mcp-boundary-contract / documentation
+      command: python scripts/architecture/validate_refactoring.py && python scripts/architecture/validate_rf001_contract.py && python scripts/docs/validate_docs.py
+      expectedExitCode: 0
+      expectedOutput: 三者PASS（含 batch CLOSED 状态与全景文档）
+      blocking: true
+    - name: whitespace
+      command: git diff --check
+      expectedExitCode: 0
+      blocking: true
+
+rollback:
+  triggerConditions: 生产探测异常（case_prepare/信封/错误码漂移）；身份或 18 链变化；发布回读不一致
+  recoveryPoint: 872ef54 + RF-005 baseline；git 恢复旧代码 + 受管重启（硬回退）
+  maxRtoMinutes: 30
+  maxRpoMinutes: 0
+
+exclusions: 任何新功能/代码变更；重构全景关闭后的后续规划（如命名收口/DSL 扩展）需新立项
+
+risks:
+  - 生产重启中断观察中的正式会话（Flowise 会话持久化，已验证路径）
+  - 终态验收基于既有证据（81/81、身份、18 链、矩阵、合同），切流探测为最后运行时确认
