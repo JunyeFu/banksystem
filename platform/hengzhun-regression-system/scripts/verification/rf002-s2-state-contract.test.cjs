@@ -175,7 +175,8 @@ test('RF-002-S2 tasks:get emits terminal and verificationGate from Harness state
     const prep = await post('/v1/i8/tasks:get', { namespace: 'ns1', taskId: 't-gate-prep' }, token)
     assert.equal(prep.body.terminal, true, 'active verification gate must be terminal')
     assert.deepEqual(prep.body.verificationGate, {
-      challengeId: 'verification_000000000000000000000000000000010000', status: 'WAITING_USER_PREPARATION', kind: 'SMS_OTP', resumeAllowed: false
+      challengeId: 'verification_000000000000000000000000000000010000', status: 'WAITING_USER_PREPARATION', kind: 'SMS_OTP',
+      version: 1, verificationType: 'SMS_OTP', userPreparation: 'prepare', resumeAllowed: false
     })
 
     // active gate WAITING_USER_ACTION: resumeAllowed true
@@ -222,7 +223,8 @@ test('RF-002-S2 candidates:get emits terminal and verificationGate keyed by job 
     const gated = await post('/v1/i8/candidates:get', { namespace: 'ns1', preparationId: 'p2' }, token)
     assert.equal(gated.body.terminal, true, 'active gate must be terminal for candidates too')
     assert.deepEqual(gated.body.verificationGate, {
-      challengeId: 'verification_000000000000000000000000000000040000', status: 'WAITING_USER_PREPARATION', kind: 'CAPTCHA', resumeAllowed: false
+      challengeId: 'verification_000000000000000000000000000000040000', status: 'WAITING_USER_PREPARATION', kind: 'CAPTCHA',
+      version: 1, verificationType: 'CAPTCHA', userPreparation: 'prepare', resumeAllowed: false
     })
   } finally {
     await stopHarness(harness)

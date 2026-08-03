@@ -34,20 +34,25 @@ test('A2 baseline: candidates:get response now emits terminal/verificationGate (
   assert.match(harnessServer, /service\.getI8Candidate\(input\.namespace, input\.preparationId\)/)
 })
 
-test('A3 baseline: MCP task_get holds hardcoded terminal set and verification projection', () => {
-  assert.match(mcpServer, /const withVerification = async taskBody/, 'task_get must still aggregate verification (S1 baseline)')
-  assert.match(mcpServer, /verification:get'/, 'task_get must still call verification:get cross-endpoint (S1 baseline)')
-  assert.match(mcpServer, /status: 'WAITING_USER'/, 'task_get must still project WAITING_USER (S1 baseline)')
-  assert.match(mcpServer, /const terminal = new Set\(\[.SUCCEEDED., .FAILED., .BLOCKED., .WAITING_USER., .CANCELLED.\]\)/, 'task_get hardcoded terminal set must exist (S1 baseline)')
+test('A3 baseline: MCP task_get no longer holds hardcoded terminal set or verification projection (S3 landed)', () => {
+  assert.doesNotMatch(mcpServer, /const withVerification = async taskBody/, 'task_get must not aggregate verification (S3) ')
+  assert.doesNotMatch(mcpServer, /terminal = new Set\(\[.SUCCEEDED., .FAILED., .BLOCKED., .WAITING_USER., .CANCELLED.\]\)/, 'task_get hardcoded terminal set must be gone (S3)')
+  // S3: polling is driven by the Harness-owned terminal flag and the display
+  // projection is a frozen mapping from the verificationGate
+  assert.match(mcpServer, /current\.body\?\.terminal !== true/, 'task_get polling must use the Harness terminal flag')
+  assert.match(mcpServer, /body\?\.verificationGate/, 'task_get display projection must read the verificationGate')
+  assert.match(mcpServer, /status: 'WAITING_USER'/, 'task_get display projection must keep the v7-compatible WAITING_USER label')
+  assert.match(mcpServer, /verification: \{/, 'task_get display projection must build the verification object from the gate')
 })
 
-test('A4 baseline: MCP candidate_get holds hardcoded terminalActions set and verification projection', () => {
-  assert.match(mcpServer, /const terminalActions = new Set\(\[/, 'candidate_get hardcoded terminalActions must exist (S1 baseline)')
-  assert.match(mcpServer, /HUMAN_DELIVERY_DECISION_REQUIRED/, 'candidate_get terminalActions must include HUMAN_DELIVERY_DECISION_REQUIRED')
-  assert.match(mcpServer, /ACTIVATE_OR_REJECT_AVAILABLE/, 'candidate_get terminalActions must include ACTIVATE_OR_REJECT_AVAILABLE')
-  assert.match(mcpServer, /CANDIDATE_REPAIR_REQUIRED/, 'candidate_get terminalActions must include CANDIDATE_REPAIR_REQUIRED')
-  assert.match(mcpServer, /AUTHORING_REVIEW_REQUIRED/, 'candidate_get terminalActions must include AUTHORING_REVIEW_REQUIRED')
-  assert.match(mcpServer, /verification\.response\.ok/, 'candidate_get must still project verification on timeout (S1 baseline)')
+test('A4 baseline: MCP candidate_get no longer holds hardcoded terminalActions set (S3 landed)', () => {
+  assert.doesNotMatch(mcpServer, /const terminalActions = new Set\(\[/, 'candidate_get hardcoded terminalActions must be gone (S3)')
+  // scope the no-cross-endpoint check to the candidate_get block: the
+  // verification_get tool itself legitimately calls verification:get
+  const block = mcpServer.slice(mcpServer.indexOf("registerTool('candidate_get'"), mcpServer.indexOf("registerTool('candidate_preview'"))
+  assert.doesNotMatch(block, /verification:get/, 'candidate_get must not call verification:get cross-endpoint (S3)')
+  assert.match(block, /current\.body\?\.terminal !== true/, 'candidate_get polling must use the Harness terminal flag')
+  assert.match(block, /current\.body\?\.verificationGate/, 'candidate_get display projection must read the verificationGate')
 })
 
 test('A5 baseline: verification challenge state machine and taskRef lookup exist in Harness', () => {

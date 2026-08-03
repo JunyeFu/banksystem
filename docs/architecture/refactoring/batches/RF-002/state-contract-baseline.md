@@ -50,7 +50,8 @@ owner: project-owner
 | tasks:get terminal | ✅ G3 已实现（SUCCEEDED/FAILED/WAITING_USER/CANCELLED 或 run_status=BLOCKED 或 gate 存在） | 同上 |
 | candidates:get terminal/verificationGate | ✅ G2 已实现（nextAction 终止集判定 + job_id→task_ref gate） | `harness/src/service.ts` getI8Candidate + 同上 |
 | 双源一致性 | ✅ verificationGate 与 verification:get 同源（i10_verification_challenges），合同测试断言 | `rf002-s2-state-contract.test.cjs` |
-| S1 反向锚点 | ✅ A2 已翻转为"有字段"（A3/A4 MCP 锚点留待 S3） | `rf002-s1-state-contract-baseline.test.cjs` |
+| S1 反向锚点 | ✅ A2 已翻转为"有字段"；A3/A4 已翻转为"MCP 收敛完成"（S3） | `rf002-s1-state-contract-baseline.test.cjs` |
+| MCP 收敛（S3） | ✅ task_get/candidate_get 轮询由 Harness terminal 驱动；零跨端点 verification:get；展示投影为 gate 字段冻结映射（v7 兼容）；G1.1 gate 展示字段扩展 | `mcp/src/server.cjs`、`rf002-s3-mcp-convergence.test.cjs` |
 
 ## 5. 证据来源
 

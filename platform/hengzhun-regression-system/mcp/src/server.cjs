@@ -859,28 +859,49 @@ function createServer() {
     }
     if (waitForCertificate !== true) return textResult(current.body)
     const deadline = Date.now() + (waitTimeoutSeconds ?? 120) * 1000
-    const terminalActions = new Set(['HUMAN_DELIVERY_DECISION_REQUIRED', 'ACTIVATE_OR_REJECT_AVAILABLE', 'ON_DEMAND_RUN_AVAILABLE', 'CANDIDATE_REPAIR_REQUIRED', 'AUTHORING_REVIEW_REQUIRED', 'NONE'])
-    while (!terminalActions.has(current.body?.nextAction) && Date.now() < deadline) {
+    // RF-002-S3: polling termination is driven by the Harness-owned terminal flag
+    while (current.body?.terminal !== true && Date.now() < deadline) {
       await new Promise(resolve => setTimeout(resolve, 750))
       current = await shadowedRequest('candidate_get', '/v1/i8/candidates:get', { namespace, preparationId })
       if (!current.response.ok) {
         return textResult({ errorCode: current.body.errorCode || 'I8_CANDIDATE_STATUS_UNAVAILABLE', status: current.response.status }, true)
       }
     }
-    if (!terminalActions.has(current.body?.nextAction)) {
-      const taskRef = current.body?.job?.jobId
-      if (taskRef) {
-        const verification = await shadowedRequest('candidate_get', '/v1/i10/verification:get', {namespace,taskRef})
-        if (verification.response.ok) {
-          return textResult({
-            status:'WAITING_USER',
-            nextAction:'HUMAN_VERIFICATION_REQUIRED',
-            job:current.body.job,
-            verification:verification.body
-          })
-        }
+    if (current.body?.terminal !== true) {
+      // RF-002-S3: frozen display projection from the Harness verificationGate
+      // (no cross-endpoint verification lookup, no business-state inference)
+      if (current.body?.verificationGate) {
+        return textResult({
+          ...current.body,
+          status: 'WAITING_USER',
+          nextAction: 'HUMAN_VERIFICATION_REQUIRED',
+          verification: {
+            challengeId: current.body.verificationGate.challengeId,
+            status: current.body.verificationGate.status,
+            version: current.body.verificationGate.version,
+            verificationType: current.body.verificationGate.verificationType,
+            userPreparation: current.body.verificationGate.userPreparation
+          }
+        })
       }
       return textResult({ errorCode: 'I8_CANDIDATE_WAIT_TIMEOUT', status:'PROCESSING', nextAction:'ASYNC_CANDIDATE_RESUME', job:current.body?.job }, false)
+    }
+    // RF-002-S3: frozen display projection also applies to the terminal return
+    // (gate present -> v7-compatible WAITING_USER/HUMAN_VERIFICATION_REQUIRED +
+    // verification object built from the Harness verificationGate fields)
+    if (current.body?.verificationGate) {
+      return textResult({
+        ...current.body,
+        status: 'WAITING_USER',
+        nextAction: 'HUMAN_VERIFICATION_REQUIRED',
+        verification: {
+          challengeId: current.body.verificationGate.challengeId,
+          status: current.body.verificationGate.status,
+          version: current.body.verificationGate.version,
+          verificationType: current.body.verificationGate.verificationType,
+          userPreparation: current.body.verificationGate.userPreparation
+        }
+      }, false, 16 * 1024)
     }
     return textResult(current.body, false, 16 * 1024)
   })
@@ -950,38 +971,39 @@ function createServer() {
   }, async ({ taskId, waitForTerminal, waitTimeoutSeconds }) => {
     let current = await shadowedRequest('task_get', '/v1/i8/tasks:get', { namespace, taskId })
     if (!current.response.ok) return textResult({ errorCode: current.body.errorCode || 'I8_TASK_STATUS_UNAVAILABLE', status: current.response.status }, true)
-    const withVerification = async taskBody => {
-      const verification = await shadowedRequest('task_get', '/v1/i10/verification:get', { namespace, taskRef: taskId })
-      if (!verification.response.ok) return null
-      const status = String(verification.body?.status || '')
-      if (!['WAITING_USER_PREPARATION', 'WAITING_USER_ACTION'].includes(status)) return null
+    // RF-002-S3: display projection from the Harness verificationGate (frozen
+    // mapping, no cross-endpoint call, no business-state inference).
+    const display = body => {
+      if (!body?.verificationGate) return body
       return {
-        ...taskBody,
+        ...body,
         status: 'WAITING_USER',
         nextAction: 'HUMAN_VERIFICATION_REQUIRED',
-        verification: verification.body
+        verification: {
+          challengeId: body.verificationGate.challengeId,
+          status: body.verificationGate.status,
+          version: body.verificationGate.version,
+          verificationType: body.verificationGate.verificationType,
+          userPreparation: body.verificationGate.userPreparation
+        }
       }
     }
-    const initialVerification = await withVerification(current.body)
-    if (initialVerification) return textResult(initialVerification)
-    if (waitForTerminal !== true) return textResult(current.body)
+    if (waitForTerminal !== true) return textResult(display(current.body))
     const deadline = Date.now() + (waitTimeoutSeconds ?? 120) * 1000
-    const terminal = new Set(['SUCCEEDED', 'FAILED', 'BLOCKED', 'WAITING_USER', 'CANCELLED'])
-    while (!terminal.has(current.body?.status) && Date.now() < deadline) {
+    // RF-002-S3: polling termination is driven by the Harness-owned terminal flag
+    while (current.body?.terminal !== true && Date.now() < deadline) {
       await new Promise(resolve => setTimeout(resolve, 750))
       current = await shadowedRequest('task_get', '/v1/i8/tasks:get', { namespace, taskId })
       if (!current.response.ok) return textResult({ errorCode: current.body.errorCode || 'I8_TASK_STATUS_UNAVAILABLE', status: current.response.status }, true)
-      const verification = await withVerification(current.body)
-      if (verification) return textResult(verification)
     }
-    if (!terminal.has(current.body?.status)) {
+    if (current.body?.terminal !== true) {
       return textResult({
         status: current.body?.status || 'PROCESSING',
         nextAction: 'ASYNC_TASK_RESUME',
         taskId
       })
     }
-    return textResult(current.body)
+    return textResult(display(current.body))
   })
 
   server.registerTool('schedule_create', {

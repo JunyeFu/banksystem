@@ -1287,12 +1287,12 @@ export class HarnessService {
       // RF-002-S2 (G2): active verification challenge gate keyed by the build job id
       const gate = row.job_id
         ? db.prepare(`
-            SELECT challenge_id, status, verification_type
+            SELECT challenge_id, status, verification_type, version, user_preparation
             FROM i10_verification_challenges
             WHERE namespace = ? AND task_ref = ? AND status IN ('WAITING_USER_PREPARATION','WAITING_USER_ACTION')
               AND (expires_at IS NULL OR expires_at > ?)
             ORDER BY created_at DESC LIMIT 1
-          `).get(namespace, String(row.job_id), nowIso()) as { challenge_id: string; status: string; verification_type: string } | undefined
+          `).get(namespace, String(row.job_id), nowIso()) as { challenge_id: string; status: string; verification_type: string; version: number; user_preparation: string } | undefined
         : undefined;
       const gatePresent = Boolean(gate);
       // RF-002-S2 (G2): Harness-owned nextAction (semantics identical to the
@@ -1378,6 +1378,9 @@ export class HarnessService {
               challengeId: gate.challenge_id,
               status: gate.status,
               kind: gate.verification_type,
+              version: Number(gate.version),
+              verificationType: gate.verification_type,
+              userPreparation: gate.user_preparation,
               resumeAllowed: gate.status === 'WAITING_USER_ACTION'
             } }
           : {}),
@@ -3764,12 +3767,12 @@ export class HarnessService {
       if (!row) throw new HarnessError(404, 'TASK_NOT_FOUND', 'DOMAIN', '任务不存在。');
       // RF-002-S2 (G1): active verification challenge gate for this task
       const gate = db.prepare(`
-        SELECT challenge_id, status, verification_type
+        SELECT challenge_id, status, verification_type, version, user_preparation
         FROM i10_verification_challenges
         WHERE namespace = ? AND task_ref = ? AND status IN ('WAITING_USER_PREPARATION','WAITING_USER_ACTION')
           AND (expires_at IS NULL OR expires_at > ?)
         ORDER BY created_at DESC LIMIT 1
-      `).get(namespace, taskId, nowIso()) as { challenge_id: string; status: string; verification_type: string } | undefined;
+      `).get(namespace, taskId, nowIso()) as { challenge_id: string; status: string; verification_type: string; version: number; user_preparation: string } | undefined;
       const gatePresent = Boolean(gate);
       return {
         taskId: row.task_id,
@@ -3796,6 +3799,9 @@ export class HarnessService {
               challengeId: gate.challenge_id,
               status: gate.status,
               kind: gate.verification_type,
+              version: Number(gate.version),
+              verificationType: gate.verification_type,
+              userPreparation: gate.user_preparation,
               resumeAllowed: gate.status === 'WAITING_USER_ACTION'
             } }
           : {}),
