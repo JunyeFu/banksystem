@@ -22,6 +22,20 @@ const {
 } = require('./rf001-contract-adapter.cjs')
 
 const productRoot = path.resolve(__dirname, '..', '..')
+// RF-003-S2: single version source - the executable runtime contract's
+// contractVersion is the only authoritative version; SDK registration and
+// the health endpoint both derive from it. Startup fails closed when the
+// contract is missing or the version is malformed (no silent fallback).
+const runtimeContractVersion = (() => {
+  try {
+    const contract = JSON.parse(fs.readFileSync(path.join(productRoot, 'contracts/mcp/hengzhun-i8.json'), 'utf8'))
+    const version = String(contract.contractVersion || '')
+    if (!/^\d+\.\d+\.\d+$/.test(version)) throw new Error('malformed')
+    return version
+  } catch (error) {
+    throw new Error(`HENGZHUN_CONTRACT_VERSION_INVALID: ${error.message}`)
+  }
+})()
 const flowiseAppPath = path.resolve(process.env.FLOWISE_APP_PATH || path.join(productRoot, '.data', 'flowise', 'app'))
 const runtimeRequire = require('node:module').createRequire(path.join(flowiseAppPath, 'package.json'))
 const { McpServer } = runtimeRequire('@modelcontextprotocol/sdk/server/mcp.js')
@@ -343,7 +357,7 @@ function normalizeControlledPortalRoute(value) {
 }
 
 function createServer() {
-  const server = new McpServer({ name: 'hengzhun-i10-regression', version: '8.0.0' })
+  const server = new McpServer({ name: 'hengzhun-i10-regression', version: runtimeContractVersion })
 
   server.registerTool('credential_session_create', {
     description: '创建15分钟本机安全凭据录入会话；只返回credentialRef状态和本机表单地址，账号密码不会进入Flowise或模型上下文。',
@@ -1148,7 +1162,7 @@ const app = createMcpExpressApp()
 app.get('/health', (_request, response) => response.json({
   status: 'ok',
   service: 'hengzhun-i10-mcp',
-  version: '10.0.0',
+  version: runtimeContractVersion,
   rf001Shadow: rf001Shadow.snapshot()
 }))
 app.use('/mcp', (request, response, next) => {

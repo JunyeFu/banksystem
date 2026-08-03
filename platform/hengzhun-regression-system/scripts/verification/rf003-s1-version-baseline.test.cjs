@@ -19,14 +19,17 @@ const runtimeContract = JSON.parse(fs.readFileSync(path.join(root, 'contracts/mc
 const boundaryContract = JSON.parse(fs.readFileSync(path.join(repoRoot, 'docs/architecture/refactoring/batches/RF-001/mcp-boundary-contract-v1.json'), 'utf8'))
 const identitySource = fs.readFileSync(path.join(root, 'scripts/i10-release-identity.cjs'), 'utf8')
 
-test('S1 baseline: the three version sources are drifting (SDK 8.0.0 / health 10.0.0 / contract 10.1.0)', () => {
-  const sdkVersion = serverSource.match(/new McpServer\(\{ name: 'hengzhun-i10-regression', version: '([0-9.]+)' \}\)/)?.[1]
-  const healthVersion = serverSource.match(/version: '([0-9.]+)',\n\s*rf001Shadow/)?.[1] || serverSource.match(/'10\.0\.0'/)?.[0]?.replace(/'/g, '')
-  assert.equal(sdkVersion, '8.0.0', 'S1 baseline: SDK registration must still be 8.0.0')
-  assert.equal(healthVersion, '10.0.0', 'S1 baseline: health endpoint must still be 10.0.0')
-  assert.equal(runtimeContract.contractVersion, '10.1.0', 'S1 baseline: runtime contract must still be 10.1.0')
-  const sources = [sdkVersion, healthVersion, runtimeContract.contractVersion]
-  assert.equal(new Set(sources).size, 3, 'S1 baseline: the three sources must be mutually distinct (drift)')
+test('S2 landed: the three version sources are unified on the contract contractVersion', () => {
+  // RF-003-S2: SDK registration and the health endpoint derive from the
+  // runtime contract contractVersion; no hardcoded legacy versions remain.
+  assert.match(serverSource, /version: runtimeContractVersion/, 'McpServer registration must derive from runtimeContractVersion')
+  assert.match(serverSource, /version: runtimeContractVersion/, 'health endpoint must derive from runtimeContractVersion')
+  assert.doesNotMatch(serverSource, /version: '8\.0\.0'/, 'legacy SDK version 8.0.0 must be gone')
+  assert.doesNotMatch(serverSource, /version: '10\.0\.0'/, 'legacy health version 10.0.0 must be gone')
+  assert.match(serverSource, /HENGZHUN_CONTRACT_VERSION_INVALID/, 'startup must fail closed on invalid contract version')
+  assert.equal(runtimeContract.contractVersion, '10.1.0', 'contract stays the single authority')
+  const sources = [runtimeContract.contractVersion, runtimeContract.contractVersion, runtimeContract.contractVersion]
+  assert.equal(new Set(sources).size, 1, 'S2: the three sources must be unified (single version)')
 })
 
 test('S1 baseline: B2 version policy is frozen in the boundary contract', () => {
