@@ -305,7 +305,7 @@ export class HarnessService {
 
   private enqueueRun(db: import('better-sqlite3').Database, input: {
     namespace: string; caseId: string; caseVersion: number; planId: string; environment: 'local';
-    credentialAlias: string; fixtureScope?: string; scheduleId?: string; scheduleExecutionId?: string;
+    credentialAlias: string | null; fixtureScope?: string; scheduleId?: string; scheduleExecutionId?: string;
   }, plan: { script_id: string; script_version: number; script_sha256: string; script_path: string; script_configuration: string | null }, timestamp: string): { runId: string; taskId: string } {
     const runId = opaqueId('run');
     const taskId = opaqueId('task');
@@ -323,7 +323,9 @@ export class HarnessService {
       executionEngine: 'PLAYWRIGHT',
       formalRegression: true,
       environment: input.environment,
-      credentialAlias: input.credentialAlias,
+      // RF-004-S3: no alias injection by default; the claim response passes the
+      // authoritative credentialRef through for I10 candidates (worker resolve)
+      ...(input.credentialAlias ? { credentialAlias: input.credentialAlias } : {}),
       fixtureNamespace,
       fixtureScope: input.fixtureScope ?? fixtureNamespace,
       scriptId: plan.script_id,
@@ -344,7 +346,7 @@ export class HarnessService {
       ) VALUES (?, ?, ?, ?, ?, ?, 'QUEUED', ?, ?, ?, ?, ?, ?, 1, ?)
     `).run(
       runId, input.namespace, input.caseId, input.caseVersion, input.planId, taskId,
-      input.credentialAlias, fixtureNamespace, input.environment, input.fixtureScope ?? fixtureNamespace,
+      input.credentialAlias ?? null, fixtureNamespace, input.environment, input.fixtureScope ?? fixtureNamespace,
       input.scheduleId ?? null, input.scheduleExecutionId ?? null, timestamp
     );
     return { runId, taskId };
@@ -2032,6 +2034,13 @@ export class HarnessService {
     });
   }
 
+  private caseCredentialRef(db: import('better-sqlite3').Database, caseId: string, caseVersion: number): string {
+    const row = db.prepare('SELECT definition_json FROM case_versions WHERE case_id = ? AND version = ?').get(caseId, caseVersion) as { definition_json: string } | undefined;
+    if (!row) return '';
+    const definition = JSON.parse(row.definition_json) as Record<string, unknown>;
+    return typeof definition.credentialRef === 'string' ? definition.credentialRef : '';
+  }
+
   async submitI8Run(input: I8RunSubmitInput, context: RequestContext): Promise<IdempotentResult> {
     return this.idempotent(input.namespace, 'i8_run_submit', input.idempotencyKey, input, context, (db, timestamp) => {
       const row = db.prepare(`
@@ -2059,13 +2068,19 @@ export class HarnessService {
         throw new HarnessError(409, 'I8_SCRIPT_NOT_ACTIVATED', 'DOMAIN', '按需运行只接受已明确激活的持证脚本。', false, true);
       }
       const plan = this.validatedPlan(db, input.namespace, String(row.activated_plan_id), String(row.case_id), Number(row.case_version));
+      // RF-004-S3 (DP-S4-2=A): no injected alias means the case must carry the
+      // authoritative credentialRef; otherwise fail closed. The claim response
+      // passes the credentialRef through for I10 candidates (worker resolve).
+      if (!input.credentialAlias && !this.caseCredentialRef(db, String(row.case_id), Number(row.case_version))) {
+        throw new HarnessError(409, 'I10_EXECUTION_CREDENTIAL_BINDING_REQUIRED', 'DOMAIN', '案例未绑定权威执行凭据，且未启用兼容凭据注入。', false, true);
+      }
       const { runId, taskId } = this.enqueueRun(db, {
         namespace: input.namespace,
         caseId: String(row.case_id),
         caseVersion: Number(row.case_version),
         planId: String(row.activated_plan_id),
         environment: 'local',
-        credentialAlias: input.credentialAlias
+        credentialAlias: input.credentialAlias ?? null
       }, plan, timestamp);
       return {
         status: 202,
@@ -2276,6 +2291,14 @@ export class HarnessService {
       if (plan.script_id !== row.script_id || plan.script_version !== Number(row.script_version) || plan.script_sha256 !== row.script_sha256) {
         throw new HarnessError(409, 'I8_ACTIVATED_SCRIPT_VERSION_CONFLICT', 'CONCURRENCY', '当前正式计划与已确认脚本版本不一致。', false, true);
       }
+      // RF-004-S3 (DP-S4-2=A): no injected alias -> the case must carry the
+      // authoritative credentialRef; the NOT NULL schedules column receives a
+      // traceable hash placeholder (never the credential itself). Actual
+      // execution credentials flow via the claim credentialRef pass-through.
+      const scheduleCredentialAlias = input.credentialAlias
+        ?? (this.caseCredentialRef(db, String(row.case_id), Number(row.case_version))
+          ? `credref:${sha256(this.caseCredentialRef(db, String(row.case_id), Number(row.case_version))).slice(0, 12)}`
+          : (() => { throw new HarnessError(409, 'I10_EXECUTION_CREDENTIAL_BINDING_REQUIRED', 'DOMAIN', '案例未绑定权威执行凭据，且未启用兼容凭据注入。', false, true) })());
       const scheduleId = opaqueId('schedule');
       const nextFireAt = input.scheduleType === 'RECURRING'
         ? nextCronOccurrence(String(input.cronExpression), input.timezone, new Date(timestamp)).toISOString()
@@ -2290,7 +2313,7 @@ export class HarnessService {
         ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'local', ?, ?, ?, ?, 'ACTIVE', ?, 1, ?, ?, ?, ?, ?, ?, ?, ?, ?)
       `).run(
         scheduleId, input.namespace, row.case_id, row.case_version, row.activated_plan_id,
-        input.credentialAlias, input.cronExpression ?? '0 0 1 1 *', input.timezone, fixtureScope,
+        scheduleCredentialAlias, input.cronExpression ?? '0 0 1 1 *', input.timezone, fixtureScope,
         input.misfirePolicy, input.misfireGraceSeconds, input.maxRetries, nextFireAt, timestamp, timestamp,
         input.scheduleType, input.runAt ? new Date(input.runAt).toISOString() : null,
         row.script_id, row.script_version, row.script_sha256,

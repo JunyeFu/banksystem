@@ -31,10 +31,12 @@ test('C1 (S2 flipped): MCP run_submit/schedule_create no longer inject a credent
   assert.match(scheduleBlock, /\.\.\.\(binding\.credentialAlias \? \{ credentialAlias: binding\.credentialAlias \} : \{\}\)/, 'schedule_create must attach the alias conditionally')
 })
 
-test('C2: Harness enqueueRun persists credentialAlias into the run payload', () => {
-  assert.match(harnessService, /credentialAlias: string; fixtureScope\?: string/, 'enqueueRun input must carry credentialAlias')
-  assert.match(harnessService, /credentialAlias: input\.credentialAlias/, 'run payload must carry the alias')
-  assert.match(harnessService, /credential_alias, fixture_namespace/, 'runs table must persist the alias')
+test('C2 (S3 flipped): Harness enqueueRun accepts a nullable credentialAlias', () => {
+  // RF-004-S3: the alias is optional; no injection persists NULL and the
+  // payload omits the alias (the claim passes the authoritative credentialRef)
+  assert.match(harnessService, /credentialAlias: string \| null; fixtureScope\?: string/, 'enqueueRun input must accept a nullable alias')
+  assert.match(harnessService, /\.\.\.\(input\.credentialAlias \? \{ credentialAlias: input\.credentialAlias \} : \{\}\)/, 'payload must attach the alias conditionally')
+  assert.match(harnessService, /input\.credentialAlias \?\? null, fixtureNamespace/, 'runs table must persist NULL without injection')
 })
 
 test('C3: the candidate validation path already passes credentialRef through (precedent)', () => {

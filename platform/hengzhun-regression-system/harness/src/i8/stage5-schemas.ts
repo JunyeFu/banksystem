@@ -26,7 +26,9 @@ export const i8RunSubmitSchema = z.object({
   namespace: namespaceSchema,
   idempotencyKey: idempotencyKeySchema,
   preparationId: safeRef,
-  credentialAlias: safeRef
+  // RF-004-S3: optional since MCP no longer injects a credential; Harness
+  // resolves the authoritative binding from the case definition instead.
+  credentialAlias: safeRef.optional()
 }).strict();
 
 export const i8TaskGetSchema = z.object({

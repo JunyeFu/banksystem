@@ -23,4 +23,7 @@ owner: project-owner
 | S2 MCP凭据注入退场 | PASS：默认停注入、LEGACY唯一回退通道、条件装配、DP-S4-1=A决策 | `rf004-s2-mcp-credential-exit.test.cjs`（3/3）、`mcp/src/rf001-contract-adapter.cjs` |
 | S2聚焦测试 | PASS：70/70（含RF-001/002/003回归67） | `node --test` 15个验证文件（exit 0） |
 
-RF-004当前：target-design已批准、S1完成（凭据绑定基线）、S2完成（MCP注入退场）。下一门禁S3（Harness端点解析）。
+| S3 Harness端点解析 | PASS：schema可选化、enqueueRun可空化、caseCredentialRef解析、失败关闭（DP-S4-2=A）、占位不落库 | `rf004-s3-harness-credential-resolution.test.cjs`（5/5）、`harness/src/service.ts` |
+| S3聚焦测试 | PASS：75/75（含RF-001/002/003回归70） | `node --test` 16个验证文件（exit 0） |
+
+RF-004当前：target-design已批准、S1-S3完成（基线/注入退场/Harness解析）。下一门禁S4（生产切流关闭）。
