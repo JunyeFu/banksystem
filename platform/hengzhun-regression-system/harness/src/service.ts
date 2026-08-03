@@ -1284,6 +1284,32 @@ export class HarnessService {
         ORDER BY j.created_at DESC LIMIT 1
       `).get(namespace, preparationId) as Record<string, unknown> | undefined;
       if (!row) throw new HarnessError(404, 'I8_EXECUTABLE_PLAN_NOT_FOUND', 'DOMAIN', '阶段3可执行计划不存在。');
+      // RF-002-S2 (G2): active verification challenge gate keyed by the build job id
+      const gate = row.job_id
+        ? db.prepare(`
+            SELECT challenge_id, status, verification_type, version, user_preparation
+            FROM i10_verification_challenges
+            WHERE namespace = ? AND task_ref = ? AND status IN ('WAITING_USER_PREPARATION','WAITING_USER_ACTION')
+              AND (expires_at IS NULL OR expires_at > ?)
+            ORDER BY created_at DESC LIMIT 1
+          `).get(namespace, String(row.job_id), nowIso()) as { challenge_id: string; status: string; verification_type: string; version: number; user_preparation: string } | undefined
+        : undefined;
+      const gatePresent = Boolean(gate);
+      // RF-002-S2 (G2): Harness-owned nextAction (semantics identical to the
+      // frozen MCP terminalActions set; S3 convergence is behavior-neutral)
+      const nextAction = row.candidate_status === 'SCRIPT_VALIDATED'
+        ? 'ON_DEMAND_RUN_AVAILABLE'
+        : row.candidate_status === 'SAVED'
+          ? 'ACTIVATE_OR_REJECT_AVAILABLE'
+          : row.candidate_status === 'REJECTED'
+            ? 'NONE'
+            : row.certificate_id
+              ? 'HUMAN_DELIVERY_DECISION_REQUIRED'
+              : row.stability_status === 'FAILED'
+                ? 'CANDIDATE_REPAIR_REQUIRED'
+                : row.candidate_id
+                  ? 'STABILITY_WORKER_REQUIRED'
+                  : row.job_status === 'FAILED' ? 'AUTHORING_REVIEW_REQUIRED' : 'AUTHORING_WORKER_REQUIRED';
       return {
         preparationId,
         executablePlanId: row.executable_plan_id,
@@ -1346,19 +1372,21 @@ export class HarnessService {
             }
           } : {})
         } : {}),
-        nextAction: row.candidate_status === 'SCRIPT_VALIDATED'
-          ? 'ON_DEMAND_RUN_AVAILABLE'
-          : row.candidate_status === 'SAVED'
-            ? 'ACTIVATE_OR_REJECT_AVAILABLE'
-            : row.candidate_status === 'REJECTED'
-              ? 'NONE'
-              : row.certificate_id
-                ? 'HUMAN_DELIVERY_DECISION_REQUIRED'
-          : row.stability_status === 'FAILED'
-            ? 'CANDIDATE_REPAIR_REQUIRED'
-            : row.candidate_id
-              ? 'STABILITY_WORKER_REQUIRED'
-              : row.job_status === 'FAILED' ? 'AUTHORING_REVIEW_REQUIRED' : 'AUTHORING_WORKER_REQUIRED'
+        nextAction,
+        ...(gate
+          ? { verificationGate: {
+              challengeId: gate.challenge_id,
+              status: gate.status,
+              kind: gate.verification_type,
+              version: Number(gate.version),
+              verificationType: gate.verification_type,
+              userPreparation: gate.user_preparation,
+              resumeAllowed: gate.status === 'WAITING_USER_ACTION'
+            } }
+          : {}),
+        // RF-002-S2 (G2): Harness-owned terminal flag, consistent with the
+        // frozen MCP terminalActions semantics
+        terminal: Boolean(gate) || ['HUMAN_DELIVERY_DECISION_REQUIRED','ACTIVATE_OR_REJECT_AVAILABLE','ON_DEMAND_RUN_AVAILABLE','CANDIDATE_REPAIR_REQUIRED','AUTHORING_REVIEW_REQUIRED','NONE'].includes(nextAction)
       };
     });
   }
@@ -3737,6 +3765,15 @@ export class HarnessService {
         WHERE t.namespace = ? AND t.task_id = ?
       `).get(namespace, taskId) as Record<string, unknown> | undefined;
       if (!row) throw new HarnessError(404, 'TASK_NOT_FOUND', 'DOMAIN', '任务不存在。');
+      // RF-002-S2 (G1): active verification challenge gate for this task
+      const gate = db.prepare(`
+        SELECT challenge_id, status, verification_type, version, user_preparation
+        FROM i10_verification_challenges
+        WHERE namespace = ? AND task_ref = ? AND status IN ('WAITING_USER_PREPARATION','WAITING_USER_ACTION')
+          AND (expires_at IS NULL OR expires_at > ?)
+        ORDER BY created_at DESC LIMIT 1
+      `).get(namespace, taskId, nowIso()) as { challenge_id: string; status: string; verification_type: string; version: number; user_preparation: string } | undefined;
+      const gatePresent = Boolean(gate);
       return {
         taskId: row.task_id,
         runId: row.run_id,
@@ -3755,7 +3792,22 @@ export class HarnessService {
         failureClassification: row.failure_classification,
         retryable: Boolean(row.retryable),
         userActionRequired: Boolean(row.user_action_required),
-        updatedAt: row.updated_at
+        updatedAt: row.updated_at,
+        // RF-002-S2 (G1): omitted when no active challenge (never null)
+        ...(gate
+          ? { verificationGate: {
+              challengeId: gate.challenge_id,
+              status: gate.status,
+              kind: gate.verification_type,
+              version: Number(gate.version),
+              verificationType: gate.verification_type,
+              userPreparation: gate.user_preparation,
+              resumeAllowed: gate.status === 'WAITING_USER_ACTION'
+            } }
+          : {}),
+        // RF-002-S2 (G3): Harness-owned terminal semantics (WAITING_USER is an
+        // MCP projection and is represented here by the verification gate)
+        terminal: Boolean(gate) || ['SUCCEEDED', 'FAILED', 'WAITING_USER', 'CANCELLED'].includes(String(row.status)) || row.run_status === 'BLOCKED'
       };
     });
   }

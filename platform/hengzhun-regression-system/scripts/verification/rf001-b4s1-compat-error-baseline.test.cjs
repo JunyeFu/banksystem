@@ -53,12 +53,14 @@ test('B4-S1 aliases, error envelope and conditional writes match the frozen B2 c
     ['correlationRef', 'errorCode', 'category', 'status', 'retryable', 'userActionRequired', 'safeMessage', 'fieldErrors'].sort(),
     '8-field canonical error envelope must be frozen'
   )
-  // three conditional-write tools are declared in the contract and in server.cjs
+  // RF-002-S4 (G5): schedule_get retired to READ_ONLY; exactly two
+  // conditional-write tools remain declared (candidate_get, result_inbox_list)
   const conditional = boundaryContract.tools.filter(tool => tool.sideEffect === 'CONDITIONAL_MUTATION')
-  assert.equal(conditional.length, 3, 'exactly 3 conditional-write tools must be declared')
+  assert.equal(conditional.length, 2, 'exactly 2 conditional-write tools must be declared after S4')
   for (const tool of conditional) {
     assert.ok(serverSource.includes(`registerTool('${tool.name}'`), `conditional-write tool ${tool.name} must exist in server.cjs`)
   }
+  assert.equal(boundaryContract.tools.find(tool => tool.name === 'schedule_get').sideEffect, 'READ_ONLY', 'schedule_get must be READ_ONLY after retirement')
 })
 
 test('B4-S1 every MCP error-code literal is documented and every error path fails closed', () => {
