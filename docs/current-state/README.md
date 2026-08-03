@@ -5,8 +5,8 @@ document_type: reference
 domain: current-state
 status: accepted
 authority: normative
-version: 1.2
-effective_date: 2026-07-21
+version: 1.4
+effective_date: 2026-08-01
 owner: project-owner
 ---
 
@@ -18,6 +18,15 @@ owner: project-owner
 - [当前执行方案缺口清单](execution-gap-register.md)
 - [Coze 模拟 HiAgent 平台能力待验证登记册](coze-hiagent-verification-register.md)
 - [知识体系重建基线](repository-knowledge-baseline.md)
+- [当前系统总览](system-overview.md)
+- [当前运行拓扑](runtime-topology.md)
+- [当前模块清单](module-inventory.md)
+- [当前代码考古事实](code-archaeology-v1.md)
+- [当前依赖关系图](dependency-map.md)
+- [当前数据库清单](database-inventory.md)
+- [当前API清单](api-inventory.md)
+- [当前环境矩阵](environment-matrix.md)
+- [当前已知风险](known-risks.md)
 - HiAgent/Flowise 能力边界以 [`../architecture/overview/hiagent-flowise-capability-boundary-v1.md`](../architecture/overview/hiagent-flowise-capability-boundary-v1.md) 为准；其中 `Human Input`/`Proceed`/`Reject` 仅记录为 Flowise 本机适配能力。
 - 运行基线：[`../baseline/`](../baseline/README.md)
 - 验收证据：[`../evidence/`](../evidence/)

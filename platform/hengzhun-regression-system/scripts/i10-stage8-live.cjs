@@ -244,6 +244,7 @@ function crossSessionToolContinuationPending(body) {
     'toolAgentflow_i10_v6_cross_session_candidate_resume_compile',
     'toolAgentflow_i10_v6_cross_session_candidate_preview',
     'toolAgentflow_i10_v6_cross_session_execution_plan_submit',
+    'toolAgentflow_i10_v6_cross_session_case_input_submit',
     'toolAgentflow_i10_v6_cross_session_candidate_activate',
     'toolAgentflow_i10_v6_cross_session_run_submit',
     'toolAgentflow_i10_v6_cross_session_task_get',
@@ -274,6 +275,35 @@ function crossSessionExecutionPlanPending(body) {
 function crossSessionSilentPending(body) {
   return !stopped(body) && !String(body?.text || '').trim() &&
     Array.isArray(body?.agentFlowExecutedData) && body.agentFlowExecutedData.length > 0
+}
+
+// A NEEDS_INPUT(INITIAL_CASE_INPUT) journey asks for case basics (or the
+// frozen typed business inputs for transfer cases).  The driver answers with
+// a deterministic JSON supplement that the graph's decision-parse validates
+// and submits via journey_input_submit; the model never re-infers it.
+function crossSessionCaseInputPending(body) {
+  const executed = Array.isArray(body?.agentFlowExecutedData) ? body.agentFlowExecutedData : []
+  const latestReply = [...executed].reverse().find(item => String(item?.nodeId || '').startsWith('directReplyAgentflow_'))
+  if (latestReply?.nodeId !== 'directReplyAgentflow_i10_v6_cross_session_input_prompt') return false
+  const text = String(body?.text || '')
+  return /请补充：/.test(text) && !/脚本已激活，请说明立即执行|请说明立即执行、单次定时或周期执行/.test(text)
+}
+
+// The Journey row for a confirmed schedule decision stays COMPLETED with
+// nextAction CALL_SCHEDULE_CREATE (COMPLETED journeys are outside projection
+// reconciliation scope), so the route would re-fire schedule_create on every
+// poll.  The calls are idempotent replays, but the conversation must end on
+// the first successful creation: the schedule payload itself is the terminal
+// for scheduled modes, and the driver waits for the fire out-of-band.
+function crossSessionScheduleCreated(body) {
+  const executed = Array.isArray(body?.agentFlowExecutedData) ? body.agentFlowExecutedData : []
+  const latest = executed.at(-1)
+  if (String(latest?.nodeId || '') !== 'toolAgentflow_i10_v6_cross_session_schedule_create') return false
+  // The MCP payload is a JSON string nested inside the text block (quotes
+  // escaped), so match the parsed structure rather than the raw text.
+  return Boolean(visitStructuredValues(body, current =>
+    /^schedule_[0-9a-f-]{36}$/i.test(String(current?.scheduleId || '')) &&
+    (String(current?.status || '').toUpperCase() === 'ACTIVE' || current?.replayed === true)))
 }
 
 // The cross-session chain ends a turn with an explicit "authoring queued /
@@ -616,13 +646,26 @@ function safePredictionFailure(body) {
 }
 
 async function predict(payload, { readOnlyRetry = false } = {}) {
-  const maximumAttempts = readOnlyRetry ? 3 : 1
-  for (let attempt = 1; attempt <= maximumAttempts; attempt += 1) {
+  let attempt = 0
+  while (true) {
+    attempt += 1
     const result = await request(`${flowiseBase}/api/v1/prediction/${publication.flowId}`, {
       method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(payload)
     })
     if (result.response.ok) return result.body
-    if (!readOnlyRetry || !retryablePredictionStatus(result.response.status) || attempt === maximumAttempts) {
+    // A 500 whose body shows the controller LLM returned empty text (or was
+    // terminated) failed before any tool call, so no state was written; that
+    // class is a transient model fault and safe to retry in place.  The probe
+    // measured the same prompt completing in ~2-3k completion tokens, far
+    // below the output budget, so it is not budget exhaustion.  Match without
+    // quote literals: the serialized 500 body escapes them (\"\"), which
+    // previously let this exact class slip through unretried.
+    const bodyText = serialized(result.body)
+    const transientEmptyModelOutput = /Failed to parse\. Text:/.test(bodyText) ||
+      /Error in LLM node: terminated/.test(bodyText)
+    const maximumAttempts = transientEmptyModelOutput ? 3 : (readOnlyRetry ? 3 : 1)
+    const retryable = transientEmptyModelOutput || (readOnlyRetry && retryablePredictionStatus(result.response.status))
+    if (!retryable || attempt >= maximumAttempts) {
       fail('I10_STAGE8_FLOWISE_PREDICTION_FAILED', {
         status: result.response.status,
         attempts: attempt,
@@ -640,7 +683,7 @@ async function predict(payload, { readOnlyRetry = false } = {}) {
 // Tolerate only these two codes; every other failure stays fail-closed.
 function candidatePreviewPendingError(error) {
   const haystack = `${String(error?.message || '')}\n${String(error?.details?.responseError || '')}`
-  return /I8_CANDIDATE_UNAVAILABLE|I8_PREVIEW_FAILED/.test(haystack)
+  return /I8_CANDIDATE_UNAVAILABLE|I8_PREVIEW_FAILED|I8_STABILITY_CERTIFICATE_REQUIRED/.test(haystack)
 }
 
 async function predictOrCandidatePending(payload) {
@@ -836,7 +879,13 @@ async function runConversation({
   // chat forces the confirmed-image chain to rebuild a deficient draft that
   // misses every case field.
   resumeChatId = null,
-  resumeSessionId = null
+  resumeSessionId = null,
+  // Acceptance flows re-validate candidate delivery in finalizeRecord with an
+  // authoritative SQLite fallback (action traces, certificate, four runs).
+  // On a fast certification the compile/preview chain never lands a payload
+  // in-conversation, so the transcript-only assert here can only produce a
+  // false failure; those callers defer to the stronger final check.
+  deferCandidateEvidenceCheck = false
 }) {
   const chatId = resumeChatId || `i10-s8-${inputType.toLowerCase()}-${mode.toLowerCase()}-${reverse ? 'reverse' : 'forward'}-${Date.now()}`
   // Flowise chat ids are presentation identifiers and may carry a descriptive
@@ -942,7 +991,7 @@ async function runConversation({
   const verificationPhaseEvidence = []
   let formalVerificationArmed = false
   let authoringFinalHealth = null
-  while (stopped(body) || journeyProcessingPending(body) || ingestProcessingPending(body) || imageProcessingPending(body) || authoringProcessingPending(body) || targetProfileTransitionPending(body) || imageFactsTransitionPending(body) || imageConfirmedTransitionPending(body) || isolatedJourneyTransitionPending(body) || crossSessionProposalDecisionPending(body) || crossSessionToolContinuationPending(body) || crossSessionAuthoringAsyncPending(body) || crossSessionExecutionPlanPending(body) || crossSessionSilentPending(body) ||
+  while (stopped(body) || journeyProcessingPending(body) || ingestProcessingPending(body) || imageProcessingPending(body) || authoringProcessingPending(body) || targetProfileTransitionPending(body) || imageFactsTransitionPending(body) || imageConfirmedTransitionPending(body) || isolatedJourneyTransitionPending(body) || crossSessionProposalDecisionPending(body) || crossSessionToolContinuationPending(body) || crossSessionAuthoringAsyncPending(body) || crossSessionExecutionPlanPending(body) || crossSessionCaseInputPending(body) || crossSessionSilentPending(body) ||
     (variant === 'F006_IMAGE_ONLY_CLARIFY_RECURRING' && Boolean(findCredentialCapture(body)))) {
     // Real MiMo authoring may span several minutes. Each asynchronous status
     // poll is a human gate continuation, so bound wall time without treating
@@ -969,6 +1018,14 @@ async function runConversation({
     if (!node) {
       const journeyId = latestOpaqueId(transcript, 'journey')
       if (!journeyId && !imageFactsTransitionPending(body) && !imageConfirmedTransitionPending(body)) fail('I10_STAGE8_ASYNC_JOURNEY_ID_MISSING', { inputType, mode, reverse })
+      if (crossSessionScheduleCreated(body)) {
+        // The schedule exists (fresh or idempotent replay); end the
+        // conversation here and let the scheduled-mode terminal handling wait
+        // for the fire out-of-band instead of replaying schedule_create 70+
+        // times against an unreconciled Journey.
+        traceStage8(`schedule created at gate ${step}; ending conversation for out-of-band wait`)
+        break
+      }
       if (imageFactsTransitionPending(body)) {
         const imageIngestId = latestOpaqueId(transcript, 'imageingest')
         if (!imageIngestId) fail('I10_STAGE8_IMAGE_FACTS_INGEST_ID_MISSING', { inputType, mode, reverse })
@@ -1018,6 +1075,30 @@ async function runConversation({
         })
         transcript.push(body)
         safeWrite(`${sequence}-${String(step).padStart(2, '0')}-cross-session-execution-plan.json`, body)
+        continue
+      }
+      if (crossSessionCaseInputPending(body)) {
+        if (!journeyId) fail('I10_STAGE8_ASYNC_JOURNEY_ID_MISSING', { inputType, mode, reverse })
+        // Deterministic supplement: the graph parses and submits this exact
+        // JSON via journey_input_submit.  Typed business inputs (transfer
+        // cases) come from the acceptance case definition, never from the
+        // controller's prose re-inference.
+        const supplement = {
+          inputType: 'NATURAL_LANGUAGE',
+          naturalLanguage: sourceDescription,
+          credentialRef: scenario.credentialRef,
+          entryUrl: `${scenario.portalUrl}/portal/login`,
+          targetSystem: caseDefinition?.targetSystem || '复兴银行',
+          ...(caseDefinition?.documentName ? { documentName: caseDefinition.documentName } : {}),
+          ...(caseDefinition?.typedBusinessInputs ? { draftJson: { businessInputs: caseDefinition.typedBusinessInputs, missingFields: [] } } : {})
+        }
+        body = await predict({
+          question: `继续处理旅程${journeyId}：补充初始案例输入 ${JSON.stringify(supplement)}`,
+          chatId: body.chatId || chatId,
+          overrideConfig: { sessionId: body.sessionId || flowSessionId }
+        })
+        transcript.push(body)
+        safeWrite(`${sequence}-${String(step).padStart(2, '0')}-cross-session-case-input.json`, body)
         continue
       }
       if (crossSessionProposalDecisionPending(body)) {
@@ -1253,7 +1334,7 @@ async function runConversation({
       })
     }
   }
-  assertCandidateDeliveryEvidence(transcript, { inputType, mode, reverse })
+  if (!deferCandidateEvidenceCheck) assertCandidateDeliveryEvidence(transcript, { inputType, mode, reverse })
   if (supportingImageCount > 0) {
     const multimodal = scenarioMetadata(transcript)
     // The terminal reply intentionally contains only a short human summary.

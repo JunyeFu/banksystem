@@ -1,0 +1,118 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://fuxing-bank.local/contracts/governance/refactor-batch-v1.schema.json",
+  "title": "Refactor Batch Contract V1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion", "id", "title", "status", "owner", "authorizedBy",
+    "scope", "budgets", "baseline", "architecture", "mustPreserve",
+    "verification", "rollback"
+  ],
+  "properties": {
+    "schemaVersion": { "const": 1 },
+    "id": { "type": "string", "pattern": "^RF-[0-9]{3}$" },
+    "title": { "type": "string", "minLength": 4 },
+    "status": {
+      "enum": [
+        "PROPOSED", "BASELINE_FROZEN", "CONTRACT_APPROVED", "IMPLEMENTING",
+        "SHADOW_VERIFIED", "CUTOVER_READY", "CUTOVER", "OBSERVING", "ACCEPTED",
+        "CLEANUP_ELIGIBLE", "CLOSED", "BLOCKED", "ROLLED_BACK", "SUPERSEDED", "ABORTED"
+      ]
+    },
+    "owner": { "type": "string", "minLength": 1 },
+    "authorizedBy": { "type": "string", "minLength": 1 },
+    "scope": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["includePaths", "excludePaths"],
+      "properties": {
+        "includePaths": { "type": "array", "minItems": 1, "uniqueItems": true, "items": { "$ref": "#/$defs/path" } },
+        "excludePaths": { "type": "array", "minItems": 1, "uniqueItems": true, "items": { "$ref": "#/$defs/path" } }
+      }
+    },
+    "budgets": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["maxChangedFiles", "maxNewFiles", "maxChangedLines", "maxContractsChanged", "maxMigrationsAdded", "maxOpenModules"],
+      "properties": {
+        "maxChangedFiles": { "type": "integer", "minimum": 1 },
+        "maxNewFiles": { "type": "integer", "minimum": 0 },
+        "maxChangedLines": { "type": "integer", "minimum": 1 },
+        "maxContractsChanged": { "type": "integer", "minimum": 0 },
+        "maxMigrationsAdded": { "type": "integer", "minimum": 0 },
+        "maxOpenModules": { "type": "integer", "minimum": 1, "maximum": 2 }
+      }
+    },
+    "baseline": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["gitCommit", "dirtyTreeManifest", "releaseIdentity", "capturedAt"],
+      "properties": {
+        "gitCommit": { "type": "string", "pattern": "^[0-9a-f]{40}$" },
+        "dirtyTreeManifest": { "$ref": "#/$defs/path" },
+        "releaseIdentity": { "type": "string", "minLength": 1 },
+        "capturedAt": { "type": "string", "format": "date-time" }
+      }
+    },
+    "architecture": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["businessCapability", "publicContract", "dependencyManifest", "allowedModules", "forbiddenModules"],
+      "properties": {
+        "businessCapability": { "type": "string", "minLength": 1 },
+        "publicContract": { "$ref": "#/$defs/path" },
+        "dependencyManifest": { "$ref": "#/$defs/path" },
+        "allowedModules": { "type": "array", "minItems": 1, "uniqueItems": true, "items": { "type": "string" } },
+        "forbiddenModules": { "type": "array", "uniqueItems": true, "items": { "type": "string" } }
+      }
+    },
+    "mustPreserve": { "type": "array", "minItems": 1, "uniqueItems": true, "items": { "type": "string", "minLength": 1 } },
+    "verification": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["requiredCommands"],
+      "properties": {
+        "requiredCommands": {
+          "type": "array", "minItems": 2,
+          "items": {
+            "type": "object", "additionalProperties": false,
+            "required": ["name", "command", "expectedExitCode", "evidence", "blocking"],
+            "properties": {
+              "name": { "type": "string", "minLength": 1 },
+              "command": { "type": "string", "minLength": 1 },
+              "expectedExitCode": { "type": "integer" },
+              "evidence": { "$ref": "#/$defs/path" },
+              "blocking": { "type": "boolean" }
+            }
+          }
+        }
+      }
+    },
+    "rollback": {
+      "type": "object", "additionalProperties": false,
+      "required": ["triggerConditions", "recoveryPoint", "maxRtoMinutes", "maxRpoMinutes"],
+      "properties": {
+        "triggerConditions": { "type": "array", "minItems": 1, "items": { "type": "string", "minLength": 1 } },
+        "recoveryPoint": { "type": "string", "minLength": 1 },
+        "maxRtoMinutes": { "type": "integer", "minimum": 1 },
+        "maxRpoMinutes": { "type": "integer", "minimum": 0 }
+      }
+    },
+    "exceptions": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "allowedVagueNames": { "type": "array", "uniqueItems": true, "items": { "type": "string" } },
+        "crossModule": { "type": "array", "items": { "type": "string" } }
+      }
+    }
+  },
+  "$defs": {
+    "path": {
+      "type": "string",
+      "minLength": 1,
+      "not": { "enum": [".", "./", "**", "*"] }
+    }
+  }
+}

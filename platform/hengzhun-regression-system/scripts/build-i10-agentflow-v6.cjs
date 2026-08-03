@@ -524,6 +524,7 @@ const crossDecisionRejectGetId = 'toolAgentflow_i10_v6_cross_session_reject_jour
   const crossSessionScheduleCompileId = 'customFunctionAgentflow_i10_v6_cross_session_schedule_compile'
   const crossSessionScheduleCreateId = 'toolAgentflow_i10_v6_cross_session_schedule_create'
   const crossSessionScheduledReplyId = 'directReplyAgentflow_i10_v6_cross_session_scheduled'
+  const crossSessionCaseInputSubmitId = 'toolAgentflow_i10_v6_cross_session_case_input_submit'
 // v5 may already contain these node ids with legacy unscoped `output.*`
 // templates.  Replace the three-node gate as a unit so v6 cannot silently
 // retain the stale configuration from its source graph.
@@ -543,7 +544,8 @@ const crossDecisionIds = new Set([
     crossDecisionExecutionPlanSubmitId, crossDecisionInputPromptId,
     crossSessionRunSubmitId, crossSessionTaskGetId, crossSessionResultInboxId, crossSessionResultReplyId,
     crossSessionCandidatePreviewId, crossSessionResultPreviewId, crossSessionResultTaskGetId,
-    crossSessionScheduleCompileId, crossSessionScheduleCreateId, crossSessionScheduledReplyId
+    crossSessionScheduleCompileId, crossSessionScheduleCreateId, crossSessionScheduledReplyId,
+    crossSessionCaseInputSubmitId
 ])
 flow.nodes = flow.nodes.filter(node => !crossDecisionIds.has(node.id))
 flow.edges = flow.edges.filter(edge => !crossDecisionIds.has(edge.source) && !crossDecisionIds.has(edge.target))
@@ -593,17 +595,32 @@ const reject = new RegExp('^拒绝冻结案例提案\\\\s*' + escaped + '$').tes
 // (never via an LLM) so mode, instant, cron and timezone reach Harness exactly.
 if (!canDecide && status === 'NEEDS_INPUT' && /EXECUTION_PLAN/.test(inputKind)) {
   const timezone = (text.match(/时区\\s*([A-Za-z_]+\\/[A-Za-z_]+)/) || [])[1] || 'Asia/Shanghai';
-  if (/ON_DEMAND|立即执行/i.test(text)) return { route: 'EXECUTION_PLAN', executionPlan: JSON.stringify({ mode: 'ON_DEMAND' }) };
+  if (/ON_DEMAND|立即执行/i.test(text)) return { route: 'EXECUTION_PLAN', executionPlan: JSON.stringify({ mode: 'ON_DEMAND' }), caseInput: '' };
   const runAt = (text.match(/执行时间\\s*([^，。]+)/) || [])[1] || '';
-  if (/ONE_TIME|单次定时|执行一次/i.test(text) && runAt) return { route: 'EXECUTION_PLAN', executionPlan: JSON.stringify({ mode: 'ONE_TIME', runAt, timezone }) };
+  if (/ONE_TIME|单次定时|执行一次/i.test(text) && runAt) return { route: 'EXECUTION_PLAN', executionPlan: JSON.stringify({ mode: 'ONE_TIME', runAt, timezone }), caseInput: '' };
   const cron = (text.match(/Cron为\\s*([^，。]+)/i) || [])[1] || '';
-  if (/RECURRING|周期执行/i.test(text) && cron) return { route: 'EXECUTION_PLAN', executionPlan: JSON.stringify({ mode: 'RECURRING', cronExpression: cron.trim().replace(/\\s+/g, ' '), timezone }) };
+  if (/RECURRING|周期执行/i.test(text) && cron) return { route: 'EXECUTION_PLAN', executionPlan: JSON.stringify({ mode: 'RECURRING', cronExpression: cron.trim().replace(/\\s+/g, ' '), timezone }), caseInput: '' };
 }
-return { route: canDecide && approve ? 'APPROVE' : (canDecide && reject ? 'REJECT' : (status === 'NEEDS_INPUT' ? 'PRESENT_INPUT' : 'PRESENT')), executionPlan: '', approvedDecision: canDecide && approve ? String($journeyProceedDecision || '') : '' };`,
+// A NEEDS_INPUT(INITIAL_CASE_INPUT) journey is answered with the driver's
+// deterministic JSON supplement.  Validate the exact keys here (never the
+// LLM) so journey_input_submit receives the frozen natural language and any
+// typed business inputs byte-for-byte.
+if (!canDecide && status === 'NEEDS_INPUT' && /INITIAL_CASE_INPUT/.test(inputKind)) {
+  const match = text.match(/补充初始案例输入\\s*(\\{[\\s\\S]*\\})\\s*$/);
+  if (match) {
+    let parsed = {};
+    try { parsed = JSON.parse(match[1]) } catch { parsed = {} }
+    if (parsed && typeof parsed === 'object' && !Array.isArray(parsed) && String(parsed.naturalLanguage || '').trim() && String(parsed.credentialRef || '').trim()) {
+      return { route: 'CASE_INPUT', executionPlan: '', caseInput: JSON.stringify(parsed) };
+    }
+  }
+}
+return { route: canDecide && approve ? 'APPROVE' : (canDecide && reject ? 'REJECT' : (status === 'NEEDS_INPUT' ? 'PRESENT_INPUT' : 'PRESENT')), executionPlan: '', approvedDecision: canDecide && approve ? String($journeyProceedDecision || '') : '', caseInput: '' };`,
         customFunctionUpdateState: [
           { key: 'crossSessionDecisionRoute', value: '{{ output.route }}' },
           { key: 'crossSessionExecutionPlan', value: '{{ output.executionPlan }}' },
-          { key: 'crossSessionApprovedDecision', value: '{{ output.approvedDecision }}' }
+          { key: 'crossSessionApprovedDecision', value: '{{ output.approvedDecision }}' },
+          { key: 'crossSessionCaseInput', value: '{{ output.caseInput }}' }
         ]
       }
     }
@@ -854,11 +871,12 @@ return {
       baseClasses: ['conditionAgentflow'],
       category: 'Agent Flows',
       inputAnchors: [],
-      outputAnchors: [{ label: '确认', name: '0' }, { label: '拒绝', name: '1' }, { label: '执行计划', name: '2' }, { label: '补充输入提示', name: '3' }, { label: '重新提示', name: '4' }],
+      outputAnchors: [{ label: '确认', name: '0' }, { label: '拒绝', name: '1' }, { label: '执行计划', name: '2' }, { label: '案例补充', name: '3' }, { label: '补充输入提示', name: '4' }, { label: '重新提示', name: '5' }],
       inputs: { conditions: [
         { type: 'string', value1: '{{$flow.state.crossSessionDecisionRoute}}', operation: 'equal', value2: 'APPROVE' },
         { type: 'string', value1: '{{$flow.state.crossSessionDecisionRoute}}', operation: 'equal', value2: 'REJECT' },
         { type: 'string', value1: '{{$flow.state.crossSessionDecisionRoute}}', operation: 'equal', value2: 'EXECUTION_PLAN' },
+        { type: 'string', value1: '{{$flow.state.crossSessionDecisionRoute}}', operation: 'equal', value2: 'CASE_INPUT' },
         { type: 'string', value1: '{{$flow.state.crossSessionDecisionRoute}}', operation: 'equal', value2: 'PRESENT_INPUT' }
       ] }
     }
@@ -912,6 +930,44 @@ return {
   crossCandidateActivate.data.label = 'MCP执行恢复后真实候选激活'
   crossCandidateActivate.position = { x: 1900, y: 210 }
   flow.nodes.push(crossCandidateActivate)
+  // JOIN repair: the legacy result-inbox and schedule-disable tools each have
+  // two inbound edges, which native Agentflow treats as a join, so reaching
+  // them from the query/disable routes alone stalls with an empty reply (the
+  // acceptance driver's out-of-band schedule wait and recurring cleanup depend
+  // on these routes).  Give each route its own single-parent clone chain.
+  const joinRepairs = [
+    {
+      routeId: 'conditionAgentflow_i10_v5_result_query_route', routeHandle: 'output-0',
+      sourceNodeId: 'toolAgentflow_i10_v3_result_inbox', cloneNodeId: 'toolAgentflow_i10_v6_result_query_inbox',
+      sourceReplyId: 'directReplyAgentflow_i10_v3_result_inbox_reply', cloneReplyId: 'directReplyAgentflow_i10_v6_result_query_reply'
+    },
+    {
+      routeId: 'humanInputAgentflow_schedule_disable', routeHandle: 'output-0',
+      sourceNodeId: 'toolAgentflow_i10_v3_schedule_disable', cloneNodeId: 'toolAgentflow_i10_v6_schedule_disable',
+      sourceReplyId: 'directReplyAgentflow_i10_v3_schedule_disabled', cloneReplyId: 'directReplyAgentflow_i10_v6_schedule_disabled'
+    }
+  ]
+  for (const repair of joinRepairs) {
+    flow.nodes = flow.nodes.filter(node => node.id !== repair.cloneNodeId && node.id !== repair.cloneReplyId)
+    const sourceNode = flow.nodes.find(node => node.id === repair.sourceNodeId)
+    const sourceReply = flow.nodes.find(node => node.id === repair.sourceReplyId)
+    if (!sourceNode || !sourceReply) throw new Error(`I10_V6_JOIN_REPAIR_SOURCE_MISSING:${repair.sourceNodeId}`)
+    const cloneNode = JSON.parse(JSON.stringify(sourceNode))
+    cloneNode.id = repair.cloneNodeId
+    cloneNode.data.id = repair.cloneNodeId
+    cloneNode.data.label = `${sourceNode.data.label}（隔离查询路由）`
+    cloneNode.position = { x: Number(sourceNode.position?.x || 0) + 40, y: Number(sourceNode.position?.y || 0) - 120 }
+    flow.nodes.push(cloneNode)
+    const cloneReply = JSON.parse(JSON.stringify(sourceReply))
+    cloneReply.id = repair.cloneReplyId
+    cloneReply.data.id = repair.cloneReplyId
+    cloneReply.data.label = `${sourceReply.data.label}（隔离查询路由）`
+    cloneReply.position = { x: Number(sourceReply.position?.x || 0) + 40, y: Number(sourceReply.position?.y || 0) - 120 }
+    flow.nodes.push(cloneReply)
+    flow.edges = flow.edges.filter(edge => !(edge.source === repair.routeId && edge.target === repair.sourceNodeId))
+    flow.edges.push({ id: `i10-v6-join-repair-${repair.cloneNodeId}`, source: repair.routeId, target: repair.cloneNodeId, sourceHandle: `${repair.routeId}-${repair.routeHandle}`, targetHandle: repair.cloneNodeId, type: 'buttonedge' })
+    flow.edges.push({ id: `i10-v6-join-repair-${repair.cloneReplyId}`, source: repair.cloneNodeId, target: repair.cloneReplyId, sourceHandle: `${repair.cloneNodeId}-output-toolAgentflow`, targetHandle: repair.cloneReplyId, type: 'buttonedge' })
+  }
   cloneDecisionNode('toolAgentflow_i10_v3_reject', crossDecisionRejectId, 'MCP提交恢复后冻结提案拒绝决定', { x: 1180, y: 450 })
   cloneDecisionNode('toolAgentflow_i10_v4_cross_session_journey_get', crossDecisionRejectGetId, '回读恢复后拒绝旅程状态', { x: 1360, y: 450 })
   cloneDecisionNode('conditionAgentflow_i10_v4_reject_route', crossDecisionRejectRouteId, '恢复后拒绝是否进入案例修订', { x: 1720, y: 450 })
@@ -1011,9 +1067,27 @@ return {
   flow.edges.push({ id: 'i10-v6-cross-session-decision-reject-get', source: crossDecisionRejectId, target: crossDecisionRejectGetId, sourceHandle: `${crossDecisionRejectId}-output-toolAgentflow`, targetHandle: crossDecisionRejectGetId, type: 'buttonedge' })
   flow.edges.push({ id: 'i10-v6-cross-session-decision-reject-correct', source: crossDecisionRejectRouteId, target: 'humanInputAgentflow_i10_v4_case_correction', sourceHandle: `${crossDecisionRejectRouteId}-output-0`, targetHandle: 'humanInputAgentflow_i10_v4_case_correction', type: 'buttonedge' })
   flow.edges.push({ id: 'i10-v6-cross-session-decision-reject-card', source: crossDecisionRejectRouteId, target: 'directReplyAgentflow_i10_v3_card', sourceHandle: `${crossDecisionRejectRouteId}-output-1`, targetHandle: 'directReplyAgentflow_i10_v3_card', type: 'buttonedge' })
-  flow.edges.push({ id: 'i10-v6-cross-session-decision-prompt', source: crossDecisionRouteId, target: crossDecisionPromptId, sourceHandle: `${crossDecisionRouteId}-output-4`, targetHandle: crossDecisionPromptId, type: 'buttonedge' })
-  flow.edges.push({ id: 'i10-v6-cross-session-decision-input-prompt', source: crossDecisionRouteId, target: crossDecisionInputPromptId, sourceHandle: `${crossDecisionRouteId}-output-3`, targetHandle: crossDecisionInputPromptId, type: 'buttonedge' })
+  flow.edges.push({ id: 'i10-v6-cross-session-decision-prompt', source: crossDecisionRouteId, target: crossDecisionPromptId, sourceHandle: `${crossDecisionRouteId}-output-5`, targetHandle: crossDecisionPromptId, type: 'buttonedge' })
+  flow.edges.push({ id: 'i10-v6-cross-session-decision-input-prompt', source: crossDecisionRouteId, target: crossDecisionInputPromptId, sourceHandle: `${crossDecisionRouteId}-output-4`, targetHandle: crossDecisionInputPromptId, type: 'buttonedge' })
   flow.edges.push({ id: 'i10-v6-cross-session-decision-execution-plan', source: crossDecisionRouteId, target: crossDecisionExecutionPlanSubmitId, sourceHandle: `${crossDecisionRouteId}-output-2`, targetHandle: crossDecisionExecutionPlanSubmitId, type: 'buttonedge' })
+  // INITIAL_CASE_INPUT supplement: the driver's deterministic JSON is already
+  // validated by decision-parse; this single write submits it byte-for-byte.
+  const crossCaseInputSubmit = JSON.parse(JSON.stringify(flow.nodes.find(node => node.id === 'toolAgentflow_i10_v4_initial_case_submit')))
+  if (!crossCaseInputSubmit) throw new Error('I10_V6_CROSS_SESSION_CASE_INPUT_SUBMIT_SOURCE_MISSING')
+  crossCaseInputSubmit.id = crossSessionCaseInputSubmitId
+  crossCaseInputSubmit.data.id = crossSessionCaseInputSubmitId
+  crossCaseInputSubmit.data.label = 'MCP提交恢复后初始案例补充'
+  crossCaseInputSubmit.position = { x: 1180, y: 90 }
+  crossCaseInputSubmit.data.inputs.toolInputArgs = [
+    { inputArgName: 'journeyId', inputArgValue: '{{$flow.state.journeyId}}' },
+    { inputArgName: 'expectedVersion', inputArgValue: '{{$flow.state.journeyVersion}}' },
+    { inputArgName: 'inputKind', inputArgValue: 'INITIAL_CASE_INPUT' },
+    { inputArgName: 'normalizedInput', inputArgValue: '{{$flow.state.crossSessionCaseInput}}' },
+    { inputArgName: 'submissionRef', inputArgValue: '{{$flow.sessionId}}-initial-case-input' },
+    { inputArgName: 'sessionRef', inputArgValue: '{{$flow.sessionId}}' }
+  ]
+  flow.nodes.push(crossCaseInputSubmit)
+  flow.edges.push({ id: 'i10-v6-cross-session-decision-case-input', source: crossDecisionRouteId, target: crossSessionCaseInputSubmitId, sourceHandle: `${crossDecisionRouteId}-output-3`, targetHandle: crossSessionCaseInputSubmitId, type: 'buttonedge' })
   flow.edges.push(
     { id: 'i10-v6-cross-session-authoring-resume-submit', source: crossSessionRoute.id, target: crossSessionAuthoringSubmitId, sourceHandle: `${crossSessionRoute.id}-output-1`, targetHandle: crossSessionAuthoringSubmitId, type: 'buttonedge' },
     { id: 'i10-v6-cross-session-candidate-resume-compile', source: crossSessionRoute.id, target: crossSessionCandidateCompileId, sourceHandle: `${crossSessionRoute.id}-output-2`, targetHandle: crossSessionCandidateCompileId, type: 'buttonedge' },

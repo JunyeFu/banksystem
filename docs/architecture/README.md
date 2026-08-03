@@ -5,8 +5,8 @@ document_type: reference
 domain: architecture
 status: accepted
 authority: normative
-version: 1.2
-effective_date: 2026-07-21
+version: 1.4
+effective_date: 2026-08-01
 owner: project-owner
 ---
 
@@ -21,6 +21,8 @@ owner: project-owner
 - `overview/coze-harness-midscene-observability-boundary.md`：I0—I7 的 Coze、Harness、Midscene、Playwright 与衡准历史职责边界和验收参数。
 - `coze-hiagent-workflow-design-v1.md`：历史 Coze 目标设计；未来目标架构已由 Flowise/SQLite/HiAgent 基线覆盖，历史背景和既有证据仍保留。
 - `state-machines/`：银行业务状态机。
+- [`refactoring-control-process-v1.md`](refactoring-control-process-v1.md)：复兴银行与衡准平台获准重构批次的全过程控制规范，定义基线冻结、合同门禁、写入白名单、修改预算、影子比较、切流、观察、回滚、清理和AI执行边界；不构成第二套项目实施顺序。
+- [`refactoring/`](refactoring/README.md)：重构模块边界、依赖规则、行为保护层、Agent任务包、量化指标、批次合同和RF-000前置证据。
 - `v5.4-external-demo-baseline.md`：I0—I7 组合产品历史目标基线，已被 Flowise/SQLite/HiAgent 基线替代。
 - `v54-coze-harness-acceptance-matrix.md`：I0—I7 Coze/Harness 回归核心的历史验收矩阵。
 - `../design/regression-platform/i9-flowise-productization-spec-v1.md`：I9 P1—P9 的 Flowise 产品化、便携候选和最终可压缩提交文件夹辅助规格。

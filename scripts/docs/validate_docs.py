@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import re
 import subprocess
+import sys
 from pathlib import Path
 
 
@@ -157,6 +158,25 @@ def validate_generated_ignored(errors: list[str]) -> None:
         errors.append(f"ignore rules incomplete: expected={sorted(expected)} actual={sorted(ignored)}")
 
 
+def validate_refactoring_governance(errors: list[str]) -> bool:
+    validator = ROOT / "scripts" / "architecture" / "validate_refactoring.py"
+    if not validator.is_file():
+        errors.append("refactoring governance validator missing")
+        return False
+    process = subprocess.run(
+        [sys.executable, str(validator)],
+        cwd=ROOT,
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    if process.returncode != 0:
+        details = (process.stdout + process.stderr).strip().replace("\n", " | ")
+        errors.append(f"refactoring governance invalid: {details}")
+        return False
+    return "REFACTOR_VALIDATION=PASS" in process.stdout
+
+
 def main() -> None:
     errors: list[str] = []
     metadata_count = validate_metadata(errors)
@@ -164,6 +184,7 @@ def main() -> None:
     stale_count = validate_stale_paths(errors)
     order_count = validate_implementation_order(errors)
     validate_generated_ignored(errors)
+    refactoring_valid = validate_refactoring_governance(errors)
     if (ROOT / "agent" / "execution-state.yaml").exists():
         errors.append("agent/execution-state.yaml must not exist outside archive")
     if errors:
@@ -173,7 +194,7 @@ def main() -> None:
         raise SystemExit(1)
     print(
         f"DOC_VALIDATION=PASS metadata={metadata_count} links={link_count} "
-        f"stale_checks={stale_count} order_files={order_count}"
+        f"stale_checks={stale_count} order_files={order_count} refactoring={refactoring_valid}"
     )
 
 

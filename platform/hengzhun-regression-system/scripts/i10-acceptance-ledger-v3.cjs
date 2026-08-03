@@ -223,10 +223,32 @@ function migrateLegacyV2() {
   return { migrated, legacyRecords: Object.keys(legacy.records).length, ledgerPath: path.relative(root, ledgerPath).replaceAll('\\', '/') }
 }
 
-module.exports = { root, evidenceRoot, ledgerPath, CASES, VARIANTS, CHECKPOINT_STAGES, atomicWrite, emptyLedger, readLedger, writeLedger, key, writeCheckpoint, recordTerminal, existingTerminal, currentRecords, status, migrateLegacyV2 }
+function contradictionCheckpointKeys(ledger = readLedger(), identity = currentReleaseIdentity({ requireDeployed: false })) {
+  // A PASSED record and a pending checkpoint for the same key contradict each
+  // other: the checkpoint was written by a failure (for example a pair-gate
+  // mismatch raised after the terminal record landed).  Only those keys may be
+  // swept — a checkpoint whose key has no current-identity PASSED record still
+  // guards a pending recovery and must never be touched here.
+  return Object.keys(ledger.checkpoints).filter(recordKey => {
+    const record = ledger.records[recordKey]
+    return record?.status === 'PASSED' && sameReleaseIdentity(record.releaseIdentity, identity)
+  })
+}
+
+function sweepContradictionCheckpoints() {
+  const identity = currentReleaseIdentity({ requireDeployed: false })
+  const ledger = readLedger(identity)
+  const swept = contradictionCheckpointKeys(ledger, identity)
+  for (const recordKey of swept) delete ledger.checkpoints[recordKey]
+  if (swept.length) writeLedger(ledger)
+  return { swept, remaining: Object.keys(ledger.checkpoints).length }
+}
+
+module.exports = { root, evidenceRoot, ledgerPath, CASES, VARIANTS, CHECKPOINT_STAGES, atomicWrite, emptyLedger, readLedger, writeLedger, key, writeCheckpoint, recordTerminal, existingTerminal, currentRecords, status, migrateLegacyV2, contradictionCheckpointKeys, sweepContradictionCheckpoints }
 if (require.main === module) {
   const command = process.argv[2] || 'status'
   if (command === 'status') process.stdout.write(`${JSON.stringify(status(), null, 2)}\n`)
   else if (command === 'migrate-v2') process.stdout.write(`${JSON.stringify(migrateLegacyV2(), null, 2)}\n`)
+  else if (command === 'sweep-contradictions') process.stdout.write(`${JSON.stringify(sweepContradictionCheckpoints(), null, 2)}\n`)
   else throw new Error('I10_ACCEPTANCE_LEDGER_V3_USAGE')
 }

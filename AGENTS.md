@@ -42,6 +42,11 @@
 - Stable decisions use ADRs. Active plans live in `agent/plans/active/`; accepted evidence lives in `docs/evidence/`.
 - Follow nested `AGENTS.md` files for `apps/`, `services/`, `contracts/`, and `tests/`.
 
+## Refactoring execution interlock
+
+- For any refactoring phase that lacks a complete direction-refinement chain — order (`agent/plans/active/v54-implementation-batches.md`) → batch (`batches/RF-xxx/batch.yaml`) → slice (single business goal, allowed/forbidden paths) → task package with command-level done criteria — refuse direct execution prompts: make no file changes and run no implementation commands. Instead, tell the user which refinement layer is missing and where its evidence must live, ask them to refine the control system top-down first, then after their refinement is complete produce a task-level refinement in plan mode (read-only) and execute only after the user approves it.
+- Normative source: `docs/architecture/refactoring-control-process-v1.md` section `RC-D0 方向细化前置门禁`.
+
 ## Required verification
 
 Run checks proportional to changed scope:

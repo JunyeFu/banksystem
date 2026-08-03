@@ -2053,7 +2053,7 @@ controllerInitialPrompt.data.inputs.customFunctionUpdateState = [
 const primaryStructure = byId.get('llmAgentflow_i10_v3_structure')
 primaryStructure.data.label = '紧凑结构化案例草案'
 primaryStructure.data.inputs.llmMessages[0].content =
-  '只输出案例JSON，且顶层键必须且只能是caseTitle、objective、targetSystem、entryUrl、actions、expectedOutcomes、missingFields。不得输出schemaVersion、requestIntent、inputType、currentInput、caseDraft、actionCount或解释。不得输出账号、密码、定位器、代码；credentialRef不由你生成。文本最多40字，最多4个动作，actions与expectedOutcomes等长。入口URL未知时entryUrl为空、missingFields仅写entryUrl。入口地址已在entryUrl字段提供时，不得把“打开入口URL”写成重复业务动作；用户明确表述“登录后进入/导航到某页面”时，必须保留该页面进入动作为独立步骤，不得用登录结果替代。'
+  '只输出案例JSON，且顶层键必须且只能是caseTitle、objective、targetSystem、entryUrl、actions、expectedOutcomes、missingFields。不得输出schemaVersion、requestIntent、inputType、currentInput、caseDraft、actionCount或解释。不得输出账号、密码、定位器、代码；credentialRef不由你生成。文本最多40字，最多6个动作，actions与expectedOutcomes等长。入口URL未知时entryUrl为空、missingFields仅写entryUrl。入口地址已在entryUrl字段提供时，不得把“打开入口URL”写成重复业务动作；用户明确表述“登录后进入/导航到某页面”时，必须保留该页面进入动作为独立步骤，不得用登录结果替代。'
 primaryStructure.data.inputs.llmMessages[1].content =
   '根据下列受限上下文形成草案，只保留用户明确表达的事实。\n{{$flow.state.controllerPromptEnvelopeJson}}'
 // Flowise validates the native node output before the deterministic normalizer
@@ -2066,7 +2066,7 @@ const compactDraftFields = [
   { key: 'objective', type: 'string', description: '简短测试目标' },
   { key: 'targetSystem', type: 'string', description: '目标系统' },
   { key: 'entryUrl', type: 'string', description: '用户提供的入口URL，未知时为空字符串' },
-  { key: 'actions', type: 'stringArray', description: '最多四项动作' },
+  { key: 'actions', type: 'stringArray', description: '最多六项动作' },
   { key: 'expectedOutcomes', type: 'stringArray', description: '与动作等长的预期结果' },
   { key: 'missingFields', type: 'stringArray', description: '最小业务缺口' }
 ]

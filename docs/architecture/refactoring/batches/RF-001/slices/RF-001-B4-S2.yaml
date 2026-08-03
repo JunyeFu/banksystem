@@ -1,0 +1,92 @@
+schemaVersion: 1
+id: RF-001-B4-S2
+title: 18链身份保持与公共API新鲜度实时回读
+status: APPROVED
+owner: project-owner
+authorizedBy: agent/plans/active/v54-implementation-batches.md (重构控制执行顺序第6项, RF-001-B4)
+parentBatch: docs/architecture/refactoring/batches/RF-001/batch.yaml
+plan: docs/architecture/refactoring/batches/RF-001/slices/RF-001-B4-plan.md (用户已批准B4切片链与S2环境门禁=暂停策略)
+baseline:
+  gitCommit: dacd79580ec73f3580594ab2134acf8cc3d99f35
+  releaseIdentity: 632ad5ee7981b59f00824d0072d28da6075eef095d55a898d51c0103a897988f
+  capturedAt: "2026-08-02"
+  environment: 正式环境（Flowise 3006/Harness 18788/MCP 18789/Worker），模型密钥在Windows用户环境，已由用户授权启动
+
+# 单业务目标：正式运行环境下完成 ReleaseIdentity 与 18 链验收的实时复算，
+# 关闭 B3-S5 遗留的公共 API 回读新鲜度 OPEN 门禁，为 B4-S4 切流提供"18链无回退"证据。
+# 单功能点：18链身份保持与新鲜度收口（运行态）。
+businessGoal:
+  - 四服务启动并健康（start-i10.ps1，含真实模型探针 mock=false）
+  - 公共API实时回读：deployedFlowDataSha256/chatbotConfigHash/sourceFlowSha256 与基线快照逐项一致（关闭OPEN门禁）
+  - 18链验收：currentPassed=18/18、full18ChainAccepted=true、9组语义匹配
+  - identityHash 复算 == 632ad5ee…
+functionalPoint: 18链身份保持与公共API新鲜度实时回读（RUNTIME级）
+evidenceLevel: RUNTIME_LIVE
+
+allowedPaths:
+  - platform/hengzhun-regression-system/.data/logs/**（运行证据，gitignore）
+  - platform/hengzhun-regression-system/.data/evidence/**（验收证据，gitignore）
+  - docs/architecture/refactoring/batches/RF-001/decision-log.md
+  - docs/architecture/refactoring/batches/RF-001/evidence-index.md
+  - docs/architecture/refactoring/batches/RF-001/shadow-implementation-report.md
+  - docs/architecture/refactoring/batches/RF-001/slices/**
+
+forbiddenPaths:
+  - 所有源代码目录（mcp/harness/flowise/worker/contracts/apps/services）零改动
+  - 生产DB直接写入（只用产品受管命令）；不读取/打印任何密钥
+  - agent/backlog.yaml, agent/plans/active/v54-implementation-batches.md
+  - scripts/architecture/**；SQLite迁移；切流
+
+budgets:
+  maxChangedFiles: 4
+  maxNewFiles: 0
+  maxChangedLines: 100
+  maxContractsChanged: 0
+  maxMigrationsAdded: 0
+  maxOpenModules: 0（零代码改动，纯运行态验证）
+
+invariants:
+  - 全部使用产品受管命令（start-i10.ps1 / i10-18-chain-acceptance-live.cjs / i10-release-identity.cjs）
+  - 不伪造证据：任何一步失败即如实记录，18链未过不声明无回退
+  - 密钥只经产品脚本进程内使用，不输出
+
+workSteps:
+  - step: S2-1 环境启动（已完成）
+    action: 用户授权后执行 start-i10.ps1；四服务健康、模型探针 mock=false/degraded=false、公共API回读三项Hash与基线一致（2026-08-03T02:21Z）
+  - step: S2-2 18链验收
+    action: 运行 i10-18-chain-acceptance-live.cjs（产品受管18链执行器，真实Flowise对话+固定Chromium+Fixture）；记录 currentPassed/语义匹配/identity
+  - step: S2-3 身份复算
+    action: i10-release-identity.cjs identityHash 对照基线
+  - step: S2-4 证据与同步
+    action: 更新报告/证据索引/决策日志；RC-D1逐级同步；关闭新鲜度OPEN门禁（或如实登记失败）
+
+verification:
+  requiredCommands:
+    - name: services-health
+      command: curl http://127.0.0.1:3006/health && curl http://127.0.0.1:18788/health && curl http://127.0.0.1:18789/health
+      expectedExitCode: 0
+      expectedOutput: 四服务200（含worker）
+      blocking: true
+    - name: public-api-readback
+      command: start-i10.ps1 内置 i10-agentflow-publish.cjs --allow-register 回读
+      expectedExitCode: 0
+      expectedOutput: deployedFlowDataSha256=ae3f51ac…、sourceFlowSha256=65bc36cd…、chatbotConfigHash=706f5398…与基线一致
+      blocking: true
+    - name: i10-18-chain-acceptance
+      command: runtime/node-v20.20.2-win-x64/node.exe scripts/i10-18-chain-acceptance-live.cjs
+      expectedExitCode: 0
+      expectedOutput: currentPassed=18/18、full18ChainAccepted=true
+      blocking: true
+    - name: runtime-release-identity
+      command: runtime/node-v20.20.2-win-x64/node.exe scripts/i10-release-identity.cjs
+      expectedExitCode: 0
+      expectedOutput: identityHash=632ad5ee…
+      blocking: true
+
+rollback:
+  triggerConditions: 任何Hash/18链/身份与基线不一致；证据伪造嫌疑
+  recoveryPoint: 停止服务（i9-lifecycle.cjs stop）+ 基线快照对照
+  maxRtoMinutes: 30
+  maxRpoMinutes: 0
+
+exclusions: B4-S3回滚演练、B4-S4切流、B4-S5观察关闭；任何代码/合同变更

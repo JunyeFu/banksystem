@@ -19,7 +19,7 @@ const FUXING_BANK_DEMO_TARGETS = Object.freeze({
   LOGIN_SUBMIT: { kind: 'TEST_ID', value: 'login-submit', prompt: '红色的账号密码登录按钮' },
   HEADER_DISPLAY_NAME: { kind: 'TEST_ID', value: 'customer-profile-name', prompt: '页面右上角的当前客户姓名' },
   HEADER_AVATAR: { kind: 'TEST_ID', value: 'customer-profile-avatar', prompt: '页面右上角的当前客户头像' },
-  HEADER_PROFILE_LINK: { kind: 'ROLE', value: 'link|个人资料', prompt: '当前客户菜单中的个人资料链接' },
+  HEADER_PROFILE_LINK: { kind: 'ROLE', value: 'link|个人资料', prompt: '门户顶部主导航中的个人资料链接，不是右上角客户菜单项' },
   PROFILE_DISPLAY_NAME: { kind: 'TEST_ID', value: 'profile-display-name', prompt: '个人资料页中的客户姓名' },
   PROFILE_AVATAR: { kind: 'TEST_ID', value: 'profile-avatar', prompt: '个人资料页中的客户头像' },
   TRANSFER_ENTRY: { kind: 'TEST_ID', value: 'transfer-entry', prompt: '门户导航中的转账业务入口' },

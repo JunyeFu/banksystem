@@ -1,0 +1,96 @@
+schemaVersion: 1
+id: RF-001-B4-S4
+title: 切流（MCP错误响应切换为8字段规范信封 + 回退开关）
+status: APPROVED
+owner: project-owner
+authorizedBy: agent/plans/active/v54-implementation-batches.md (重构控制执行顺序第6项, RF-001-B4)
+parentBatch: docs/architecture/refactoring/batches/RF-001/batch.yaml
+plan: docs/architecture/refactoring/batches/RF-001/slices/RF-001-B4-plan.md（用户已批准：切流内容=错误信封切换+`HENGZHUN_RF001_LEGACY_ERROR`回退开关；切流需用户显式批准——2026-08-03已批准）
+cutoverNorm: docs/architecture/refactoring/batches/RF-001/cutover-runbook.md（前置门禁全部满足）
+baseline:
+  gitCommit: dacd79580ec73f3580594ab2134acf8cc3d99f35
+  releaseIdentity: 632ad5ee7981b59f00824d0072d28da6075eef095d55a898d51c0103a897988f
+  capturedAt: "2026-08-03"
+
+# 单业务目标：MCP错误响应从旧投影切换到B2冻结的8字段规范信封，
+# 保留 HENGZHUN_RF001_LEGACY_ERROR=1 回退开关；errorCode权威名不变；
+# 影子比较切流后继续保留。切流只发生在 hengzhun.mcp 适配器边界。
+# 单功能点：错误信封输出切换（+回退开关）。
+businessGoal:
+  - 适配器新增 projectCanonicalToolError：工具级错误对象投影为规范信封（幂等，兼容validationIssues→fieldErrors）
+  - server.cjs：textResult(isError) 默认输出规范信封；HENGZHUN_RF001_LEGACY_ERROR=1 时输出旧形状；callHarness 失败路径输出 canonical（含safeMessage/correlationRef）而非仅legacy
+  - 生产MCP重启后实时验证：错误响应为规范信封（retryable/userActionRequired/fieldErrors/safeMessage/correlationRef 等字段），errorCode 保留
+  - 回退验证：LEGACY_ERROR=1 下响应为旧形状 {errorCode,category,status}
+  - 身份 632ad5ee 不变；影子回归 mismatched=0
+functionalPoint: 错误信封输出切换
+evidenceLevel: RUNTIME_CUTOVER
+
+allowedPaths:
+  - platform/hengzhun-regression-system/mcp/src/rf001-contract-adapter.cjs   # 新增 projectCanonicalToolError
+  - platform/hengzhun-regression-system/mcp/src/server.cjs                    # textResult/callHarness + legacyErrorOutput 开关
+  - platform/hengzhun-regression-system/scripts/verification/rf001-b4s1-compat-error-baseline.test.cjs   # 切流后基线更新
+  - platform/hengzhun-regression-system/scripts/verification/rf001-b4s4-cutover.test.cjs   # 【新增】切流验证（静态+可选实时）
+  - docs/architecture/refactoring/batches/RF-001/**（decision-log/evidence-index/shadow-report/slices）
+  - 生产MCP进程重启（i9-lifecycle.cjs 受管命令）与实时探测（用户已批准切流）
+
+forbiddenPaths:
+  - harness/**、flowise/**、worker/**、contracts/**、apps/**, services/**, infra/**, data/**, secrets/**, .env
+  - agent/backlog.yaml, agent/plans/active/v54-implementation-batches.md
+  - scripts/architecture/**；SQLite迁移；工具名/别名变更；生产DB写入
+
+budgets:
+  maxChangedFiles: 6
+  maxNewFiles: 1
+  maxChangedLines: 150
+  maxContractsChanged: 0
+  maxMigrationsAdded: 0
+  maxOpenModules: 1（hengzhun.mcp）
+
+invariants:
+  - errorCode 权威名不变；33工具名/别名入口不变
+  - 影子比较保留（legacy/canonical 仍逐响应比较，mismatched=0）
+  - 回退开关存在且默认为关闭（切流生效）；LEGACY_ERROR=1 可完整回退旧形状
+  - 身份/18链不受影响；不读不输出密钥
+
+workSteps:
+  - step: S4-1 适配器投影
+    action: rf001-contract-adapter.cjs 新增 projectCanonicalToolError（幂等规范信封；validationIssues→fieldErrors 兼容；safeMessage/correlationRef 有界截断）并导出
+  - step: S4-2 server.cjs 切换
+    action: import + `const legacyErrorOutput = process.env.HENGZHUN_RF001_LEGACY_ERROR === '1'`；textResult(isError) 非legacy时投影规范信封；callHarness 失败路径输出 canonical（legacy 分支保留）
+  - step: S4-3 测试更新
+    action: B4-S1 切流前基线测试更新为切流后基线（开关存在且默认关闭、旧投影保留于回退路径）；新增 rf001-b4s4-cutover.test.cjs（静态断言 + 投影函数单测）
+  - step: S4-4 隔离回归
+    action: 全聚焦测试（含B3-S5隔离运行态回归39项）全绿
+  - step: S4-5 生产切流与实时验证
+    action: i9-lifecycle.cjs 受管重启生产MCP → 实时错误路径探测（task_get 404）断言规范信封字段 → LEGACY_ERROR=1 重启探测旧形状 → 切回默认重启 → 影子快照/身份确认
+  - step: S4-6 证据与同步
+    action: 更新报告/证据索引/决策日志；RC-D1逐级同步；cutover-runbook 切流记录
+
+verification:
+  requiredCommands:
+    - name: rf001-focused-tests
+      command: runtime/node-v20.20.2-win-x64/node.exe --test scripts/verification/rf001-contract-adapter.test.cjs scripts/verification/mcp-interaction-contract.test.cjs scripts/verification/rf001-b3s3-aliases.test.cjs scripts/verification/rf001-b3s5-shadow-live.test.cjs scripts/verification/rf001-b4s1-compat-error-baseline.test.cjs scripts/verification/rf001-b4s3-rollback-drill.test.cjs scripts/verification/rf001-b4s4-cutover.test.cjs
+      expectedExitCode: 0
+      expectedOutput: 全部通过（含切流断言，累计≥41 passed / 0 failed）
+      blocking: true
+    - name: refactoring-contracts / rf001-mcp-boundary-contract / documentation
+      command: python scripts/architecture/validate_refactoring.py && python scripts/architecture/validate_rf001_contract.py && python scripts/docs/validate_docs.py
+      expectedExitCode: 0
+      blocking: true
+    - name: runtime-release-identity
+      command: runtime/node-v20.20.2-win-x64/node.exe scripts/i10-release-identity.cjs
+      expectedExitCode: 0
+      expectedOutput: identityHash=632ad5ee…
+      blocking: true
+    - name: production-cutover-probe
+      command: 重启生产MCP后实时调用错误路径工具
+      expectedExitCode: 0
+      expectedOutput: 规范信封字段齐全且errorCode保留；LEGACY_ERROR=1旧形状；切回默认
+      blocking: true
+
+rollback:
+  triggerConditions: 生产实时探测异常（缺字段/errorCode漂移/影子mismatch）；身份变化
+  recoveryPoint: LEGACY_ERROR=1 重启（软回退）→ 必要时 git 恢复 + 重启；maxRtoMinutes 30
+  maxRpoMinutes: 0
+
+exclusions: B4-S5观察关闭；工具名/别名/合同变更；harness/flowise/worker 改动

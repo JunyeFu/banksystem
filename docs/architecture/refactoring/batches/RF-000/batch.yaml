@@ -1,0 +1,94 @@
+schemaVersion: 1
+id: RF-000
+title: 建立可执行重构控制体系与事实基线入口
+status: CLOSED
+owner: project-owner
+authorizedBy: agent/plans/active/v54-implementation-batches.md
+scope:
+  includePaths:
+    - AGENTS.md
+    - agent/README.md
+    - docs/architecture/README.md
+    - docs/architecture/refactoring-control-process-v1.md
+    - docs/architecture/refactoring
+    - docs/current-state/README.md
+    - docs/current-state/system-overview.md
+    - docs/current-state/runtime-topology.md
+    - docs/current-state/module-inventory.md
+    - docs/current-state/dependency-map.md
+    - docs/current-state/database-inventory.md
+    - docs/current-state/api-inventory.md
+    - docs/current-state/environment-matrix.md
+    - docs/current-state/known-risks.md
+    - contracts/schemas/governance
+    - scripts/architecture
+    - scripts/docs/validate_docs.py
+  excludePaths:
+    - apps
+    - services
+    - platform/hengzhun-regression-system/harness
+    - platform/hengzhun-regression-system/mcp
+    - platform/hengzhun-regression-system/worker
+    - platform/hengzhun-regression-system/flowise
+    - infra
+    - data
+    - secrets
+    - .env
+budgets:
+  maxChangedFiles: 40
+  maxNewFiles: 35
+  maxChangedLines: 5000
+  maxContractsChanged: 1
+  maxMigrationsAdded: 0
+  maxOpenModules: 1
+baseline:
+  gitCommit: dacd79580ec73f3580594ab2134acf8cc3d99f35
+  dirtyTreeManifest: docs/architecture/refactoring/batches/RF-000/baseline.md
+  releaseIdentity: NOT_RUNNING_GOVERNANCE_ONLY
+  capturedAt: "2026-08-01T20:50:01.7506600+08:00"
+architecture:
+  businessCapability: refactoring-governance
+  publicContract: contracts/schemas/governance/refactor-batch-v1.schema.json
+  dependencyManifest: docs/architecture/refactoring/module-boundaries-v1.yaml
+  allowedModules:
+    - governance.refactoring
+  forbiddenModules:
+    - bank.identity
+    - bank.accounts
+    - bank.payments
+    - hengzhun.harness
+    - hengzhun.mcp
+    - hengzhun.worker
+mustPreserve:
+  - 不改变复兴银行或衡准运行行为
+  - 不覆盖用户既有脏工作区改动
+  - 不建立第二套实施顺序或任务状态源
+  - 不读取、记录或输出任何密钥与凭据
+verification:
+  requiredCommands:
+    - name: refactoring-contracts
+      command: python scripts/architecture/validate_refactoring.py
+      expectedExitCode: 0
+      evidence: docs/architecture/refactoring/batches/RF-000/evidence-index.md
+      blocking: true
+    - name: documentation
+      command: python scripts/docs/validate_docs.py
+      expectedExitCode: 0
+      evidence: docs/architecture/refactoring/batches/RF-000/evidence-index.md
+      blocking: true
+    - name: diff-format
+      command: git diff --check
+      expectedExitCode: 0
+      evidence: docs/architecture/refactoring/batches/RF-000/evidence-index.md
+      blocking: true
+rollback:
+  triggerConditions:
+    - 文档权威链出现第二套实施顺序
+    - 校验器错误修改或要求修改业务文件
+    - 既有用户改动被覆盖
+  recoveryPoint: dacd79580ec73f3580594ab2134acf8cc3d99f35 plus preserved dirty-tree manifest
+  maxRtoMinutes: 15
+  maxRpoMinutes: 0
+exceptions:
+  allowedVagueNames: []
+  crossModule: []

@@ -2441,10 +2441,27 @@ export class I10Service {
         WHERE input_type='VIDEO' AND status='PROCESSING' AND lease_owner IS NOT NULL
           AND lease_expires_at IS NOT NULL AND lease_expires_at<=?`).run(now,now);
       const row=db.prepare(`SELECT * FROM i10_ingest_jobs WHERE input_type='VIDEO' AND status='PROCESSING' AND lease_owner IS NULL ORDER BY created_at LIMIT 1`).get() as any;
-      if(!row)return{status:'EMPTY'}; const expiresAt=new Date(Date.now()+10*60_000).toISOString();
-      db.prepare(`UPDATE i10_ingest_jobs SET lease_owner=?,lease_expires_at=?,updated_at=? WHERE ingest_job_id=?`).run(workerId,expiresAt,now,row.ingest_job_id);
-      const filePath=this.resolveAttachment(row.flowise_file_ref,row.original_filename);
-      return{status:'CLAIMED',workerId,ingestJobId:row.ingest_job_id,namespace:row.namespace,sourceHash:row.source_sha256,filePath,originalFilename:row.original_filename,credentialRef:row.credential_ref,hints:JSON.parse(row.hints_json),leaseExpiresAt:expiresAt};
+       if(!row)return{status:'EMPTY'};
+       let filePath:string;
+       try {
+         filePath=this.resolveAttachment(row.flowise_file_ref,row.original_filename);
+       } catch(error) {
+         const errorCode=error instanceof HarnessError?error.errorCode:'I10_VIDEO_ATTACHMENT_RESOLUTION_FAILED';
+         const terminalAttachmentFailure=new Set([
+           'I10_FLOWISE_ATTACHMENT_NOT_FOUND',
+           'I10_FLOWISE_ATTACHMENT_ESCAPE_REJECTED',
+           'I10_FLOWISE_ATTACHMENT_NAME_MISMATCH',
+           'I10_ATTACHMENT_FILENAME_REQUIRED',
+           'I10_ATTACHMENT_FILENAME_INVALID'
+         ]);
+         if(!terminalAttachmentFailure.has(errorCode))throw error;
+         db.prepare(`UPDATE i10_ingest_jobs SET status='FAILED',error_code=?,lease_owner=NULL,lease_expires_at=NULL,version=version+1,completed_at=?,updated_at=? WHERE ingest_job_id=? AND status='PROCESSING'`)
+           .run(errorCode,now,now,row.ingest_job_id);
+         return{status:'SKIPPED_FAILED',ingestJobId:row.ingest_job_id,errorCode};
+       }
+       const expiresAt=new Date(Date.now()+10*60_000).toISOString();
+       db.prepare(`UPDATE i10_ingest_jobs SET lease_owner=?,lease_expires_at=?,updated_at=? WHERE ingest_job_id=?`).run(workerId,expiresAt,now,row.ingest_job_id);
+       return{status:'CLAIMED',workerId,ingestJobId:row.ingest_job_id,namespace:row.namespace,sourceHash:row.source_sha256,filePath,originalFilename:row.original_filename,credentialRef:row.credential_ref,hints:JSON.parse(row.hints_json),leaseExpiresAt:expiresAt};
     });
   }
 

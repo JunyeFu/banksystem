@@ -635,6 +635,9 @@ async function executeI10MidsceneCandidate(claim, credential, options={}) {
         const controlHint = generic ? await accessibleControlHint(page) : [];
         const landmarkHint = generic ? await accessibleLandmarkHint(page) : [];
         const genericInstruction = generic ? genericLocateInstruction(action) : '';
+        const adapterInstruction = !generic && action.semanticTargetRef === 'HEADER_PROFILE_LINK'
+          ? '\n视觉定位提示：请在当前截图的门户顶部主导航栏中定位可见的“个人资料”链接文字本身；它不是右上角用户菜单项，不要定位头像、客户姓名或其他导航项。'
+          : '';
         const observationHints = [
           controlHint.length > 0
             ? `当前页面可交互控件名称摘要（仅用于视觉消歧；不得将其当作DOM定位器或跳过截图观察）：${JSON.stringify(controlHint)}`
@@ -643,7 +646,9 @@ async function executeI10MidsceneCandidate(claim, credential, options={}) {
             ? `当前页面可见标题摘要（仅用于帮助在截图中区分正文与导航；必须仍以截图观察后返回坐标）：${JSON.stringify(landmarkHint)}`
             : ''
         ].filter(Boolean).join('\n');
-        const prompt = observationHints ? `${basePrompt}${genericInstruction}\n${observationHints}` : `${basePrompt}${genericInstruction}`;
+        const prompt = observationHints
+          ? `${basePrompt}${genericInstruction}${adapterInstruction}\n${observationHints}`
+          : `${basePrompt}${genericInstruction}${adapterInstruction}`;
         const box = expected ? await expected.boundingBox() : null;
         let location;
         let genericLocatorProposal;

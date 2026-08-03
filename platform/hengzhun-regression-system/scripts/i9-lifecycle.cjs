@@ -302,7 +302,13 @@ function serviceEnvironment(name) {
       throw new LifecycleError('I9_TEST_DATA_ROOT_OUTSIDE_PRODUCT_DATA', 'test data root must stay under .data/tests')
     }
   }
-  const common = { ...process.env, HENGZHUN_PRODUCT_ROOT: root, HENGZHUN_HARNESS_URL: `http://127.0.0.1:${config.network.harnessPort}`, HENGZHUN_STOP_FILE: path.join(stateRoot, `stop-${name}.signal`) }
+  const formalOverrides = testDataRoot ? {} : {
+    HENGZHUN_DATABASE_PATH: path.join(root, '.data', 'sqlite', 'regression_platform.sqlite'),
+    HENGZHUN_DATABASE_BACKUP_PATH: path.join(root, '.data', 'sqlite', 'offline-backups'),
+    HENGZHUN_FLOWISE_ATTACHMENT_ROOT: path.join(root, '.data', 'flowise-attachments'),
+    HENGZHUN_FLOWISE_STORAGE_ROOT: path.join(root, '.data', 'flowise', 'storage')
+  }
+  const common = { ...process.env, ...formalOverrides, HENGZHUN_PRODUCT_ROOT: root, HENGZHUN_HARNESS_URL: `http://127.0.0.1:${config.network.harnessPort}`, HENGZHUN_STOP_FILE: path.join(stateRoot, `stop-${name}.signal`) }
   if (name === 'harness') {
     if (testDataRoot) {
       for (const relative of ['sqlite', 'sqlite/backups', 'artifacts']) fs.mkdirSync(path.join(testDataRoot, relative), { recursive: true })

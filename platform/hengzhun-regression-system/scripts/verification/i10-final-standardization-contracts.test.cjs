@@ -51,6 +51,6 @@ test('acceptance ledger refuses a terminal evidence replay for one release ident
   const source = fs.readFileSync(path.join(release.root, 'scripts', 'i10-acceptance-ledger-v3.cjs'), 'utf8')
   const driver = fs.readFileSync(path.join(release.root, 'scripts', 'i10-18-chain-acceptance-live.cjs'), 'utf8')
   assert.match(source, /I10_ACCEPTANCE_CHECKPOINT_REGRESSION_FORBIDDEN/)
-  assert.match(source, /return ledger\.records\[recordKey\]/)
-  assert.match(driver, /acceptanceLedger\.existingTerminal\(caseId, variant\)/)
+  assert.match(source, /cached\?\.status === 'PASSED' && sameReleaseIdentity/)
+  assert.match(driver, /acceptanceLedger\.existingTerminal\(caseId, variant, attempt\)/)
 })

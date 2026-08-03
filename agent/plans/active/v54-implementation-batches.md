@@ -6,6 +6,8 @@
 
 ## 控制规则
 
+- 获准进入重构的批次必须遵守 [`docs/architecture/refactoring-control-process-v1.md`](../../../docs/architecture/refactoring-control-process-v1.md) 的基线、合同、验证、切流和回滚门禁；该规范只控制“如何执行”，不拥有项目顺序权威。
+
 - 只有本文件可以定义项目级批次、先后关系、并行关系、入口条件和退出条件。
 - `agent/backlog.yaml` 只记录任务状态、依赖、允许路径和验收标准，不复制批次顺序。
 - `docs/`、`documents/`、`rag/`、`contracts/` 与其他 `agent/plans/active/` 文件只补充参数、接口、架构、技术方案、代码设计、验证方法或证据，不得建立第二套全局阶段编号或排期。
@@ -438,7 +440,7 @@ I9已退出；视频案例、外部适配器、跨项目自动修复、衡准UI�
 - 视频导入、五类外部适配器、跨项目自动修复和新增高风险银行案例；
 - 衡准任何页面、投影、路由迁移或写控制。
 
-### I10：Flowise 正式版自动化回归测试平台（当前实施阶段）
+### I10：Flowise 正式版自动化回归测试平台（已关闭）
 
 I9 的最终目录、migration 001—016、六次证书和验收证据保持只读历史基线。I10 在 `agent/i10-flowise-formal-portable` 独立分支与独立 `.release/hengzhun-regression-system-windows-x64-i10/` 发布目录中实现，不覆盖 I9，不自动合并 `main`，不改写 `coze` 或 `hiagent`。
 
@@ -481,7 +483,17 @@ I10 实施顺序唯一固定为：
 
 通用运行环境模型变量为 `CONTROL_API_KEY / CONTROL_BASE_URL / CONTROL_MODEL_NAME` 和 `VISION_API_KEY / VISION_BASE_URL / VISION_MODEL_NAME / VISION_MODEL_FAMILY`。厂商名不得成为发布包配置接口；当前选定的主控实现为 DeepSeek V4 Flash，视觉实现为 MiMo v2.5。主控最大总上下文1,000,000 tokens、单次输出8,192 tokens；视觉总窗口16,000、输入12,000、输出4,000并受Qwen3.5能力上限约束。两者都不得原生越过Flowise MCP节点调用外部工具。
 
-I10 的 S0—S9 及 R0—R7 已按当前本机交付边界完成。S9只关闭现有桌面目录的VERIFY清单与校验和，不包含重新导出、ZIP或跨电脑便携认证。未来内网Qwen3.5迁移是独立实时能力门禁：当前通用适配和协议兼容不等于已证明任意Qwen3.5 checkpoint、推理后端或HiAgent连接器的真实容量。
+I10 的 S0—S9 及 R0—R7 已按当前本机交付边界完成。2026-08-02回灌后基线复验确认ReleaseIdentity `632ad5ee7981b59f00824d0072d28da6075eef095d55a898d51c0103a897988f`、18/18当前账本、Flowise v7公开API回读、迁移36/36、Worker代码版本及双模型真实探针一致；清单重算后`VERIFY`覆盖285个核心文件、6组运行时资产、禁止项0，状态为`I10_PORTABLE_FOLDER_VERIFIED`。S9及本次收口不包含重新导出、ZIP或跨电脑便携认证。未来内网Qwen3.5迁移是独立实时能力门禁：当前通用适配和协议兼容不等于已证明任意Qwen3.5 checkpoint、推理后端或HiAgent连接器的真实容量。
+
+### 重构控制执行顺序（当前实施阶段）
+
+1. `RF-000`：治理Schema、模块边界、事实入口和校验器已完成影子验证、控制切换与观察，于2026-08-02关闭；该批次没有运行时切流或业务代码改动。
+2. `RF-001`：统一衡准MCP到Harness的字段、错误码和适配器，不改变运行语义。B0基线、B1考古和B2合同冻结已完成；B3首条细链已实现，当前为`IMPLEMENTING`，允许模块为`hengzhun.mcp / hengzhun.harness`，不得修改Flowise、Worker或银行业务模块。
+3. `RF-001-B1`：已完成33/33工具的请求字段、Harness端点、响应投影、字段别名、错误码来源和12类适配行为盘点；确认9项合同/边界问题，证据见`docs/architecture/refactoring/batches/RF-001/field-error-adapter-matrix.md`。本阶段没有运行时代码修改。
+4. `RF-001-B2`：已冻结`mcp-boundary-contract-v1.json`，33/33工具的权威请求、入口别名、响应模式、8字段错误信封、条件副作用和幂等归属均可机器校验；旧字段保持可读，新字段输出唯一。
+5. `RF-001-B3`：已实现共享安全错误投影、单响应影子比较、`credential_session_get`规范化、直接编排工具观测（B3-S2）、全部13项入口别名权威投影（B3-S3，含DEC-1/DEC-2）、前置读观测收尾（B3-S4）与隔离运行态影子验证（B3-S5，RUNTIME_SHADOW级：零重复写入、零投影差异、身份复算一致）；回归32/32，旧输出继续生效。`SHADOW_VERIFIED`申请口径按证据如实声明（公共API回读新鲜度因正式环境未启动保持OPEN，B4切流前置）；切流未进行。
+6. `RF-001-B4`：切片链全部完成——B4-S1（CONTRACT）、B4-S2（RUNTIME_LIVE）、B4-S3（CONTRACT_DRILL）、B4-S4切流（RUNTIME_CUTOVER：生产默认8字段规范信封+`HENGZHUN_RF001_LEGACY_ERROR`回退开关可用）、B4-S5观察与关闭（RUNTIME_OBSERVE：生产10错误路径全规范信封、43/43、身份/18链无回退）。**RF-001批次已CLOSED**（batch.yaml CLOSED，校验器PASS）；RF-002解禁登记（不启动）。
+7. `RF-002`：状态所有权重构保持待定；RF-001未关闭前不得启动。
 
 上述事项可能阻塞对应扩展功能，但不得反向改写已关闭的 I9 历史证据。
 

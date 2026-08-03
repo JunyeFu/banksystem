@@ -88,7 +88,7 @@ test('I10 acceptance does not collapse a terminal transfer submission as a read-
     actions: ['填写转账信息'],
     expectedOutcomes: ['信息已填写']
   })
-  assert.equal(semanticEquivalent('H1', text, image).reason, 'ACTION_OR_OUTCOME_CARDINALITY_CHANGED')
+  assert.equal(semanticEquivalent('H1', text, image).reason, 'MUTATION_STEP_CARDINALITY_CHANGED')
 })
 
 test('I10 acceptance rejects changed target URL even when wording is equivalent', () => {
@@ -121,6 +121,45 @@ test('I10 acceptance pair status rejects mixed release identities', () => {
     }
   }
   assert.equal(pairStatus(ledger, 'L1'), 'PENDING_PAIR')
+})
+
+test('I10 acceptance pair status evaluates the newest attempt per variant', () => {
+  // Regression: the pair gate must look past a pair-incomplete earlier attempt
+  // to the newest terminal evidence.  Keys are written literally because a
+  // recordKey helper that collapses every attempt to attempt 1 is exactly the
+  // defect under test; building fixture keys through it would hide the bug.
+  const identity = currentIdentity()
+  const base = draft()
+  const diverged = draft({
+    actions: [...base.actions, '删除临时缓存记录'],
+    expectedOutcomes: [...base.expectedOutcomes, '临时缓存记录已删除']
+  })
+  const ledger = {
+    records: {
+      'L1:TEXT_ONLY:1': { status: 'PASSED', semanticHash: 'a', semantic: base, releaseIdentity: identity },
+      'L1:TEXT_WITH_IMAGE:1': { status: 'PASSED', semanticHash: 'b', semantic: diverged, releaseIdentity: identity },
+      'L1:TEXT_WITH_IMAGE:2': { status: 'PASSED', semanticHash: 'c', semantic: draft(), releaseIdentity: identity }
+    }
+  }
+  assert.equal(pairStatus(ledger, 'L1'), 'SEMANTIC_MATCH')
+})
+
+test('I10 acceptance ledger sweeps only checkpoints contradicted by a current PASSED record', () => {
+  const { contradictionCheckpointKeys } = require('../i10-acceptance-ledger-v3.cjs')
+  const identity = currentIdentity()
+  const staleIdentity = { schemaVersion: 'hengzhun-i10-release-identity-v1', identityHash: 'e'.repeat(64) }
+  const ledger = {
+    records: {
+      'L1:TEXT_ONLY:1': { status: 'PASSED', releaseIdentity: identity },
+      'L2:TEXT_ONLY:1': { status: 'PASSED', releaseIdentity: staleIdentity }
+    },
+    checkpoints: {
+      'L1:TEXT_ONLY:1': { stage: 'FAILED_RECOVERABLE' },
+      'L2:TEXT_ONLY:1': { stage: 'FAILED_RECOVERABLE' },
+      'L3:TEXT_ONLY:1': { stage: 'FAILED_RECOVERABLE' }
+    }
+  }
+  assert.deepEqual(contradictionCheckpointKeys(ledger, identity), ['L1:TEXT_ONLY:1'])
 })
 
 test('I10 recovery excludes a partial acceptance record from the Flowise transcript', () => {

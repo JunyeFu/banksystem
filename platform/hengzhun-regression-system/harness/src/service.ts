@@ -91,7 +91,7 @@ const I10_VISUAL_TARGET_DESCRIPTIONS: Readonly<Record<string, string>> = Object.
   // into a visual prompt; Playwright performs the deterministic equality check.
   HEADER_DISPLAY_NAME: '页面右上角用户区中、头像右侧显示的当前已登录客户姓名文本；只定位姓名文字本身，不假设具体姓名',
   HEADER_AVATAR: '页面右上角用户区中显示单个姓氏字符“张”的圆形头像，只定位头像本身',
-  HEADER_PROFILE_LINK: '页面右上角用户区中的“个人资料”链接',
+  HEADER_PROFILE_LINK: '门户顶部主导航中显示的“个人资料”链接；只定位导航链接本身，不要定位右上角用户菜单、头像或姓名',
   PROFILE_DISPLAY_NAME: '个人资料主卡片中“客户姓名”标签对应的当前已登录客户姓名值；只定位姓名值本身，不假设具体姓名',
   PROFILE_AVATAR: '个人资料主卡片左侧显示单个姓氏字符“张”的圆形大头像，只定位头像本身',
   TRANSFER_ENTRY: '受控门户导航中用于进入转账列表的业务入口',

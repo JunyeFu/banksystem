@@ -11,9 +11,9 @@
   "assets": {
     "dist": {
       "algorithm": "sha256(sorted-posix-relative-path\\0byte-length\\0file-sha256\\n)",
-      "sha256": "bd78b076a3232bce7e8f254e5c834d9c150a7a48ef3b4f038547ea1bcb0df781",
+      "sha256": "e7ffc4adf18064e5ac01f7c84d0a9d59663a07abbe7e3977dc422d3d16c31030",
       "fileCount": 84,
-      "totalBytes": 1367892
+      "totalBytes": 1369618
     },
     "node_modules": {
       "algorithm": "sha256(sorted-posix-relative-path\\0byte-length\\0file-sha256\\n)",
@@ -124,12 +124,12 @@
       "byteLength": 3535
     },
     "flowise/i10/agentflow-v2.json": {
-      "sha256": "9874a8c5ff52ddd81769c2ed35327bf41888dc9921f8188dc0ee0c9a51c1ea70",
-      "byteLength": 205435
+      "sha256": "61ca9a9a944a642d45a556c21ca17f5e063b5330db90e515abe875804eefe1f5",
+      "byteLength": 214359
     },
     "flowise/i10/agentflow-v3.json": {
-      "sha256": "161aaade605b495b1ea575ecd565f9225b4fa3d25df6e5b21857b0385c72bd54",
-      "byteLength": 210890
+      "sha256": "2a627b2dfc88e7a6074d3e2901f1766ade5dbdc9fe1039c9e08d46c704106549",
+      "byteLength": 219814
     },
     "flowise/i10/agentflow-v4-layout.json": {
       "sha256": "1d0aebadd2835fedd7c0e11b814e61f0c67d7118bf58c4ab1dbdcfa711605d29",
@@ -144,24 +144,24 @@
       "byteLength": 32876
     },
     "flowise/i10/agentflow-v5.json": {
-      "sha256": "051d4f7f2c1eb957e8c6a435f25076fa076c64ec93607eb684691afc9c00e324",
-      "byteLength": 575149
+      "sha256": "13ae550202dad982ddf3dbd75c2b7721bbb752312d8abc5b7165ecc5af0caacc",
+      "byteLength": 602546
     },
     "flowise/i10/agentflow-v6-layout.json": {
       "sha256": "87294ffff0753b579976af30bc992cc348f0328f8f409233eeccdbdb15a22b62",
       "byteLength": 32896
     },
     "flowise/i10/agentflow-v6.json": {
-      "sha256": "1ccae6b992de6a30a4160de4589c04f1fd14823e221a75a23c668ce591aac9d4",
-      "byteLength": 851954
+      "sha256": "18353bfccf9eb6130b95b5fb58ab51bb9d16fe943d51c2c00eb1542aa01e20a7",
+      "byteLength": 881645
     },
     "flowise/i10/agentflow-v7-layout.json": {
       "sha256": "47b4b0610af78ba3207c875ca3aad416d5c7529f55b84b9ae72e20b3c227bb04",
       "byteLength": 32896
     },
     "flowise/i10/agentflow-v7.json": {
-      "sha256": "40764e1f204fe319f7f2e96e8d78dfbc2477f54995f1dc4ec8d2d4066eb7ef12",
-      "byteLength": 852322
+      "sha256": "65bc36cd6e849c8a00bc797bbea06daa18cefa4170fd256fd4375ff9b772664c",
+      "byteLength": 882013
     },
     "flowise/i10/chatbot-config-v1.json": {
       "sha256": "606c928a275a24ad0034b447a751d13cac46b3530bb94fe15b57757f0efad004",
@@ -188,8 +188,8 @@
       "byteLength": 8994
     },
     "flowise/i10/i10-18-chain-acceptance-issue-register-v1.md": {
-      "sha256": "db79e9b0889434b4728665d5c74dc5b7b32314953905a73a8da23429f7ad0a6a",
-      "byteLength": 13043
+      "sha256": "b1d1af39a550c57e9c3923e50d6db40a720ce5532ac5aa423ce2287b70c914af",
+      "byteLength": 18604
     },
     "flowise/i10/i10-acceptance-ledger-gap-remediation-plan-v2.md": {
       "sha256": "6d5180098b8cbc9033a4265639c4ab2cf2734ba2c128190fabb486da1e4713e4",
@@ -252,7 +252,7 @@
       "byteLength": 1732
     },
     "flowise/i10/publication-manifest-v1.json": {
-      "sha256": "8d0335e7afa085c06bbe693b6a60786c828928217f0735c019a89b93bf504ca9",
+      "sha256": "8c0e703a71237e49f3a3e9904be0f436f273380b6b0bfe12f2795a0e6920baf2",
       "byteLength": 1751
     },
     "flowise/i10/s9-portability-policy-v1.json": {
@@ -524,8 +524,8 @@
       "byteLength": 23272
     },
     "harness/src/i10/service.ts": {
-      "sha256": "47a341a31bf5c7209304bf6a5cecf2c289341629e5e52bfc6b5c224d78403d0f",
-      "byteLength": 199349
+      "sha256": "acffaaeaf66d4f982f5a6ed9b4538ea336a803bdce012c3d745f022be04abd16",
+      "byteLength": 200263
     },
     "harness/src/i8/adapters/fuxing-bank-demo.ts": {
       "sha256": "54bc4085ba6f0bf29f8c147bef7c22c2e97342c750bc67d483c161d0ec18fcb2",
@@ -584,8 +584,8 @@
       "byteLength": 49265
     },
     "harness/src/service.ts": {
-      "sha256": "4bc0e615dc32c26b8578f6d22d8f38fb93b8f8d90115afd594dda747a106f93a",
-      "byteLength": 236240
+      "sha256": "b81461c0bc2b12c942b84a3af95f9bd561bccf7ca657d6dc8ed8ede6d3ad17fb",
+      "byteLength": 236327
     },
     "harness/src/utils.ts": {
       "sha256": "935e2cbfcd0be57c49ca6282937f5a74303e42fa292611d7208e8ac296068789",
@@ -604,8 +604,8 @@
       "byteLength": 535979
     },
     "mcp/src/server.cjs": {
-      "sha256": "20c7614920e3aaa54e981755fe8081f1d24d4aaf131639fec4498367148110a1",
-      "byteLength": 70423
+      "sha256": "118dd88b1e60427898963299b98d0e6b610992cdbe7108c224ca8502049d6b81",
+      "byteLength": 73594
     },
     "package-lock.json": {
       "sha256": "18be3dbdb894ad042e4a38de777140b3839bb10a2f9ab282f6fa2fd388544b61",
@@ -664,12 +664,12 @@
       "byteLength": 153518
     },
     "scripts/build-i10-agentflow-v5.cjs": {
-      "sha256": "6af099c25f7b0ac55436611aad58de7575f1f32ad115e9d1b8283f4ce2a54d24",
+      "sha256": "3f13d264efa78c9d48dcb6f1b5169491f596f95563f052bcfde70d0eaba4b97b",
       "byteLength": 190926
     },
     "scripts/build-i10-agentflow-v6.cjs": {
-      "sha256": "ada7271ffd4ed8f20d3c39859677d142eb5a872408eef6837b25a0668d0288e9",
-      "byteLength": 103003
+      "sha256": "a0a2780894495dcf7cad135eff5c517b8bb68c857de7150002d05c40d596eba9",
+      "byteLength": 108621
     },
     "scripts/build-i10-agentflow-v7.cjs": {
       "sha256": "a0822821e1bd5847c031c2cb1a28ba80f132e060cf1b090f6d5ceadc2a1d980b",
@@ -692,12 +692,12 @@
       "byteLength": 3830
     },
     "scripts/i10-18-chain-acceptance-live.cjs": {
-      "sha256": "a5bb3bb6c89763ca0efca0c93fc1600d6dbc1b7559485ae1d0699189fa3fbf07",
-      "byteLength": 36570
+      "sha256": "8d5c8cfb5b781c33cd6d83f7de858737e25ebbffa58c4f74e2c58e784ea0892f",
+      "byteLength": 52713
     },
     "scripts/i10-acceptance-ledger-v3.cjs": {
-      "sha256": "4b1df2cd66ccd869bfcc73488ad19c63b8190ae683c03651f456bf5553ea1718",
-      "byteLength": 11399
+      "sha256": "85fb41d253afc9ca3c64dc71a98cb5a3d713e5e0d320c46c39b9e8086e925e5f",
+      "byteLength": 12706
     },
     "scripts/i10-agentflow-capabilities.cjs": {
       "sha256": "9ba2b38224f545164e77dd6eba03149681b18a6c8f3682ca8c9634121b644ea8",
@@ -719,9 +719,21 @@
       "sha256": "a4d40ea979bb0d6b5e415f7f360633268e4da0e6198ffbba867f349aa802bd5c",
       "byteLength": 7813
     },
+    "scripts/i10-disable-schedule-once.cjs": {
+      "sha256": "5fd1fffc5f02585de81fc7c31cd94d4d425845528430c148535cf84eb08118ee",
+      "byteLength": 583
+    },
     "scripts/i10-enroll-current-user-credential.cjs": {
       "sha256": "2242a757be118f87b5597aeca49b19a729b9f28a9867aa33b11cf4c5f146ade2",
       "byteLength": 4313
+    },
+    "scripts/i10-flowise-export-import-isolated.cjs": {
+      "sha256": "b3de02c8c19c34dba143f40351f2fad1d1bd8b382549895116529ebee43d2630",
+      "byteLength": 9389
+    },
+    "scripts/i10-flowise-export-package.cjs": {
+      "sha256": "d72070ade2e8b32bff292101cb1e1cba62ff8a1833f8f3562e6e7e30017063c1",
+      "byteLength": 8257
     },
     "scripts/i10-gz04-adapter-replay-live.cjs": {
       "sha256": "0d8a1d2819c2e6e931fc55152f56a13347b4adf913b516fe9a7f11c29d83c2eb",
@@ -776,8 +788,8 @@
       "byteLength": 19822
     },
     "scripts/i10-stage8-live.cjs": {
-      "sha256": "68d7ccbe7b37be4edfaece426d8f9890f45576e085df3d04fd5524315a433903",
-      "byteLength": 83509
+      "sha256": "99d63462dd2c7b72e4dd05072bc93b3ddcb2dac2347d66cb4ba7116d5101a8ed",
+      "byteLength": 88674
     },
     "scripts/i10-stage8-orchestrator.cjs": {
       "sha256": "0622d55b318988668945ab19afd487d3f0ce85fb633315854b46702091567488",
@@ -788,8 +800,8 @@
       "byteLength": 35163
     },
     "scripts/i9-lifecycle.cjs": {
-      "sha256": "babc5b912d1817262736bd0d0572b3d20d181fef669b760e947a792e086b4e61",
-      "byteLength": 29579
+      "sha256": "d81571f4851323a758a65ce9f804bf8b0b3e60db640cefc1124bc8b269ad32f5",
+      "byteLength": 30004
     },
     "scripts/i9-platform-bootstrap.cjs": {
       "sha256": "6f6c67b9f33e44ec32aafd67ba6c8133c48275c492f63734a31283055bc7d615",
@@ -904,12 +916,12 @@
       "byteLength": 9062
     },
     "scripts/verification/i10-18-chain-acceptance.test.cjs": {
-      "sha256": "5b96f9aabe0506f9ea64bf29733cbad82fb12d98e648a0fd31255d5ce781d4b2",
-      "byteLength": 7263
+      "sha256": "9ed53e80f9194b2120864bb2db48404b64f2d52489f1922bce17f9073c350677",
+      "byteLength": 9148
     },
     "scripts/verification/i10-final-standardization-contracts.test.cjs": {
-      "sha256": "47e844e836e68ee031b9a7cbacd2948b7c0df62e8ee757903029ae88eed0c140",
-      "byteLength": 3425
+      "sha256": "4968945594efdc35f5f5f6e41577228c1ba8030e77d600d2283d2de4faf6d03b",
+      "byteLength": 3451
     },
     "scripts/verification/i10-l1-live-bootstrap.test.cjs": {
       "sha256": "fec2471efb7b4a143a144ef7f39bb93bb789157b43d42700561277bf567643ac",
@@ -1036,8 +1048,8 @@
       "byteLength": 2567
     },
     "scripts/verify-i10-final-standardization.cjs": {
-      "sha256": "e88eb3379c5c143503a5f6f743665228a1a1df1150aff0d4e275f6c12a37ddf5",
-      "byteLength": 3682
+      "sha256": "2bbd877beaada608c86318797399cf18b94d261ab67dd72387b3dcafdbffc531",
+      "byteLength": 3691
     },
     "scripts/verify-i10-gap-closure.cjs": {
       "sha256": "02a227cdc1c7568dc232b557e6f7b8401c6572201a0ef9dcbb22914314d20393",
@@ -1112,8 +1124,8 @@
       "byteLength": 5037
     },
     "worker/src/adapters/fuxing-bank-demo/index.cjs": {
-      "sha256": "4175f1c704d3595acb43d317a2c998cce1d84b9dc026af8d38f8d4ff1cb61427",
-      "byteLength": 3220
+      "sha256": "c9bcbc2e02988117202426772d59c52fc2b304cd03b9c4032fc2c90ffd154ce6",
+      "byteLength": 3256
     },
     "worker/src/adapters/fuxing-bank-demo/login-profile.cjs": {
       "sha256": "3cc1cbebf8583cf4d29a332bb22395aa34a7ac08c2442740dd210e335151190f",
@@ -1132,8 +1144,8 @@
       "byteLength": 9658
     },
     "worker/src/i10-midscene-candidate-authoring.cjs": {
-      "sha256": "c53634155ef8c65ea51b423bf20d54c37eb2aeadea0eed5ba36de0b639960df1",
-      "byteLength": 54927
+      "sha256": "3f5c348e80a0cd794429d58955362b522895834c712bdaa6077b47d1ea9fcdbd",
+      "byteLength": 55333
     },
     "worker/src/i10-onnx-ocr.cjs": {
       "sha256": "02cfd127016eb936f1c17591ea46f452706abcfce2dd81e1d7b14777a7e2f329",
@@ -1168,8 +1180,8 @@
       "byteLength": 16240
     },
     "worker/src/index.cjs": {
-      "sha256": "9b941626a773a641fe3efb1710ba97c1c2d218bdc477e17fb6a3aadacf1f6a64",
-      "byteLength": 27093
+      "sha256": "94398d1439d9dfe3bd3dbd178bbb6f3ba24425d48dfeb0a1837c8b316277b1fc",
+      "byteLength": 27312
     },
     "worker/src/login-profile.cjs": {
       "sha256": "cdec3c49a3df357129de0c97e81c3d12c3980c63ffcc496cf77744964523359a",

@@ -3,6 +3,23 @@
 const crypto = require('node:crypto')
 const fs = require('node:fs')
 const path = require('node:path')
+const {
+  createShadowObserver,
+  normalizeAuthoringSubmitRequest,
+  normalizeCaseAcceptanceSummary,
+  normalizeCasePrepareRequest,
+  normalizeCredentialBinding,
+  normalizeCredentialSessionGetRequest,
+  normalizeI10NaturalDraft,
+  normalizeIngestDecisionSubmitRequest,
+  normalizeIngestSubmitRequest,
+  normalizeJourneyPrepareDraft,
+  normalizeRepairProposeRequest,
+  parseJsonArgument,
+  projectCanonicalHarnessError,
+  projectCanonicalToolError,
+  projectLegacyHarnessError
+} = require('./rf001-contract-adapter.cjs')
 
 const productRoot = path.resolve(__dirname, '..', '..')
 const flowiseAppPath = path.resolve(process.env.FLOWISE_APP_PATH || path.join(productRoot, '.data', 'flowise', 'app'))
@@ -21,6 +38,13 @@ const port = Number(process.env.HENGZHUN_MCP_PORT || 18789)
 const harnessTimeoutMs = process.env.NODE_ENV === 'test' && process.env.HENGZHUN_MCP_HARNESS_TIMEOUT_MS
   ? Number(process.env.HENGZHUN_MCP_HARNESS_TIMEOUT_MS)
   : 30_000
+const rf001Shadow = createShadowObserver({
+  enabled: process.env.HENGZHUN_RF001_SHADOW === '1',
+  sink: event => process.stderr.write(`${JSON.stringify(event)}\n`)
+})
+// B4-S4 cutover: error payloads leave through the canonical 8-field envelope by
+// default; HENGZHUN_RF001_LEGACY_ERROR=1 restores the pre-cutover legacy shape.
+const legacyErrorOutput = process.env.HENGZHUN_RF001_LEGACY_ERROR === '1'
 const safeRef = z.string().trim().min(3).max(160).regex(/^[A-Za-z0-9._:-]+$/)
 const controlledAttachmentRef = z.string().trim().min(8).max(1024).regex(/^[A-Za-z0-9._:-]+$/)
 const jsonObjectArgument = z.union([
@@ -79,11 +103,13 @@ function authorized(value) {
 
 function textResult(value, isError = false, maxBytes = 8 * 1024) {
   const governedValue = isError && value && typeof value === 'object' && !Array.isArray(value)
-    ? {
-        ...value,
-        category: typeof value.category === 'string' ? value.category : 'TOOL',
-        status: Number.isInteger(value.status) && value.status >= 400 ? value.status : 400
-      }
+    ? legacyErrorOutput
+      ? {
+          ...value,
+          category: typeof value.category === 'string' ? value.category : 'TOOL',
+          status: Number.isInteger(value.status) && value.status >= 400 ? value.status : 400
+        }
+      : projectCanonicalToolError(value)
     : value
   const text = stableJson(governedValue)
   if (Buffer.byteLength(text, 'utf8') > maxBytes) {
@@ -128,30 +154,47 @@ async function requestHarness(route, payload) {
   }
 }
 
-async function callHarness(route, payload, responseProjector) {
+async function callHarness(route, payload, responseProjector, shadowOperation = route) {
   const { response, body } = await requestHarness(route, payload)
   if (!response.ok) {
     // Harness validation errors deliberately contain only schema paths/codes. Keep
     // those diagnostics so Flowise can direct the user to the actual missing or
     // malformed field, while never reflecting submitted values, credentials, or
     // request bodies back into the conversation.
-    const issues = Array.isArray(body?.details?.issues)
-      ? body.details.issues
-        .filter((issue) => issue && typeof issue === 'object')
-        .slice(0, 12)
-        .map((issue) => ({
-          path: typeof issue.path === 'string' ? issue.path.slice(0, 120) : '',
-          code: typeof issue.code === 'string' ? issue.code.slice(0, 80) : 'invalid'
-        }))
-      : undefined
-    return textResult({
-      errorCode: typeof body.errorCode === 'string' ? body.errorCode : 'HARNESS_REQUEST_FAILED',
-      category: typeof body.category === 'string' ? body.category : 'TOOL',
-      status: response.status,
-      ...(issues && issues.length > 0 ? { validationIssues: issues } : {})
-    }, true)
+    const legacy = projectLegacyHarnessError(body, response.status)
+    const canonical = projectCanonicalHarnessError(body, response.status)
+    rf001Shadow.observeError(shadowOperation, legacy, canonical)
+    // B4-S4 cutover: the canonical envelope (with safeMessage/correlationRef)
+    // is the default error output; legacy shape stays behind the
+    // HENGZHUN_RF001_LEGACY_ERROR fallback switch. textResult projects
+    // idempotently, so the canonical path needs no second transformation.
+    return textResult(legacyErrorOutput ? legacy : canonical, true)
   }
-  return textResult(typeof responseProjector === 'function' ? responseProjector(body) : body)
+  const legacy = typeof responseProjector === 'function' ? responseProjector(body) : body
+  // B3 shadow mode never calls Harness twice. It compares the canonical path
+  // with the existing output from the same response, so mutating tools cannot
+  // duplicate a durable side effect while the adapter is being evaluated.
+  rf001Shadow.observeSuccess(shadowOperation, legacy, legacy)
+  return textResult(legacy)
+}
+
+// B3-S2 shadow scope: orchestration tools that fan out multiple Harness
+// round-trips route each round-trip through this wrapper so every response is
+// observed exactly once against the response it actually consumed. The wrapper
+// never issues a second request and never changes the legacy tool output; it
+// only records field shapes and a SHA-256 digest when projections differ.
+async function shadowedRequest(operation, route, payload) {
+  const { response, body } = await requestHarness(route, payload)
+  if (!response.ok) {
+    rf001Shadow.observeError(
+      operation,
+      projectLegacyHarnessError(body, response.status),
+      projectCanonicalHarnessError(body, response.status)
+    )
+    return { response, body }
+  }
+  rf001Shadow.observeSuccess(operation, body, body)
+  return { response, body }
 }
 
 // Flowise's native custom-MCP Tool boundary accepts a substantially smaller
@@ -171,8 +214,26 @@ function compactJourneyForFlowise(body) {
     ? value.map(item => text(item, limit)).filter(Boolean).slice(0, count)
     : []
   const draft = body?.caseDraft && typeof body.caseDraft === 'object' ? body.caseDraft : {}
+  // Frozen typed business inputs (transfer cases) must ride along with the
+  // projected draft: case_prepare builds the immutable case from this payload,
+  // and authoring later requires every value present.  Dropping them here
+  // produced cases that permanently failed I10_TYPED_BUSINESS_INPUT_REQUIRED.
+  const businessInputs = draft.businessInputs && typeof draft.businessInputs === 'object' && draft.businessInputs.values && typeof draft.businessInputs.values === 'object'
+    ? {
+        schemaVersion: text(draft.businessInputs.schemaVersion, 80),
+        source: text(draft.businessInputs.source, 40),
+        values: {
+          ...(draft.businessInputs.values.payeeRef ? { payeeRef: text(draft.businessInputs.values.payeeRef, 160) } : {}),
+          ...(draft.businessInputs.values.amount ? { amount: text(draft.businessInputs.values.amount, 32) } : {}),
+          ...(draft.businessInputs.values.currency ? { currency: text(draft.businessInputs.values.currency, 8) } : {}),
+          ...(draft.businessInputs.values.purpose ? { purpose: text(draft.businessInputs.values.purpose, 240) } : {}),
+          ...(draft.businessInputs.values.dateRange ? { dateRange: text(draft.businessInputs.values.dateRange, 80) } : {}),
+          ...(draft.businessInputs.values.filter ? { filter: text(draft.businessInputs.values.filter, 500) } : {})
+        }
+      }
+    : undefined
   const steps = Array.isArray(draft.steps)
-    ? draft.steps.slice(0, 4).map(step => ({ action: text(step?.action, 240), expected: text(step?.expected, 240) }))
+    ? draft.steps.slice(0, 6).map(step => ({ action: text(step?.action, 240), expected: text(step?.expected, 240) }))
     : []
   const proposal = body?.proposal && typeof body.proposal === 'object'
     ? {
@@ -208,7 +269,8 @@ function compactJourneyForFlowise(body) {
       summary: text(draft.summary, 320), targetSystem: text(draft.targetSystem, 160), entryUrl: text(draft.entryUrl, 512),
       preconditions: texts(draft.preconditions, 8, 160), steps, assertions: texts(draft.assertions, 8, 160),
       credentialRef: text(draft.credentialRef, 160), missingFields: texts(draft.missingFields, 20, 160),
-      confirmationStatus: text(draft.confirmationStatus, 80)
+      confirmationStatus: text(draft.confirmationStatus, 80),
+      ...(businessInputs ? { businessInputs } : {})
     }
   }
   if (body?.inputRequest && typeof body.inputRequest === 'object') {
@@ -254,19 +316,6 @@ function compactJourneyForFlowise(body) {
   return compact
 }
 
-function parseJsonArgument(value, errorCode) {
-  if (value && typeof value === 'object' && !Array.isArray(value)) return value
-  try {
-    const parsed = JSON.parse(value)
-    if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) throw new Error('object required')
-    return parsed
-  } catch {
-    const error = new Error(errorCode)
-    error.code = errorCode
-    throw error
-  }
-}
-
 function parseJsonArrayArgument(value, errorCode) {
   if (Array.isArray(value)) return value
   try {
@@ -293,122 +342,6 @@ function normalizeControlledPortalRoute(value) {
   return raw
 }
 
-function normalizeCasePrepareUrl(value) {
-  const raw = String(value || '').trim()
-  if (!raw) return ''
-  try {
-    const parsed = new URL(raw)
-    if (!['http:', 'https:'].includes(parsed.protocol)) {
-      const error = new Error('I10_ENTRY_URL_PROTOCOL_INVALID')
-      error.code = 'I10_ENTRY_URL_PROTOCOL_INVALID'
-      throw error
-    }
-    return parsed.href
-  } catch (error) {
-    if (error?.code) throw error
-    const invalid = new Error('I10_ENTRY_URL_INVALID')
-    invalid.code = 'I10_ENTRY_URL_INVALID'
-    throw invalid
-  }
-}
-
-function normalizeCasePrepareCredentialRef(value) {
-  const raw = String(value || '').trim()
-  if (!raw) return ''
-  if (!/^credential_[0-9a-f-]{36}$/.test(raw)) {
-    const error = new Error('I10_CREDENTIAL_REF_INVALID')
-    error.code = 'I10_CREDENTIAL_REF_INVALID'
-    throw error
-  }
-  return raw
-}
-
-function normalizeCasePrepareActionSteps(value, steps, credentialRef) {
-  if (value !== undefined && !Array.isArray(value)) {
-    const error = new Error('I10_ACTION_STEPS_INVALID')
-    error.code = 'I10_ACTION_STEPS_INVALID'
-    throw error
-  }
-  const source = Array.isArray(value) ? value : []
-  return steps.map((step, index) => {
-    const raw = source[index] && typeof source[index] === 'object' && !Array.isArray(source[index]) ? source[index] : {}
-    const instruction = String(raw.instruction || raw.action || step.action || '').trim()
-    const expected = String(raw.expected || step.expected || '').trim()
-    const rawType = String(raw.actionType || '').toUpperCase()
-    const actionType = ['NAVIGATE', 'CLICK', 'INPUT', 'SELECT', 'UPLOAD', 'WAIT', 'ASSERT', 'VERIFY'].includes(rawType)
-      ? rawType
-      : /输入|填写|键入/i.test(instruction) ? 'INPUT'
-        : /等待/i.test(instruction) ? 'WAIT'
-          : /验证|核对|确认.*显示/i.test(instruction) ? 'VERIFY'
-            : /打开|访问|进入.*页面/i.test(instruction) ? 'NAVIGATE' : 'CLICK'
-    const credentialAction = actionType === 'INPUT' && /账号|用户名|密码|手机号/i.test(instruction)
-    const allowedInputSources = ['USER_TEXT', 'IMAGE_EVIDENCE', 'CASE_FILE', 'VIDEO_EVIDENCE', 'CREDENTIAL_REF', 'RUNTIME_USER_INPUT']
-    const inputValueSource = allowedInputSources.includes(raw.inputValueSource)
-      ? raw.inputValueSource
-      : actionType === 'INPUT' ? 'RUNTIME_USER_INPUT' : undefined
-    if (!instruction || !expected) {
-      const error = new Error('I10_ACTION_STEPS_INVALID')
-      error.code = 'I10_ACTION_STEPS_INVALID'
-      throw error
-    }
-    return {
-      ordinal: index + 1,
-      actionType,
-      instruction,
-      ...(String(raw.targetDescription || raw.elementDescription || '').trim()
-        ? { targetDescription: String(raw.targetDescription || raw.elementDescription).trim().slice(0, 500) }
-        : {}),
-      ...(!credentialAction && typeof raw.inputValue === 'string' && raw.inputValue.trim()
-        ? { inputValue: raw.inputValue.trim().slice(0, 2000) }
-        : {}),
-      ...(credentialAction
-        ? { inputValueSource: 'CREDENTIAL_REF', provenanceRefs: credentialRef ? [credentialRef] : [] }
-        : { ...(inputValueSource ? { inputValueSource } : {}), provenanceRefs: Array.isArray(raw.provenanceRefs) ? raw.provenanceRefs : [] }),
-      confidence: Number.isFinite(Number(raw.confidence)) ? Math.max(0, Math.min(1, Number(raw.confidence))) : 0.9,
-      expected
-    }
-  })
-}
-
-function normalizeI10NaturalDraft(draft, caseDescription, sessionRef, credentialRefOverride) {
-  const steps = Array.isArray(draft.steps) ? draft.steps.map(step => ({
-    action: String(step.action || '').trim(),
-    expected: String(step.expected || step.expectedResult || step.expectedResults || '').trim()
-  })).filter(step => step.action && step.expected) : []
-  const entryUrl = normalizeCasePrepareUrl(draft.entryUrl || caseDescription.match(/https?:\/\/[^\s，。；]+/)?.[0] || '')
-  const targetSystem = String(draft.targetSystem || '').trim()
-  const credentialRef = normalizeCasePrepareCredentialRef(credentialRefOverride || (typeof draft.credentialRef === 'string' ? draft.credentialRef : ''))
-  const missingFields = [...new Set([
-    ...(Array.isArray(draft.missingFields) ? draft.missingFields.map(String) : []),
-    ...(!targetSystem ? ['targetSystem'] : []), ...(!entryUrl ? ['entryUrl'] : []),
-    ...(!credentialRef ? ['credentialRef'] : []), ...(steps.length === 0 ? ['steps'] : [])
-  ])]
-  const assertions = Array.isArray(draft.assertions) && draft.assertions.length
-    ? draft.assertions.map(String).filter(Boolean)
-    : steps.map(step => step.expected)
-  return {
-    schemaVersion: 'hengzhun-i10-case-draft-v1',
-    title: String(draft.title || draft.caseName || '未命名回归案例').slice(0, 160),
-    objective: String(draft.objective || draft.caseDescription || caseDescription).slice(0, 2000),
-    summary: String(draft.summary || draft.caseDescription || caseDescription).slice(0, 1000),
-    ...(targetSystem ? { targetSystem } : {}), ...(entryUrl ? { entryUrl } : {}),
-    preconditions: Array.isArray(draft.preconditions) && draft.preconditions.length ? draft.preconditions.map(String).filter(Boolean) : ['目标系统可访问', '本机安全凭据引用有效'],
-    steps, assertions, ...(credentialRef ? { credentialRef } : {}),
-    ...(typeof draft.supportingImageIngestId === 'string' && draft.supportingImageIngestId.trim()
-      ? { supportingImageIngestId: draft.supportingImageIngestId.trim() }
-      : {}),
-    caseFacts: Array.isArray(draft.caseFacts)
-      ? draft.caseFacts.filter(item => item && typeof item === 'object' && !Array.isArray(item))
-      : [],
-    actionStepsV2: normalizeCasePrepareActionSteps(draft.actionStepsV2, steps, credentialRef),
-    verificationRequirements: Array.isArray(draft.verificationRequirements) ? draft.verificationRequirements : [],
-    source: { inputType: 'NATURAL_LANGUAGE', sourceRef: sessionRef, sourceHash: digest(caseDescription), provenanceSummary: '由Flowise主控模型根据用户自然语言生成，并由MCP确定性规范化来源与固定策略字段。' },
-    confidence: Number.isFinite(Number(draft.confidence)) ? Math.max(0, Math.min(1, Number(draft.confidence))) : 0.9,
-    missingFields, confirmationStatus: missingFields.length ? 'WAITING_USER' : 'CONFIRMED',
-    authoringStrategy: 'MIDSCENE_VISUAL_AUTHORING_PLAYWRIGHT_VERIFY', executionStrategy: 'PLAYWRIGHT_VALIDATED_ONLY', evidenceStrategy: 'REDACTED_HASHED_EVIDENCE'
-  }
-}
-
 function createServer() {
   const server = new McpServer({ name: 'hengzhun-i10-regression', version: '8.0.0' })
 
@@ -422,7 +355,10 @@ function createServer() {
   server.registerTool('credential_session_get', {
     description: '查询本机安全凭据会话是否已生成credentialRef，不返回账号密码。',
     inputSchema: { sessionId: safeRef }
-  }, async ({ sessionId }) => callHarness('/v1/i10/credentials:sessions-get', { namespace, sessionId }))
+  }, async ({ sessionId }) => {
+    const canonical = normalizeCredentialSessionGetRequest({ sessionId })
+    return callHarness('/v1/i10/credentials:sessions-get', { namespace, ...canonical }, undefined, 'credential_session_get')
+  })
 
   server.registerTool('target_profile_prepare', {
     description: '首次使用任意HTTP/HTTPS网站或扩展已知跳转域名时，探测入口并生成唯一站点档案确认提案。保留完整路径、查询参数和Hash，不执行测试。',
@@ -497,9 +433,12 @@ function createServer() {
       targetSystemHint: z.string().trim().min(1).max(160).optional(),
       entryUrlHint: z.string().url().max(2048).optional(), supportingImageIngestId: z.union([safeRef,z.literal('')]).optional(), sessionRef: safeRef
     }
-  }, async ({ sessionRef, ...business }) => { if(!business.supportingImageIngestId||business.supportingImageIngestId==='NONE')delete business.supportingImageIngestId;return callHarness('/v1/i10/ingest:submit', {
-    namespace, idempotencyKey: idempotencyKey('ingest_submit', sessionRef, business), ...business
-  })})
+  }, async ({ sessionRef, ...business }) => {
+    const request = normalizeIngestSubmitRequest(business)
+    return callHarness('/v1/i10/ingest:submit', {
+      namespace, idempotencyKey: idempotencyKey('ingest_submit', sessionRef, request), ...request
+    })
+  })
 
   server.registerTool('ingest_get', {
     description: '查询案例文件或视频导入状态、信息缺口和待确认CaseDraft。',
@@ -524,18 +463,7 @@ function createServer() {
     }
   }, async ({ ingestJobId, expectedVersion, choice, correctionsJson, itemDecisionsJson, reason, confirmationRef, sessionRef }) => {
     try {
-      let corrections = []
-      if (correctionsJson) {
-        const parsed = typeof correctionsJson === 'string' ? JSON.parse(correctionsJson) : correctionsJson
-        corrections = Array.isArray(parsed) ? parsed : parsed.corrections
-        if (!Array.isArray(corrections)) throw new Error('corrections array required')
-      }
-      let itemDecisions = []
-      if (itemDecisionsJson) {
-        const parsed = typeof itemDecisionsJson === 'string' ? JSON.parse(itemDecisionsJson) : itemDecisionsJson
-        itemDecisions = Array.isArray(parsed) ? parsed : parsed.itemDecisions
-        if (!Array.isArray(itemDecisions)) throw new Error('itemDecisions array required')
-      }
+      const { corrections, itemDecisions } = normalizeIngestDecisionSubmitRequest({ correctionsJson, itemDecisionsJson })
       const business = { ingestJobId, expectedVersion, choice, corrections, itemDecisions, reason, confirmationRef }
       return callHarness('/v1/i10/ingest:decide', {
         namespace, idempotencyKey: idempotencyKey('ingest_decision_submit', sessionRef, business), ...business
@@ -641,7 +569,7 @@ function createServer() {
     }
   }, async ({ sessionRef, draftJson, supportingImages, semanticAssessment, inputRevision, ...business }) => {
     try {
-      const normalizedDraft = draftJson === undefined ? undefined : parseJsonArgument(draftJson,'I10_JOURNEY_DRAFT_INVALID')
+      const normalizedDraft = normalizeJourneyPrepareDraft(draftJson)
       let normalizedSupportingImages = supportingImages
       if (typeof normalizedSupportingImages === 'string') {
         const text = normalizedSupportingImages.trim()
@@ -773,41 +701,10 @@ function createServer() {
     actions, expectedOutcomes, assertions, missingFields, multimodalContextJson, credentialRef, journeyId, sessionRef
   }) => {
     try {
-      const normalizedCredentialRef = normalizeCasePrepareCredentialRef(credentialRef)
-      const flatDraftSupplied = caseTitle !== undefined || actions !== undefined || expectedOutcomes !== undefined
-      const suppliedDraftSources = Number(draftArray !== undefined) + Number(draftJson !== undefined) + Number(flatDraftSupplied)
-      if (suppliedDraftSources !== 1) {
-        const error = new Error('I10_DRAFT_SOURCE_AMBIGUOUS')
-        error.code = 'I10_DRAFT_SOURCE_AMBIGUOUS'
-        throw error
-      }
-      let draft
-      if (flatDraftSupplied) {
-        const normalizedEntryUrl = normalizeCasePrepareUrl(entryUrl)
-        if (!caseTitle || !objective || !summary || !targetSystem || !normalizedEntryUrl || !preconditions?.length || !actions?.length ||
-          !expectedOutcomes?.length || actions.length !== expectedOutcomes.length || !assertions?.length) {
-          const error = new Error('I10_DRAFT_FLAT_FIELDS_INVALID')
-          error.code = 'I10_DRAFT_FLAT_FIELDS_INVALID'
-          throw error
-        }
-        draft = {
-          schemaVersion: 'hengzhun-i10-case-draft-v1', title: caseTitle, objective, summary, targetSystem, entryUrl: normalizedEntryUrl,
-          preconditions, steps: actions.map((action, index) => ({ action, expected: expectedOutcomes[index] })), assertions,
-          credentialRef: normalizedCredentialRef, missingFields: missingFields || [], confirmationStatus: missingFields?.length ? 'WAITING_USER' : 'CONFIRMED'
-        }
-        if(multimodalContextJson){
-          const multimodal=parseJsonArgument(multimodalContextJson,'I10_MULTIMODAL_CONTEXT_INVALID')
-          if (multimodal.actionStepsV2 !== undefined && !Array.isArray(multimodal.actionStepsV2)) {
-            const error = new Error('I10_ACTION_STEPS_INVALID'); error.code = 'I10_ACTION_STEPS_INVALID'; throw error
-          }
-          if (multimodal.verificationRequirements !== undefined && !Array.isArray(multimodal.verificationRequirements)) {
-            const error = new Error('I10_VERIFICATION_REQUIREMENTS_INVALID'); error.code = 'I10_VERIFICATION_REQUIREMENTS_INVALID'; throw error
-          }
-          Object.assign(draft,{supportingImageIngestId:multimodal.supportingImageIngestId,caseFacts:Array.isArray(multimodal.caseFacts)?multimodal.caseFacts:[],actionStepsV2:multimodal.actionStepsV2||[],verificationRequirements:multimodal.verificationRequirements||[]})
-        }
-      } else {
-        draft = draftArray ? draftArray[0] : parseJsonArgument(draftJson, 'I8_DRAFT_JSON_INVALID')
-      }
+      const { normalizedCredentialRef, draft } = normalizeCasePrepareRequest({
+        caseDescription, draftArray, draftJson, caseTitle, objective, summary, targetSystem, entryUrl, preconditions,
+        actions, expectedOutcomes, assertions, missingFields, multimodalContextJson, credentialRef
+      })
       if (draft.schemaVersion === 'hengzhun-i10-case-draft-v1' || typeof draft.credentialRef === 'string') {
         const normalizedDraft = normalizeI10NaturalDraft(draft, caseDescription, sessionRef, normalizedCredentialRef)
         return callHarness('/v1/i10/cases:prepare', {
@@ -819,7 +716,7 @@ function createServer() {
           draft: normalizedDraft
         })
       }
-      const acceptanceSummary = parseJsonArgument(acceptanceSummaryJson, 'I8_ACCEPTANCE_JSON_INVALID')
+      const acceptanceSummary = normalizeCaseAcceptanceSummary(acceptanceSummaryJson)
       const payload = {
         namespace,
         idempotencyKey: idempotencyKey('case_prepare', sessionRef, { caseDescription, draft, acceptanceSummary }),
@@ -875,8 +772,15 @@ function createServer() {
     }
   }, async ({ preparationId, expectedVersion, choice, confirmationRef, reason, caseId, caseVersion, route, executionProfile, targetProfileId, targetProfileVersion, targetProfileHash, targetProfileSnapshot, authoringContext, intentStepIds, actions, expectedOutcomes, riskLevels, inputValues, inputValueSources, assertions, sessionRef }) => {
     try {
+      // DEC-1 (OPTION-C, 2026-08-02): the seven legacy array aliases are read
+      // only here by the authoritative projection and are declared no-effect;
+      // they must never reach the Harness request.
+      const canonical = normalizeAuthoringSubmitRequest({
+        preparationId, expectedVersion, choice, confirmationRef, reason,
+        intentStepIds, actions, expectedOutcomes, riskLevels, inputValues, inputValueSources, assertions
+      })
       let context
-      if (choice === 'APPROVE') {
+      if (canonical.choice === 'APPROVE') {
         // Empty-string interpolations are transport noise, not values (schema
         // note above); normalize before the context assembly below.
         const blankToUndefined = value => (typeof value === 'string' && !value.trim()) ? undefined : value
@@ -893,13 +797,13 @@ function createServer() {
             targetProfileSnapshot: targetProfileSnapshot ? parseJsonArgument(targetProfileSnapshot, 'I10_TARGET_PROFILE_SNAPSHOT_INVALID') : undefined }
         if (context && !context.route) context = undefined
       }
-      const businessPayload = { preparationId, expectedVersion, choice, confirmationRef, reason, context }
+      const businessPayload = { preparationId: canonical.preparationId, expectedVersion: canonical.expectedVersion, choice: canonical.choice, confirmationRef: canonical.confirmationRef, reason: canonical.reason, context }
       return callHarness('/v1/i8/authoring:submit', {
         namespace,
         idempotencyKey: idempotencyKey('authoring_submit', sessionRef, businessPayload),
-        preparationId,
-        expectedVersion,
-        confirmation: { choice, confirmationRef, reason },
+        preparationId: canonical.preparationId,
+        expectedVersion: canonical.expectedVersion,
+        confirmation: { choice: canonical.choice, confirmationRef: canonical.confirmationRef, reason: canonical.reason },
         ...(context ? { authoringContext: context } : {})
       })
     } catch (error) {
@@ -923,17 +827,17 @@ function createServer() {
       revisionReason: z.string().trim().min(8).max(500).optional()
     }
   }, async ({ preparationId, sessionRef, waitForCertificate, waitTimeoutSeconds, retryFailed, revisionReason }) => {
-    let current = await requestHarness('/v1/i8/candidates:get', { namespace, preparationId })
+    let current = await shadowedRequest('candidate_get', '/v1/i8/candidates:get', { namespace, preparationId })
     if (!current.response.ok && current.response.status !== 404) {
       return textResult({ errorCode: current.body.errorCode || 'I8_CANDIDATE_STATUS_UNAVAILABLE', status: current.response.status }, true)
     }
     if (current.response.status === 404 || (retryFailed === true &&
         ['AUTHORING_REVIEW_REQUIRED', 'CANDIDATE_REPAIR_REQUIRED'].includes(current.body?.nextAction))) {
-      const authoring = await requestHarness('/v1/i8/authoring:get', { namespace, preparationId })
+      const authoring = await shadowedRequest('candidate_get', '/v1/i8/authoring:get', { namespace, preparationId })
       if (!authoring.response.ok || !Number.isInteger(authoring.body.version)) {
         return textResult({ errorCode: authoring.body.errorCode || 'I8_PREPARATION_VERSION_UNAVAILABLE', status: authoring.response.status }, true)
       }
-      const compiled = await requestHarness('/v1/i8/candidates:compile', {
+      const compiled = await shadowedRequest('candidate_get', '/v1/i8/candidates:compile', {
         namespace,
         idempotencyKey: idempotencyKey('candidate_get', sessionRef, {
           preparationId,
@@ -958,7 +862,7 @@ function createServer() {
     const terminalActions = new Set(['HUMAN_DELIVERY_DECISION_REQUIRED', 'ACTIVATE_OR_REJECT_AVAILABLE', 'ON_DEMAND_RUN_AVAILABLE', 'CANDIDATE_REPAIR_REQUIRED', 'AUTHORING_REVIEW_REQUIRED', 'NONE'])
     while (!terminalActions.has(current.body?.nextAction) && Date.now() < deadline) {
       await new Promise(resolve => setTimeout(resolve, 750))
-      current = await requestHarness('/v1/i8/candidates:get', { namespace, preparationId })
+      current = await shadowedRequest('candidate_get', '/v1/i8/candidates:get', { namespace, preparationId })
       if (!current.response.ok) {
         return textResult({ errorCode: current.body.errorCode || 'I8_CANDIDATE_STATUS_UNAVAILABLE', status: current.response.status }, true)
       }
@@ -966,7 +870,7 @@ function createServer() {
     if (!terminalActions.has(current.body?.nextAction)) {
       const taskRef = current.body?.job?.jobId
       if (taskRef) {
-        const verification = await requestHarness('/v1/i10/verification:get',{namespace,taskRef})
+        const verification = await shadowedRequest('candidate_get', '/v1/i10/verification:get', {namespace,taskRef})
         if (verification.response.ok) {
           return textResult({
             status:'WAITING_USER',
@@ -990,11 +894,11 @@ function createServer() {
       includeDownload: z.boolean().optional()
     }
   }, async ({ preparationId, cursor, limit, includeDownload }) => {
-    const current = await requestHarness('/v1/i8/candidates:get', { namespace, preparationId })
+    const current = await shadowedRequest('candidate_preview', '/v1/i8/candidates:get', { namespace, preparationId })
     if (!current.response.ok || !current.body.candidate?.candidateId) {
       return textResult({ errorCode: current.body.errorCode || 'I8_CANDIDATE_UNAVAILABLE', status: current.response.status }, true)
     }
-    const preview = await requestHarness('/v1/i8/candidates:preview', {
+    const preview = await shadowedRequest('candidate_preview', '/v1/i8/candidates:preview', {
       namespace, candidateId: current.body.candidate.candidateId, ...(cursor ? { cursor } : {}), ...(limit ? { limit } : {}), includeDownload: includeDownload === true
     })
     if (!preview.response.ok) return textResult({ errorCode: preview.body.errorCode || 'I8_PREVIEW_FAILED', status: preview.response.status }, true)
@@ -1012,7 +916,7 @@ function createServer() {
       sessionRef: safeRef
     }
   }, async ({ preparationId, choice, confirmationRef, reason, sessionRef }) => {
-    const current = await requestHarness('/v1/i8/candidates:get', { namespace, preparationId })
+    const current = await shadowedRequest('candidate_decide', '/v1/i8/candidates:get', { namespace, preparationId })
     const candidate = current.body.candidate
     if (!current.response.ok || !candidate?.candidateId || !Number.isInteger(candidate.version)) {
       return textResult({ errorCode: current.body.errorCode || 'I8_CANDIDATE_VERSION_UNAVAILABLE', status: current.response.status }, true)
@@ -1026,12 +930,15 @@ function createServer() {
   server.registerTool('run_submit', {
     description: '仅对已明确激活的精确脚本版本提交一次按需纯Playwright回归。',
     inputSchema: { preparationId: safeRef, sessionRef: safeRef }
-  }, async ({ preparationId, sessionRef }) => callHarness('/v1/i8/runs:submit', {
-    namespace,
-    idempotencyKey: idempotencyKey('run_submit', sessionRef, { preparationId }),
-    preparationId,
-    credentialAlias: 'i3-customer'
-  }))
+  }, async ({ preparationId, sessionRef }) => {
+    const binding = normalizeCredentialBinding()
+    return callHarness('/v1/i8/runs:submit', {
+      namespace,
+      idempotencyKey: idempotencyKey('run_submit', sessionRef, { preparationId }),
+      preparationId,
+      credentialAlias: binding.credentialAlias
+    })
+  })
 
   server.registerTool('task_get', {
     description: '读取按需回归任务的最小脱敏状态与结果摘要；等待期间若Worker在业务首次确认后发现U盾等人工验证，会立即返回人工门槛而不是阻塞到超时。',
@@ -1041,10 +948,10 @@ function createServer() {
       waitTimeoutSeconds: z.number().int().min(1).max(180).optional()
     }
   }, async ({ taskId, waitForTerminal, waitTimeoutSeconds }) => {
-    let current = await requestHarness('/v1/i8/tasks:get', { namespace, taskId })
+    let current = await shadowedRequest('task_get', '/v1/i8/tasks:get', { namespace, taskId })
     if (!current.response.ok) return textResult({ errorCode: current.body.errorCode || 'I8_TASK_STATUS_UNAVAILABLE', status: current.response.status }, true)
     const withVerification = async taskBody => {
-      const verification = await requestHarness('/v1/i10/verification:get', { namespace, taskRef: taskId })
+      const verification = await shadowedRequest('task_get', '/v1/i10/verification:get', { namespace, taskRef: taskId })
       if (!verification.response.ok) return null
       const status = String(verification.body?.status || '')
       if (!['WAITING_USER_PREPARATION', 'WAITING_USER_ACTION'].includes(status)) return null
@@ -1062,7 +969,7 @@ function createServer() {
     const terminal = new Set(['SUCCEEDED', 'FAILED', 'BLOCKED', 'WAITING_USER', 'CANCELLED'])
     while (!terminal.has(current.body?.status) && Date.now() < deadline) {
       await new Promise(resolve => setTimeout(resolve, 750))
-      current = await requestHarness('/v1/i8/tasks:get', { namespace, taskId })
+      current = await shadowedRequest('task_get', '/v1/i8/tasks:get', { namespace, taskId })
       if (!current.response.ok) return textResult({ errorCode: current.body.errorCode || 'I8_TASK_STATUS_UNAVAILABLE', status: current.response.status }, true)
       const verification = await withVerification(current.body)
       if (verification) return textResult(verification)
@@ -1092,12 +999,13 @@ function createServer() {
       sessionRef: safeRef
     }
   }, async ({ preparationId, scheduleType, cronExpression, runAt, timezone, misfirePolicy, misfireGraceSeconds, maxRetries, confirmationRef, sessionRef }) => {
+    const binding = normalizeCredentialBinding()
     const business = { preparationId, scheduleType, cronExpression, runAt, timezone, misfirePolicy, misfireGraceSeconds, maxRetries, confirmationRef }
     return callHarness('/v1/i8/schedules:create', {
       namespace, idempotencyKey: idempotencyKey('schedule_create', sessionRef, business),
       preparationId, scheduleType, ...(cronExpression ? { cronExpression } : {}), ...(runAt ? { runAt } : {}),
       timezone, misfirePolicy, misfireGraceSeconds, maxRetries, confirmationRef,
-      credentialAlias: 'i3-customer'
+      credentialAlias: binding.credentialAlias
     })
   })
 
@@ -1110,7 +1018,7 @@ function createServer() {
       sessionRef: safeRef.optional()
     }
   }, async ({ scheduleId, action, reason, sessionRef }) => {
-    const current = await requestHarness('/v1/i8/schedules:get', { namespace, scheduleId })
+    const current = await shadowedRequest('schedule_get', '/v1/i8/schedules:get', { namespace, scheduleId })
     if (!current.response.ok) return textResult({ errorCode: current.body.errorCode || 'I8_SCHEDULE_STATUS_UNAVAILABLE', status: current.response.status }, true)
     if (action === 'READ') return textResult(current.body)
     if (!reason || !sessionRef) return textResult({ errorCode: 'I8_SCHEDULE_DISABLE_CONFIRMATION_REQUIRED' }, true)
@@ -1131,7 +1039,7 @@ function createServer() {
       sessionRef: safeRef
     }
   }, async ({ scheduleId, reason, sessionRef }) => {
-    const current = await requestHarness('/v1/i8/schedules:get', { namespace, scheduleId })
+    const current = await shadowedRequest('schedule_disable', '/v1/i8/schedules:get', { namespace, scheduleId })
     if (!current.response.ok || !Number.isInteger(current.body?.version)) {
       return textResult({ errorCode: current.body?.errorCode || 'I8_SCHEDULE_STATUS_UNAVAILABLE', status: current.response.status }, true)
     }
@@ -1162,7 +1070,7 @@ function createServer() {
       acknowledgeInboxIds: z.array(safeRef).max(50).default([])
     }
   }, async ({ cursor, limit, unreadOnly, acknowledgeInboxIds }) => {
-    const result = await requestHarness('/v1/i8/results:inbox-list', {
+    const result = await shadowedRequest('result_inbox_list', '/v1/i8/results:inbox-list', {
       namespace, ...(cursor ? { cursor } : {}), limit, unreadOnly, acknowledgeInboxIds
     })
     if (!result.response.ok) return textResult({ errorCode: result.body.errorCode || 'I8_RESULT_INBOX_FAILED', status: result.response.status }, true)
@@ -1177,14 +1085,14 @@ function createServer() {
       waitTimeoutSeconds: z.number().int().min(1).max(180).optional()
     }
   }, async ({ incidentId, waitForProposal, waitTimeoutSeconds }) => {
-    let current = await requestHarness('/v1/i8/failures:get', { namespace, incidentId })
+    let current = await shadowedRequest('failure_get', '/v1/i8/failures:get', { namespace, incidentId })
     if (!current.response.ok) return textResult({ errorCode: current.body.errorCode || 'I8_FAILURE_INCIDENT_UNAVAILABLE', status: current.response.status }, true)
     if (waitForProposal !== true) return textResult(current.body, false, 16 * 1024)
     const deadline = Date.now() + (waitTimeoutSeconds ?? 120) * 1000
     const terminal = new Set(['WAITING_USER', 'VALIDATION_FAILED'])
     while (!terminal.has(current.body?.proposal?.status) && Date.now() < deadline) {
       await new Promise(resolve => setTimeout(resolve, 750))
-      current = await requestHarness('/v1/i8/failures:get', { namespace, incidentId })
+      current = await shadowedRequest('failure_get', '/v1/i8/failures:get', { namespace, incidentId })
       if (!current.response.ok) return textResult({ errorCode: current.body.errorCode || 'I8_FAILURE_INCIDENT_UNAVAILABLE', status: current.response.status }, true)
     }
     if (!terminal.has(current.body?.proposal?.status)) return textResult({ errorCode: 'I8_REPAIR_WAIT_TIMEOUT', status: current.body?.proposal?.status || 'UNKNOWN' }, true)
@@ -1205,12 +1113,8 @@ function createServer() {
     }
   }, async ({ incidentId, patchJson, operationType, targetRef, locatorKind, locatorValue, rationale, sessionRef }) => {
     try {
-      const patch = patchJson
-        ? parseJsonArgument(patchJson, 'I8_PATCH_JSON_INVALID')
-        : operationType && targetRef && locatorKind && locatorValue && rationale
-          ? { schemaVersion: 'i8-script-patch-proposal-v1', operations: [{ type: operationType, targetRef, locator: { kind: locatorKind, value: locatorValue } }], rationale }
-          : (() => { const error = new Error('I8_PATCH_FLAT_FIELDS_INVALID'); error.code = 'I8_PATCH_FLAT_FIELDS_INVALID'; throw error })()
-      const current = await requestHarness('/v1/i8/failures:get', { namespace, incidentId })
+      const { patch } = normalizeRepairProposeRequest({ patchJson, operationType, targetRef, locatorKind, locatorValue, rationale })
+      const current = await shadowedRequest('repair_propose', '/v1/i8/failures:get', { namespace, incidentId })
       if (!current.response.ok || !current.body.failureEnvelope?.envelopeHash) return textResult({ errorCode: current.body.errorCode || 'I8_FAILURE_ENVELOPE_UNAVAILABLE', status: current.response.status }, true)
       const business = { incidentId, expectedEnvelopeHash: current.body.failureEnvelope.envelopeHash, patch }
       return callHarness('/v1/i8/repairs:propose', { namespace, idempotencyKey: idempotencyKey('repair_propose', sessionRef, business), ...business })
@@ -1221,7 +1125,7 @@ function createServer() {
     description: '仅对已完成当前稳定性策略验证的修复提案记录ACTIVATE或REJECT；激活不自动复跑或迁移调度。',
     inputSchema: { incidentId: safeRef, proposalId: safeRef, choice: z.enum(['ACTIVATE', 'REJECT']), confirmationRef: safeRef, reason: z.string().trim().min(1).max(1000), sessionRef: safeRef }
   }, async ({ incidentId, proposalId, choice, confirmationRef, reason, sessionRef }) => {
-    const current = await requestHarness('/v1/i8/failures:get', { namespace, incidentId })
+    const current = await shadowedRequest('decision_submit', '/v1/i8/failures:get', { namespace, incidentId })
     if (!current.response.ok || current.body.proposal?.proposalId !== proposalId || !Number.isInteger(current.body.proposal?.version)) return textResult({ errorCode: current.body.errorCode || 'I8_REPAIR_PROPOSAL_VERSION_UNAVAILABLE', status: current.response.status }, true)
     const business = { proposalId, expectedProposalVersion: current.body.proposal.version, choice, confirmationRef, reason }
     return callHarness('/v1/i8/repairs:decide', { namespace, idempotencyKey: idempotencyKey('decision_submit', sessionRef, business), ...business })
@@ -1230,7 +1134,12 @@ function createServer() {
 }
 
 const app = createMcpExpressApp()
-app.get('/health', (_request, response) => response.json({ status: 'ok', service: 'hengzhun-i10-mcp', version: '10.0.0' }))
+app.get('/health', (_request, response) => response.json({
+  status: 'ok',
+  service: 'hengzhun-i10-mcp',
+  version: '10.0.0',
+  rf001Shadow: rf001Shadow.snapshot()
+}))
 app.use('/mcp', (request, response, next) => {
   if (!authorized(request.headers.authorization)) {
     response.status(401).json({ jsonrpc: '2.0', error: { code: -32001, message: 'Unauthorized' }, id: null })

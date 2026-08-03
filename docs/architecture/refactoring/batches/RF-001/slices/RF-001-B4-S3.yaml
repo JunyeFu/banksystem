@@ -1,0 +1,95 @@
+schemaVersion: 1
+id: RF-001-B4-S3
+title: 回滚演练（rollback-runbook 受控触发与恢复验证）
+status: PROPOSED
+owner: project-owner
+authorizedBy: agent/plans/active/v54-implementation-batches.md (重构控制执行顺序第6项, RF-001-B4)
+parentBatch: docs/architecture/refactoring/batches/RF-001/batch.yaml
+plan: docs/architecture/refactoring/batches/RF-001/slices/RF-001-B4-plan.md (用户已批准B4切片链)
+rollbackNorm: docs/architecture/refactoring/batches/RF-001/rollback-runbook.md
+baseline:
+  gitCommit: dacd79580ec73f3580594ab2134acf8cc3d99f35
+  releaseIdentity: 632ad5ee7981b59f00824d0072d28da6075eef095d55a898d51c0103a897988f
+  capturedAt: "2026-08-03"
+
+# 单业务目标：按 rollback-runbook 演练回滚命令与恢复验证——在隔离副本上证明：
+# (a) 受控触发条件（错误码语义漂移）可被机器检测（B4-S1检测器失败）；
+# (b) 回滚（恢复基线 server.cjs + 移除 RF-001 产物）后 MCP 合同面完整、身份不变、检测器恢复绿。
+# 演练全部在临时目录进行，真实工作区零改动。
+# 单功能点：回滚演练（隔离副本）。
+businessGoal:
+  - 回滚命令定义并验证：`git show dacd795:<server.cjs>` 恢复 + 移除未跟踪 RF-001 产物（适配器/测试/文档留档不删源码引用）
+  - 触发条件：错误码漂移注入 → 检测器失败（证明检测有效）
+  - 回滚后：server.cjs 语法有效、无 RF-001 引用、33 工具名完整、身份 632ad5ee 不变、检测器恢复绿
+  - 演练不触碰真实工作区（隔离临时目录）
+functionalPoint: 回滚命令演练与恢复验证（隔离）
+evidenceLevel: CONTRACT_DRILL
+
+allowedPaths:
+  - platform/hengzhun-regression-system/scripts/verification/rf001-b4s3-rollback-drill.test.cjs   # 【新增】演练测试
+  - platform/hengzhun-regression-system/.data/tests/rf001-rollback-drill/**   # 隔离演练产物，用完清理
+  - docs/architecture/refactoring/batches/RF-001/decision-log.md
+  - docs/architecture/refactoring/batches/RF-001/evidence-index.md
+  - docs/architecture/refactoring/batches/RF-001/shadow-implementation-report.md
+  - docs/architecture/refactoring/batches/RF-001/slices/**
+
+forbiddenPaths:
+  - 真实工作区 mcp/src/**、harness/**、flowise/**、worker/**、contracts/** 零改动（演练只在临时副本）
+  - 不删除/不暂存/不提交任何真实文件；不触碰生产进程与 DB
+  - agent/backlog.yaml, agent/plans/active/v54-implementation-batches.md
+  - scripts/architecture/**；SQLite迁移；切流
+
+budgets:
+  maxChangedFiles: 4
+  maxNewFiles: 1
+  maxChangedLines: 300
+  maxContractsChanged: 0
+  maxMigrationsAdded: 0
+  maxOpenModules: 0（零真实代码改动）
+
+invariants:
+  - 演练只在 .data/tests/rf001-rollback-drill/ 临时副本内进行，finally 清理
+  - 不读取/输出任何密钥；不调用生产服务
+  - 恢复验证以机器可复算断言为准（语法/工具面/身份/检测器）
+
+workSteps:
+  - step: S3-1 回滚命令定义
+    action: 从 rollback-runbook 推导可执行回滚命令序列（git show 基线恢复 + 产物移除），写入演练脚本
+  - step: S3-2 触发条件演练
+    action: 在副本注入错误码漂移（I8_CANDIDATE_VERSION_UNAVAILABLE→DRIFTED），运行检测器（复用B4-S1错误码清单逻辑）断言失败
+  - step: S3-3 回滚执行
+    action: 按回滚命令恢复副本 server.cjs 至基线版本，移除 RF-001 产物引用
+  - step: S3-4 恢复验证
+    action: 语法有效、无RF-001引用、33工具名、合同校验（边界合同不受影响仍PASS）、身份632ad5ee、检测器恢复绿
+  - step: S3-5 证据与同步
+    action: 更新报告/证据索引/决策日志；RC-D1逐级同步；cutover-runbook回滚门禁关闭
+
+verification:
+  requiredCommands:
+    - name: rf001-b4s3-rollback-drill
+      command: runtime/node-v20.20.2-win-x64/node.exe --test scripts/verification/rf001-b4s3-rollback-drill.test.cjs
+      expectedExitCode: 0
+      expectedOutput: 触发检测失败→回滚→恢复验证全绿→清理
+      blocking: true
+    - name: rf001-focused-tests
+      command: runtime/node-v20.20.2-win-x64/node.exe --test scripts/verification/rf001-contract-adapter.test.cjs scripts/verification/mcp-interaction-contract.test.cjs scripts/verification/rf001-b3s3-aliases.test.cjs scripts/verification/rf001-b3s5-shadow-live.test.cjs scripts/verification/rf001-b4s1-compat-error-baseline.test.cjs
+      expectedExitCode: 0
+      expectedOutput: 全部通过（回归，真实工作区未受演练影响）
+      blocking: true
+    - name: refactoring-contracts / rf001-mcp-boundary-contract / documentation
+      command: python scripts/architecture/validate_refactoring.py && python scripts/architecture/validate_rf001_contract.py && python scripts/docs/validate_docs.py
+      expectedExitCode: 0
+      blocking: true
+    - name: runtime-release-identity
+      command: runtime/node-v20.20.2-win-x64/node.exe scripts/i10-release-identity.cjs
+      expectedExitCode: 0
+      expectedOutput: identityHash=632ad5ee…
+      blocking: true
+
+rollback:
+  triggerConditions: 演练越出隔离目录；真实文件被改动
+  recoveryPoint: 删除 .data/tests/rf001-rollback-drill/
+  maxRtoMinutes: 15
+  maxRpoMinutes: 0
+
+exclusions: B4-S4切流、B4-S5观察关闭；真实回滚操作（仅演练）

@@ -170,10 +170,10 @@ tracks:
           - Flowise implementation is complete on the current branch; freezing main, preserving coze and creating hiagent remain explicit branch operations and are never auto-merged or force-updated.
       - id: HENGZHUN-I10-FLOWISE-FORMAL-001
         title: Flowise formal regression product with unified intake, real visual authoring and portable Windows release
-        status: IN_PROGRESS
+        status: DONE
         owner: 傅钧烨
         dependsOn: [HENGZHUN-I9-FLOWISE-PRODUCT-001]
-        evidence: [docs/evidence/platform/hengzhun-i10-current-implementation-2026-07-22.md]
+        evidence: [docs/evidence/platform/hengzhun-i10-current-implementation-2026-07-22.md, platform/hengzhun-regression-system/flowise/i10/i10-18-chain-acceptance-issue-register-v1.md]
         allowedPaths: [platform/hengzhun-regression-system/**, docs/architecture/**, docs/control/**, docs/design/regression-platform/**, docs/current-state/**, docs/evidence/platform/**, agent/**, D:/Agent/全局端口注册表.md]
         acceptance:
           - I10-G01 through I10-G20 each has implementation, automated tests and truthful runtime evidence.
@@ -189,6 +189,20 @@ tracks:
           - Forward and reverse Flowise conversations pass for natural-language, case-file and video entry points without model-native tool calls or project-source edits.
           - The current desktop I10 folder has a refreshed VERIFY manifest covering core files and runtime asset trees, an independently reported manifest SHA-256, zero forbidden findings and a successful I10_PORTABLE_FOLDER_VERIFIED result; no new folder or ZIP is required, and this local result is not a cross-computer portability claim.
           - No automatic merge, force push, main/coze/hiagent rewrite, or I9 release/evidence mutation occurs.
+      - id: REFACTOR-RF-001-HENGZHUN-CONTRACTS
+        title: Standardize Hengzhun MCP-to-Harness fields, error codes and adapters without changing runtime semantics
+        status: IN_PROGRESS
+        owner: 傅钧烨
+        dependsOn: [HENGZHUN-I10-FLOWISE-FORMAL-001]
+        evidence: [docs/architecture/refactoring/batches/RF-001/evidence-index.md, docs/evidence/platform/hengzhun-i10-post-backfill-baseline-2026-08-02.md]
+        allowedPaths: [platform/hengzhun-regression-system/mcp/**, platform/hengzhun-regression-system/harness/src/i10/**, platform/hengzhun-regression-system/contracts/**, platform/hengzhun-regression-system/scripts/verification/**, scripts/architecture/validate_rf001_contract.py, docs/architecture/refactoring/batches/RF-001/**, docs/current-state/**, agent/backlog.yaml, agent/plans/active/v54-implementation-batches.md]
+        acceptance:
+          - RF-001 remains limited to hengzhun.mcp and hengzhun.harness with no Flowise, Worker or banking-system behavior change.
+          - RF-001-B1 inventoried all 33 MCP tools, 12 adapter categories and 9 contract/boundary findings; B2 froze the machine-checkable shared contract; B3 has entered IMPLEMENTING with one-response shadow comparison and the credential_session_get thin slice, without cutover.
+          - Existing MCP-33 names remain compatible while shared field names, error envelopes and adapter ownership become explicit contracts.
+          - The frozen ReleaseIdentity and 18/18 acceptance baseline remain unchanged during the baseline and shadow phases.
+          - Contract, adapter, compatibility and failure-path tests pass before any cutover request.
+          - RF-002 is not started until RF-001 reaches CLOSED or an explicit rollback/abort state.
       - id: HENGZHUN-POST-I8-INPUTS-001
         title: External case adapters and video-case authoring extensions
         status: DONE

@@ -464,6 +464,10 @@ async function runI8RepairStabilityOnce() {
 async function runI10VideoIngestOnce() {
   const claim = await post('/internal/worker/i10/ingest:claim', { workerId });
   if (claim.status === 'EMPTY') return false;
+  if (claim.status === 'SKIPPED_FAILED') {
+    process.stderr.write(JSON.stringify({ event: 'i10_video_ingest_skipped_failed', ingestJobId: claim.ingestJobId, errorCode: claim.errorCode }) + '\n');
+    return true;
+  }
   process.stdout.write(JSON.stringify({ event: 'i10_video_ingest_claimed', ingestJobId: claim.ingestJobId }) + '\n');
   try {
     const completion = await executeVideoIngest(claim);
