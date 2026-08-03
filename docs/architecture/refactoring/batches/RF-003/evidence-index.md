@@ -23,4 +23,6 @@ owner: project-owner
 | S2版本统一实现 | PASS：SDK/健康版本从合同派生（V1/V2）、启动失败关闭、三源一致（V3）、S1锚点翻转 | `rf003-s2-version-unify.test.cjs`（2/2）、`mcp/src/server.cjs` |
 | S2聚焦测试 | PASS：62/62（含RF-001/RF-002回归60） | `node --test` 13个验证文件（exit 0） |
 
-RF-003当前：target-design已批准、S1完成（版本契约基线）、S2完成（版本统一实现）。下一门禁S3（生产切流关闭）。
+| S3生产切流与关闭 | ✅（RUNTIME_CUTOVER+OBSERVE）：受管重启上线、/health=10.1.0、工具规范信封、身份/18链一致、批次CLOSED、RF-004解禁 | `batch.yaml`（CLOSED）、`.data/logs/i10-start-rf003-s3.log` |
+
+**RF-003 批次 CLOSED（2026-08-03）**：S1版本基线→S2统一实现（合同派生+失败关闭）→S3生产切流观察。终态指标达成：单一版本来源=1（合同 contractVersion 唯一权威）。

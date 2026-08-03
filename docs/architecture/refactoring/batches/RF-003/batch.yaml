@@ -1,7 +1,7 @@
 schemaVersion: 1
 id: RF-003
 title: 统一版本来源（MCP SDK 8.0.0 / 健康 10.0.0 / 合同 10.1.0 单一来源，RF001-F09）
-status: PROPOSED
+status: CLOSED
 owner: project-owner
 authorizedBy: agent/plans/active/v54-implementation-batches.md
 scope:
