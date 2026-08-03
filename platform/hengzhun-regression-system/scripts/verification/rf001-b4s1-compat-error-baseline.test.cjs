@@ -42,7 +42,7 @@ test('B4-S1 33 tool names are identical across the three authoritative sources',
 
 test('B4-S1 aliases, error envelope and conditional writes match the frozen B2 contract', () => {
   const aliasCount = boundaryContract.tools.reduce((sum, tool) => sum + (tool.acceptedAliases || []).length, 0)
-  assert.equal(aliasCount, 13, '13 entry aliases are frozen')
+  assert.equal(aliasCount, 10, '10 entry aliases are frozen after RF-005-S2 (case_prepare 4->1)')
   for (const tool of boundaryContract.tools) {
     for (const alias of tool.acceptedAliases || []) {
       assert.ok(alias.alias && alias.canonical && alias.until, `alias entry of ${tool.name} must carry alias/canonical/until`)

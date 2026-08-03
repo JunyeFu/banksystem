@@ -41,7 +41,7 @@ test('server.cjs: conditional alias attachment on both tools with the legacy swi
 
 test('contract: alias entries reflect the RF-004 migration state, 13 count unchanged', () => {
   const aliasCount = boundaryContract.tools.reduce((sum, tool) => sum + (tool.acceptedAliases || []).length, 0)
-  assert.equal(aliasCount, 13, 'alias count must stay 13')
+  assert.equal(aliasCount, 10, 'alias count is 10 after RF-005-S2')
   for (const toolName of ['run_submit', 'schedule_create']) {
     const tool = boundaryContract.tools.find(t => t.name === toolName)
     const alias = tool.acceptedAliases[0]

@@ -271,11 +271,14 @@ function normalizeJourneyPrepareDraft(value) {
 //          case_prepare.multimodalContextJson -> multimodalContext merge
 // (flat-draft path only, mirroring pre-RF-001 behavior)
 function normalizeCasePrepareRequest(input) {
-  const { caseDescription, draftArray, draftJson, caseTitle, objective, summary, targetSystem, entryUrl, preconditions,
-    actions, expectedOutcomes, assertions, missingFields, multimodalContextJson, credentialRef } = input
+  // RF-005-S2: single i10 route. draftArray and multimodalContextJson retired
+  // (zero v7 consumers); the draft arrives as draftJson (i10 draft) or as
+  // flat fields that are assembled into an i10 draft.
+  const { caseDescription, draftJson, caseTitle, objective, summary, targetSystem, entryUrl, preconditions,
+    actions, expectedOutcomes, assertions, missingFields, credentialRef } = input
   const normalizedCredentialRef = normalizeCasePrepareCredentialRef(credentialRef)
   const flatDraftSupplied = caseTitle !== undefined || actions !== undefined || expectedOutcomes !== undefined
-  const suppliedDraftSources = Number(draftArray !== undefined) + Number(draftJson !== undefined) + Number(flatDraftSupplied)
+  const suppliedDraftSources = Number(draftJson !== undefined) + Number(flatDraftSupplied)
   if (suppliedDraftSources !== 1) throw codeError('I10_DRAFT_SOURCE_AMBIGUOUS')
   let draft
   if (flatDraftSupplied) {
@@ -289,27 +292,11 @@ function normalizeCasePrepareRequest(input) {
       preconditions, steps: actions.map((action, index) => ({ action, expected: expectedOutcomes[index] })), assertions,
       credentialRef: normalizedCredentialRef, missingFields: missingFields || [], confirmationStatus: missingFields?.length ? 'WAITING_USER' : 'CONFIRMED'
     }
-    if (multimodalContextJson) {
-      const multimodal = parseJsonArgument(multimodalContextJson, 'I10_MULTIMODAL_CONTEXT_INVALID')
-      if (multimodal.actionStepsV2 !== undefined && !Array.isArray(multimodal.actionStepsV2)) throw codeError('I10_ACTION_STEPS_INVALID')
-      if (multimodal.verificationRequirements !== undefined && !Array.isArray(multimodal.verificationRequirements)) throw codeError('I10_VERIFICATION_REQUIREMENTS_INVALID')
-      Object.assign(draft, {
-        supportingImageIngestId: multimodal.supportingImageIngestId,
-        caseFacts: Array.isArray(multimodal.caseFacts) ? multimodal.caseFacts : [],
-        actionStepsV2: multimodal.actionStepsV2 || [],
-        verificationRequirements: multimodal.verificationRequirements || []
-      })
-    }
   } else {
-    draft = draftArray ? draftArray[0] : parseJsonArgument(draftJson, 'I8_DRAFT_JSON_INVALID')
+    // DP-R5-1: the draft JSON error code now carries the i10 semantic name
+    draft = parseJsonArgument(draftJson, 'I10_CASE_DRAFT_INVALID')
   }
   return { normalizedCredentialRef, draft }
-}
-
-// alias: case_prepare.acceptanceSummaryJson -> acceptanceSummary
-// (parsed only on the legacy i8 draft route, mirroring pre-RF-001 behavior)
-function normalizeCaseAcceptanceSummary(value) {
-  return parseJsonArgument(value, 'I8_ACCEPTANCE_JSON_INVALID')
 }
 
 // aliases: repair_propose.patchJson -> patch,
@@ -416,7 +403,6 @@ module.exports = {
   FROZEN_EXECUTION_CREDENTIAL_ALIAS,
   createShadowObserver,
   normalizeAuthoringSubmitRequest,
-  normalizeCaseAcceptanceSummary,
   normalizeCasePrepareActionSteps,
   normalizeCasePrepareCredentialRef,
   normalizeCasePrepareRequest,

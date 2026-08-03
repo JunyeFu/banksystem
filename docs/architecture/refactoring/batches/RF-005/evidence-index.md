@@ -20,4 +20,7 @@ owner: project-owner
 | S1双路由基线 | PASS（CONTRACT）：C1-C5 现状冻结、v7 零 i8 调用复核、DP-R5-1 记录 | `rf005-s1-dual-route-baseline.test.cjs`（5/5）、`contract-delta.md` |
 | S1聚焦测试 | PASS：80/80（含RF-001/002/003/004回归75） | `node --test` 17个验证文件（exit 0） |
 
-RF-005当前：target-design已批准、S1完成（双路由基线冻结）。下一门禁S2（单路由实现+改名）。
+| S2单路由实现 | PASS：i8路由/三输入退场（v7零消费者）、DP-R5-1改名、aliases 13→10、锚点翻转 | `rf005-s2-single-route.test.cjs`（3/3）、`mcp/src/rf001-contract-adapter.cjs` |
+| S2聚焦测试 | PASS：81/81（含RF-001/002/003/004回归80） | `node --test` 18个验证文件（exit 0） |
+
+RF-005当前：target-design已批准、S1-S2完成（基线/单路由实现）。下一门禁S3（生产切流关闭，全景终态验收）。

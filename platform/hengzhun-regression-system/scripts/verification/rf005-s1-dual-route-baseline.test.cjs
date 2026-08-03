@@ -18,32 +18,31 @@ const mcpAdapter = fs.readFileSync(path.join(root, 'mcp/src/rf001-contract-adapt
 const boundaryContract = JSON.parse(fs.readFileSync(path.join(repoRoot, 'docs/architecture/refactoring/batches/RF-001/mcp-boundary-contract-v1.json'), 'utf8'))
 const agentflow = JSON.parse(fs.readFileSync(path.join(root, 'flowise/i10/agentflow-v7.json'), 'utf8'))
 
-test('C1: case_prepare still carries the i10/i8 dual-route branch (S1 baseline)', () => {
+test('C1 (S2 flipped): case_prepare is a single i10 route', () => {
   const block = mcpServer.slice(mcpServer.indexOf("registerTool('case_prepare'"), mcpServer.indexOf("registerTool('authoring_submit'"))
-  assert.match(block, /draft\.schemaVersion === 'hengzhun-i10-case-draft-v1' \|\| typeof draft\.credentialRef === 'string'/, 'i10 routing condition must exist (S1 baseline)')
-  assert.match(block, /\/v1\/i10\/cases:prepare/, 'i10 route must call the i10 endpoint')
-  assert.match(block, /\/v1\/i8\/cases:prepare/, 'i8 route must still call the i8 endpoint (S1 baseline)')
-  assert.match(block, /normalizeCaseAcceptanceSummary\(acceptanceSummaryJson\)/, 'i8 acceptance summary parsing must exist (S1 baseline)')
+  assert.match(block, /\/v1\/i10\/cases:prepare/, 'i10 endpoint must be the only route')
+  assert.doesNotMatch(block, /\/v1\/i8\/cases:prepare/, 'i8 endpoint must no longer be called (RF-005-S2)')
+  assert.doesNotMatch(block, /normalizeCaseAcceptanceSummary/, 'acceptance summary path must be retired')
+  assert.match(block, /normalizeI10NaturalDraft\(draft, caseDescription, sessionRef, normalizedCredentialRef\)/, 'all drafts must go through the i10 normalizer')
 })
 
-test('C2: the i8 draft entry aliases still exist in the MCP schema (S1 baseline)', () => {
+test('C2 (S2 flipped): the i8 draft entry aliases are retired from the MCP schema', () => {
   const block = mcpServer.slice(mcpServer.indexOf("registerTool('case_prepare'"), mcpServer.indexOf("registerTool('authoring_submit'"))
-  assert.match(block, /draftArray: singleJsonObjectArrayArgument\.optional\(\)/, 'draftArray must exist (S1 baseline)')
-  assert.match(block, /acceptanceSummaryJson: jsonObjectArgument\.optional\(\)/, 'acceptanceSummaryJson must exist (S1 baseline)')
-  assert.match(block, /multimodalContextJson: jsonObjectArgument\.optional\(\)/, 'multimodalContextJson must exist (S1 baseline)')
+  assert.doesNotMatch(block, /draftArray/, 'draftArray must be retired (RF-005-S2)')
+  assert.doesNotMatch(block, /acceptanceSummaryJson/, 'acceptanceSummaryJson must be retired')
+  assert.doesNotMatch(block, /multimodalContextJson/, 'multimodalContextJson must be retired')
+  assert.match(block, /draftJson: jsonObjectArgument\.optional\(\)/, 'draftJson must remain')
 })
 
-test('C3: boundary contract lists four case_prepare aliases (S1 baseline)', () => {
+test('C3 (S2 flipped): boundary contract lists only the draftJson alias', () => {
   const tool = boundaryContract.tools.find(t => t.name === 'case_prepare')
-  assert.deepEqual(tool.acceptedAliases.map(a => a.alias).sort(), [
-    'acceptanceSummaryJson', 'draftArray', 'draftJson', 'multimodalContextJson'
-  ].sort(), 'four aliases must be declared (S1 baseline)')
+  assert.deepEqual(tool.acceptedAliases.map(a => a.alias), ['draftJson'], 'only draftJson must remain (RF-005-S2)')
 })
 
-test('C4: i8 error codes still exist in the adapter (S1 baseline, DP-R5-1 rename target)', () => {
-  assert.match(mcpAdapter, /I8_DRAFT_JSON_INVALID/, 'legacy draft error code must exist (S1 baseline)')
-  assert.match(mcpAdapter, /I8_ACCEPTANCE_JSON_INVALID/, 'legacy acceptance error code must exist (S1 baseline)')
-  assert.match(mcpServer, /normalizeCaseAcceptanceSummary\(acceptanceSummaryJson\)/, 'server must consume the acceptance summary through the adapter (S1 baseline)')
+test('C4 (S2 flipped, DP-R5-1): error codes renamed and retired', () => {
+  assert.match(mcpAdapter, /I10_CASE_DRAFT_INVALID/, 'draft error code must carry the i10 semantic name (DP-R5-1)')
+  assert.doesNotMatch(mcpAdapter, /I8_DRAFT_JSON_INVALID/, 'legacy draft error code must be gone')
+  assert.doesNotMatch(mcpAdapter, /I8_ACCEPTANCE_JSON_INVALID/, 'legacy acceptance error code must be gone')
 })
 
 test('C5: v7 consumers only use draftJson on the i10 route (retirement safety)', () => {

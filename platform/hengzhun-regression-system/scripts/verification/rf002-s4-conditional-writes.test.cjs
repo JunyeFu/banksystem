@@ -62,10 +62,10 @@ test('G6: result_inbox_list acknowledge side effect is confined to the inbox sur
   assert.ok(entry.mutationTriggers, 'conditional mutation must declare its triggers')
 })
 
-test('S4 contract consistency: tools=33 aliases=13, conditional mutations now 2', () => {
+test('S4 contract consistency: tools=33 aliases=10 (RF-005-S2), conditional mutations now 2', () => {
   assert.equal(boundaryContract.tools.length, 33)
   const aliasCount = boundaryContract.tools.reduce((sum, tool) => sum + (tool.acceptedAliases || []).length, 0)
-  assert.equal(aliasCount, 13)
+  assert.equal(aliasCount, 10)
   const conditional = boundaryContract.tools.filter(tool => tool.sideEffect === 'CONDITIONAL_MUTATION').map(tool => tool.name).sort()
   assert.deepEqual(conditional, ['candidate_get', 'result_inbox_list'], 'exactly the two remaining conditional-write tools must be declared')
 })
