@@ -343,16 +343,17 @@ function normalizeAuthoringSubmitRequest(input) {
 }
 
 // alias: run_submit/schedule_create implicit credentialAlias=i3-customer —
-// frozen execution credential binding until B4 credentialRef consumer
-// migration (B2 contract). Flowise never supplies the value; any other value
-// fails closed.
+// RF-004-S2 (DP-S4-1=A): MCP no longer injects an execution credential by
+// default; Harness owns the authoritative resolution (S3). The frozen
+// i3-customer value survives only as the explicit legacy fallback channel
+// (HENGZHUN_RF004_LEGACY_CREDENTIAL=1). Flowise never supplies the value.
 const FROZEN_EXECUTION_CREDENTIAL_ALIAS = Object.freeze({ credentialAlias: 'i3-customer' })
 
-function normalizeCredentialBinding(credentialAlias) {
-  if (credentialAlias !== undefined && credentialAlias !== FROZEN_EXECUTION_CREDENTIAL_ALIAS.credentialAlias) {
-    throw codeError('I10_EXECUTION_CREDENTIAL_BINDING_FROZEN')
+function normalizeCredentialBinding(legacy = false) {
+  if (legacy === true) {
+    return { ...FROZEN_EXECUTION_CREDENTIAL_ALIAS, auditDigest: digest(FROZEN_EXECUTION_CREDENTIAL_ALIAS.credentialAlias) }
   }
-  return { ...FROZEN_EXECUTION_CREDENTIAL_ALIAS, auditDigest: digest(FROZEN_EXECUTION_CREDENTIAL_ALIAS.credentialAlias) }
+  return { auditDigest: digest('no-execution-credential-injected') }
 }
 
 function comparableError(envelope) {

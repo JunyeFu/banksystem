@@ -16,7 +16,9 @@ export const i8ScheduleCreateSchema = z.object({
   misfireGraceSeconds: z.number().int().min(0).max(86400).default(300),
   maxRetries: z.number().int().min(0).max(5).default(1),
   confirmationRef: safeRef,
-  credentialAlias: safeRef
+  // RF-004-S3: optional since MCP no longer injects a credential; Harness
+  // resolves the authoritative binding from the case definition instead.
+  credentialAlias: safeRef.optional()
 }).strict().superRefine((input, context) => {
   if (input.scheduleType === 'RECURRING' && (!input.cronExpression || input.runAt)) {
     context.addIssue({ code: 'custom', path: ['cronExpression'], message: '周期调度必须且只能提供五段 Cron。' });

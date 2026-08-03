@@ -1,0 +1,120 @@
+schemaVersion: 1
+id: RF-004-S3
+title: Harness 执行凭据端点解析（schema 可选化 + 从 case 权威解析 + 失败关闭）
+status: PROPOSED
+owner: project-owner
+authorizedBy: agent/plans/active/v54-implementation-batches.md (L1全景, RF-004)
+parentBatch: docs/architecture/refactoring/batches/RF-004/batch.yaml
+targetDesign: docs/architecture/refactoring/batches/RF-004/target-design.md (v1.0 已批准；B2 按 DP-S4-1=A 与实现事实修正)
+baseline:
+  gitCommit: 3aa0030（RF-004 分支，S2 已完成）
+  releaseIdentity: 632ad5ee7981b59f00824d0072d28da6075eef095d55a898d51c0103a897988f
+
+# 决策点
+decisionPoint:
+  - id: DP-S4-2
+    subject: 无凭据注入且 case 无 credentialRef 时的行为——失败关闭（严格）vs 静默允许（执行期才失败）
+    options:
+      - A（推荐）: 失败关闭 I10_EXECUTION_CREDENTIAL_BINDING_REQUIRED（新增错误码入 matrix/合同）；生产切流期用 HENGZHUN_RF004_LEGACY_CREDENTIAL=1 过渡
+      - B: 静默允许（任务创建成功，执行期无凭据失败——延迟失败、难诊断）
+    recommendation: A
+
+# 单业务目标：Harness 承接权威凭据解析——run/schedule 端点 credentialAlias 可选化，
+# 无注入时从 case definition.credentialRef 权威解析；解析链与既有 claim 透传
+# （isI10Candidate → execution.credentialRef → Worker resolve）对齐；零 Worker 改动、
+# 零 SQLite 迁移。
+# 单功能点：Harness 端点凭据解析。
+businessGoal:
+  - i8RunSubmitSchema/i8ScheduleCreateSchema：credentialAlias 必填 → 可选
+  - enqueueRun：credentialAlias 可选；无注入时 runs.credential_alias 写 NULL（列已可空）；payload 不携带 alias（claim 透传 credentialRef 已覆盖 I10 候选执行）
+  - createI8Schedule：无注入时从 case definition 解析 credentialRef → schedules.credential_alias（NOT NULL）存派生占位 credref:<hash12>（审计可追溯、不存凭据）；case 无 credentialRef → DP-S4-2 失败关闭
+  - submitI8Run：无注入时 case 无 credentialRef → DP-S4-2 失败关闭
+  - 新错误码 I10_EXECUTION_CREDENTIAL_BINDING_REQUIRED 入 field-error-adapter-matrix（B4-S1 corpus 保持文档化）
+  - 聚焦回归 + 身份 632ad5ee 不变
+functionalPoint: Harness 端点凭据解析
+evidenceLevel: CONTRACT + 隔离运行态验证
+
+allowedPaths:
+  - platform/hengzhun-regression-system/harness/src/i8/stage5-schemas.ts   # i8RunSubmitSchema credentialAlias 可选
+  - platform/hengzhun-regression-system/harness/src/i8/stage6-schemas.ts   # i8ScheduleCreateSchema credentialAlias 可选
+  - platform/hengzhun-regression-system/harness/src/service.ts             # submitI8Run/createI8Schedule/enqueueRun 解析与占位
+  - platform/hengzhun-regression-system/scripts/verification/rf004-s3-harness-credential-resolution.test.cjs   # 【新增】
+  - docs/architecture/refactoring/batches/RF-001/field-error-adapter-matrix.md   # 新错误码登记
+  - docs/architecture/refactoring/batches/RF-004/**（decision-log/evidence-index/contract-delta）
+  - platform/hengzhun-regression-system/.data/tests/rf004-s3/**   # 隔离产物，用完清理
+
+forbiddenPaths:
+  - worker/**（零改动——Worker 已支持 execution.credentialRef resolve）；flowise/**；contracts/mcp/hengzhun-i8.json
+  - mcp/**（S2 已完成，本切片零 MCP 改动）
+  - 生产进程/DB 操作；SQLite 表结构/迁移（runs.credential_alias 已可空；schedules 列复用占位）；切流
+  - agent/backlog.yaml, agent/plans/active/v54-implementation-batches.md
+  - scripts/architecture/**（校验器只读）
+
+budgets:
+  maxChangedFiles: 8
+  maxNewFiles: 1
+  maxChangedLines: 400
+  maxContractsChanged: 0
+  maxMigrationsAdded: 0
+  maxOpenModules: 1（hengzhun.harness）
+
+invariants:
+  - 零 SQLite 迁移（runs.credential_alias 可空已满足；schedules 用派生占位不存凭据）
+  - 不读取/输出任何凭据原文（占位仅 hash 摘要）
+  - Worker/Flowise/MCP 零改动；v7 消费面不变
+
+workSteps:
+  - step: S3-1 schema 可选化
+    action: stage5-schemas.ts i8RunSubmitSchema、stage6-schemas.ts i8ScheduleCreateSchema 的 credentialAlias 改 optional（boundedText 语义保持）
+  - step: S3-2 enqueueRun 可空化
+    action: enqueueRun input.credentialAlias 可选；无注入时 runs.credential_alias 写 null、payload 不携带 alias（claim isI10Candidate 透传 credentialRef 已覆盖执行凭据）
+  - step: S3-3 解析实现
+    action: submitI8Run/createI8Schedule 无 credentialAlias 时从 case definition.credentialRef 解析：有 → schedules 存 credref:<hash12> 占位（runs 走 NULL+claim 透传）；无 → DP-S4-2 失败关闭（若批准 A）
+  - step: S3-4 测试
+    action: rf004-s3-harness-credential-resolution.test.cjs：隔离运行态——无注入有 credentialRef 的 run_submit 任务创建成功且 claim 带 credentialRef；无注入无 credentialRef → 失败关闭；LEGACY 注入 → 原路径
+  - step: S3-5 验证
+    action: 新测试 + 全聚焦回归（70→N）+ 校验器×3 + git diff --check + 身份复算 + dist 重建 + TS 0 错误
+  - step: S3-6 RC-D1 同步与提交
+    action: DP-S4-2 决策记录、matrix 新错误码、contract-delta、decision-log 条目 4、evidence-index、任务包
+
+verification:
+  requiredCommands:
+    - name: rf004-s3-harness-credential-resolution
+      command: runtime/node-v20.20.2-win-x64/node.exe --test scripts/verification/rf004-s3-harness-credential-resolution.test.cjs
+      expectedExitCode: 0
+      expectedOutput: 无注入解析/失败关闭/LEGACY 三分支全过
+      blocking: true
+    - name: rf003-focused-tests
+      command: runtime/node-v20.20.2-win-x64/node.exe --test scripts/verification/rf001-*.cjs scripts/verification/rf002-*.cjs scripts/verification/rf003-*.cjs scripts/verification/rf004-*.cjs（全聚焦）
+      expectedExitCode: 0
+      expectedOutput: 全部通过
+      blocking: true
+    - name: refactoring-contracts / rf001-mcp-boundary-contract / documentation
+      command: python scripts/architecture/validate_refactoring.py && python scripts/architecture/validate_rf001_contract.py && python scripts/docs/validate_docs.py
+      expectedExitCode: 0
+      blocking: true
+    - name: runtime-release-identity
+      command: runtime/node-v20.20.2-win-x64/node.exe scripts/i10-release-identity.cjs
+      expectedExitCode: 0
+      expectedOutput: identityHash=632ad5ee…
+      blocking: true
+    - name: tsc
+      command: runtime/node-v20.20.2-win-x64/node.exe node_modules/typescript/bin/tsc --noEmit -p tsconfig.json
+      expectedExitCode: 0
+      blocking: true
+    - name: whitespace
+      command: git diff --check
+      expectedExitCode: 0
+      blocking: true
+
+rollback:
+  triggerConditions: 解析回归；凭据泄漏；身份变化；越出 allowedPaths
+  recoveryPoint: 3aa0030 + RF-004 baseline；回滚 schemas/service/测试
+  maxRtoMinutes: 30
+  maxRpoMinutes: 0
+
+exclusions: S4（生产切流关闭）；worker/flowise/mcp 改动；SQLite 迁移
+
+risks:
+  - schedules.credential_alias NOT NULL 用派生占位（credref:<hash12>）——审计可追溯但不携带凭据；调度执行时 claim 透传 credentialRef 为实际凭据来源
+  - 新错误码需入 matrix 保持 B4-S1 corpus 文档化

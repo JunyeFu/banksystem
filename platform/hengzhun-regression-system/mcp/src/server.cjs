@@ -59,6 +59,9 @@ const rf001Shadow = createShadowObserver({
 // B4-S4 cutover: error payloads leave through the canonical 8-field envelope by
 // default; HENGZHUN_RF001_LEGACY_ERROR=1 restores the pre-cutover legacy shape.
 const legacyErrorOutput = process.env.HENGZHUN_RF001_LEGACY_ERROR === '1'
+// RF-004-S2 (DP-S4-1=A): the frozen i3-customer injection is the explicit
+// legacy fallback channel only; the default path injects no credential.
+const legacyCredentialBinding = process.env.HENGZHUN_RF004_LEGACY_CREDENTIAL === '1'
 const safeRef = z.string().trim().min(3).max(160).regex(/^[A-Za-z0-9._:-]+$/)
 const controlledAttachmentRef = z.string().trim().min(8).max(1024).regex(/^[A-Za-z0-9._:-]+$/)
 const jsonObjectArgument = z.union([
@@ -966,12 +969,12 @@ function createServer() {
     description: '仅对已明确激活的精确脚本版本提交一次按需纯Playwright回归。',
     inputSchema: { preparationId: safeRef, sessionRef: safeRef }
   }, async ({ preparationId, sessionRef }) => {
-    const binding = normalizeCredentialBinding()
+    const binding = normalizeCredentialBinding(legacyCredentialBinding)
     return callHarness('/v1/i8/runs:submit', {
       namespace,
       idempotencyKey: idempotencyKey('run_submit', sessionRef, { preparationId }),
       preparationId,
-      credentialAlias: binding.credentialAlias
+      ...(binding.credentialAlias ? { credentialAlias: binding.credentialAlias } : {})
     })
   })
 
@@ -1035,13 +1038,13 @@ function createServer() {
       sessionRef: safeRef
     }
   }, async ({ preparationId, scheduleType, cronExpression, runAt, timezone, misfirePolicy, misfireGraceSeconds, maxRetries, confirmationRef, sessionRef }) => {
-    const binding = normalizeCredentialBinding()
+    const binding = normalizeCredentialBinding(legacyCredentialBinding)
     const business = { preparationId, scheduleType, cronExpression, runAt, timezone, misfirePolicy, misfireGraceSeconds, maxRetries, confirmationRef }
     return callHarness('/v1/i8/schedules:create', {
       namespace, idempotencyKey: idempotencyKey('schedule_create', sessionRef, business),
       preparationId, scheduleType, ...(cronExpression ? { cronExpression } : {}), ...(runAt ? { runAt } : {}),
       timezone, misfirePolicy, misfireGraceSeconds, maxRetries, confirmationRef,
-      credentialAlias: binding.credentialAlias
+      ...(binding.credentialAlias ? { credentialAlias: binding.credentialAlias } : {})
     })
   })
 

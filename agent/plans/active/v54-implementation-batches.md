@@ -518,7 +518,7 @@ I10 的 S0—S9 及 R0—R7 已按当前本机交付边界完成。2026-08-02回
 | RF-001 | MCP→Harness 字段/错误码/适配器标准化 + 8字段错误信封切流 | CLOSED（2026-08-03） | — | — |
 | **RF-002** | **状态所有权收敛**：terminal/verificationGate 归 Harness；MCP 删除状态推断 | **CLOSED（2026-08-03）**：S1考古→S2 Harness契约→S3 MCP收敛（DP-S3-1=A）→S4条件写退场（schedule_get READ_ONLY，3→2）→S5生产切流观察（56/56、身份/18链一致） | RF-001 CLOSED ✓ | 全部切片完成；**RF-003解禁登记**（待用户批准） |
 | RF-003 | 版本来源统一（F09：8.0.0/10.0.0/10.1.0 单一来源） | **CLOSED（2026-08-03）**：S1版本基线→S2统一实现（SDK/健康从合同派生，失败关闭）→S3生产切流（/health=10.1.0、工具正常、62/62） | RF-002 CLOSED ✓ | 三源一致断言达成；**RF-004解禁登记**（待用户批准） |
-| RF-004 | 执行凭据绑定迁移（F08：run_submit/schedule_create 隐式 i3-customer → 权威 credentialRef 绑定） | CANDIDATE | RF-003 CLOSED 或经评估并行 | 边界合同"until B4"→已迁移；冻结别名退场 |
+| RF-004 | 执行凭据绑定迁移（F08：i3-customer → 权威 credentialRef） | **CLOSED（2026-08-03）**：S1基线→S2 MCP停注入（DP-S4-1=A）→S3 Harness解析（schema可选化、caseCredentialRef、失败关闭DP-S4-2=A）→S4生产切流（run_submit无注入实测202、75/75） | RF-003 CLOSED ✓ | 凭据链权威化达成；**RF-005解禁登记**（待用户批准） |
 | RF-005 | 历史兼容层退场（F07：case_prepare I10/I8 双路由与 I8 草案入口） | CANDIDATE | RF-002 CLOSED + 消费者证据（v7 无 I8 草案调用） | 双路由单一路径；删除验收（引用/路由/任务/配置/观察期+回滚演练） |
 
 #### 4. 通用批次执行模式（绞杀者式，每批次强制）
@@ -548,6 +548,12 @@ I10 的 S0—S9 及 R0—R7 已按当前本机交付边界完成。2026-08-02回
 - 切片链：S1（版本契约基线：三源漂移 8.0.0/10.0.0/10.1.0 冻结、身份安全性验证）→ S2（版本统一实现：SDK 注册与 /health 从合同 contractVersion 派生、启动失败关闭 HENGZHUN_CONTRACT_VERSION_INVALID、三源一致断言）→ S3（生产切流：受管重启、/health=10.1.0、工具规范信封、62/62、身份/18链一致、回读三项 Hash 与基线一致）。
 - 终态指标达成：单一版本来源 = 1（合同 contractVersion 唯一权威）。
 - 后续：RF-004（凭据迁移 F08）解禁登记，待用户批准；RF-005（双路由退场 F07）保持候选。
+
+#### 5.7 RF-004 关闭记录（2026-08-03）
+
+- 切片链：S1（凭据绑定基线 C1-C5 + v7 零调用复核）→ S2（MCP 凭据注入退场，DP-S4-1=A：默认停注入 + HENGZHUN_RF004_LEGACY_CREDENTIAL 唯一回退通道）→ S3（Harness 端点解析：schema 可选化、enqueueRun 可空化、caseCredentialRef 权威解析、失败关闭 I10_EXECUTION_CREDENTIAL_BINDING_REQUIRED、schedules 占位不落库、DP-S4-2=A；零 Worker 改动零 SQLite 迁移）→ S4（生产切流：run_submit 无注入+credentialRef 案例 202 实测、75/75、身份/18链一致、回读三项 Hash 与基线一致）。
+- 终态指标达成：执行凭据绑定权威化 100%（i3-customer 仅 LEGACY 通道）。
+- 后续：RF-005（case_prepare 双路由退场 F07）解禁登记，待用户批准。
 
 #### 6. 缺陷归属登记（RF-001-B1 九项）
 

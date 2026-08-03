@@ -129,14 +129,19 @@ test('B3-S3 alias authoring_submit seven array fields are declared no-effect and
 })
 
 // ---- aliases 10-11: run_submit/schedule_create implicit credentialAlias ----
-test('B3-S3 alias run_submit/schedule_create implicit credential binding is frozen until B4', () => {
-  const binding = adapter.normalizeCredentialBinding()
-  assert.equal(binding.credentialAlias, 'i3-customer')
-  assert.match(binding.auditDigest, /^[0-9a-f]{64}$/)
-  assert.equal(adapter.normalizeCredentialBinding('i3-customer').credentialAlias, 'i3-customer')
-  assert.throws(() => adapter.normalizeCredentialBinding('other-customer'), /I10_EXECUTION_CREDENTIAL_BINDING_FROZEN/)
+test('RF-004-S2 alias run_submit/schedule_create: default no injection, legacy fallback channel only', () => {
+  // DP-S4-1=A: MCP no longer injects an execution credential; Harness owns
+  // the authoritative resolution (S3). i3-customer survives only behind the
+  // explicit HENGZHUN_RF004_LEGACY_CREDENTIAL=1 channel.
+  const defaultBinding = adapter.normalizeCredentialBinding(false)
+  assert.equal(defaultBinding.credentialAlias, undefined, 'default binding must not inject a credential alias')
+  assert.match(defaultBinding.auditDigest, /^[0-9a-f]{64}$/)
+  const legacyBinding = adapter.normalizeCredentialBinding(true)
+  assert.equal(legacyBinding.credentialAlias, 'i3-customer', 'legacy channel must restore the frozen alias')
+  assert.match(legacyBinding.auditDigest, /^[0-9a-f]{64}$/)
   const source = serverSource()
-  assert.equal((source.match(/credentialAlias: binding\.credentialAlias/g) || []).length, 2, 'run_submit and schedule_create both inject the frozen binding')
+  assert.match(source, /legacyCredentialBinding = process\.env\.HENGZHUN_RF004_LEGACY_CREDENTIAL === '1'/, 'legacy credential switch must exist')
+  assert.equal((source.match(/\.\.\.\(binding\.credentialAlias \? \{ credentialAlias: binding\.credentialAlias \} : \{\}\)/g) || []).length, 2, 'both tools must conditionally attach the alias')
 })
 
 // ---- aliases 12-13: repair_propose.patchJson + 5 flat fields -> patch ----
@@ -180,7 +185,7 @@ test('B3-S3 tool handlers route alias fields through the adapter projections', (
   assert.match(source, /const \{ normalizedCredentialRef, draft \} = normalizeCasePrepareRequest\(/)
   assert.match(source, /const acceptanceSummary = normalizeCaseAcceptanceSummary\(acceptanceSummaryJson\)/)
   assert.match(source, /const \{ patch \} = normalizeRepairProposeRequest\(/)
-  assert.match(source, /const binding = normalizeCredentialBinding\(\)/)
+  assert.match(source, /const binding = normalizeCredentialBinding\(legacyCredentialBinding\)/)
   // the deleted local duplicates must not return
   assert.doesNotMatch(source, /function normalizeCasePrepareUrl\(/)
   assert.doesNotMatch(source, /function normalizeI10NaturalDraft\(/)
