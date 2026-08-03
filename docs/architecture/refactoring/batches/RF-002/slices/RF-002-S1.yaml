@@ -1,0 +1,77 @@
+schemaVersion: 1
+id: RF-002-S1
+title: 状态契约考古与基线（现状冻结，零代码改动）
+status: APPROVED
+owner: project-owner
+authorizedBy: agent/plans/active/v54-implementation-batches.md (L1重构全景规划已批准, RF-002)
+parentBatch: docs/architecture/refactoring/batches/RF-002/batch.yaml
+targetDesign: docs/architecture/refactoring/batches/RF-002/target-design.md (v2.0, 用户已批准)
+baseline:
+  gitCommit: a9058d2（RF-002 分支）
+  releaseIdentity: 632ad5ee7981b59f00824d0072d28da6075eef095d55a898d51c0103a897988f
+  capturedAt: "2026-08-03"
+
+# 单业务目标：冻结 RF-002 状态所有权收敛的考古基线——机器断言当前状态缺口
+# （Harness 无 terminal/verificationGate 字段；MCP 持有硬编码终止集合与跨端点
+# 状态投影），产出状态契约差异表，为 S2（Harness 契约扩展）/S3（MCP 收敛）
+# 提供可测切换锚点。零运行时代码改动。
+functionalPoint: 状态契约考古与基线（CONTRACT级）
+
+allowedPaths:
+  - docs/architecture/refactoring/batches/RF-002/**
+  - platform/hengzhun-regression-system/scripts/verification/rf002-s1-state-contract-baseline.test.cjs   # 【新增】
+  - platform/hengzhun-regression-system/mcp/src/**、harness/src/**   # 只读引用（测试读取），零改动
+
+forbiddenPaths:
+  - mcp/harness/flowise/worker/contracts 源码零改动（仅测试只读引用）
+  - 生产进程/DB 操作；SQLite 迁移；切流；agent/backlog.yaml（S1 不涉及）
+  - scripts/architecture/**；任何运行时代码修改
+
+budgets:
+  maxChangedFiles: 6
+  maxNewFiles: 3
+  maxChangedLines: 300
+  maxContractsChanged: 0
+  maxMigrationsAdded: 0
+  maxOpenModules: 0
+
+invariants:
+  - 零运行时代码改动；测试只读引用源码文件
+  - 基线断言全部基于当前文件内容的确定性核对（可重复执行）
+  - 不读取/输出任何密钥与凭据
+
+workSteps:
+  - step: S1-1 切片与任务包（本文件 + tasks/RF-002-S1.md）
+  - step: S1-2 状态契约差异表（state-contract-baseline.md：A1-A5 现状 → G1/G2/G3 目标）
+  - step: S1-3 考古基线测试（rf002-s1-state-contract-baseline.test.cjs：断言 A2/A3/A4/A5 现状缺口）
+  - step: S1-4 验证（聚焦测试 + 全回归 43 项 + 校验器×3 + git diff --check）
+  - step: S1-5 RC-D1 同步（decision-log 条目 6、evidence-index、切片完成标记）与提交
+
+verification:
+  requiredCommands:
+    - name: rf002-s1-baseline
+      command: runtime/node-v20.20.2-win-x64/node.exe --test scripts/verification/rf002-s1-state-contract-baseline.test.cjs
+      expectedExitCode: 0
+      expectedOutput: 现状缺口断言全过（无 terminal/verificationGate、MCP 硬编码集合存在、withVerification 存在、verification:get taskRef 支持）
+      blocking: true
+    - name: rf001-focused-tests
+      command: runtime/node-v20.20.2-win-x64/node.exe --test scripts/verification/rf001-contract-adapter.test.cjs scripts/verification/mcp-interaction-contract.test.cjs scripts/verification/rf001-b3s3-aliases.test.cjs scripts/verification/rf001-b3s5-shadow-live.test.cjs scripts/verification/rf001-b4s1-compat-error-baseline.test.cjs scripts/verification/rf001-b4s3-rollback-drill.test.cjs scripts/verification/rf001-b4s4-cutover.test.cjs
+      expectedExitCode: 0
+      expectedOutput: 43 passed / 0 failed（回归，S1 零改动不破坏）
+      blocking: true
+    - name: refactoring-contracts / rf001-mcp-boundary-contract / documentation
+      command: python scripts/architecture/validate_refactoring.py && python scripts/architecture/validate_rf001_contract.py && python scripts/docs/validate_docs.py
+      expectedExitCode: 0
+      blocking: true
+    - name: whitespace
+      command: git diff --check
+      expectedExitCode: 0
+      blocking: false
+
+rollback:
+  triggerConditions: 测试误改源码；越出 allowedPaths
+  recoveryPoint: a9058d2 + RF-002 baseline
+  maxRtoMinutes: 15
+  maxRpoMinutes: 0
+
+exclusions: S2（Harness 契约扩展）、S3（MCP 收敛）、S4（条件写收口）、S5（切流关闭）；任何运行时代码改动
