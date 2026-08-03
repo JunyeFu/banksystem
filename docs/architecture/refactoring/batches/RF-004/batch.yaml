@@ -1,7 +1,7 @@
 schemaVersion: 1
 id: RF-004
 title: 执行凭据绑定迁移（run_submit/schedule_create 隐式 i3-customer → 权威 credentialRef，RF001-F08）
-status: PROPOSED
+status: CLOSED
 owner: project-owner
 authorizedBy: agent/plans/active/v54-implementation-batches.md
 scope:

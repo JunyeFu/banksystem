@@ -26,4 +26,6 @@ owner: project-owner
 | S3 Harness端点解析 | PASS：schema可选化、enqueueRun可空化、caseCredentialRef解析、失败关闭（DP-S4-2=A）、占位不落库 | `rf004-s3-harness-credential-resolution.test.cjs`（5/5）、`harness/src/service.ts` |
 | S3聚焦测试 | PASS：75/75（含RF-001/002/003回归70） | `node --test` 16个验证文件（exit 0） |
 
-RF-004当前：target-design已批准、S1-S3完成（基线/注入退场/Harness解析）。下一门禁S4（生产切流关闭）。
+| S4生产切流与关闭 | ✅（RUNTIME_CUTOVER+OBSERVE）：run_submit无注入+credentialRef 202实测、工具规范信封、身份/18链一致、批次CLOSED、RF-005解禁 | `batch.yaml`（CLOSED）、`.data/logs/i10-start-rf004-s4.log` |
+
+**RF-004 批次 CLOSED（2026-08-03）**：S1凭据绑定基线→S2 MCP停注入（DP-S4-1=A）→S3 Harness解析（DP-S4-2=A，零迁移零Worker改动）→S4生产切流观察。终态指标达成：执行凭据绑定权威化 100%（i3-customer 仅 LEGACY 通道）。

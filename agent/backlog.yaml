@@ -226,7 +226,7 @@ tracks:
           - Candidate per L1 roadmap; not authorized until user approves batch entry.
       - id: REFACTOR-RF-004-CREDENTIAL-BINDING
         title: Migrate implicit i3-customer execution credential binding to authoritative credentialRef (RF001-F08)
-        status: PROPOSED
+        status: DONE
         owner: 傅钧烨
         dependsOn: [REFACTOR-RF-002-STATE-OWNERSHIP]
         acceptance:
