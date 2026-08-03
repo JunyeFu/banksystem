@@ -1,0 +1,65 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://hengzhun.local/schemas/i9-runtime-v1.json",
+  "title": "衡准 I9 本机运行配置",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schemaVersion", "network", "paths", "credentialVariables", "lifecycle"],
+  "properties": {
+    "schemaVersion": { "const": "hengzhun-i9-runtime-v1" },
+    "network": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["host", "flowisePort", "harnessPort", "mcpPort"],
+      "properties": {
+        "host": { "const": "127.0.0.1" },
+        "flowisePort": { "const": 3006 },
+        "harnessPort": { "const": 18788 },
+        "mcpPort": { "const": 18789 }
+      }
+    },
+    "paths": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["nodeExecutable", "flowiseApp", "flowiseData", "harnessDatabase", "artifactRoot", "chromiumExecutable"],
+      "properties": {
+        "nodeExecutable": { "$ref": "#/$defs/relativePath" },
+        "flowiseApp": { "$ref": "#/$defs/relativePath" },
+        "flowiseData": { "$ref": "#/$defs/relativePath" },
+        "harnessDatabase": { "$ref": "#/$defs/relativePath" },
+        "artifactRoot": { "$ref": "#/$defs/relativePath" },
+        "chromiumExecutable": { "$ref": "#/$defs/relativePath" }
+      }
+    },
+    "credentialVariables": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["mcpToken", "workerToken", "mimoApiKey"],
+      "properties": {
+        "mcpToken": { "$ref": "#/$defs/environmentVariable" },
+        "workerToken": { "$ref": "#/$defs/environmentVariable" },
+        "mimoApiKey": { "$ref": "#/$defs/environmentVariable" }
+      }
+    },
+    "lifecycle": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["startupTimeoutSeconds", "workerHeartbeatMaxAgeSeconds"],
+      "properties": {
+        "startupTimeoutSeconds": { "type": "integer", "minimum": 15, "maximum": 180 },
+        "workerHeartbeatMaxAgeSeconds": { "type": "integer", "minimum": 3, "maximum": 30 }
+      }
+    }
+  },
+  "$defs": {
+    "relativePath": {
+      "type": "string",
+      "minLength": 1,
+      "pattern": "^(?![A-Za-z]:)(?![/\\\\])(?!.*(?:^|[/\\\\])\\.\\.(?:[/\\\\]|$)).+$"
+    },
+    "environmentVariable": {
+      "type": "string",
+      "pattern": "^[A-Z][A-Z0-9_]{2,63}$"
+    }
+  }
+}

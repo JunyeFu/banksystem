@@ -1,0 +1,251 @@
+{
+    "schemaVersion":  1,
+    "evidenceType":  "frontend-visual-regression-baseline",
+    "generatedAt":  "2026-07-15T12:45:57.5436202+00:00",
+    "sourceCommit":  "bf7ce95681a4c629c251b72458829a9598d507ce",
+    "contractVersion":  "operations-settlement-design-1.0",
+    "baselineVersion":  "operations-settlement-windows-chromium-v1",
+    "environment":  {
+                        "operatingSystem":  "Windows",
+                        "browser":  "Chromium",
+                        "viewport":  "1440x900",
+                        "locale":  "zh-CN",
+                        "timezone":  "Asia/Shanghai",
+                        "colorScheme":  "light",
+                        "reducedMotion":  true
+                    },
+    "businessAssertions":  [
+                               "Fuxing Bank operations console covers 28 clearing, reconciliation, and end-of-day states from PV-0136 through PV-0163.",
+                               "Clearing monitoring aggregates persisted clearing_payment and transfer_order records and does not expose an unsupported artificial batch trigger.",
+                               "Reconciliation executes three real ledger paths and persists difference results.",
+                               "End-of-day processing uses a database transaction lock and idempotency key so repeated requests do not create duplicate runs.",
+                               "The source images for PV0138 and PV0147 conflict with their filename states; the baseline follows filename state, the unified operations shell, and the real business contract.",
+                               "Visual fixtures are deterministic synthetic data and contain no real personal data or secrets."
+                           ],
+    "cases":  [
+                  {
+                      "pv":  "PV-0136",
+                      "pageId":  "operations.clearing",
+                      "testId":  "operations-settlement-visual.spec.ts::PV-0136",
+                      "baselinePath":  "tests/e2e/frontend-operations-settlement/snapshots/PV-0136.png",
+                      "sha256":  "9ac1b9580813908650e467d9ad90c7ed6f4aadf69f78db30e93207c2a1743542",
+                      "bytes":  64712
+                  },
+                  {
+                      "pv":  "PV-0137",
+                      "pageId":  "operations.clearing",
+                      "testId":  "operations-settlement-visual.spec.ts::PV-0137",
+                      "baselinePath":  "tests/e2e/frontend-operations-settlement/snapshots/PV-0137.png",
+                      "sha256":  "841a1cc134f2015fefd6cdd0e97e8a5962b259cd9ef64c1bd5dd76482f5cf3a9",
+                      "bytes":  75896
+                  },
+                  {
+                      "pv":  "PV-0138",
+                      "pageId":  "operations.clearing",
+                      "testId":  "operations-settlement-visual.spec.ts::PV-0138",
+                      "baselinePath":  "tests/e2e/frontend-operations-settlement/snapshots/PV-0138.png",
+                      "sha256":  "f28e552b1eba57b6f83f62025e87b38a5126cb0b7a3b422455cbb8cd0d30dcee",
+                      "bytes":  76747
+                  },
+                  {
+                      "pv":  "PV-0139",
+                      "pageId":  "operations.clearing",
+                      "testId":  "operations-settlement-visual.spec.ts::PV-0139",
+                      "baselinePath":  "tests/e2e/frontend-operations-settlement/snapshots/PV-0139.png",
+                      "sha256":  "b0802d2473b6316252068773374acdef1fe43501013653f400d0a05d1335dc8d",
+                      "bytes":  76866
+                  },
+                  {
+                      "pv":  "PV-0140",
+                      "pageId":  "operations.clearing",
+                      "testId":  "operations-settlement-visual.spec.ts::PV-0140",
+                      "baselinePath":  "tests/e2e/frontend-operations-settlement/snapshots/PV-0140.png",
+                      "sha256":  "2c62ae4d1e5169f17ecea50b94efd7aae8915da2f2b082356ef5b4d08c729076",
+                      "bytes":  43697
+                  },
+                  {
+                      "pv":  "PV-0141",
+                      "pageId":  "operations.clearing",
+                      "testId":  "operations-settlement-visual.spec.ts::PV-0141",
+                      "baselinePath":  "tests/e2e/frontend-operations-settlement/snapshots/PV-0141.png",
+                      "sha256":  "fbaa8d03e8873df36651e709e02a509f4211e34ed34fd075ddb34706253b53eb",
+                      "bytes":  53903
+                  },
+                  {
+                      "pv":  "PV-0142",
+                      "pageId":  "operations.clearing",
+                      "testId":  "operations-settlement-visual.spec.ts::PV-0142",
+                      "baselinePath":  "tests/e2e/frontend-operations-settlement/snapshots/PV-0142.png",
+                      "sha256":  "388e06d4b3db1389345484914620fd97ccb5a9ed835a946a777e8be845c20e1b",
+                      "bytes":  55261
+                  },
+                  {
+                      "pv":  "PV-0143",
+                      "pageId":  "operations.clearing",
+                      "testId":  "operations-settlement-visual.spec.ts::PV-0143",
+                      "baselinePath":  "tests/e2e/frontend-operations-settlement/snapshots/PV-0143.png",
+                      "sha256":  "a51e40cc1c634bfa3f7028a9fd12674db8cc14f475903be9edd6f531e2f332d3",
+                      "bytes":  54757
+                  },
+                  {
+                      "pv":  "PV-0144",
+                      "pageId":  "operations.reconciliation",
+                      "testId":  "operations-settlement-visual.spec.ts::PV-0144",
+                      "baselinePath":  "tests/e2e/frontend-operations-settlement/snapshots/PV-0144.png",
+                      "sha256":  "a7d45bb3748d292115c5cdba95c8cdb09d94adf6282e777a293c0abd122fb8b6",
+                      "bytes":  74710
+                  },
+                  {
+                      "pv":  "PV-0145",
+                      "pageId":  "operations.reconciliation",
+                      "testId":  "operations-settlement-visual.spec.ts::PV-0145",
+                      "baselinePath":  "tests/e2e/frontend-operations-settlement/snapshots/PV-0145.png",
+                      "sha256":  "88ecce2cce6d4bd6400f44fc4ba5145e45eb736db8161a0aa73e6bbf5da1ae2a",
+                      "bytes":  82388
+                  },
+                  {
+                      "pv":  "PV-0146",
+                      "pageId":  "operations.reconciliation",
+                      "testId":  "operations-settlement-visual.spec.ts::PV-0146",
+                      "baselinePath":  "tests/e2e/frontend-operations-settlement/snapshots/PV-0146.png",
+                      "sha256":  "7b3d444993787e924c6666042efb160d8b85eef9721ec421e531c00af7b85e60",
+                      "bytes":  82905
+                  },
+                  {
+                      "pv":  "PV-0147",
+                      "pageId":  "operations.reconciliation",
+                      "testId":  "operations-settlement-visual.spec.ts::PV-0147",
+                      "baselinePath":  "tests/e2e/frontend-operations-settlement/snapshots/PV-0147.png",
+                      "sha256":  "dab6ab66a43bd49b8a52afda1c4a07198e007bc90358f97a9337b75eb3374043",
+                      "bytes":  83771
+                  },
+                  {
+                      "pv":  "PV-0148",
+                      "pageId":  "operations.reconciliation",
+                      "testId":  "operations-settlement-visual.spec.ts::PV-0148",
+                      "baselinePath":  "tests/e2e/frontend-operations-settlement/snapshots/PV-0148.png",
+                      "sha256":  "619b523ff16bca4d6fc08e5ebfd6eecf5b46834debaf2a5b59b0278951399ca4",
+                      "bytes":  82146
+                  },
+                  {
+                      "pv":  "PV-0149",
+                      "pageId":  "operations.reconciliation",
+                      "testId":  "operations-settlement-visual.spec.ts::PV-0149",
+                      "baselinePath":  "tests/e2e/frontend-operations-settlement/snapshots/PV-0149.png",
+                      "sha256":  "ac5424de933fa60fc3c44830ba41419f5cd0f294320cb77fa9cf3a5de5322098",
+                      "bytes":  48187
+                  },
+                  {
+                      "pv":  "PV-0150",
+                      "pageId":  "operations.reconciliation",
+                      "testId":  "operations-settlement-visual.spec.ts::PV-0150",
+                      "baselinePath":  "tests/e2e/frontend-operations-settlement/snapshots/PV-0150.png",
+                      "sha256":  "a224c97b09e826fc722d24ba1c969b1c65a3544fad9f16a52f3e610041907c36",
+                      "bytes":  61373
+                  },
+                  {
+                      "pv":  "PV-0151",
+                      "pageId":  "operations.reconciliation",
+                      "testId":  "operations-settlement-visual.spec.ts::PV-0151",
+                      "baselinePath":  "tests/e2e/frontend-operations-settlement/snapshots/PV-0151.png",
+                      "sha256":  "97af283a229060a9b0e0bb90e5ff615969279d79fe084a4031bfcbe0492a205f",
+                      "bytes":  61407
+                  },
+                  {
+                      "pv":  "PV-0152",
+                      "pageId":  "operations.reconciliation",
+                      "testId":  "operations-settlement-visual.spec.ts::PV-0152",
+                      "baselinePath":  "tests/e2e/frontend-operations-settlement/snapshots/PV-0152.png",
+                      "sha256":  "667420c5ba84a4b7b1ef3de6865adf7ab009b6e1bfa1ce591437d2abe475ea1e",
+                      "bytes":  62357
+                  },
+                  {
+                      "pv":  "PV-0153",
+                      "pageId":  "operations.reconciliation",
+                      "testId":  "operations-settlement-visual.spec.ts::PV-0153",
+                      "baselinePath":  "tests/e2e/frontend-operations-settlement/snapshots/PV-0153.png",
+                      "sha256":  "bbaa6e216428502e6f8dbe7e67f22e01b88177a2734f5f81e8309c2ec460f48f",
+                      "bytes":  61093
+                  },
+                  {
+                      "pv":  "PV-0154",
+                      "pageId":  "operations.eod",
+                      "testId":  "operations-settlement-visual.spec.ts::PV-0154",
+                      "baselinePath":  "tests/e2e/frontend-operations-settlement/snapshots/PV-0154.png",
+                      "sha256":  "34b9c83b62f01a43eae2fd1adc632dc924e8346d835a87d2f96a55b79717cf3e",
+                      "bytes":  72660
+                  },
+                  {
+                      "pv":  "PV-0155",
+                      "pageId":  "operations.eod",
+                      "testId":  "operations-settlement-visual.spec.ts::PV-0155",
+                      "baselinePath":  "tests/e2e/frontend-operations-settlement/snapshots/PV-0155.png",
+                      "sha256":  "7b7f5aa151a5fd7eee0cee11369b5ae470bdf01ae26deb5df74c2971a3bf82d3",
+                      "bytes":  98752
+                  },
+                  {
+                      "pv":  "PV-0156",
+                      "pageId":  "operations.eod",
+                      "testId":  "operations-settlement-visual.spec.ts::PV-0156",
+                      "baselinePath":  "tests/e2e/frontend-operations-settlement/snapshots/PV-0156.png",
+                      "sha256":  "ff101ec9093fc2597c4779736719b30a2e5aafbcc5e506ffb999dd91a9366d9d",
+                      "bytes":  100029
+                  },
+                  {
+                      "pv":  "PV-0157",
+                      "pageId":  "operations.eod",
+                      "testId":  "operations-settlement-visual.spec.ts::PV-0157",
+                      "baselinePath":  "tests/e2e/frontend-operations-settlement/snapshots/PV-0157.png",
+                      "sha256":  "6c0a7af53824f69d2acb70f4d1aa365f154ed2866218e4d47db3eac771aedef9",
+                      "bytes":  99751
+                  },
+                  {
+                      "pv":  "PV-0158",
+                      "pageId":  "operations.eod",
+                      "testId":  "operations-settlement-visual.spec.ts::PV-0158",
+                      "baselinePath":  "tests/e2e/frontend-operations-settlement/snapshots/PV-0158.png",
+                      "sha256":  "8fc726d6c01e40d456a4d2de9fe95556f35535769292644883fd9cd5aa850c10",
+                      "bytes":  112673
+                  },
+                  {
+                      "pv":  "PV-0159",
+                      "pageId":  "operations.eod",
+                      "testId":  "operations-settlement-visual.spec.ts::PV-0159",
+                      "baselinePath":  "tests/e2e/frontend-operations-settlement/snapshots/PV-0159.png",
+                      "sha256":  "f8322ff1ddba363a21a3d18b3b809338a3f0960c882a7120edefe7f219e15e4e",
+                      "bytes":  52191
+                  },
+                  {
+                      "pv":  "PV-0160",
+                      "pageId":  "operations.eod",
+                      "testId":  "operations-settlement-visual.spec.ts::PV-0160",
+                      "baselinePath":  "tests/e2e/frontend-operations-settlement/snapshots/PV-0160.png",
+                      "sha256":  "446a971ed6a6696339b92f51ae83ea8234322c2cf66d5407b7fb7a426f7ae01d",
+                      "bytes":  79841
+                  },
+                  {
+                      "pv":  "PV-0161",
+                      "pageId":  "operations.eod",
+                      "testId":  "operations-settlement-visual.spec.ts::PV-0161",
+                      "baselinePath":  "tests/e2e/frontend-operations-settlement/snapshots/PV-0161.png",
+                      "sha256":  "ca6e02405982c85b9f4f30acec677f36d6cb503c2aabe0435343a917e1cf3663",
+                      "bytes":  80769
+                  },
+                  {
+                      "pv":  "PV-0162",
+                      "pageId":  "operations.eod",
+                      "testId":  "operations-settlement-visual.spec.ts::PV-0162",
+                      "baselinePath":  "tests/e2e/frontend-operations-settlement/snapshots/PV-0162.png",
+                      "sha256":  "6b052abc41dec2d3bd61a129333e0be9df07b9b56f1600402f1dd9866ac0e8c3",
+                      "bytes":  80531
+                  },
+                  {
+                      "pv":  "PV-0163",
+                      "pageId":  "operations.eod",
+                      "testId":  "operations-settlement-visual.spec.ts::PV-0163",
+                      "baselinePath":  "tests/e2e/frontend-operations-settlement/snapshots/PV-0163.png",
+                      "sha256":  "91c84d7925b3dcb62f8885154e8f76936cc3b454cb421e1b0646fd22f559d805",
+                      "bytes":  94766
+                  }
+              ]
+}

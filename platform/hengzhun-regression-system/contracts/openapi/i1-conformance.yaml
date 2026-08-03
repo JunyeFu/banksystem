@@ -1,0 +1,143 @@
+openapi: 3.0.3
+info:
+  title: 衡准 I1 平台一致性测试
+  version: 1.0.0
+  description: 仅使用合成数据的无副作用回显与超时测量接口，不访问复兴银行。
+servers:
+  - url: http://hengzhun-conformance:18787
+security:
+  - bearerAuth: []
+paths:
+  /v1/echo/{pathValue}:
+    get:
+      operationId: echoLocations
+      summary: 回显 path、query 和 header 参数
+      parameters:
+        - name: pathValue
+          in: path
+          required: true
+          schema: {type: string, minLength: 1}
+        - name: limit
+          in: query
+          required: false
+          schema: {type: integer, minimum: 1, maximum: 100, default: 10}
+        - name: mode
+          in: query
+          required: false
+          schema: {type: string, enum: [safe, strict], default: safe}
+        - name: X-Conformance-Id
+          in: header
+          required: true
+          schema: {type: string, minLength: 1}
+      responses:
+        '200':
+          description: 参数逐字段回显
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LocationEcho'
+        '401': {$ref: '#/components/responses/Unauthorized'}
+  /v1/echo/types:
+    post:
+      operationId: echoJsonTypes
+      summary: 回显基础 JSON 类型和两级对象
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TypeRequest'
+      responses:
+        '200':
+          description: 请求体逐字段回显
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [accepted, value]
+                properties:
+                  accepted: {type: boolean}
+                  value: {$ref: '#/components/schemas/TypeRequest'}
+        '400': {$ref: '#/components/responses/InvalidRequest'}
+        '401': {$ref: '#/components/responses/Unauthorized'}
+  /v1/delay:
+    get:
+      operationId: measureSynchronousWindow
+      summary: 合成同步受理窗口测量
+      parameters:
+        - name: seconds
+          in: query
+          required: true
+          schema: {type: integer, enum: [1, 30, 60, 120]}
+      responses:
+        '202':
+          description: 合成任务已受理
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [accepted, delaySeconds, taskId]
+                properties:
+                  accepted: {type: boolean}
+                  delaySeconds: {type: integer}
+                  taskId: {type: string}
+        '401': {$ref: '#/components/responses/Unauthorized'}
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: opaque-service-token
+  schemas:
+    LocationEcho:
+      type: object
+      required: [pathValue, query, headerValue]
+      properties:
+        pathValue: {type: string}
+        query:
+          type: object
+          required: [limit, mode]
+          properties:
+            limit: {type: integer}
+            mode: {type: string, enum: [safe, strict]}
+        headerValue: {type: string}
+    TypeRequest:
+      type: object
+      additionalProperties: false
+      required: [text, count, ratio, enabled, tags, profile]
+      properties:
+        text: {type: string}
+        count: {type: integer}
+        ratio: {type: number, format: double}
+        enabled: {type: boolean}
+        tags:
+          type: array
+          items: {type: string}
+        profile:
+          type: object
+          additionalProperties: false
+          required: [owner, options]
+          properties:
+            owner: {type: string}
+            options:
+              type: object
+              additionalProperties: false
+              required: [mode]
+              properties:
+                mode: {type: string, enum: [safe, strict]}
+    Error:
+      type: object
+      required: [error]
+      properties:
+        error: {type: string}
+  responses:
+    Unauthorized:
+      description: Bearer Token 缺失或无效
+      content:
+        application/json:
+          schema: {$ref: '#/components/schemas/Error'}
+    InvalidRequest:
+      description: 请求参数无效
+      content:
+        application/json:
+          schema: {$ref: '#/components/schemas/Error'}

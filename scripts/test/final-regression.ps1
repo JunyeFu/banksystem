@@ -1,5 +1,5 @@
 param(
-  [string]$Gateway='http://127.0.0.1:18081',
+  [string]$Gateway='http://127.0.0.1:18443',
   [string]$Fineract='http://127.0.0.1:13000/fineract-provider',
   [switch]$RunBackupDrill
 )
@@ -7,7 +7,9 @@ $ErrorActionPreference='Stop'
 $checks=@()
 function Check([string]$Name,[scriptblock]$Action){try{& $Action;$script:checks+="$Name=PASS"}catch{$script:checks+="$Name=FAIL:$($_.Exception.Message)"}}
 Check 'gateway-health' {if((Invoke-WebRequest -UseBasicParsing "$Gateway/health").StatusCode -ne 200){throw 'gateway health'}}
-Check 'customer-web' {if((Invoke-WebRequest -UseBasicParsing 'http://127.0.0.1:18080').StatusCode -ne 200){throw 'customer web'}}
+Check 'customer-portal' {if((Invoke-WebRequest -UseBasicParsing 'http://127.0.0.1:18082/').StatusCode -ne 200){throw 'customer portal'}}
+Check 'operations-console' {if((Invoke-WebRequest -UseBasicParsing 'http://127.0.0.1:18083/').StatusCode -ne 200){throw 'operations console'}}
+Check 'mifos-x' {if((Invoke-WebRequest -UseBasicParsing 'http://127.0.0.1:18080/').StatusCode -ne 200){throw 'mifos x'}}
 Check 'fineract-health' {if((Invoke-WebRequest -UseBasicParsing "$Fineract/actuator/health").StatusCode -ne 200){throw 'fineract health'}}
 Check 'unauthorized-customer' {try{Invoke-WebRequest -UseBasicParsing "$Gateway/api/customer/v1/accounts"|Out-Null;throw 'expected 401'}catch{if(-not $_.Exception.Response -or [int]$_.Exception.Response.StatusCode -ne 401){throw}}}
 Check 'unauthorized-operations' {try{Invoke-WebRequest -UseBasicParsing "$Gateway/api/operations/v1/cashiers"|Out-Null;throw 'expected 401'}catch{if(-not $_.Exception.Response -or [int]$_.Exception.Response.StatusCode -ne 401){throw}}}

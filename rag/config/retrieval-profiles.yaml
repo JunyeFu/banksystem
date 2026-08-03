@@ -1,0 +1,42 @@
+{
+  "schema_version": 1,
+  "profiles": {
+    "current": {
+      "retrieval_domains": ["current", "normative"],
+      "excluded_statuses": ["historical", "superseded", "deprecated", "cancelled"],
+      "domain_boosts": {"current": 1.15, "normative": 1.0},
+      "class_boosts": {"architecture": 1.25, "evidence": 1.12, "contract": 1.10, "instruction": 1.20},
+      "max_chunks_per_source": 2
+    },
+    "implementation": {
+      "retrieval_domains": ["current", "normative", "planning"],
+      "excluded_statuses": ["historical", "superseded", "deprecated", "cancelled"],
+      "domain_boosts": {"current": 1.15, "normative": 1.05, "planning": 0.9},
+      "class_boosts": {"workflow": 1.30, "instruction": 1.45, "contract": 1.12, "architecture": 1.10, "planning": 1.05},
+      "max_chunks_per_source": 2
+    },
+    "planning": {
+      "retrieval_domains": ["planning", "normative", "current"],
+      "excluded_statuses": ["superseded", "deprecated", "cancelled"],
+      "domain_boosts": {"planning": 1.2, "normative": 1.0, "current": 1.0},
+      "class_boosts": {"planning": 1.50, "architecture": 1.10},
+      "max_chunks_per_source": 2
+    },
+    "reference": {
+      "retrieval_domains": ["reference", "normative", "current", "planning"],
+      "excluded_statuses": ["cancelled"],
+      "source_classes": ["external_reference", "research", "historical"],
+      "domain_boosts": {"reference": 1.15, "normative": 1.0, "current": 1.0, "planning": 0.8},
+      "class_boosts": {"external_reference": 1.20, "research": 1.15, "historical": 1.05},
+      "max_chunks_per_source": 2
+    },
+    "frontend": {
+      "retrieval_domains": ["current", "normative", "planning"],
+      "excluded_statuses": ["historical", "superseded", "deprecated", "cancelled"],
+      "source_classes": ["contract", "test", "source", "evidence", "architecture", "design", "workflow", "instruction", "planning"],
+      "domain_boosts": {"current": 1.1, "normative": 1.15, "planning": 0.85},
+      "class_boosts": {"design": 1.40, "instruction": 1.35, "contract": 1.15, "test": 1.05},
+      "max_chunks_per_source": 2
+    }
+  }
+}

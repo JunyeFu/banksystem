@@ -1,0 +1,982 @@
+{
+  "schemaVersion": "rf001-mcp-boundary-contract-v1",
+  "contractId": "RF-001-B2-MCP-33",
+  "status": "CONTRACT_APPROVED",
+  "approvedAt": "2026-08-02",
+  "implementationAuthorized": true,
+  "implementationPhase": "RF-001-B3_SHADOW_ONLY",
+  "activeRuntimeContract": "platform/hengzhun-regression-system/contracts/mcp/hengzhun-i8.json",
+  "toolCount": 33,
+  "ownership": {
+    "mcp": [
+      "authenticate transport requests",
+      "accept explicitly listed legacy wire forms",
+      "normalize aliases into canonical request fields",
+      "derive transport idempotency keys where declared",
+      "project canonical safe errors and bounded responses"
+    ],
+    "harness": [
+      "validate canonical business requests",
+      "own authorization, state transitions and durable idempotency",
+      "own domain error codes and data",
+      "reject aliases that bypass the MCP boundary"
+    ]
+  },
+  "canonicalErrorEnvelope": {
+    "fields": [
+      "errorCode",
+      "category",
+      "status",
+      "retryable",
+      "userActionRequired",
+      "safeMessage",
+      "fieldErrors",
+      "correlationRef"
+    ],
+    "required": [
+      "errorCode",
+      "category",
+      "status",
+      "retryable",
+      "userActionRequired"
+    ],
+    "legacyReadAliases": {
+      "code": "errorCode",
+      "message": "safeMessage",
+      "validationIssues": "fieldErrors",
+      "requestId": "correlationRef"
+    },
+    "forbidden": [
+      "stack",
+      "authorization",
+      "apiKey",
+      "token",
+      "password",
+      "credentialValue",
+      "requestBody"
+    ],
+    "projectionRule": "Harness message may become safeMessage only after redaction; details may become fieldErrors only when field-scoped and non-sensitive."
+  },
+  "globalCompatibility": [
+    {
+      "id": "COMPAT-JSON-OBJECT-STRING",
+      "acceptedAt": "MCP_ONLY",
+      "rule": "An explicitly listed object field may accept a JSON object string and emit only the parsed canonical object.",
+      "retirementGate": "Flowise consumer search, compatibility tests, shadow equivalence and rollback mapping"
+    },
+    {
+      "id": "COMPAT-JSON-ARRAY-STRING",
+      "acceptedAt": "MCP_ONLY",
+      "rule": "An explicitly listed array field may accept a JSON array string and emit only the parsed canonical array.",
+      "retirementGate": "Flowise consumer search, compatibility tests, shadow equivalence and rollback mapping"
+    },
+    {
+      "id": "COMPAT-EMPTY-TO-UNDEFINED",
+      "acceptedAt": "MCP_ONLY",
+      "rule": "Only optional fields explicitly listed by a tool may map an empty string to omission.",
+      "retirementGate": "No active Flowise producer sends empty placeholders"
+    },
+    {
+      "id": "COMPAT-UNRESOLVED-TEMPLATE-OMIT",
+      "acceptedAt": "MCP_ONLY",
+      "rule": "Only journey_prepare may omit a value matching the narrow unresolved Flowise output-template pattern; all other templates fail closed.",
+      "retirementGate": "The deployed Agentflow has no unresolved output templates in LIVE_E2E evidence"
+    },
+    {
+      "id": "COMPAT-INTEGER-STRING",
+      "acceptedAt": "MCP_ONLY",
+      "rule": "Only explicitly listed integer fields may accept base-10 integer text; Harness receives an integer.",
+      "retirementGate": "All active platform producers preserve numeric types"
+    }
+  ],
+  "responseModes": {
+    "PASS_THROUGH": "A bounded Harness domain response with no semantic alias generation.",
+    "COMPACT_JOURNEY": "A bounded journey projection; MCP is the sole owner of Flowise root aliases after B3.",
+    "COMPOSITE": "A documented orchestration of multiple Harness reads/writes that returns one bounded canonical result."
+  },
+  "sideEffects": {
+    "READ_ONLY": "No durable state mutation.",
+    "MUTATING": "Creates or changes durable state.",
+    "CONDITIONAL_MUTATION": "May mutate depending on an explicit canonical request field or recovery state."
+  },
+  "tools": [
+    {
+      "name": "credential_session_create",
+      "canonicalRequest": [
+        "label",
+        "sessionRef"
+      ],
+      "acceptedAliases": [],
+      "adapterProfiles": [
+        "COMPAT-EMPTY-TO-UNDEFINED"
+      ],
+      "harnessEndpoints": [
+        "/v1/i10/credentials:sessions-create"
+      ],
+      "canonicalResponse": {
+        "mode": "PASS_THROUGH",
+        "maxBytes": 8192
+      },
+      "sideEffect": "MUTATING",
+      "idempotency": "MCP_DERIVED"
+    },
+    {
+      "name": "credential_session_get",
+      "canonicalRequest": [
+        "sessionId"
+      ],
+      "acceptedAliases": [],
+      "adapterProfiles": [],
+      "harnessEndpoints": [
+        "/v1/i10/credentials:sessions-get"
+      ],
+      "canonicalResponse": {
+        "mode": "PASS_THROUGH",
+        "maxBytes": 8192
+      },
+      "sideEffect": "READ_ONLY",
+      "idempotency": "NONE"
+    },
+    {
+      "name": "target_profile_prepare",
+      "canonicalRequest": [
+        "displayName",
+        "launchUrl",
+        "targetProfileId",
+        "credentialRef",
+        "adapterSelection",
+        "adapterBinding",
+        "applicationProfile",
+        "tlsPolicy",
+        "sessionRef"
+      ],
+      "acceptedAliases": [],
+      "adapterProfiles": [
+        "COMPAT-JSON-OBJECT-STRING",
+        "COMPAT-EMPTY-TO-UNDEFINED"
+      ],
+      "harnessEndpoints": [
+        "/v1/i10/target-profiles:prepare"
+      ],
+      "canonicalResponse": {
+        "mode": "PASS_THROUGH",
+        "maxBytes": 8192
+      },
+      "sideEffect": "MUTATING",
+      "idempotency": "MCP_DERIVED"
+    },
+    {
+      "name": "target_profile_get",
+      "canonicalRequest": [
+        "targetProfileId",
+        "launchUrl"
+      ],
+      "acceptedAliases": [],
+      "adapterProfiles": [
+        "COMPAT-EMPTY-TO-UNDEFINED"
+      ],
+      "harnessEndpoints": [
+        "/v1/i10/target-profiles:get"
+      ],
+      "canonicalResponse": {
+        "mode": "PASS_THROUGH",
+        "maxBytes": 8192
+      },
+      "sideEffect": "READ_ONLY",
+      "idempotency": "NONE"
+    },
+    {
+      "name": "target_profile_decision_submit",
+      "canonicalRequest": [
+        "targetProfileId",
+        "expectedVersion",
+        "decision",
+        "confirmationRef",
+        "sessionRef"
+      ],
+      "acceptedAliases": [],
+      "adapterProfiles": [
+        "COMPAT-INTEGER-STRING"
+      ],
+      "harnessEndpoints": [
+        "/v1/i10/target-profiles:decide"
+      ],
+      "canonicalResponse": {
+        "mode": "PASS_THROUGH",
+        "maxBytes": 8192
+      },
+      "sideEffect": "MUTATING",
+      "idempotency": "MCP_DERIVED_VERSION_BOUND"
+    },
+    {
+      "name": "ingest_submit",
+      "canonicalRequest": [
+        "inputType",
+        "flowiseFileRef",
+        "originalFilename",
+        "credentialRef",
+        "targetSystemHint",
+        "entryUrlHint",
+        "supportingImageIngestId",
+        "sessionRef"
+      ],
+      "acceptedAliases": [
+        {
+          "alias": "supportingImageIngestId=NONE",
+          "canonical": "supportingImageIngestId omitted",
+          "until": "B4 consumer evidence"
+        }
+      ],
+      "adapterProfiles": [
+        "COMPAT-EMPTY-TO-UNDEFINED"
+      ],
+      "harnessEndpoints": [
+        "/v1/i10/ingest:submit"
+      ],
+      "canonicalResponse": {
+        "mode": "PASS_THROUGH",
+        "maxBytes": 8192
+      },
+      "sideEffect": "MUTATING",
+      "idempotency": "MCP_DERIVED"
+    },
+    {
+      "name": "ingest_get",
+      "canonicalRequest": [
+        "ingestJobId"
+      ],
+      "acceptedAliases": [],
+      "adapterProfiles": [],
+      "harnessEndpoints": [
+        "/v1/i10/ingest:get"
+      ],
+      "canonicalResponse": {
+        "mode": "PASS_THROUGH",
+        "maxBytes": 8192
+      },
+      "sideEffect": "READ_ONLY",
+      "idempotency": "NONE"
+    },
+    {
+      "name": "ingest_decision_submit",
+      "canonicalRequest": [
+        "ingestJobId",
+        "expectedVersion",
+        "choice",
+        "corrections",
+        "itemDecisions",
+        "reason",
+        "confirmationRef",
+        "sessionRef"
+      ],
+      "acceptedAliases": [
+        {
+          "alias": "correctionsJson",
+          "canonical": "corrections",
+          "until": "B4 consumer evidence"
+        },
+        {
+          "alias": "itemDecisionsJson",
+          "canonical": "itemDecisions",
+          "until": "B4 consumer evidence"
+        }
+      ],
+      "adapterProfiles": [
+        "COMPAT-JSON-ARRAY-STRING",
+        "COMPAT-INTEGER-STRING"
+      ],
+      "harnessEndpoints": [
+        "/v1/i10/ingest:decide"
+      ],
+      "canonicalResponse": {
+        "mode": "PASS_THROUGH",
+        "maxBytes": 8192
+      },
+      "sideEffect": "MUTATING",
+      "idempotency": "MCP_DERIVED_VERSION_BOUND"
+    },
+    {
+      "name": "image_ingest_submit",
+      "canonicalRequest": [
+        "sourceRef",
+        "primaryInputType",
+        "images",
+        "primaryText",
+        "credentialRef",
+        "sessionRef"
+      ],
+      "acceptedAliases": [],
+      "adapterProfiles": [
+        "COMPAT-JSON-ARRAY-STRING",
+        "COMPAT-EMPTY-TO-UNDEFINED"
+      ],
+      "harnessEndpoints": [
+        "/v1/i10/images:submit"
+      ],
+      "canonicalResponse": {
+        "mode": "PASS_THROUGH",
+        "maxBytes": 8192
+      },
+      "sideEffect": "MUTATING",
+      "idempotency": "MCP_DERIVED"
+    },
+    {
+      "name": "image_ingest_get",
+      "canonicalRequest": [
+        "imageIngestId"
+      ],
+      "acceptedAliases": [],
+      "adapterProfiles": [],
+      "harnessEndpoints": [
+        "/v1/i10/images:get"
+      ],
+      "canonicalResponse": {
+        "mode": "PASS_THROUGH",
+        "maxBytes": 8192
+      },
+      "sideEffect": "READ_ONLY",
+      "idempotency": "NONE"
+    },
+    {
+      "name": "image_ingest_decision_submit",
+      "canonicalRequest": [
+        "imageIngestId",
+        "expectedVersion",
+        "confirmationRef",
+        "decisions",
+        "sessionRef"
+      ],
+      "acceptedAliases": [],
+      "adapterProfiles": [
+        "COMPAT-JSON-ARRAY-STRING",
+        "COMPAT-INTEGER-STRING"
+      ],
+      "harnessEndpoints": [
+        "/v1/i10/images:decide"
+      ],
+      "canonicalResponse": {
+        "mode": "PASS_THROUGH",
+        "maxBytes": 8192
+      },
+      "sideEffect": "MUTATING",
+      "idempotency": "MCP_DERIVED_VERSION_BOUND"
+    },
+    {
+      "name": "verification_get",
+      "canonicalRequest": [
+        "challengeId",
+        "taskRef"
+      ],
+      "acceptedAliases": [],
+      "adapterProfiles": [
+        "COMPAT-EMPTY-TO-UNDEFINED"
+      ],
+      "harnessEndpoints": [
+        "/v1/i10/verification:get"
+      ],
+      "canonicalResponse": {
+        "mode": "PASS_THROUGH",
+        "maxBytes": 8192
+      },
+      "sideEffect": "READ_ONLY",
+      "idempotency": "NONE"
+    },
+    {
+      "name": "verification_decision_submit",
+      "canonicalRequest": [
+        "challengeId",
+        "expectedVersion",
+        "decision",
+        "confirmationRef",
+        "note",
+        "sessionRef"
+      ],
+      "acceptedAliases": [],
+      "adapterProfiles": [
+        "COMPAT-INTEGER-STRING",
+        "COMPAT-EMPTY-TO-UNDEFINED"
+      ],
+      "harnessEndpoints": [
+        "/v1/i10/verification:decide"
+      ],
+      "canonicalResponse": {
+        "mode": "PASS_THROUGH",
+        "maxBytes": 8192
+      },
+      "sideEffect": "MUTATING",
+      "idempotency": "MCP_DERIVED_VERSION_BOUND"
+    },
+    {
+      "name": "journey_prepare",
+      "canonicalRequest": [
+        "sessionRef",
+        "interactionContractVersion",
+        "journeyId",
+        "requestIntent",
+        "inputType",
+        "naturalLanguage",
+        "entryUrl",
+        "targetSystem",
+        "flowiseFileRef",
+        "originalFilename",
+        "credentialRef",
+        "targetProfileId",
+        "supportingImages",
+        "scheduleId",
+        "taskId",
+        "draft",
+        "semanticAssessment",
+        "inputRevision"
+      ],
+      "acceptedAliases": [
+        {
+          "alias": "draftJson",
+          "canonical": "draftJson",
+          "until": "DEC-2 (2026-08-02): executable-canonical self-mapping; Harness i10 journeys:prepare schema and service.ts read inputEnvelope.draftJson, MCP keeps the field name"
+        }
+      ],
+      "adapterProfiles": [
+        "COMPAT-JSON-OBJECT-STRING",
+        "COMPAT-JSON-ARRAY-STRING",
+        "COMPAT-EMPTY-TO-UNDEFINED",
+        "COMPAT-UNRESOLVED-TEMPLATE-OMIT",
+        "COMPAT-INTEGER-STRING"
+      ],
+      "harnessEndpoints": [
+        "/v1/i10/journeys:prepare"
+      ],
+      "canonicalResponse": {
+        "mode": "COMPACT_JOURNEY",
+        "maxBytes": 8192
+      },
+      "sideEffect": "MUTATING",
+      "idempotency": "MCP_DERIVED"
+    },
+    {
+      "name": "journey_get",
+      "canonicalRequest": [
+        "journeyId",
+        "sessionRef",
+        "waitSeconds"
+      ],
+      "acceptedAliases": [],
+      "adapterProfiles": [
+        "COMPAT-EMPTY-TO-UNDEFINED",
+        "COMPAT-INTEGER-STRING"
+      ],
+      "harnessEndpoints": [
+        "/v1/i10/journeys:get"
+      ],
+      "canonicalResponse": {
+        "mode": "COMPACT_JOURNEY",
+        "maxBytes": 8192
+      },
+      "sideEffect": "READ_ONLY",
+      "idempotency": "NONE"
+    },
+    {
+      "name": "journey_input_submit",
+      "canonicalRequest": [
+        "journeyId",
+        "expectedVersion",
+        "inputKind",
+        "normalizedInput",
+        "submissionRef",
+        "sessionRef"
+      ],
+      "acceptedAliases": [],
+      "adapterProfiles": [
+        "COMPAT-JSON-OBJECT-STRING",
+        "COMPAT-INTEGER-STRING"
+      ],
+      "harnessEndpoints": [
+        "/v1/i10/journeys:submit-input"
+      ],
+      "canonicalResponse": {
+        "mode": "COMPACT_JOURNEY",
+        "maxBytes": 8192
+      },
+      "sideEffect": "MUTATING",
+      "idempotency": "MCP_DERIVED_VERSION_BOUND"
+    },
+    {
+      "name": "journey_decision_submit",
+      "canonicalRequest": [
+        "journeyId",
+        "expectedVersion",
+        "decision",
+        "confirmationRef",
+        "proposalId",
+        "payloadHash",
+        "payload",
+        "reason",
+        "sessionRef"
+      ],
+      "acceptedAliases": [],
+      "adapterProfiles": [
+        "COMPAT-JSON-OBJECT-STRING",
+        "COMPAT-INTEGER-STRING",
+        "COMPAT-EMPTY-TO-UNDEFINED"
+      ],
+      "harnessEndpoints": [
+        "/v1/i10/journeys:decide"
+      ],
+      "canonicalResponse": {
+        "mode": "COMPACT_JOURNEY",
+        "maxBytes": 8192
+      },
+      "sideEffect": "MUTATING",
+      "idempotency": "MCP_DERIVED_VERSION_BOUND"
+    },
+    {
+      "name": "case_prepare",
+      "canonicalRequest": [
+        "caseDescription",
+        "draft",
+        "caseTitle",
+        "objective",
+        "summary",
+        "targetSystem",
+        "entryUrl",
+        "preconditions",
+        "actions",
+        "expectedOutcomes",
+        "assertions",
+        "missingFields",
+        "credentialRef",
+        "journeyId",
+        "sessionRef"
+      ],
+      "acceptedAliases": [
+        {
+          "alias": "draftJson",
+          "canonical": "draft",
+          "until": "RF-005-S2 (2026-08-03): single i10 route; draftArray/acceptanceSummaryJson/multimodalContextJson retired with zero v7 consumers"
+        }
+      ],
+      "adapterProfiles": [
+        "COMPAT-JSON-OBJECT-STRING",
+        "COMPAT-JSON-ARRAY-STRING",
+        "COMPAT-EMPTY-TO-UNDEFINED"
+      ],
+      "harnessEndpoints": [
+        "/v1/i10/cases:prepare",
+        "/v1/i8/cases:prepare"
+      ],
+      "canonicalResponse": {
+        "mode": "COMPOSITE",
+        "maxBytes": 8192
+      },
+      "sideEffect": "MUTATING",
+      "idempotency": "MCP_DERIVED",
+      "deprecation": {
+        "legacyPath": "I8 draft routing",
+        "retirementGate": "No active Flowise/I8 consumer plus shadow-equivalent I10 route"
+      }
+    },
+    {
+      "name": "authoring_submit",
+      "canonicalRequest": [
+        "preparationId",
+        "expectedVersion",
+        "choice",
+        "confirmationRef",
+        "reason",
+        "caseId",
+        "caseVersion",
+        "route",
+        "executionProfile",
+        "targetProfileId",
+        "targetProfileVersion",
+        "targetProfileHash",
+        "targetProfileSnapshot",
+        "authoringContext",
+        "sessionRef"
+      ],
+      "acceptedAliases": [
+        {
+          "alias": "intentStepIds/actions/expectedOutcomes/riskLevels/inputValues/inputValueSources/assertions",
+          "canonical": "no canonical effect",
+          "until": "DEC-1 (2026-08-02): OPTION-C declared no-effect after consumer audit - v5/v6/v7 Agentflow bind none of the seven fields; adapter registers and statically excludes them from Harness requests"
+        }
+      ],
+      "adapterProfiles": [
+        "COMPAT-JSON-OBJECT-STRING",
+        "COMPAT-INTEGER-STRING",
+        "COMPAT-EMPTY-TO-UNDEFINED"
+      ],
+      "harnessEndpoints": [
+        "/v1/i8/authoring:submit"
+      ],
+      "canonicalResponse": {
+        "mode": "PASS_THROUGH",
+        "maxBytes": 8192
+      },
+      "sideEffect": "MUTATING",
+      "idempotency": "MCP_DERIVED_VERSION_BOUND",
+      "deprecation": {
+        "legacyFields": "Seven declared array groups are not consumed and must never be represented as effective canonical fields."
+      }
+    },
+    {
+      "name": "authoring_get",
+      "canonicalRequest": [
+        "preparationId"
+      ],
+      "acceptedAliases": [],
+      "adapterProfiles": [],
+      "harnessEndpoints": [
+        "/v1/i8/authoring:get"
+      ],
+      "canonicalResponse": {
+        "mode": "PASS_THROUGH",
+        "maxBytes": 8192
+      },
+      "sideEffect": "READ_ONLY",
+      "idempotency": "NONE"
+    },
+    {
+      "name": "candidate_get",
+      "canonicalRequest": [
+        "preparationId",
+        "sessionRef",
+        "waitForCertificate",
+        "waitTimeoutSeconds",
+        "retryFailed",
+        "revisionReason"
+      ],
+      "acceptedAliases": [],
+      "adapterProfiles": [
+        "COMPAT-EMPTY-TO-UNDEFINED",
+        "COMPAT-INTEGER-STRING"
+      ],
+      "harnessEndpoints": [
+        "/v1/i8/candidates:get",
+        "/v1/i8/authoring:get",
+        "/v1/i8/candidates:compile",
+        "/v1/i8/verification:get"
+      ],
+      "canonicalResponse": {
+        "mode": "COMPOSITE",
+        "maxBytes": 8192
+      },
+      "sideEffect": "CONDITIONAL_MUTATION",
+      "mutationTriggers": [
+        "retryFailed=true",
+        "candidate missing and compile eligible"
+      ],
+      "idempotency": "MCP_DERIVED_WHEN_MUTATING"
+    },
+    {
+      "name": "candidate_preview",
+      "canonicalRequest": [
+        "preparationId",
+        "cursor",
+        "limit",
+        "includeDownload"
+      ],
+      "acceptedAliases": [],
+      "adapterProfiles": [
+        "COMPAT-EMPTY-TO-UNDEFINED",
+        "COMPAT-INTEGER-STRING"
+      ],
+      "harnessEndpoints": [
+        "/v1/i8/candidates:get",
+        "/v1/i8/candidates:preview"
+      ],
+      "canonicalResponse": {
+        "mode": "COMPOSITE",
+        "maxBytes": 16384
+      },
+      "sideEffect": "READ_ONLY",
+      "idempotency": "NONE"
+    },
+    {
+      "name": "candidate_decide",
+      "canonicalRequest": [
+        "preparationId",
+        "choice",
+        "confirmationRef",
+        "reason",
+        "sessionRef"
+      ],
+      "acceptedAliases": [],
+      "adapterProfiles": [],
+      "harnessEndpoints": [
+        "/v1/i8/candidates:get",
+        "/v1/i8/candidates:decide"
+      ],
+      "canonicalResponse": {
+        "mode": "COMPOSITE",
+        "maxBytes": 8192
+      },
+      "sideEffect": "MUTATING",
+      "idempotency": "MCP_DERIVED_VERSION_BOUND"
+    },
+    {
+      "name": "run_submit",
+      "canonicalRequest": [
+        "preparationId",
+        "sessionRef"
+      ],
+      "acceptedAliases": [
+        {
+          "alias": "implicit credentialAlias=i3-customer",
+          "canonical": "execution credential binding",
+          "until": "RF-004 migration (DP-S4-1=A): MCP no longer injects by default; frozen i3-customer survives only behind HENGZHUN_RF004_LEGACY_CREDENTIAL=1; Harness owns authoritative resolution (S3)"
+        }
+      ],
+      "adapterProfiles": [],
+      "harnessEndpoints": [
+        "/v1/i8/runs:submit"
+      ],
+      "canonicalResponse": {
+        "mode": "PASS_THROUGH",
+        "maxBytes": 8192
+      },
+      "sideEffect": "MUTATING",
+      "idempotency": "MCP_DERIVED",
+      "deprecation": {
+        "implicitCredentialAlias": "Must be replaced by an authoritative execution binding before general target cutover."
+      }
+    },
+    {
+      "name": "task_get",
+      "canonicalRequest": [
+        "taskId",
+        "waitForTerminal",
+        "waitTimeoutSeconds"
+      ],
+      "acceptedAliases": [],
+      "adapterProfiles": [
+        "COMPAT-INTEGER-STRING"
+      ],
+      "harnessEndpoints": [
+        "/v1/i8/tasks:get",
+        "/v1/i10/verification:get"
+      ],
+      "canonicalResponse": {
+        "mode": "COMPOSITE",
+        "maxBytes": 8192
+      },
+      "sideEffect": "READ_ONLY",
+      "idempotency": "NONE"
+    },
+    {
+      "name": "schedule_create",
+      "canonicalRequest": [
+        "preparationId",
+        "scheduleType",
+        "cronExpression",
+        "runAt",
+        "timezone",
+        "misfirePolicy",
+        "misfireGraceSeconds",
+        "maxRetries",
+        "confirmationRef",
+        "sessionRef"
+      ],
+      "acceptedAliases": [
+        {
+          "alias": "implicit credentialAlias=i3-customer",
+          "canonical": "execution credential binding",
+          "until": "RF-004 migration (DP-S4-1=A): MCP no longer injects by default; frozen i3-customer survives only behind HENGZHUN_RF004_LEGACY_CREDENTIAL=1; Harness owns authoritative resolution (S3)"
+        }
+      ],
+      "adapterProfiles": [
+        "COMPAT-EMPTY-TO-UNDEFINED",
+        "COMPAT-INTEGER-STRING"
+      ],
+      "harnessEndpoints": [
+        "/v1/i8/schedules:create"
+      ],
+      "canonicalResponse": {
+        "mode": "PASS_THROUGH",
+        "maxBytes": 8192
+      },
+      "sideEffect": "MUTATING",
+      "idempotency": "MCP_DERIVED",
+      "deprecation": {
+        "implicitCredentialAlias": "Must be replaced by an authoritative execution binding before general target cutover."
+      }
+    },
+    {
+      "name": "schedule_get",
+      "canonicalRequest": [
+        "scheduleId"
+      ],
+      "acceptedAliases": [],
+      "adapterProfiles": [],
+      "harnessEndpoints": [
+        "/v1/i8/schedules:get",
+        "/v1/plugin/schedules:disable"
+      ],
+      "canonicalResponse": {
+        "mode": "COMPOSITE",
+        "maxBytes": 8192
+      },
+      "sideEffect": "READ_ONLY",
+      "mutationTriggers": [
+        "action=DISABLE"
+      ],
+      "idempotency": "MCP_DERIVED_WHEN_MUTATING",
+      "deprecation": {
+        "mutationPath": "Keep readable through B4; schedule_disable is the canonical mutation tool."
+      }
+    },
+    {
+      "name": "schedule_disable",
+      "canonicalRequest": [
+        "scheduleId",
+        "reason",
+        "sessionRef"
+      ],
+      "acceptedAliases": [],
+      "adapterProfiles": [],
+      "harnessEndpoints": [
+        "/v1/i8/schedules:get",
+        "/v1/plugin/schedules:disable"
+      ],
+      "canonicalResponse": {
+        "mode": "COMPOSITE",
+        "maxBytes": 8192
+      },
+      "sideEffect": "MUTATING",
+      "idempotency": "MCP_DERIVED_VERSION_BOUND"
+    },
+    {
+      "name": "artifact_download_grant",
+      "canonicalRequest": [
+        "artifactId"
+      ],
+      "acceptedAliases": [],
+      "adapterProfiles": [],
+      "harnessEndpoints": [
+        "/v1/i10/artifacts:grant-download"
+      ],
+      "canonicalResponse": {
+        "mode": "PASS_THROUGH",
+        "maxBytes": 8192
+      },
+      "sideEffect": "MUTATING",
+      "idempotency": "MCP_DERIVED"
+    },
+    {
+      "name": "result_inbox_list",
+      "canonicalRequest": [
+        "cursor",
+        "limit",
+        "unreadOnly",
+        "acknowledgeInboxIds"
+      ],
+      "acceptedAliases": [],
+      "adapterProfiles": [
+        "COMPAT-JSON-ARRAY-STRING",
+        "COMPAT-EMPTY-TO-UNDEFINED",
+        "COMPAT-INTEGER-STRING"
+      ],
+      "harnessEndpoints": [
+        "/v1/i8/results:inbox-list"
+      ],
+      "canonicalResponse": {
+        "mode": "PASS_THROUGH",
+        "maxBytes": 16384
+      },
+      "sideEffect": "CONDITIONAL_MUTATION",
+      "mutationTriggers": [
+        "acknowledgeInboxIds non-empty"
+      ],
+      "idempotency": "HARNESS_OWNED"
+    },
+    {
+      "name": "failure_get",
+      "canonicalRequest": [
+        "incidentId",
+        "waitForProposal",
+        "waitTimeoutSeconds"
+      ],
+      "acceptedAliases": [],
+      "adapterProfiles": [
+        "COMPAT-INTEGER-STRING"
+      ],
+      "harnessEndpoints": [
+        "/v1/i8/failures:get"
+      ],
+      "canonicalResponse": {
+        "mode": "PASS_THROUGH",
+        "maxBytes": 16384
+      },
+      "sideEffect": "READ_ONLY",
+      "idempotency": "NONE"
+    },
+    {
+      "name": "repair_propose",
+      "canonicalRequest": [
+        "incidentId",
+        "patch",
+        "sessionRef"
+      ],
+      "acceptedAliases": [
+        {
+          "alias": "patchJson",
+          "canonical": "patch",
+          "until": "B4 consumer evidence"
+        },
+        {
+          "alias": "operationType/targetRef/locatorKind/locatorValue/rationale",
+          "canonical": "patch",
+          "until": "B4 consumer evidence"
+        }
+      ],
+      "adapterProfiles": [
+        "COMPAT-JSON-OBJECT-STRING",
+        "COMPAT-EMPTY-TO-UNDEFINED"
+      ],
+      "harnessEndpoints": [
+        "/v1/i8/failures:get",
+        "/v1/i8/repairs:propose"
+      ],
+      "canonicalResponse": {
+        "mode": "COMPOSITE",
+        "maxBytes": 16384
+      },
+      "sideEffect": "MUTATING",
+      "idempotency": "MCP_DERIVED_VERSION_BOUND"
+    },
+    {
+      "name": "decision_submit",
+      "canonicalRequest": [
+        "incidentId",
+        "proposalId",
+        "choice",
+        "confirmationRef",
+        "reason",
+        "sessionRef"
+      ],
+      "acceptedAliases": [],
+      "adapterProfiles": [],
+      "harnessEndpoints": [
+        "/v1/i8/failures:get",
+        "/v1/i8/repairs:decide"
+      ],
+      "canonicalResponse": {
+        "mode": "COMPOSITE",
+        "maxBytes": 8192
+      },
+      "sideEffect": "MUTATING",
+      "idempotency": "MCP_DERIVED_VERSION_BOUND"
+    }
+  ],
+  "versionPolicy": {
+    "contractVersionSource": "the active executable MCP contract after B3",
+    "serverImplementationVersionSource": "package metadata",
+    "healthVersionSource": "release identity plus executable contract hash",
+    "rule": "No single legacy 8.0.0/10.0.0/10.1.0 string may be used as proof of runtime alignment."
+  },
+  "cutoverProhibitions": [
+    "No tool name removal in RF-001.",
+    "No alias removal without consumer evidence and a rollback mapping.",
+    "No Flowise, Worker, SQLite or banking module changes.",
+    "No runtime cutover before shadow comparison and refreshed public API readback evidence."
+  ]
+}

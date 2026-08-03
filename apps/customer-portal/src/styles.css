@@ -1,0 +1,225 @@
+.customer-shell { min-height: 100vh; background: #fff; }
+.login-shell { min-height: 100vh; display: grid; grid-template-rows: 76px 1fr 64px; background: radial-gradient(circle at 70% 42%, #fff 0, #fff 28%, #f6f7f9 100%); }
+.login-header { padding: 0 44px; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #e1e4e8; background: #fff; color: #454b54; }
+.login-header a { color: #454b54; text-decoration: none; }
+.login-header a:hover { color: #d9161c; }
+.login-brand { display: flex; align-items: center; gap: 14px; color: #111318; font-size: 20px; }
+.login-main { display: grid; grid-template-columns: minmax(480px, 560px) minmax(360px, 500px); justify-content: center; align-items: center; gap: 110px; padding: 32px 60px; }
+.login-card { padding: 34px 40px 30px; box-shadow: 0 14px 35px rgb(24 33 50 / 10%); }
+.login-card h1 { margin: 0 0 10px; font-size: 31px; }
+.login-card > p { margin: 0 0 22px; color: #656d79; font-size: 16px; }
+.login-tabs { display: grid; grid-template-columns: 1fr 1fr; border-bottom: 1px solid #e1e4e8; margin-bottom: 22px; }
+.login-tabs button, .login-tabs a { height: 48px; display: grid; place-items: center; border: 0; background: transparent; color: #16181d; text-decoration: none; font-weight: 650; cursor: pointer; }
+.login-tabs button.active { color: #d9161c; border-bottom: 3px solid #d9161c; }
+.login-card > label { display: block; margin: 16px 0 8px; font-weight: 650; }
+.login-card .ant-input-affix-wrapper { min-height: 48px; }
+.login-card .ant-alert { margin-top: 16px; }
+.login-options { display: flex; justify-content: space-between; margin: 18px 0; }
+.login-options a { color: #d9161c; }
+.login-option-links { display: inline-flex; align-items: center; gap: 16px; }
+.login-option-links .ant-btn-link { height: auto; padding: 0; color: #d9161c; font: inherit; }
+.login-card > .ant-btn { min-height: 52px; font-size: 17px; font-weight: 650; }
+.login-sso-panel { padding: 8px 0 2px; }
+.login-sso-panel > p { color: #656d79; line-height: 1.7; margin: 0 0 18px; }
+.login-sso-panel .ant-btn { min-height: 52px; font-size: 17px; font-weight: 650; }
+.login-progress { text-align: center; margin: 12px 0 0 !important; }
+.login-divider { display: flex; align-items: center; gap: 18px; color: #737b87; margin: 22px 0 16px; }
+.login-divider::before, .login-divider::after { content: ''; flex: 1; height: 1px; background: #e1e4e8; }
+.login-methods { display: flex; justify-content: center; gap: 90px; }
+.login-methods span { display: grid; place-items: center; gap: 7px; }
+.login-methods b { display: grid; place-items: center; width: 46px; height: 46px; border: 1px solid #dfe2e6; border-radius: 50%; color: #d9161c; }
+.login-assurance { max-width: 470px; }
+.login-shield { width: 104px; height: 118px; margin: 0 auto 22px; display: grid; place-items: center; background: linear-gradient(145deg, #ef1e2b, #b6000c); clip-path: polygon(50% 0, 100% 18%, 90% 78%, 50% 100%, 10% 78%, 0 18%); color: #fff; font-size: 43px; font-weight: 800; }
+.login-assurance h2 { text-align: center; font-size: 27px; }
+.login-assurance > p { color: #666e7a; text-align: center; line-height: 1.9; }
+.login-assurance ul { list-style: none; margin: 30px 0 0; padding: 0 40px; }
+.login-assurance li { display: flex; gap: 18px; margin: 22px 0; }
+.login-assurance li > b { color: #d9161c; font-size: 22px; }
+.login-assurance li strong, .login-assurance li small { display: block; }
+.login-assurance li small { margin-top: 5px; color: #707985; }
+.login-footer { display: flex; align-items: center; justify-content: center; color: #d7dbe0; background: #141a22; }
+.customer-header { height: 76px; padding: 0 40px; display: grid; grid-template-columns: 190px 1fr 170px; align-items: center; border-bottom: 1px solid #e6e8eb; background: #fff; position: sticky; top: 0; z-index: 20; }
+.customer-brand { display: flex; align-items: center; gap: 13px; border: 0; background: transparent; color: #111318; font-size: 21px; font-weight: 750; cursor: pointer; padding: 0; }
+.customer-brand__mark { position: relative; width: 38px; height: 38px; background: #e20814; transform: rotate(45deg); border-radius: 3px; }
+.customer-brand__mark::before, .customer-brand__mark::after, .customer-brand__mark i { content: ''; position: absolute; background: #fff; }
+.customer-brand__mark::before { width: 22px; height: 5px; left: 8px; top: 8px; }
+.customer-brand__mark::after { width: 22px; height: 5px; left: 8px; bottom: 8px; }
+.customer-brand__mark i { width: 5px; height: 22px; top: 8px; left: 16px; }
+.customer-nav { display: flex; justify-content: center; align-self: stretch; gap: clamp(18px, 2.15vw, 34px); }
+.customer-nav a { position: relative; display: flex; align-items: center; color: #252931; text-decoration: none; font-size: 16px; white-space: nowrap; }
+.customer-nav a.active { color: #d9161c; font-weight: 650; }
+.customer-nav a.active::after { content: ''; position: absolute; left: 0; right: 0; bottom: 0; height: 3px; background: #e20d18; }
+.customer-actions { display: flex; justify-content: flex-end; align-items: center; gap: 18px; }
+.customer-bell { font-size: 24px; color: #3f454f; }
+.customer-profile { height: 46px; min-width: 0; font-size: 15px; display: flex; align-items: center; gap: 8px; }
+.customer-avatar { flex: 0 0 34px; display: grid; place-items: center; width: 34px; height: 34px; border-radius: 50%; background: #eceef1; color: #5e6672; }
+.customer-profile-label { min-width: 0; display: inline-flex; align-items: center; }
+.customer-profile-name { max-width: 76px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.customer-content { max-width: 1440px; margin: 0 auto; padding: 54px 40px 70px; }
+.customer-page { width: 100%; }
+.customer-page-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 32px; margin-bottom: 34px; }
+.customer-page-head h1 { margin: 0 0 10px; font-size: 32px; line-height: 1.25; }
+.customer-page-head p { margin: 0; color: #646b78; font-size: 16px; }
+.customer-page-head--dashboard { align-items: center; }
+.customer-empty { min-height: 430px; display: grid; place-items: center; }
+.customer-table-card { overflow: hidden; padding: 0; }
+.customer-table-card > .ant-skeleton { padding: 28px; }
+.customer-table-card .ant-table-thead > tr > th { height: 58px; background: #fafafa; font-weight: 650; }
+.customer-table-card .ant-table-tbody > tr > td { height: 66px; }
+.customer-table-card .ant-table-tbody > tr { cursor: pointer; }
+.dashboard-stat-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 20px; margin-bottom: 28px; }
+.dashboard-stat { min-height: 154px; padding: 28px 30px; display: flex; flex-direction: column; justify-content: center; text-align: left; }
+.dashboard-stat > span { font-weight: 650; margin-bottom: 20px; }
+.dashboard-stat > strong { font-size: 30px; line-height: 1; }
+.dashboard-stat > small { margin-top: 12px; color: #737b87; }
+.dashboard-stat--action { width: 100%; border: 1px solid #e4e7eb; cursor: pointer; }
+.dashboard-stat--action:hover { border-color: #d9161c; }
+.dashboard-quick { display: grid; grid-template-columns: repeat(4, 1fr); margin-bottom: 28px; overflow: hidden; }
+.dashboard-quick button { min-height: 92px; display: flex; align-items: center; justify-content: center; gap: 14px; border: 0; border-right: 1px solid #e5e7ea; background: #fff; cursor: pointer; }
+.dashboard-quick button:last-child { border-right: 0; }
+.dashboard-quick button:hover span { color: #d9161c; }
+.dashboard-quick b { display: grid; place-items: center; width: 44px; height: 44px; border-radius: 50%; background: #fff0f1; color: #d9161c; font-size: 20px; }
+.dashboard-quick span { font-weight: 650; }
+.dashboard-account-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; }
+.dashboard-account-head h2 { margin: 0; font-size: 22px; }
+.dashboard-account-list { overflow: hidden; }
+.dashboard-account-list > button { width: 100%; min-height: 76px; display: grid; grid-template-columns: 44px minmax(190px, 1fr) 100px 240px 20px; align-items: center; gap: 16px; padding: 12px 24px; border: 0; border-bottom: 1px solid #e7e9ec; background: #fff; text-align: left; cursor: pointer; }
+.dashboard-account-list > button:last-child { border-bottom: 0; }
+.dashboard-account-list > button:hover { background: #fffafa; }
+.dashboard-account-list small { display: block; color: #717987; margin-top: 5px; }
+.account-roundel { display: grid; place-items: center; width: 38px; height: 38px; border-radius: 50%; background: #f1f2f4; }
+.dashboard-account-balance { justify-self: end; font-size: 18px; }
+.dashboard-transfer-cta { width: 100%; height: 58px; margin-top: 28px; color: #d9161c; border-color: #d9161c; font-weight: 650; }
+.account-detail-head { display: flex; align-items: center; justify-content: space-between; gap: 28px; margin-bottom: 28px; }
+.account-detail-head > div { display: flex; align-items: center; gap: 18px; }
+.account-detail-head h1 { margin: 0; font-size: 27px; }
+.account-summary-grid { display: grid; grid-template-columns: repeat(4, 1fr); padding: 26px 30px; margin-bottom: 32px; }
+.account-summary-grid > div { min-height: 94px; display: flex; flex-direction: column; justify-content: center; padding: 0 32px; border-right: 1px solid #e4e7eb; }
+.account-summary-grid > div:first-child { padding-left: 0; }
+.account-summary-grid > div:last-child { border-right: 0; }
+.account-summary-grid span { color: #5f6773; margin-bottom: 18px; }
+.account-summary-grid strong { font-size: 22px; }
+.account-summary-grid .bank-accent { font-size: 30px; }
+.account-tabs { display: flex; gap: 26px; border-bottom: 1px solid #e1e4e8; margin-bottom: 18px; }
+.account-tabs button { padding: 0 20px 17px; border: 0; background: transparent; color: #69717d; font-size: 16px; cursor: pointer; }
+.account-tabs button.active { color: #d9161c; border-bottom: 3px solid #d9161c; font-weight: 650; }
+.account-transactions { min-height: 260px; }
+.account-transactions .ant-empty { padding: 70px 0; }
+.account-information { padding: 12px 30px; }
+.account-information dl { display: grid; grid-template-columns: 1fr 1fr; gap: 0 58px; margin: 0; }
+.account-information dl > div { display: grid; grid-template-columns: 150px 1fr; padding: 20px 0; border-bottom: 1px solid #e5e7ea; }
+.account-information dt { color: #68717d; }
+.account-information dd { margin: 0; font-weight: 650; }
+.account-documents { min-height: 190px; padding: 34px 38px; display: flex; align-items: center; justify-content: space-between; }
+.account-documents h2 { margin: 0 0 10px; }
+.account-documents p { margin: 0; color: #68717d; }
+.customer-breadcrumb { margin: -20px 0 34px; color: #69717e; font-size: 15px; }
+.transfer-list-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 26px; }
+.transfer-list-head h1 { margin: 0; font-size: 29px; }
+.transfer-filter-label { color: #252931; font-weight: 500; }
+.customer-transfer-layout { display: grid; grid-template-columns: minmax(620px, 1.45fr) minmax(330px, .78fr); gap: 64px; }
+.transfer-form-panel .ant-form-item { margin-bottom: 29px; }
+.transfer-form-panel .ant-form-item-label > label { font-size: 16px; font-weight: 650; }
+.transfer-form-panel .ant-form-item-label > label:has(.transfer-beneficiary-label) { width: 100%; }
+.transfer-beneficiary-label { width: 100%; display: flex; align-items: center; justify-content: space-between; }
+.transfer-beneficiary-label a { color: #1677ff; font-size: 14px; font-weight: 500; }
+.transfer-form-panel .ant-select-selector, .transfer-form-panel .ant-input-number, .transfer-form-panel textarea { min-height: 54px !important; border-radius: 6px !important; }
+.transfer-summary { padding: 32px 38px; min-height: 650px; }
+.transfer-summary h2 { margin: 0 0 34px; font-size: 24px; }
+.transfer-summary__item { margin-bottom: 25px; }
+.transfer-summary__item span { display: block; color: #717986; margin-bottom: 8px; }
+.transfer-summary__item strong { font-size: 18px; }
+.transfer-summary__total { border-top: 1px solid #e3e5e8; padding-top: 24px; }
+.transfer-summary__total strong { color: #d9161c; font-size: 26px; }
+.transfer-actions { display: grid; grid-template-columns: 1fr 1.2fr; gap: 24px; margin-top: 42px; }
+.transfer-actions .ant-btn { height: 52px; font-size: 17px; font-weight: 650; }
+.transfer-result { text-align: center; padding-top: 18px; }
+.transfer-result__icon { display: inline-grid; place-items: center; width: 58px; height: 58px; border-radius: 50%; color: #fff; font-size: 32px; margin-right: 18px; vertical-align: middle; }
+.transfer-result__icon--success { background: #159a58; }
+.transfer-result__icon--danger { background: #d9363e; }
+.transfer-result__icon--progress { background: #2874bd; }
+.transfer-result h1 { display: inline; font-size: 34px; vertical-align: middle; }
+.transfer-result__lead { color: #66707d; font-size: 18px; margin: 25px 0 42px; }
+.transfer-result__detail { max-width: 1120px; margin: 0 auto; padding: 36px; text-align: left; }
+.transfer-result__grid { display: grid; grid-template-columns: 1fr 1fr; gap: 30px 72px; }
+.transfer-result__field label { display: block; color: #656e7a; margin-bottom: 9px; }
+.transfer-result__field strong { font-size: 18px; }
+.transfer-result__amount { color: #d9161c; font-size: 25px !important; }
+.transfer-result__actions { max-width: 1120px; margin: 30px auto 0; display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 24px; }
+.transfer-result__actions .ant-btn { height: 54px; font-size: 17px; font-weight: 650; }
+@media (max-width: 1200px) { .customer-nav { gap: 15px; } .customer-nav a { font-size: 14px; } .customer-header { padding: 0 24px; grid-template-columns: 170px 1fr 150px; } .customer-transfer-layout { gap: 30px; } }
+.experience-page > .ant-alert { margin-bottom: 24px; }
+.loan-application-layout { display: grid; grid-template-columns: minmax(620px, 1.45fr) minmax(340px, .8fr); gap: 32px; }
+.loan-form-card, .loan-summary-card { padding: 30px; }
+.loan-form-card h2, .loan-summary-card h2 { margin: 0 0 28px; }
+.loan-form-card .ant-form-item { margin-bottom: 22px; }
+.loan-form-card .ant-form-item-row { display: flex !important; width: 100%; }
+.loan-form-card .ant-form-item-label { flex: 0 0 185px !important; max-width: 185px; }
+.loan-form-card .ant-form-item-control { flex: 1 1 0 !important; max-width: none !important; min-width: 0; }
+.loan-form-card .ant-form-item-label { text-align: left; padding-top: 8px; }
+.loan-form-card .ant-input-number, .loan-form-card .ant-select, .loan-form-card .ant-picker { width: 100%; min-height: 48px; }
+.loan-form-card .ant-input-number-input, .loan-form-card .ant-select-selector, .loan-form-card .ant-picker { min-height: 48px !important; }
+.loan-summary-card { align-self: start; }
+.loan-summary-card dl, .loan-information dl { margin: 0; }
+.loan-summary-card dl > div { display: flex; justify-content: space-between; gap: 20px; padding: 18px 0; border-bottom: 1px solid #e5e7ea; }
+.loan-summary-card dt, .loan-information dt { color: #66707d; }
+.loan-summary-card dd, .loan-information dd { margin: 0; text-align: right; font-weight: 650; }
+.loan-note { margin-top: 24px; padding: 18px; background: #f7f8fa; color: #626b78; line-height: 1.7; }
+.loan-form-actions { display: grid; grid-template-columns: 1fr 1.1fr; gap: 22px; width: calc(68% - 12px); margin-top: 28px; }
+.loan-application-result { max-width: 720px; margin: 80px auto; padding: 64px; text-align: center; }
+.loan-application-result > b { display: inline-grid; place-items: center; width: 64px; height: 64px; border-radius: 50%; background: #159a58; color: #fff; font-size: 34px; }
+.loan-metric-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 24px; margin-bottom: 28px; }
+.loan-metric-grid > div { min-height: 145px; padding: 26px; display: flex; flex-direction: column; justify-content: center; }
+.loan-metric-grid span { color: #5f6774; margin-bottom: 18px; }
+.loan-metric-grid strong { font-size: 26px; }
+.loan-metric-grid small { color: #737b87; margin-top: 7px; }
+.loan-information { padding: 26px; margin-bottom: 28px; }
+.loan-information h2, .loan-schedule h2 { margin: 0 0 22px; font-size: 20px; }
+.loan-information dl { display: grid; grid-template-columns: 1fr 1fr; gap: 0 54px; }
+.loan-information dl > div { display: grid; grid-template-columns: 130px 1fr; padding: 15px 0; border-bottom: 1px solid #e5e7ea; }
+.loan-information dd { text-align: left; }
+.loan-schedule { padding: 26px; }
+.loan-schedule .ant-empty { padding: 40px 0; }
+.detail-back { margin-top: 26px; }
+.document-type { display: flex; align-items: center; gap: 12px; font-weight: 650; }
+.document-type b { display: grid; place-items: center; width: 36px; height: 36px; border: 1px solid #eceef1; border-radius: 6px; color: #d9161c; }
+.message-page-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 28px; }
+.message-page-head h1 { margin: 0; font-size: 32px; }
+.message-page-head > div { display: grid; grid-template-columns: 170px 320px 110px; gap: 14px; }
+.message-list { overflow: hidden; }
+.message-list > .ant-skeleton { padding: 28px; }
+.message-list > button { width: 100%; min-height: 112px; display: grid; grid-template-columns: 58px 1fr 190px 20px; gap: 18px; align-items: center; padding: 18px 26px; border: 0; border-bottom: 1px solid #e5e7ea; background: #fff; text-align: left; cursor: pointer; }
+.message-list > button:last-child { border-bottom: 0; }
+.message-list > button.unread { background: #fffafa; }
+.message-icon { display: grid; place-items: center; width: 54px; height: 54px; border-radius: 15px; background: #fff0f1; color: #d9161c; font-size: 23px; }
+.message-copy strong, .message-copy small { display: block; }
+.message-copy strong { font-size: 17px; }
+.message-copy strong .ant-tag { margin-left: 10px; }
+.message-copy small { color: #656e7b; margin-top: 9px; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+.message-list time { color: #596270; text-align: right; }
+.profile-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; }
+.profile-card { padding: 24px; min-height: 260px; }
+.profile-card h2 { margin: 0 0 24px; }
+.profile-card-head { display: flex; justify-content: space-between; align-items: center; }
+.profile-identity { display: grid; grid-template-columns: 150px 1fr; gap: 28px; align-items: center; }
+.profile-portrait { display: grid; place-items: center; width: 120px; height: 120px; border-radius: 50%; background: #eceef1; color: #606773; font-size: 38px; }
+.profile-card dl { margin: 0; }
+.profile-card dl > div { display: grid; grid-template-columns: 100px 1fr; gap: 14px; padding: 10px 0; }
+.profile-card dt { color: #68717e; }
+.profile-card dd { margin: 0; }
+.profile-contact > div { grid-template-columns: 110px 1fr !important; padding: 17px 0 !important; border-bottom: 1px solid #e5e7ea; }
+.profile-links button { width: 100%; display: flex; justify-content: space-between; padding: 18px 0; border: 0; border-bottom: 1px solid #e5e7ea; background: #fff; text-align: left; cursor: pointer; }
+.profile-links span { color: #d9161c; }
+.settings-layout { display: grid; grid-template-columns: 220px 1fr; gap: 36px; }
+.settings-nav { min-height: 650px; padding: 16px 8px; }
+.settings-nav button { width: 100%; height: 54px; padding: 0 20px; border: 0; border-radius: 6px; background: #fff; text-align: left; cursor: pointer; }
+.settings-nav button.active { background: #fff0f1; color: #d9161c; font-weight: 650; }
+.settings-main > h1 { margin: 0 0 24px; font-size: 32px; }
+.settings-card { padding: 20px 24px; margin-bottom: 22px; }
+.settings-card > button, .settings-section > div, .settings-section > button { width: 100%; min-height: 80px; display: grid; grid-template-columns: 52px 1fr auto; gap: 16px; align-items: center; border: 0; background: #fff; text-align: left; }
+.settings-section { border-top: 1px solid #e5e7ea; padding: 10px 0; }
+.settings-section > button { min-height: 56px; grid-template-columns: 1fr auto; padding-left: 68px; }
+.settings-roundel { display: grid; place-items: center; width: 44px; height: 44px; border-radius: 50%; }
+.settings-roundel.red { background: #fff0f1; color: #d9161c; }.settings-roundel.blue { background: #edf5ff; color: #2473d4; }.settings-roundel.green { background: #eaf8f0; color: #14995a; }.settings-roundel.orange { background: #fff5e8; color: #df8518; }
+.settings-card strong, .settings-card small { display: block; }.settings-card small { color: #717a87; margin-top: 6px; }
+@media (max-width: 1000px) { .loan-application-layout, .profile-grid, .settings-layout { grid-template-columns: 1fr; } .loan-metric-grid { grid-template-columns: 1fr 1fr; } .loan-form-actions { width: 100%; } }

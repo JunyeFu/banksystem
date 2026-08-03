@@ -1,63 +1,226 @@
 name: mifos-channel
+
 services:
-  channel-db:
+  bank-channel-postgres:
     image: postgres:18.3@sha256:7e32e9833a6fb1c92c32552794cb6ed569d51b445a54907d35fc112ef39684db
     environment:
       POSTGRES_DB: bank_channel
       POSTGRES_USER: bank_channel
-      POSTGRES_PASSWORD: ${CHANNEL_DB_PASSWORD:?CHANNEL_DB_PASSWORD is required}
-    volumes: [channel_pg_data:/var/lib/postgresql]
-    networks: [channel_internal]
+      POSTGRES_PASSWORD_FILE: /run/secrets/channel_db_password
+    volumes:
+      - bank_channel_pg_data:/var/lib/postgresql
+    networks:
+      - bank-channel-net
+    secrets:
+      - channel_db_password
     healthcheck:
-      test: [CMD-SHELL, 'pg_isready -U bank_channel -d bank_channel']
-      interval: 5s
-      timeout: 3s
+      test: ["CMD-SHELL", "pg_isready -U bank_channel -d bank_channel"]
+      interval: 10s
+      timeout: 5s
       retries: 20
-  gateway:
-    image: nginx:1.27-alpine@sha256:65645c7bb6a0661892a8b03b89d0743208a18dd2f3f17a54ef4b76fb8e2f2a10
-    ports: ['127.0.0.1:18081:8080']
-    volumes: ['./infra/gateway/nginx.conf:/etc/nginx/nginx.conf:ro']
-    networks: [channel_front, channel_internal]
-    depends_on:
-      channel-db: {condition: service_healthy}
-      customer-web: {condition: service_started}
-  customer-web:
-    image: nginx:1.27-alpine@sha256:65645c7bb6a0661892a8b03b89d0743208a18dd2f3f17a54ef4b76fb8e2f2a10
-    volumes: ['./apps/customer-web:/usr/share/nginx/html:ro']
-    networks: [channel_front]
-  operations-web:
-    image: nginx:1.27-alpine@sha256:65645c7bb6a0661892a8b03b89d0743208a18dd2f3f17a54ef4b76fb8e2f2a10
-    volumes: ['./apps/operations-web:/usr/share/nginx/html:ro']
-    networks: [channel_front]
-  channel-service:
-    image: local/bank-channel-service@sha256:cc46bb70af60946c33cc801f85a76d47600651c3d8b4daaa2bb8c213a71c50fb
+
+  keycloak:
+    image: quay.io/keycloak/keycloak:26.3.3@sha256:6a7217a100bd3e5de4063a27a538ef999a3c5a88c4b4ec0ffc0a642aee7b2597
+    command: ["start-dev", "--http-port=8080", "--import-realm"]
+    environment:
+      KC_BOOTSTRAP_ADMIN_USERNAME: ${KEYCLOAK_ADMIN_USERNAME:?KEYCLOAK_ADMIN_USERNAME is required}
+      KC_BOOTSTRAP_ADMIN_PASSWORD: ${KEYCLOAK_ADMIN_PASSWORD:?KEYCLOAK_ADMIN_PASSWORD is required}
+      KC_HEALTH_ENABLED: "true"
+      KC_METRICS_ENABLED: "true"
+    ports:
+      - "127.0.0.1:19000:8080"
+    volumes:
+      - keycloak_data:/opt/keycloak/data
+      - ./infra/keycloak/realms:/opt/keycloak/data/import:ro
+      - ./infra/keycloak/themes:/opt/keycloak/themes:ro
+    networks:
+      - bank-channel-front
+      - bank-channel-net
+    healthcheck:
+      test: ["CMD-SHELL", "bash -c 'echo > /dev/tcp/localhost/8080'"]
+      interval: 10s
+      timeout: 5s
+      retries: 30
+      start_period: 30s
+
+  bank-channel-service:
+    build:
+      context: ./services/bank-channel-service
+      dockerfile: Dockerfile
+    image: local/bank-channel-service:0.1.0
     environment:
       CHANNEL_DB_PASSWORD: ${CHANNEL_DB_PASSWORD:?CHANNEL_DB_PASSWORD is required}
       FINERACT_USERNAME: ${FINERACT_USERNAME:?FINERACT_USERNAME is required}
       FINERACT_PASSWORD: ${FINERACT_PASSWORD:?FINERACT_PASSWORD is required}
+      CLEARING_CALLBACK_SECRET: ${CLEARING_CALLBACK_SECRET:?CLEARING_CALLBACK_SECRET is required}
       FINERACT_BASE_URL: ${FINERACT_BASE_URL:-http://mifos-isolated-fineract-server-1:8080/fineract-provider}
-      BANK_CUSTOMER_ISSUER_URI: ${BANK_CUSTOMER_ISSUER_URI:-http://127.0.0.1:18082/realms/bank-customer}
+      FINERACT_TENANT: ${FINERACT_TENANT:-default}
+      BANK_CUSTOMER_ISSUER_URI: ${BANK_CUSTOMER_ISSUER_URI:-http://127.0.0.1:19000/realms/bank-customer}
       BANK_CUSTOMER_JWK_SET_URI: ${BANK_CUSTOMER_JWK_SET_URI:-http://keycloak:8080/realms/bank-customer/protocol/openid-connect/certs}
-    networks: [channel_internal, channel_front, mifos_core_internal]
+      BANK_INTERNAL_ISSUER_URI: ${BANK_INTERNAL_ISSUER_URI:-http://127.0.0.1:19000/realms/bank-internal}
+      BANK_INTERNAL_JWK_SET_URI: ${BANK_INTERNAL_JWK_SET_URI:-http://keycloak:8080/realms/bank-internal/protocol/openid-connect/certs}
+      SPRING_PROFILES_ACTIVE: ${SPRING_PROFILES_ACTIVE:-local}
+      TEST_SUPPORT_ENABLED: ${TEST_SUPPORT_ENABLED:-true}
+      APP_LOCALE: ${APP_LOCALE:-zh-CN}
+      TZ: Asia/Shanghai
+    networks:
+      - bank-channel-net
+      - mifos-core-net
     depends_on:
-      channel-db: {condition: service_healthy}
-      keycloak: {condition: service_started}
-  keycloak:
-    image: quay.io/keycloak/keycloak:26.3.3@sha256:6a7217a100bd3e5de4063a27a538ef999a3c5a88c4b4ec0ffc0a642aee7b2597
-    command: ['start-dev', '--http-port=8080', '--import-realm']
+      bank-channel-postgres:
+        condition: service_healthy
+      keycloak:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:8080/actuator/health || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 30
+      start_period: 40s
+
+  mock-clearing-service:
+    build:
+      context: ./services/mock-clearing-service
+      dockerfile: Dockerfile
     environment:
-      KC_BOOTSTRAP_ADMIN_USERNAME: ${KEYCLOAK_ADMIN_USERNAME:?KEYCLOAK_ADMIN_USERNAME is required}
-      KC_BOOTSTRAP_ADMIN_PASSWORD: ${KEYCLOAK_ADMIN_PASSWORD:?KEYCLOAK_ADMIN_PASSWORD is required}
-      KC_HEALTH_ENABLED: 'true'
-      KC_METRICS_ENABLED: 'true'
-    ports: ['127.0.0.1:18082:8080']
-    volumes: ['./infra/keycloak/realms:/opt/keycloak/data/import:ro']
-    networks: [channel_front]
+      CLEARING_CALLBACK_SECRET: ${CLEARING_CALLBACK_SECRET:?CLEARING_CALLBACK_SECRET is required}
+      BANK_CHANNEL_URL: http://bank-channel-service:8080
+    networks:
+      - bank-channel-net
+    healthcheck:
+      test: ["CMD-SHELL", "python -c \"import urllib.request;urllib.request.urlopen('http://localhost:5000/health')\""]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  customer-portal:
+    image: nginx:1.27-alpine@sha256:65645c7bb6a0661892a8b03b89d0743208a18dd2f3f17a54ef4b76fb8e2f2a10
+    ports:
+      - "127.0.0.1:18082:80"
+    volumes:
+      - ./apps/customer-portal/dist:/usr/share/nginx/html:ro
+      - ./infra/gateway/customer-portal-nginx.conf:/etc/nginx/conf.d/default.conf:ro
+    networks:
+      - bank-channel-front
+    depends_on:
+      gateway:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q --spider http://localhost:80/portal/ || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  operations-console:
+    image: nginx:1.27-alpine@sha256:65645c7bb6a0661892a8b03b89d0743208a18dd2f3f17a54ef4b76fb8e2f2a10
+    ports:
+      - "127.0.0.1:18083:80"
+    volumes:
+      - ./apps/operations-console/dist:/usr/share/nginx/html:ro
+      - ./infra/gateway/operations-console-nginx.conf:/etc/nginx/conf.d/default.conf:ro
+    networks:
+      - bank-channel-front
+    depends_on:
+      gateway:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q --spider http://localhost:80/ops/ || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  gateway:
+    image: nginx:1.27-alpine@sha256:65645c7bb6a0661892a8b03b89d0743208a18dd2f3f17a54ef4b76fb8e2f2a10
+    ports:
+      - "127.0.0.1:18443:8080"
+    volumes:
+      - ./infra/gateway/nginx.conf:/etc/nginx/nginx.conf:ro
+    networks:
+      - bank-channel-front
+      - bank-channel-net
+    depends_on:
+      bank-channel-service:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q -O /dev/null http://127.0.0.1:8080/health || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  prometheus:
+    image: prom/prometheus:v3.4.2
+    volumes:
+      - ./infra/observability/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus_data:/prometheus
+    networks:
+      - bank-channel-net
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q --spider http://localhost:9090/-/healthy || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  grafana:
+    image: grafana/grafana:12.1.0
+    environment:
+      GF_SECURITY_ADMIN_USER: ${GRAFANA_ADMIN_USERNAME:-admin}
+      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_ADMIN_PASSWORD:?GRAFANA_ADMIN_PASSWORD is required}
+      GF_USERS_ALLOW_SIGN_UP: "false"
+    ports:
+      - "127.0.0.1:19001:3000"
+    volumes:
+      - ./infra/observability/grafana/provisioning:/etc/grafana/provisioning:ro
+      - grafana_data:/var/lib/grafana
+    networks:
+      - bank-channel-front
+      - bank-channel-net
+    depends_on:
+      prometheus:
+        condition: service_started
+      loki:
+        condition: service_started
+
+  loki:
+    image: grafana/loki:3.5.1
+    volumes:
+      - ./infra/observability/loki-config.yml:/etc/loki/loki-config.yml:ro
+      - loki_data:/loki
+    networks:
+      - bank-channel-net
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q --spider http://localhost:3100/ready || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 15
+
+  otel-collector:
+    image: otel/opentelemetry-collector-contrib:0.130.0
+    command: ["--config=/etc/otelcol/config.yml"]
+    volumes:
+      - ./infra/observability/otel-collector-config.yml:/etc/otelcol/config.yml:ro
+    networks:
+      - bank-channel-net
+    depends_on:
+      loki:
+        condition: service_started
+
 networks:
-  channel_front: {driver: bridge}
-  channel_internal: {driver: bridge, internal: true}
-  mifos_core_internal:
+  bank-channel-front:
+    driver: bridge
+  bank-channel-net:
+    driver: bridge
+    internal: true
+  mifos-core-net:
     name: mifos_isolated_internal
     external: true
+
 volumes:
-  channel_pg_data: {}
+  bank_channel_pg_data: {}
+  keycloak_data: {}
+  prometheus_data: {}
+  grafana_data: {}
+  loki_data: {}
+
+secrets:
+  channel_db_password:
+    file: ./secrets/channel-db-password.txt

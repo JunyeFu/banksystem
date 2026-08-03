@@ -1,0 +1,39 @@
+actions:
+  - actionId: auth.loginCustomer
+    pageId: customer.login
+    risk: LOW
+    inputs:
+      usernameRef: fixture.customer.username
+      passwordRef: secret.customer.password
+    expected:
+      pageId: customer.dashboard
+
+  - actionId: transfer.createInternal
+    pageId: customer.transfer.create
+    risk: MEDIUM
+    inputs:
+      sourceAccountRef: fixture.account.alice.primarySavings
+      beneficiaryRef: fixture.customer.bob
+      amount:
+        type: money
+        value: "100.00"
+        currency: CNY
+    expected:
+      pageId: customer.dashboard
+      resourceState: CREATED
+
+  - actionId: operations.viewPayments
+    pageId: operations.payments
+    risk: LOW
+    inputs: {}
+    expected:
+      pageId: operations.payments
+
+  - actionId: operations.approveReversal
+    pageId: operations.approvals
+    risk: HIGH
+    inputs:
+      reviewReason: "Approved by operations review"
+    expected:
+      pageId: operations.approvals
+      resourceState: APPROVED

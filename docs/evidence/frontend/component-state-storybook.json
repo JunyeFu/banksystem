@@ -1,0 +1,33 @@
+{
+    "schemaVersion":  1,
+    "evidenceType":  "frontend-component-state-catalog",
+    "generatedAt":  "2026-07-15T12:45:54.5661084+00:00",
+    "sourceCommit":  "bf7ce95681a4c629c251b72458829a9598d507ce",
+    "storybookVersion":  "9.1.20",
+    "buildCommand":  "npm.cmd run build-storybook",
+    "package":  "@localbank/bank-ui-kit",
+    "states":  [
+                   "ready",
+                   "loading",
+                   "empty",
+                   "error",
+                   "forbidden",
+                   "submitting",
+                   "disabled"
+               ],
+    "sources":  [
+                    {
+                        "path":  "packages/bank-ui-kit/src/state-components.tsx",
+                        "sha256":  "a0decaefef01e036e28d8500da8a19583bd160729fa809e68cd3c21dff5c04ed"
+                    },
+                    {
+                        "path":  "packages/bank-ui-kit/src/BankPageState.stories.tsx",
+                        "sha256":  "dcd7afcf3ebf0c5aee9e85ca20d14f669afd12c00750237a5cd03006b7bf32c0"
+                    }
+                ],
+    "businessAssertions":  [
+                               "The Storybook catalog renders the same BankPageState and BankStatusTag components consumed by the Hengzhun production frontend.",
+                               "Route-bound composite components remain covered by deterministic PV and HZ page fixtures rather than provider-free static stories.",
+                               "The Storybook production build completed without errors and the package audit reports zero vulnerabilities."
+                           ]
+}

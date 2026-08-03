@@ -1,0 +1,38 @@
+{
+  "schemaVersion": "hengzhun-i10-stage8-acceptance-matrix-v1",
+  "inputTypes": ["NATURAL_LANGUAGE", "CASE_FILE", "VIDEO"],
+  "executionModes": ["ON_DEMAND", "ONE_TIME", "RECURRING"],
+  "forwardScenarioCount": 9,
+  "reverseScenarioCount": 3,
+  "requiredRealEvidence": {
+    "controller": { "mock": false, "degraded": false, "structuredOutput": true },
+    "vision": { "mock": false, "degraded": false, "realScreenshot": true },
+    "flowise": { "deployed": true, "private": true, "publicApiRoundTrip": true },
+    "authoring": { "midsceneRealCall": true, "playwrightFallbackAccepted": false },
+    "candidate": { "policy": "I10_2X2_V1", "uniqueRuns": 4, "sourceDownloadRequired": true },
+    "credentials": { "referenceOnly": true, "plaintextAllowed": false }
+  },
+  "terminalRequirements": {
+    "ON_DEMAND": ["taskId", "resultInbox", "SUCCEEDED"],
+    "ONE_TIME": ["scheduleId", "scheduledExecutionResult", "resultInbox"],
+    "RECURRING": ["scheduleId", "scheduledExecutionResult", "resultInbox", "scheduleDisabled"]
+  },
+  "reverseRequirements": [
+    "controlledLocatorFailure",
+    "deterministicFailureClassification",
+    "boundedRepairCandidate",
+    "purePlaywrightValidation",
+    "I10_2X2_V1",
+    "humanRepairActivation",
+    "successfulRerun"
+  ],
+  "failClosed": [
+    "MODEL_PROBE_MISSING_OR_STALE",
+    "FLOWISE_PUBLICATION_NOT_DEPLOYED",
+    "PORTAL_NOT_REACHABLE",
+    "CREDENTIAL_REF_MISSING",
+    "FLOWISE_ATTACHMENT_METADATA_MISSING",
+    "MIDSCENE_REAL_EVIDENCE_MISSING",
+    "TERMINAL_REPLY_MISSING"
+  ]
+}

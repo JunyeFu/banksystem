@@ -1,0 +1,107 @@
+schemaVersion: 1
+id: RF-002-S4
+title: 条件写收口与契约确认（G5 schedule_get 退场、G6 副作用断言、G4 版本绑定确认）
+status: PROPOSED
+owner: project-owner
+authorizedBy: agent/plans/active/v54-implementation-batches.md (L1全景已批准, RF-002)
+parentBatch: docs/architecture/refactoring/batches/RF-002/batch.yaml
+targetDesign: docs/architecture/refactoring/batches/RF-002/target-design.md (v2.0, G4/G5/G6)
+baseline:
+  gitCommit: 061e2af（RF-002 分支，S3 已完成）
+  releaseIdentity: 632ad5ee7981b59f00824d0072d28da6075eef095d55a898d51c0103a897988f
+
+# 单业务目标：条件写入口收口与契约确认——G5 依据 v7 消费者证据（零
+# action=DISABLE 调用）将 schedule_get 恢复纯读并退场 DISABLE 分支；G6 以
+# 静态断言锁定 result_inbox_list 确认已读副作用边界；G4 以测试确认三个
+# 预读版本绑定复合工具保持 MCP 组装+Harness 校验。
+# 单功能点：条件写收口与契约确认。
+businessGoal:
+  - G5：schedule_get 移除 DISABLE 枚举与写分支（恢复纯读）；边界合同 sideEffect 改 READ；v7 兼容（只传 scheduleId，action 默认 READ）
+  - G6：result_inbox_list 保持 CONDITIONAL_MUTATION 声明；静态断言确认已读只触达 inbox 状态（无其他写端点）
+  - G4：candidate_decide/schedule_disable/decision_submit 预读版本绑定测试（预读 shadowedRequest + expectedVersion 组装 + 409 语义保留）
+  - 合同变更：mcp-boundary-contract-v1.json schedule_get 条目（sideEffect 与触发声明更新；tools=33 aliases=13 不变）
+  - 相关断言更新：B3-S2 条件写测试（schedule_get 不再含 disable 调用）、B4-S1 错误码清单（I8_SCHEDULE_DISABLE_CONFIRMATION_REQUIRED 退场登记）
+  - 聚焦回归 + 隔离运行态；身份 632ad5ee 不变
+
+allowedPaths:
+  - platform/hengzhun-regression-system/mcp/src/server.cjs   # schedule_get 纯读化
+  - platform/hengzhun-regression-system/scripts/verification/rf001-contract-adapter.test.cjs   # B3-S2 条件写断言更新
+  - platform/hengzhun-regression-system/scripts/verification/rf001-b4s1-compat-error-baseline.test.cjs   # 错误码清单登记（退场码）
+  - platform/hengzhun-regression-system/scripts/verification/rf002-s4-conditional-writes.test.cjs   # 【新增】G4/G5/G6 测试
+  - docs/architecture/refactoring/batches/RF-001/mcp-boundary-contract-v1.json   # schedule_get sideEffect 更新（1 处合同变更）
+  - docs/architecture/refactoring/batches/RF-002/**（decision-log/evidence-index/contract-delta 更新）
+  - platform/hengzhun-regression-system/.data/tests/rf002-s4/**   # 隔离产物，用完清理
+
+forbiddenPaths:
+  - flowise/**、worker/**（v7 冻结）；harness/**（本切片零 Harness 改动）
+  - schedule_disable 工具本身（权威停用路径保持）
+  - 生产进程/DB 操作；SQLite 表结构/迁移；切流
+  - agent/backlog.yaml, agent/plans/active/v54-implementation-batches.md
+  - scripts/architecture/**（校验器只读）
+
+budgets:
+  maxChangedFiles: 9
+  maxNewFiles: 1
+  maxChangedLines: 400
+  maxContractsChanged: 1（mcp-boundary-contract-v1.json）
+  maxMigrationsAdded: 0
+  maxOpenModules: 1（hengzhun.mcp）
+
+invariants:
+  - v7 兼容：schedule_get 调用面（只传 scheduleId）不受退场影响
+  - 权威停用路径 schedule_disable 不变；预读版本绑定（G4）行为不变
+  - 退场错误码 I8_SCHEDULE_DISABLE_CONFIRMATION_REQUIRED 从 server.cjs 删除并登记（决策日志）
+  - 不读取/输出任何密钥与凭据
+
+workSteps:
+  - step: S4-1 G5 退场实现
+    action: server.cjs schedule_get 移除 action DISABLE 枚举与写分支；删除 I8_SCHEDULE_DISABLE_CONFIRMATION_REQUIRED 路径；contract-delta 登记退场
+  - step: S4-2 合同更新
+    action: mcp-boundary-contract-v1.json schedule_get sideEffect CONDITIONAL_MUTATION→READ（validate_rf001_contract.py 动态计数 3→2 自动反映）
+  - step: S4-3 断言更新
+    action: B3-S2 条件写测试（schedule_get 不再断言 disable 调用；候选/收件箱保持）；B4-S1 错误码清单（退场码登记为预期变更，corpus 无需改——删除后不再提取）
+  - step: S4-4 新增测试
+    action: rf002-s4-conditional-writes.test.cjs：G4 三工具预读版本绑定静态+隔离运行态断言；G5 schedule_get 纯读（DISABLE 参数拒绝/移除）；G6 inbox 副作用边界静态断言
+  - step: S4-5 验证
+    action: 新测试 + 全聚焦回归 + 校验器×3 + git diff --check + 身份复算
+  - step: S4-6 RC-D1 同步
+    action: target-design（G5 已执行/退场登记）、contract-delta、decision-log 条目 9、evidence-index、L2 衔接点 C3 闭合
+
+verification:
+  requiredCommands:
+    - name: rf002-s4-conditional-writes
+      command: runtime/node-v20.20.2-win-x64/node.exe --test scripts/verification/rf002-s4-conditional-writes.test.cjs
+      expectedExitCode: 0
+      expectedOutput: G4 版本绑定、G5 纯读、G6 副作用边界全过
+      blocking: true
+    - name: rf002-focused-tests
+      command: runtime/node-v20.20.2-win-x64/node.exe --test scripts/verification/rf001-*.cjs scripts/verification/rf002-*.cjs（全聚焦）
+      expectedExitCode: 0
+      expectedOutput: 全部通过（含 B3-S2/B4-S1 断言更新）
+      blocking: true
+    - name: refactoring-contracts / rf001-mcp-boundary-contract / documentation
+      command: python scripts/architecture/validate_refactoring.py && python scripts/architecture/validate_rf001_contract.py && python scripts/docs/validate_docs.py
+      expectedExitCode: 0
+      expectedOutput: 三者PASS（conditional_mutations 动态 2）
+      blocking: true
+    - name: runtime-release-identity
+      command: runtime/node-v20.20.2-win-x64/node.exe scripts/i10-release-identity.cjs
+      expectedExitCode: 0
+      expectedOutput: identityHash=632ad5ee…
+      blocking: true
+    - name: whitespace
+      command: git diff --check
+      expectedExitCode: 0
+      blocking: false
+
+rollback:
+  triggerConditions: v7 兼容破坏；schedule_disable 权威路径受影响；版本绑定行为漂移；身份变化
+  recoveryPoint: 061e2af + RF-002 baseline；回滚 server.cjs/合同/测试
+  maxRtoMinutes: 30
+  maxRpoMinutes: 0
+
+exclusions: S5（切流关闭）；flowise/worker/harness 改动；schedule_disable 变更
+
+risks:
+  - B3-S2 条件写测试与 B4-S1 检测器的断言更新属预期变更（RC-D1 登记），不改语义
+  - conditional_mutations 计数 3→2 为动态输出，校验器无硬编码（已核实）

@@ -1,0 +1,48 @@
+databaseChangeLog:
+  - changeSet:
+      id: v3-p2-2-idempotency-v4-response-fields
+      author: P2-2
+      preConditions:
+        - onFail: HALT
+        - tableExists:
+            tableName: idempotency_record
+      changes:
+        - addColumn:
+            tableName: idempotency_record
+            columns:
+              - column:
+                  name: http_status
+                  type: integer
+              - column:
+                  name: response_headers
+                  type: jsonb
+                  defaultValueComputed: "'{}'::jsonb"
+        - sql:
+            splitStatements: false
+            sql: |
+              UPDATE idempotency_record
+              SET http_status = status_code,
+                  response_headers = COALESCE(response_headers, '{}'::jsonb),
+                  expires_at = COALESCE(expires_at, created_at + interval '24 hours'),
+                  status = COALESCE(status, 'OK');
+              ALTER TABLE idempotency_record
+                ALTER COLUMN response_body TYPE jsonb USING response_body::jsonb,
+                ALTER COLUMN status SET NOT NULL,
+                ALTER COLUMN expires_at SET NOT NULL,
+                ALTER COLUMN expires_at SET DEFAULT (now() + interval '24 hours'),
+                ALTER COLUMN response_headers SET NOT NULL,
+                ALTER COLUMN response_headers SET DEFAULT '{}'::jsonb;
+  - changeSet:
+      id: v3-p2-2-transfer-idempotency-scope-fk
+      author: P2-2
+      preConditions:
+        - onFail: HALT
+        - tableExists:
+            tableName: transfer
+      changes:
+        - sql:
+            splitStatements: false
+            sql: |
+              ALTER TABLE transfer DROP CONSTRAINT IF EXISTS fk_transfer_idempotency;
+              ALTER TABLE transfer ADD CONSTRAINT fk_transfer_idempotency
+                FOREIGN KEY (idempotency_key) REFERENCES idempotency_record(scope_key);

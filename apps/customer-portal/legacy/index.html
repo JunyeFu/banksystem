@@ -1,0 +1,19 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>复兴银行门户</title>
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml">
+    <link rel="stylesheet" href="styles.css">
+  </head>
+  <body>
+    <main class="shell" aria-labelledby="title">
+      <header><p class="eyebrow">BANK CHANNEL</p><h1 id="title">客户中心</h1><p id="status" role="status">正在检查登录状态…</p></header>
+      <section id="login-panel" class="card" hidden><h2>安全登录</h2><p>使用银行客户身份登录，令牌仅保存在当前页面内存中。</p><button id="login">登录</button></section>
+      <section id="dashboard" class="card" hidden><div class="row"><h2 id="welcome">账户概览</h2><button id="logout" class="secondary">退出</button></div><div id="accounts" class="accounts" aria-live="polite"></div></section>
+      <section id="error" class="error" role="alert" hidden></section>
+    </main>
+    <script type="module" src="app.js"></script>
+  </body>
+</html>

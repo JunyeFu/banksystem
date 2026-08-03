@@ -1,0 +1,127 @@
+{
+  "schemaVersion": "hengzhun-i10-acceptance-ledger-execution-matrix-v1",
+  "baseScenarioIds": [
+    "F-001", "F-002", "F-003", "F-004", "F-005", "F-006",
+    "F-007", "F-008", "F-009", "F-010", "F-011", "F-012",
+    "F-013", "F-014", "F-015", "F-016", "F-017", "F-018",
+    "F-019", "F-020", "F-021", "F-022", "F-023", "F-024"
+  ],
+  "interruptionCoverage": {
+    "I-01": ["F-001", "F-004", "F-007", "F-010"],
+    "I-02": ["F-001", "F-003", "F-018", "F-020"],
+    "I-03": ["F-001", "F-009", "F-020", "F-024"],
+    "I-04": ["F-010", "F-013", "F-015", "F-021"],
+    "I-05": ["F-001", "F-014", "F-020", "F-021"],
+    "I-06": ["F-002", "F-016", "F-017", "F-022"],
+    "I-07": ["F-003", "F-004", "F-018", "F-024"],
+    "I-08": ["F-001", "F-007", "F-020", "F-024"],
+    "I-09": ["F-003", "F-008", "F-012", "F-017"],
+    "I-10": ["F-004", "F-009", "F-010", "F-012"],
+    "I-11": ["F-001", "F-017", "F-022", "F-023"],
+    "I-12": ["F-001", "F-016", "F-021", "F-024"]
+  },
+  "stage8Bindings": {
+    "F-001": 1,
+    "F-018": 2,
+    "F-021": 3,
+    "F-020": 4,
+    "F-007": 5,
+    "F-010": 6,
+    "F-024": 7,
+    "F-019": 8,
+    "F-011": 9,
+    "F-004": 10,
+    "F-006": 11,
+    "F-014": 12
+  },
+  "ledgerVariantBindings": {
+    "F-002": {
+      "variant": "F002_CAPTURE_ACTIVATE_NO_RUN",
+      "sequence": 2,
+      "expectedOutcome": "SCRIPT_ACTIVATED_NO_RUN"
+    },
+    "F-003": {
+      "variant": "F003_REVISE_RETAIN",
+      "sequence": 3,
+      "expectedOutcome": "CANDIDATE_RETAINED"
+    },
+    "F-004": {
+      "variant": "F004_NL_IMAGE_ONE_TIME",
+      "sequence": 4,
+      "expectedOutcome": "SCHEDULED_ONE_TIME"
+    },
+    "F-005": {
+      "variant": "F005_NL_MULTI_IMAGE_CONFLICT_RETAIN",
+      "sequence": 5,
+      "expectedOutcome": "CANDIDATE_RETAINED"
+    },
+    "F-006": {
+      "variant": "F006_IMAGE_ONLY_CLARIFY_RECURRING",
+      "sequence": 6,
+      "expectedOutcome": "SCHEDULED_RECURRING"
+    },
+    "F-007": {
+      "variant": "F007_XLSX_RECURRING",
+      "sequence": 7,
+      "expectedOutcome": "SCHEDULED_RECURRING"
+    },
+    "F-008": {
+      "variant": "F008_FILE_REVISE_RETAIN",
+      "sequence": 8,
+      "expectedOutcome": "CANDIDATE_RETAINED"
+    },
+    "F-009": {
+      "variant": "F009_FILE_IMAGE_ON_DEMAND",
+      "sequence": 9,
+      "expectedOutcome": "RUN_PASSED"
+    },
+    "F-010": {
+      "variant": "F010_VIDEO_ONE_TIME",
+      "sequence": 10,
+      "expectedOutcome": "SCHEDULED_ONE_TIME"
+    },
+    "F-011": {
+      "variant": "F011_VIDEO_LOW_CONFIDENCE_CORRECT_ON_DEMAND",
+      "sequence": 11,
+      "expectedOutcome": "RUN_PASSED"
+    },
+    "F-012": {
+      "variant": "F012_VIDEO_IMAGE_CONFLICT_RETAIN",
+      "sequence": 12,
+      "expectedOutcome": "CANDIDATE_RETAINED"
+    },
+    "F-013": {
+      "variant": "F013_AUTHORING_FAIL_RETRY_RETAIN",
+      "sequence": 13,
+      "expectedOutcome": "CANDIDATE_RETAINED"
+    },
+    "F-014": {
+      "variant": "F014_VERIFICATION_RESUME_ON_DEMAND",
+      "sequence": 14,
+      "expectedOutcome": "RUN_PASSED"
+    },
+    "F-015": {
+      "variant": "F015_STABILITY_FAIL_REVISE_RETAIN",
+      "sequence": 15,
+      "expectedOutcome": "CANDIDATE_RETAINED"
+    }
+  },
+  "allowedOutcomes": ["PASS", "FAIL", "BLOCKED", "NOT_RUN"],
+  "blockedRequirements": [
+    "externalBlocker",
+    "lastStableState",
+    "recoveryCommand"
+  ],
+  "evidenceRequirements": [
+    "flowId",
+    "flowVersion",
+    "flowHash",
+    "chatId",
+    "journeyId",
+    "inputArtifactHashes",
+    "mcpCallSequence",
+    "references",
+    "stateTransitions",
+    "acceptanceStatus"
+  ]
+}

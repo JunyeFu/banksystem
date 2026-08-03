@@ -1,0 +1,107 @@
+{
+  "schemaVersion": "hengzhun-i10-s9-portability-policy-v1",
+  "candidateName": "hengzhun-regression-system-windows-x64-i10",
+  "archiveName": "hengzhun-regression-system-windows-x64-i10.zip",
+  "platform": "win32-x64",
+  "sourceCommitRequired": true,
+  "machineSpecificAcceptanceRequired": false,
+  "portabilityContract": "PATH_INDEPENDENT_MODEL_CONNECTION_SECRET_FREE_SELF_CONTAINED",
+  "supportedOperatingSystems": ["Windows 10 x64", "Windows 11 x64"],
+  "requiredPathScenarios": ["ascii-path", "path-with-spaces", "path-with-chinese-characters"],
+  "forbiddenGlobalDependencies": ["node", "npm", "wsl", "docker"],
+  "trackedPrefixes": [
+    "config",
+    "contracts",
+    "flowise/i8",
+    "flowise/i9",
+    "flowise/i10",
+    "flowise/manifests",
+    "harness/migrations",
+    "harness/src",
+    "mcp/src",
+    "worker/src"
+  ],
+  "trackedFiles": [
+    "package.json",
+    "package-lock.json",
+    "tsconfig.json",
+    "flowise/runtime-package.json",
+    "flowise/runtime-package-lock.json",
+    "scripts/prepare-i2.ps1",
+    "scripts/prepare-i9.ps1",
+    "scripts/import-i9-runtime-env.ps1",
+    "scripts/apply-i9-flowise-overlays.cjs",
+    "scripts/assert-i9-ports-free.ps1",
+    "scripts/i9-lifecycle.cjs",
+    "scripts/i9-platform-bootstrap.cjs",
+    "scripts/create-sqlite-backup.cjs",
+    "scripts/i9-sqlite-snapshot.cjs",
+    "scripts/backup-i9.ps1",
+    "scripts/restore-i9.ps1",
+    "scripts/import-i10-runtime-env.ps1",
+    "scripts/platform-admin.cjs",
+    "scripts/build-i10-agentflow.cjs",
+    "scripts/verify-i10-agentflow-paths.cjs",
+    "scripts/verify-i10-model-probes.cjs",
+    "scripts/verify-i10-model-probes.ps1",
+    "scripts/verify-i10-secret-leaks.cjs",
+    "scripts/verify-i10-secret-leaks.ps1",
+    "scripts/verify-i10-gap-closure.cjs",
+    "scripts/i10-agentflow-publish.cjs",
+    "scripts/prepare-i10.ps1",
+    "scripts/start-i10.ps1",
+    "scripts/status-i10.ps1",
+    "scripts/stop-i10.ps1",
+    "scripts/i10-stage9-portable.cjs"
+  ],
+  "runtimeTrees": [
+    "dist",
+    "node_modules",
+    "flowise/app",
+    "runtime/node-v20.20.2-win-x64",
+    "runtime/browsers",
+    "runtime/node_modules"
+  ],
+  "emptyRuntimeDirectories": [
+    ".data/sqlite/backups",
+    ".data/artifacts",
+    ".data/evidence",
+    ".data/flowise/storage",
+    ".data/logs",
+    ".data/runtime",
+    ".data/worker"
+  ],
+  "forbiddenPathSegments": [
+    ".git",
+    ".env",
+    "probes",
+    "tests",
+    "coze",
+    "agent",
+    "rag",
+    "deliverables"
+  ],
+  "forbiddenFilePatterns": [
+    "runtime.env",
+    "*.sqlite",
+    "*.sqlite-wal",
+    "*.sqlite-shm",
+    "*.log",
+    "*.pid",
+    "*.har",
+    "*storage-state*",
+    "*storageState*"
+  ],
+  "secretContentPatterns": [
+    "(?:^|[^A-Za-z0-9])sk-[A-Za-z0-9_-]{16,}",
+    "-----BEGIN (?:RSA |EC |OPENSSH )?PRIVATE KEY-----",
+    "Bearer\\s+[A-Za-z0-9._-]{24,}"
+  ],
+  "absolutePathPatterns": [
+    "[A-Za-z]:\\\\Users\\\\",
+    "D:\\\\Agent\\\\banksystem"
+  ],
+  "mutableFilePrefixes": [
+    ".data/"
+  ]
+}

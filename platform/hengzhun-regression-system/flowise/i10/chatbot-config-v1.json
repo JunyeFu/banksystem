@@ -1,0 +1,7 @@
+{
+  "schemaVersion": "hengzhun-i10-flowise-chatbot-config-v1",
+  "fullFileUpload": {
+    "status": true,
+    "allowedUploadFileTypes": "image/png,image/jpeg,image/webp,image/bmp,text/csv,application/csv,application/vnd.ms-excel,application/json,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.openxmlformats-officedocument.wordprocessingml.document,video/mp4"
+  }
+}

@@ -1,0 +1,20 @@
+{
+  "schema_version": 1,
+  "groups": [
+    ["模块化单体", "modular monolith", "not first-phase microservices"],
+    ["客户浏览器不能直接调用", "customer web must not directly call", "browser clients must not directly call"],
+    ["资金确定性控制", "资金操作幂等", "deterministic money", "money write operations", "Idempotency-Key optimistic lock outbox", "adr-004-deterministic-money-ops.md"],
+    ["可测试性一等能力", "testability is a first-class", "data-page-id data-page-state data-testid"],
+    ["当前能力矩阵", "当前项目能力矩阵", "current capability matrix", "implemented runtime evidence status", "current-state/capability-matrix.md"],
+    ["回滚原则", "rollback principles", "business date rollback", "money operation rollback"],
+    ["银行状态机", "银行转账业务状态机", "phase 1 state machines", "transfer state machine", "RECEIVED PENDING_REVIEW PROCESSING POSTED", "banking-state-machines.md"],
+    ["基线定义", "BaselineDefinition", "baseline.schema.json", "baselineId visibleTexts businessState"],
+    ["安全配置", "security configuration audit", "security-config.md", "authentication tenant boundary idempotency"],
+    ["实施顺序", "Coze Harness 回归核心", "前端缺陷优先", "namespace runId", "v54-implementation-batches.md"],
+    ["仓库规则", "Bank System Repository Rules", "AGENTS.md"],
+    ["前端规则", "Frontend Rules", "apps/AGENTS.md"],
+    ["后端服务规则", "Backend Service Rules", "services/AGENTS.md"],
+    ["契约规则", "Contract Rules", "contracts/AGENTS.md"],
+    ["测试证据规则", "Test and Evidence Rules", "tests/AGENTS.md"]
+  ]
+}

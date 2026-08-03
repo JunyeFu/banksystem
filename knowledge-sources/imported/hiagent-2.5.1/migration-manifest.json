@@ -1,0 +1,209 @@
+{
+  "source_root": "D:/Agent/banksystem/knowledge-sources/raw/hiagent-2.5.1",
+  "generated_on": "2026-07-16",
+  "files": [
+    {
+      "source": "2.5.1帮助文档/API & SDK/HiAgent OpenAPI通用说明.pdf",
+      "target": "2.5.1帮助文档/API & SDK/HiAgent OpenAPI通用说明.md",
+      "sha256": "a1b3eb7ccc737536ab9f0a19e2695872117bd9b9f9ecf3a17c654ae43d59342c",
+      "characters": 21043,
+      "status": "extracted"
+    },
+    {
+      "source": "2.5.1帮助文档/API & SDK/HiAgent平台API调用示例.docx",
+      "target": "2.5.1帮助文档/API & SDK/HiAgent平台API调用示例.md",
+      "sha256": "2a5d9df17a5191c7e03d91e371606428dfd91ffe0630a529c9dc89e02f5eb24d",
+      "characters": 43625,
+      "status": "extracted"
+    },
+    {
+      "source": "2.5.1帮助文档/API & SDK/HiAgent接口列表概览.docx",
+      "target": "2.5.1帮助文档/API & SDK/HiAgent接口列表概览.md",
+      "sha256": "79475753f8f7aee5b740e9dbff136b373276571c0bb5521b94c680e19d13430e",
+      "characters": 743,
+      "status": "extracted"
+    },
+    {
+      "source": "2.5.1帮助文档/API & SDK/MaaS大模型服务调用API文档.docx",
+      "target": "2.5.1帮助文档/API & SDK/MaaS大模型服务调用API文档.md",
+      "sha256": "b4c219cddd1d92d591da481e47bc22e82b33f38b489e2d58cb5fa19949a11ea5",
+      "characters": 45352,
+      "status": "extracted"
+    },
+    {
+      "source": "2.5.1帮助文档/API & SDK/平台接口/平台管理接口.docx",
+      "target": "2.5.1帮助文档/API & SDK/平台接口/平台管理接口.md",
+      "sha256": "c22be771f162de466a4bf1efa37d0c857b0d23fd5d6e2d1dbdcbbf63908d9245",
+      "characters": 99085,
+      "status": "extracted"
+    },
+    {
+      "source": "2.5.1帮助文档/API & SDK/平台接口/观测指标接口.docx",
+      "target": "2.5.1帮助文档/API & SDK/平台接口/观测指标接口.md",
+      "sha256": "d7315abf5dcc5b3bc33a25dc47f8958c5a750ecaf1f68578e8a3334d3a4fad26",
+      "characters": 6371,
+      "status": "extracted"
+    },
+    {
+      "source": "2.5.1帮助文档/API & SDK/平台接口/资源管理模块接口.docx",
+      "target": "2.5.1帮助文档/API & SDK/平台接口/资源管理模块接口.md",
+      "sha256": "ab2f151dbc2aceb822ce9268d4eddd4cb20275ade9a73daf150e029227c7bd34",
+      "characters": 73938,
+      "status": "extracted"
+    },
+    {
+      "source": "2.5.1帮助文档/HiAgent 2.5.1 ReleaseNote/Agent Dev.docx",
+      "target": "2.5.1帮助文档/HiAgent 2.5.1 ReleaseNote/Agent Dev.md",
+      "sha256": "b7e83c8e39b80c65e73309d84cc1567ca7c1b4a5b0ae8d47a7e627924bbd248d",
+      "characters": 724,
+      "status": "extracted"
+    },
+    {
+      "source": "2.5.1帮助文档/HiAgent 2.5.1 ReleaseNote/Agent Ops.docx",
+      "target": "2.5.1帮助文档/HiAgent 2.5.1 ReleaseNote/Agent Ops.md",
+      "sha256": "447011c9c78e4162400d472c35478efc2a207094081f4af9ba122ea5e959c3fc",
+      "characters": 186,
+      "status": "extracted"
+    },
+    {
+      "source": "2.5.1帮助文档/HiAgent 2.5.1 ReleaseNote/MaaS模型管理.docx",
+      "target": "2.5.1帮助文档/HiAgent 2.5.1 ReleaseNote/MaaS模型管理.md",
+      "sha256": "464ba8ecda0bde37c8175d505d896de94966db009cf64d3d2b2a9ceac9135b2a",
+      "characters": 349,
+      "status": "extracted"
+    },
+    {
+      "source": "2.5.1帮助文档/HiAgent 2.5.1 ReleaseNote/平台基座.docx",
+      "target": "2.5.1帮助文档/HiAgent 2.5.1 ReleaseNote/平台基座.md",
+      "sha256": "d778970dad49f562a118a0f6bced1829cdf419b97a4fe668715678db619a357d",
+      "characters": 190,
+      "status": "extracted"
+    },
+    {
+      "source": "2.5.1帮助文档/常见问题/使用咨询/SSO.docx",
+      "target": "2.5.1帮助文档/常见问题/使用咨询/SSO.md",
+      "sha256": "ca7943ca150477d444b70e48734273900223a4632c715022262cd7bfe5a156b9",
+      "characters": 2960,
+      "status": "extracted"
+    },
+    {
+      "source": "2.5.1帮助文档/常见问题/使用咨询/插件.docx",
+      "target": "2.5.1帮助文档/常见问题/使用咨询/插件.md",
+      "sha256": "a55b266d6f12bfecc57b129f24e546d15cb0ff4d312d69178ae6fb957607c622",
+      "characters": 20260,
+      "status": "extracted"
+    },
+    {
+      "source": "2.5.1帮助文档/常见问题/使用咨询/模型.docx",
+      "target": "2.5.1帮助文档/常见问题/使用咨询/模型.md",
+      "sha256": "37cec45d8c598d5c7e08a21f4b9b30abe0ff21dbbd6ad1c5647084ca32741a09",
+      "characters": 891,
+      "status": "extracted"
+    },
+    {
+      "source": "2.5.1帮助文档/常见问题/异常问题/插件.docx",
+      "target": "2.5.1帮助文档/常见问题/异常问题/插件.md",
+      "sha256": "2b1131302108e9d00df036e829502ebbd252d3c3a1fc3ac7a1c3553895f6f126",
+      "characters": 2525,
+      "status": "extracted"
+    },
+    {
+      "source": "2.5.1帮助文档/用户指南/HiAgent介绍.docx",
+      "target": "2.5.1帮助文档/用户指南/HiAgent介绍.md",
+      "sha256": "48f4d4892cc345e8f5e2a8dad0cd3c5d1280f621b8105ca1bb59243e7279d68f",
+      "characters": 2823,
+      "status": "extracted"
+    },
+    {
+      "source": "2.5.1帮助文档/用户指南/Skills.docx",
+      "target": "2.5.1帮助文档/用户指南/Skills.md",
+      "sha256": "a9fba8e22d504e7480186fb5361cf3afac019d31aecd271456e0fe8a15050d7f",
+      "characters": 2411,
+      "status": "extracted"
+    },
+    {
+      "source": "2.5.1帮助文档/用户指南/团队空间.docx",
+      "target": "2.5.1帮助文档/用户指南/团队空间.md",
+      "sha256": "fb655d843c654b80441de84cc5747dc533e087341a5a66f9686dfe090b2a99e2",
+      "characters": 1051,
+      "status": "extracted"
+    },
+    {
+      "source": "2.5.1帮助文档/用户指南/审批中心.docx",
+      "target": "2.5.1帮助文档/用户指南/审批中心.md",
+      "sha256": "1691b281cfedd6f303a4b8499f83274cea4e2f388ce5c7ec8d779062df83fb1e",
+      "characters": 2227,
+      "status": "extracted"
+    },
+    {
+      "source": "2.5.1帮助文档/用户指南/插件.docx",
+      "target": "2.5.1帮助文档/用户指南/插件.md",
+      "sha256": "fa1c039e931ad673dbdadf67b5331d4693f90245b038dcdc0c442c058704fa77",
+      "characters": 12185,
+      "status": "extracted"
+    },
+    {
+      "source": "2.5.1帮助文档/用户指南/模型管理/大语言模型体验.docx",
+      "target": "2.5.1帮助文档/用户指南/模型管理/大语言模型体验.md",
+      "sha256": "7d6323f9760e1c21b820342555d7292327c6ea11aa18bb66c2c41a825ff047f1",
+      "characters": 1774,
+      "status": "extracted"
+    },
+    {
+      "source": "2.5.1帮助文档/用户指南/模型管理/应用接入.docx",
+      "target": "2.5.1帮助文档/用户指南/模型管理/应用接入.md",
+      "sha256": "22f56cd61a3c872babb524f738576224c0544bd401c03a5fb74a70d1fa92e2ad",
+      "characters": 320,
+      "status": "extracted"
+    },
+    {
+      "source": "2.5.1帮助文档/用户指南/模型管理/服务路由.docx",
+      "target": "2.5.1帮助文档/用户指南/模型管理/服务路由.md",
+      "sha256": "1e36eeae3cfb1115b4cc85e9d223ee3d5c0e245051921ee710918e936f84b1f3",
+      "characters": 1737,
+      "status": "extracted"
+    },
+    {
+      "source": "2.5.1帮助文档/用户指南/模型管理/模型仓库.docx",
+      "target": "2.5.1帮助文档/用户指南/模型管理/模型仓库.md",
+      "sha256": "43e92c68cf7d733776dc7d8e3a7dd67848a8b8ff606899fa5e2a3d832d07da0f",
+      "characters": 2613,
+      "status": "extracted"
+    },
+    {
+      "source": "2.5.1帮助文档/用户指南/模型管理/模型广场.docx",
+      "target": "2.5.1帮助文档/用户指南/模型管理/模型广场.md",
+      "sha256": "fed8a65c38965703695077ea90c3d371ab2edce98713b38a5c575b78ef9dba54",
+      "characters": 758,
+      "status": "extracted"
+    },
+    {
+      "source": "2.5.1帮助文档/用户指南/模型管理/模型服务.docx",
+      "target": "2.5.1帮助文档/用户指南/模型管理/模型服务.md",
+      "sha256": "00f876178c20ecf54aa7202c63c55f122a969924bf939a6864fdf3562db56f00",
+      "characters": 4586,
+      "status": "extracted"
+    },
+    {
+      "source": "2.5.1帮助文档/用户指南/模型管理/模型调优.docx",
+      "target": "2.5.1帮助文档/用户指南/模型管理/模型调优.md",
+      "sha256": "2ae73cb5a3f77e5e88dbf328188ed44ecedb69a2be5fd54d0f766f26c129131c",
+      "characters": 9337,
+      "status": "extracted"
+    },
+    {
+      "source": "2.5.1帮助文档/用户指南/模型管理/视觉模型体验.docx",
+      "target": "2.5.1帮助文档/用户指南/模型管理/视觉模型体验.md",
+      "sha256": "1c5f42360458386672bb6b56c74254ac3da6d2d95bba829bd69086aa2c3d26e9",
+      "characters": 4897,
+      "status": "extracted"
+    },
+    {
+      "source": "2.5.1帮助文档/用户指南/账号中心.docx",
+      "target": "2.5.1帮助文档/用户指南/账号中心.md",
+      "sha256": "08e9a67a7d4acd3708ceff24fd44118b4ae6349847c5bab83f2923fed0fbab5f",
+      "characters": 428,
+      "status": "extracted"
+    }
+  ]
+}

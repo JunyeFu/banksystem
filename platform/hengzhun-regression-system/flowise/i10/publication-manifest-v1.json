@@ -1,0 +1,41 @@
+{
+  "schemaVersion": "hengzhun-i10-agentflow-publication-v1",
+  "flowId": "7c14bafe-4c5b-4b4e-9d5a-000000000010",
+  "name": "衡准自动化回归主控-I10正式版",
+  "type": "AGENTFLOW",
+  "deployed": true,
+  "isPublic": false,
+  "primaryFlowDataPath": "flowise/i10/agentflow-v7.json",
+  "primaryFlowSha256": "65bc36cd6e849c8a00bc797bbea06daa18cefa4170fd256fd4375ff9b772664c",
+  "chatbotConfigPath": "flowise/i10/chatbot-config-v1.json",
+  "controllerCredential": {
+    "id": "b6fd091d-30c6-4bd6-a081-000000000010",
+    "name": "衡准主控模型",
+    "credentialName": "openAIApi",
+    "runtimeVariable": "CONTROL_API_KEY"
+  },
+  "runtimeVariables": [
+    "CONTROL_API_KEY",
+    "CONTROL_BASE_URL",
+    "CONTROL_MODEL_NAME",
+    "VISION_API_KEY",
+    "VISION_BASE_URL",
+    "VISION_MODEL_NAME"
+  ],
+  "externalToolBoundary": "FLOWISE_MCP_NODES_ONLY",
+  "mcpToolCount": 33,
+  "publishState": "DEPLOYED_PRIVATE_PUBLIC_API_ROUND_TRIP_VERIFIED",
+  "importPath": "/api/v1/export-import/import",
+  "publishPath": "/api/v1/chatflows/{id}",
+  "exportPath": "/api/v1/export-import/export",
+  "publicationEvidencePath": ".data/evidence/i10/flowise/publication.json",
+  "rollbackFlowDataPath": "flowise/i10/agentflow-v6.json",
+  "rollbackFlowSha256": "18353bfccf9eb6130b95b5fb58ab51bb9d16fe943d51c2c00eb1542aa01e20a7",
+  "primaryFlowVersion": 7,
+  "interactionAuthority": "HARNESS_EXACT_PROPOSAL_JOURNEY",
+  "layoutSnapshotPath": "flowise/i10/agentflow-v7-layout.json",
+  "layoutSavedAt": "2026-07-24T03:08:57.612Z",
+  "chatbotConfigSha256": "706f53989d18443b8e493db2f0c714272c93c37900b008c5234863ab9650849f",
+  "deployedFlowDataSha256": "ae3f51ac0406293095d7d888d34c91a38f370d1f33278b9d3a37d7a8e1b49a10",
+  "lastVerifiedAt": "2026-08-03T03:59:54.588Z"
+}

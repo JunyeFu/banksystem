@@ -1,0 +1,76 @@
+databaseChangeLog:
+  - changeSet:
+      id: v7-operations-documents
+      author: codex
+      preConditions:
+        - onFail: MARK_RAN
+        - not:
+            - tableExists:
+                tableName: operations_document
+      changes:
+        - createTable:
+            tableName: operations_document
+            columns:
+              - column:
+                  name: document_id
+                  type: uuid
+                  constraints: { primaryKey: true, nullable: false }
+              - column:
+                  name: title
+                  type: varchar(240)
+                  constraints: { nullable: false }
+              - column:
+                  name: category
+                  type: varchar(32)
+                  constraints: { nullable: false }
+              - column:
+                  name: status
+                  type: varchar(16)
+                  defaultValue: DRAFT
+                  constraints: { nullable: false }
+              - column:
+                  name: version
+                  type: integer
+                  defaultValueNumeric: 1
+                  constraints: { nullable: false }
+              - column:
+                  name: uploaded_by
+                  type: varchar(128)
+                  constraints: { nullable: false }
+              - column:
+                  name: uploaded_at
+                  type: timestamptz
+                  defaultValueComputed: now()
+                  constraints: { nullable: false }
+              - column:
+                  name: file_name
+                  type: varchar(255)
+                  constraints: { nullable: false }
+              - column:
+                  name: content_type
+                  type: varchar(128)
+                  constraints: { nullable: false }
+              - column:
+                  name: file_size
+                  type: bigint
+                  constraints: { nullable: false }
+              - column:
+                  name: checksum
+                  type: char(64)
+                  constraints: { nullable: false }
+              - column:
+                  name: description
+                  type: varchar(1000)
+              - column:
+                  name: content
+                  type: bytea
+                  constraints: { nullable: false }
+        - sql:
+            sql: "ALTER TABLE operations_document ADD CONSTRAINT ck_operations_document_category CHECK (category IN ('POLICY','PROCEDURE','REPORT','COMPLIANCE','OTHER'))"
+        - sql:
+            sql: "ALTER TABLE operations_document ADD CONSTRAINT ck_operations_document_status CHECK (status IN ('DRAFT','PUBLISHED','ARCHIVED'))"
+        - createIndex:
+            tableName: operations_document
+            indexName: ix_operations_document_uploaded_at
+            columns:
+              - column: { name: uploaded_at, descending: true }

@@ -1,0 +1,3 @@
+ALTER TABLE action_plan_items
+ADD COLUMN target_ref TEXT NOT NULL DEFAULT 'PAGE'
+CHECK (target_ref IN ('PAGE', 'LOGIN_USERNAME', 'LOGIN_SSO_TAB', 'LOGIN_SUBMIT'));

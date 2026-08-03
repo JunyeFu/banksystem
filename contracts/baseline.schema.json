@@ -1,0 +1,91 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "baseline.schema.json",
+  "title": "BaselineDefinition",
+  "description": "可机器比较 Baseline 契约，对应 V5.1 S4",
+  "type": "object",
+  "required": ["baselineId", "required"],
+  "properties": {
+    "baselineId": {
+      "type": "string",
+      "pattern": "^BASE-[A-Z]+-\\d{3}$",
+      "minLength": 8,
+      "maxLength": 32
+    },
+    "required": {
+      "type": "object",
+      "required": [
+        "visibleTexts",
+        "urlPattern",
+        "outputs",
+        "network",
+        "businessState"
+      ],
+      "properties": {
+        "visibleTexts": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          },
+          "minItems": 1
+        },
+        "urlPattern": {
+          "type": "string",
+          "minLength": 1
+        },
+        "outputs": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "network": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["method", "pathPattern", "status"],
+            "properties": {
+              "method": {
+                "enum": ["GET", "POST", "PUT", "PATCH", "DELETE"]
+              },
+              "pathPattern": {
+                "type": "string",
+                "minLength": 1
+              },
+              "status": {
+                "type": "integer",
+                "minimum": 100,
+                "maximum": 599
+              }
+            },
+            "additionalProperties": false
+          },
+          "minItems": 1
+        },
+        "businessState": {
+          "type": "string",
+          "minLength": 1
+        }
+      },
+      "additionalProperties": false
+    },
+    "visual": {
+      "type": "object",
+      "properties": {
+        "enabled": {
+          "type": "boolean",
+          "default": false
+        },
+        "threshold": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1,
+          "default": 0.9
+        }
+      },
+      "additionalProperties": false
+    }
+  },
+  "additionalProperties": false
+}

@@ -1,5 +1,5 @@
 param(
-  [string]$Container = 'mifos-channel-channel-db-1',
+  [string]$Container = 'mifos-channel-bank-channel-postgres-1',
   [string]$User = 'bank_channel',
   [string]$Database = 'bank_channel',
   [string]$OutputRoot = (Join-Path $PSScriptRoot '..\..\backups\channel')

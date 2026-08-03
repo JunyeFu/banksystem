@@ -1,0 +1,110 @@
+schemaVersion: 1
+id: RF-004-S2
+title: MCP 凭据注入退场（normalizeCredentialBinding 停注入 + LEGACY 开关）
+status: PROPOSED
+owner: project-owner
+authorizedBy: agent/plans/active/v54-implementation-batches.md (L1全景, RF-004)
+parentBatch: docs/architecture/refactoring/batches/RF-004/batch.yaml
+targetDesign: docs/architecture/refactoring/batches/RF-004/target-design.md (v1.0 已批准；B1 按 DP-S4-1 修正)
+baseline:
+  gitCommit: 5cfb32d（RF-004 分支，S1 已完成）
+  releaseIdentity: 632ad5ee7981b59f00824d0072d28da6075eef095d55a898d51c0103a897988f
+
+# 决策点（实现发现，RC-D1 登记）
+decisionPoint:
+  - id: DP-S4-1
+    subject: target-design B1 假设"MCP 侧解析 credentialRef"与事实冲突——case 权威凭据（definition.credentialRef）在 Harness 侧，且 Harness i8RunSubmitSchema/i8ScheduleCreateSchema 的 credentialAlias 为必填
+    options:
+      - A（推荐）: 凭据解析所有权 = Harness（与 RF-002 状态所有权同哲学）：MCP 停注入（S2），Harness 端点可选化+从 case 解析（S3）；LEGACY 开关双端保留
+      - B: MCP 侧增加查询 case 的预读（MCP 持有解析逻辑，跨端点耦合，违背收敛方向）
+    recommendation: A
+
+# 单业务目标：MCP 不再注入硬编码执行凭据——run_submit/schedule_create 默认
+# 不携带 credentialAlias（HENGZHUN_RF004_LEGACY_CREDENTIAL=1 时回退注入 i3-customer），
+# 边界合同 until 更新；Harness 端解析在 S3 承接（DP-S4-1=A）。
+# 单功能点：MCP 凭据注入退场。
+businessGoal:
+  - normalizeCredentialBinding 变更：默认不注入 credentialAlias；LEGACY_CREDENTIAL=1 时注入 i3-customer（软回退）；FROZEN_EXECUTION_CREDENTIAL_ALIAS 冻结语义解除并登记
+  - run_submit/schedule_create 请求体不再携带 credentialAlias（默认路径）
+  - 边界合同 run_submit/schedule_create acceptedAliases until 更新为 RF-004 迁移中；F08 登记推进
+  - S1 C1 锚点翻转：MCP 注入断言 → 停注入断言（LEGACY 分支保留）
+  - 聚焦回归 + 身份 632ad5ee 不变
+functionalPoint: MCP 凭据注入退场
+evidenceLevel: CONTRACT
+
+allowedPaths:
+  - platform/hengzhun-regression-system/mcp/src/rf001-contract-adapter.cjs   # normalizeCredentialBinding 变更
+  - platform/hengzhun-regression-system/mcp/src/server.cjs                    # run_submit/schedule_create 请求装配
+  - platform/hengzhun-regression-system/scripts/verification/rf004-s1-credential-baseline.test.cjs   # C1 锚点翻转
+  - platform/hengzhun-regression-system/scripts/verification/rf004-s2-mcp-credential-exit.test.cjs   # 【新增】
+  - docs/architecture/refactoring/batches/RF-001/mcp-boundary-contract-v1.json   # until 更新（13 别名不变）
+  - docs/architecture/refactoring/batches/RF-004/**（decision-log/evidence-index/contract-delta/target-design 修正登记）
+  - scripts/architecture/validate_rf001_contract.py   # 若 until 校验需更新（只读校验器，必要时登记）
+
+forbiddenPaths:
+  - platform/hengzhun-regression-system/harness/**（S3 才改 Harness 端点；本切片零 Harness 改动）
+  - flowise/**、worker/**、contracts/mcp/hengzhun-i8.json
+  - 生产进程/DB 操作；SQLite 迁移；切流
+  - agent/backlog.yaml, agent/plans/active/v54-implementation-batches.md
+  - scripts/architecture/**（校验器只读）
+
+budgets:
+  maxChangedFiles: 8
+  maxNewFiles: 1
+  maxChangedLines: 300
+  maxContractsChanged: 1（mcp-boundary-contract-v1.json until）
+  maxMigrationsAdded: 0
+  maxOpenModules: 1（hengzhun.mcp）
+
+invariants:
+  - 默认路径零凭据注入；LEGACY 开关为唯一 i3-customer 注入通道（显式启用）
+  - 不读取/输出任何密钥与凭据原文
+  - v7 消费面不变（Flowise 不传 credentialAlias，本就零改动）
+
+workSteps:
+  - step: S2-1 适配器变更
+    action: rf001-contract-adapter.cjs normalizeCredentialBinding 默认返回空绑定（不注入）；LEGACY_CREDENTIAL=1 时返回 i3-customer；FROZEN 常量语义登记为兼容期保留
+  - step: S2-2 工具装配
+    action: server.cjs run_submit/schedule_create 默认不携带 credentialAlias；LEGACY 时携带
+  - step: S2-3 锚点翻转与测试
+    action: S1 C1 锚点翻转（注入→停注入+LEGACY 分支）；新增 rf004-s2-mcp-credential-exit.test.cjs（静态断言 + 适配器单测三分支）
+  - step: S2-4 合同更新
+    action: 边界合同 run_submit/schedule_create acceptedAliases until 更新（RF-004 迁移中，LEGACY 开关）；13 别名计数不变；validate_rf001_contract.py PASS
+  - step: S2-5 验证
+    action: 新测试 + 全聚焦回归（67→N）+ 校验器×3 + git diff --check + 身份复算
+  - step: S2-6 RC-D1 同步与提交
+    action: DP-S4-1 决策记录（A）、target-design B1 修正登记、contract-delta、decision-log 条目 3、evidence-index、任务包
+
+verification:
+  requiredCommands:
+    - name: rf004-s2-mcp-credential-exit
+      command: runtime/node-v20.20.2-win-x64/node.exe --test scripts/verification/rf004-s2-mcp-credential-exit.test.cjs
+      expectedExitCode: 0
+      expectedOutput: 默认停注入、LEGACY 分支、合同 until 更新
+      blocking: true
+    - name: rf003-focused-tests
+      command: runtime/node-v20.20.2-win-x64/node.exe --test scripts/verification/rf001-*.cjs scripts/verification/rf002-*.cjs scripts/verification/rf003-*.cjs scripts/verification/rf004-*.cjs（全聚焦）
+      expectedExitCode: 0
+      expectedOutput: 全部通过（含 S1 C1 锚点翻转）
+      blocking: true
+    - name: refactoring-contracts / rf001-mcp-boundary-contract / documentation
+      command: python scripts/architecture/validate_refactoring.py && python scripts/architecture/validate_rf001_contract.py && python scripts/docs/validate_docs.py
+      expectedExitCode: 0
+      blocking: true
+    - name: runtime-release-identity
+      command: runtime/node-v20.20.2-win-x64/node.exe scripts/i10-release-identity.cjs
+      expectedExitCode: 0
+      expectedOutput: identityHash=632ad5ee…
+      blocking: true
+    - name: whitespace
+      command: git diff --check
+      expectedExitCode: 0
+      blocking: true
+
+rollback:
+  triggerConditions: LEGACY 开关失效；工具装配回归；身份变化；越出 allowedPaths
+  recoveryPoint: 5cfb32d + RF-004 baseline；回滚适配器/server.cjs/合同/测试
+  maxRtoMinutes: 30
+  maxRpoMinutes: 0
+
+exclusions: S3（Harness 端点解析）、S4（生产切流关闭）；harness/flowise/worker 改动

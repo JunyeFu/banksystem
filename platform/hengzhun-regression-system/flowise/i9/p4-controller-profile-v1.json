@@ -1,0 +1,61 @@
+{
+  "schemaVersion": "hengzhun-i9-p4-controller-profile-v1",
+  "platform": "FLOWISE",
+  "provider": "MiMo",
+  "adapter": "@langchain/openai ChatOpenAI from bundled Flowise runtime",
+  "modelName": "mimo-v2.5",
+  "compatibilityCeiling": "Qwen3.5",
+  "capabilityEnvelope": "flowise/i9/qwen35-capability-envelope-v1.json",
+  "baseUrl": "https://api.xiaomimimo.com/v1",
+  "apiKeyVariable": "MIMO_API_KEY",
+  "responseFormat": "json_object",
+  "enableThinking": false,
+  "streaming": false,
+  "modelNativeToolCalling": false,
+  "controllerContext": {
+    "totalTokens": 16000,
+    "maximumInputTokens": 12000,
+    "reservedOutputTokens": 4000
+  },
+  "visualContext": {
+    "totalTokens": 16000,
+    "maximumInputTokens": 12000,
+    "reservedOutputTokens": 4000
+  },
+  "mcp": {
+    "url": "http://127.0.0.1:18789/mcp",
+    "tokenVariable": "HENGZHUN_MCP_TOKEN",
+    "toolCount": 14,
+    "harnessTimeoutMs": 30000,
+    "maximumResponseBytes": 16384
+  },
+  "humanInput": {
+    "requiredBeforeWrite": true,
+    "requiredBeforeActivation": true,
+    "requiredBeforeScheduling": true
+  },
+  "loopLimits": {
+    "clarification": 2,
+    "repairCandidates": 3,
+    "polling": 40
+  },
+  "allowedNodeSemantics": [
+    "chat_input",
+    "knowledge_retrieval",
+    "structured_llm",
+    "condition",
+    "loop",
+    "human_input",
+    "mcp_tool",
+    "direct_reply"
+  ],
+  "forbiddenExternalCapabilities": [
+    "code",
+    "http",
+    "database",
+    "file",
+    "shell",
+    "browser",
+    "arbitrary_url"
+  ]
+}

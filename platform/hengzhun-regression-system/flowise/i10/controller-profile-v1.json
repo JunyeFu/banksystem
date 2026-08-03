@@ -1,0 +1,17 @@
+{
+  "schemaVersion": "hengzhun-i10-controller-profile-v1",
+  "platform": "FLOWISE",
+  "provider": "DeepSeek",
+  "modelName": "${CONTROL_MODEL_NAME}",
+  "adapter": "OpenAI-compatible ChatOpenAI",
+  "baseUrlVariable": "CONTROL_BASE_URL",
+  "apiKeyVariable": "CONTROL_API_KEY",
+  "modelNameVariable": "CONTROL_MODEL_NAME",
+  "temperature": 0,
+  "streaming": false,
+  "structuredOutput": "json_object",
+  "modelNativeToolCalling": false,
+  "context": { "totalTokens": 1000000, "maximumOutputTokens": 8192 },
+  "toolBoundary": { "transport": "FLOWISE_MCP_NODE_ONLY", "toolCount": 33, "contract": "contracts/mcp/hengzhun-i8.json", "url": "http://127.0.0.1:18789/mcp" },
+  "forbidden": ["plaintext_credentials", "filesystem", "shell", "sqlite_direct", "browser_direct", "project_source_edit"]
+}

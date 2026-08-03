@@ -1,0 +1,23 @@
+{
+  "schemaVersion": "hengzhun-i10-runtime-v1",
+  "supportMatrix": { "operatingSystems": ["Windows 10 x64", "Windows 11 x64"], "requiresNodeInstall": false, "requiresWsl": false, "requiresDocker": false },
+  "network": { "host": "127.0.0.1", "flowisePort": 3006, "harnessPort": 18788, "mcpPort": 18789 },
+  "paths": {
+    "nodeExecutable": "runtime/node-v20.20.2-win-x64/node.exe",
+    "flowiseApp": "flowise/app",
+    "flowiseData": ".data/flowise",
+    "harnessDatabase": ".data/sqlite/regression_platform.sqlite",
+    "flowiseAttachmentRoot": ".data/flowise-attachments",
+    "chromiumExecutable": "runtime/browsers/chromium-1217/chrome-win64/chrome.exe",
+    "ffmpegExecutable": "runtime/node_modules/@ffmpeg-installer/win32-x64/ffmpeg.exe"
+  },
+  "runtimeVariables": {
+    "controller": ["CONTROL_API_KEY", "CONTROL_BASE_URL", "CONTROL_MODEL_NAME"],
+    "vision": ["VISION_API_KEY", "VISION_BASE_URL", "VISION_MODEL_NAME", "VISION_MODEL_FAMILY"],
+    "internal": ["HENGZHUN_MCP_TOKEN", "HENGZHUN_WORKER_TOKEN"]
+  },
+  "intranetCapabilityGate": "flowise/i10/intranet-qwen35-capability-gate-v1.json",
+  "modelSecretsInPackage": false,
+  "fixedLocalPlatformLoginInPackage": true,
+  "runtimeConfigurationRule": "CONTROL_API_KEY, CONTROL_BASE_URL, VISION_API_KEY and VISION_BASE_URL remain blank until supplied after extraction. The fixed local Flowise UI login is a portable product setting and cannot access model or banking credentials."
+}

@@ -1,0 +1,44 @@
+{
+  "description": "衡准I8阶段6续办流：用户只表达按需、周期或一次性意图；主控LLM规范化时间并回显，人工确认后由MCP注入受控身份创建精确版本调度；新会话读取离线结果收件箱。",
+  "entryContract": {
+    "userTechnicalInputRequired": false,
+    "controllerStateRequired": ["preparationId"],
+    "acceptedNaturalLanguageExamples": ["现在运行一次", "每周一上午九点运行", "明天下午三点运行一次"],
+    "cronInputFromUserForbidden": true
+  },
+  "allowedSemantics": ["structured_llm", "condition", "human_input", "mcp_tool", "direct_reply"],
+  "forbiddenSemantics": ["code", "http", "database", "filesystem", "shell", "browser", "arbitrary_url"],
+  "normalizationContract": {
+    "schema": {
+      "executionChoice": {"enum": ["ON_DEMAND", "RECURRING", "ONE_TIME"]},
+      "timezone": {"const": "Asia/Shanghai"},
+      "cronExpression": {"type": ["string", "null"], "description": "仅RECURRING；五段Cron，由主控LLM生成而非用户填写"},
+      "runAt": {"type": ["string", "null"], "format": "date-time", "description": "仅ONE_TIME；必须含时区偏移"},
+      "misfirePolicy": {"enum": ["SKIP", "RUN_ONCE"]},
+      "misfireGraceSeconds": {"type": "integer", "minimum": 0, "maximum": 86400},
+      "maxRetries": {"type": "integer", "minimum": 0, "maximum": 5},
+      "echoText": {"type": "string"}
+    },
+    "defaults": {"timezone": "Asia/Shanghai", "misfirePolicy": "RUN_ONCE", "misfireGraceSeconds": 300, "maxRetries": 1},
+    "requiredEcho": ["executionChoice", "Asia/Shanghai时间", "cronExpression或runAt", "误触发策略", "宽限秒数", "重试次数", "精确脚本版本由Harness绑定"]
+  },
+  "nodes": [
+    {"id":"normalize","semantic":"structured_llm","temperature":0,"input":"{{$flow.input}}","schemaRef":"normalizationContract.schema","constraint":"只解释自然语言时间；不得要求用户填写Cron；歧义时停止并提问。"},
+    {"id":"onDemandGate","semantic":"condition","expression":"normalize.executionChoice == ON_DEMAND","trueRoute":"runSubmit","falseRoute":"scheduleConfirm"},
+    {"id":"runSubmit","semantic":"mcp_tool","tool":"run_submit","arguments":{"preparationId":"{{$state.preparationId}}","sessionRef":"{{$flow.sessionId}}"}},
+    {"id":"scheduleConfirm","semantic":"human_input","prompt":"{{normalize.echoText}}\n确认后才创建调度。","choices":["CONFIRM","CANCEL"]},
+    {"id":"scheduleCreateRecurring","semantic":"mcp_tool","tool":"schedule_create","condition":"scheduleConfirm == CONFIRM and normalize.executionChoice == RECURRING","arguments":{"preparationId":"{{$state.preparationId}}","scheduleType":"RECURRING","cronExpression":"{{normalize.cronExpression}}","timezone":"{{normalize.timezone}}","misfirePolicy":"{{normalize.misfirePolicy}}","misfireGraceSeconds":"{{normalize.misfireGraceSeconds}}","maxRetries":"{{normalize.maxRetries}}","confirmationRef":"{{$flow.sessionId}}","sessionRef":"{{$flow.sessionId}}"}},
+    {"id":"scheduleCreateOneTime","semantic":"mcp_tool","tool":"schedule_create","condition":"scheduleConfirm == CONFIRM and normalize.executionChoice == ONE_TIME","arguments":{"preparationId":"{{$state.preparationId}}","scheduleType":"ONE_TIME","runAt":"{{normalize.runAt}}","timezone":"{{normalize.timezone}}","misfirePolicy":"{{normalize.misfirePolicy}}","misfireGraceSeconds":"{{normalize.misfireGraceSeconds}}","maxRetries":"{{normalize.maxRetries}}","confirmationRef":"{{$flow.sessionId}}","sessionRef":"{{$flow.sessionId}}"}},
+    {"id":"scheduleGetRecurring","semantic":"mcp_tool","tool":"schedule_get","condition":"scheduleCreateRecurring.scheduleId exists","arguments":{"scheduleId":"{{scheduleCreateRecurring.scheduleId}}"}},
+    {"id":"scheduleGetOneTime","semantic":"mcp_tool","tool":"schedule_get","condition":"scheduleCreateOneTime.scheduleId exists","arguments":{"scheduleId":"{{scheduleCreateOneTime.scheduleId}}"}},
+    {"id":"inbox","semantic":"mcp_tool","tool":"result_inbox_list","condition":"{{$flow.sessionStarted}} == true","arguments":{"limit":20,"unreadOnly":true,"acknowledgeInboxIds":[]}},
+    {"id":"reply","semantic":"direct_reply","message":"返回按需任务或已确认调度的精确案例/计划/脚本版本；同时返回未读离线结果。不得宣称尚未终态的运行已经通过。"}
+  ],
+  "invariants": [
+    "ON_DEMAND不得调用schedule_create",
+    "schedule_create只能在人工确认后调用一次",
+    "RECURRING与ONE_TIME互斥",
+    "用户不接触credentialAlias、fixtureScope、caseVersion、planId、scriptId或scriptVersion",
+    "每个终态正式Run只生成一个(namespace,runId)收件箱条目"
+  ]
+}

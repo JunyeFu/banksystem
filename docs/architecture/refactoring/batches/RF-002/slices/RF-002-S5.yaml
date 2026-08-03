@@ -1,0 +1,107 @@
+schemaVersion: 1
+id: RF-002-S5
+title: 生产切流、观察与批次关闭
+status: PROPOSED
+owner: project-owner
+authorizedBy: agent/plans/active/v54-implementation-batches.md (L1全景已批准, RF-002)
+parentBatch: docs/architecture/refactoring/batches/RF-002/batch.yaml
+targetDesign: docs/architecture/refactoring/batches/RF-002/target-design.md (v2.0 已批准)
+baseline:
+  gitCommit: a6d9776（RF-002 分支，S1-S4 已完成）
+  releaseIdentity: 632ad5ee7981b59f00824d0072d28da6075eef095d55a898d51c0103a897988f
+  environment: 正式环境运行中（Flowise 3006/Harness 18788/MCP 18789/Worker，RF-001 切流后状态；生产 Harness 仍为 S2 前 dist，MCP 仍为 S3 前代码）
+
+# 单业务目标：把 RF-002 全部变更（S2 Harness 状态契约 + S3 MCP 收敛 + S4 条件写退场）
+# 通过受管重启上线生产，实时探测验证，观察收口后关闭批次并解禁 RF-003。
+# 单功能点：生产切流、观察与批次关闭。
+businessGoal:
+  - 生产切流：受管 stop → start（start-i10.ps1：新 dist Harness + 新 MCP + 模型探针 + 发布回读）
+  - 生产实时探测：task_get/schedule_get 未知路径返回规范 8 字段信封；schedule_get 拒绝 action 参数（DISABLE 已退场）；verification_get 规范信封；错误码保留
+  - 观察：身份 632ad5ee、18 链 18/18、发布回读三项 Hash 一致、四服务健康
+  - 回退通道：git 恢复 + 受管重启（RF-001 软回退开关保持可用）
+  - 批次关闭：batch.yaml PROPOSED→CLOSED；v54 RF-002 条目更新；backlog RF-002 DONE；RF-003 解禁登记；L2 衔接点 C1/C5 生效
+functionalPoint: 生产切流与批次关闭（RUNTIME）
+evidenceLevel: RUNTIME_CUTOVER + RUNTIME_OBSERVE
+
+allowedPaths:
+  - docs/architecture/refactoring/batches/RF-002/batch.yaml（status → CLOSED）
+  - docs/architecture/refactoring/batches/RF-002/**（decision-log/evidence-index/verification-plan/cutover-runbook/rollback-runbook 收口）
+  - docs/architecture/refactoring/l2-batch-preplan.md（C1/C5 生效登记）
+  - agent/plans/active/v54-implementation-batches.md（RF-002 条目更新，用户已批准本切片）
+  - agent/backlog.yaml（RF-002 DONE，用户已批准本切片）
+  - 生产环境受管操作：stop/start/实时探测（用户授权）
+
+forbiddenPaths:
+  - 运行时代码零改动（mcp/harness/flowise/worker/contracts 冻结）；SQLite 迁移；新功能
+  - scripts/architecture/**（校验器只读）；生产 DB 直接写入
+
+budgets:
+  maxChangedFiles: 10
+  maxNewFiles: 0
+  maxChangedLines: 200
+  maxContractsChanged: 0
+  maxMigrationsAdded: 0
+  maxOpenModules: 0
+
+invariants:
+  - 切流只经受管命令（stop/start-i10.ps1）；不伪造观察证据
+  - 任何探测失败即暂停关闭并如实记录（批次保持 PROPOSED）
+  - 密钥不输出；生产 DB 不直写
+
+workSteps:
+  - step: S5-1 预检
+    action: 全聚焦 56/56 复跑、身份复算、18 链账本、四服务健康确认（记录切流前状态）
+  - step: S5-2 生产切流
+    action: 受管 stop → start-i10.ps1（新 dist Harness 加载 G1/G2/G3/G1.1；新 MCP 加载 S3 收敛+S4 退场）；确认四服务健康、模型探针 mock=false、发布回读三项 Hash 与基线一致
+  - step: S5-3 生产实时探测
+    action: task_get 未知（规范信封+errorCode）；schedule_get 未知（规范信封+纯读）；schedule_get 带 action 参数（schema 拒绝——DISABLE 已退场）；verification_get 无参（规范信封）；candidate_get 未知（规范信封+编译分支保留）
+  - step: S5-4 观察与身份
+    action: 身份 632ad5ee、18 链 18/18、影子快照（生产保持关闭）、观察记录
+  - step: S5-5 批次关闭
+    action: batch.yaml PROPOSED→CLOSED（validate_refactoring PASS）；v54 RF-002 条目（CLOSED+RF-003 解禁）；backlog RF-002 DONE；L2 C1/C5 生效登记
+  - step: S5-6 RC-D1 同步与提交
+    action: decision-log 条目 10、evidence-index、cutover/rollback runbook 收口、任务包；提交
+
+verification:
+  requiredCommands:
+    - name: preflight-focused
+      command: runtime/node-v20.20.2-win-x64/node.exe --test scripts/verification/rf001-*.cjs scripts/verification/rf002-*.cjs（全聚焦）
+      expectedExitCode: 0
+      expectedOutput: 56 passed / 0 failed
+      blocking: true
+    - name: production-cutover
+      command: 受管 stop + start-i10.ps1
+      expectedExitCode: 0
+      expectedOutput: 四服务健康、探针 mock=false、回读三项 Hash 一致
+      blocking: true
+    - name: production-probes
+      command: 生产 MCP 实时探测（task_get/schedule_get/action 拒绝/verification_get/candidate_get）
+      expectedExitCode: 0
+      expectedOutput: 全部规范信封+错误码保留+schedule_get 纯读+action 拒绝
+      blocking: true
+    - name: runtime-release-identity / 18chain
+      command: i10-release-identity.cjs + i10-18-chain-acceptance-live.cjs status
+      expectedExitCode: 0
+      expectedOutput: identityHash=632ad5ee…、18/18
+      blocking: true
+    - name: refactoring-contracts / rf001-mcp-boundary-contract / documentation
+      command: python scripts/architecture/validate_refactoring.py && python scripts/architecture/validate_rf001_contract.py && python scripts/docs/validate_docs.py
+      expectedExitCode: 0
+      expectedOutput: 三者PASS（含 batch CLOSED 状态）
+      blocking: true
+    - name: whitespace
+      command: git diff --check
+      expectedExitCode: 0
+      blocking: false
+
+rollback:
+  triggerConditions: 生产探测异常（信封/错误码/行为漂移）；身份或 18 链变化；发布回读不一致
+  recoveryPoint: a6d9776 + RF-002 baseline；git 恢复旧代码 + 受管重启（硬回退）；RF-001 LEGACY_ERROR 软回退保持
+  maxRtoMinutes: 30
+  maxRpoMinutes: 0
+
+exclusions: RF-003（解禁登记，不启动）；任何新功能/代码变更
+
+risks:
+  - 生产重启中断观察中的正式会话（Flowise 会话状态持久化，重启恢复由产品受管命令处理——RF-001-B4-S4 已验证同路径）
+  - 生产 DB 中可能存在的历史 DISABLE 调度无需迁移（schedule_disable 独立工具覆盖停用路径）

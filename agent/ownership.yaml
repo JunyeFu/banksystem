@@ -1,0 +1,32 @@
+schemaVersion: 2
+project: banksystem
+mode: single-developer-with-logical-review-domains
+owner: 傅钧烨
+
+domains:
+  governance:
+    paths: [AGENTS.md, agent/**, docs/workflows/**, docs/current-state/**]
+    requiredReview: [scope, evidence, status-consistency]
+  contracts:
+    paths: [contracts/**, docs/api/**, docs/design/frontend/frontend-backend-contract-matrix.md]
+    requiredReview: [backward-compatibility, examples, producer-consumer-tests]
+  frontend:
+    paths: [apps/**, packages/bank-ui-kit/**, packages/bank-api-client/**, packages/bank-domain-types/**, docs/design/frontend/**]
+    forbidden: [services/**/db/**, data/**, secrets/**]
+    requiredReview: [accessibility, contract-alignment, visual-regression]
+  banking-backend:
+    paths: [services/bank-channel-service/**, services/mock-clearing-service/**]
+    forbidden: [apps/**, data/**, secrets/**]
+    requiredReview: [money-invariants, idempotency, audit, reconciliation, security]
+  platform:
+    paths: [infra/**, compose*.yaml, scripts/deploy/**, scripts/recovery/**]
+    requiredReview: [localhost-isolation, immutable-images, secrets, rollback]
+  testing:
+    paths: [tests/**, scripts/test/**, contracts/fixtures/**, docs/evidence/**]
+    requiredReview: [determinism, isolation, evidence-integrity]
+
+crossDomainRules:
+  - Cross-domain changes must list every affected domain in the work item.
+  - Money changes require banking-backend and testing review evidence.
+  - Contract changes require frontend and backend compatibility verification.
+  - Security or deployment changes require explicit rollback evidence.

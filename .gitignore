@@ -1,2 +1,42 @@
 # Local core database backups and restore artefacts are never committed.
 backups/
+
+# Machine-local deployment secrets. Generate with scripts/deploy/generate-secrets.ps1.
+.env
+.env.*.local
+**/.env
+**/.env.*.local
+secrets/
+!secrets/.gitkeep
+
+# Docker database volumes and local runtime output are machine-specific.
+data/
+logs/
+*.log
+
+# Dependency caches and local build output are reproducible artifacts.
+**/node_modules/
+**/dist/
+**/storybook-static/
+**/target/
+*.tsbuildinfo
+
+# Generated knowledge, agent runtime, and local deliverables are reproducible or machine-local.
+rag/index/
+rag/eval/reports/*.json
+agent/runs/
+deliverables/
+**/.data/
+
+# Third-party binary originals stay local; extracted reviewed text may be committed.
+knowledge-sources/raw/
+nodejs20-midscene/
+
+# Browser and worker runtime artifacts.
+output/playwright/
+**/playwright-report/
+**/test-results/
+**/traces/
+**/storage-state*.json
+**/__pycache__/
+*.pyc

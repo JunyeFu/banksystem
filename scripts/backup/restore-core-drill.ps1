@@ -8,5 +8,22 @@ try{
   docker cp (Join-Path $BackupRoot 'fineract_default.dump') "${name}:/tmp/fineract_default.dump"
   docker exec $name pg_restore -U postgres -d fineract_default /tmp/fineract_default.dump
   $tables=docker exec $name psql -U postgres -d fineract_default -Atc "SELECT count(*) FROM information_schema.tables WHERE table_schema='public';"
-  Write-Output "restore=PASS public_tables=$tables"
+
+  $clientCount=docker exec $name psql -U postgres -d fineract_default -Atc "SELECT count(*) FROM m_client WHERE is_deleted=0;" 2>$null
+  if([string]::IsNullOrWhiteSpace($clientCount)){$clientCount="0"}
+
+  $savingsCount=docker exec $name psql -U postgres -d fineract_default -Atc "SELECT count(*) FROM m_savings_account WHERE is_deleted=0;" 2>$null
+  if([string]::IsNullOrWhiteSpace($savingsCount)){$savingsCount="0"}
+
+  $loanCount=docker exec $name psql -U postgres -d fineract_default -Atc "SELECT count(*) FROM m_loan WHERE is_deleted=0;" 2>$null
+  if([string]::IsNullOrWhiteSpace($loanCount)){$loanCount="0"}
+
+  $journalBalance=docker exec $name psql -U postgres -d fineract_default -Atc "SELECT COALESCE(sum(amount),0) FROM acc_gl_journal_entry WHERE is_reversed=0 AND transaction_date IS NOT NULL;" 2>$null
+  if([string]::IsNullOrWhiteSpace($journalBalance)){$journalBalance="0"}
+
+  Write-Output "restore=PASS public_tables=$($tables.Trim())"
+  Write-Output "invariant_clients=$($clientCount.ToString().Trim())"
+  Write-Output "invariant_savings_accounts=$($savingsCount.ToString().Trim())"
+  Write-Output "invariant_loans=$($loanCount.ToString().Trim())"
+  Write-Output "invariant_journal_sum=$($journalBalance.ToString().Trim())"
 }finally{docker rm -f $name|Out-Null}

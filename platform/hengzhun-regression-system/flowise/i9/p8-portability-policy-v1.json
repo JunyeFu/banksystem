@@ -1,0 +1,94 @@
+{
+  "schemaVersion": "hengzhun-i9-p8-portability-policy-v1",
+  "candidateName": "hengzhun-regression-system-windows-x64-p8",
+  "finalExportName": "hengzhun-regression-system-windows-x64",
+  "platform": "win32-x64",
+  "sourceCommitRequired": true,
+  "trackedPrefixes": [
+    "config",
+    "contracts",
+    "flowise/i8",
+    "flowise/i9",
+    "flowise/manifests",
+    "harness/migrations",
+    "harness/src",
+    "mcp/src",
+    "worker/src"
+  ],
+  "trackedFiles": [
+    "package.json",
+    "package-lock.json",
+    "tsconfig.json",
+    "flowise/runtime-package.json",
+    "flowise/runtime-package-lock.json",
+    "scripts/prepare-i2.ps1",
+    "scripts/prepare-i9.ps1",
+    "scripts/import-i9-runtime-env.ps1",
+    "scripts/apply-i9-flowise-overlays.cjs",
+    "scripts/assert-i9-ports-free.ps1",
+    "scripts/i9-lifecycle.cjs",
+    "scripts/start-i9.ps1",
+    "scripts/status-i9.ps1",
+    "scripts/stop-i9.ps1",
+    "scripts/i9-platform-bootstrap.cjs",
+    "scripts/bootstrap-i9-stage3.ps1",
+    "scripts/i9-agentflow-publish.cjs",
+    "scripts/create-sqlite-backup.cjs",
+    "scripts/i9-sqlite-snapshot.cjs",
+    "scripts/backup-i9.ps1",
+    "scripts/restore-i9.ps1",
+    "scripts/i9-stage8-portable.cjs",
+    "scripts/i9-stage8-machine-acceptance.cjs"
+  ],
+  "runtimeTrees": [
+    "dist",
+    "node_modules",
+    "flowise/app",
+    "runtime/node-v20.20.2-win-x64",
+    "runtime/browsers",
+    "runtime/node_modules"
+  ],
+  "emptyRuntimeDirectories": [
+    ".data/sqlite/backups",
+    ".data/artifacts",
+    ".data/evidence",
+    ".data/logs",
+    ".data/runtime",
+    ".data/worker",
+    "acceptance/machine-records"
+  ],
+  "forbiddenPathSegments": [
+    ".git",
+    ".env",
+    "probes",
+    "tests",
+    "coze",
+    "agent",
+    "rag",
+    "deliverables"
+  ],
+  "forbiddenFilePatterns": [
+    "runtime.env",
+    "*.sqlite",
+    "*.sqlite-wal",
+    "*.sqlite-shm",
+    "*.log",
+    "*.pid",
+    "*.har",
+    "*storage-state*",
+    "*storageState*"
+  ],
+  "secretContentPatterns": [
+    "(?:^|[^A-Za-z0-9])sk-[A-Za-z0-9_-]{16,}",
+    "-----BEGIN (?:RSA |EC |OPENSSH )?PRIVATE KEY-----",
+    "Bearer\\s+[A-Za-z0-9._-]{24,}"
+  ],
+  "absolutePathPatterns": [
+    "[A-Za-z]:\\\\Users\\\\",
+    "D:\\\\Agent\\\\banksystem"
+  ],
+  "mutableFilePrefixes": [
+    ".data/",
+    "acceptance/machine-records/"
+  ]
+}

@@ -1,0 +1,70 @@
+databaseChangeLog:
+  - changeSet:
+      id: v3-p2-3-outbox-rename-table
+      author: P2-3
+      preConditions:
+        - onFail: HALT
+        - tableExists:
+            tableName: transfer_outbox
+      changes:
+        - renameTable:
+            oldTableName: transfer_outbox
+            newTableName: outbox_event
+        - renameColumn:
+            tableName: outbox_event
+            oldColumnName: event_id
+            newColumnName: id
+            columnDataType: uuid
+        - renameColumn:
+            tableName: outbox_event
+            oldColumnName: occurred_at
+            newColumnName: created_at
+            columnDataType: timestamptz
+  - changeSet:
+      id: v3-p2-3-outbox-v4-columns
+      author: P2-3
+      changes:
+        - addColumn:
+            tableName: outbox_event
+            columns:
+              - column:
+                  name: aggregate_type
+                  type: varchar(64)
+                  defaultValue: Transfer
+                  constraints: { nullable: false }
+              - column: { name: aggregate_id, type: uuid }
+              - column:
+                  name: event_version
+                  type: integer
+                  defaultValueNumeric: 1
+                  constraints: { nullable: false }
+              - column:
+                  name: headers
+                  type: jsonb
+                  defaultValueComputed: "'{}'::jsonb"
+                  constraints: { nullable: false }
+              - column:
+                  name: status
+                  type: varchar(32)
+                  defaultValue: PENDING
+                  constraints: { nullable: false }
+        - sql:
+            splitStatements: false
+            sql: |
+              UPDATE outbox_event
+              SET aggregate_id = transfer_id,
+                  status = CASE WHEN published_at IS NULL THEN 'PENDING' ELSE 'PUBLISHED' END;
+              ALTER TABLE outbox_event
+                ALTER COLUMN aggregate_id SET NOT NULL,
+                ALTER COLUMN payload TYPE jsonb USING payload::jsonb;
+  - changeSet:
+      id: v3-p2-3-outbox-v4-index
+      author: P2-3
+      changes:
+        - createIndex:
+            tableName: outbox_event
+            indexName: idx_outbox_dispatch
+            columns:
+              - column: { name: status }
+              - column: { name: next_attempt_at }
+              - column: { name: created_at }

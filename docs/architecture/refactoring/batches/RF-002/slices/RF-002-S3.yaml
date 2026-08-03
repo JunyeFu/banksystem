@@ -1,0 +1,113 @@
+schemaVersion: 1
+id: RF-002-S3
+title: MCP 状态推断收敛（删除硬编码终止集合与跨端点投影，gate 展示字段扩展）
+status: PROPOSED
+owner: project-owner
+authorizedBy: agent/plans/active/v54-implementation-batches.md (L1全景已批准, RF-002)
+parentBatch: docs/architecture/refactoring/batches/RF-002/batch.yaml
+targetDesign: docs/architecture/refactoring/batches/RF-002/target-design.md (v2.0, G1/G2/G3)
+baseline:
+  gitCommit: c1ea9fa（RF-002 分支，S2 已完成）
+  releaseIdentity: 632ad5ee7981b59f00824d0072d28da6075eef095d55a898d51c0103a897988f
+
+# 单业务目标：MCP 不再持有业务状态推断——task_get/candidate_get 删除硬编码
+# 终止集合与跨端点 verification:get 投影，改用 Harness 显式契约（terminal/
+# verificationGate）驱动轮询与展示。输出形状保持 v7 兼容（Flowise 冻结）。
+# 单功能点：MCP 状态推断收敛（+ gate 展示字段扩展）。
+businessGoal:
+  - G1.1：verificationGate 扩展展示字段 version/verificationType/userPreparation（只读，S2 已冻结的 4 字段不变，纯增量）
+  - G3-MCP：task_get 删除硬编码 terminal Set 与 withVerification 二次调用；轮询终止 = body.terminal；无 gate 直接返回 Harness body
+  - G2-MCP：candidate_get 删除硬编码 terminalActions Set 与 verification 投影；轮询终止 = body.terminal
+  - 展示投影（冻结映射，非推断）：gate 存在 → 输出 status:'WAITING_USER'、nextAction:'HUMAN_VERIFICATION_REQUIRED'、verification:{challengeId,status,version,verificationType,userPreparation}（全部来自 gate 字段映射，零跨端点调用）
+  - v7 兼容：output.status/nextAction/verification.* 消费面不变（agentflow 冻结）
+  - 聚焦回归 + 隔离运行态验证；身份 632ad5ee 不变
+
+# 决策点（S3 实现前用户确认；RC-D1 登记的事实冲突）
+decisionPoint:
+  - id: DP-S3-1
+    subject: target-design G1 原述"不再调用 verification:get"与 v7 消费 verification.version/verificationType/userPreparation 冲突（gate 4 字段不足）
+    options:
+      - A（推荐）: gate 扩展展示字段（G1.1）→ MCP 零跨端点调用，v7 兼容，收敛最彻底
+      - B: MCP 保留"仅 gate 存在时的单次 verification:get"展示调用（跨端点降频但未删除）
+      - C: 简化 verification 输出（v7 的 version/type/preparation 变 undefined，Flowise 分支有断裂风险）
+    recommendation: A
+
+allowedPaths:
+  - platform/hengzhun-regression-system/harness/src/service.ts   # G1.1 gate 展示字段扩展（两处 SELECT+映射）
+  - platform/hengzhun-regression-system/mcp/src/server.cjs        # task_get/candidate_get 收敛
+  - platform/hengzhun-regression-system/scripts/verification/rf002-s2-state-contract.test.cjs   # gate 字段断言更新
+  - platform/hengzhun-regression-system/scripts/verification/rf002-s3-mcp-convergence.test.cjs   # 【新增】MCP 收敛测试（隔离运行态）
+  - docs/architecture/refactoring/batches/RF-002/**（decision-log/evidence-index/state-contract-baseline/target-design 补充）
+  - platform/hengzhun-regression-system/.data/tests/rf002-s3/**    # 隔离产物，用完清理
+
+forbiddenPaths:
+  - flowise/**、worker/**、contracts/**（v7 与公开合同冻结）
+  - 生产进程/DB 操作（验证用隔离运行态）；SQLite 表结构/迁移；切流
+  - agent/backlog.yaml, agent/plans/active/v54-implementation-batches.md
+  - scripts/architecture/**（校验器只读）
+
+budgets:
+  maxChangedFiles: 8
+  maxNewFiles: 2
+  maxChangedLines: 500
+  maxContractsChanged: 0
+  maxMigrationsAdded: 0
+  maxOpenModules: 2（hengzhun.mcp + hengzhun.harness）
+
+invariants:
+  - 展示投影为冻结映射（gate→WAITING_USER/HUMAN_VERIFICATION_REQUIRED/verification 对象），无分支推断、无跨端点、无状态写
+  - 轮询语义由 Harness terminal 字段驱动；waitFor* 参数保持
+  - 输出形状 v7 兼容（不满足则切片失败）
+  - 不读取/输出任何密钥与凭据
+
+workSteps:
+  - step: S3-1 G1.1 gate 展示字段扩展
+    action: harness/src/service.ts 两处 verificationGate SELECT 增加 version/verification_type/user_preparation 并映射输出（challengeId/status/kind/resumeAllowed 不变）
+  - step: S3-2 task_get 收敛
+    action: server.cjs 删除 terminal Set 与 withVerification；轮询终止=body.terminal；无 gate 直接返回；有 gate 输出展示投影（verification 从 gate 字段映射）
+  - step: S3-3 candidate_get 收敛
+    action: 删除 terminalActions Set 与超时 verification 投影；轮询终止=body.terminal；展示投影同 S3-2
+  - step: S3-4 测试
+    action: S2 测试 gate 字段断言更新（+3 字段）；新增 rf002-s3-mcp-convergence.test.cjs（隔离运行态：带 gate 任务/候选 → 断言输出 status/nextAction/verification.* 且无 verification:get 二次调用；无 gate 直通）
+  - step: S3-5 验证
+    action: 新测试 + 全聚焦回归 + 校验器×3 + git diff --check + 身份复算 + dist 重建
+  - step: S3-6 RC-D1 同步
+    action: target-design 补充 G1.1 与 DP-S3-1 记录；state-contract-baseline 更新；decision-log 条目 8；evidence-index；L2 衔接点 C1 保持
+
+verification:
+  requiredCommands:
+    - name: rf002-s3-mcp-convergence
+      command: runtime/node-v20.20.2-win-x64/node.exe --test scripts/verification/rf002-s3-mcp-convergence.test.cjs
+      expectedExitCode: 0
+      expectedOutput: 展示投影正确、无 verification:get 二次调用、无 gate 直通
+      blocking: true
+    - name: rf002-focused-tests
+      command: runtime/node-v20.20.2-win-x64/node.exe --test scripts/verification/rf001-*.cjs scripts/verification/rf002-*.cjs（全聚焦）
+      expectedExitCode: 0
+      expectedOutput: 全部通过（含 S2 gate 断言更新与 S1 A3/A4 锚点翻转）
+      blocking: true
+    - name: refactoring-contracts / rf001-mcp-boundary-contract / documentation
+      command: python scripts/architecture/validate_refactoring.py && python scripts/architecture/validate_rf001_contract.py && python scripts/docs/validate_docs.py
+      expectedExitCode: 0
+      blocking: true
+    - name: runtime-release-identity
+      command: runtime/node-v20.20.2-win-x64/node.exe scripts/i10-release-identity.cjs
+      expectedExitCode: 0
+      expectedOutput: identityHash=632ad5ee…
+      blocking: true
+    - name: whitespace
+      command: git diff --check
+      expectedExitCode: 0
+      blocking: false
+
+rollback:
+  triggerConditions: v7 消费面断裂（output.status/verification.* 形状变化）；展示投影非冻结映射；身份变化
+  recoveryPoint: c1ea9fa + RF-002 baseline；回滚 server.cjs 两工具与 gate 扩展
+  maxRtoMinutes: 30
+  maxRpoMinutes: 0
+
+exclusions: S4（条件写收口）、S5（切流关闭）；flowise/worker/contracts 改动；生产操作
+
+risks:
+  - S1 A3/A4 锚点（MCP 硬编码集合存在断言）在 S3 落地后需翻转——更新 rf002-s1 测试
+  - 展示投影的 status:'WAITING_USER' 映射需在切片中明确为冻结映射（非推断），并经合同测试锁定

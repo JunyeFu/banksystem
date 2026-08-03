@@ -1,0 +1,110 @@
+schemaVersion: 1
+id: RF-005-S2
+title: case_prepare 单路由实现与错误码改名（R1/R2/R3 + DP-R5-1）
+status: PROPOSED
+owner: project-owner
+authorizedBy: agent/plans/active/v54-implementation-batches.md (L1全景, RF-005)
+parentBatch: docs/architecture/refactoring/batches/RF-005/batch.yaml
+targetDesign: docs/architecture/refactoring/batches/RF-005/target-design.md (v1.0 已批准, R1/R2/R3 + DP-R5-1)
+baseline:
+  gitCommit: 38582a7（RF-005 分支，S1 已完成）
+  releaseIdentity: 632ad5ee7981b59f00824d0072d28da6075eef095d55a898d51c0103a897988f
+
+# 单业务目标：case_prepare 单路由化（仅 i10）——删除 i8 路由分支与 I8 草案入口
+# （draftArray/acceptanceSummaryJson/multimodalContextJson），draftJson 别名保留
+# （v7 实际消费）；错误码按 DP-R5-1 改名/删除；边界合同 aliases 13→10；断言联动。
+# 单功能点：case_prepare 单路由实现（R1/R2/R3）。
+businessGoal:
+  - R1：适配器 normalizeCasePrepareRequest 删 draftArray 分支与 multimodalContextJson 合并；server.cjs case_prepare 删 i8 路由分支（无条件 i10 + normalizeI10NaturalDraft）；schema 移除三输入
+  - DP-R5-1：I8_DRAFT_JSON_INVALID → I10_CASE_DRAFT_INVALID；I8_ACCEPTANCE_JSON_INVALID 随 normalizeCaseAcceptanceSummary 删除
+  - R2：边界合同 case_prepare aliases 4→1（仅 draftJson→draft）、canonicalRequest 更新（aliases 13→10 动态）
+  - R3：matrix 登记（改名/删除/新码 I10_CASE_DRAFT_INVALID）；B3-S3 别名样本更新；S1 C1/C2/C4 锚点翻转；B4-S1 清单联动（corpus 自动一致）
+  - 隔离运行态：case_prepare i10 路径真实调用（草案提交成功）
+  - 聚焦回归 + 身份 632ad5ee 不变
+functionalPoint: case_prepare 单路由实现
+evidenceLevel: CONTRACT + 隔离运行态验证
+
+allowedPaths:
+  - platform/hengzhun-regression-system/mcp/src/rf001-contract-adapter.cjs   # 单路由 + 改名
+  - platform/hengzhun-regression-system/mcp/src/server.cjs                    # case_prepare 收敛
+  - platform/hengzhun-regression-system/scripts/verification/rf001-b3s3-aliases.test.cjs   # 别名样本更新
+  - platform/hengzhun-regression-system/scripts/verification/rf005-s1-dual-route-baseline.test.cjs   # 锚点翻转
+  - platform/hengzhun-regression-system/scripts/verification/rf005-s2-single-route.test.cjs   # 【新增】
+  - docs/architecture/refactoring/batches/RF-001/mcp-boundary-contract-v1.json   # case_prepare aliases 更新
+  - docs/architecture/refactoring/batches/RF-001/field-error-adapter-matrix.md   # 错误码登记
+  - docs/architecture/refactoring/batches/RF-005/**（decision-log/evidence-index/contract-delta）
+  - platform/hengzhun-regression-system/.data/tests/rf005-s2/**   # 隔离产物，用完清理
+
+forbiddenPaths:
+  - harness/**（/v1/i8/cases:prepare 端点保留为历史端点，仅 MCP 不再调用；本切片零 Harness 改动）
+  - flowise/**、worker/**；contracts/mcp/hengzhun-i8.json
+  - 生产进程/DB 操作；SQLite 迁移；切流
+  - agent/backlog.yaml, agent/plans/active/v54-implementation-batches.md
+  - scripts/architecture/**（校验器只读）
+
+budgets:
+  maxChangedFiles: 10
+  maxNewFiles: 1
+  maxChangedLines: 500
+  maxContractsChanged: 1（mcp-boundary-contract-v1.json case_prepare）
+  maxMigrationsAdded: 0
+  maxOpenModules: 1（hengzhun.mcp）
+
+invariants:
+  - 33 工具名不变（case_prepare 保留）；draftJson 别名保留（v7 消费）
+  - 平铺草案字段（caseTitle 等）保留（i10 草案构造输入，v7 未用但为公开输入面）
+  - 错误码改名不改变失败关闭语义；新码入 matrix（B4-S1 corpus 文档化）
+  - 不读取/输出任何密钥与凭据
+
+workSteps:
+  - step: S2-1 适配器单路由
+    action: normalizeCasePrepareRequest 删 draftArray 分支与 multimodal 合并；I8_DRAFT_JSON_INVALID → I10_CASE_DRAFT_INVALID；删 normalizeCaseAcceptanceSummary（含 I8_ACCEPTANCE_JSON_INVALID）
+  - step: S2-2 server.cjs 收敛
+    action: case_prepare schema 移除 draftArray/acceptanceSummaryJson/multimodalContextJson；handler 删 i8 路由分支（无条件 normalizeI10NaturalDraft + /v1/i10/cases:prepare）；normalizeCaseAcceptanceSummary import 移除
+  - step: S2-3 合同与 matrix
+    action: 边界合同 case_prepare aliases → 仅 draftJson、canonicalRequest 更新（13→10）；matrix 登记 I10_CASE_DRAFT_INVALID 新码与 I8_* 退场/改名
+  - step: S2-4 测试联动
+    action: B3-S3 别名样本更新（删 draftArray/acceptanceSummaryJson/multimodalContextJson 样本，保留 draftJson）；S1 C1/C2/C4 锚点翻转；新增 rf005-s2-single-route.test.cjs（静态 + 适配器单测新码名 + 隔离运行态 i10 路径）
+  - step: S2-5 验证
+    action: 新测试 + 全聚焦回归（80→N）+ 校验器×3 + git diff --check + 身份复算
+  - step: S2-6 RC-D1 同步与提交
+    action: contract-delta（R1/R2/R3 已实现）、decision-log 条目 3、evidence-index、任务包
+
+verification:
+  requiredCommands:
+    - name: rf005-s2-single-route
+      command: runtime/node-v20.20.2-win-x64/node.exe --test scripts/verification/rf005-s2-single-route.test.cjs
+      expectedExitCode: 0
+      expectedOutput: 单路由、新码名、i10 路径全过
+      blocking: true
+    - name: rf004-focused-tests
+      command: runtime/node-v20.20.2-win-x64/node.exe --test scripts/verification/rf001-*.cjs scripts/verification/rf002-*.cjs scripts/verification/rf003-*.cjs scripts/verification/rf004-*.cjs scripts/verification/rf005-*.cjs（全聚焦）
+      expectedExitCode: 0
+      expectedOutput: 全部通过（含锚点翻转与别名样本更新）
+      blocking: true
+    - name: refactoring-contracts / rf001-mcp-boundary-contract / documentation
+      command: python scripts/architecture/validate_refactoring.py && python scripts/architecture/validate_rf001_contract.py && python scripts/docs/validate_docs.py
+      expectedExitCode: 0
+      expectedOutput: 三者PASS（aliases 动态 10）
+      blocking: true
+    - name: runtime-release-identity
+      command: runtime/node-v20.20.2-win-x64/node.exe scripts/i10-release-identity.cjs
+      expectedExitCode: 0
+      expectedOutput: identityHash=632ad5ee…
+      blocking: true
+    - name: whitespace
+      command: git diff --check
+      expectedExitCode: 0
+      blocking: true
+
+rollback:
+  triggerConditions: v7 回归（i10 路由断裂）；错误码改名漂移；身份变化；越出 allowedPaths
+  recoveryPoint: 38582a7 + RF-005 baseline；回滚适配器/server/合同/测试
+  maxRtoMinutes: 30
+  maxRpoMinutes: 0
+
+exclusions: S3（生产切流关闭）；harness/flowise/worker 改动
+
+risks:
+  - draftJson 携带旧 i8 草案形状（无 i10 schemaVersion）时，单路由仍可经 normalizeI10NaturalDraft 归一化（S2-2 验证）
+  - aliases 13→10 为动态计数，validate_rf001_contract 无硬编码（已核实）

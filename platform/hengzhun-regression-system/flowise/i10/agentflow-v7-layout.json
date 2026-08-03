@@ -1,0 +1,1547 @@
+{
+  "schemaVersion": "hengzhun-i10-agentflow-layout-v7",
+  "derivedFrom": "flowise/i10/agentflow-v4-layout.json",
+  "nodes": [
+    {
+      "id": "startAgentflow_i10_v3",
+      "position": {
+        "x": -776.7401141511054,
+        "y": 284.5794924623954
+      }
+    },
+    {
+      "id": "llmAgentflow_i10_v3_classify",
+      "position": {
+        "x": -130.56530575205332,
+        "y": 603.0488141614373
+      }
+    },
+    {
+      "id": "conditionAgentflow_i10_v3_route_resume",
+      "position": {
+        "x": 601.8519149558686,
+        "y": 595.6408352835069
+      }
+    },
+    {
+      "id": "toolAgentflow_i10_v3_resume",
+      "position": {
+        "x": 1202.5314565698795,
+        "y": 387.02612136403064
+      }
+    },
+    {
+      "id": "conditionAgentflow_i10_v3_credential_session_empty",
+      "position": {
+        "x": 371.73548611848526,
+        "y": 230.4881289224695
+      }
+    },
+    {
+      "id": "toolAgentflow_i10_v3_credential_refresh",
+      "position": {
+        "x": 313.78594537812256,
+        "y": 72.60158281033739
+      }
+    },
+    {
+      "id": "llmAgentflow_i10_v3_structure",
+      "position": {
+        "x": 1402.2582721733156,
+        "y": -213.8928162501968
+      }
+    },
+    {
+      "id": "customFunctionAgentflow_i10_v3_normalize",
+      "position": {
+        "x": 1640.9449481917727,
+        "y": -209.43766843594798
+      }
+    },
+    {
+      "id": "toolAgentflow_i10_v3_prepare",
+      "position": {
+        "x": 1919.3951244548816,
+        "y": -216.21405462187738
+      }
+    },
+    {
+      "id": "conditionAgentflow_i10_v3_needs_input",
+      "position": {
+        "x": 3357.240453941188,
+        "y": -371.77935990856076
+      }
+    },
+    {
+      "id": "customFunctionAgentflow_i10_v3_inspect_missing",
+      "position": {
+        "x": 702.1421351451004,
+        "y": 281.28496330179473
+      }
+    },
+    {
+      "id": "conditionAgentflow_i10_v3_needs_credential",
+      "position": {
+        "x": 1056.7562533240305,
+        "y": 220.96372247634608
+      }
+    },
+    {
+      "id": "toolAgentflow_i10_v3_credential_create",
+      "position": {
+        "x": 2220.9449194234567,
+        "y": -9.209433304971299
+      }
+    },
+    {
+      "id": "directReplyAgentflow_i10_v3_credential",
+      "position": {
+        "x": 2512.0629946282306,
+        "y": 6.6645774385678465
+      }
+    },
+    {
+      "id": "conditionAgentflow_i10_v3_awaiting_user",
+      "position": {
+        "x": 1953.6378603339913,
+        "y": 324.44723008190954
+      }
+    },
+    {
+      "id": "humanInputAgentflow_i10_v3_decision",
+      "position": {
+        "x": 2581.9086418998027,
+        "y": -362.8974351133346
+      }
+    },
+    {
+      "id": "toolAgentflow_i10_v3_approve",
+      "position": {
+        "x": 3348.2833169344044,
+        "y": -40.333776194041604
+      }
+    },
+    {
+      "id": "toolAgentflow_i10_v3_reject",
+      "position": {
+        "x": 2729.1968979363787,
+        "y": 130.77803132643572
+      }
+    },
+    {
+      "id": "directReplyAgentflow_i10_v3_card",
+      "position": {
+        "x": 1525.8236657945617,
+        "y": 449.7182638794595
+      }
+    },
+    {
+      "id": "conditionAgentflow_i10_v3_route_ingest",
+      "position": {
+        "x": 2045.9999875619337,
+        "y": 460.99999750392544
+      }
+    },
+    {
+      "id": "conditionAgentflow_i10_v3_route_result",
+      "position": {
+        "x": 2194,
+        "y": 632
+      }
+    },
+    {
+      "id": "conditionAgentflow_i10_v3_result_task_missing",
+      "position": {
+        "x": 1910,
+        "y": 628
+      }
+    },
+    {
+      "id": "toolAgentflow_i10_v3_result_inbox",
+      "position": {
+        "x": 1630,
+        "y": 1166
+      }
+    },
+    {
+      "id": "directReplyAgentflow_i10_v3_result_inbox_reply",
+      "position": {
+        "x": 1950,
+        "y": 1168
+      }
+    },
+    {
+      "id": "toolAgentflow_i10_v3_result_task",
+      "position": {
+        "x": 2570.456790500987,
+        "y": 485.07090867991735
+      }
+    },
+    {
+      "id": "conditionAgentflow_i10_v3_result_artifact_missing",
+      "position": {
+        "x": 2872.6866732262383,
+        "y": 469.1968979363784
+      }
+    },
+    {
+      "id": "directReplyAgentflow_i10_v3_result_pending",
+      "position": {
+        "x": 2808.3433366131194,
+        "y": 1348.3776499841174
+      }
+    },
+    {
+      "id": "toolAgentflow_i10_v3_result_grant",
+      "position": {
+        "x": 1640.7466929049538,
+        "y": 1352.4531799809404
+      }
+    },
+    {
+      "id": "directReplyAgentflow_i10_v3_result_download",
+      "position": {
+        "x": 1966.7592282735463,
+        "y": 1352.1728379960518
+      }
+    },
+    {
+      "id": "conditionAgentflow_i10_v3_ingest_video",
+      "position": {
+        "x": 2320,
+        "y": 474
+      }
+    },
+    {
+      "id": "toolAgentflow_i10_v3_ingest_video",
+      "position": {
+        "x": 915.8172837996053,
+        "y": 708.8535613232593
+      }
+    },
+    {
+      "id": "toolAgentflow_i10_v3_ingest_file",
+      "position": {
+        "x": 909.5061691507832,
+        "y": 935.5561398386783
+      }
+    },
+    {
+      "id": "toolAgentflow_i10_v3_ingest_get",
+      "position": {
+        "x": 1268.585750645554,
+        "y": 811.6503987486415
+      }
+    },
+    {
+      "id": "conditionAgentflow_i10_v3_ingest_ready",
+      "position": {
+        "x": 1566.9841699082272,
+        "y": 794.1118069704949
+      }
+    },
+    {
+      "id": "conditionAgentflow_i10_v3_ingest_processing",
+      "position": {
+        "x": 2247.086736783291,
+        "y": 1332.5949973407755
+      }
+    },
+    {
+      "id": "directReplyAgentflow_i10_v3_ingest_processing",
+      "position": {
+        "x": 3070.3496042974157,
+        "y": 1485.6626132859117
+      }
+    },
+    {
+      "id": "directReplyAgentflow_i10_v3_ingest_failed",
+      "position": {
+        "x": 3050.7622032230615,
+        "y": 1350.377649984117
+      }
+    },
+    {
+      "id": "humanInputAgentflow_i10_v3_ingest_confirm",
+      "position": {
+        "x": 3154,
+        "y": 494
+      }
+    },
+    {
+      "id": "toolAgentflow_i10_v3_ingest_decide",
+      "position": {
+        "x": 277.3645964190638,
+        "y": 960.1466731246671
+      }
+    },
+    {
+      "id": "toolAgentflow_i10_v3_ingest_reject",
+      "position": {
+        "x": 2946.7622032230615,
+        "y": 1170.0626768429652
+      }
+    },
+    {
+      "id": "directReplyAgentflow_i10_v3_ingest_rejected",
+      "position": {
+        "x": 3277.880278427836,
+        "y": 1175.650077917319
+      }
+    },
+    {
+      "id": "conditionAgentflow_i10_v3_approve_case_route",
+      "position": {
+        "x": 3672.7368147006105,
+        "y": -107.00462131690597
+      }
+    },
+    {
+      "id": "conditionAgentflow_i10_v3_approve_schedule_route",
+      "position": {
+        "x": 3334,
+        "y": 128
+      }
+    },
+    {
+      "id": "toolAgentflow_i10_v3_schedule_disable",
+      "position": {
+        "x": 3326.9999960655095,
+        "y": 256.999999026954
+      }
+    },
+    {
+      "id": "directReplyAgentflow_i10_v3_schedule_disabled",
+      "position": {
+        "x": 3591.9999996615493,
+        "y": 267.9999994923238
+      }
+    },
+    {
+      "id": "toolAgentflow_prepare",
+      "position": {
+        "x": 275.4882863144143,
+        "y": 1090.5482889747632
+      }
+    },
+    {
+      "id": "llmAgentflow_intent",
+      "position": {
+        "x": 600,
+        "y": 1025
+      }
+    },
+    {
+      "id": "toolAgentflow_submit",
+      "position": {
+        "x": 925,
+        "y": 1050
+      }
+    },
+    {
+      "id": "toolAgentflow_get",
+      "position": {
+        "x": 1250,
+        "y": 1050
+      }
+    },
+    {
+      "id": "toolAgentflow_candidate",
+      "position": {
+        "x": 1650.387845973726,
+        "y": 1030.834440485104
+      }
+    },
+    {
+      "id": "toolAgentflow_candidate_ready",
+      "position": {
+        "x": 2258.9547976277995,
+        "y": 1030.834440485104
+      }
+    },
+    {
+      "id": "toolAgentflow_preview",
+      "position": {
+        "x": 3440.9999729662445,
+        "y": 612.0000098150728
+      }
+    },
+    {
+      "id": "humanInputAgentflow_activate",
+      "position": {
+        "x": 3749.9999716547472,
+        "y": 715.0000141726264
+      }
+    },
+    {
+      "id": "toolAgentflow_activate",
+      "position": {
+        "x": 3860,
+        "y": 262
+      }
+    },
+    {
+      "id": "humanInputAgentflow_run",
+      "position": {
+        "x": 4182,
+        "y": 374
+      }
+    },
+    {
+      "id": "toolAgentflow_run",
+      "position": {
+        "x": 4253.769785406682,
+        "y": 539.6388951960197
+      }
+    },
+    {
+      "id": "llmAgentflow_runref",
+      "position": {
+        "x": 4573.672547416633,
+        "y": 605.8591319397298
+      }
+    },
+    {
+      "id": "toolAgentflow_task",
+      "position": {
+        "x": 4985.523787899361,
+        "y": 495.4186584523096
+      }
+    },
+    {
+      "id": "llmAgentflow_terminal",
+      "position": {
+        "x": 5353.370053717696,
+        "y": 869.3354225614322
+      }
+    },
+    {
+      "id": "conditionAgentflow_terminal",
+      "position": {
+        "x": 5720,
+        "y": 1036
+      }
+    },
+    {
+      "id": "toolAgentflow_failure",
+      "position": {
+        "x": 5730,
+        "y": 504
+      }
+    },
+    {
+      "id": "llmAgentflow_repair",
+      "position": {
+        "x": 6002,
+        "y": 638
+      }
+    },
+    {
+      "id": "humanInputAgentflow_repair_confirm",
+      "position": {
+        "x": 6328,
+        "y": 766
+      }
+    },
+    {
+      "id": "toolAgentflow_repair_propose",
+      "position": {
+        "x": 7068.000000507677,
+        "y": 477.9999982231334
+      }
+    },
+    {
+      "id": "toolAgentflow_repair_ready",
+      "position": {
+        "x": 7412.000000676902,
+        "y": 592.9999972500874
+      }
+    },
+    {
+      "id": "llmAgentflow_proposalref",
+      "position": {
+        "x": 7046,
+        "y": -78
+      }
+    },
+    {
+      "id": "humanInputAgentflow_repair_activate",
+      "position": {
+        "x": 7432,
+        "y": 104
+      }
+    },
+    {
+      "id": "toolAgentflow_repair_decision",
+      "position": {
+        "x": 7356,
+        "y": 304
+      }
+    },
+    {
+      "id": "humanInputAgentflow_repair_rerun",
+      "position": {
+        "x": 7707.6,
+        "y": 428
+      }
+    },
+    {
+      "id": "toolAgentflow_repair_rerun",
+      "position": {
+        "x": 7410,
+        "y": -120
+      }
+    },
+    {
+      "id": "llmAgentflow_repair_runref",
+      "position": {
+        "x": 7784,
+        "y": 58
+      }
+    },
+    {
+      "id": "toolAgentflow_repair_task",
+      "position": {
+        "x": 8086,
+        "y": 206
+      }
+    },
+    {
+      "id": "humanInputAgentflow_repair_schedule",
+      "position": {
+        "x": 8782,
+        "y": 526
+      }
+    },
+    {
+      "id": "toolAgentflow_repair_schedule",
+      "position": {
+        "x": 7984,
+        "y": 416
+      }
+    },
+    {
+      "id": "directReplyAgentflow_result",
+      "position": {
+        "x": 6136,
+        "y": 120
+      }
+    },
+    {
+      "id": "directReplyAgentflow_repair_rejected",
+      "position": {
+        "x": 6410,
+        "y": -168
+      }
+    },
+    {
+      "id": "directReplyAgentflow_repair_not_activated",
+      "position": {
+        "x": 6712,
+        "y": -174
+      }
+    },
+    {
+      "id": "directReplyAgentflow_repair_no_rerun",
+      "position": {
+        "x": 6134,
+        "y": -176
+      }
+    },
+    {
+      "id": "directReplyAgentflow_repair_no_schedule",
+      "position": {
+        "x": 6692,
+        "y": -300
+      }
+    },
+    {
+      "id": "directReplyAgentflow_repair_scheduled",
+      "position": {
+        "x": 8866,
+        "y": 764
+      }
+    },
+    {
+      "id": "directReplyAgentflow_not_activated",
+      "position": {
+        "x": 3342.3370689288226,
+        "y": 1483.6817341240667
+      }
+    },
+    {
+      "id": "directReplyAgentflow_run_later",
+      "position": {
+        "x": 3584,
+        "y": 1362
+      }
+    },
+    {
+      "id": "llmAgentflow_schedule_intent",
+      "position": {
+        "x": 4660.317474733759,
+        "y": 761.4822442217451
+      }
+    },
+    {
+      "id": "conditionAgentflow_on_demand",
+      "position": {
+        "x": 5010.694362451744,
+        "y": 671.6310037390174
+      }
+    },
+    {
+      "id": "conditionAgentflow_one_time",
+      "position": {
+        "x": 5276.801374944641,
+        "y": 680.1451515829737
+      }
+    },
+    {
+      "id": "conditionAgentflow_recurring",
+      "position": {
+        "x": 5522,
+        "y": 682
+      }
+    },
+    {
+      "id": "toolAgentflow_schedule",
+      "position": {
+        "x": 5334,
+        "y": 332
+      }
+    },
+    {
+      "id": "toolAgentflow_schedule_recurring",
+      "position": {
+        "x": 5336,
+        "y": 210
+      }
+    },
+    {
+      "id": "directReplyAgentflow_schedule_invalid",
+      "position": {
+        "x": 5382,
+        "y": 44
+      }
+    },
+    {
+      "id": "toolAgentflow_schedule_get",
+      "position": {
+        "x": 5768,
+        "y": 260
+      }
+    },
+    {
+      "id": "directReplyAgentflow_scheduled",
+      "position": {
+        "x": 6116,
+        "y": 268
+      }
+    },
+    {
+      "id": "llmAgentflow_repair_schedule_intent",
+      "position": {
+        "x": 7788,
+        "y": -102
+      }
+    },
+    {
+      "id": "conditionAgentflow_repair_one_time",
+      "position": {
+        "x": 8146,
+        "y": 62
+      }
+    },
+    {
+      "id": "conditionAgentflow_repair_recurring",
+      "position": {
+        "x": 6714,
+        "y": 762
+      }
+    },
+    {
+      "id": "toolAgentflow_repair_schedule_recurring",
+      "position": {
+        "x": 7963.199999999999,
+        "y": 580
+      }
+    },
+    {
+      "id": "directReplyAgentflow_repair_schedule_invalid",
+      "position": {
+        "x": 6092,
+        "y": -316
+      }
+    },
+    {
+      "id": "toolAgentflow_repair_schedule_get",
+      "position": {
+        "x": 8440,
+        "y": 618
+      }
+    },
+    {
+      "id": "toolAgentflow_result_inbox",
+      "position": {
+        "x": 5736,
+        "y": 26
+      }
+    },
+    {
+      "id": "toolAgentflow_repair_result_inbox",
+      "position": {
+        "x": 8386,
+        "y": 396
+      }
+    },
+    {
+      "id": "conditionAgentflow_candidate_ready",
+      "position": {
+        "x": 6396,
+        "y": 262
+      }
+    },
+    {
+      "id": "conditionAgentflow_candidate_authoring_failed",
+      "position": {
+        "x": 6384,
+        "y": 484
+      }
+    },
+    {
+      "id": "conditionAgentflow_candidate_validation_failed",
+      "position": {
+        "x": 6002,
+        "y": 488
+      }
+    },
+    {
+      "id": "conditionAgentflow_repair_ready",
+      "position": {
+        "x": 7748,
+        "y": 702
+      }
+    },
+    {
+      "id": "conditionAgentflow_repair_validation_failed",
+      "position": {
+        "x": 6674,
+        "y": 328
+      }
+    },
+    {
+      "id": "directReplyAgentflow_repair_validation_failed",
+      "position": {
+        "x": 6398,
+        "y": -308
+      }
+    },
+    {
+      "id": "customFunctionAgentflow_i10_v4_classification_merge",
+      "position": {
+        "x": 201.01747447076434,
+        "y": 602.4125989256461
+      }
+    },
+    {
+      "id": "conditionAgentflow_i10_v5_result_query_route",
+      "position": {
+        "x": 980,
+        "y": 150
+      }
+    },
+    {
+      "id": "conditionAgentflow_i10_v5_schedule_disable_route",
+      "position": {
+        "x": 1160,
+        "y": 150
+      }
+    },
+    {
+      "id": "humanInputAgentflow_schedule_disable",
+      "position": {
+        "x": 1340,
+        "y": 150
+      }
+    },
+    {
+      "id": "directReplyAgentflow_i10_v5_schedule_disable_rejected",
+      "position": {
+        "x": 1520,
+        "y": 260
+      }
+    },
+    {
+      "id": "customFunctionAgentflow_i10_v4_entry_secret_guard",
+      "position": {
+        "x": -499.4330513679974,
+        "y": 285.8172890378622
+      }
+    },
+    {
+      "id": "conditionAgentflow_i10_v4_entry_safe",
+      "position": {
+        "x": -192.34960429741562,
+        "y": 278.3496042974157
+      }
+    },
+    {
+      "id": "directReplyAgentflow_i10_v4_entry_blocked",
+      "position": {
+        "x": 116.80639479840261,
+        "y": 244.77473859165474
+      }
+    },
+    {
+      "id": "customFunctionAgentflow_i10_v4_candidate_resume_detect",
+      "position": {
+        "x": -281.6692111795451,
+        "y": 466.7054810472849
+      }
+    },
+    {
+      "id": "conditionAgentflow_i10_v4_candidate_resume_route",
+      "position": {
+        "x": 125,
+        "y": 425
+      }
+    },
+    {
+      "id": "toolAgentflow_i10_v4_cross_session_journey_get",
+      "position": {
+        "x": 467.2819883522791,
+        "y": 425.41722024255205
+      }
+    },
+    {
+      "id": "conditionAgentflow_i10_v4_cross_session_route",
+      "position": {
+        "x": 820.6441266221784,
+        "y": 406.00627639940404
+      }
+    },
+    {
+      "id": "directReplyAgentflow_i10_v4_cross_session_status",
+      "position": {
+        "x": 395.84266132240623,
+        "y": -93.95746211104763
+      }
+    },
+    {
+      "id": "customFunctionAgentflow_i10_v4_image_route",
+      "position": {
+        "x": 722.513517444921,
+        "y": -48.894460163819105
+      }
+    },
+    {
+      "id": "conditionAgentflow_i10_v4_image_route",
+      "position": {
+        "x": 1110.4630581852834,
+        "y": -53.65666338688084
+      }
+    },
+    {
+      "id": "toolAgentflow_i10_v4_image_submit",
+      "position": {
+        "x": 1320.623678598008,
+        "y": 106.04089884055998
+      }
+    },
+    {
+      "id": "humanInputAgentflow_i10_v4_image_wait",
+      "position": {
+        "x": 1680,
+        "y": -40
+      }
+    },
+    {
+      "id": "toolAgentflow_i10_v4_image_get",
+      "position": {
+        "x": 1329.8080411657932,
+        "y": 257.47394718648604
+      }
+    },
+    {
+      "id": "conditionAgentflow_i10_v4_image_status",
+      "position": {
+        "x": 1684.4221593447235,
+        "y": 232.07552999682346
+      }
+    },
+    {
+      "id": "humanInputAgentflow_i10_v4_image_facts_gate",
+      "position": {
+        "x": 1750.1292819912417,
+        "y": 94.92909132008259
+      }
+    },
+    {
+      "id": "customFunctionAgentflow_i10_v4_image_suggested_decisions",
+      "position": {
+        "x": 385.9055168597554,
+        "y": -221.27869561749822
+      }
+    },
+    {
+      "id": "humanInputAgentflow_i10_v4_image_correction_input",
+      "position": {
+        "x": 2228.5606839697775,
+        "y": 287.9495407403625
+      }
+    },
+    {
+      "id": "customFunctionAgentflow_i10_v4_image_correction_guard",
+      "position": {
+        "x": 2495.8677430592425,
+        "y": 248.26451388151474
+      }
+    },
+    {
+      "id": "conditionAgentflow_i10_v4_image_correction_safe",
+      "position": {
+        "x": 2786.985818264017,
+        "y": 265.7259256994078
+      }
+    },
+    {
+      "id": "directReplyAgentflow_i10_v4_image_correction_blocked",
+      "position": {
+        "x": 1201.9999773237978,
+        "y": 627.9999964462668
+      }
+    },
+    {
+      "id": "llmAgentflow_i10_v4_image_correction_structure",
+      "position": {
+        "x": 2800.3087054568555,
+        "y": -8.258246197218256
+      }
+    },
+    {
+      "id": "humanInputAgentflow_i10_v4_image_correction_confirm",
+      "position": {
+        "x": 3104.125989256461,
+        "y": -19.37005371769567
+      }
+    },
+    {
+      "id": "toolAgentflow_i10_v4_image_decision_submit",
+      "position": {
+        "x": 750.6606667374587,
+        "y": -215.95910115944005
+      }
+    },
+    {
+      "id": "toolAgentflow_i10_v4_image_confirmed_get",
+      "position": {
+        "x": 1104.9998955456279,
+        "y": -217.00000190378563
+      }
+    },
+    {
+      "id": "directReplyAgentflow_i10_v4_image_pending",
+      "position": {
+        "x": 1986.6520420699749,
+        "y": 60.94491942345658
+      }
+    },
+    {
+      "id": "directReplyAgentflow_i10_v4_image_failed",
+      "position": {
+        "x": 1951.729218434189,
+        "y": 184.44096239761308
+      }
+    },
+    {
+      "id": "customFunctionAgentflow_i10_v5_prepare_hydrate",
+      "position": {
+        "x": 1720,
+        "y": 360
+      }
+    },
+    {
+      "id": "customFunctionAgentflow_i10_v4_target_profile_prerequisite",
+      "position": {
+        "x": 1860,
+        "y": 420
+      }
+    },
+    {
+      "id": "conditionAgentflow_i10_v4_target_profile_prerequisite_route",
+      "position": {
+        "x": 2040,
+        "y": 420
+      }
+    },
+    {
+      "id": "customFunctionAgentflow_i10_v5_application_profile_derive",
+      "position": {
+        "x": 1680,
+        "y": 260
+      }
+    },
+    {
+      "id": "toolAgentflow_i10_v4_target_profile_prepare",
+      "position": {
+        "x": 1860,
+        "y": 260
+      }
+    },
+    {
+      "id": "humanInputAgentflow_i10_v4_target_profile_confirm",
+      "position": {
+        "x": 2040,
+        "y": 260
+      }
+    },
+    {
+      "id": "toolAgentflow_i10_v4_target_profile_approve",
+      "position": {
+        "x": 2220,
+        "y": 220
+      }
+    },
+    {
+      "id": "toolAgentflow_i10_v4_target_profile_reject",
+      "position": {
+        "x": 2220,
+        "y": 320
+      }
+    },
+    {
+      "id": "toolAgentflow_i10_v4_target_profile_get",
+      "position": {
+        "x": 2400,
+        "y": 220
+      }
+    },
+    {
+      "id": "directReplyAgentflow_i10_v4_target_profile_rejected",
+      "position": {
+        "x": 2400,
+        "y": 320
+      }
+    },
+    {
+      "id": "directReplyAgentflow_i10_v4_target_profile_context_incomplete",
+      "position": {
+        "x": 2220,
+        "y": 460
+      }
+    },
+    {
+      "id": "conditionAgentflow_i10_v4_reject_route",
+      "position": {
+        "x": 3044.1259892564613,
+        "y": 232.3717000850861
+      }
+    },
+    {
+      "id": "humanInputAgentflow_i10_v4_case_correction",
+      "position": {
+        "x": 3148,
+        "y": 380
+      }
+    },
+    {
+      "id": "customFunctionAgentflow_i10_v4_case_correction_guard",
+      "position": {
+        "x": 2632.5164923944367,
+        "y": 636.7147189129396
+      }
+    },
+    {
+      "id": "conditionAgentflow_i10_v4_case_correction_safe",
+      "position": {
+        "x": 2925.5715729709796,
+        "y": 715.8895210616479
+      }
+    },
+    {
+      "id": "directReplyAgentflow_i10_v4_case_correction_blocked",
+      "position": {
+        "x": 3316.4346947133163,
+        "y": 1359.952515689878
+      }
+    },
+    {
+      "id": "llmAgentflow_i10_v4_case_correction",
+      "position": {
+        "x": 3412.9999844735703,
+        "y": 465.00000528829344
+      }
+    },
+    {
+      "id": "customFunctionAgentflow_i10_v4_case_correction_normalize",
+      "position": {
+        "x": 3703.999989169575,
+        "y": 551.0000089266391
+      }
+    },
+    {
+      "id": "toolAgentflow_i10_v4_case_correction_submit",
+      "position": {
+        "x": 3976.999993104066,
+        "y": 630.0000122688407
+      }
+    },
+    {
+      "id": "humanInputAgentflow_i10_v4_case_reconfirm",
+      "position": {
+        "x": 4338.00000093074,
+        "y": 749.0000160341058
+      }
+    },
+    {
+      "id": "toolAgentflow_i10_v4_case_reapprove",
+      "position": {
+        "x": 3317.386199606335,
+        "y": -182.56992660358947
+      }
+    },
+    {
+      "id": "toolAgentflow_i10_v4_case_rereject",
+      "position": {
+        "x": 1209.7893016699554,
+        "y": 502.2770492501078
+      }
+    },
+    {
+      "id": "humanInputAgentflow_i10_v4_initial_case_input",
+      "position": {
+        "x": 1979.6599561216622,
+        "y": -73.97790421232952
+      }
+    },
+    {
+      "id": "customFunctionAgentflow_i10_v4_initial_case_guard",
+      "position": {
+        "x": 2240.6174109137114,
+        "y": 145.08344404851044
+      }
+    },
+    {
+      "id": "conditionAgentflow_i10_v4_initial_case_safe",
+      "position": {
+        "x": 2485.700854962222,
+        "y": 126.03463115626349
+      }
+    },
+    {
+      "id": "directReplyAgentflow_i10_v4_initial_case_blocked",
+      "position": {
+        "x": 886.9999697509613,
+        "y": 610.0000003384507
+      }
+    },
+    {
+      "id": "customFunctionAgentflow_i10_v4_initial_input_route_detect",
+      "position": {
+        "x": 2700,
+        "y": 80
+      }
+    },
+    {
+      "id": "conditionAgentflow_i10_v4_initial_input_route",
+      "position": {
+        "x": 2900,
+        "y": 80
+      }
+    },
+    {
+      "id": "customFunctionAgentflow_i10_v4_initial_url_merge",
+      "position": {
+        "x": 3100,
+        "y": -20
+      }
+    },
+    {
+      "id": "toolAgentflow_i10_v4_initial_case_submit",
+      "position": {
+        "x": 3031.0867367832907,
+        "y": -280.65501701949034
+      }
+    },
+    {
+      "id": "customFunctionAgentflow_i10_v5_initial_prompt",
+      "position": {
+        "x": 2320,
+        "y": 40
+      }
+    },
+    {
+      "id": "conditionAgentflow_i10_v4_credential_resume_route",
+      "position": {
+        "x": 646.941944473941,
+        "y": 114.91655595148961
+      }
+    },
+    {
+      "id": "customFunctionAgentflow_i10_v5_credential_resume_prompt",
+      "position": {
+        "x": 1410,
+        "y": 300
+      }
+    },
+    {
+      "id": "llmAgentflow_i10_v4_credential_resume_structure",
+      "position": {
+        "x": 1117.91820231888,
+        "y": -367.6533706520998
+      }
+    },
+    {
+      "id": "customFunctionAgentflow_i10_v4_credential_resume_normalize",
+      "position": {
+        "x": 1488.8881924795232,
+        "y": -354.9541620572685
+      }
+    },
+    {
+      "id": "customFunctionAgentflow_i10_v4_credential_resume_assemble",
+      "position": {
+        "x": 1869.8644503244618,
+        "y": -343.84235453679116
+      }
+    },
+    {
+      "id": "toolAgentflow_i10_v4_credential_resume_submit",
+      "position": {
+        "x": 2194.317948090668,
+        "y": -339.0801513137294
+      }
+    },
+    {
+      "id": "customFunctionAgentflow_i10_v4_ingest_batch_inspect",
+      "position": {
+        "x": 1563.2394184797286,
+        "y": 611.9874781694383
+      }
+    },
+    {
+      "id": "conditionAgentflow_i10_v4_ingest_batch_route",
+      "position": {
+        "x": 1846.1893016699564,
+        "y": 814.1856911499103
+      }
+    },
+    {
+      "id": "humanInputAgentflow_i10_v4_ingest_batch_input",
+      "position": {
+        "x": 3160,
+        "y": 622
+      }
+    },
+    {
+      "id": "customFunctionAgentflow_i10_v4_ingest_batch_guard",
+      "position": {
+        "x": 2633.5118710775305,
+        "y": 899.9650510584711
+      }
+    },
+    {
+      "id": "conditionAgentflow_i10_v4_ingest_batch_safe",
+      "position": {
+        "x": 2950.888192479523,
+        "y": 1014.6642596533025
+      }
+    },
+    {
+      "id": "directReplyAgentflow_i10_v4_ingest_batch_blocked",
+      "position": {
+        "x": 2818.7245971172833,
+        "y": 1474.9666974258614
+      }
+    },
+    {
+      "id": "llmAgentflow_i10_v4_ingest_batch_structure",
+      "position": {
+        "x": 3687.9999884926733,
+        "y": 379.9999983077461
+      }
+    },
+    {
+      "id": "humanInputAgentflow_i10_v4_ingest_batch_confirm",
+      "position": {
+        "x": 3968.9999927656154,
+        "y": 484.0000027076062
+      }
+    },
+    {
+      "id": "toolAgentflow_i10_v4_ingest_batch_submit",
+      "position": {
+        "x": 3180.999980158323,
+        "y": 791.0000225492832
+      }
+    },
+    {
+      "id": "directReplyAgentflow_i10_v4_ingest_batch_done",
+      "position": {
+        "x": 3570.999987096564,
+        "y": 970.0000275837383
+      }
+    },
+    {
+      "id": "humanInputAgentflow_i10_v4_ingest_correction",
+      "position": {
+        "x": 2522.0788227316043,
+        "y": 1335.3634682481338
+      }
+    },
+    {
+      "id": "llmAgentflow_i10_v4_ingest_correction",
+      "position": {
+        "x": 236.73150037211053,
+        "y": 812.1698630465361
+      }
+    },
+    {
+      "id": "customFunctionAgentflow_i10_v4_ingest_correction_normalize",
+      "position": {
+        "x": 570.3409761997389,
+        "y": 811.9400088421063
+      }
+    },
+    {
+      "id": "toolAgentflow_i10_v4_ingest_correct",
+      "position": {
+        "x": 901.03968434172,
+        "y": 817.8591319397297
+      }
+    },
+    {
+      "id": "conditionAgentflow_i10_v4_verification_route",
+      "position": {
+        "x": 2640.024048813758,
+        "y": 1136.8961039505225
+      }
+    },
+    {
+      "id": "toolAgentflow_i10_v4_verification_get",
+      "position": {
+        "x": 3824,
+        "y": 100
+      }
+    },
+    {
+      "id": "humanInputAgentflow_i10_v4_verification_ready",
+      "position": {
+        "x": 4256,
+        "y": 206
+      }
+    },
+    {
+      "id": "toolAgentflow_i10_v4_verification_ready_submit",
+      "position": {
+        "x": 3960,
+        "y": -86
+      }
+    },
+    {
+      "id": "toolAgentflow_i10_v4_verification_cancel",
+      "position": {
+        "x": 4618.000001184578,
+        "y": -194.0000033845078
+      }
+    },
+    {
+      "id": "humanInputAgentflow_i10_v4_verification_action",
+      "position": {
+        "x": 4340,
+        "y": 38
+      }
+    },
+    {
+      "id": "toolAgentflow_i10_v4_verification_complete",
+      "position": {
+        "x": 1892.1610017550424,
+        "y": 927.7922130624193
+      }
+    },
+    {
+      "id": "directReplyAgentflow_i10_v4_verification_cancelled",
+      "position": {
+        "x": 5062.000001523029,
+        "y": -102.00000152302852
+      }
+    },
+    {
+      "id": "directReplyAgentflow_i10_v4_candidate_processing",
+      "position": {
+        "x": 5372.999998434666,
+        "y": -95.99998993108929
+      }
+    },
+    {
+      "id": "humanInputAgentflow_i10_v4_authoring_retry",
+      "position": {
+        "x": 5016,
+        "y": 42
+      }
+    },
+    {
+      "id": "toolAgentflow_i10_v4_authoring_retry",
+      "position": {
+        "x": 2229.606708099195,
+        "y": 1160.363785398804
+      }
+    },
+    {
+      "id": "directReplyAgentflow_i10_v4_authoring_retry_declined",
+      "position": {
+        "x": 6386,
+        "y": 118
+      }
+    },
+    {
+      "id": "humanInputAgentflow_i10_v4_stability_revision",
+      "position": {
+        "x": 4966,
+        "y": 374
+      }
+    },
+    {
+      "id": "toolAgentflow_i10_v4_stability_revision",
+      "position": {
+        "x": 2227.4224805568033,
+        "y": 896.6724898403072
+      }
+    },
+    {
+      "id": "directReplyAgentflow_i10_v4_stability_revision_declined",
+      "position": {
+        "x": 6120,
+        "y": -36
+      }
+    },
+    {
+      "id": "conditionAgentflow_i10_v4_formal_verification_route",
+      "position": {
+        "x": 5398,
+        "y": 490
+      }
+    },
+    {
+      "id": "conditionAgentflow_i10_v4_formal_task_processing",
+      "position": {
+        "x": 6700,
+        "y": 506
+      }
+    },
+    {
+      "id": "directReplyAgentflow_i10_v4_formal_processing",
+      "position": {
+        "x": 6394,
+        "y": -24
+      }
+    },
+    {
+      "id": "toolAgentflow_i10_v4_formal_verification_get",
+      "position": {
+        "x": 6680,
+        "y": -18
+      }
+    },
+    {
+      "id": "humanInputAgentflow_i10_v4_formal_verification_ready",
+      "position": {
+        "x": 7018,
+        "y": 76
+      }
+    },
+    {
+      "id": "toolAgentflow_i10_v4_formal_verification_ready_submit",
+      "position": {
+        "x": 6670,
+        "y": 176
+      }
+    },
+    {
+      "id": "toolAgentflow_i10_v4_formal_verification_cancel",
+      "position": {
+        "x": 4646.000000000001,
+        "y": 32
+      }
+    },
+    {
+      "id": "humanInputAgentflow_i10_v4_formal_verification_action",
+      "position": {
+        "x": 7060,
+        "y": 278
+      }
+    },
+    {
+      "id": "toolAgentflow_i10_v4_formal_verification_complete",
+      "position": {
+        "x": 4587.200000000001,
+        "y": 398
+      }
+    },
+    {
+      "id": "customFunctionAgentflow_i10_v4_schedule_feedback_guard",
+      "position": {
+        "x": 3546.5277336278623,
+        "y": 1174.1687152164868
+      }
+    },
+    {
+      "id": "conditionAgentflow_i10_v4_schedule_feedback_safe",
+      "position": {
+        "x": 3893.9285227735627,
+        "y": 1349.1747473375929
+      }
+    },
+    {
+      "id": "customFunctionAgentflow_i10_v4_schedule_normalize",
+      "position": {
+        "x": 5038.053607919828,
+        "y": 898.2938003627527
+      }
+    },
+    {
+      "id": "conditionAgentflow_i10_v4_schedule_valid",
+      "position": {
+        "x": 5346.096592037728,
+        "y": 1040.8424223208456
+      }
+    },
+    {
+      "id": "humanInputAgentflow_i10_v4_confirm_on_demand",
+      "position": {
+        "x": 4560,
+        "y": 210
+      }
+    },
+    {
+      "id": "humanInputAgentflow_i10_v4_confirm_one_time",
+      "position": {
+        "x": 4854.007891457002,
+        "y": 216.22023674371007
+      }
+    },
+    {
+      "id": "humanInputAgentflow_i10_v4_confirm_recurring",
+      "position": {
+        "x": 5080.223615040954,
+        "y": 219.65666338688084
+      }
+    },
+    {
+      "id": "humanInputAgentflow_i10_v4_confirm_repair_one_time",
+      "position": {
+        "x": 7036,
+        "y": -380
+      }
+    },
+    {
+      "id": "humanInputAgentflow_i10_v4_confirm_repair_recurring",
+      "position": {
+        "x": 7046,
+        "y": -246
+      }
+    }
+  ],
+  "flowVersion": 7
+}

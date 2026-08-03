@@ -1,0 +1,211 @@
+schemaVersion: 1
+id: RF-001-B3-S3
+title: 13项入口别名接入权威字段适配器与样本测试
+status: APPROVED
+owner: project-owner
+authorizedBy: agent/plans/active/v54-implementation-batches.md (重构控制执行顺序第2项, RF-001)
+parentBatch: docs/architecture/refactoring/batches/RF-001/batch.yaml
+baseline:
+  gitCommit: dacd79580ec73f3580594ab2134acf8cc3d99f35
+  releaseIdentity: 632ad5ee7981b59f00824d0072d28da6075eef095d55a898d51c0103a897988f
+  evidence: docs/evidence/platform/hengzhun-i10-post-backfill-baseline-2026-08-02.md
+  capturedAt: "2026-08-02"
+
+# 单业务目标：把B2冻结合同(mcp-boundary-contract-v1.json)登记的13项入口别名，在MCP入口逐项投影为权威字段，
+# 保持旧字段可读、Harness请求载荷只含权威字段、Flowise收到的旧输出形状不变。
+# 单功能点：MCP入口别名→权威请求投影（含每项别名的样本测试）。不跨切片。
+businessGoal:
+  - 13/13别名在 mcp/src/rf001-contract-adapter.cjs 拥有确定性权威投影函数（canonicalRequest projection）
+  - 每项别名至少一个样本测试：输入别名 → 断言Harness载荷形状与字段、确定性、与旧字段兼容
+  - Flowise可见输出与错误形状不变（旧投影继续生效），HENGZHUN_RF001_SHADOW=1 仅开启比较，永不发起第二次请求
+  - authoring_submit 七组数组字段完成 reject-or-wire 决策并经用户批准，决策结果登记回B2合同（不改13别名计数）
+  - ReleaseIdentity 与 18/18 验收基线不变
+functionalPoint: MCP入口别名规范化为权威请求字段（8个工具、13个别名项）
+evidenceLevel: CONTRACT
+
+# 别名清单（来自 mcp-boundary-contract-v1.json，本切片冻结，不得增删条目）
+aliasInventory:
+  - tool: ingest_submit
+    alias: supportingImageIngestId=NONE
+    canonical: supportingImageIngestId omitted
+    adapter: COMPAT-EMPTY-TO-UNDEFINED
+  - tool: ingest_decision_submit
+    alias: correctionsJson
+    canonical: corrections
+    adapter: COMPAT-JSON-ARRAY-STRING
+  - tool: ingest_decision_submit
+    alias: itemDecisionsJson
+    canonical: itemDecisions
+    adapter: COMPAT-JSON-ARRAY-STRING
+  - tool: journey_prepare
+    alias: draftJson
+    canonical: draftJson
+    adapter: COMPAT-JSON-OBJECT-STRING
+    decision: 合同自映射修正（2026-08-02批准）：Harness可执行Schema权威名即draftJson，不投影、不改名
+  - tool: case_prepare
+    alias: draftArray
+    canonical: draft
+    adapter: COMPAT-JSON-ARRAY-STRING
+  - tool: case_prepare
+    alias: draftJson
+    canonical: draft
+    adapter: COMPAT-JSON-OBJECT-STRING
+  - tool: case_prepare
+    alias: acceptanceSummaryJson
+    canonical: acceptanceSummary
+    adapter: COMPAT-JSON-OBJECT-STRING
+  - tool: case_prepare
+    alias: multimodalContextJson
+    canonical: multimodalContext
+    adapter: COMPAT-JSON-OBJECT-STRING
+  - tool: authoring_submit
+    alias: intentStepIds/actions/expectedOutcomes/riskLevels/inputValues/inputValueSources/assertions (7组数组字段)
+    canonical: no canonical effect
+    adapter: COMPAT-JSON-OBJECT-STRING + COMPAT-INTEGER-STRING + COMPAT-EMPTY-TO-UNDEFINED
+    decision: OPTION-C 登记无效果（2026-08-02批准）：v5+零消费者，保持行为不变，静态断言不进入Harness载荷
+  - tool: run_submit
+    alias: implicit credentialAlias=i3-customer
+    canonical: execution credential binding (B4 credentialRef迁移前冻结)
+    adapter: none
+  - tool: schedule_create
+    alias: implicit credentialAlias=i3-customer
+    canonical: execution credential binding (B4 credentialRef迁移前冻结)
+    adapter: COMPAT-EMPTY-TO-UNDEFINED + COMPAT-INTEGER-STRING
+  - tool: repair_propose
+    alias: patchJson
+    canonical: patch
+    adapter: COMPAT-JSON-OBJECT-STRING
+  - tool: repair_propose
+    alias: operationType/targetRef/locatorKind/locatorValue/rationale (5平铺字段)
+    canonical: patch
+    adapter: COMPAT-EMPTY-TO-UNDEFINED
+
+# 允许路径（收窄于批次 includePaths，本切片只允许触碰以下文件）
+allowedPaths:
+  - platform/hengzhun-regression-system/mcp/src/rf001-contract-adapter.cjs
+  - platform/hengzhun-regression-system/mcp/src/server.cjs   # 仅工具入口接线，不改变旧输出形状
+  - platform/hengzhun-regression-system/scripts/verification/rf001-contract-adapter.test.cjs
+  - platform/hengzhun-regression-system/scripts/verification/mcp-interaction-contract.test.cjs
+  - platform/hengzhun-regression-system/scripts/verification/rf001-b3s3-aliases.test.cjs   # 新增样本测试（若需独立文件）
+  - docs/architecture/refactoring/batches/RF-001/mcp-boundary-contract-v1.json   # 仅状态/决策字段，别名计数13不变
+  - docs/architecture/refactoring/batches/RF-001/decision-log.md
+  - docs/architecture/refactoring/batches/RF-001/evidence-index.md
+  - docs/architecture/refactoring/batches/RF-001/shadow-implementation-report.md
+  - docs/architecture/refactoring/batches/RF-001/slices/**
+
+# 禁止路径（本切片级，可窄于批次）
+forbiddenPaths:
+  - platform/hengzhun-regression-system/harness/**           # Harness Schema不接收别名；本切片不改Harness
+  - platform/hengzhun-regression-system/flowise/**           # 批次级禁止
+  - platform/hengzhun-regression-system/worker/**            # 批次级禁止
+  - platform/hengzhun-regression-system/contracts/**         # 公开合同不在本切片变更（批次预算 maxContractsChanged 留给B4前只动RF-001合同）
+  - apps/**, services/**, infra/**, data/**, .data/**, secrets/**, .env
+  - agent/backlog.yaml, agent/plans/active/v54-implementation-batches.md   # 状态变更由用户在批层批准，不在切片内
+  - scripts/architecture/validate_rf001_contract.py          # 校验器只读，不改
+
+budgets:
+  maxChangedFiles: 8
+  maxNewFiles: 2
+  maxChangedLines: 800
+  maxContractsChanged: 1        # 仅 mcp-boundary-contract-v1.json 状态/决策字段
+  maxMigrationsAdded: 0
+  maxOpenModules: 1             # 仅 hengzhun.mcp
+  runtimeCutover: false         # 本切片不切流、不重启MCP、不启用正式流量影子
+
+# 不可变不变量（测试与静态校验共同强制）
+invariants:
+  - 旧工具输出保持不变；别名读取只发生在MCP入口
+  - Harness请求载荷只含权威字段；authoring_submit 7组数组字段在决策落地前不得进入Harness载荷
+  - 影子永不发起第二次请求（每工具往返恰好一次 requestHarness）
+  - 条件写工具单请求单副作用（schedule_get/candidate_get/result_inbox_list 静态断言保持）
+  - 不改SQLite结构、不新增迁移、不改变运行状态机
+  - 不读取、不记录、不输出任何密钥与凭据原文（投影记录只含字段形状与SHA-256摘要）
+
+# 决策记录（2026-08-02 用户授权按合同+实情裁定）
+decisions:
+  - id: DEC-1
+    subject: authoring_submit 7组数组字段
+    outcome: OPTION-C 登记无效果
+    rationale: v5/v6/v7 Flowise制品零消费者（v2/v3/v4历史制品曾绑定、已被取代）；OPTION-B接线改变运行语义超出批次约束需拆批；OPTION-A显式拒绝在零消费者场景引入无谓行为差异。标准做法：行为不变、显式登记、测试锁定（静态断言7组字段永不进入Harness载荷）。合同"until"字段更新为决策记录，13别名计数不变。
+  - id: DEC-2
+    subject: journey_prepare draftJson 合同修正
+    outcome: 自映射修正（alias=draftJson → canonical=draftJson）
+    rationale: Harness可执行Schema（i10/schemas.ts L430 draftJson:z.record）与service.ts（L1357/1621 I10_DRAFT_REQUIRED/1727）权威字段名即draftJson，MCP现行即发送draftJson；B2合同冻结canonical=draft与可执行真相冲突，按"契约跟随可执行边界、语义冻结"标准修正为自映射。validate_rf001_contract.py仅要求alias/canonical/until三键存在，13计数不变。case_prepare的draftJson→draft维持（i10 cases:prepare权威名确认为draft，schemas.ts L364）。
+
+# 工作步骤（执行顺序固定，S3-1/S3-2已完成）
+workSteps:
+  - step: S3-1 消费者审计（已完成）
+    action: 只读检索 flowise/i10 agentflow-v5/v6/v7 的工具调用参数。结果：6项别名有真实调用点（case_prepare.draftJson×2、journey_prepare.draftJson×4、ingest_decision_submit.correctionsJson/itemDecisionsJson×4、repair_propose.patchJson×1、ingest_submit.supportingImageIngestId=NONE×2）；7项无消费者（case_prepare.draftArray/acceptanceSummaryJson/multimodalContextJson、repair_propose 5平铺字段、authoring_submit 7组数组字段、run_submit/schedule_create隐式credentialAlias）。
+    evidence: docs/architecture/refactoring/batches/RF-001/decision-log.md 条目21
+  - step: S3-2 决策门禁（已完成）
+    action: DEC-1=OPTION-C、DEC-2=合同自映射修正，已按用户授权裁定并记录（见decisions节）。B2合同"until"字段回写决策结果（不改13计数）。
+    evidence: docs/architecture/refactoring/batches/RF-001/decision-log.md 条目21
+  - step: S3-3 适配器实现（已完成）
+    action: 在 rf001-contract-adapter.cjs 为13项别名各实现确定性权威投影函数；投影输出只含权威字段，secret 字段只记录形状与SHA-256摘要；移入 parseJsonArgument/normalizeCasePrepareUrl/CredentialRef/ActionSteps/normalizeI10NaturalDraft（先经独立沙箱语义对照PASS后删除本地137行副本）
+  - step: S3-4 工具入口接线（已完成）
+    action: server.cjs 8个工具入口调用投影函数；journey_prepare 保持发送 draftJson（DEC-2自映射）；run_submit/schedule_create 凭证绑定 i3-customer 冻结不变；7组数组字段由 normalizeAuthoringSubmitRequest 显式剥离（DEC-1）
+  - step: S3-5 样本测试（已完成）
+    action: 新增 rf001-b3s3-aliases.test.cjs：13项别名每项样本+无效果断言+自映射回归+无IO静态断言+接线断言；聚焦测试29/29通过
+  - step: S3-6 验证与证据（已完成）
+    action: 聚焦测试、validate_refactoring.py、validate_rf001_contract.py、validate_docs.py、git diff --check 全过；身份对照受限复算（inspect-i10.ps1缺失，sourceFlowHash重算一致，identityHash不变）；shadow-implementation-report.md / evidence-index.md / decision-log.md 已更新
+  - step: S3-7 逐级向上同步（已完成，RC-D1）
+    action: 任务包→本切片（完成标记）→batch.yaml（预算消耗记录于决策日志条目23，无范围变化）→v54实施顺序（B3条目更新）；DEC-2合同自映射为唯一合同事实修正，已回写合同与决策日志
+    evidence: docs/architecture/refactoring/batches/RF-001/decision-log.md
+
+# 命令级 done 条件（可现场复算）
+verification:
+  requiredCommands:
+    - name: rf001-focused-tests
+      command: runtime/node-v20.20.2-win-x64/node.exe --test scripts/verification/rf001-contract-adapter.test.cjs scripts/verification/mcp-interaction-contract.test.cjs scripts/verification/rf001-b3s3-aliases.test.cjs
+      expectedExitCode: 0
+      expectedOutput: 全部通过且包含13项别名样本（累计≥25 passed / 0 failed）
+      evidence: docs/architecture/refactoring/batches/RF-001/shadow-implementation-report.md
+      blocking: true
+    - name: refactoring-contracts
+      command: python scripts/architecture/validate_refactoring.py
+      expectedExitCode: 0
+      expectedOutput: REFACTOR_VALIDATION=PASS batches=2 modules=25
+      evidence: docs/architecture/refactoring/batches/RF-001/evidence-index.md
+      blocking: true
+    - name: rf001-mcp-boundary-contract
+      command: python scripts/architecture/validate_rf001_contract.py
+      expectedExitCode: 0
+      expectedOutput: RF001_CONTRACT_VALIDATION=PASS tools=33 aliases=13 conditional_mutations=3 error_fields=8
+      evidence: docs/architecture/refactoring/batches/RF-001/evidence-index.md
+      blocking: true
+    - name: documentation
+      command: python scripts/docs/validate_docs.py
+      expectedExitCode: 0
+      expectedOutput: 文档权威链校验通过
+      evidence: docs/architecture/refactoring/batches/RF-001/evidence-index.md
+      blocking: true
+    - name: release-identity
+      command: inspect-i10.ps1 -Root platform/hengzhun-regression-system -CompareSnapshot C:/tmp/i10-post-backfill-baseline.json
+      expectedExitCode: 0
+      expectedOutput: ReleaseIdentity 632ad5ee…不变、identityUnchanged=true、18/18差值0、source/deployed Hash不变
+      evidence: docs/architecture/refactoring/batches/RF-001/evidence-index.md
+      blocking: true
+
+rollback:
+  triggerConditions:
+    - 任何别名投影导致Flowise可见输出变化或Harness载荷出现非权威字段
+    - 影子观测发起第二次请求（静态断言失败）
+    - ReleaseIdentity或18/18发生非预期变化
+    - 修改越出 allowedPaths
+  recoveryPoint: dacd79580ec73f3580594ab2134acf8cc3d99f35 + RF-001 baseline + 回滚本切片文件（mcp/src + 测试 + 文档）
+  maxRtoMinutes: 30
+  maxRpoMinutes: 0
+
+# 明确排除（后续切片，不在本切片）
+exclusions:
+  - candidate_decide / schedule_disable 前置读 requestHarness 观测接入（B3-S4，直接编排工具观测收尾）
+  - 隔离运行态 HENGZHUN_RF001_SHADOW=1 真实流量影子与零重复写入证明（B3-S5，申请 SHADOW_VERIFIED 的硬门禁）
+  - 公共API实时回读刷新（B3-S5 前置，本切片保持 CONTRACT 级证据）
+  - 切流、错误信封切换、B4 兼容/回滚验证
+  - RF-002
+
+risks:
+  - authoring_submit 决策若为 OPTION-B 需拆批；若审计发现现有 Flowise 流依赖别名，S3-1 输出将决定走 OPTION-A 并在决策日志记录断点
+  - case_prepare 三个草案来源"必须且只能一个"的既有约束不得被投影破坏（draftArray/draftJson 同时出现时必须仍报错）
+  - journey_prepare 未解析模板窄兼容与 draftJson 投影叠加时保持允许模式不变
+  - 证据新鲜度：本切片只产出 CONTRACT 级证据；公开API回读仍为缓存且过期，不作为本切片通过依据

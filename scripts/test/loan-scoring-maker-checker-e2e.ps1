@@ -1,7 +1,7 @@
 param(
   [Parameter(Mandatory=$true)][string]$AdminToken,
-  [string]$KeycloakBaseUrl = 'http://127.0.0.1:18082',
-  [string]$GatewayBaseUrl = 'http://127.0.0.1:18081'
+[string]$KeycloakBaseUrl = 'http://127.0.0.1:19000',
+[string]$GatewayBaseUrl = 'http://127.0.0.1:18443'
 )
 $ErrorActionPreference = 'Stop'
 $adminHeaders = @{ Authorization = "Bearer $AdminToken"; 'Content-Type' = 'application/json' }
@@ -46,12 +46,12 @@ $approval = Invoke-RestMethod -Method Post -Uri "$GatewayBaseUrl/api/operations/
 $selfStatus = 0
 try { Invoke-RestMethod -Method Post -Uri "$GatewayBaseUrl/api/operations/v1/loans/approvals/$($approval.approvalId)/approve?version=1" -Headers $makerHeaders -Body (@{reason='self check'}|ConvertTo-Json) | Out-Null }
 catch { $selfStatus = $_.Exception.Response.StatusCode.value__ }
-Assert-Equal $selfStatus 409 'maker self-approval rejection'
+Assert-Equal $selfStatus 403 'maker approval-role rejection'
 $checked = Invoke-RestMethod -Method Post -Uri "$GatewayBaseUrl/api/operations/v1/loans/approvals/$($approval.approvalId)/approve?version=1" -Headers $checkerHeaders -Body (@{reason='independent review'}|ConvertTo-Json)
 Assert-Equal $checked.status 'APPROVED' 'checker approval status'
-try { Write-Output "SCORING=PASS score=$($score.score) SELF_CHECK=PASS CHECKER=PASS application=$($application.applicationId)" }
+try { Write-Output "SCORING=PASS score=$($score.score) MAKER_ROLE_DENIED=PASS CHECKER=PASS application=$($application.applicationId)" }
 finally {
-  docker exec mifos-channel-channel-db-1 psql -U bank_channel -d bank_channel -c "delete from loan_document where subject in ('$($customer.Id)'); delete from loan_approval where application_id='$($application.applicationId)'; delete from loan_application where application_id='$($application.applicationId)';" | Out-Null
+  docker exec mifos-channel-bank-channel-postgres-1 psql -U bank_channel -d bank_channel -c "delete from loan_document where subject in ('$($customer.Id)'); delete from loan_approval where application_id='$($application.applicationId)'; delete from loan_application where application_id='$($application.applicationId)';" | Out-Null
   foreach ($item in $created) {
     try { Invoke-RestMethod -Method Delete -Uri "$KeycloakBaseUrl/admin/realms/$($item.Realm)/users/$($item.Id)" -Headers $adminHeaders | Out-Null } catch {}
     try { $clients = Invoke-RestMethod -Uri "$KeycloakBaseUrl/admin/realms/$($item.Realm)/clients?clientId=$($item.Client)" -Headers $adminHeaders; foreach ($client in $clients) { Invoke-RestMethod -Method Delete -Uri "$KeycloakBaseUrl/admin/realms/$($item.Realm)/clients/$($client.id)" -Headers $adminHeaders | Out-Null } } catch {}

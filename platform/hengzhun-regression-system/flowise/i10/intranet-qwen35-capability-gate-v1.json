@@ -1,0 +1,49 @@
+{
+  "schemaVersion": "hengzhun-i10-intranet-qwen35-capability-gate-v1",
+  "targetFamily": "Qwen3.5",
+  "status": "LIVE_ENDPOINT_UNVERIFIED",
+  "publicRuntimeVariables": {
+    "controller": ["CONTROL_API_KEY", "CONTROL_BASE_URL", "CONTROL_MODEL_NAME"],
+    "vision": ["VISION_API_KEY", "VISION_BASE_URL", "VISION_MODEL_NAME", "VISION_MODEL_FAMILY"]
+  },
+  "minimumCapabilities": {
+    "controller": {
+      "contextTokens": 1000000,
+      "maximumOutputTokens": 8192,
+      "structuredJson": true,
+      "nonStreaming": true,
+      "modelNativeToolCallingRequired": false
+    },
+    "vision": {
+      "contextTokens": 16000,
+      "maximumInputTokens": 12000,
+      "reservedOutputTokens": 4000,
+      "imageUrlInput": true,
+      "structuredJson": true,
+      "nonStreaming": true
+    }
+  },
+  "capacitySemantics": {
+    "endpointCapacityIsAuthorization": false,
+    "adapterMaySilentlyClampDeclaredCapacity": false,
+    "capacityAboveMinimumMustBeRecorded": true,
+    "workflowUsesMinimumDependencyCone": true,
+    "visualOperationalBudgetRemainsGoverned": true
+  },
+  "requiredLiveEvidence": [
+    "exact-model-id-and-checkpoint",
+    "inference-backend-name-and-version",
+    "hiagent-connector-version",
+    "provider-capacity-metadata",
+    "controller-json-probe",
+    "vision-screenshot-json-probe",
+    "usage-reporting",
+    "mcp-workflow-boundary"
+  ],
+  "decision": {
+    "belowMinimum": "BLOCK_MIGRATION_NO_SILENT_DOWNGRADE",
+    "meetsMinimum": "SUPPORTED_AFTER_LIVE_PROBE",
+    "aboveMinimum": "SUPPORTED_AND_RECORDED_WITHOUT_ADAPTER_CLAMP"
+  },
+  "claimBoundary": "Qwen3.5 is a model family. No intranet capability claim is valid until the exact checkpoint, inference backend and HiAgent connector pass this gate."
+}

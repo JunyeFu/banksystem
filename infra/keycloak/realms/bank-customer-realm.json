@@ -1,22 +1,34 @@
 {
   "realm": "bank-customer",
+  "displayName": "复兴银行客户统一身份认证",
   "enabled": true,
   "registrationAllowed": false,
   "loginWithEmailAllowed": true,
+  "internationalizationEnabled": true,
+  "defaultLocale": "zh-CN",
+  "supportedLocales": ["zh-CN"],
+  "loginTheme": "fuxing-bank",
   "duplicateEmailsAllowed": false,
-  "roles": {"realm": [{"name":"CUSTOMER"},{"name":"CUSTOMER_MFA_VERIFIED"},{"name":"CUSTOMER_BLOCKED"}]},
+  "roles": {
+    "realm": [
+      {"name": "CUSTOMER", "description": "复兴银行门户基础客户角色"},
+      {"name": "CUSTOMER_MFA_VERIFIED", "description": "已完成增强身份验证的客户角色"},
+      {"name": "CUSTOMER_BLOCKED", "description": "已阻断的客户角色"}
+    ]
+  },
+  "defaultRoles": ["CUSTOMER"],
   "sslRequired": "external",
   "clients": [
     {
-      "clientId": "bank-customer-web",
-      "name": "Bank Customer Web",
+      "clientId": "customer-portal",
+      "name": "Bank Customer Portal",
       "enabled": true,
       "publicClient": true,
       "protocol": "openid-connect",
       "standardFlowEnabled": true,
-      "directAccessGrantsEnabled": false,
-      "redirectUris": ["http://127.0.0.1:18081/*"],
-      "webOrigins": ["http://127.0.0.1:18081"],
+      "directAccessGrantsEnabled": true,
+      "redirectUris": ["http://127.0.0.1:18443/*", "http://127.0.0.1:18082/*"],
+      "webOrigins": ["http://127.0.0.1:18443", "http://127.0.0.1:18082"],
       "attributes": {"pkce.code.challenge.method": "S256"}
     }
   ]

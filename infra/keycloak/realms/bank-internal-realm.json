@@ -1,24 +1,44 @@
 {
   "realm": "bank-internal",
+  "displayName": "复兴银行员工统一身份认证",
   "enabled": true,
   "registrationAllowed": false,
   "loginWithEmailAllowed": false,
+  "internationalizationEnabled": true,
+  "defaultLocale": "zh-CN",
+  "supportedLocales": ["zh-CN"],
+  "loginTheme": "fuxing-bank",
   "roles": {
     "realm": [
-      {"name":"TELLER"},
-      {"name":"LOAN_OFFICER"},
-      {"name":"LOAN_APPROVER"},
-      {"name":"PAYMENT_OPERATOR"},
-      {"name":"PAYMENT_APPROVER"},
-      {"name":"AML_ANALYST"},
-      {"name":"AUDITOR"},
-      {"name":"SYSTEM_ADMIN"}
+      {"name": "TELLER"},
+      {"name": "CUSTOMER_SERVICE"},
+      {"name": "LOAN_OFFICER"},
+      {"name": "LOAN_APPROVER"},
+      {"name": "PAYMENT_OPERATOR"},
+      {"name": "PAYMENT_APPROVER"},
+      {"name": "RISK_ANALYST"},
+      {"name": "ACCOUNTANT"},
+      {"name": "AUDITOR"},
+      {"name": "SYSTEM_ADMIN"},
+      {"name": "TEST_SUPPORT"}
     ]
   },
   "clients": [
     {
-      "clientId": "bank-operations-api",
-      "name": "Bank Operations API",
+      "clientId": "operations-console",
+      "name": "Bank Operations Console",
+      "enabled": true,
+      "publicClient": true,
+      "protocol": "openid-connect",
+      "standardFlowEnabled": true,
+      "directAccessGrantsEnabled": false,
+      "redirectUris": ["http://127.0.0.1:18443/*", "http://127.0.0.1:18083/*"],
+      "webOrigins": ["http://127.0.0.1:18443", "http://127.0.0.1:18083"],
+      "attributes": {"pkce.code.challenge.method": "S256"}
+    },
+    {
+      "clientId": "bank-channel-service",
+      "name": "Bank Channel Service",
       "enabled": true,
       "publicClient": false,
       "protocol": "openid-connect",

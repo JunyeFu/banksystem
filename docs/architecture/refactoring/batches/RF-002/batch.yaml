@@ -1,0 +1,87 @@
+schemaVersion: 1
+id: RF-002
+title: 状态所有权重构（范围待 target-design 细化）
+status: CLOSED
+owner: project-owner
+authorizedBy: agent/plans/active/v54-implementation-batches.md
+scope:
+  # 范围待细化：本清单为候选路径（来自RF-001-B1考古线索），target-design.md
+  # 经用户批准后以最终授权范围为准。未细化前不授权任何实施（RC-D0）。
+  includePaths:
+    - docs/architecture/refactoring/batches/RF-002
+    - platform/hengzhun-regression-system/mcp/src
+    - platform/hengzhun-regression-system/harness/src/i10
+    - platform/hengzhun-regression-system/contracts
+    - platform/hengzhun-regression-system/scripts/verification
+    - scripts/architecture
+    - docs/current-state
+  excludePaths:
+    - platform/hengzhun-regression-system/flowise
+    - platform/hengzhun-regression-system/worker
+    - apps
+    - services
+    - infra
+    - data
+    - .data
+    - secrets
+    - .env
+budgets:
+  maxChangedFiles: 24
+  maxNewFiles: 12
+  maxChangedLines: 2400
+  maxContractsChanged: 2
+  maxMigrationsAdded: 0
+  maxOpenModules: 2
+baseline:
+  gitCommit: 3582a6416c4d63169d135d23513ab7e37dc690cb
+  dirtyTreeManifest: docs/architecture/refactoring/batches/RF-002/baseline.md
+  releaseIdentity: 632ad5ee7981b59f00824d0072d28da6075eef095d55a898d51c0103a897988f
+  capturedAt: "2026-08-03"
+architecture:
+  businessCapability: hengzhun-state-ownership
+  publicContract: platform/hengzhun-regression-system/contracts/mcp/hengzhun-i8.json
+  dependencyManifest: docs/architecture/refactoring/module-boundaries-v1.yaml
+  allowedModules:
+    - hengzhun.mcp
+    - hengzhun.harness
+  forbiddenModules:
+    - hengzhun.flowise
+    - hengzhun.worker
+    - bank.identity
+    - bank.accounts
+    - bank.payments
+mustPreserve:
+  - 保持33个MCP工具名称与RF-001切流后的8字段规范错误信封
+  - 保持ReleaseIdentity 632ad5ee与18链验收结果不变
+  - 不改变SQLite结构或运行状态机（除非target-design明确授权并获批）
+  - 不读取记录或输出任何密钥与凭据
+  - 不覆盖用户既有脏工作区改动
+verification:
+  requiredCommands:
+    - name: refactoring-contracts
+      command: python scripts/architecture/validate_refactoring.py
+      expectedExitCode: 0
+      evidence: docs/architecture/refactoring/batches/RF-002/evidence-index.md
+      blocking: true
+    - name: documentation
+      command: python scripts/docs/validate_docs.py
+      expectedExitCode: 0
+      evidence: docs/architecture/refactoring/batches/RF-002/evidence-index.md
+      blocking: true
+    - name: diff-format
+      command: git diff --check
+      expectedExitCode: 0
+      evidence: docs/architecture/refactoring/batches/RF-002/evidence-index.md
+      blocking: true
+rollback:
+  triggerConditions:
+    - 任何实施在target-design未批准前开始
+    - ReleaseIdentity或18链发生非预期变化
+    - 修改越出最终授权范围
+  recoveryPoint: 3582a6416c4d63169d135d23513ab7e37dc690cb plus RF-002 baseline
+  maxRtoMinutes: 30
+  maxRpoMinutes: 0
+exceptions:
+  allowedVagueNames: []
+  crossModule:
+    - hengzhun.mcp may depend on hengzhun.harness only through the frozen public contract and explicit adapter

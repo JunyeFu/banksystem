@@ -1,0 +1,30 @@
+{
+  "schemaVersion": "hengzhun-internship-delivery-v1",
+  "deliveryId": "HENGZHUN-INTERNSHIP-DELIVERY-20260718",
+  "implementationBatch": "I7",
+  "productName": "衡准自动化回归测试系统",
+  "databaseEngine": "sqlite",
+  "productRoot": "platform/hengzhun-regression-system",
+  "requiredOperationCount": 14,
+  "requiredPluginVersion": "v0.0.10",
+  "requiredPlatformExitGate": "CLOSED",
+  "requiredEvidence": [
+    "docs/evidence/platform/hengzhun-i1-platform-baseline-2026-07-16.md",
+    "docs/evidence/platform/hengzhun-i2-safe-kernel-2026-07-16.md",
+    "docs/evidence/platform/hengzhun-i4-three-case-midscene-2026-07-17.md",
+    "docs/evidence/platform/hengzhun-i5-import-repair-2026-07-17.md",
+    "docs/evidence/platform/hengzhun-i6-scheduling-offline-2026-07-18.md"
+  ],
+  "forbiddenTrackedPathPatterns": [
+    "(^|/)\\.env($|\\.)",
+    "(^|/)\\.data(/|$)",
+    "(^|/)(logs?|runs?|cache|worker-output)(/|$)",
+    "(^|/)(storage-state|playwright-report|test-results)(/|$)",
+    "(^|/)(secrets?|credentials?)(/|$)"
+  ],
+  "deferredExternalClaims": [
+    "PLAT-V007_TARGET_TENANT_CAPACITY",
+    "PLAT-V010_TARGET_HIAGENT_NETWORK",
+    "CLOUD_HIAGENT_PRODUCTION_READINESS"
+  ]
+}

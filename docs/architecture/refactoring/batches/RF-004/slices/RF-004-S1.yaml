@@ -1,0 +1,82 @@
+schemaVersion: 1
+id: RF-004-S1
+title: 凭据绑定考古与基线（C1-C5 现状冻结，零代码改动）
+status: PROPOSED
+owner: project-owner
+authorizedBy: agent/plans/active/v54-implementation-batches.md (L1全景, RF-004)
+parentBatch: docs/architecture/refactoring/batches/RF-004/batch.yaml
+targetDesign: docs/architecture/refactoring/batches/RF-004/target-design.md (v1.0, 用户已批准)
+baseline:
+  gitCommit: fac2a5a（RF-004 分支）
+  releaseIdentity: 632ad5ee7981b59f00824d0072d28da6075eef095d55a898d51c0103a897988f
+
+# 单业务目标：冻结执行凭据绑定现状（C1-C5）为机器断言基线，复核 v7 消费面
+# （run_submit/schedule_create 零 credentialAlias 调用），为 B1/B2 迁移提供
+# 可测反转锚点。零运行时代码改动。
+functionalPoint: 凭据绑定考古与基线（CONTRACT级）
+
+allowedPaths:
+  - docs/architecture/refactoring/batches/RF-004/**
+  - platform/hengzhun-regression-system/scripts/verification/rf004-s1-credential-baseline.test.cjs   # 【新增】
+  - platform/hengzhun-regression-system/mcp/src/**、harness/src/**、flowise/i10/agentflow-v7.json、contracts/**   # 只读引用
+
+forbiddenPaths:
+  - mcp/harness/flowise/contracts 源码零改动（仅测试只读引用）
+  - 生产进程/DB 操作；SQLite 迁移；切流；agent/backlog.yaml
+  - scripts/architecture/**（校验器只读）；任何凭据读取/输出
+
+budgets:
+  maxChangedFiles: 4
+  maxNewFiles: 1
+  maxChangedLines: 200
+  maxContractsChanged: 0
+  maxMigrationsAdded: 0
+  maxOpenModules: 0
+
+invariants:
+  - 零运行时代码改动；测试只读引用源码文件
+  - 不读取/输出任何密钥与凭据（断言只检查别名与引用形状）
+  - 基线断言基于当前文件内容的确定性核对
+
+workSteps:
+  - step: S1-1 现状断言（C1-C5）
+    action: 测试断言 MCP normalizeCredentialBinding 冻结 i3-customer、enqueueRun credentialAlias 写入、验证路径 credentialRef 透传先例、schemas 类型、v7 零 credentialAlias 调用
+  - step: S1-2 消费面复核
+    action: agentflow-v7 工具节点审计：run_submit/schedule_create 参数无 credentialAlias（Flowise 零改动边界确认）
+  - step: S1-3 差异表与证据
+    action: contract-delta 更新（现状→B1/B2 目标差异）；decision-log 条目 2；evidence-index
+  - step: S1-4 RC-D1 同步与提交
+
+verification:
+  requiredCommands:
+    - name: rf004-s1-credential-baseline
+      command: runtime/node-v20.20.2-win-x64/node.exe --test scripts/verification/rf004-s1-credential-baseline.test.cjs
+      expectedExitCode: 0
+      expectedOutput: C1-C5 现状断言与 v7 消费面复核全过
+      blocking: true
+    - name: rf003-focused-tests
+      command: runtime/node-v20.20.2-win-x64/node.exe --test scripts/verification/rf001-*.cjs scripts/verification/rf002-*.cjs scripts/verification/rf003-*.cjs（全聚焦回归）
+      expectedExitCode: 0
+      expectedOutput: 62 passed / 0 failed
+      blocking: true
+    - name: refactoring-contracts / rf001-mcp-boundary-contract / documentation
+      command: python scripts/architecture/validate_refactoring.py && python scripts/architecture/validate_rf001_contract.py && python scripts/docs/validate_docs.py
+      expectedExitCode: 0
+      blocking: true
+    - name: runtime-release-identity
+      command: runtime/node-v20.20.2-win-x64/node.exe scripts/i10-release-identity.cjs
+      expectedExitCode: 0
+      expectedOutput: identityHash=632ad5ee…
+      blocking: true
+    - name: whitespace
+      command: git diff --check
+      expectedExitCode: 0
+      blocking: true
+
+rollback:
+  triggerConditions: 测试误改源码；越出 allowedPaths
+  recoveryPoint: fac2a5a + RF-004 baseline
+  maxRtoMinutes: 15
+  maxRpoMinutes: 0
+
+exclusions: S2（MCP 绑定契约）、S3（Harness 传递）、S4（生产切流关闭）；任何运行时代码改动

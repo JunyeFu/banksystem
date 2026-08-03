@@ -1,0 +1,97 @@
+schemaVersion: 1
+id: RF-001
+title: 统一衡准MCP到Harness字段错误码和适配器
+status: CLOSED
+owner: project-owner
+authorizedBy: agent/plans/active/v54-implementation-batches.md
+scope:
+  includePaths:
+    - platform/hengzhun-regression-system/mcp
+    - platform/hengzhun-regression-system/harness/src/i10
+    - platform/hengzhun-regression-system/contracts
+    - platform/hengzhun-regression-system/scripts/verification
+    - scripts/architecture/validate_rf001_contract.py
+    - docs/architecture/refactoring/batches/RF-001
+    - docs/current-state
+    - agent/backlog.yaml
+    - agent/plans/active/v54-implementation-batches.md
+  excludePaths:
+    - platform/hengzhun-regression-system/flowise
+    - platform/hengzhun-regression-system/worker
+    - apps
+    - services
+    - infra
+    - data
+    - .data
+    - secrets
+    - .env
+budgets:
+  maxChangedFiles: 24
+  maxNewFiles: 12
+  maxChangedLines: 2400
+  maxContractsChanged: 2
+  maxMigrationsAdded: 0
+  maxOpenModules: 2
+baseline:
+  gitCommit: dacd79580ec73f3580594ab2134acf8cc3d99f35
+  dirtyTreeManifest: docs/architecture/refactoring/batches/RF-001/baseline.md
+  releaseIdentity: 632ad5ee7981b59f00824d0072d28da6075eef095d55a898d51c0103a897988f
+  capturedAt: "2026-08-02T17:03:22+08:00"
+architecture:
+  businessCapability: hengzhun-cross-layer-contract-standardization
+  publicContract: platform/hengzhun-regression-system/contracts/mcp/hengzhun-i8.json
+  dependencyManifest: docs/architecture/refactoring/module-boundaries-v1.yaml
+  allowedModules:
+    - hengzhun.mcp
+    - hengzhun.harness
+  forbiddenModules:
+    - hengzhun.flowise
+    - hengzhun.worker
+    - bank.identity
+    - bank.accounts
+    - bank.payments
+mustPreserve:
+  - 保持33个MCP工具名称和现有Flowise调用兼容
+  - 保持ReleaseIdentity和18链当前验收结果不变
+  - 不改变SQLite结构或运行状态机
+  - 不读取记录或输出任何密钥与凭据
+  - 不覆盖用户既有脏工作区改动
+verification:
+  requiredCommands:
+    - name: refactoring-contracts
+      command: python scripts/architecture/validate_refactoring.py
+      expectedExitCode: 0
+      evidence: docs/architecture/refactoring/batches/RF-001/evidence-index.md
+      blocking: true
+    - name: rf001-mcp-boundary-contract
+      command: python scripts/architecture/validate_rf001_contract.py
+      expectedExitCode: 0
+      evidence: docs/architecture/refactoring/batches/RF-001/evidence-index.md
+      blocking: true
+    - name: rf001-shadow-adapter-focused
+      command: runtime/node-v20.20.2-win-x64/node.exe --test scripts/verification/rf001-contract-adapter.test.cjs scripts/verification/mcp-interaction-contract.test.cjs
+      expectedExitCode: 0
+      evidence: docs/architecture/refactoring/batches/RF-001/shadow-implementation-report.md
+      blocking: true
+    - name: documentation
+      command: python scripts/docs/validate_docs.py
+      expectedExitCode: 0
+      evidence: docs/architecture/refactoring/batches/RF-001/evidence-index.md
+      blocking: true
+    - name: release-identity
+      command: inspect-i10.ps1 -Root platform/hengzhun-regression-system -CompareSnapshot C:/tmp/i10-post-backfill-baseline.json
+      expectedExitCode: 0
+      evidence: docs/architecture/refactoring/batches/RF-001/evidence-index.md
+      blocking: true
+rollback:
+  triggerConditions:
+    - ReleaseIdentity或18链当前结果发生非预期变化
+    - MCP-33任何工具名称或旧字段兼容性被破坏
+    - 修改扩展到Flowise Worker或银行模块
+  recoveryPoint: dacd79580ec73f3580594ab2134acf8cc3d99f35 plus RF-001 baseline and preserved dirty-tree manifest
+  maxRtoMinutes: 30
+  maxRpoMinutes: 0
+exceptions:
+  allowedVagueNames: []
+  crossModule:
+    - hengzhun.mcp may depend on hengzhun.harness only through the frozen public contract and explicit adapter

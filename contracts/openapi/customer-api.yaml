@@ -15,7 +15,7 @@ paths:
       summary: Get current customer
       responses:
         '200':
-          description: Current linked customer
+          description: Current authenticated identity profile
           content:
             application/json:
               schema: { $ref: '#/components/schemas/Customer' }
@@ -37,6 +37,10 @@ paths:
                     type: array
                     items: { $ref: '#/components/schemas/AccountSummary' }
         '401': { $ref: '#/components/responses/Unauthorized' }
+        '404':
+          description: Authenticated identity is not linked to a core banking customer
+          content:
+            application/problem+json: { schema: { $ref: '#/components/schemas/Problem' } }
   /accounts/{accountId}:
     parameters:
       - $ref: '#/components/parameters/AccountId'
@@ -45,10 +49,10 @@ paths:
       summary: Get customer account
       responses:
         '200':
-          description: Account summary
+          description: Account detail with recent transactions
           content:
             application/json:
-              schema: { $ref: '#/components/schemas/AccountSummary' }
+              schema: { $ref: '#/components/schemas/AccountDetail' }
         '401': { $ref: '#/components/responses/Unauthorized' }
         '404': { $ref: '#/components/responses/NotFound' }
   /loans/applications:
@@ -71,14 +75,107 @@ paths:
       operationId: listBeneficiaries
       summary: List customer beneficiaries
       responses:
-        '200': { description: Masked beneficiary list }
+        '200':
+          description: Masked, resolved beneficiary list
+          content:
+            application/json: { schema: { $ref: '#/components/schemas/BeneficiaryPage' } }
         '401': { $ref: '#/components/responses/Unauthorized' }
+  /loans:
+    get:
+      operationId: listLoans
+      summary: List customer loans
+      responses:
+        '200':
+          description: Loans linked to the authenticated customer
+          content:
+            application/json: { schema: { $ref: '#/components/schemas/LoanPage' } }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '404':
+          description: Authenticated identity is not linked to a core banking customer
+          content:
+            application/problem+json: { schema: { $ref: '#/components/schemas/Problem' } }
+  /loans/{loanId}:
+    parameters:
+      - name: loanId
+        in: path
+        required: true
+        schema: { type: string, minLength: 1, maxLength: 64 }
+    get:
+      operationId: getLoan
+      summary: Get a customer loan
+      responses:
+        '200':
+          description: Customer-scoped loan detail
+          content:
+            application/json: { schema: { $ref: '#/components/schemas/LoanDetail' } }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '404': { $ref: '#/components/responses/NotFound' }
+    post:
+      operationId: createBeneficiary
+      summary: Create and resolve a beneficiary against the core savings account directory
+      requestBody:
+        required: true
+        content:
+          application/json: { schema: { $ref: '#/components/schemas/CreateBeneficiaryRequest' } }
+      responses:
+        '200':
+          description: Masked beneficiary resource
+          content:
+            application/json: { schema: { $ref: '#/components/schemas/Beneficiary' } }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '422': { description: Account number cannot be uniquely resolved in core banking }
   /notifications:
     get:
       operationId: listNotifications
       summary: List customer notifications
       responses:
-        '200': { description: Customer-scoped notifications }
+        '200':
+          description: Customer-scoped notifications
+          content:
+            application/json: { schema: { $ref: '#/components/schemas/MessagePage' } }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+  /notifications/{notificationId}/read:
+    parameters:
+      - name: notificationId
+        in: path
+        required: true
+        schema: { type: string, format: uuid }
+    post:
+      operationId: markNotificationRead
+      summary: Mark a customer notification as read
+      responses:
+        '200': { description: Updated notification read state }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '404': { $ref: '#/components/responses/NotFound' }
+  /profile:
+    get:
+      operationId: getCustomerProfile
+      summary: Get customer profile claims
+      responses:
+        '200':
+          description: Authenticated customer profile
+          content:
+            application/json: { schema: { $ref: '#/components/schemas/CustomerProfile' } }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+  /security/settings:
+    get:
+      operationId: getSecuritySettings
+      summary: Get authenticated session security settings
+      responses:
+        '200':
+          description: Security posture derived from authenticated session claims
+          content:
+            application/json: { schema: { $ref: '#/components/schemas/SecuritySettings' } }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+  /documents:
+    get:
+      operationId: listDocuments
+      summary: List downloadable customer documents
+      responses:
+        '200':
+          description: Customer-scoped generated documents
+          content:
+            application/json: { schema: { $ref: '#/components/schemas/DocumentPage' } }
         '401': { $ref: '#/components/responses/Unauthorized' }
   /statements:
     get:
@@ -108,23 +205,22 @@ paths:
         '200': { description: Receipt payload and SHA-256 checksum }
         '401': { $ref: '#/components/responses/Unauthorized' }
         '404': { $ref: '#/components/responses/NotFound' }
-    post:
-      operationId: createBeneficiary
-      summary: Create beneficiary
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              type: object
-              required: [accountNumber, displayName]
-              properties:
-                accountNumber: { type: string, minLength: 6, maxLength: 64, writeOnly: true }
-                displayName: { type: string, minLength: 1, maxLength: 160 }
-      responses:
-        '200': { description: Masked beneficiary resource }
-        '401': { $ref: '#/components/responses/Unauthorized' }
   /transfers:
+    get:
+      operationId: listCustomerTransfers
+      summary: List authenticated customer's transfers
+      parameters:
+        - { name: status, in: query, schema: { $ref: '#/components/schemas/TransferStatus' } }
+        - { name: from, in: query, description: Inclusive creation timestamp lower bound, schema: { type: string, format: date-time } }
+        - { name: to, in: query, description: Inclusive creation timestamp upper bound, schema: { type: string, format: date-time } }
+        - { name: page, in: query, schema: { type: integer, minimum: 0, default: 0 } }
+        - { name: size, in: query, schema: { type: integer, minimum: 1, maximum: 100, default: 20 } }
+      responses:
+        '200':
+          description: Subject-scoped transfer page
+          content:
+            application/json: { schema: { $ref: '#/components/schemas/TransferPage' } }
+        '401': { $ref: '#/components/responses/Unauthorized' }
     post:
       operationId: createCustomerTransfer
       summary: Create an internal customer transfer
@@ -135,17 +231,39 @@ paths:
           application/json:
             schema:
               type: object
-              required: [sourceAccountId, destinationAccountId, amount, currency]
+              required: [sourceAccountId, beneficiaryId, amount, currency]
               properties:
                 sourceAccountId: { type: string, minLength: 1, maxLength: 64 }
-                destinationAccountId: { type: string, minLength: 1, maxLength: 64 }
+                beneficiaryId: { type: string, format: uuid }
                 amount: { $ref: '#/components/schemas/Money' }
                 currency: { type: string, minLength: 3, maxLength: 3 }
                 reference: { type: string, maxLength: 240 }
       responses:
-        '202': { description: Transfer accepted for asynchronous core posting }
+        '202':
+          description: Transfer accepted for asynchronous core posting
+          content:
+            application/json: { schema: { $ref: '#/components/schemas/TransferAccepted' } }
+        '400': { $ref: '#/components/responses/Problem' }
         '401': { $ref: '#/components/responses/Unauthorized' }
         '403': { description: Source account is not owned by the customer }
+        '409': { $ref: '#/components/responses/Problem' }
+        '422': { description: Beneficiary is unavailable or unresolved }
+  /transfers/{transferId}:
+    parameters:
+      - name: transferId
+        in: path
+        required: true
+        schema: { type: string, format: uuid }
+    get:
+      operationId: getCustomerTransfer
+      summary: Get an authenticated customer's transfer
+      responses:
+        '200':
+          description: Subject-scoped transfer detail
+          content:
+            application/json: { schema: { $ref: '#/components/schemas/Transfer' } }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '404': { $ref: '#/components/responses/NotFound' }
   /loans/applications/{applicationId}/submit:
     parameters: [{ $ref: '#/components/parameters/ApplicationId' }]
     post:
@@ -228,8 +346,12 @@ components:
       name: Idempotency-Key
       in: header
       required: true
-      schema: { type: string, minLength: 8, maxLength: 128 }
+      schema: { type: string, minLength: 16, maxLength: 128 }
   responses:
+    Problem:
+      description: RFC 9457 problem details
+      content:
+        application/problem+json: { schema: { $ref: '#/components/schemas/Problem' } }
     Unauthorized:
       description: Authentication required
       content:
@@ -244,6 +366,73 @@ components:
       pattern: '^-?(0|[1-9][0-9]*)(\.[0-9]{1,4})?$'
       description: Decimal money value serialized as a string; never a JSON number.
       examples: ['1250.00']
+    TransferStatus:
+      type: string
+      enum: [CREATED, VALIDATING, RISK_REVIEW, PENDING_APPROVAL, PENDING_CORE_POSTING, PENDING_CLEARING, SETTLED, FAILED, TIMED_OUT, RETURNED, REVERSAL_PENDING, REVERSED]
+    Beneficiary:
+      type: object
+      additionalProperties: false
+      required: [beneficiaryId, maskedAccountNumber, displayName, createdAt]
+      properties:
+        beneficiaryId: { type: string, format: uuid }
+        maskedAccountNumber: { type: string }
+        displayName: { type: string }
+        createdAt: { type: string, format: date-time }
+    BeneficiaryPage:
+      type: object
+      additionalProperties: false
+      required: [items]
+      properties:
+        items: { type: array, items: { $ref: '#/components/schemas/Beneficiary' } }
+    CreateBeneficiaryRequest:
+      type: object
+      additionalProperties: false
+      required: [accountNumber, displayName]
+      properties:
+        accountNumber: { type: string, minLength: 6, maxLength: 64, writeOnly: true }
+        displayName: { type: string, minLength: 1, maxLength: 160 }
+    Transfer:
+      type: object
+      additionalProperties: false
+      required: [transferId, status, amount, currency, sourceAccountId, destinationAccountId, createdAt, updatedAt]
+      properties:
+        transferId: { type: string, format: uuid }
+        status: { $ref: '#/components/schemas/TransferStatus' }
+        amount: { $ref: '#/components/schemas/Money' }
+        currency: { type: string, pattern: '^[A-Z]{3}$' }
+        sourceAccountId: { type: string }
+        destinationAccountId: { type: string, writeOnly: true }
+        beneficiaryId: { type: string, format: uuid }
+        beneficiaryName: { type: string }
+        maskedDestinationAccount: { type: string }
+        reference: { type: string }
+        coreReference: { type: string }
+        correlationId: { type: string }
+        failureCode: { type: string }
+        failureDetail: { type: string }
+        receiptAvailable: { type: boolean }
+        createdAt: { type: string, format: date-time }
+        updatedAt: { type: string, format: date-time }
+    TransferAccepted:
+      type: object
+      additionalProperties: false
+      required: [transferId, status, amount, currency, correlationId]
+      properties:
+        transferId: { type: string, format: uuid }
+        status: { $ref: '#/components/schemas/TransferStatus' }
+        amount: { $ref: '#/components/schemas/Money' }
+        currency: { type: string, pattern: '^[A-Z]{3}$' }
+        correlationId: { type: string }
+    TransferPage:
+      type: object
+      additionalProperties: false
+      required: [items, page, size, totalItems, totalPages]
+      properties:
+        items: { type: array, items: { $ref: '#/components/schemas/Transfer' } }
+        page: { type: integer, minimum: 0 }
+        size: { type: integer, minimum: 1 }
+        totalItems: { type: integer, minimum: 0 }
+        totalPages: { type: integer, minimum: 0 }
     Customer:
       type: object
       required: [customerId, displayName]
@@ -252,12 +441,131 @@ components:
         displayName: { type: string, minLength: 1, maxLength: 160 }
     AccountSummary:
       type: object
+      additionalProperties: false
       required: [accountId, maskedAccountNumber, currency, balance]
       properties:
         accountId: { type: string, minLength: 1, maxLength: 64 }
         maskedAccountNumber: { type: string, pattern: '^\*{4,}[0-9]{2,4}$' }
         currency: { type: string }
         balance: { $ref: '#/components/schemas/Money' }
+        accountType: { type: string }
+        status: { type: string }
+        openedOn: { type: string, format: date }
+    AccountDetail:
+      unevaluatedProperties: false
+      allOf:
+        - $ref: '#/components/schemas/AccountSummary'
+        - type: object
+          required: [transactions]
+          properties:
+            transactions:
+              type: array
+              items: { $ref: '#/components/schemas/AccountTransaction' }
+    AccountTransaction:
+      type: object
+      additionalProperties: false
+      required: [transactionId, transactionDate, transactionType, description, amount, currency]
+      properties:
+        transactionId: { type: string }
+        transactionDate: { type: string, format: date-time }
+        transactionType: { type: string, enum: [CREDIT, DEBIT] }
+        description: { type: string }
+        counterparty: { type: string }
+        amount: { $ref: '#/components/schemas/Money' }
+        currency: { type: string }
+        runningBalance: { $ref: '#/components/schemas/Money' }
+    LoanSummary:
+      type: object
+      additionalProperties: false
+      required: [loanId, loanProductName, principal, outstandingBalance, currency, status]
+      properties:
+        loanId: { type: string }
+        loanProductName: { type: string }
+        principal: { $ref: '#/components/schemas/Money' }
+        outstandingBalance: { $ref: '#/components/schemas/Money' }
+        currency: { type: string }
+        status: { type: string }
+    LoanDetail:
+      unevaluatedProperties: false
+      allOf:
+        - $ref: '#/components/schemas/LoanSummary'
+        - type: object
+          required: [termMonths, repaymentSchedule]
+          properties:
+            termMonths: { type: integer, minimum: 0 }
+            interestRate: { type: string }
+            startDate: { type: string, format: date }
+            endDate: { type: string, format: date }
+            repaymentSchedule:
+              type: array
+              items: { $ref: '#/components/schemas/RepaymentInstallment' }
+    RepaymentInstallment:
+      type: object
+      additionalProperties: false
+      required: [period, dueDate, principalDue, interestDue, totalDue, status]
+      properties:
+        period: { type: integer, minimum: 1 }
+        dueDate: { type: string, format: date }
+        principalDue: { $ref: '#/components/schemas/Money' }
+        interestDue: { $ref: '#/components/schemas/Money' }
+        totalDue: { $ref: '#/components/schemas/Money' }
+        status: { type: string, enum: [PAID, DUE] }
+    LoanPage:
+      type: object
+      additionalProperties: false
+      required: [items]
+      properties:
+        items: { type: array, items: { $ref: '#/components/schemas/LoanSummary' } }
+    Message:
+      type: object
+      additionalProperties: false
+      required: [messageId, subject, body, read, createdDate]
+      properties:
+        messageId: { type: string, format: uuid }
+        subject: { type: string }
+        body: { type: string }
+        read: { type: boolean }
+        createdDate: { type: string, format: date-time }
+    MessagePage:
+      type: object
+      additionalProperties: false
+      required: [items]
+      properties:
+        items: { type: array, items: { $ref: '#/components/schemas/Message' } }
+    CustomerProfile:
+      type: object
+      additionalProperties: false
+      required: [customerId, displayName]
+      properties:
+        customerId: { type: string }
+        displayName: { type: string }
+        email: { type: string, format: email }
+        phone: { type: string }
+    SecuritySettings:
+      type: object
+      additionalProperties: false
+      required: [mfaEnabled, loginNotificationsEnabled]
+      properties:
+        mfaEnabled: { type: boolean }
+        mfaMethod: { type: string }
+        loginNotificationsEnabled: { type: boolean }
+        lastLoginAt: { type: string, format: date-time }
+    CustomerDocument:
+      type: object
+      additionalProperties: false
+      required: [documentId, documentType, description, createdDate, downloadUrl]
+      properties:
+        documentId: { type: string }
+        documentType: { type: string }
+        description: { type: string }
+        createdDate: { type: string, format: date }
+        downloadUrl: { type: string, format: uri-reference }
+    DocumentPage:
+      type: object
+      additionalProperties: false
+      required: [items]
+      properties:
+        items: { type: array, items: { $ref: '#/components/schemas/CustomerDocument' } }
     LoanApplicationRequest:
       type: object
       required: [amount, termMonths, purpose]
