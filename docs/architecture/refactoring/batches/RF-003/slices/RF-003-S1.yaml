@@ -1,0 +1,84 @@
+schemaVersion: 1
+id: RF-003-S1
+title: 版本契约考古与基线（三源漂移现状冻结，零代码改动）
+status: PROPOSED
+owner: project-owner
+authorizedBy: agent/plans/active/v54-implementation-batches.md (L1全景, RF-003)
+parentBatch: docs/architecture/refactoring/batches/RF-003/batch.yaml
+targetDesign: docs/architecture/refactoring/batches/RF-003/target-design.md (v1.0, 用户已批准)
+baseline:
+  gitCommit: b249bf6（RF-003 分支）
+  releaseIdentity: 632ad5ee7981b59f00824d0072d28da6075eef095d55a898d51c0103a897988f
+
+# 单业务目标：冻结版本三源漂移现状为机器断言基线（SDK 8.0.0 / 健康 10.0.0 /
+# 合同 10.1.0），并验证版本统一计划的安全性（合同文件不属于 ReleaseIdentity
+# 输入），为 S2 统一实现提供可测切换锚点。零运行时代码改动。
+functionalPoint: 版本契约考古与基线（CONTRACT级）
+
+allowedPaths:
+  - docs/architecture/refactoring/batches/RF-003/**
+  - platform/hengzhun-regression-system/scripts/verification/rf003-s1-version-baseline.test.cjs   # 【新增】
+  - platform/hengzhun-regression-system/mcp/src/**、contracts/**   # 只读引用（测试读取），零改动
+
+forbiddenPaths:
+  - mcp/contracts/harness/flowise/worker 源码零改动（仅测试只读引用）
+  - 生产进程/DB 操作；SQLite 迁移；切流；agent/backlog.yaml
+  - scripts/architecture/**（校验器只读）
+
+budgets:
+  maxChangedFiles: 4
+  maxNewFiles: 1
+  maxChangedLines: 200
+  maxContractsChanged: 0
+  maxMigrationsAdded: 0
+  maxOpenModules: 0
+
+invariants:
+  - 零运行时代码改动；测试只读引用源码文件
+  - 基线断言基于当前文件内容的确定性核对
+  - 不读取/输出任何密钥与凭据
+
+workSteps:
+  - step: S1-1 三源现状断言
+    action: 测试断言 server.cjs SDK version=8.0.0、健康 version=10.0.0、合同 contractVersion=10.1.0（漂移基线登记，S2 反转锚点）
+  - step: S1-2 版本策略断言
+    action: 断言 RF-001 边界合同 versionPolicy 存在且含 contractVersionSource（B2 已冻结）
+  - step: S1-3 身份安全性验证
+    action: 断言 contracts/mcp/hengzhun-i8.json 不在 i10-release-identity.cjs 的输入清单中（版本统一不改变身份）
+  - step: S1-4 差异表与证据
+    action: contract-delta 更新（现状→V1/V2/V3 差异表）；decision-log 条目 2；evidence-index
+  - step: S1-5 RC-D1 同步与提交
+
+verification:
+  requiredCommands:
+    - name: rf003-s1-version-baseline
+      command: runtime/node-v20.20.2-win-x64/node.exe --test scripts/verification/rf003-s1-version-baseline.test.cjs
+      expectedExitCode: 0
+      expectedOutput: 三源现状、版本策略、身份安全性全过
+      blocking: true
+    - name: rf002-focused-tests
+      command: runtime/node-v20.20.2-win-x64/node.exe --test scripts/verification/rf001-*.cjs scripts/verification/rf002-*.cjs（全聚焦回归）
+      expectedExitCode: 0
+      expectedOutput: 56 passed / 0 failed
+      blocking: true
+    - name: refactoring-contracts / rf001-mcp-boundary-contract / documentation
+      command: python scripts/architecture/validate_refactoring.py && python scripts/architecture/validate_rf001_contract.py && python scripts/docs/validate_docs.py
+      expectedExitCode: 0
+      blocking: true
+    - name: runtime-release-identity
+      command: runtime/node-v20.20.2-win-x64/node.exe scripts/i10-release-identity.cjs
+      expectedExitCode: 0
+      expectedOutput: identityHash=632ad5ee…
+      blocking: true
+    - name: whitespace
+      command: git diff --check
+      expectedExitCode: 0
+      blocking: true
+
+rollback:
+  triggerConditions: 测试误改源码；越出 allowedPaths
+  recoveryPoint: b249bf6 + RF-003 baseline
+  maxRtoMinutes: 15
+  maxRpoMinutes: 0
+
+exclusions: S2（版本统一实现）、S3（生产切流关闭）；任何运行时代码改动
