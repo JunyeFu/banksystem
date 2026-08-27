@@ -10,6 +10,8 @@
   "requiredPathScenarios": ["ascii-path", "path-with-spaces", "path-with-chinese-characters"],
   "forbiddenGlobalDependencies": ["node", "npm", "wsl", "docker"],
   "trackedPrefixes": [
+    "agent-cli",
+    "controller",
     "config",
     "contracts",
     "flowise/i8",
@@ -52,13 +54,24 @@
     "scripts/start-i10.ps1",
     "scripts/status-i10.ps1",
     "scripts/stop-i10.ps1",
-    "scripts/i10-stage9-portable.cjs"
+    "scripts/i10-stage9-portable.cjs",
+    "scripts/i10-agent-lifecycle.cjs",
+    "scripts/i10-release-identity-v4.cjs",
+    "scripts/i10-provision-node-runtimes.ps1",
+    "scripts/check-flowise-audit.cjs",
+    "scripts/i10-acquire-flowise-runtime.ps1",
+    "scripts/i10-flowise-advisory-disposition.cjs",
+    "scripts/i10-flowise-runtime-probe.cjs",
+    "scripts/i10-build-flowise-runtime-fork.cjs",
+    "flowise/i10/flowise-runtime-fork-policy-v1.json",
+    "flowise/i10/flowise-acquisition-policy-v1.json"
   ],
   "runtimeTrees": [
     "dist",
     "node_modules",
     "flowise/app",
     "runtime/node-v20.20.2-win-x64",
+    "runtime/node-v24.19.0-win-x64",
     "runtime/browsers",
     "runtime/node_modules"
   ],

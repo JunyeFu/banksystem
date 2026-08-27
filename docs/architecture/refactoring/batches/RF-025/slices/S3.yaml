@@ -1,0 +1,9 @@
+id: RF-025-S3
+title: Same-identity supply-chain and DPAPI release gates
+status: BLOCKED
+allowedPaths: [platform/hengzhun-regression-system/scripts/i10-agent-release-decision.cjs, platform/hengzhun-regression-system/scripts/i10-agent-offline-sbom.cjs, platform/hengzhun-regression-system/agent-cli/release-identity-v4-manifest.json, platform/hengzhun-regression-system/package.json, platform/hengzhun-regression-system/scripts/verification, docs/architecture/refactoring/batches/RF-025]
+forbiddenPaths: [platform/hengzhun-regression-system/flowise, platform/hengzhun-regression-system/.data]
+workSteps: [read current v4 18 status, recheck SBOM and release identity, execute isolated DPAPI restore drill, aggregate only current same-identity gate evidence]
+verification: [18 of 18 exact records, current SBOM, source runtime readback identity equality, DPAPI restore same identity, stale and cross-identity evidence rejected]
+rollback: restore only S3 sources and tests; preserve all terminal evidence
+evidence: docs/architecture/refactoring/batches/RF-025/evidence-index.md

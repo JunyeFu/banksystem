@@ -1,0 +1,72 @@
+schemaVersion: 1
+id: RF-006
+title: I10 acceptance execution efficiency and timing observability
+status: CLOSED
+owner: project-owner
+authorizedBy: agent/plans/active/v54-implementation-batches.md
+scope:
+  includePaths:
+    - platform/hengzhun-regression-system/scripts
+    - platform/hengzhun-regression-system/worker/src
+    - platform/hengzhun-regression-system/tests
+    - docs/architecture/refactoring/batches/RF-006
+    - docs/current-state
+  excludePaths:
+    - platform/hengzhun-regression-system/.data
+    - platform/hengzhun-regression-system/harness
+    - platform/hengzhun-regression-system/mcp
+    - platform/hengzhun-regression-system/flowise
+    - apps
+    - services
+    - infra
+    - data
+    - secrets
+    - .env
+budgets:
+  maxChangedFiles: 20
+  maxNewFiles: 4
+  maxChangedLines: 1400
+  maxContractsChanged: 0
+  maxMigrationsAdded: 0
+  maxOpenModules: 2
+baseline:
+  gitCommit: 9d79b7c1e6cfedd995093cc7a378dc8e9218fa98
+  dirtyTreeManifest: docs/architecture/refactoring/batches/RF-006/baseline.md
+  releaseIdentity: 632ad5ee7981b59f00824d0072d28da6075eef095d55a898d51c0103a897988f
+  capturedAt: "2026-08-03T17:48:34+08:00"
+architecture:
+  businessCapability: hengzhun-acceptance-execution-efficiency
+  publicContract: platform/hengzhun-regression-system/contracts/mcp/hengzhun-i8.json
+  dependencyManifest: docs/architecture/refactoring/module-boundaries-v1.yaml
+  allowedModules: [hengzhun.tests, hengzhun.worker]
+  forbiddenModules: [hengzhun.harness, hengzhun.mcp, hengzhun.flowise, bank.identity, bank.accounts, bank.payments]
+mustPreserve:
+  - Only LIVE_E2E evidence may establish runtime acceptance.
+  - Reuse never bypasses authoring, pure Playwright, 2x2 certification, activation or formal-run gates.
+  - Existing I9/I10 evidence remains historical and immutable.
+  - S3 changes no service code, publication identity or official 18-chain ledger; remaining variants require separate authorization.
+verification:
+  requiredCommands:
+    - name: selective-rerun
+      command: runtime/node-v20.20.2-win-x64/node.exe --test tests/i10/acceptance-baseline.test.cjs
+      expectedExitCode: 0
+      evidence: docs/architecture/refactoring/batches/RF-006/evidence-index.md
+      blocking: true
+    - name: stage-timing
+      command: runtime/node-v20.20.2-win-x64/node.exe scripts/i10-acceptance-cost-baseline.cjs
+      expectedExitCode: 0
+      evidence: docs/architecture/refactoring/batches/RF-006/evidence-index.md
+      blocking: true
+    - name: focused-mode-comparison
+      command: runtime/node-v20.20.2-win-x64/node.exe scripts/i10-acceptance-cost-baseline.cjs compare --output ../../docs/architecture/refactoring/batches/RF-006/evidence/acceptance-mode-comparison-s3-2026-08-04.json
+      expectedExitCode: 0
+      evidence: docs/architecture/refactoring/batches/RF-006/evidence/acceptance-mode-comparison-s3-2026-08-04.json
+      blocking: true
+rollback:
+  triggerConditions: [required-gate bypass, artifact identity mismatch, terminal polling regression]
+  recoveryPoint: 9d79b7c1 plus RF-006 baseline
+  maxRtoMinutes: 30
+  maxRpoMinutes: 0
+exceptions:
+  allowedVagueNames: []
+  crossModule: []

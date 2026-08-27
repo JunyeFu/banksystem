@@ -3,6 +3,8 @@ import { idempotencyKeySchema, namespaceSchema } from '../schemas';
 
 const boundedText = (maximum: number) => z.string().trim().min(1).max(maximum);
 const safeRef = boundedText(160).regex(/^[A-Za-z0-9._:-]+$/);
+const journeyId = z.string().regex(/^journey_[0-9a-f-]{36}$/);
+const journeyEventId = z.string().regex(/^journeyevent_[0-9a-f-]{36}$/);
 
 export const i8CandidatePreviewSchema = z.object({
   namespace: namespaceSchema,
@@ -26,6 +28,8 @@ export const i8RunSubmitSchema = z.object({
   namespace: namespaceSchema,
   idempotencyKey: idempotencyKeySchema,
   preparationId: safeRef,
+  journeyId,
+  confirmedDecisionEventId: journeyEventId,
   // RF-004-S3: optional since MCP no longer injects a credential; Harness
   // resolves the authoritative binding from the case definition instead.
   credentialAlias: safeRef.optional()

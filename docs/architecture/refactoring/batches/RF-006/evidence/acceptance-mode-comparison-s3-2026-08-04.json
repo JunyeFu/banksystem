@@ -1,0 +1,192 @@
+{
+  "schemaVersion": "hengzhun-rf006-s3-mode-comparison-v1",
+  "evidenceClass": "LIVE_E2E_COMPARATIVE",
+  "completedAt": "2026-08-03T23:56:10.021Z",
+  "caseId": "L1",
+  "variant": "TEXT_ONLY",
+  "releaseIdentityBefore": {
+    "schemaVersion": "hengzhun-i10-release-identity-v2",
+    "flowId": "7c14bafe-4c5b-4b4e-9d5a-000000000010",
+    "flowVersion": 7,
+    "sourceFlowHash": "eb1c56edeae6ff2d21fc341378a197d8b5d87f10337ed6d8f54498d6c7d87191",
+    "deployedFlowHash": "c4878709c4d0c0b169e72d2c340b1376c2fac961be849826d88b84dc6b8a5e27",
+    "normalizedFlowHash": "237d08d5de2bf883c2f7b140ddebcab8927c2650e5c09cdefc0e6b3677ebe721",
+    "harnessCodeHash": "acffaaeaf66d4f982f5a6ed9b4538ea336a803bdce012c3d745f022be04abd16",
+    "workerCodeHash": "3f5c348e80a0cd794429d58955362b522895834c712bdaa6077b47d1ea9fcdbd",
+    "workerCodeSetVersion": "WORKER_CODE_SET_V1",
+    "workerCodeSetManifestHash": "749ca3fd394421824c76ed75dafee2c96f9eb77d4a21e1378343fec296bdfe1d",
+    "workerCodeSetHash": "bf2d2e7ed026a7f3a3e05bd9e9204328b4f18f5ce356e4afaed5305cf766e198",
+    "workerCodeSetFileCount": 24,
+    "migrationVersion": 36,
+    "caseCatalogVersion": 1,
+    "caseCatalogHash": "6adb37970b49beb9fda002cf0edb89708716cf371de2b80cd18f59646c0b1831",
+    "deploymentReady": true,
+    "identityHash": "6a1fd9a7d44086e6dcb29fa7cc23382712a61d103868f14f1e2f44c754b3a687"
+  },
+  "releaseIdentityAfter": {
+    "schemaVersion": "hengzhun-i10-release-identity-v2",
+    "flowId": "7c14bafe-4c5b-4b4e-9d5a-000000000010",
+    "flowVersion": 7,
+    "sourceFlowHash": "eb1c56edeae6ff2d21fc341378a197d8b5d87f10337ed6d8f54498d6c7d87191",
+    "deployedFlowHash": "c4878709c4d0c0b169e72d2c340b1376c2fac961be849826d88b84dc6b8a5e27",
+    "normalizedFlowHash": "237d08d5de2bf883c2f7b140ddebcab8927c2650e5c09cdefc0e6b3677ebe721",
+    "harnessCodeHash": "acffaaeaf66d4f982f5a6ed9b4538ea336a803bdce012c3d745f022be04abd16",
+    "workerCodeHash": "3f5c348e80a0cd794429d58955362b522895834c712bdaa6077b47d1ea9fcdbd",
+    "workerCodeSetVersion": "WORKER_CODE_SET_V1",
+    "workerCodeSetManifestHash": "749ca3fd394421824c76ed75dafee2c96f9eb77d4a21e1378343fec296bdfe1d",
+    "workerCodeSetHash": "bf2d2e7ed026a7f3a3e05bd9e9204328b4f18f5ce356e4afaed5305cf766e198",
+    "workerCodeSetFileCount": 24,
+    "migrationVersion": 36,
+    "caseCatalogVersion": 1,
+    "caseCatalogHash": "6adb37970b49beb9fda002cf0edb89708716cf371de2b80cd18f59646c0b1831",
+    "deploymentReady": true,
+    "identityHash": "6a1fd9a7d44086e6dcb29fa7cc23382712a61d103868f14f1e2f44c754b3a687"
+  },
+  "releaseIdentityUnchanged": true,
+  "publicationBefore": {
+    "fileSha256": "5c5be807705d7c3fd8dba965e026985d1aa9dd96749c4d3172da6015ddd8bc57",
+    "deployed": true,
+    "sourceHash": "eb1c56edeae6ff2d21fc341378a197d8b5d87f10337ed6d8f54498d6c7d87191",
+    "deployedHash": "c4878709c4d0c0b169e72d2c340b1376c2fac961be849826d88b84dc6b8a5e27",
+    "publishState": "DEPLOYED_PRIVATE_PUBLIC_API_ROUND_TRIP_VERIFIED"
+  },
+  "publicationAfter": {
+    "fileSha256": "5c5be807705d7c3fd8dba965e026985d1aa9dd96749c4d3172da6015ddd8bc57",
+    "deployed": true,
+    "sourceHash": "eb1c56edeae6ff2d21fc341378a197d8b5d87f10337ed6d8f54498d6c7d87191",
+    "deployedHash": "c4878709c4d0c0b169e72d2c340b1376c2fac961be849826d88b84dc6b8a5e27",
+    "publishState": "DEPLOYED_PRIVATE_PUBLIC_API_ROUND_TRIP_VERIFIED"
+  },
+  "publicationUnchanged": true,
+  "modes": {
+    "legacy": {
+      "recordId": "acceptance_a11b6185-cac8-4726-9ff9-7e7ce757465f",
+      "ledgerPath": ".data/evidence/i10/rf006-comparison/2026-08-03T23-53-40-799Z/legacy/ledger.json",
+      "timing": {
+        "schemaVersion": "hengzhun-rf006-stage-timing-v1",
+        "runId": "record-l1-text_only-2026-08-03T23-53-40-907Z-b3e124",
+        "stages": [
+          {
+            "stageName": "scenario_prepare",
+            "startedAtMs": 1785801220909,
+            "endedAtMs": 1785801220943,
+            "durationMs": 34,
+            "pollCount": 0,
+            "retryCount": 0
+          },
+          {
+            "stageName": "flowise_conversation",
+            "startedAtMs": 1785801220943,
+            "endedAtMs": 1785801306506,
+            "durationMs": 85563,
+            "pollCount": 13,
+            "retryCount": 0
+          },
+          {
+            "stageName": "terminal_finalize",
+            "startedAtMs": 1785801306506,
+            "endedAtMs": 1785801306734,
+            "durationMs": 228,
+            "pollCount": 0,
+            "retryCount": 0
+          }
+        ],
+        "totalDurationMs": 85825,
+        "measuredDurationMs": 85825,
+        "unattributedDurationMs": 0,
+        "pollCount": 13,
+        "retryCount": 0,
+        "cacheDecisions": [],
+        "status": "RECONCILED",
+        "outcome": "PASSED",
+        "errorCode": null
+      },
+      "invocationElapsedMs": 85950
+    },
+    "selective": {
+      "recordId": "acceptance_944e78b9-1c97-48dd-bb23-f3d560920256",
+      "ledgerPath": ".data/evidence/i10/rf006-comparison/2026-08-03T23-53-40-799Z/selective/ledger.json",
+      "timing": {
+        "schemaVersion": "hengzhun-rf006-stage-timing-v1",
+        "runId": "record-l1-text_only-2026-08-03T23-55-06-905Z-c9695e",
+        "stages": [
+          {
+            "stageName": "scenario_prepare",
+            "startedAtMs": 1785801306906,
+            "endedAtMs": 1785801306932,
+            "durationMs": 26,
+            "pollCount": 0,
+            "retryCount": 0
+          },
+          {
+            "stageName": "flowise_conversation",
+            "startedAtMs": 1785801306932,
+            "endedAtMs": 1785801369586,
+            "durationMs": 62654,
+            "pollCount": 15,
+            "retryCount": 0
+          },
+          {
+            "stageName": "terminal_finalize",
+            "startedAtMs": 1785801369586,
+            "endedAtMs": 1785801369776,
+            "durationMs": 190,
+            "pollCount": 0,
+            "retryCount": 0
+          }
+        ],
+        "totalDurationMs": 62870,
+        "measuredDurationMs": 62870,
+        "unattributedDurationMs": 0,
+        "pollCount": 15,
+        "retryCount": 0,
+        "cacheDecisions": [],
+        "status": "RECONCILED",
+        "outcome": "PASSED",
+        "errorCode": null
+      },
+      "invocationElapsedMs": 63046,
+      "replayElapsedMs": 197,
+      "replayLedgerCountBefore": 1,
+      "replayLedgerCountAfter": 1,
+      "replayRunDirectoryCountBefore": 1,
+      "replayRunDirectoryCountAfter": 1
+    }
+  },
+  "comparison": {
+    "legacyGates": {
+      "authoringCandidate": true,
+      "purePlaywright": true,
+      "stability2x2": true,
+      "activation": true,
+      "formalExecution": true,
+      "resultReadback": true,
+      "terminalArtifact": true
+    },
+    "selectiveGates": {
+      "authoringCandidate": true,
+      "purePlaywright": true,
+      "stability2x2": true,
+      "activation": true,
+      "formalExecution": true,
+      "resultReadback": true,
+      "terminalArtifact": true
+    },
+    "gateEquivalent": true,
+    "observedWallClockReduced": true,
+    "serialPollingReduced": true,
+    "legacyEstimatedPollingWaitMs": 195000,
+    "selectiveEstimatedPollingWaitMs": 152173,
+    "savedWallClockMs": 22955,
+    "selectiveReplayAvoidedDuplicateAuthoring": true,
+    "selectiveReplayAvoidedFullRerun": true,
+    "timingReconciled": true,
+    "cutoverDecision": "ENABLE_SELECTIVE"
+  },
+  "rollback": {
+    "switch": "I10_RF006_S2_ENABLED=0",
+    "liveLegacyL1Passed": true,
+    "status": "VERIFIED"
+  },
+  "status": "PASSED"
+}

@@ -1,0 +1,168 @@
+{
+  "schemaVersion": "hengzhun-i10-flowise-runtime-fork-policy-v1",
+  "upstream": {
+    "flowise": "3.1.4",
+    "flowise-components": "3.1.4",
+    "flowise-ui": "3.1.4"
+  },
+  "componentRootEntry": "dist/src/index.js",
+  "serverEntries": [
+    "dist/commands/start.js"
+  ],
+  "serverRuntimePackageAllowlist": [
+    "@oclif/core",
+    "better-sqlite3",
+    "connect-sqlite3",
+    "flowise-components",
+    "flowise-ui",
+    "sqlite3"
+  ],
+  "allowedNodeEntries": [
+    "dist/nodes/agentflow/Condition/Condition.js",
+    "dist/nodes/agentflow/CustomFunction/CustomFunction.js",
+    "dist/nodes/agentflow/DirectReply/DirectReply.js",
+    "dist/nodes/agentflow/HumanInput/HumanInput.js",
+    "dist/nodes/agentflow/LLM/LLM.js",
+    "dist/nodes/agentflow/Start/Start.js",
+    "dist/nodes/agentflow/Tool/Tool.js",
+    "dist/nodes/chatmodels/ChatOpenAI/ChatOpenAI.js",
+    "dist/nodes/tools/MCP/CustomMCP/CustomMCP.js"
+  ],
+  "allowedCredentialEntries": [
+    "dist/credentials/OpenAIApi.credential.js"
+  ],
+  "allowedNodeNames": [
+    "chatOpenAI",
+    "conditionAgentflow",
+    "customMCP",
+    "customFunctionAgentflow",
+    "directReplyAgentflow",
+    "humanInputAgentflow",
+    "llmAgentflow",
+    "startAgentflow",
+    "toolAgentflow"
+  ],
+  "allowedCredentialNames": [
+    "openAIApi"
+  ],
+  "removedPackages": [
+    "@langchain/langgraph",
+    "@mem0/community",
+    "@opentelemetry/propagator-jaeger",
+    "@opentelemetry/sdk-trace-node",
+    "couchbase",
+    "decompress",
+    "geoip-lite",
+    "langchain",
+    "langfuse",
+    "langfuse-langchain",
+    "langwatch",
+    "llamaindex",
+    "nodemailer",
+    "officeparser"
+  ],
+  "criticalRemovedPackages": [
+    "decompress",
+    "officeparser"
+  ],
+  "requiredOverlayMarkers": [
+    {
+      "file": "dist/src/utils.js",
+      "marker": "I9_MIMO_JSON_MODE_STRUCTURED_OUTPUT"
+    },
+    {
+      "file": "dist/nodes/agentflow/Tool/Tool.js",
+      "marker": "I10_FLOWISE_SCHEMA_AWARE_TOOL_ARGUMENT_COERCION_V1"
+    },
+    {
+      "file": "dist/nodes/tools/MCP/CustomMCP/CustomMCP.js",
+      "marker": "I9_RUNTIME_MCP_TOKEN_OVERLAY"
+    },
+    {
+      "file": "dist/nodes/tools/MCP/core.js",
+      "marker": "I10_FLOWISE_MCP_TYPED_SCHEMA_V1"
+    }
+  ],
+  "controlledSourcePatches": [
+    {
+      "type": "disableLlamaEvaluation",
+      "file": "dist/src/handler.js",
+      "upstreamSha256": "801d3af2383795da311118b5ee108a87f11a833d0cf3adc00f0ebe53cb8ad963",
+      "marker": "I10_FLOWISE_LLAMA_EVALUATION_DISABLED_UNFIXED_RUNTIME_V1"
+    },
+    {
+      "type": "disableArizeInstrumentation",
+      "file": "dist/src/handler.js",
+      "upstreamSha256": "27d3d6f7ed1a8095cf6f5fef35e05473c6d069cb1380756a63c047f9ce8cbcc5",
+      "marker": "I10_FLOWISE_ARIZE_INSTRUMENTATION_DISABLED_PEER_CONFLICT_V1"
+    },
+    {
+      "type": "disableGoogleFollowUpProvider",
+      "file": "dist/src/followUpPrompts.js",
+      "upstreamSha256": "4f0aea2dfef246f42defca9d57478ce887cb8fbf8ac09ab070d5e5cb99c989ee",
+      "marker": "I10_FLOWISE_GOOGLE_FOLLOWUP_DISABLED_PEER_CONFLICT_V1"
+    },
+    {
+      "type": "disableCommunityLunary",
+      "file": "dist/src/handler.js",
+      "upstreamSha256": "f4829dd7f21628ce291801250ee69a13670b696d5b74241209ecc5beb1ea4cb4",
+      "marker": "I10_FLOWISE_COMMUNITY_LUNARY_DISABLED_ADVISORY_V1"
+    },
+    {
+      "type": "disableFullDocumentUpload",
+      "file": "dist/nodes/agentflow/utils.js",
+      "upstreamSha256": "f05e5f7d5175a816dfd80e543577710406449928dc8203b5199845591c237243",
+      "marker": "I10_FLOWISE_FULL_DOCUMENT_UPLOAD_DISABLED_ADVISORY_V1"
+    },
+    {
+      "type": "disableFullDocumentUpload",
+      "file": "dist/src/utils.js",
+      "upstreamSha256": "435a63002117a3fefd91099ae7a87b8eaea4bdd3aea14810ec669b4d1274c040",
+      "marker": "I10_FLOWISE_FULL_DOCUMENT_CHAT_UPLOAD_DISABLED_ADVISORY_V1"
+    },
+    {
+      "type": "localOnlyStorageFactory",
+      "file": "dist/src/storage/StorageProviderFactory.js",
+      "upstreamSha256": "61051c367c5355086fdf820252d17b5f8fe9069e125261f5bf01be58350238a1",
+      "marker": "I10_FLOWISE_LOCAL_STORAGE_ONLY_ADVISORY_V1"
+    },
+    {
+      "type": "localOnlyStorageExports",
+      "file": "dist/src/storage/index.js",
+      "upstreamSha256": "ab5332a6b14bed53be1ef2a2f487a0edea96176bb9b359e69b18cee60074c5e2",
+      "marker": "I10_FLOWISE_LOCAL_STORAGE_EXPORTS_ONLY_ADVISORY_V1"
+    },
+    {
+      "type": "disableExternalAnalytics",
+      "file": "dist/src/handler.js",
+      "upstreamSha256": "e03f98f63586aa7ebce082395bbe198750240152c1791f53032e9c2d03281429",
+      "marker": "I10_FLOWISE_EXTERNAL_ANALYTICS_DISABLED_ADVISORY_V1"
+    }
+  ],
+  "serverControlledSourcePatches": [
+    {
+      "type": "guardNodeFileLoad",
+      "file": "dist/NodesPool.js",
+      "upstreamSha256": "2122cbeda8a8116de41e9f1959995fb76bd7bdee284c37d81b5849b540218540",
+      "marker": "I10_FLOWISE_ALLOWED_NODE_FILES_BEFORE_REQUIRE_V1"
+    },
+    {
+      "type": "disableLegacyAgentGraph",
+      "file": "dist/utils/buildChatflow.js",
+      "upstreamSha256": "34812db365878eaf5521b843397b1729ff79a593ee5200df5c67a6f8f34c7bbc",
+      "marker": "I10_FLOWISE_LEGACY_AGENT_GRAPH_DISABLED_ADVISORY_V1"
+    },
+    {
+      "type": "disableGeoIpTelemetry",
+      "file": "dist/utils/telemetry.js",
+      "upstreamSha256": "307c4c0e128fbd8b1779bf3abba95c8a4f58bab999cab98045a68827ed867312",
+      "marker": "I10_FLOWISE_GEOIP_TELEMETRY_DISABLED_ADVISORY_V1"
+    },
+    {
+      "type": "disableSmtp",
+      "file": "dist/enterprise/utils/sendEmail.js",
+      "upstreamSha256": "a771cb82f080fa3c9aada02562a4ccdea271d2bd287a2b4960c173d97c45b27a",
+      "marker": "I10_FLOWISE_SMTP_DISABLED_ADVISORY_V1"
+    }
+  ]
+}

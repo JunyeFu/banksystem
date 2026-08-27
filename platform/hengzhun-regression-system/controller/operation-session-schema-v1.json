@@ -1,0 +1,22 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "hengzhun-operation-envelope/v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schemaVersion", "cipher", "operationId", "operationKind", "revision", "createdAt", "updatedAt", "expiresAt", "status", "releaseIdentityHash", "namespaceHash", "ciphertextSha256", "ciphertextBase64"],
+  "properties": {
+    "schemaVersion": { "const": "hengzhun-operation-envelope/v1" },
+    "cipher": { "const": "WINDOWS_DPAPI_CURRENT_USER" },
+    "operationId": { "type": "string", "pattern": "^operation-[a-f0-9]{32}$" },
+    "operationKind": { "enum": ["CREDENTIAL_ENROLLMENT"] },
+    "revision": { "type": "integer", "minimum": 1 },
+    "createdAt": { "type": "string", "format": "date-time" },
+    "updatedAt": { "type": "string", "format": "date-time" },
+    "expiresAt": { "type": "string", "format": "date-time" },
+    "status": { "enum": ["ACTIVE", "COMPLETED", "ARCHIVED"] },
+    "releaseIdentityHash": { "type": "string", "pattern": "^[a-f0-9]{64}$" },
+    "namespaceHash": { "type": "string", "pattern": "^[a-f0-9]{64}$" },
+    "ciphertextSha256": { "type": "string", "pattern": "^[a-f0-9]{64}$" },
+    "ciphertextBase64": { "type": "string", "minLength": 1 }
+  }
+}

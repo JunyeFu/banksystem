@@ -1,16 +1,20 @@
 'use strict'
 
 const childProcess = require('node:child_process')
-const crypto = require('node:crypto')
 const fs = require('node:fs')
 const http = require('node:http')
 const path = require('node:path')
 const { ProgressReporter, enabledFromEnvironment } = require('./progress.cjs')
 const { RecoveryStore, fingerprint } = require('./recovery.cjs')
+const { currentReleaseCodeSet } = require('./i10-release-identity.cjs')
+const { flowiseRuntimePolicy } = require('./i10-flowise-runtime-policy.cjs')
+const { verifyRuntimeFork } = require('./i10-build-flowise-runtime-fork.cjs')
 
 const root = path.resolve(__dirname, '..')
 const config = JSON.parse(fs.readFileSync(path.join(root, 'config', 'i9.runtime.example.json'), 'utf8'))
+const runtimeManifest = JSON.parse(fs.readFileSync(path.join(root, 'flowise', 'i10', 'node-runtime-manifest-v1.json'), 'utf8'))
 const nodeExecutable = path.resolve(root, config.paths.nodeExecutable)
+const flowiseNodeExecutable = path.resolve(root, config.paths.flowiseNodeExecutable)
 const stateRoot = path.join(root, '.data', 'runtime')
 const stateFile = path.join(stateRoot, 'i9-processes.json')
 const lifecycleFile = path.join(stateRoot, 'i9-last-lifecycle.json')
@@ -26,34 +30,66 @@ const definitions = {
   flowise: { marker: 'node_modules\\flowise\\bin\\run', args: ['flowise/app/node_modules/flowise/bin/run', 'start'], health: `http://127.0.0.1:${config.network.flowisePort}/api/v1/ping`, port: config.network.flowisePort }
 }
 
-// A listening port alone is not enough to prove that it serves the currently
-// exported package.  Keep a small, non-secret fingerprint alongside each
-// owned process so START can safely replace an older package runtime.
-const serviceFingerprintInputs = {
-  // Candidate source is compiled by Harness, not Worker.  Include the
-  // compiled builder here so START never keeps an older Harness process that
-  // silently issues stale candidate scripts after a source rebuild.
-  harness: ['dist/harness/src/index.js', 'dist/harness/src/server.js', 'dist/harness/src/database.js', 'dist/harness/src/i8/script-package-builder.js'],
-  mcp: ['mcp/src/server.cjs'],
-  worker: ['worker/src/index.cjs', 'worker/src/i10-midscene-candidate-authoring.cjs', 'worker/src/i8-candidate-runner.cjs', 'worker/src/i8-formal-runner.cjs', 'worker/src/i10-verification-policy.cjs'],
-  // Agentflow data is deployed through the Flowise public API and must not
-  // force a server restart after a successful publication.  Only files that
-  // alter the locally served Flowise runtime belong in this fingerprint.
-  flowise: ['flowise/i10/hengzhun-attachment-bridge-v1.js', 'scripts/apply-i9-flowise-overlays.cjs']
+function serviceFingerprint(name) {
+  // Process retention and ReleaseIdentity must describe the same bytes.  A
+  // separate lifecycle-only list silently kept stale processes alive whenever
+  // an execution dependency was added to one side but not the other.
+  const codeSet = currentReleaseCodeSet({ productRoot: root })
+  if (name === 'worker') return codeSet.workerCodeSetHash
+  if (name === 'harness' || name === 'mcp' || name === 'flowise') return codeSet.groupHashes[name]
+  throw new LifecycleError('I9_SERVICE_UNKNOWN', `unknown service ${name}`)
 }
 
-function serviceFingerprint(name) {
-  const hash = crypto.createHash('sha256')
-  for (const relative of serviceFingerprintInputs[name] || []) {
-    const absolute = path.join(root, relative)
-    hash.update(relative).update('\0')
-    if (!fs.existsSync(absolute)) {
-      hash.update('MISSING\0')
-      continue
+function configuredExecutableFor(name, productRoot = root, runtimeConfig = config) {
+  const relative = name === 'flowise' ? runtimeConfig?.paths?.flowiseNodeExecutable : runtimeConfig?.paths?.nodeExecutable
+  if (typeof relative !== 'string' || !relative.trim()) throw new LifecycleError('I9_NODE_EXECUTABLE_CONFIG_MISSING', `missing executable for ${name}`)
+  return path.resolve(productRoot, relative)
+}
+
+function executableFor(name) {
+  return name === 'flowise' ? flowiseNodeExecutable : nodeExecutable
+}
+
+function nodeVersionForExecutable(executable) {
+  const result = childProcess.spawnSync(executable, ['--version'], { encoding: 'utf8', windowsHide: true })
+  if (result.error || result.status !== 0) throw new LifecycleError('I9_NODE_RUNTIME_UNAVAILABLE', `cannot execute ${path.relative(root, executable)}`)
+  const version = String(result.stdout || '').trim()
+  if (!/^v\d+\.\d+\.\d+$/.test(version)) throw new LifecycleError('I9_NODE_RUNTIME_VERSION_INVALID', version)
+  return version
+}
+
+function assertConfiguredNodeRuntimes() {
+  if (runtimeManifest?.schemaVersion !== 'hengzhun-i10-node-runtime-manifest-v1') throw new LifecycleError('I9_NODE_RUNTIME_MANIFEST_INVALID', 'unexpected schema')
+  const contracts = [
+    ['core', nodeExecutable, config.paths.nodeExecutable],
+    ['flowise', flowiseNodeExecutable, config.paths.flowiseNodeExecutable]
+  ]
+  const versions = {}
+  for (const [name, executable, configuredRelative] of contracts) {
+    const spec = runtimeManifest?.runtimes?.[name]
+    if (!spec || spec.executable !== String(configuredRelative).replaceAll('\\', '/')) {
+      throw new LifecycleError('I9_NODE_RUNTIME_CONFIG_DRIFT', name)
     }
-    hash.update(fs.readFileSync(absolute)).update('\0')
+    if (!fs.existsSync(executable)) throw new LifecycleError('I9_RUNTIME_DEPENDENCY_MISSING', `required product dependency is missing: ${path.relative(root, executable)}`)
+    const actual = nodeVersionForExecutable(executable)
+    if (actual !== spec.version) throw new LifecycleError('I9_NODE_RUNTIME_VERSION_MISMATCH', `${name}:actual=${actual}:required=${spec.version}`)
+    versions[name] = actual
   }
-  return hash.digest('hex')
+  return Object.freeze(versions)
+}
+
+function assertFlowiseNativeRuntime() {
+  const probe = path.join(root, 'scripts', 'i10-flowise-runtime-probe.cjs')
+  const result = childProcess.spawnSync(flowiseNodeExecutable, [probe], { cwd: root, encoding: 'utf8', windowsHide: true })
+  if (result.error || result.status !== 0) {
+    throw new LifecycleError('I9_FLOWISE_NATIVE_RUNTIME_INCOMPATIBLE', String(result.stderr || '').slice(0, 240))
+  }
+  let payload
+  try { payload = JSON.parse(String(result.stdout || '').trim()) } catch {}
+  if (payload?.status !== 'READY' || payload?.nodeVersion !== runtimeManifest.runtimes.flowise.version) {
+    throw new LifecycleError('I9_FLOWISE_NATIVE_RUNTIME_PROBE_INVALID', String(result.stdout || '').slice(0, 240))
+  }
+  return Object.freeze(payload)
 }
 
 function runtimeCurrent(record) {
@@ -100,8 +136,12 @@ async function runCheckedWithHeartbeat(command, args, options, label) {
 }
 
 async function prepare(options = {}) {
+  const flowiseRuntimeFork = verifyRuntimeFork({ appRoot: path.join(root, 'flowise', 'app') })
+  const nodeRuntimeVersions = assertConfiguredNodeRuntimes()
+  const flowiseNativeRuntime = assertFlowiseNativeRuntime()
   const required = [
     nodeExecutable,
+    flowiseNodeExecutable,
     path.join(root, 'flowise', 'app', 'node_modules', 'flowise', 'bin', 'run'),
     path.join(root, config.paths.chromiumExecutable),
     path.join(root, 'node_modules', 'typescript', 'bin', 'tsc')
@@ -111,7 +151,7 @@ async function prepare(options = {}) {
   if (!options.quietProgress) reporter?.startStage(4, 5, '编译Harness并校验运行依赖', { maxWaitHint: '超过10秒将持续显示心跳' })
   await runCheckedWithHeartbeat(nodeExecutable, [path.join(root, 'node_modules', 'typescript', 'bin', 'tsc')], { cwd: root }, 'TypeScript编译')
   if (!options.quietProgress) reporter?.activity('Harness编译和运行依赖校验完成')
-  return { status: 'PREPARED', productRoot: root, runtimeDataRoot: '.data', services: serviceOrder }
+  return { status: 'PREPARED', productRoot: root, runtimeDataRoot: '.data', services: serviceOrder, nodeRuntimeVersions, flowiseNativeRuntime, flowiseRuntimeFork: { status: flowiseRuntimeFork.status, closureHash: flowiseRuntimeFork.manifest.closureHash } }
 }
 
 function processInfo(pid) {
@@ -143,7 +183,7 @@ function isOwned(record, info = processInfo(record.pid)) {
   if (!info) return false
   const executable = path.resolve(String(info.ExecutablePath || '')).toLowerCase()
   const commandLine = String(info.CommandLine || '').replaceAll('/', '\\').toLowerCase()
-  if (executable !== nodeExecutable.toLowerCase()) return false
+  if (executable !== executableFor(record.name).toLowerCase()) return false
   if (commandLine) return commandLine.includes(definitions[record.name].marker.toLowerCase()) && commandLine.includes(root.toLowerCase())
   const processStartedAt = Date.parse(info.StartTime || '')
   const recordStartedAt = Date.parse(record.startedAt || '')
@@ -195,12 +235,19 @@ async function harnessHealth(record) {
   })
 }
 
+function workerHealthPayloadCurrent(health, record, now = Date.now()) {
+  const age = now - Date.parse(health?.updatedAt)
+  const commonReady = health?.status === 'HEALTHY' && health?.pid === record?.pid && age >= 0 && age <= config.lifecycle.workerHeartbeatMaxAgeSeconds * 1000
+  if (!commonReady) return false
+  if (health.schemaVersion === 'hengzhun-worker-health-v1') return true
+  if (health.schemaVersion !== 'hengzhun-worker-health-v2') return false
+  return health.workerCodeSetVersion === 'WORKER_CODE_SET_V1' && health.workerCodeSetHash === record.runtimeFingerprint
+}
+
 function workerHealth(record, owned = isOwned(record)) {
   if (!owned || !fs.existsSync(workerHealthFile)) return false
   try {
-    const health = JSON.parse(fs.readFileSync(workerHealthFile, 'utf8'))
-    const age = Date.now() - Date.parse(health.updatedAt)
-    return health.schemaVersion === 'hengzhun-worker-health-v1' && health.status === 'HEALTHY' && health.pid === record.pid && age >= 0 && age <= config.lifecycle.workerHeartbeatMaxAgeSeconds * 1000
+    return workerHealthPayloadCurrent(JSON.parse(fs.readFileSync(workerHealthFile, 'utf8')), record)
   } catch { return false }
 }
 
@@ -327,7 +374,8 @@ function serviceEnvironment(name) {
   if (name === 'worker') return { ...common, HENGZHUN_WORKER_ID: process.env.HENGZHUN_WORKER_ID || 'hengzhun-i9-worker', HENGZHUN_WORKER_HEALTH_FILE: workerHealthFile }
   const flowiseDataRoot = testDataRoot ? path.join(testDataRoot, 'flowise') : path.join(root, '.data', 'flowise')
   for (const relative of ['secrets', 'storage', 'logs']) fs.mkdirSync(path.join(flowiseDataRoot, relative), { recursive: true })
-  return { ...common, HOST: '127.0.0.1', PORT: String(config.network.flowisePort), DATABASE_TYPE: 'sqlite', DATABASE_PATH: flowiseDataRoot, SECRETKEY_PATH: path.join(flowiseDataRoot, 'secrets'), BLOB_STORAGE_PATH: path.join(flowiseDataRoot, 'storage'), LOG_PATH: path.join(flowiseDataRoot, 'logs'), FLOWISE_FILE_SIZE_LIMIT: '500mb', DISABLE_FLOWISE_TELEMETRY: 'true', SECURE_COOKIES: 'false' }
+  const runtimePolicy = flowiseRuntimePolicy(path.join(root, 'flowise', 'app'), { nodeVersion: nodeVersionForExecutable(flowiseNodeExecutable) })
+  return { ...common, ...runtimePolicy.environment, HOST: '127.0.0.1', PORT: String(config.network.flowisePort), DATABASE_TYPE: 'sqlite', DATABASE_PATH: flowiseDataRoot, SECRETKEY_PATH: path.join(flowiseDataRoot, 'secrets'), BLOB_STORAGE_PATH: path.join(flowiseDataRoot, 'storage'), LOG_PATH: path.join(flowiseDataRoot, 'logs'), FLOWISE_FILE_SIZE_LIMIT: '500mb', DISABLE_FLOWISE_TELEMETRY: 'true', SECURE_COOKIES: 'false' }
 }
 
 function spawnService(name, spawnedChildren = null) {
@@ -340,10 +388,11 @@ function spawnService(name, spawnedChildren = null) {
   if (fs.existsSync(stopFile)) fs.rmSync(stopFile)
   const injectedFailure = process.env.NODE_ENV === 'test' && process.env.HENGZHUN_I9_TEST_FAIL_SERVICE === name
   const args = injectedFailure ? ['-e', 'process.exit(91)'] : [path.resolve(root, definition.args[0]), ...definition.args.slice(1)]
-  const child = childProcess.spawn(nodeExecutable, args, { cwd: root, env: serviceEnvironment(name), detached: true, windowsHide: true, stdio: ['ignore', stdout, stderr] })
+  const serviceExecutable = executableFor(name)
+  const child = childProcess.spawn(serviceExecutable, args, { cwd: root, env: serviceEnvironment(name), detached: true, windowsHide: true, stdio: ['ignore', stdout, stderr] })
   if (spawnedChildren) spawnedChildren.set(name, child)
   child.unref(); fs.closeSync(stdout); fs.closeSync(stderr)
-  return { name, pid: child.pid, executable: config.paths.nodeExecutable, entrypoint: definition.args[0], stdout: stdoutRelative, stderr: stderrRelative, startedAt: new Date().toISOString(), runtimeFingerprint: serviceFingerprint(name) }
+  return { name, pid: child.pid, executable: name === 'flowise' ? config.paths.flowiseNodeExecutable : config.paths.nodeExecutable, entrypoint: definition.args[0], stdout: stdoutRelative, stderr: stderrRelative, startedAt: new Date().toISOString(), runtimeFingerprint: serviceFingerprint(name) }
 }
 
 async function rollbackSpawnedRecords(records, spawnedChildren) {
@@ -527,8 +576,20 @@ async function main() {
   if (command === 'status' && !result.healthy) process.exitCode = 3
 }
 
-main().catch(error => {
+if (require.main === module) main().catch(error => {
   reporter?.fail(error, '.data/logs/i9')
   process.stderr.write(`${JSON.stringify({ status: 'FAILED', errorCode: error.code || 'I9_LIFECYCLE_FAILED', message: error.message, ...(error.details ? { details: error.details } : {}) })}\n`)
   process.exitCode = error.exitCode || 1
 })
+
+module.exports = {
+  assertConfiguredNodeRuntimes,
+  assertFlowiseNativeRuntime,
+  configuredExecutableFor,
+  executableFor,
+  isOwned,
+  nodeVersionForExecutable,
+  serviceFingerprint,
+  runtimeCurrent,
+  workerHealthPayloadCurrent
+}

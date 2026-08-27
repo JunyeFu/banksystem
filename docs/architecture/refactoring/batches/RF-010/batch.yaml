@@ -1,0 +1,77 @@
+schemaVersion: 1
+id: RF-010
+title: Framework-neutral controller port and governed MCP tool classification
+status: CLOSED
+owner: project-owner
+authorizedBy: agent/plans/active/v54-implementation-batches.md
+scope:
+  includePaths:
+    - platform/hengzhun-regression-system/controller
+    - platform/hengzhun-regression-system/scripts/verification/agent-controller-port.test.cjs
+    - docs/architecture/refactoring/batches/RF-010
+    - docs/architecture/refactoring/module-boundaries-v1.yaml
+    - agent/backlog.yaml
+    - agent/plans/active/v54-implementation-batches.md
+    - agent/plans/active/hengzhun-i10-langgraph-deepagents-controller-migration-task-package.md
+    - agent/plans/active/hengzhun-i10-tp00-change-inventory-v1.json
+  excludePaths:
+    - platform/hengzhun-regression-system/.data
+    - platform/hengzhun-regression-system/flowise
+    - platform/hengzhun-regression-system/harness
+    - platform/hengzhun-regression-system/mcp
+    - platform/hengzhun-regression-system/worker
+    - platform/hengzhun-regression-system/package.json
+    - platform/hengzhun-regression-system/package-lock.json
+    - apps
+    - services
+    - infra
+    - secrets
+    - .env
+budgets:
+  maxChangedFiles: 24
+  maxNewFiles: 16
+  maxChangedLines: 2400
+  maxContractsChanged: 1
+  maxMigrationsAdded: 0
+  maxOpenModules: 2
+baseline:
+  gitCommit: 9d79b7c1e6cfedd995093cc7a378dc8e9218fa98
+  dirtyTreeManifest: docs/architecture/refactoring/batches/RF-010/baseline.md
+  releaseIdentity: 02ae6b18ed678415488db431f1c271ec258ec6475a1414864731d495a8d81dc4
+  capturedAt: "2026-08-25T10:23:09+08:00"
+architecture:
+  businessCapability: controller-contract-and-tool-authority
+  publicContract: agent/plans/active/hengzhun-i10-langgraph-deepagents-controller-migration-task-package.md
+  dependencyManifest: docs/architecture/refactoring/module-boundaries-v1.yaml
+  allowedModules: [governance.refactoring, hengzhun.controller]
+  forbiddenModules: [hengzhun.flowise, hengzhun.harness, hengzhun.mcp, hengzhun.worker, bank.identity, bank.accounts, bank.payments]
+mustPreserve:
+  - The 33-tool MCP contract remains the source population and is not edited.
+  - Every active tool has exactly one READ_ONLY or MUTATING classification; unknown tools are denied.
+  - Conditional-side-effect tools are classified MUTATING.
+  - Flowise behavior, product packages, runtime, publication, ReleaseIdentity and ledger remain unchanged.
+verification:
+  requiredCommands:
+    - name: controller-contract-tests
+      command: runtime/node-v20.20.2-win-x64/node.exe --test scripts/verification/agent-controller-port.test.cjs
+      expectedExitCode: 0
+      evidence: docs/architecture/refactoring/batches/RF-010/evidence-index.md
+      blocking: true
+    - name: refactoring-governance
+      command: py -3 scripts/architecture/validate_refactoring.py --batch RF-010
+      expectedExitCode: 0
+      evidence: docs/architecture/refactoring/batches/RF-010/evidence-index.md
+      blocking: true
+    - name: documentation-governance
+      command: py -3 scripts/docs/validate_docs.py
+      expectedExitCode: 0
+      evidence: docs/architecture/refactoring/batches/RF-010/evidence-index.md
+      blocking: true
+rollback:
+  triggerConditions: [unclassified active tool, tool overlap, unknown-tool allow, framework leakage, product identity drift]
+  recoveryPoint: RF-009 closed state plus removal of inactive RF-010 controller files
+  maxRtoMinutes: 15
+  maxRpoMinutes: 0
+exceptions:
+  allowedVagueNames: []
+  crossModule: []

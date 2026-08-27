@@ -1,0 +1,67 @@
+schemaVersion: 1
+id: RF-007
+title: ReleaseIdentity full Worker set binding and managed runtime realignment
+status: CLOSED
+owner: project-owner
+authorizedBy: agent/plans/active/v54-implementation-batches.md
+scope:
+  includePaths:
+    - platform/hengzhun-regression-system/scripts
+    - platform/hengzhun-regression-system/worker/src
+    - platform/hengzhun-regression-system/harness/src
+    - platform/hengzhun-regression-system/tests
+    - platform/hengzhun-regression-system/flowise/i10
+    - docs/architecture/refactoring/batches/RF-007
+    - docs/current-state
+  excludePaths:
+    - platform/hengzhun-regression-system/.data
+    - platform/hengzhun-regression-system/mcp/src
+    - apps
+    - services
+    - infra
+    - data
+    - secrets
+    - .env
+budgets:
+  maxChangedFiles: 20
+  maxNewFiles: 5
+  maxChangedLines: 1400
+  maxContractsChanged: 1
+  maxMigrationsAdded: 0
+  maxOpenModules: 2
+baseline:
+  gitCommit: 9d79b7c1e6cfedd995093cc7a378dc8e9218fa98
+  dirtyTreeManifest: docs/architecture/refactoring/batches/RF-007/baseline.md
+  releaseIdentity: 632ad5ee7981b59f00824d0072d28da6075eef095d55a898d51c0103a897988f
+  capturedAt: "2026-08-03T17:48:34+08:00"
+architecture:
+  businessCapability: hengzhun-worker-release-identity
+  publicContract: platform/hengzhun-regression-system/contracts/mcp/hengzhun-i8.json
+  dependencyManifest: docs/architecture/refactoring/module-boundaries-v1.yaml
+  allowedModules: [hengzhun.worker, hengzhun.harness]
+  forbiddenModules: [hengzhun.mcp, bank.identity, bank.accounts, bank.payments]
+mustPreserve:
+  - Worker identity changes invalidate unsupported historical runtime claims rather than rewriting evidence.
+  - Managed lifecycle and Flowise public API are the only reload and publication paths.
+  - A health response is not equivalent to release alignment or LIVE_E2E acceptance.
+  - No full-18 rerun decision occurs before the aligned L1 thin-chain gate.
+verification:
+  requiredCommands:
+    - name: worker-set-identity
+      command: node --test platform/hengzhun-regression-system/tests/i10-release-identity-worker-set.test.cjs
+      expectedExitCode: 0
+      evidence: docs/architecture/refactoring/batches/RF-007/evidence-index.md
+      blocking: true
+    - name: runtime-inspector
+      command: powershell -NoProfile -ExecutionPolicy Bypass -File $env:USERPROFILE/.codex/skills/hengzhun-i10-regression/scripts/inspect-i10.ps1 -Root platform/hengzhun-regression-system
+      expectedExitCode: 0
+      evidence: docs/architecture/refactoring/batches/RF-007/evidence-index.md
+      blocking: true
+rollback:
+  triggerConditions: [worker set mismatch, managed reload failure, publication readback mismatch, L1 regression]
+  recoveryPoint: 9d79b7c1 plus RF-007 baseline
+  maxRtoMinutes: 45
+  maxRpoMinutes: 0
+exceptions:
+  allowedVagueNames: []
+  crossModule: []

@@ -17,12 +17,22 @@ const requiredCollections = [
 const secretPatterns = [
   /(?:^|[^A-Za-z0-9])sk-[A-Za-z0-9_-]{16,}/i,
   /-----BEGIN (?:RSA |EC |OPENSSH )?PRIVATE KEY-----/i,
-  /Bearer\s+[A-Za-z0-9._-]{24,}/i
+  /Bearer\s+[A-Za-z0-9._~+/-]{24,}/i,
+  /\beyJ[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{10,}\b/,
+  /"(?:apiKey|accessToken|refreshToken|password|secret|authorization)"\s*:\s*"(?!\s*")[^"\r\n]{8,}"/i
 ]
-const absolutePathPatterns = [/[A-Za-z]:\\Users\\/i, /D:\\Agent\\banksystem/i]
+const absolutePathPatterns = [/(?:^|[\s"'=(:,])(?:[A-Za-z]:\\|\\\\[A-Za-z0-9._-]+\\)[^"\r\n]*/i, /(?:^|["'])\/(?:home|Users|root|var|opt|tmp)\//]
+const allowedNonEmptyCollections = new Set(['AgentFlowV2'])
 
 const sha256 = value => crypto.createHash('sha256').update(value).digest('hex')
 const readJson = file => JSON.parse(fs.readFileSync(file, 'utf8'))
+
+function stringValues(value, result = []) {
+  if (typeof value === 'string') result.push(value)
+  else if (Array.isArray(value)) value.forEach(item => stringValues(item, result))
+  else if (value && typeof value === 'object') Object.values(value).forEach(item => stringValues(item, result))
+  return result
+}
 
 function canonicalize(value) {
   if (Array.isArray(value)) return value.map(canonicalize)
@@ -55,10 +65,28 @@ function parseObject(value, code) {
   fail(code)
 }
 
+function minimalExportPackage(packageValue, publication) {
+  ensure(packageValue && typeof packageValue === 'object' && !Array.isArray(packageValue), 'I10_EXPORT_PACKAGE_ROOT_INVALID')
+  for (const collection of requiredCollections) ensure(Array.isArray(packageValue[collection]), `I10_EXPORT_PACKAGE_COLLECTION_INVALID:${collection}`)
+  const flowId = String(publication.flowId || '')
+  const matches = packageValue.AgentFlowV2.filter(item => item && item.id === flowId)
+  ensure(matches.length === 1, `I10_EXPORT_PACKAGE_FLOW_MATCH_COUNT:${matches.length}`)
+  return Object.fromEntries(requiredCollections.map(collection => [
+    collection,
+    collection === 'AgentFlowV2' ? [matches[0]] : []
+  ]))
+}
+
 function validateExportPackage(packageValue, options = {}) {
   const publication = options.publication || readJson(publicationPath)
   ensure(packageValue && typeof packageValue === 'object' && !Array.isArray(packageValue), 'I10_EXPORT_PACKAGE_ROOT_INVALID')
+  ensure(Object.keys(packageValue).length === requiredCollections.length
+    && Object.keys(packageValue).every(key => requiredCollections.includes(key)), 'I10_EXPORT_PACKAGE_COLLECTION_SET_INVALID')
   for (const collection of requiredCollections) ensure(Array.isArray(packageValue[collection]), `I10_EXPORT_PACKAGE_COLLECTION_INVALID:${collection}`)
+  for (const collection of requiredCollections) {
+    if (!allowedNonEmptyCollections.has(collection)) ensure(packageValue[collection].length === 0, `I10_EXPORT_PACKAGE_UNRELATED_COLLECTION_NOT_EMPTY:${collection}`)
+  }
+  ensure(packageValue.AgentFlowV2.length === 1, 'I10_EXPORT_PACKAGE_AGENTFLOW_COUNT_INVALID')
 
   const flowId = String(publication.flowId || '')
   const flowName = String(publication.name || '')
@@ -69,8 +97,8 @@ function validateExportPackage(packageValue, options = {}) {
   const item = matches[0]
   ensure(item.name === flowName, 'I10_EXPORT_PACKAGE_FLOW_NAME_MISMATCH')
   ensure(item.type === 'AGENTFLOW', 'I10_EXPORT_PACKAGE_FLOW_TYPE_INVALID')
-  ensure(typeof item.deployed === 'boolean', 'I10_EXPORT_PACKAGE_DEPLOYED_FLAG_INVALID')
-  ensure(typeof item.isPublic === 'boolean', 'I10_EXPORT_PACKAGE_PUBLIC_FLAG_INVALID')
+  ensure(item.deployed === true && publication.deployed === true, 'I10_EXPORT_PACKAGE_DEPLOYED_FLAG_INVALID')
+  ensure(item.isPublic === false && publication.isPublic === false, 'I10_EXPORT_PACKAGE_PUBLIC_FLAG_INVALID')
 
   const flowData = parseObject(item.flowData, 'I10_EXPORT_PACKAGE_FLOW_DATA_INVALID')
   const chatbotConfig = parseObject(item.chatbotConfig, 'I10_EXPORT_PACKAGE_CHATBOT_CONFIG_INVALID')
@@ -82,7 +110,8 @@ function validateExportPackage(packageValue, options = {}) {
 
   const serialized = JSON.stringify(packageValue)
   ensure(!secretPatterns.some(pattern => pattern.test(serialized)), 'I10_EXPORT_PACKAGE_SECRET_CONTENT')
-  ensure(!absolutePathPatterns.some(pattern => pattern.test(serialized)), 'I10_EXPORT_PACKAGE_ABSOLUTE_PATH_CONTENT')
+  const textValues = stringValues(packageValue)
+  ensure(!absolutePathPatterns.some(pattern => textValues.some(value => pattern.test(value))), 'I10_EXPORT_PACKAGE_ABSOLUTE_PATH_CONTENT')
 
   return {
     status: 'I10_FLOWISE_EXPORT_PACKAGE_PREFLIGHT_READY',
@@ -141,10 +170,13 @@ async function capture(outputPath) {
     body: JSON.stringify({ agentflowv2: true })
   })
   ensure(exported.response.ok, `I10_FLOWISE_EXPORT_FAILED:${exported.response.status}`)
-  const validation = validateExportPackage(exported.body, { publication })
+  const minimalPackage = minimalExportPackage(exported.body, publication)
+  const validation = validateExportPackage(minimalPackage, { publication })
   const resolved = path.resolve(outputPath)
   fs.mkdirSync(path.dirname(resolved), { recursive: true })
-  fs.writeFileSync(resolved, `${JSON.stringify(exported.body, null, 2)}\n`, 'utf8')
+  const temporary = `${resolved}.${process.pid}.${crypto.randomUUID()}.tmp`
+  fs.writeFileSync(temporary, `${JSON.stringify(minimalPackage, null, 2)}\n`, { encoding: 'utf8', flag: 'wx', mode: 0o600 })
+  fs.renameSync(temporary, resolved)
   return { ...validation, outputPath: resolved, source: 'LIVE_FLOWISE_EXPORT_API' }
 }
 
@@ -178,4 +210,4 @@ async function main() {
 
 if (require.main === module) main()
 
-module.exports = { canonicalHash, capture, preflight, requiredCollections, validateExportPackage }
+module.exports = { canonicalHash, capture, minimalExportPackage, preflight, requiredCollections, validateExportPackage }

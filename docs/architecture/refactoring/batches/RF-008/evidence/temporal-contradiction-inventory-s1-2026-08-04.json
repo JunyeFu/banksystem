@@ -1,0 +1,811 @@
+{
+  "schemaVersion": "rf008-temporal-contradiction-inventory-v1",
+  "mode": "REPORT_ONLY",
+  "scope": "RF-000..RF-008",
+  "generatedAt": "2026-08-04T01:20:49.325784Z",
+  "sources": {
+    "orderAuthority": "agent/plans/active/v54-implementation-batches.md",
+    "backlog": "agent/backlog.yaml",
+    "batchRoot": "docs/architecture/refactoring/batches"
+  },
+  "summary": {
+    "batchCount": 9,
+    "currentContradictionCount": 2,
+    "historicalStatementCount": 36,
+    "enforcementEnabled": false
+  },
+  "batches": [
+    {
+      "batchId": "RF-000",
+      "batch": {
+        "status": "CLOSED",
+        "source": "docs/architecture/refactoring/batches/RF-000/batch.yaml"
+      },
+      "backlog": null,
+      "order": {
+        "status": "重构治理控制体系",
+        "rawStatus": "重构治理控制体系",
+        "source": "agent/plans/active/v54-implementation-batches.md"
+      },
+      "slices": {},
+      "tasks": {},
+      "evidenceIndex": {
+        "metadataStatus": "ACCEPTED",
+        "bodyStatus": null,
+        "source": "docs/architecture/refactoring/batches/RF-000/evidence-index.md"
+      }
+    },
+    {
+      "batchId": "RF-001",
+      "batch": {
+        "status": "CLOSED",
+        "source": "docs/architecture/refactoring/batches/RF-001/batch.yaml"
+      },
+      "backlog": {
+        "id": "REFACTOR-RF-001-HENGZHUN-CONTRACTS",
+        "status": "DONE",
+        "source": "agent/backlog.yaml"
+      },
+      "order": {
+        "status": "MCP",
+        "rawStatus": "MCP→Harness 字段/错误码/适配器标准化 + 8字段错误信封切流",
+        "source": "agent/plans/active/v54-implementation-batches.md"
+      },
+      "slices": {
+        "RF-001-B3-S3": {
+          "status": "APPROVED",
+          "source": "docs/architecture/refactoring/batches/RF-001/slices/RF-001-B3-S3.yaml"
+        },
+        "RF-001-B3-S4": {
+          "status": "APPROVED",
+          "source": "docs/architecture/refactoring/batches/RF-001/slices/RF-001-B3-S4.yaml"
+        },
+        "RF-001-B3-S5": {
+          "status": "APPROVED",
+          "source": "docs/architecture/refactoring/batches/RF-001/slices/RF-001-B3-S5.yaml"
+        },
+        "RF-001-B4-S1": {
+          "status": "PROPOSED",
+          "source": "docs/architecture/refactoring/batches/RF-001/slices/RF-001-B4-S1.yaml"
+        },
+        "RF-001-B4-S2": {
+          "status": "APPROVED",
+          "source": "docs/architecture/refactoring/batches/RF-001/slices/RF-001-B4-S2.yaml"
+        },
+        "RF-001-B4-S3": {
+          "status": "PROPOSED",
+          "source": "docs/architecture/refactoring/batches/RF-001/slices/RF-001-B4-S3.yaml"
+        },
+        "RF-001-B4-S4": {
+          "status": "APPROVED",
+          "source": "docs/architecture/refactoring/batches/RF-001/slices/RF-001-B4-S4.yaml"
+        },
+        "RF-001-B4-S5": {
+          "status": "APPROVED",
+          "source": "docs/architecture/refactoring/batches/RF-001/slices/RF-001-B4-S5.yaml"
+        }
+      },
+      "tasks": {
+        "DOC-ARCH-RF001-B3S3-TASK": {
+          "metadataStatus": "COMPLETED",
+          "bodyStatus": null,
+          "source": "docs/architecture/refactoring/batches/RF-001/tasks/RF-001-B3-S3.md"
+        },
+        "DOC-ARCH-RF001-B3S4-TASK": {
+          "metadataStatus": "COMPLETED",
+          "bodyStatus": null,
+          "source": "docs/architecture/refactoring/batches/RF-001/tasks/RF-001-B3-S4.md"
+        },
+        "DOC-ARCH-RF001-B3S5-TASK": {
+          "metadataStatus": "COMPLETED",
+          "bodyStatus": null,
+          "source": "docs/architecture/refactoring/batches/RF-001/tasks/RF-001-B3-S5.md"
+        },
+        "DOC-ARCH-RF001-B4S1-TASK": {
+          "metadataStatus": "COMPLETED",
+          "bodyStatus": null,
+          "source": "docs/architecture/refactoring/batches/RF-001/tasks/RF-001-B4-S1.md"
+        },
+        "DOC-ARCH-RF001-B4S2-TASK": {
+          "metadataStatus": "COMPLETED",
+          "bodyStatus": null,
+          "source": "docs/architecture/refactoring/batches/RF-001/tasks/RF-001-B4-S2.md"
+        },
+        "DOC-ARCH-RF001-B4S3-TASK": {
+          "metadataStatus": "COMPLETED",
+          "bodyStatus": null,
+          "source": "docs/architecture/refactoring/batches/RF-001/tasks/RF-001-B4-S3.md"
+        },
+        "DOC-ARCH-RF001-B4S4-TASK": {
+          "metadataStatus": "COMPLETED",
+          "bodyStatus": null,
+          "source": "docs/architecture/refactoring/batches/RF-001/tasks/RF-001-B4-S4.md"
+        },
+        "DOC-ARCH-RF001-B4S5-TASK": {
+          "metadataStatus": "COMPLETED",
+          "bodyStatus": null,
+          "source": "docs/architecture/refactoring/batches/RF-001/tasks/RF-001-B4-S5.md"
+        }
+      },
+      "evidenceIndex": {
+        "metadataStatus": "ACCEPTED",
+        "bodyStatus": null,
+        "source": "docs/architecture/refactoring/batches/RF-001/evidence-index.md"
+      }
+    },
+    {
+      "batchId": "RF-002",
+      "batch": {
+        "status": "CLOSED",
+        "source": "docs/architecture/refactoring/batches/RF-002/batch.yaml"
+      },
+      "backlog": {
+        "id": "REFACTOR-RF-002-STATE-OWNERSHIP",
+        "status": "DONE",
+        "source": "agent/backlog.yaml"
+      },
+      "order": null,
+      "slices": {
+        "RF-002-S1": {
+          "status": "APPROVED",
+          "source": "docs/architecture/refactoring/batches/RF-002/slices/RF-002-S1.yaml"
+        },
+        "RF-002-S2": {
+          "status": "PROPOSED",
+          "source": "docs/architecture/refactoring/batches/RF-002/slices/RF-002-S2.yaml"
+        },
+        "RF-002-S3": {
+          "status": "PROPOSED",
+          "source": "docs/architecture/refactoring/batches/RF-002/slices/RF-002-S3.yaml"
+        },
+        "RF-002-S4": {
+          "status": "PROPOSED",
+          "source": "docs/architecture/refactoring/batches/RF-002/slices/RF-002-S4.yaml"
+        },
+        "RF-002-S5": {
+          "status": "PROPOSED",
+          "source": "docs/architecture/refactoring/batches/RF-002/slices/RF-002-S5.yaml"
+        }
+      },
+      "tasks": {
+        "DOC-ARCH-RF002-S1-TASK": {
+          "metadataStatus": "COMPLETED",
+          "bodyStatus": null,
+          "source": "docs/architecture/refactoring/batches/RF-002/tasks/RF-002-S1.md"
+        },
+        "DOC-ARCH-RF002-S2-TASK": {
+          "metadataStatus": "COMPLETED",
+          "bodyStatus": null,
+          "source": "docs/architecture/refactoring/batches/RF-002/tasks/RF-002-S2.md"
+        },
+        "DOC-ARCH-RF002-S3-TASK": {
+          "metadataStatus": "COMPLETED",
+          "bodyStatus": null,
+          "source": "docs/architecture/refactoring/batches/RF-002/tasks/RF-002-S3.md"
+        },
+        "DOC-ARCH-RF002-S4-TASK": {
+          "metadataStatus": "COMPLETED",
+          "bodyStatus": null,
+          "source": "docs/architecture/refactoring/batches/RF-002/tasks/RF-002-S4.md"
+        },
+        "DOC-ARCH-RF002-S5-TASK": {
+          "metadataStatus": "COMPLETED",
+          "bodyStatus": null,
+          "source": "docs/architecture/refactoring/batches/RF-002/tasks/RF-002-S5.md"
+        }
+      },
+      "evidenceIndex": {
+        "metadataStatus": "ACCEPTED",
+        "bodyStatus": null,
+        "source": "docs/architecture/refactoring/batches/RF-002/evidence-index.md"
+      }
+    },
+    {
+      "batchId": "RF-003",
+      "batch": {
+        "status": "CLOSED",
+        "source": "docs/architecture/refactoring/batches/RF-003/batch.yaml"
+      },
+      "backlog": {
+        "id": "REFACTOR-RF-003-VERSION-SOURCE",
+        "status": "DONE",
+        "source": "agent/backlog.yaml"
+      },
+      "order": {
+        "status": "版本来源统一（F09：8.0.0/10.0.0/10.1.0 单一来源）",
+        "rawStatus": "版本来源统一（F09：8.0.0/10.0.0/10.1.0 单一来源）",
+        "source": "agent/plans/active/v54-implementation-batches.md"
+      },
+      "slices": {
+        "RF-003-S1": {
+          "status": "PROPOSED",
+          "source": "docs/architecture/refactoring/batches/RF-003/slices/RF-003-S1.yaml"
+        },
+        "RF-003-S2": {
+          "status": "PROPOSED",
+          "source": "docs/architecture/refactoring/batches/RF-003/slices/RF-003-S2.yaml"
+        },
+        "RF-003-S3": {
+          "status": "PROPOSED",
+          "source": "docs/architecture/refactoring/batches/RF-003/slices/RF-003-S3.yaml"
+        }
+      },
+      "tasks": {
+        "DOC-ARCH-RF003-S1-TASK": {
+          "metadataStatus": "COMPLETED",
+          "bodyStatus": null,
+          "source": "docs/architecture/refactoring/batches/RF-003/tasks/RF-003-S1.md"
+        },
+        "DOC-ARCH-RF003-S2-TASK": {
+          "metadataStatus": "COMPLETED",
+          "bodyStatus": null,
+          "source": "docs/architecture/refactoring/batches/RF-003/tasks/RF-003-S2.md"
+        },
+        "DOC-ARCH-RF003-S3-TASK": {
+          "metadataStatus": "COMPLETED",
+          "bodyStatus": null,
+          "source": "docs/architecture/refactoring/batches/RF-003/tasks/RF-003-S3.md"
+        }
+      },
+      "evidenceIndex": {
+        "metadataStatus": "ACCEPTED",
+        "bodyStatus": null,
+        "source": "docs/architecture/refactoring/batches/RF-003/evidence-index.md"
+      }
+    },
+    {
+      "batchId": "RF-004",
+      "batch": {
+        "status": "CLOSED",
+        "source": "docs/architecture/refactoring/batches/RF-004/batch.yaml"
+      },
+      "backlog": {
+        "id": "REFACTOR-RF-004-CREDENTIAL-BINDING",
+        "status": "DONE",
+        "source": "agent/backlog.yaml"
+      },
+      "order": {
+        "status": "执行凭据绑定迁移（F08：I3-CUSTOMER → 权威 CREDENTIALREF）",
+        "rawStatus": "执行凭据绑定迁移（F08：i3-customer → 权威 credentialRef）",
+        "source": "agent/plans/active/v54-implementation-batches.md"
+      },
+      "slices": {
+        "RF-004-S1": {
+          "status": "PROPOSED",
+          "source": "docs/architecture/refactoring/batches/RF-004/slices/RF-004-S1.yaml"
+        },
+        "RF-004-S2": {
+          "status": "PROPOSED",
+          "source": "docs/architecture/refactoring/batches/RF-004/slices/RF-004-S2.yaml"
+        },
+        "RF-004-S3": {
+          "status": "PROPOSED",
+          "source": "docs/architecture/refactoring/batches/RF-004/slices/RF-004-S3.yaml"
+        },
+        "RF-004-S4": {
+          "status": "PROPOSED",
+          "source": "docs/architecture/refactoring/batches/RF-004/slices/RF-004-S4.yaml"
+        }
+      },
+      "tasks": {
+        "DOC-ARCH-RF004-S1-TASK": {
+          "metadataStatus": "COMPLETED",
+          "bodyStatus": null,
+          "source": "docs/architecture/refactoring/batches/RF-004/tasks/RF-004-S1.md"
+        },
+        "DOC-ARCH-RF004-S2-TASK": {
+          "metadataStatus": "COMPLETED",
+          "bodyStatus": null,
+          "source": "docs/architecture/refactoring/batches/RF-004/tasks/RF-004-S2.md"
+        },
+        "DOC-ARCH-RF004-S3-TASK": {
+          "metadataStatus": "COMPLETED",
+          "bodyStatus": null,
+          "source": "docs/architecture/refactoring/batches/RF-004/tasks/RF-004-S3.md"
+        },
+        "DOC-ARCH-RF004-S4-TASK": {
+          "metadataStatus": "COMPLETED",
+          "bodyStatus": null,
+          "source": "docs/architecture/refactoring/batches/RF-004/tasks/RF-004-S4.md"
+        }
+      },
+      "evidenceIndex": {
+        "metadataStatus": "ACCEPTED",
+        "bodyStatus": null,
+        "source": "docs/architecture/refactoring/batches/RF-004/evidence-index.md"
+      }
+    },
+    {
+      "batchId": "RF-005",
+      "batch": {
+        "status": "CLOSED",
+        "source": "docs/architecture/refactoring/batches/RF-005/batch.yaml"
+      },
+      "backlog": {
+        "id": "REFACTOR-RF-005-CASE-ROUTE-RETIREMENT",
+        "status": "DONE",
+        "source": "agent/backlog.yaml"
+      },
+      "order": {
+        "status": "历史兼容层退场（F07：CASE_PREPARE 双路由/I8 草案入口）",
+        "rawStatus": "历史兼容层退场（F07：case_prepare 双路由/I8 草案入口）",
+        "source": "agent/plans/active/v54-implementation-batches.md"
+      },
+      "slices": {
+        "RF-005-S1": {
+          "status": "PROPOSED",
+          "source": "docs/architecture/refactoring/batches/RF-005/slices/RF-005-S1.yaml"
+        },
+        "RF-005-S2": {
+          "status": "PROPOSED",
+          "source": "docs/architecture/refactoring/batches/RF-005/slices/RF-005-S2.yaml"
+        },
+        "RF-005-S3": {
+          "status": "PROPOSED",
+          "source": "docs/architecture/refactoring/batches/RF-005/slices/RF-005-S3.yaml"
+        }
+      },
+      "tasks": {
+        "DOC-ARCH-RF005-S1-TASK": {
+          "metadataStatus": "COMPLETED",
+          "bodyStatus": null,
+          "source": "docs/architecture/refactoring/batches/RF-005/tasks/RF-005-S1.md"
+        },
+        "DOC-ARCH-RF005-S2-TASK": {
+          "metadataStatus": "COMPLETED",
+          "bodyStatus": null,
+          "source": "docs/architecture/refactoring/batches/RF-005/tasks/RF-005-S2.md"
+        },
+        "DOC-ARCH-RF005-S3-TASK": {
+          "metadataStatus": "COMPLETED",
+          "bodyStatus": null,
+          "source": "docs/architecture/refactoring/batches/RF-005/tasks/RF-005-S3.md"
+        }
+      },
+      "evidenceIndex": {
+        "metadataStatus": "ACCEPTED",
+        "bodyStatus": null,
+        "source": "docs/architecture/refactoring/batches/RF-005/evidence-index.md"
+      }
+    },
+    {
+      "batchId": "RF-006",
+      "batch": {
+        "status": "CLOSED",
+        "source": "docs/architecture/refactoring/batches/RF-006/batch.yaml"
+      },
+      "backlog": {
+        "id": "REFACTOR-RF-006-ACCEPTANCE-EFFICIENCY",
+        "status": "DONE",
+        "source": "agent/backlog.yaml"
+      },
+      "order": {
+        "status": "CLOSED",
+        "rawStatus": "CLOSED（S1/S2/S3 COMPLETED）",
+        "source": "agent/plans/active/v54-implementation-batches.md"
+      },
+      "slices": {
+        "RF-006-S1": {
+          "status": "COMPLETED",
+          "source": "docs/architecture/refactoring/batches/RF-006/slices/S1.yaml"
+        },
+        "RF-006-S2": {
+          "status": "COMPLETED",
+          "source": "docs/architecture/refactoring/batches/RF-006/slices/S2.yaml"
+        },
+        "RF-006-S3": {
+          "status": "COMPLETED",
+          "source": "docs/architecture/refactoring/batches/RF-006/slices/S3.yaml"
+        }
+      },
+      "tasks": {
+        "DOC-ARCH-RF006-TASK-S1": {
+          "metadataStatus": "COMPLETED",
+          "bodyStatus": "COMPLETED",
+          "source": "docs/architecture/refactoring/batches/RF-006/tasks/S1.md"
+        },
+        "DOC-ARCH-RF006-TASK-S2": {
+          "metadataStatus": "COMPLETED",
+          "bodyStatus": "COMPLETED",
+          "source": "docs/architecture/refactoring/batches/RF-006/tasks/S2.md"
+        },
+        "DOC-ARCH-RF006-TASK-S3": {
+          "metadataStatus": "COMPLETED",
+          "bodyStatus": "COMPLETED",
+          "source": "docs/architecture/refactoring/batches/RF-006/tasks/S3.md"
+        }
+      },
+      "evidenceIndex": {
+        "metadataStatus": "RECORDED",
+        "bodyStatus": "RECORDED",
+        "source": "docs/architecture/refactoring/batches/RF-006/evidence-index.md"
+      }
+    },
+    {
+      "batchId": "RF-007",
+      "batch": {
+        "status": "CLOSED",
+        "source": "docs/architecture/refactoring/batches/RF-007/batch.yaml"
+      },
+      "backlog": {
+        "id": "REFACTOR-RF-007-WORKER-RELEASE-IDENTITY",
+        "status": "DONE",
+        "source": "agent/backlog.yaml"
+      },
+      "order": {
+        "status": "CLOSED",
+        "rawStatus": "CLOSED（S1/S2/S3 COMPLETED）",
+        "source": "agent/plans/active/v54-implementation-batches.md"
+      },
+      "slices": {
+        "RF-007-S1": {
+          "status": "COMPLETED",
+          "source": "docs/architecture/refactoring/batches/RF-007/slices/S1.yaml"
+        },
+        "RF-007-S2": {
+          "status": "COMPLETED",
+          "source": "docs/architecture/refactoring/batches/RF-007/slices/S2.yaml"
+        },
+        "RF-007-S3": {
+          "status": "COMPLETED",
+          "source": "docs/architecture/refactoring/batches/RF-007/slices/S3.yaml"
+        }
+      },
+      "tasks": {
+        "DOC-ARCH-RF007-TASK-S1": {
+          "metadataStatus": "COMPLETED",
+          "bodyStatus": "COMPLETED",
+          "source": "docs/architecture/refactoring/batches/RF-007/tasks/S1.md"
+        },
+        "DOC-ARCH-RF007-TASK-S2": {
+          "metadataStatus": "COMPLETED",
+          "bodyStatus": "COMPLETED",
+          "source": "docs/architecture/refactoring/batches/RF-007/tasks/S2.md"
+        },
+        "DOC-ARCH-RF007-TASK-S3": {
+          "metadataStatus": "COMPLETED",
+          "bodyStatus": "COMPLETED",
+          "source": "docs/architecture/refactoring/batches/RF-007/tasks/S3.md"
+        }
+      },
+      "evidenceIndex": {
+        "metadataStatus": "ACTIVE",
+        "bodyStatus": "RF-007-S1",
+        "source": "docs/architecture/refactoring/batches/RF-007/evidence-index.md"
+      }
+    },
+    {
+      "batchId": "RF-008",
+      "batch": {
+        "status": "IMPLEMENTING",
+        "source": "docs/architecture/refactoring/batches/RF-008/batch.yaml"
+      },
+      "backlog": {
+        "id": "REFACTOR-RF-008-TEMPORAL-GOVERNANCE",
+        "status": "REVIEW",
+        "source": "agent/backlog.yaml"
+      },
+      "order": {
+        "status": "IMPLEMENTING",
+        "rawStatus": "IMPLEMENTING（S1 COMPLETED；S2/S3未授权）",
+        "source": "agent/plans/active/v54-implementation-batches.md"
+      },
+      "slices": {
+        "RF-008-S1": {
+          "status": "COMPLETED",
+          "source": "docs/architecture/refactoring/batches/RF-008/slices/S1.yaml"
+        },
+        "RF-008-S2": {
+          "status": "PROPOSED",
+          "source": "docs/architecture/refactoring/batches/RF-008/slices/S2.yaml"
+        },
+        "RF-008-S3": {
+          "status": "PROPOSED",
+          "source": "docs/architecture/refactoring/batches/RF-008/slices/S3.yaml"
+        }
+      },
+      "tasks": {
+        "DOC-ARCH-RF008-TASK-S1": {
+          "metadataStatus": "COMPLETED",
+          "bodyStatus": "COMPLETED",
+          "source": "docs/architecture/refactoring/batches/RF-008/tasks/S1.md"
+        },
+        "DOC-ARCH-RF008-TASK-S2": {
+          "metadataStatus": "PROPOSED",
+          "bodyStatus": "DRAFT",
+          "source": "docs/architecture/refactoring/batches/RF-008/tasks/S2.md"
+        },
+        "DOC-ARCH-RF008-TASK-S3": {
+          "metadataStatus": "PROPOSED",
+          "bodyStatus": "DRAFT",
+          "source": "docs/architecture/refactoring/batches/RF-008/tasks/S3.md"
+        }
+      },
+      "evidenceIndex": {
+        "metadataStatus": "ACTIVE",
+        "bodyStatus": "RF-008-S1",
+        "source": "docs/architecture/refactoring/batches/RF-008/evidence-index.md"
+      }
+    }
+  ],
+  "currentContradictions": [
+    {
+      "batchId": "RF-008",
+      "code": "TASK_METADATA_BODY_STATUS_MISMATCH",
+      "classification": "CURRENT_CONTRADICTION",
+      "source": "docs/architecture/refactoring/batches/RF-008/tasks/S2.md",
+      "field": "DOC-ARCH-RF008-TASK-S2",
+      "observed": {
+        "metadata": "PROPOSED",
+        "body": "DRAFT"
+      },
+      "expectedRelation": "task metadata and current body Status must agree"
+    },
+    {
+      "batchId": "RF-008",
+      "code": "TASK_METADATA_BODY_STATUS_MISMATCH",
+      "classification": "CURRENT_CONTRADICTION",
+      "source": "docs/architecture/refactoring/batches/RF-008/tasks/S3.md",
+      "field": "DOC-ARCH-RF008-TASK-S3",
+      "observed": {
+        "metadata": "PROPOSED",
+        "body": "DRAFT"
+      },
+      "expectedRelation": "task metadata and current body Status must agree"
+    }
+  ],
+  "historicalStatements": [
+    {
+      "source": "docs/architecture/refactoring/batches/RF-000/decision-log.md",
+      "line": 20,
+      "classification": "DATED_HISTORICAL",
+      "sha256": "0c0645e8a028e040b81b6e2274b67112ba857f7831bd183c0a2dc2c12e45154a",
+      "excerpt": "6. 2026-08-01：`PROPOSED → BASELINE_FROZEN`，以HEAD和脏树清单冻结治理前基线。"
+    },
+    {
+      "source": "docs/architecture/refactoring/batches/RF-000/decision-log.md",
+      "line": 22,
+      "classification": "DATED_HISTORICAL",
+      "sha256": "0823d8ce4ad52e888730a050ff015651b81090ee8d644a7b65fc9fd51c1163d0",
+      "excerpt": "8. 2026-08-02：`CONTRACT_APPROVED → IMPLEMENTING → SHADOW_VERIFIED`，文档校验器以影子方式调用重构校验器，未修改业务运行模块。"
+    },
+    {
+      "source": "docs/architecture/refactoring/batches/RF-000/decision-log.md",
+      "line": 24,
+      "classification": "DATED_HISTORICAL",
+      "sha256": "c71d4a3b30618beead24b1923ef5eba2e7739a79b412a6bc6899c816bca57ed2",
+      "excerpt": "10. 2026-08-02：观察期复验确认ReleaseIdentity、Agentflow源/部署Hash和18链计数无变化，进入`ACCEPTED → CLEANUP_ELIGIBLE → CLOSED`。"
+    },
+    {
+      "source": "docs/architecture/refactoring/batches/RF-001/decision-log.md",
+      "line": 34,
+      "classification": "DATED_HISTORICAL",
+      "sha256": "4f7d57b879563032c9ea0b377be6d8ae34f7663895432638062a7c6822f31512",
+      "excerpt": "20. 2026-08-02（B3-S2）：`shadowedRequest(operation, route, payload)`被批准为直接编排工具的统一观测包装——每次Harness往返恰好发出一次`requestHarness`请求，成功路径观测`observeSuccess(operation, body, body)`（同一对象、不重写），失败路径观测`observeError(operation, projectLegacyHarnessError(body, status), projectCanonicalHarnessError(body, status))`；旧工具输出保持不变，影子永不发起第二次请求。8个直接"
+    },
+    {
+      "source": "docs/architecture/refactoring/batches/RF-001/decision-log.md",
+      "line": 35,
+      "classification": "DATED_HISTORICAL",
+      "sha256": "0f476debac33534377a121f91908119330ef6e9e38c5a221b77a49ea4bafe552",
+      "excerpt": "21. 2026-08-02（B3-S3）：S3-1只读消费者审计完成，以`agentflow-v5/v6/v7.json`工具节点`mcpActions+toolInputArgs`为准：6项别名有真实调用点（case_prepare.draftJson×2、journey_prepare.draftJson×4、ingest_decision_submit.correctionsJson/itemDecisionsJson×4、repair_propose.patchJson×1、ingest_submit.supportingImageIngestId=NONE×2）；7项无消费者（case_prepare.draftArra"
+    },
+    {
+      "source": "docs/architecture/refactoring/batches/RF-001/decision-log.md",
+      "line": 44,
+      "classification": "DATED_HISTORICAL",
+      "sha256": "1c54e06dc88d3526dbadbd08a4fefcd4b8bbe6c284e903bb30fd56eb75f8c8d2",
+      "excerpt": "30. 2026-08-03（B4-S5完成，RUNTIME_OBSERVE，**RF-001批次CLOSED**）：切流后观察与批次关闭。生产观察：10个错误路径工具实时探测全部规范信封且errorCode保留（run_submit带出safeMessage/correlationRef——Harness领域错误恢复字段经规范信封完整保留）；四服务健康。全量回归：43/43、静态校验×3、`git diff --check`、identityHash=`632ad5ee…`、18链18/18。**批次关闭**：`batch.yaml` status `IMPLEMENTING→CLOSED`（状态路径IMPLEMENTING→SH"
+    },
+    {
+      "source": "docs/architecture/refactoring/batches/RF-002/decision-log.md",
+      "line": 23,
+      "classification": "DATED_HISTORICAL",
+      "sha256": "7523eb0cde5e4207acb7e75f49f46cd76816f0e65386aee6fb6bbe7fc1e551f8",
+      "excerpt": "6. 2026-08-03（L1全景+target-design批准，S1完成）：用户批准 L1 重构全景规划（v54 重构章节重写：终态指标/批次全景 RF-000..RF-005/绞杀者执行模式/缺陷归属登记）与 RF-002 target-design v2.0（状态所有权收敛：Harness 暴露 terminal/verificationGate；MCP 删除业务状态推断）。backlog 同步：RF-001→DONE，RF-002/RF-003/RF-004/RF-005 登记（候选不授权）。RF-002-S1（状态契约考古与基线）完成：机器断言现状缺口（A2 无 terminal/verificationGate、A3"
+    },
+    {
+      "source": "docs/architecture/refactoring/batches/RF-002/decision-log.md",
+      "line": 25,
+      "classification": "DATED_HISTORICAL",
+      "sha256": "12b0d4c40773c1515b7cdd2247322233455f82b1205d4c658edb2df0524e2ff6",
+      "excerpt": "10. 2026-08-03（S5完成，**RF-002批次CLOSED**）：生产切流、观察与批次关闭。受管 stop→start-i10.ps1（新 dist Harness 加载 G1/G2/G3/G1.1、新 MCP 加载 S3 收敛+S4 退场）；四服务健康、模型探针 mock=false、发布回读三项 Hash 与基线一致。生产实时探测：task_get/schedule_get/verification_get/candidate_get 全部规范 8 字段信封且 errorCode 保留；schedule_get 纯读（实现事实：action 参数被 zod strip 忽略而非 schema 拒绝——行为等同纯读、"
+    },
+    {
+      "source": "docs/architecture/refactoring/batches/RF-002/evidence-index.md",
+      "line": 28,
+      "classification": "DATED_HISTORICAL",
+      "sha256": "09a2b22a4254b48ba7232452fde1eeff1a7c91b43725679f0254d0d06c16dad1",
+      "excerpt": "**RF-002 批次 CLOSED（2026-08-03）**：S1考古基线→S2 Harness状态契约（G1/G2/G3/G1.1）→S3 MCP收敛（零跨端点、展示投影冻结映射）→S4条件写退场（schedule_get READ_ONLY）→S5生产切流观察。终态指标达成：MCP业务状态推断0、重复业务入口0、状态语义机器可验证100%。"
+    },
+    {
+      "source": "docs/architecture/refactoring/batches/RF-003/decision-log.md",
+      "line": 23,
+      "classification": "DATED_HISTORICAL",
+      "sha256": "6cf61429f28c97780e52035d91634037b3ac08ee8a6e31dd105796e9f6424885",
+      "excerpt": "4. 2026-08-03（S3完成，**RF-003批次CLOSED**）：生产切流、观察与批次关闭。受管 stop→start-i10.ps1（新 MCP 加载版本统一）；四服务健康、探针 mock=false、发布回读三项 Hash 与基线一致。生产探测：/health version=10.1.0（合同值，切流前 10.0.0 已登记为预期变化）；task_get/schedule_get/verification_get 全部规范 8 字段信封+errorCode。观察：身份 632ad5ee、18 链 18/18、生产影子保持关闭。批次关闭：batch.yaml PROPOSED→CLOSED（validate_refa"
+    },
+    {
+      "source": "docs/architecture/refactoring/batches/RF-003/evidence-index.md",
+      "line": 28,
+      "classification": "DATED_HISTORICAL",
+      "sha256": "5d28f1748de1c841e8acd32e30f0881f404c3c1389e8628bd2b6f2cd873b083d",
+      "excerpt": "**RF-003 批次 CLOSED（2026-08-03）**：S1版本基线→S2统一实现（合同派生+失败关闭）→S3生产切流观察。终态指标达成：单一版本来源=1（合同 contractVersion 唯一权威）。"
+    },
+    {
+      "source": "docs/architecture/refactoring/batches/RF-004/decision-log.md",
+      "line": 25,
+      "classification": "DATED_HISTORICAL",
+      "sha256": "f64fabe293bafab1ad4be80e6812a8c4abc2d7d670ca21b132036c7c9256789d",
+      "excerpt": "5. 2026-08-03（S4完成，**RF-004批次CLOSED**）：生产切流、观察与批次关闭。受管 stop→start-i10.ps1（新 dist Harness 加载 S3 解析、新 MCP 加载 S2 停注入）；四服务健康、探针 mock=false、发布回读三项 Hash 与基线一致。生产探测：task_get/schedule_get/verification_get 规范 8 字段信封+errorCode；**run_submit 无注入+credentialRef 案例返回 202（权威凭据链生产实测）**——生产 5 个已激活案例全部绑定 credentialRef，失败关闭分支（409）不会影响现有流量"
+    },
+    {
+      "source": "docs/architecture/refactoring/batches/RF-004/evidence-index.md",
+      "line": 31,
+      "classification": "DATED_HISTORICAL",
+      "sha256": "12508dce0a40716d8d6bed507db5c9f67b7b4714cbbde045c10758746dd6ce96",
+      "excerpt": "**RF-004 批次 CLOSED（2026-08-03）**：S1凭据绑定基线→S2 MCP停注入（DP-S4-1=A）→S3 Harness解析（DP-S4-2=A，零迁移零Worker改动）→S4生产切流观察。终态指标达成：执行凭据绑定权威化 100%（i3-customer 仅 LEGACY 通道）。"
+    },
+    {
+      "source": "docs/architecture/refactoring/batches/RF-005/decision-log.md",
+      "line": 21,
+      "classification": "DATED_HISTORICAL",
+      "sha256": "a54eb6b49450039c167681915c331379d47860539664a88fcc51b7862ebd4298",
+      "excerpt": "3. 2026-08-03（S2完成）：case_prepare 单路由实现。R1：适配器 normalizeCasePrepareRequest 删 draftArray 分支与 multimodal 合并；server.cjs case_prepare 删 i8 路由分支（无条件 normalizeI10NaturalDraft + /v1/i10/cases:prepare），schema 移除 draftArray/acceptanceSummaryJson/multimodalContextJson（v7 零消费者证据）。DP-R5-1：I8_DRAFT_JSON_INVALID → I10_CASE_DRAFT_INVA"
+    },
+    {
+      "source": "docs/architecture/refactoring/batches/RF-005/decision-log.md",
+      "line": 23,
+      "classification": "DATED_HISTORICAL",
+      "sha256": "b4a6749bdde6e241f2c1f76e9481f20f7a7c0418081e68c72ab3e5340e678169",
+      "excerpt": "4. 2026-08-03（S3完成，**RF-005批次CLOSED，L1重构全景终态达成**）：生产切流、观察与批次关闭。受管 stop→start-i10.ps1（新 MCP 加载 case_prepare 单路由）；四服务健康、探针 mock=false、发布回读三项 Hash 与基线一致。生产探测：case_prepare（draftJson i10 草案）→ i10 链路领域校验信封（无 MCP 层错误）；task_get/schedule_get/verification_get 规范 8 字段信封；run_submit 无注入+credentialRef → 202。观察：身份 632ad5ee、18 链 18/18"
+    },
+    {
+      "source": "docs/architecture/refactoring/batches/RF-005/evidence-index.md",
+      "line": 28,
+      "classification": "DATED_HISTORICAL",
+      "sha256": "9845d11f104c20fc4300e216df0c8180110254d2871dc866403ed4a2a4388b2d",
+      "excerpt": "**L1 重构全景 CLOSED（2026-08-03）**：RF-000~RF-005 全部完成；终态指标 8/8 达成（状态推断 0、条件副作用 0、重复入口 0、状态语义可验证 100%、缺陷归属全关闭、版本来源 1、凭据绑定 100%、兼容层退场 100%）。"
+    },
+    {
+      "source": "docs/architecture/refactoring/batches/RF-006/decision-log.md",
+      "line": 15,
+      "classification": "DATED_HISTORICAL",
+      "sha256": "e7419676825799e6aa20d7c0b59634f67fabd5a765eb78a8a55e76c1fac11fe1",
+      "excerpt": "1. 2026-08-03: user approved creation of the four-level control chain only."
+    },
+    {
+      "source": "docs/architecture/refactoring/batches/RF-006/decision-log.md",
+      "line": 20,
+      "classification": "DATED_HISTORICAL",
+      "sha256": "164ad0b1428ada9471afb979dc8ff6c8569ab94f43c9ecc531d1a3a0deb116ae",
+      "excerpt": "6. 2026-08-03: project owner approved RF-006-S1 only. S2/S3 and all runtime mutation remain blocked."
+    },
+    {
+      "source": "docs/architecture/refactoring/batches/RF-006/decision-log.md",
+      "line": 24,
+      "classification": "DATED_HISTORICAL",
+      "sha256": "daaf5a90726f48fb972e6ad49f882d6d495f40e97bdaca6fc53b1bbc6d7eed10",
+      "excerpt": "10. 2026-08-03: project owner approved RF-006-S2. The approval covers deterministic invalidation/reuse, authoring idempotency, terminal-aware polling and stage timing only; S3, publication, service reload and LIVE_E2E remain blocked."
+    },
+    {
+      "source": "docs/architecture/refactoring/batches/RF-006/decision-log.md",
+      "line": 29,
+      "classification": "DATED_HISTORICAL",
+      "sha256": "b8c7ca49b2eff10fa82ed5f4afb5bd5fa67314a36d0e03cf13aee2b582bdcabc",
+      "excerpt": "15. 2026-08-03: project owner approved RF-006-S3. Live preflight found `releaseAligned=false`, a Worker expected/observed code-version mismatch, and stale public-API readback evidence, so the approved task remains blocked by its explicit RF-007 runtime-alignment prerequisite."
+    },
+    {
+      "source": "docs/architecture/refactoring/batches/RF-006/decision-log.md",
+      "line": 31,
+      "classification": "DATED_HISTORICAL",
+      "sha256": "83e887c757ee8c1cfbcd71fa491325cadd84aad3a1429cdd5b52e0b29de11c23",
+      "excerpt": "17. 2026-08-04: RF-007 closed the runtime-alignment prerequisite with ReleaseIdentity `6a1fd9a7...`, aligned WorkerCodeSet and one current-identity L1 thin chain."
+    },
+    {
+      "source": "docs/architecture/refactoring/batches/RF-007/decision-log.md",
+      "line": 15,
+      "classification": "DATED_HISTORICAL",
+      "sha256": "621ee28fd35cb9bd2dcc5c83a353c43b146ccdd8f284fd4c49f8afe773396190",
+      "excerpt": "1. 2026-08-03: project owner approved RF-007-S1 only. S2/S3, service reload, Flowise publication and LIVE_E2E remain unapproved."
+    },
+    {
+      "source": "docs/architecture/refactoring/batches/RF-007/decision-log.md",
+      "line": 17,
+      "classification": "DATED_HISTORICAL",
+      "sha256": "3e755f068ac0c2e49c22c1b19738823b5ed4f5b9e18f302e057ae1575f74d7e0",
+      "excerpt": "3. 2026-08-03: RF-007-S1 completed with a 24-file static execution closure, zero unresolved local imports and complete-set Hash `828f4d68da2717db95823783db0567adbdad3d397f962e99c5bb10c1dead3cba`."
+    },
+    {
+      "source": "docs/architecture/refactoring/batches/RF-007/decision-log.md",
+      "line": 20,
+      "classification": "DATED_HISTORICAL",
+      "sha256": "2b4c8f97ac1975329918b8bd21e4029952506f61f3ead9030e7ad2bfa43425a2",
+      "excerpt": "6. 2026-08-03: project owner approved RF-007-S2 only. S2 may change source identity consumers and focused tests, but may not reload services, publish Flowise, mutate acceptance state or run LIVE_E2E."
+    },
+    {
+      "source": "docs/architecture/refactoring/batches/RF-007/decision-log.md",
+      "line": 21,
+      "classification": "DATED_HISTORICAL",
+      "sha256": "c422b60dafbc5422bb593710d5bce86cb012ca751338f6ec735f9592915d45be",
+      "excerpt": "7. 2026-08-03: RF-007-S2 completed. One 24-file manifest and shared algorithm now drive ReleaseIdentity v2, Worker health v2, Harness readiness and lifecycle fingerprinting; 28 focused tests passed."
+    },
+    {
+      "source": "docs/architecture/refactoring/batches/RF-007/decision-log.md",
+      "line": 25,
+      "classification": "DATED_HISTORICAL",
+      "sha256": "9174e25034d7179df152c1c4a20d2c8c60c50dd86cf81a6aef015b3b8c78a9c7",
+      "excerpt": "10. 2026-08-03: user approved control-chain creation, not implementation beyond separately approved slices."
+    },
+    {
+      "source": "docs/architecture/refactoring/batches/RF-007/decision-log.md",
+      "line": 29,
+      "classification": "MARKED_HISTORICAL",
+      "sha256": "5a43ed553d6814d0afb99a9cbae10cf7a9bda5575e416034c4f55f90121c9b11",
+      "excerpt": "14. Old 18/18 is reusable only under strict reconstructable equivalence; otherwise it becomes historical and affected chains rerun."
+    },
+    {
+      "source": "docs/architecture/refactoring/batches/RF-007/decision-log.md",
+      "line": 30,
+      "classification": "DATED_HISTORICAL",
+      "sha256": "573456fbb6cbc2aca233b1e8f5a5d3166a5ec29f6b1cb180cc2f52f6bade32f1",
+      "excerpt": "15. 2026-08-03: project owner approved RF-007-S3. The slice may perform managed reload, public API publication/readback and one L1 LIVE_E2E, but not an automatic 18-chain run."
+    },
+    {
+      "source": "docs/architecture/refactoring/batches/RF-007/decision-log.md",
+      "line": 34,
+      "classification": "DATED_HISTORICAL",
+      "sha256": "444d7b31f27f0e62780a58a89e0c3f92799b3d831d14bb5409fdd2da0d890165",
+      "excerpt": "19. 2026-08-03: project owner approved the migration portability prerequisite and continuation of RF-007-S3."
+    },
+    {
+      "source": "docs/architecture/refactoring/batches/RF-007/decision-log.md",
+      "line": 41,
+      "classification": "DATED_HISTORICAL",
+      "sha256": "6dfb5c54fefbf5de00be259bb20c8235d6bb25e50a8326fb906f518055857691",
+      "excerpt": "26. 2026-08-04: a read-only recheck confirmed ReleaseIdentity `6a1fd9a7...`, migration `36/36`, complete WorkerCodeSet alignment and official ledger `1/18` were unchanged. S1, S2 and S3 are complete; RF-007 is closed without rerunning L1 or the remaining 17 variants."
+    },
+    {
+      "source": "docs/architecture/refactoring/batches/RF-007/evidence-index.md",
+      "line": 38,
+      "classification": "MARKED_HISTORICAL",
+      "sha256": "ded6d19b537f432a1575c27940156c0738716fc710ce6b1ca48c971a9cb7ce5e",
+      "excerpt": "- timing ledger: final L1 completed in `84,953 ms` (`scenario_prepare=28 ms`, `flowise_conversation=84,751 ms`, `terminal_finalize=174 ms`); earlier fail-closed attempts remain non-terminal historical evidence;"
+    },
+    {
+      "source": "docs/architecture/refactoring/batches/RF-007/evidence-index.md",
+      "line": 41,
+      "classification": "MARKED_HISTORICAL",
+      "sha256": "ece1d6d57df4127a655dbcc5bc37a4a5afd056ff68113a47a79b8d6edf0c9b1c",
+      "excerpt": "Historical 18/18 records remain readable but are not current acceptance evidence."
+    },
+    {
+      "source": "docs/architecture/refactoring/batches/RF-008/decision-log.md",
+      "line": 15,
+      "classification": "DATED_HISTORICAL",
+      "sha256": "2a5499573b747d3e365b784d6d610e698288d1f85ca44815c1ad6c5652740765",
+      "excerpt": "1. 2026-08-03: user approved control-chain creation only."
+    },
+    {
+      "source": "docs/architecture/refactoring/batches/RF-008/decision-log.md",
+      "line": 16,
+      "classification": "MARKED_HISTORICAL",
+      "sha256": "17fccbda1036427081099f11588d0796a5e38b339f6cee404cb3187009d94766",
+      "excerpt": "2. Time conflicts are corrected in current projections, not by rewriting historical evidence."
+    },
+    {
+      "source": "docs/architecture/refactoring/batches/RF-008/decision-log.md",
+      "line": 20,
+      "classification": "DATED_HISTORICAL",
+      "sha256": "1032fbd105c08072587acf8e5b605f1a5376fb661136970fdbbeb11b3363d28c",
+      "excerpt": "6. 2026-08-04: project owner approved RF-008-S1 only. S2 normalization/fixtures and S3 enforcement remain unapproved."
+    },
+    {
+      "source": "docs/architecture/refactoring/batches/RF-008/decision-log.md",
+      "line": 22,
+      "classification": "MARKED_HISTORICAL",
+      "sha256": "8677f192954b043663153e73683b5153e344419b6e9aafcfc6d89fbe6b079386",
+      "excerpt": "8. Dated decision/evidence statements and explicit historical markers are inventoried separately and cannot override current projection fields."
+    }
+  ]
+}

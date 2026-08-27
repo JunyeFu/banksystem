@@ -112,7 +112,13 @@ function digest(value) {
 function parseJsonArgument(value, errorCode) {
   if (value && typeof value === 'object' && !Array.isArray(value)) return value
   try {
-    const parsed = JSON.parse(value)
+    // Flowise may coerce a JSON-looking state string back into an object before
+    // MCP schema validation.  The governed `uri:` transport keeps the wire
+    // value scalar; decode only this explicit prefix before strict parsing.
+    const serialized = typeof value === 'string' && value.startsWith('uri:')
+      ? decodeURIComponent(value.slice(4))
+      : value
+    const parsed = JSON.parse(serialized)
     if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) throw new Error('object required')
     return parsed
   } catch {
@@ -211,6 +217,7 @@ function normalizeI10NaturalDraft(draft, caseDescription, sessionRef, credential
       : [],
     actionStepsV2: normalizeCasePrepareActionSteps(draft.actionStepsV2, steps, credentialRef),
     verificationRequirements: Array.isArray(draft.verificationRequirements) ? draft.verificationRequirements : [],
+    ...(normalizeRegisteredAdapterSelection(draft.adapterSelection) ? { adapterSelection: normalizeRegisteredAdapterSelection(draft.adapterSelection) } : {}),
     ...(draft.businessInputs && typeof draft.businessInputs === 'object' && !Array.isArray(draft.businessInputs) &&
         draft.businessInputs.values && typeof draft.businessInputs.values === 'object' && !Array.isArray(draft.businessInputs.values)
       ? { businessInputs: {
@@ -232,6 +239,10 @@ function normalizeI10NaturalDraft(draft, caseDescription, sessionRef, credential
     missingFields, confirmationStatus: missingFields.length ? 'WAITING_USER' : 'CONFIRMED',
     authoringStrategy: 'MIDSCENE_VISUAL_AUTHORING_PLAYWRIGHT_VERIFY', executionStrategy: 'PLAYWRIGHT_VALIDATED_ONLY', evidenceStrategy: 'REDACTED_HASHED_EVIDENCE'
   }
+}
+
+function normalizeRegisteredAdapterSelection(value) {
+  return value === 'fuxing-bank-demo' ? value : undefined
 }
 
 // alias: ingest_submit.supportingImageIngestId=NONE -> omitted (B2 contract)
@@ -413,6 +424,7 @@ module.exports = {
   normalizeIngestSubmitRequest,
   normalizeI10NaturalDraft,
   normalizeJourneyPrepareDraft,
+  normalizeRegisteredAdapterSelection,
   normalizeRepairProposeRequest,
   parseJsonArgument,
   projectCanonicalHarnessError,

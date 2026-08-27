@@ -381,6 +381,22 @@ function ensureExplicitValidationStep(actions, expectedOutcomes) {
   }
 }
 
+function stripTechnicalAdapterActions(actions, expectedOutcomes) {
+  if (!Array.isArray(actions) || !Array.isArray(expectedOutcomes)) return
+  // Adapter choice configures the frozen TargetProfile; it is never a control
+  // inside the target application. A controller can restate the user's
+  // explicit choice as a step, so remove only a narrowly matched standalone
+  // adapter-configuration action and its paired presentation outcome.
+  for (let index = actions.length - 1; index >= 0; index -= 1) {
+    const action = cleanText(actions[index], 500)
+    const technicalOnly = /^(?:明确)?(?:选择|使用|采用|启用)\s*(?:本机)?(?:复兴银行)?(?:演示)?适配器(?:\s*[（(]?fuxing-bank-demo[）)]?)?\s*$/i.test(action) ||
+      /^(?:明确)?(?:选择|使用|采用|启用)\s*fuxing-bank-demo\s*$/i.test(action)
+    if (!technicalOnly) continue
+    actions.splice(index, 1)
+    expectedOutcomes.splice(index, 1)
+  }
+}
+
 function normalizeFlowiseDraft(rawDraft, credentialRefValue, naturalLanguage, confirmedImageIngestIdValue = '', previousDraftValue = {}) {
   const raw = mergeFlowiseDraft(previousDraftValue, rawDraft)
   const credentialRef = cleanText(credentialRefValue, 160)
@@ -388,6 +404,7 @@ function normalizeFlowiseDraft(rawDraft, credentialRefValue, naturalLanguage, co
   const url = normalizeEntryUrl(raw.entryUrl, naturalLanguage)
   const actions = cleanTextArray(raw.actions)
   const expectedOutcomes = cleanTextArray(raw.expectedOutcomes)
+  stripTechnicalAdapterActions(actions, expectedOutcomes)
   // Preserve explicitly supplied, non-secret transfer fields even when the
   // controller compressed them into one natural-language action.
   // Legacy action expansion remains presentation-only.  It must not be used
@@ -512,7 +529,7 @@ function flowiseFunctionSource(options = {}) {
   const declarations = [
     cleanText, cleanTextArray, parseObject, normalizeEntryUrl, inferActionType,
     normalizeVerificationRequirement, normalizeActionSteps, normalizeVerificationRequirements,
-    normalizeCaseFacts, normalizeMissingFields, ensureExplicitValidationStep,
+    normalizeCaseFacts, normalizeMissingFields, ensureExplicitValidationStep, stripTechnicalAdapterActions,
     // Keep every helper referenced by the generated functions inside the
     // Flowise NodeVM source.  NodeVM does not share this CommonJS module
     // scope, so omitting either helper turns a valid draft into a runtime
@@ -561,6 +578,7 @@ if (Array.isArray(imageFacts) && imageFacts.length > 0) {
 module.exports = {
   normalizeFlowiseDraft,
   mergeFlowiseDraft,
+  stripTechnicalAdapterActions,
   flowiseFunctionSource,
   structuredFlowiseFunctionSource
 }

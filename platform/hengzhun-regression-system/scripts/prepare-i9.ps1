@@ -39,8 +39,14 @@ if ($Mode -in @('All', 'Tokens')) {
 
 if ($Mode -in @('All', 'Runtime')) {
     . (Join-Path $PSScriptRoot 'import-i9-runtime-env.ps1')
-    & (Join-Path $root 'runtime\node-v20.20.2-win-x64\node.exe') (Join-Path $PSScriptRoot 'apply-i9-flowise-overlays.cjs') | Out-Null
-    if ($LASTEXITCODE -ne 0) { throw "PREPARE_I9_OVERLAY_FAILED:$LASTEXITCODE" }
+    $node20 = Join-Path $root 'runtime\node-v20.20.2-win-x64\node.exe'
+    $forkMarker = Join-Path $root 'flowise\app\node_modules\.hengzhun-runtime-fork-v1.json'
+    if (-not (Test-Path -LiteralPath $forkMarker -PathType Leaf)) {
+        & $node20 (Join-Path $PSScriptRoot 'apply-i9-flowise-overlays.cjs') | Out-Null
+        if ($LASTEXITCODE -ne 0) { throw "PREPARE_I9_OVERLAY_FAILED:$LASTEXITCODE" }
+    }
+    & $node20 (Join-Path $PSScriptRoot 'i10-build-flowise-runtime-fork.cjs') apply | Out-Null
+    if ($LASTEXITCODE -ne 0) { throw "PREPARE_I9_FLOWISE_RUNTIME_FORK_FAILED:$LASTEXITCODE" }
     & (Join-Path $root 'runtime\node-v20.20.2-win-x64\node.exe') (Join-Path $PSScriptRoot 'i9-lifecycle.cjs') prepare
     if ($LASTEXITCODE -ne 0) { throw "PREPARE_I9_LIFECYCLE_FAILED:$LASTEXITCODE" }
 }

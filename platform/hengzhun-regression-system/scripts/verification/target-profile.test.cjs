@@ -3,6 +3,7 @@
 const test = require('node:test')
 const assert = require('node:assert/strict')
 const fs = require('node:fs')
+const http = require('node:http')
 const os = require('node:os')
 const path = require('node:path')
 const { HarnessDatabase } = require('../../dist/harness/src/database.js')
@@ -32,19 +33,31 @@ async function fixture() {
   return { root, database, service, namespace, credentialRef }
 }
 
+async function localTarget(t, handler = (_request, response) => response.end('ok')) {
+  const server = http.createServer(handler)
+  await new Promise((resolve, reject) => {
+    server.once('error', reject)
+    server.listen(0, '127.0.0.1', resolve)
+  })
+  t.after(() => new Promise(resolve => server.close(resolve)))
+  const address = server.address()
+  return `http://127.0.0.1:${address.port}`
+}
+
 test('target profile freezes an arbitrary http(s) entry and binds credential reference', async t => {
   const f = await fixture()
+  const targetBase = await localTarget(t)
   t.after(async () => { await f.database.close(); fs.rmSync(f.root, { recursive: true, force: true }) })
   const prepared = await f.service.prepareTargetProfile({
     namespace: f.namespace,
     idempotencyKey: 'target-profile-prepare-001',
     displayName: '内网业务门户',
-    launchUrl: 'https://intranet.example.local:8443/app/login',
+    launchUrl: `${targetBase}/app/login`,
     credentialRef: f.credentialRef,
     tlsPolicy: 'STRICT'
   })
   assert.equal(prepared.status, 'PENDING_CONFIRMATION')
-  assert.deepEqual(prepared.allowedNavigationOrigins, ['https://intranet.example.local:8443'])
+  assert.deepEqual(prepared.allowedNavigationOrigins, [targetBase])
   const active = await f.service.decideTargetProfile({
     namespace: f.namespace,
     targetProfileId: prepared.targetProfileId,
@@ -53,7 +66,8 @@ test('target profile freezes an arbitrary http(s) entry and binds credential ref
     confirmationRef: 'target-profile-confirm-001'
   })
   assert.equal(active.status, 'ACTIVE')
-  assert.equal(active.launchUrl, 'https://intranet.example.local:8443/app/login')
+  assert.equal(active.launchUrl, `${targetBase}/app/login`)
+  assert.deepEqual(active.resolvedAddresses, { '127.0.0.1': ['127.0.0.1'] })
   const binding = f.database.connection.prepare('SELECT target_profile_id FROM i10_credential_refs WHERE credential_ref=?').get(f.credentialRef)
   assert.equal(binding.target_profile_id, active.targetProfileId)
 })
@@ -121,13 +135,14 @@ test('a symbolic adapter selection resolves only to the registered controlled bi
 
 test('application modules and capabilities are target-owned and activated with their profile', async t => {
   const f = await fixture()
+  const targetBase = await localTarget(t)
   t.after(async () => { await f.database.close(); fs.rmSync(f.root, { recursive: true, force: true }) })
   const prepared = await f.service.prepareTargetProfile({
     namespace: f.namespace,
     idempotencyKey: 'target-profile-application-001',
     sessionRef: 'session-target-application-001',
     displayName: '内网业务系统',
-    launchUrl: 'https://intranet.example.local/app/login',
+    launchUrl: `${targetBase}/app/login`,
     credentialRef: f.credentialRef,
     tlsPolicy: 'STRICT',
     applicationProfile: {
@@ -237,11 +252,35 @@ test('generic credential login is expanded into executable Playwright steps with
     assertions: ['账户概览页面可见']
   }, '1'.repeat(64))
   assert.equal(plan.fixtureProfile, 'GENERIC_WEB')
-  assert.deepEqual(plan.actions.slice(0, 4).map(action => action.operation), ['goto', 'fill', 'fill', 'click'])
+  assert.deepEqual(plan.actions.slice(0, 5).map(action => action.operation), ['goto', 'fill', 'fill', 'click', 'waitForURL'])
   assert.deepEqual(plan.actions.slice(1, 3).map(action => action.fixtureRefs[0]), ['CREDENTIAL.USERNAME', 'CREDENTIAL.PASSWORD'])
-  assert.equal(plan.actions[4].instruction, '进入账户概览')
-  assert.equal(plan.actions[4].semanticTargetRef, 'DYNAMIC_005')
+  assert.equal(plan.actions[4].semanticTargetRef, undefined)
+  assert.equal(plan.actions[4].routePatternRef, 'ALLOWED_NAVIGATION')
+  assert.equal(plan.actions[5].instruction, '进入账户概览')
+  assert.equal(plan.actions[5].semanticTargetRef, 'DYNAMIC_006')
   assert.equal(/复兴银行|PORTAL_LOGIN/.test(JSON.stringify(plan)), false)
+
+  const records = plan.actions.map(action => ({
+    schemaVersion: 'hengzhun-verified-action-record-v2',
+    executablePlanId: plan.executablePlanId,
+    actionId: action.actionId,
+    ordinal: action.ordinal,
+    outcome: 'VERIFIED_PASSED',
+    locator: action.semanticTargetRef
+      ? { kind: 'CSS', value: `[data-test-id="${action.semanticTargetRef.toLowerCase()}"]` }
+      : undefined,
+    pageSignatureHash: require('../../dist/harness/src/utils.js').sha256(
+      require('../../dist/harness/src/utils.js').canonicalJson(action.pageSignature)
+    ),
+    factsHash: 'e'.repeat(64),
+    verification: { dom: true, url: true, request: true, business: true },
+    verifiedAt: new Date().toISOString()
+  }))
+  const built = buildDslDocument(plan, records)
+  assert.deepEqual(JSON.parse(built.routes.ALLOWED_NAVIGATION), targetProfileSnapshot.allowedNavigationOrigins)
+  const candidate = buildCandidatePackage(plan, records, new Date().toISOString())
+  assert.match(candidate.scriptSource, /page\.waitForURL\(\(url\) => allowedOrigins\.includes\(url\.origin\) && url\.toString\(\) !== launchUrl/)
+  assert.doesNotMatch(candidate.scriptSource, /step\.operation === 'waitForURL'\) await page\.waitForLoadState/)
 })
 
 test('generic compound assertions share one read-only visual region and navigation remains an executor click', () => {
@@ -384,6 +423,83 @@ test('only an explicit controlled adapter binding uses the deterministic login t
   assert.equal(plan.actions[0].routeRef, 'PORTAL_LOGIN')
 })
 
+test('generic operation classification never turns an expected clickable result into a download action', () => {
+  const snapshot = {
+    targetProfileId: 'targetprofile_12345678-1234-1234-1234-123456789abc', version: 1, status: 'ACTIVE', profileHash: '8'.repeat(64),
+    launchUrl: 'https://intranet.example.local/login', allowedNavigationOrigins: ['https://intranet.example.local'],
+    allowedInteractionOrigins: ['https://intranet.example.local'], credentialOrigins: ['https://intranet.example.local']
+  }
+  const plan = compileExecutableActionPlan({
+    schemaVersion: 'i8-intent-plan-v1', caseId: 'case_12345678-1234-1234-1234-123456789abc', caseVersion: 1,
+    route: snapshot.launchUrl, executionProfile: 'GENERIC_WEB', targetProfileId: snapshot.targetProfileId,
+    targetProfileVersion: 1, targetProfileHash: snapshot.profileHash, targetProfileSnapshot: snapshot,
+    steps: [
+      { intentStepId: 'intent-001', action: '打开登录页', expected: '登录页可见', riskLevel: 'LOW', inputValueSource: 'NONE' },
+      { intentStepId: 'intent-002', action: '确认下载入口正确', expected: '下载入口存在且可点击', riskLevel: 'LOW', inputValueSource: 'NONE' }
+    ], assertions: ['下载入口存在']
+  }, '8'.repeat(64))
+  const inspection = plan.actions.find(action => /确认下载入口/.test(action.instruction))
+  assert.equal(inspection.operation, 'expectVisible')
+
+  const corroborationPlan = compileExecutableActionPlan({
+    schemaVersion: 'i8-intent-plan-v1', caseId: 'case_12345678-1234-1234-1234-123456789abc', caseVersion: 1,
+    route: snapshot.launchUrl, executionProfile: 'GENERIC_WEB', targetProfileId: snapshot.targetProfileId,
+    targetProfileVersion: 1, targetProfileHash: snapshot.profileHash, targetProfileSnapshot: snapshot,
+    steps: [
+      { intentStepId: 'intent-001', action: '打开登录页', expected: '登录页可见', riskLevel: 'LOW', inputValueSource: 'NONE' },
+      { intentStepId: 'intent-002b', action: '核对文档标题、日期和下载入口', expected: '文档信息正确展示', riskLevel: 'LOW', inputValueSource: 'NONE' }
+    ], assertions: ['下载入口存在']
+  }, '8'.repeat(64))
+  assert.equal(corroborationPlan.actions.find(action => /核对文档标题/.test(action.instruction)).operation, 'expectVisible')
+  const transactionInspectionPlan = compileExecutableActionPlan({
+    schemaVersion: 'i8-intent-plan-v1', caseId: 'case_12345678-1234-1234-1234-123456789abc', caseVersion: 1,
+    route: snapshot.launchUrl, executionProfile: 'GENERIC_WEB', targetProfileId: snapshot.targetProfileId,
+    targetProfileVersion: 1, targetProfileHash: snapshot.profileHash, targetProfileSnapshot: snapshot,
+    steps: [
+      { intentStepId: 'intent-001', action: '打开登录页', expected: '登录页可见', riskLevel: 'LOW', inputValueSource: 'NONE' },
+      { intentStepId: 'intent-002c', action: '校验交易日期、金额和状态可读', expected: '交易信息清晰可读', riskLevel: 'LOW', inputValueSource: 'NONE' }
+    ], assertions: ['交易信息可读']
+  }, '8'.repeat(64))
+  assert.equal(transactionInspectionPlan.actions.find(action => /校验交易日期/.test(action.instruction)).operation, 'expectVisible')
+  assert.equal(plan.actions.some(action => action.operation === 'download'), false)
+})
+
+test('a controlled adapter binding does not turn a document case into the login profile template', () => {
+  const targetProfileSnapshot = {
+    targetProfileId: 'targetprofile_12345678-1234-1234-1234-123456789abc',
+    version: 1,
+    status: 'ACTIVE',
+    profileHash: 'f'.repeat(64),
+    displayName: '复兴银行门户网站',
+    launchUrl: 'http://127.0.0.1:28884/portal/login',
+    allowedNavigationOrigins: ['http://127.0.0.1:28884'],
+    allowedInteractionOrigins: ['http://127.0.0.1:28884'],
+    credentialOrigins: ['http://127.0.0.1:28884'],
+    adapterBinding: FUXING_BANK_DEMO_ADAPTER
+  }
+  const plan = compileExecutableActionPlan({
+    schemaVersion: 'i8-intent-plan-v1',
+    caseId: 'case_12345678-1234-1234-1234-123456789abc',
+    caseVersion: 1,
+    route: targetProfileSnapshot.launchUrl,
+    executionProfile: 'GENERIC_WEB',
+    targetProfileId: targetProfileSnapshot.targetProfileId,
+    targetProfileVersion: 1,
+    targetProfileHash: targetProfileSnapshot.profileHash,
+    targetProfileSnapshot,
+    steps: [
+      { intentStepId: 'intent-001', action: '使用安全凭据登录', expected: '进入门户主页', riskLevel: 'LOW', inputValueSource: 'CREDENTIAL_REF' },
+      { intentStepId: 'intent-002', action: '进入文档页面', expected: '文档页面可见', riskLevel: 'LOW', inputValueSource: 'NONE' },
+      { intentStepId: 'intent-003', action: '查询一份文档', expected: '查询到账户文档', riskLevel: 'LOW', inputValueSource: 'NONE' },
+      { intentStepId: 'intent-004', action: '确认文档标题、日期和下载入口正确', expected: '文档信息正确展示', riskLevel: 'LOW', inputValueSource: 'NONE' }
+    ],
+    assertions: ['文档标题、日期和下载入口正确']
+  }, 'f'.repeat(64))
+  assert.equal(plan.fixtureProfile, 'GENERIC_WEB')
+  assert.ok(plan.actions.some(action => /查询一份文档/.test(action.instruction)))
+  assert.equal(plan.actions.some(action => action.semanticTargetRef === 'HEADER_DISPLAY_NAME'), false)
+})
+
 test('I10 controlled transfer compiles only frozen typed business inputs', () => {
   const plan = compileExecutableActionPlan({
     schemaVersion: 'i8-intent-plan-v1',
@@ -409,6 +525,36 @@ test('I10 controlled transfer compiles only frozen typed business inputs', () =>
   assert.equal(plan.fixtureValues['TRANSFER.PURPOSE'], '自动化回归测试')
   assert.equal(plan.fixtureValues['TRANSFER.PAYEE_REF'], 'payee_demo_0001')
   assert.equal(plan.fixtureValues['TRANSFER.CURRENCY'], 'CNY')
+})
+
+test('approved Fuxing adapter plus typed transfer inputs overrides a controller generic profile', () => {
+  const targetProfileSnapshot = {
+    schemaVersion: 'hengzhun-target-profile-v1',
+    targetProfileId: 'targetprofile_12345678-1234-1234-1234-123456789abc', version: 1, status: 'ACTIVE',
+    profileHash: '9'.repeat(64), launchUrl: 'http://127.0.0.1:28884/portal/login',
+    allowedNavigationOrigins: ['http://127.0.0.1:28884'], allowedInteractionOrigins: ['http://127.0.0.1:28884'],
+    credentialOrigins: ['http://127.0.0.1:28884'], adapterBinding: FUXING_BANK_DEMO_ADAPTER
+  }
+  const plan = compileExecutableActionPlan({
+    schemaVersion: 'i8-intent-plan-v1', caseId: 'case_12345678-1234-1234-1234-123456789abc', caseVersion: 1,
+    route: targetProfileSnapshot.launchUrl, executionProfile: 'GENERIC_WEB', adapterBinding: FUXING_BANK_DEMO_ADAPTER,
+    targetProfileId: targetProfileSnapshot.targetProfileId, targetProfileVersion: 1,
+    targetProfileHash: targetProfileSnapshot.profileHash, targetProfileSnapshot,
+    inputContractVersion: 'TypedBusinessInputsV1',
+    typedBusinessInputs: {
+      schemaVersion: 'hengzhun-i10-typed-business-inputs-v1',
+      values: { payeeRef: 'payee_demo_0001', amount: '1.00', currency: 'CNY', purpose: '自动化回归测试' },
+      source: 'USER_CONFIRMED'
+    },
+    steps: [
+      { intentStepId: 'intent-login', action: '使用安全凭据登录', expected: '进入主页', riskLevel: 'LOW', inputValueSource: 'CREDENTIAL_REF' },
+      { intentStepId: 'intent-transfer', action: '提交转账并完成首次确认', expected: '进入网页验证或单号查询流程', riskLevel: 'HIGH', inputValueSource: 'NONE' }
+    ],
+    assertions: ['转账首次确认完成并进入单号查询']
+  }, '9'.repeat(64))
+  assert.equal(plan.fixtureProfile, 'TRANSFER_UKEY_ORDER_QUERY')
+  assert.ok(plan.actions.some(action => action.semanticTargetRef === 'TRANSFER_FIRST_CONFIRM'))
+  assert.ok(plan.actions.some(action => action.semanticTargetRef === 'ORDER_NUMBER'))
 })
 
 test('I10 controlled transfer rejects prose-only business inputs', () => {

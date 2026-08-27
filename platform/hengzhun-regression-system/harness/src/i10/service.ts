@@ -1,5 +1,9 @@
 import crypto from 'node:crypto';
+import dns from 'node:dns/promises';
 import fs from 'node:fs';
+import http from 'node:http';
+import https from 'node:https';
+import net from 'node:net';
 import path from 'node:path';
 import { ArtifactStore } from '../artifact-store';
 import { HarnessDatabase } from '../database';
@@ -78,6 +82,13 @@ function completeCaseDraftContract(
     executionStrategy: draft.executionStrategy ?? 'PLAYWRIGHT_VALIDATED_ONLY',
     evidenceStrategy: draft.evidenceStrategy ?? 'REDACTED_HASHED_EVIDENCE'
   };
+}
+
+function explicitAdapterSelectionFromNaturalLanguage(value: unknown): 'fuxing-bank-demo' | undefined {
+  if (typeof value !== 'string') return undefined;
+  return /(?:明确选择|使用|采用)\s*(?:本机)?(?:复兴银行)?(?:演示)?适配器(?:\s*[（(]?\s*)?fuxing-bank-demo/i.test(value)
+    ? 'fuxing-bank-demo'
+    : undefined;
 }
 
 function draftContractIssues(error: { issues: Array<{ path: PropertyKey[]; message: string }> }): string[] {
@@ -192,6 +203,21 @@ type TargetProfileRow = {
   created_at: string;
   updated_at: string;
   adapter_binding_json: string;
+  resolved_addresses_json: string;
+};
+
+type ConfirmedAttachmentPreparationRow = {
+  preparation_id: string;
+  preparation_status: string;
+  case_id: string;
+  case_version: number;
+  case_current_version: number;
+  case_status: string;
+  definition_json: string;
+  ingest_job_id: string;
+  ingest_status: string;
+  ingest_input_type: 'CASE_FILE' | 'VIDEO';
+  ingest_credential_ref: string | null;
 };
 
 type ApplicationProfileRow = {
@@ -207,6 +233,7 @@ type ApplicationProfileRow = {
 
 export class I10Service {
   private readonly credentialRoot: string;
+  private readonly attachmentRoot: string;
   private readonly flowiseAttachmentRoot: string;
   private readonly flowiseStorageRoot: string;
 
@@ -216,8 +243,36 @@ export class I10Service {
     private readonly artifacts: ArtifactStore
   ) {
     this.credentialRoot = path.join(productRoot, '.data', 'credentials');
+    this.attachmentRoot = path.resolve(process.env.HENGZHUN_ATTACHMENT_ROOT ?? path.join(productRoot, '.data', 'attachments'));
     this.flowiseAttachmentRoot = path.resolve(process.env.HENGZHUN_FLOWISE_ATTACHMENT_ROOT ?? path.join(productRoot, '.data', 'flowise-attachments'));
     this.flowiseStorageRoot = path.resolve(process.env.HENGZHUN_FLOWISE_STORAGE_ROOT ?? path.join(productRoot, '.data', 'flowise', 'storage'));
+  }
+
+  async importAttachment(input: { originalFilename: string; purpose: string; expectedSha256: string; content: Buffer }): Promise<Record<string, unknown>> {
+    const actualSha256 = sha256(input.content);
+    if (actualSha256 !== input.expectedSha256) throw new HarnessError(409, 'I10_ATTACHMENT_HASH_MISMATCH', 'EVIDENCE', '附件内容与声明的 SHA-256 不一致。', false, true);
+    const attachmentRef = `att_${crypto.randomUUID()}`;
+    const staging = path.join(this.attachmentRoot, `.staging-${attachmentRef}`);
+    const destination = path.join(this.attachmentRoot, attachmentRef);
+    if (!isPathWithin(this.attachmentRoot, staging) || !isPathWithin(this.attachmentRoot, destination)) {
+      throw new HarnessError(400, 'I10_ATTACHMENT_ESCAPE_REJECTED', 'AUTHORIZATION', '附件存储路径越界。');
+    }
+    const receipt = {
+      schemaVersion: 'AttachmentReceiptV1', attachmentRef,
+      originalFilename: input.originalFilename, purpose: input.purpose,
+      sha256: actualSha256, size: input.content.byteLength, createdAt: nowIso()
+    };
+    fs.mkdirSync(this.attachmentRoot, { recursive: true, mode: 0o700 });
+    try {
+      fs.mkdirSync(staging, { recursive: false, mode: 0o700 });
+      fs.writeFileSync(path.join(staging, 'content'), input.content, { flag: 'wx', mode: 0o600 });
+      fs.writeFileSync(path.join(staging, 'receipt.json'), `${canonicalJson(receipt)}\n`, { flag: 'wx', mode: 0o600 });
+      fs.renameSync(staging, destination);
+      return receipt;
+    } catch (error) {
+      if (fs.existsSync(staging)) fs.rmSync(staging, { recursive: true, force: true });
+      throw error;
+    }
   }
 
   private normalizeTargetLaunchUrl(value: string): URL {
@@ -245,6 +300,94 @@ export class I10Service {
     return 'PUBLIC';
   }
 
+  private normalizedIpAddress(value: string): string {
+    const raw = String(value).trim().replace(/^\[|\]$/g, '').split('%', 1)[0]!.toLowerCase();
+    const mapped = raw.match(/^::ffff:(\d+\.\d+\.\d+\.\d+)$/);
+    return mapped ? mapped[1]! : raw;
+  }
+
+  private addressClass(value: string): 'LOOPBACK' | 'PRIVATE' | 'PUBLIC' | 'FORBIDDEN' {
+    const address = this.normalizedIpAddress(value);
+    const family = net.isIP(address);
+    if (family === 4) {
+      const parts = address.split('.').map(Number);
+      const [a, b] = parts;
+      if (a === 127) return 'LOOPBACK';
+      if (a === 10 || (a === 172 && b! >= 16 && b! <= 31) || (a === 192 && b === 168)) return 'PRIVATE';
+      if (a === 0 || (a === 100 && b! >= 64 && b! <= 127) || (a === 169 && b === 254)
+        || a! >= 224 || (a === 192 && b === 0) || (a === 198 && [18, 19, 51].includes(b!))
+        || (a === 203 && b === 0)) return 'FORBIDDEN';
+      return 'PUBLIC';
+    }
+    if (family === 6) {
+      if (address === '::1') return 'LOOPBACK';
+      if (address === '::' || address.startsWith('fe8') || address.startsWith('fe9')
+        || address.startsWith('fea') || address.startsWith('feb') || address.startsWith('ff')
+        || address.startsWith('2001:db8:')) return 'FORBIDDEN';
+      if (address.startsWith('fc') || address.startsWith('fd')) return 'PRIVATE';
+      return 'PUBLIC';
+    }
+    return 'FORBIDDEN';
+  }
+
+  private async approvedTargetAddresses(url: URL, mode: 'LOCAL' | 'INTRANET' | 'PUBLIC'): Promise<string[]> {
+    const hostname = url.hostname.replace(/^\[|\]$/g, '');
+    const literalFamily = net.isIP(hostname);
+    const answers = literalFamily
+      ? [{ address: hostname, family: literalFamily }]
+      : await dns.lookup(hostname, { all: true, verbatim: true });
+    const addresses = [...new Set(answers.map(answer => this.normalizedIpAddress(answer.address)))].sort();
+    if (addresses.length === 0) throw new HarnessError(409, 'I10_TARGET_DNS_EMPTY', 'SECURITY', '目标站点未解析到可审核地址。', false, true);
+    for (const address of addresses) {
+      const classification = this.addressClass(address);
+      const allowed = (mode === 'LOCAL' && classification === 'LOOPBACK')
+        || (mode === 'INTRANET' && classification === 'PRIVATE')
+        || (mode === 'PUBLIC' && classification === 'PUBLIC');
+      if (!allowed) {
+        throw new HarnessError(409, 'I10_TARGET_ADDRESS_POLICY_REJECTED', 'SECURITY', '目标站点解析地址不符合已确认网络边界。', false, false, {
+          networkMode: mode,
+          addressClass: classification
+        });
+      }
+    }
+    return addresses;
+  }
+
+  private async pinnedTargetRequest(url: URL, mode: 'LOCAL' | 'INTRANET' | 'PUBLIC', tlsPolicy: 'STRICT' | 'ALLOW_SELF_SIGNED'):
+  Promise<{ statusCode: number; location: string | null; addresses: string[] }> {
+    const addresses = await this.approvedTargetAddresses(url, mode);
+    const pinnedAddress = addresses[0]!;
+    const family = net.isIP(pinnedAddress);
+    const requester = (url.protocol === 'https:' ? https.request : http.request) as typeof http.request;
+    return await new Promise((resolve, reject) => {
+      const request = requester(url, {
+        method: 'GET',
+        headers: { 'user-agent': 'Hengzhun-Target-Probe/2.0', connection: 'close' },
+        lookup: ((_hostname: string, _options: unknown, callback: (error: NodeJS.ErrnoException | null, address: string, family: number) => void) => {
+          callback(null, pinnedAddress, family);
+        }) as never,
+        ...(url.protocol === 'https:' ? { servername: url.hostname, rejectUnauthorized: tlsPolicy === 'STRICT' } : {})
+      }, response => {
+        const observed = this.normalizedIpAddress(response.socket.remoteAddress ?? '');
+        if (observed !== pinnedAddress) {
+          response.destroy();
+          reject(new HarnessError(409, 'I10_TARGET_PEER_ADDRESS_MISMATCH', 'SECURITY', '目标站点连接地址与已审核地址不一致。'));
+          return;
+        }
+        const result = {
+          statusCode: response.statusCode ?? 0,
+          location: typeof response.headers.location === 'string' ? response.headers.location : null,
+          addresses
+        };
+        response.resume();
+        resolve(result);
+      });
+      request.setTimeout(8_000, () => request.destroy(Object.assign(new Error('TARGET_PROBE_TIMEOUT'), { code: 'TARGET_PROBE_TIMEOUT' })));
+      request.once('error', reject);
+      request.end();
+    });
+  }
+
   private targetProfileEnvelope(row: TargetProfileRow): Record<string, unknown> {
     return {
       schemaVersion: 'hengzhun-target-profile-v1',
@@ -259,6 +402,7 @@ export class I10Service {
       tlsPolicy: row.tls_policy,
       networkMode: row.network_mode,
       adapterBinding: JSON.parse(row.adapter_binding_json || 'null'),
+      resolvedAddresses: JSON.parse(row.resolved_addresses_json || '{}'),
       executionEngine: row.adapter_binding_json && row.adapter_binding_json !== 'null' ? 'TARGET_ADAPTER' : 'GENERIC_DYNAMIC',
       credentialBindingStatus: row.credential_ref ? 'BOUND' : 'NOT_BOUND',
       status: row.status,
@@ -286,35 +430,53 @@ export class I10Service {
     return profile ? this.applicationProfileEnvelope(profile) : null;
   }
 
-  private async probeTargetRedirects(launchUrl: URL): Promise<{ status: string; origins: string[]; finalUrl: string }> {
+  private async probeTargetRedirects(
+    launchUrl: URL,
+    mode: 'LOCAL' | 'INTRANET' | 'PUBLIC',
+    tlsPolicy: 'STRICT' | 'ALLOW_SELF_SIGNED',
+    confirmedOrigins: string[]
+  ): Promise<{ status: string; origins: string[]; finalUrl: string; resolvedAddresses: Record<string, string[]> }> {
     const origins = new Set<string>([launchUrl.origin]);
+    const approvedOrigins = new Set(confirmedOrigins);
+    const resolvedAddresses: Record<string, string[]> = {};
     let current = launchUrl;
     try {
       for (let index = 0; index < 8; index += 1) {
-        const response = await fetch(current, {
-          method: 'GET',
-          redirect: 'manual',
-          signal: AbortSignal.timeout(8_000),
-          headers: { 'user-agent': 'Hengzhun-Target-Probe/1.0' }
-        });
-        if (response.status < 300 || response.status >= 400) {
-          return { status: 'REACHABLE', origins: [...origins], finalUrl: current.href };
+        if (!approvedOrigins.has(current.origin)) {
+          origins.add(current.origin);
+          return { status: 'REDIRECT_CONFIRMATION_REQUIRED', origins: [...origins], finalUrl: current.href, resolvedAddresses };
         }
-        const location = response.headers.get('location');
-        if (!location) return { status: 'REACHABLE', origins: [...origins], finalUrl: current.href };
+        const response = await this.pinnedTargetRequest(current, mode, tlsPolicy);
+        resolvedAddresses[current.hostname] = response.addresses;
+        if (response.statusCode < 300 || response.statusCode >= 400) {
+          return { status: 'REACHABLE', origins: [...origins], finalUrl: current.href, resolvedAddresses };
+        }
+        const location = response.location;
+        if (!location) return { status: 'REACHABLE', origins: [...origins], finalUrl: current.href, resolvedAddresses };
         current = new URL(location, current);
         if (!['http:', 'https:'].includes(current.protocol) || current.username || current.password) {
-          return { status: 'REDIRECT_REJECTED', origins: [...origins], finalUrl: current.href };
+          return { status: 'REDIRECT_REJECTED', origins: [...origins], finalUrl: current.href, resolvedAddresses };
         }
         origins.add(current.origin);
       }
-      return { status: 'REDIRECT_LIMIT', origins: [...origins], finalUrl: current.href };
-    } catch {
-      return { status: 'UNREACHABLE', origins: [...origins], finalUrl: current.href };
+      return { status: 'REDIRECT_LIMIT', origins: [...origins], finalUrl: current.href, resolvedAddresses };
+    } catch (error) {
+      if (error instanceof HarnessError) throw error;
+      return { status: 'UNREACHABLE', origins: [...origins], finalUrl: current.href, resolvedAddresses };
     }
   }
 
   async prepareTargetProfile(input: TargetProfilePrepareInput): Promise<Record<string, unknown>> {
+    const previous = this.database.read(db => db.prepare(`SELECT * FROM i10_target_profiles WHERE namespace=? AND idempotency_key=?`)
+      .get(input.namespace, input.idempotencyKey) as TargetProfileRow | undefined);
+    if (previous) {
+      return {
+        ...this.targetProfileEnvelope(previous),
+        applicationProfile: this.database.read(db => this.applicationProfileFor(db, previous)),
+        probe: { status: 'NOT_PROBED_BEFORE_CONFIRMATION' },
+        nextAction: 'TARGET_PROFILE_CONFIRMATION_REQUIRED'
+      };
+    }
     const credentialRef = String(input.credentialRef ?? '').trim();
     if (!credentialRef) {
       throw new HarnessError(409, 'I10_CREDENTIAL_REF_REQUIRED', 'CONTRACT', '准备目标站点前必须先完成本机安全凭据录入。');
@@ -323,7 +485,6 @@ export class I10Service {
       throw new HarnessError(400, 'I10_CREDENTIAL_REF_INVALID', 'CONTRACT', '凭据引用格式无效。');
     }
     const launch = this.normalizeTargetLaunchUrl(input.launchUrl);
-    const probe = await this.probeTargetRedirects(launch);
     if (input.adapterBinding && input.adapterSelection) {
       throw new HarnessError(400, 'I10_TARGET_ADAPTER_SELECTION_AMBIGUOUS', 'CONTRACT', '目标适配器只能通过一种受控方式选择。');
     }
@@ -335,7 +496,7 @@ export class I10Service {
     if (input.adapterBinding && !adapterBinding) {
       throw new HarnessError(400, 'I10_TARGET_ADAPTER_BINDING_INVALID', 'CONTRACT', '目标适配器绑定未登记、版本不匹配或清单Hash不匹配。');
     }
-    const origins = [...new Set([launch.origin, ...probe.origins])].sort();
+    const origins = [launch.origin];
     const now = nowIso();
     const profileId = input.targetProfileId ?? opaqueId('targetprofile');
     const profilePayload = {
@@ -349,7 +510,8 @@ export class I10Service {
       redirectRules: origins.slice(1).map(origin => ({ origin, mode: 'CONFIRMED_REDIRECT' })),
       tlsPolicy: input.tlsPolicy,
       networkMode: this.targetNetworkMode(launch),
-      adapterBinding: adapterBinding ?? null
+      adapterBinding: adapterBinding ?? null,
+      resolvedAddresses: {}
     };
     const profileHash = sha256(canonicalJson(profilePayload));
     const row = await this.database.write(db => {
@@ -374,7 +536,7 @@ export class I10Service {
         db.prepare(`UPDATE i10_target_profiles SET idempotency_key=?,display_name=?,launch_url=?,launch_origin=?,
           allowed_navigation_origins_json=?,allowed_interaction_origins_json=?,credential_origins_json=?,
           redirect_rules_json=?,credential_ref=?,tls_policy=?,network_mode=?,adapter_binding_json=?,status='PENDING_CONFIRMATION',
-          profile_hash=?,version=version+1,updated_at=? WHERE target_profile_id=?`)
+          resolved_addresses_json='{}',profile_hash=?,version=version+1,updated_at=? WHERE target_profile_id=?`)
           .run(
             input.idempotencyKey, profilePayload.displayName, profilePayload.launchUrl, launch.origin,
             canonicalJson(origins), canonicalJson(origins), canonicalJson([launch.origin]),
@@ -385,13 +547,13 @@ export class I10Service {
         db.prepare(`INSERT INTO i10_target_profiles(
           target_profile_id,namespace,idempotency_key,display_name,launch_url,launch_origin,
           allowed_navigation_origins_json,allowed_interaction_origins_json,credential_origins_json,
-          redirect_rules_json,credential_ref,tls_policy,network_mode,adapter_binding_json,status,profile_hash,version,created_at,updated_at
-        ) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,'PENDING_CONFIRMATION',?,1,?,?)`)
+          redirect_rules_json,credential_ref,tls_policy,network_mode,adapter_binding_json,resolved_addresses_json,status,profile_hash,version,created_at,updated_at
+        ) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,'PENDING_CONFIRMATION',?,1,?,?)`)
           .run(
             profileId, input.namespace, input.idempotencyKey, profilePayload.displayName, profilePayload.launchUrl,
             launch.origin, canonicalJson(origins), canonicalJson(origins), canonicalJson([launch.origin]),
             canonicalJson(profilePayload.redirectRules), input.credentialRef ?? null, input.tlsPolicy,
-            profilePayload.networkMode, canonicalJson(profilePayload.adapterBinding), profileHash, now, now
+            profilePayload.networkMode, canonicalJson(profilePayload.adapterBinding), canonicalJson({}), profileHash, now, now
           );
       }
       const persisted = db.prepare(`SELECT * FROM i10_target_profiles WHERE namespace=? AND target_profile_id=?`)
@@ -440,7 +602,7 @@ export class I10Service {
     return {
       ...this.targetProfileEnvelope(row),
       applicationProfile,
-      probe: { status: probe.status, finalUrl: probe.finalUrl, discoveredOrigins: probe.origins },
+      probe: { status: 'NOT_PROBED_BEFORE_CONFIRMATION' },
       nextAction: 'TARGET_PROFILE_CONFIRMATION_REQUIRED'
     };
   }
@@ -461,6 +623,55 @@ export class I10Service {
 
   async decideTargetProfile(input: TargetProfileDecisionSubmitInput): Promise<Record<string, unknown>> {
     const now = nowIso();
+    const snapshot = this.database.read(db => db.prepare(`SELECT * FROM i10_target_profiles WHERE namespace=? AND target_profile_id=?`)
+      .get(input.namespace, input.targetProfileId) as TargetProfileRow | undefined);
+    if (!snapshot) throw new HarnessError(404, 'I10_TARGET_PROFILE_NOT_FOUND', 'CONTRACT', '目标站点档案不存在。');
+    if (snapshot.version !== input.expectedVersion) {
+      throw new HarnessError(409, 'I10_TARGET_PROFILE_VERSION_CONFLICT', 'CONFLICT', '目标站点档案版本已变化。');
+    }
+    if (snapshot.status !== 'PENDING_CONFIRMATION') {
+      throw new HarnessError(409, 'I10_TARGET_PROFILE_DECISION_NOT_ALLOWED', 'CONFLICT', '目标站点档案当前不等待确认。');
+    }
+    let probe: Awaited<ReturnType<I10Service['probeTargetRedirects']>> | undefined;
+    if (input.decision === 'APPROVE') {
+      probe = await this.probeTargetRedirects(
+        this.normalizeTargetLaunchUrl(snapshot.launch_url), snapshot.network_mode, snapshot.tls_policy,
+        JSON.parse(snapshot.allowed_navigation_origins_json) as string[]
+      );
+      if (probe.status === 'UNREACHABLE' || probe.status === 'REDIRECT_REJECTED' || probe.status === 'REDIRECT_LIMIT') {
+        throw new HarnessError(409, `I10_TARGET_${probe.status}`, 'ENVIRONMENT', '目标站点安全探测未通过，档案仍等待确认。', false, true);
+      }
+      if (probe.status === 'REDIRECT_CONFIRMATION_REQUIRED') {
+        const proposedOrigins = [...new Set(probe.origins)].sort();
+        const adapterBinding = JSON.parse(snapshot.adapter_binding_json || 'null');
+        const proposalPayload = {
+          schemaVersion: 'hengzhun-target-profile-v1', targetProfileId: snapshot.target_profile_id,
+          displayName: snapshot.display_name, launchUrl: snapshot.launch_url,
+          allowedNavigationOrigins: proposedOrigins, allowedInteractionOrigins: proposedOrigins,
+          credentialOrigins: JSON.parse(snapshot.credential_origins_json),
+          redirectRules: proposedOrigins.slice(1).map(origin => ({ origin, mode: 'CONFIRMED_REDIRECT' })),
+          tlsPolicy: snapshot.tls_policy, networkMode: snapshot.network_mode, adapterBinding,
+          resolvedAddresses: probe.resolvedAddresses
+        };
+        const proposed = await this.database.write(db => {
+          const updated = db.prepare(`UPDATE i10_target_profiles SET allowed_navigation_origins_json=?,
+            allowed_interaction_origins_json=?,redirect_rules_json=?,resolved_addresses_json=?,profile_hash=?,
+            version=version+1,updated_at=? WHERE namespace=? AND target_profile_id=? AND status='PENDING_CONFIRMATION' AND version=?`)
+            .run(canonicalJson(proposedOrigins), canonicalJson(proposedOrigins), canonicalJson(proposalPayload.redirectRules),
+              canonicalJson(probe!.resolvedAddresses), sha256(canonicalJson(proposalPayload)), now,
+              input.namespace, input.targetProfileId, input.expectedVersion);
+          if (updated.changes !== 1) throw new HarnessError(409, 'I10_TARGET_PROFILE_VERSION_CONFLICT', 'CONFLICT', '目标站点档案版本已变化。');
+          return db.prepare(`SELECT * FROM i10_target_profiles WHERE namespace=? AND target_profile_id=?`)
+            .get(input.namespace, input.targetProfileId) as TargetProfileRow;
+        });
+        return {
+          ...this.targetProfileEnvelope(proposed),
+          applicationProfile: this.database.read(db => this.applicationProfileFor(db, proposed)),
+          probe: { status: probe.status, finalUrl: probe.finalUrl, discoveredOrigins: probe.origins },
+          nextAction: 'REDIRECT_ORIGIN_CONFIRMATION_REQUIRED'
+        };
+      }
+    }
     const row = await this.database.write(db => {
       const current = db.prepare(`SELECT * FROM i10_target_profiles WHERE namespace=? AND target_profile_id=?`)
         .get(input.namespace, input.targetProfileId) as TargetProfileRow | undefined;
@@ -472,8 +683,21 @@ export class I10Service {
         throw new HarnessError(409, 'I10_TARGET_PROFILE_DECISION_NOT_ALLOWED', 'CONFLICT', '目标站点档案当前不等待确认。');
       }
       const status = input.decision === 'APPROVE' ? 'ACTIVE' : 'REJECTED';
-      db.prepare(`UPDATE i10_target_profiles SET status=?,version=version+1,updated_at=? WHERE target_profile_id=?`)
-        .run(status, now, current.target_profile_id);
+      const resolvedAddresses = probe?.resolvedAddresses ?? JSON.parse(current.resolved_addresses_json || '{}');
+      const activePayload = {
+        schemaVersion: 'hengzhun-target-profile-v1', targetProfileId: current.target_profile_id,
+        displayName: current.display_name, launchUrl: current.launch_url,
+        allowedNavigationOrigins: JSON.parse(current.allowed_navigation_origins_json),
+        allowedInteractionOrigins: JSON.parse(current.allowed_interaction_origins_json),
+        credentialOrigins: JSON.parse(current.credential_origins_json), redirectRules: JSON.parse(current.redirect_rules_json),
+        tlsPolicy: current.tls_policy, networkMode: current.network_mode,
+        adapterBinding: JSON.parse(current.adapter_binding_json || 'null'), resolvedAddresses
+      };
+      const updated = db.prepare(`UPDATE i10_target_profiles SET status=?,resolved_addresses_json=?,profile_hash=?,
+        version=version+1,updated_at=? WHERE target_profile_id=? AND status='PENDING_CONFIRMATION' AND version=?`)
+        .run(status, canonicalJson(resolvedAddresses), sha256(canonicalJson(activePayload)), now,
+          current.target_profile_id, input.expectedVersion);
+      if (updated.changes !== 1) throw new HarnessError(409, 'I10_TARGET_PROFILE_VERSION_CONFLICT', 'CONFLICT', '目标站点档案版本已变化。');
       db.prepare(`UPDATE i10_application_profiles SET status=?,version=version+1,updated_at=? WHERE namespace=? AND target_profile_id=? AND status='PENDING_CONFIRMATION'`)
         .run(status, now, input.namespace, current.target_profile_id);
       if (status === 'ACTIVE' && current.credential_ref) {
@@ -488,6 +712,7 @@ export class I10Service {
       ...this.targetProfileEnvelope(row),
       applicationProfile,
       confirmationRef: input.confirmationRef,
+      ...(probe ? { probe: { status: probe.status, finalUrl: probe.finalUrl, discoveredOrigins: probe.origins } } : {}),
       nextAction: row.status === 'ACTIVE' ? 'CASE_AUTHORING_AVAILABLE' : 'TARGET_PROFILE_REJECTED'
     };
   }
@@ -592,6 +817,25 @@ export class I10Service {
 
   private resolveAttachmentWithCanonicalName(flowiseFileRef: string, originalFilename?: string): { filePath: string; originalFilename: string } {
     safeFileRef(flowiseFileRef);
+    if (/^att_[0-9a-f-]{36}$/.test(flowiseFileRef)) {
+      const directory = path.resolve(this.attachmentRoot, flowiseFileRef);
+      const receiptPath = path.join(directory, 'receipt.json');
+      const contentPath = path.join(directory, 'content');
+      if (!isPathWithin(this.attachmentRoot, directory) || !fs.existsSync(receiptPath) || !fs.existsSync(contentPath)) {
+        throw new HarnessError(404, 'I10_ATTACHMENT_NOT_FOUND', 'DOMAIN', '受控附件不存在。');
+      }
+      const receipt = JSON.parse(fs.readFileSync(receiptPath, 'utf8')) as { attachmentRef?: unknown; originalFilename?: unknown; sha256?: unknown };
+      if (receipt.attachmentRef !== flowiseFileRef || typeof receipt.originalFilename !== 'string' || typeof receipt.sha256 !== 'string') {
+        throw new HarnessError(409, 'I10_ATTACHMENT_RECEIPT_INVALID', 'EVIDENCE', '附件回执无效。', false, true);
+      }
+      if (originalFilename && originalFilename !== receipt.originalFilename) throw new HarnessError(409, 'I10_ATTACHMENT_NAME_MISMATCH', 'CONTRACT', '附件引用与文件名不一致。');
+      const rootRealPath = fs.realpathSync.native(this.attachmentRoot);
+      const contentRealPath = fs.realpathSync.native(contentPath);
+      if (!isPathWithin(rootRealPath, contentRealPath) || sha256(fs.readFileSync(contentRealPath)) !== receipt.sha256) {
+        throw new HarnessError(409, 'I10_ATTACHMENT_CONTENT_INVALID', 'EVIDENCE', '附件内容完整性校验失败。', false, true);
+      }
+      return { filePath: contentRealPath, originalFilename: receipt.originalFilename };
+    }
     const platformReference = decodeFlowiseAttachmentReference(flowiseFileRef);
     const suppliedName = String(originalFilename || '');
     const canonicalName = platformReference?.filename || suppliedName;
@@ -670,14 +914,27 @@ export class I10Service {
     });
   }
 
-  private async artifactCards(namespace: string, references: Record<string, unknown>): Promise<InteractionArtifactCard[]> {
+  private async artifactCards(
+    namespace: string,
+    references: Record<string, unknown>
+  ): Promise<Array<InteractionArtifactCard & { downloadGrantRequired: boolean }>> {
     const artifactIds = Array.isArray(references.artifactIds)
       ? references.artifactIds.filter((value): value is string => typeof value === 'string')
       : [];
-    const cards: InteractionArtifactCard[] = [];
+    const cards: Array<InteractionArtifactCard & { downloadGrantRequired: boolean }> = [];
     for (const artifactId of artifactIds) {
-      const grant = await this.grantArtifactDownload(namespace, artifactId);
-      cards.push(grant as unknown as InteractionArtifactCard);
+      const metadata = this.artifacts.getMetadata(namespace, artifactId);
+      const details = metadata.metadata as Record<string, unknown>;
+      cards.push({
+        artifactId,
+        displayName: typeof details.displayName === 'string' ? details.displayName : `衡准成果.${String(details.format ?? 'bin').toLowerCase()}`,
+        purpose: typeof details.purpose === 'string' ? details.purpose : 'HENGZHUN_ARTIFACT',
+        format: typeof details.format === 'string' ? details.format : String(metadata.type),
+        mediaType: String(metadata.mediaType),
+        byteSize: Number(metadata.byteSize),
+        sha256: String(metadata.sha256),
+        downloadGrantRequired: metadata.redactionStatus !== 'QUARANTINED'
+      });
     }
     return cards;
   }
@@ -1068,15 +1325,36 @@ export class I10Service {
   }
 
   private async reconcileJourneyProjection(row: InteractionJourneyRow): Promise<InteractionJourneyRow> {
-    if (row.request_intent !== 'CASE_AUTHORING' || !['PROCESSING_AUTHORING', 'RUNNING'].includes(row.stage)) return row;
+    if (row.request_intent !== 'CASE_AUTHORING' || !['PROCESSING_AUTHORING', 'RUNNING', 'COMPLETED'].includes(row.stage)) return row;
     const initialReferences = JSON.parse(row.references_json) as Record<string, unknown>;
     const preparationId = typeof initialReferences.preparationId === 'string' ? initialReferences.preparationId : undefined;
     if (!preparationId) return row;
     return this.database.write(db => {
       const current = db.prepare(`SELECT * FROM i10_interaction_journeys WHERE journey_id=?`)
         .get(row.journey_id) as InteractionJourneyRow | undefined;
-      if (!current || !['PROCESSING_AUTHORING', 'RUNNING'].includes(current.stage)) return current ?? row;
+      if (!current || !['PROCESSING_AUTHORING', 'RUNNING', 'COMPLETED'].includes(current.stage)) return current ?? row;
       const references = JSON.parse(current.references_json) as Record<string, unknown>;
+      const failClosedExecution = (errorCode: string, description: string): InteractionJourneyRow => {
+        const now = nowIso();
+        const nextVersion = current.version + 1;
+        const error = { errorCode, category: 'EVIDENCE', recoverable: false };
+        db.prepare(`UPDATE i10_interaction_journeys
+          SET stage='FAILED_CLOSED',status='FAILED',allowed_actions_json='[]',next_action_json=?,
+              progress_json=?,error_json=?,recoverable=0,version=?,updated_at=? WHERE journey_id=?`)
+          .run(
+            canonicalJson({ type:'NONE',description }),
+            canonicalJson({ percent:100,lastActivityAt:now }),canonicalJson(error),nextVersion,now,current.journey_id
+          );
+        const sequence = Number((db.prepare(`SELECT COALESCE(MAX(sequence),0) value FROM i10_interaction_events WHERE journey_id=?`)
+          .get(current.journey_id) as { value:number }).value) + 1;
+        db.prepare(`INSERT INTO i10_interaction_events(
+            event_id,journey_id,sequence,event_type,from_stage,to_stage,decision,safe_payload_json,confirmation_ref,created_at
+          ) VALUES (?,?,?,'PROJECTED',?,'FAILED_CLOSED',NULL,?,NULL,?)`)
+          .run(opaqueId('journeyevent'),current.journey_id,sequence,current.stage,
+            canonicalJson({ source:'EXACT_EXECUTION_LINK',errorCode:error.errorCode }),now);
+        return db.prepare(`SELECT * FROM i10_interaction_journeys WHERE journey_id=?`)
+          .get(current.journey_id) as InteractionJourneyRow;
+      };
       const projection = db.prepare(`
         SELECT p.case_id,p.executable_plan_id,p.status AS plan_status,p.updated_at AS plan_updated_at,
                j.job_id,j.status AS job_status,j.error_code AS job_error_code,j.updated_at AS job_updated_at,
@@ -1101,6 +1379,16 @@ export class I10Service {
       // durable preparation state as the *next single action* instead of
       // claiming that candidate compilation is already running.
       if (!projection) {
+        const unresolvedAction = String((JSON.parse(current.next_action_json) as Record<string, unknown>).type ?? '');
+        const executionStateWithoutProjection = current.stage === 'RUNNING' ||
+          ['CALL_RUN_SUBMIT','QUERY_TASK','RESUME_RUN','RESULT_AVAILABLE','QUERY_FAILURE','CALL_SCHEDULE_CREATE','QUERY_SCHEDULE'].includes(unresolvedAction) ||
+          ['confirmedDecisionEventId','taskId','runId','scheduleId'].some(key => typeof references[key] === 'string');
+        if (executionStateWithoutProjection) {
+          return failClosedExecution(
+            'I10_EXECUTION_PROJECTION_MISSING',
+            '旅程声明了运行或调度，但其准备与执行计划投影不存在；系统拒绝猜测其他对象。'
+          );
+        }
         const preparation = db.prepare(`SELECT status,version,updated_at FROM i8_case_preparations
           WHERE namespace=? AND preparation_id=?`).get(current.namespace, preparationId) as
           | { status: string; version: number; updated_at: string }
@@ -1131,19 +1419,104 @@ export class I10Service {
           .get(current.journey_id) as InteractionJourneyRow;
       }
 
-      const caseId = String(projection.case_id);
-      const task = db.prepare(`SELECT task_id,run_id,status,result_artifact_id,error_code,error_category,
-          user_action_required,updated_at FROM tasks
-        WHERE namespace=? AND case_id=? AND created_at>=?
-        ORDER BY created_at DESC LIMIT 1`).get(current.namespace, caseId, current.created_at) as Record<string, unknown> | undefined;
+      const projectedCaseId = String(projection.case_id);
+      const confirmedDecisionEventId = typeof references.confirmedDecisionEventId === 'string'
+        ? references.confirmedDecisionEventId
+        : undefined;
+      const executionAction = String((JSON.parse(current.next_action_json) as Record<string, unknown>).type ?? '');
+      const executionProjectionRequired = current.stage === 'RUNNING' ||
+        ['CALL_RUN_SUBMIT','QUERY_TASK','RESUME_RUN','RESULT_AVAILABLE','QUERY_FAILURE','CALL_SCHEDULE_CREATE','QUERY_SCHEDULE'].includes(executionAction) ||
+        ['taskId','runId','scheduleId'].some(key => typeof references[key] === 'string');
+      const decisionEvent = confirmedDecisionEventId
+        ? db.prepare(`SELECT decision,safe_payload_json FROM i10_interaction_events
+            WHERE event_id=? AND journey_id=? AND event_type='DECISION'`)
+          .get(confirmedDecisionEventId,current.journey_id) as { decision: string; safe_payload_json: string } | undefined
+        : undefined;
+      const decisionPayload = decisionEvent
+        ? JSON.parse(decisionEvent.safe_payload_json) as Record<string, unknown>
+        : undefined;
+      const eventBinding = decisionPayload?.executionBinding && typeof decisionPayload.executionBinding === 'object' &&
+        !Array.isArray(decisionPayload.executionBinding)
+        ? decisionPayload.executionBinding as Record<string, unknown>
+        : undefined;
+      const exactExecutionBinding = eventBinding && Object.entries({
+        namespace:current.namespace,
+        journeyId:current.journey_id,
+        preparationId,
+        caseId:references.caseId,
+        planId:references.planId,
+        candidateId:references.candidateId
+      }).every(([key,value]) => typeof value === 'string' && value.length > 0 && eventBinding[key] === value);
+      const decisionMatchesAction = decisionEvent && (
+        (decisionEvent.decision === 'RUN_ON_DEMAND' &&
+          ['CALL_RUN_SUBMIT','QUERY_TASK','RESUME_RUN','RESULT_AVAILABLE','QUERY_FAILURE'].includes(executionAction)) ||
+        (['CREATE_ONE_TIME_SCHEDULE','CREATE_RECURRING_SCHEDULE'].includes(decisionEvent.decision) &&
+          ['CALL_SCHEDULE_CREATE','QUERY_SCHEDULE'].includes(executionAction))
+      );
+      if (executionProjectionRequired && (!confirmedDecisionEventId || !decisionMatchesAction || !exactExecutionBinding)) {
+        return failClosedExecution(
+          confirmedDecisionEventId ? 'I10_EXECUTION_LINK_INVALID' : 'I10_EXECUTION_LINK_REQUIRED',
+          '历史运行或调度没有唯一不可变的旅程链接，系统已停止推断。'
+        );
+      }
+      const caseId = exactExecutionBinding ? String(eventBinding.caseId) : projectedCaseId;
+      const planId = exactExecutionBinding ? String(eventBinding.planId) : String(projection.activated_plan_id ?? '');
+      const candidateId = exactExecutionBinding ? String(eventBinding.candidateId) : String(projection.candidate_id ?? '');
+      const task = confirmedDecisionEventId
+        ? db.prepare(`SELECT t.task_id,t.run_id,t.status,t.result_artifact_id,t.error_code,t.error_category,
+              t.user_action_required,t.updated_at
+            FROM runs r JOIN tasks t ON t.task_id=r.task_id
+            WHERE r.namespace=? AND r.journey_id=? AND r.confirmed_decision_event_id=?
+              AND r.preparation_id=? AND r.case_id=? AND r.plan_id=? AND r.candidate_id=?
+              AND r.origin_schedule_id IS NULL
+            LIMIT 1`).get(
+              current.namespace,current.journey_id,confirmedDecisionEventId,preparationId,caseId,
+              planId,candidateId
+            ) as Record<string, unknown> | undefined
+        : undefined;
       const inbox = task
         ? db.prepare(`SELECT inbox_id,run_id,task_id,outcome,result_artifact_id,created_at
             FROM result_inbox_items WHERE namespace=? AND task_id=? ORDER BY sequence DESC LIMIT 1`)
           .get(current.namespace, task.task_id) as Record<string, unknown> | undefined
         : undefined;
-      const schedule = db.prepare(`SELECT schedule_id,status,schedule_type,script_id,script_version,script_sha256,
-          updated_at FROM schedules WHERE namespace=? AND case_id=? AND created_at>=?
-        ORDER BY created_at DESC LIMIT 1`).get(current.namespace, caseId, current.created_at) as Record<string, unknown> | undefined;
+      const schedule = confirmedDecisionEventId
+        ? db.prepare(`SELECT schedule_id,status,schedule_type,script_id,script_version,script_sha256,updated_at
+            FROM schedules
+            WHERE namespace=? AND journey_id=? AND confirmed_decision_event_id=?
+              AND preparation_id=? AND case_id=? AND plan_id=? AND candidate_id=?
+            LIMIT 1`).get(
+              current.namespace,current.journey_id,confirmedDecisionEventId,preparationId,caseId,
+              planId,candidateId
+            ) as Record<string, unknown> | undefined
+        : undefined;
+      const legacyUnlinkedObject = exactExecutionBinding && !task && !schedule
+        ? decisionEvent?.decision === 'RUN_ON_DEMAND'
+          ? db.prepare(`SELECT run_id AS object_id FROM runs
+              WHERE namespace=? AND case_id=? AND plan_id=? AND origin_schedule_id IS NULL
+                AND journey_id IS NULL
+              LIMIT 1`).get(current.namespace,caseId,planId) as { object_id:string } | undefined
+          : db.prepare(`SELECT schedule_id AS object_id FROM schedules
+              WHERE namespace=? AND case_id=? AND plan_id=? AND journey_id IS NULL
+              LIMIT 1`).get(current.namespace,caseId,planId) as { object_id:string } | undefined
+        : undefined;
+      if (legacyUnlinkedObject) {
+        return failClosedExecution(
+          'I10_EXECUTION_LEGACY_OBJECT_UNLINKED',
+          '相同案例和计划存在历史运行或调度，但它没有不可变旅程链接；系统拒绝按时间或最新对象猜测。'
+        );
+      }
+      const linkedObjectMissing = executionProjectionRequired && (
+        (['QUERY_TASK','RESUME_RUN','RESULT_AVAILABLE','QUERY_FAILURE'].includes(executionAction) && !task) ||
+        (executionAction === 'QUERY_SCHEDULE' && !schedule) ||
+        ((typeof references.taskId === 'string' || typeof references.runId === 'string') && !task) ||
+        (typeof references.scheduleId === 'string' && !schedule)
+      );
+      if (linkedObjectMissing) {
+        return failClosedExecution(
+          'I10_EXECUTION_OBJECT_LINK_MISSING',
+          '旅程声明的运行或调度不存在对应的精确不可变链接，系统已停止推断。'
+        );
+      }
       const challenge = task
         ? db.prepare(`SELECT challenge_id,status,verification_type,version,expires_at,updated_at
             FROM i10_verification_challenges WHERE namespace=? AND task_ref=? ORDER BY created_at DESC LIMIT 1`)
@@ -1152,14 +1525,18 @@ export class I10Service {
 
       references.caseId = caseId;
       references.preparationId = preparationId;
-      references.executablePlanId = projection.executable_plan_id;
+      if (!exactExecutionBinding || String(projection.candidate_id ?? '') === candidateId) {
+        references.executablePlanId = projection.executable_plan_id;
+      }
       if (projection.job_id) references.jobId = projection.job_id;
-      if (projection.candidate_id) references.candidateId = projection.candidate_id;
-      if (projection.certificate_id) references.certificateId = projection.certificate_id;
-      if (projection.script_id) references.scriptId = projection.script_id;
-      if (projection.script_version) references.scriptVersion = projection.script_version;
-      if (projection.script_sha256) references.scriptHash = projection.script_sha256;
-      if (projection.activated_plan_id) references.planId = projection.activated_plan_id;
+      references.candidateId = candidateId;
+      if (!exactExecutionBinding || String(projection.candidate_id ?? '') === candidateId) {
+        if (projection.certificate_id) references.certificateId = projection.certificate_id;
+        if (projection.script_id) references.scriptId = projection.script_id;
+        if (projection.script_version) references.scriptVersion = projection.script_version;
+        if (projection.script_sha256) references.scriptHash = projection.script_sha256;
+      }
+      if (planId) references.planId = planId;
       if (task?.task_id) references.taskId = task.task_id;
       if (task?.run_id) references.runId = task.run_id;
       if (schedule?.schedule_id) references.scheduleId = schedule.schedule_id;
@@ -1224,6 +1601,12 @@ export class I10Service {
         nextAction = { type: 'QUERY_SCHEDULE', description: '调度已经创建，可按调度编号查询或停用。' };
         progress = { percent: 100, lastActivityAt: schedule.updated_at };
         error = null;
+      } else if (current.stage === 'COMPLETED' && nextAction?.type === 'CALL_SCHEDULE_CREATE') {
+        // The confirmed schedule decision and the deterministic create call
+        // are separate writes. Preserve the exact pending decision until the
+        // linked schedule exists instead of falling back to candidate state.
+        stage = current.stage;
+        status = current.status;
       } else if (current.stage === 'RUNNING' && !task && projection.activated_plan_id &&
         ['CALL_RUN_SUBMIT', 'RESUME_RUN', 'CALL_REPAIR_RERUN'].includes(String(nextAction?.type ?? ''))) {
         // A confirmed run/repair decision whose follow-up submit has not
@@ -1487,7 +1870,9 @@ export class I10Service {
     rejectDecision: string,
     payload: Record<string, unknown>
   ): Record<string, unknown> {
-    const payloadHash = sha256(canonicalJson(payload));
+    const payloadJson = canonicalJson(payload);
+    const normalizedPayload = JSON.parse(payloadJson) as Record<string, unknown>;
+    const payloadHash = sha256(payloadJson);
     const proposalId = `proposal_${sha256(canonicalJson({ action, payloadHash, summary })).slice(0, 32)}`;
     return {
       transitionVersion: 'JourneyTransitionV2',
@@ -1502,7 +1887,8 @@ export class I10Service {
         rejectEffect,
         proceedDecision: action,
         rejectDecision,
-        payloadHash
+        payloadHash,
+        payload: normalizedPayload
       }
     };
   }
@@ -1577,6 +1963,67 @@ export class I10Service {
       : undefined;
     if (targetProfile) references.targetProfileId = targetProfile.target_profile_id;
 
+    let importedAttachmentDraft: CaseDraft | undefined;
+    if (input.preparationId && input.ingestJobId) {
+      const bindings = this.database.read(db => db.prepare(`
+        SELECT preparation.preparation_id,preparation.status AS preparation_status,
+               preparation.case_id,preparation.case_version,
+               cases.current_version AS case_current_version,cases.status AS case_status,
+               version.definition_json,
+               job.ingest_job_id,job.status AS ingest_status,job.input_type AS ingest_input_type,
+               job.credential_ref AS ingest_credential_ref
+        FROM i8_case_preparations preparation
+        JOIN cases ON cases.case_id=preparation.case_id AND cases.namespace=preparation.namespace
+        JOIN case_versions version ON version.case_id=preparation.case_id AND version.version=preparation.case_version
+        JOIN i10_ingest_items item ON item.confirmed_case_id=preparation.case_id
+        JOIN i10_ingest_jobs job ON job.ingest_job_id=item.ingest_job_id AND job.namespace=preparation.namespace
+        WHERE preparation.namespace=? AND preparation.preparation_id=? AND job.ingest_job_id=?
+      `).all(input.namespace,input.preparationId,input.ingestJobId) as ConfirmedAttachmentPreparationRow[]);
+      if (bindings.length !== 1) {
+        throw new HarnessError(409,'I10_ATTACHMENT_PREPARATION_BINDING_INVALID','CONTRACT',
+          '导入任务、已确认案例与准备记录不能构成唯一精确绑定。');
+      }
+      const binding = bindings[0]!;
+      if (binding.preparation_status !== 'PREPARED' || binding.ingest_status !== 'CONFIRMED' ||
+          binding.case_status !== 'VALIDATED' || binding.case_current_version !== binding.case_version ||
+          binding.ingest_input_type !== input.inputType) {
+        throw new HarnessError(409,'I10_ATTACHMENT_PREPARATION_STATE_INVALID','DOMAIN',
+          '导入准备尚未处于可作者化的已确认冻结状态。');
+      }
+      let storedDefinition: Record<string, unknown>;
+      try {
+        storedDefinition = JSON.parse(binding.definition_json) as Record<string, unknown>;
+      } catch {
+        throw new HarnessError(409,'I10_ATTACHMENT_CASE_DEFINITION_INVALID','EVIDENCE','已确认案例定义无法验证。');
+      }
+      if (storedDefinition.ingestJobId !== input.ingestJobId) {
+        throw new HarnessError(409,'I10_ATTACHMENT_INGEST_PROVENANCE_INVALID','EVIDENCE','案例定义未绑定当前导入任务。');
+      }
+      const { ingestJobId: _storedIngestJobId, ...draftDefinition } = storedDefinition;
+      const parsedDraft = caseDraftSchema.safeParse(draftDefinition);
+      if (!parsedDraft.success || parsedDraft.data.confirmationStatus !== 'CONFIRMED' ||
+          parsedDraft.data.source.inputType !== input.inputType) {
+        throw new HarnessError(409,'I10_ATTACHMENT_CASE_DEFINITION_INVALID','EVIDENCE','已确认案例定义与导入类型不一致。');
+      }
+      if (!credentialReady || parsedDraft.data.credentialRef !== input.credentialRef ||
+          binding.ingest_credential_ref !== input.credentialRef) {
+        throw new HarnessError(409,'I10_ATTACHMENT_CREDENTIAL_BINDING_INVALID','CONTRACT','导入案例的凭据引用未精确绑定。');
+      }
+      if (!targetProfile || targetProfile.credential_ref !== input.credentialRef ||
+          targetProfile.launch_url !== parsedDraft.data.entryUrl) {
+        throw new HarnessError(409,'I10_ATTACHMENT_TARGET_PROFILE_BINDING_INVALID','CONTRACT','活跃目标档案与导入案例的入口或凭据不一致。');
+      }
+      importedAttachmentDraft = parsedDraft.data;
+      Object.assign(references, {
+        caseId: binding.case_id,
+        caseVersion: binding.case_version,
+        credentialRef: input.credentialRef,
+        ingestJobId: binding.ingest_job_id,
+        preparationId: binding.preparation_id,
+        targetProfileId: targetProfile.target_profile_id
+      });
+    }
+
     let stage = 'COLLECTING_INPUT';
     let status = 'NEEDS_INPUT';
     let allowedActions: string[] = [];
@@ -1611,8 +2058,13 @@ export class I10Service {
         );
       }
     } else if (input.requestIntent === 'CASE_AUTHORING') {
-      if (!credentialReady) contractMissingFields.push('credentialRef');
-      if (input.inputType === 'NONE') contractMissingFields.push('inputType');
+      if (importedAttachmentDraft) {
+        validatedDraft = importedAttachmentDraft;
+        stage = 'PROCESSING_AUTHORING'; status = 'PROCESSING';
+        nextAction = { type: 'SUBMIT_AUTHORING', description: '导入案例已确认并精确绑定目标档案，等待从冻结准备提交作者化。', retryAfterSeconds: 0 };
+      } else {
+        if (!credentialReady) contractMissingFields.push('credentialRef');
+        if (input.inputType === 'NONE') contractMissingFields.push('inputType');
       if (input.inputType === 'NATURAL_LANGUAGE') {
         if (!input.naturalLanguage?.trim()) contractMissingFields.push('naturalLanguage');
         if (entryUrlValidation.status === 'MISSING') contractMissingFields.push('I10_ENTRY_URL_REQUIRED');
@@ -1620,6 +2072,7 @@ export class I10Service {
         if (!normalizedTargetSystem) contractMissingFields.push('I10_TARGET_SYSTEM_REQUIRED');
         if (!input.draftJson) contractMissingFields.push('I10_DRAFT_REQUIRED');
         if (input.draftJson) {
+          const explicitAdapterSelection = explicitAdapterSelectionFromNaturalLanguage(input.naturalLanguage);
           const candidatePayload: Record<string, unknown> = {
             ...completeCaseDraftContract(
               input.draftJson,
@@ -1635,6 +2088,8 @@ export class I10Service {
               targetProfileVersion: targetProfile.version
             } : {})
           };
+          delete candidatePayload.adapterSelection;
+          if (explicitAdapterSelection) candidatePayload.adapterSelection = explicitAdapterSelection;
           // An absent address is a collection gap, not an invalid empty-string
           // schema value. Keep the two diagnostics mutually exclusive.
           if (!normalizedUrl) delete candidatePayload.entryUrl;
@@ -1695,6 +2150,7 @@ export class I10Service {
           nextAction = { type: 'SUBMIT_INGEST', description: '附件已通过入口校验，下一步由受控导入工具处理。', retryAfterSeconds: 3 };
         }
       }
+      }
     }
 
     const uniqueMissing = [...new Set(missingFields)];
@@ -1721,6 +2177,9 @@ export class I10Service {
       flowiseFileRef: input.flowiseFileRef,
       originalFilename: input.originalFilename,
       credentialRef: credentialReady ? input.credentialRef : undefined,
+      targetProfileId: targetProfile?.target_profile_id,
+      preparationId: input.preparationId,
+      ingestJobId: input.ingestJobId,
       supportingImages: input.supportingImages,
       scheduleId: input.scheduleId,
       taskId: input.taskId,
@@ -1834,6 +2293,7 @@ export class I10Service {
         }
         if (inputType === 'NATURAL_LANGUAGE') {
           const naturalLanguage = typeof nextEnvelope.naturalLanguage === 'string' ? nextEnvelope.naturalLanguage.trim() : '';
+          const explicitAdapterSelection = explicitAdapterSelectionFromNaturalLanguage(naturalLanguage);
           const draftValue = nextEnvelope.draftJson;
           const draft = draftValue && typeof draftValue === 'object' && !Array.isArray(draftValue)
             ? draftValue as Record<string, unknown>
@@ -1862,6 +2322,8 @@ export class I10Service {
               ...(targetSystem ? {targetSystem} : {}),
               ...(credentialReady ? {credentialRef} : {})
             };
+            delete candidatePayload.adapterSelection;
+            if (explicitAdapterSelection) candidatePayload.adapterSelection = explicitAdapterSelection;
             // Do not turn an absent URL into a second, misleading schema error.
             if (!entryUrl) delete candidatePayload.entryUrl;
             const candidate = caseDraftSchema.safeParse(candidatePayload);
@@ -2029,6 +2491,35 @@ export class I10Service {
           throw new HarnessError(409,'I10_EXECUTION_INPUT_NOT_EXPECTED','DOMAIN','当前阶段不接受执行计划。');
         }
         const plan = this.normalizeExecutionPlan(input.normalizedInput);
+        // Delivery activation and the next Flowise input can be separate chat
+        // executions. Refresh the exact server-owned activation tuple here so
+        // a journey projected just before activation cannot carry a stale
+        // reference set into an execution decision.
+        const activated = db.prepare(`
+          SELECT candidate_id,activated_plan_id FROM (
+            SELECT c.candidate_id,d.activated_plan_id,d.created_at,1 AS priority
+            FROM i8_executable_plans p
+            JOIN i8_script_candidates c ON c.executable_plan_id=p.executable_plan_id
+            JOIN i8_script_delivery_decisions d
+              ON d.candidate_id=c.candidate_id AND d.choice='ACTIVATE'
+            WHERE p.namespace=? AND p.preparation_id=?
+            UNION ALL
+            SELECT rp.repair_candidate_id AS candidate_id,rd.activated_plan_id,rd.created_at,2 AS priority
+            FROM i8_script_patch_proposals rp
+            JOIN i8_repair_decisions rd ON rd.proposal_id=rp.proposal_id AND rd.choice='ACTIVATE'
+            JOIN i8_script_candidates base ON base.candidate_id=rp.base_candidate_id
+            JOIN i8_executable_plans p ON p.executable_plan_id=base.executable_plan_id
+            WHERE rp.namespace=? AND p.preparation_id=? AND rp.status='ACTIVATED'
+          ) ORDER BY priority DESC,created_at DESC LIMIT 1
+        `).get(
+          input.namespace,references.preparationId,input.namespace,references.preparationId
+        ) as { candidate_id:string; activated_plan_id:string } | undefined;
+        if (!activated || !activated.activated_plan_id || !activated.candidate_id ||
+            (typeof references.candidateId === 'string' && references.candidateId !== activated.candidate_id)) {
+          throw new HarnessError(409,'I10_EXECUTION_ACTIVATION_BINDING_REQUIRED','EVIDENCE','执行计划尚未绑定唯一的已激活候选和计划。',false,true);
+        }
+        references.candidateId = activated.candidate_id;
+        references.planId = activated.activated_plan_id;
         const action = plan.mode === 'ON_DEMAND'
           ? 'RUN_ON_DEMAND'
           : plan.mode === 'ONE_TIME'
@@ -2108,20 +2599,52 @@ export class I10Service {
         ? currentNextAction.proposal as Record<string, unknown>
         : undefined;
       if (['v4','v5','v6'].includes(String(inputEnvelope.interactionContractVersion || '')) && proposal) {
-        if (input.proposalId !== proposal.proposalId || input.payloadHash !== proposal.payloadHash) {
+        const frozenPayload = proposal.payload && typeof proposal.payload === 'object' && !Array.isArray(proposal.payload)
+          ? proposal.payload as Record<string, unknown>
+          : undefined;
+        if (!frozenPayload) {
+          throw new HarnessError(409,'I10_PROPOSAL_PAYLOAD_INTEGRITY_FAILED','EVIDENCE','冻结方案缺少可校验的规范化载荷，请重新查看或重新发起当前操作。',false,true);
+        }
+        const frozenPayloadJson = canonicalJson(frozenPayload);
+        const recomputedPayloadHash = sha256(frozenPayloadJson);
+        if (proposal.payloadHash !== recomputedPayloadHash) {
+          throw new HarnessError(409,'I10_PROPOSAL_PAYLOAD_INTEGRITY_FAILED','EVIDENCE','冻结方案载荷与Hash不一致，请重新查看或重新发起当前操作。',false,true);
+        }
+        if (input.proposalId !== proposal.proposalId || input.payloadHash !== recomputedPayloadHash) {
           throw new HarnessError(409,'I10_PROPOSAL_REFERENCE_MISMATCH','CONCURRENCY','确认对象已经变化，请重新查看当前方案后再选择。',false,true);
         }
         if (![proposal.proceedDecision,proposal.rejectDecision].includes(input.decision)) {
           throw new HarnessError(409,'I10_PROPOSAL_DECISION_MISMATCH','DOMAIN','按钮决定与冻结方案不一致。',false,true);
         }
+        // Native Flowise currently sends an empty compatibility payload and
+        // confirms the server-owned proposal by ID and Hash. Any caller that
+        // does submit payload fields must submit the complete frozen value;
+        // partial values and extra technical references are rejected.
+        if (Object.keys(input.payload).length > 0 && canonicalJson(input.payload) !== frozenPayloadJson) {
+          throw new HarnessError(409,'I10_PROPOSAL_PAYLOAD_MISMATCH','CONCURRENCY','提交载荷与冻结方案不一致，请重新查看当前方案后再选择。',false,true);
+        }
       }
       const nextVersion = row.version + 1;
       const now = nowIso();
+      const decisionEventId = opaqueId('journeyevent');
       let stage = row.stage;
       let status = row.status;
       let actions: string[] = [];
       let nextAction: Record<string, unknown> = {};
       const references = JSON.parse(row.references_json) as Record<string, unknown>;
+      const executionDecision = ['RUN_ON_DEMAND','CREATE_ONE_TIME_SCHEDULE','CREATE_RECURRING_SCHEDULE'].includes(input.decision);
+      const executionBinding = executionDecision ? {
+        namespace:row.namespace,
+        journeyId:row.journey_id,
+        preparationId:references.preparationId,
+        caseId:references.caseId,
+        planId:references.planId,
+        candidateId:references.candidateId
+      } : undefined;
+      if (executionBinding && Object.values(executionBinding).some(value => typeof value !== 'string' || !value)) {
+        throw new HarnessError(409,'I10_JOURNEY_EXECUTION_BINDING_INCOMPLETE','EVIDENCE','当前执行提案未绑定唯一准备、案例、计划和候选，禁止创建运行或调度。',false,true);
+      }
+      if (executionBinding) references.confirmedDecisionEventId = decisionEventId;
       if (input.decision === 'REJECT_CASE' && ['v4','v5','v6'].includes(String(inputEnvelope.interactionContractVersion || ''))) {
         stage = 'NEEDS_INPUT'; status = 'NEEDS_INPUT';
         nextAction = this.inputRequest(
@@ -2185,16 +2708,21 @@ export class I10Service {
         stage = 'RUNNING'; status = 'PROCESSING';
         nextAction = { type: 'CALL_REPAIR_RERUN', description: '持证修复候选已批准，正在复跑。', retryAfterSeconds: 5 };
       }
-      for (const [key,value] of Object.entries(input.payload)) {
-        if (['preparationId','caseId','candidateId','taskId','scheduleId','challengeId','proposalId'].includes(key) && typeof value === 'string') references[key] = value;
-      }
+      // Journey references are server-owned and are populated only while the
+      // authoritative preparation, candidate, run, schedule or challenge is
+      // resolved. Decision payloads must never inject opaque references.
       db.prepare(`UPDATE i10_interaction_journeys SET stage=?,status=?,allowed_actions_json=?,next_action_json=?,references_json=?,progress_json=?,version=?,updated_at=? WHERE journey_id=?`)
         .run(stage,status,canonicalJson(actions),canonicalJson(nextAction),canonicalJson(references),canonicalJson({percent:status==='COMPLETED'?100:0,lastActivityAt:now}),nextVersion,now,row.journey_id);
       const sequence = Number((db.prepare(`SELECT COALESCE(MAX(sequence),0) value FROM i10_interaction_events WHERE journey_id=?`).get(row.journey_id) as {value:number}).value) + 1;
       db.prepare(`INSERT INTO i10_interaction_events(event_id,journey_id,sequence,event_type,from_stage,to_stage,decision,safe_payload_json,confirmation_ref,created_at)
         VALUES (?,?,?,'DECISION',?,?,?,?,?,?)`).run(
-          opaqueId('journeyevent'),row.journey_id,sequence,row.stage,stage,input.decision,
-          canonicalJson({ requestId: context.requestId, payloadKeys: Object.keys(input.payload).sort() }),input.confirmationRef,now
+          decisionEventId,row.journey_id,sequence,row.stage,stage,input.decision,
+          canonicalJson({
+            requestId: context.requestId,
+            payloadKeys: Object.keys(input.payload).sort(),
+            ...(proposal ? { proposalId:proposal.proposalId,payloadHash:proposal.payloadHash } : {}),
+            ...(executionBinding ? { executionBinding } : {})
+          }),input.confirmationRef,now
         );
       return db.prepare(`SELECT * FROM i10_interaction_journeys WHERE journey_id=?`).get(row.journey_id) as InteractionJourneyRow;
     });

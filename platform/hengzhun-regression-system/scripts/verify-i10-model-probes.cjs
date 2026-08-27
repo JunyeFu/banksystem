@@ -10,6 +10,29 @@ const { ProgressReporter, enabledFromEnvironment } = require('./progress.cjs');
 const root = path.resolve(__dirname, '..');
 const reporter = new ProgressReporter('START', { enabled: enabledFromEnvironment() });
 function endpoint(base) { const value = String(base).replace(/\/$/, ''); return value.endsWith('/chat/completions') ? value : `${value}/chat/completions`; }
+function parseSuccessfulResponseBody(raw) {
+  const value = JSON.parse(String(raw || ''));
+  const content = value?.choices?.[0]?.message?.content;
+  if (typeof content !== 'string' || !content.trim()) {
+    const error = new Error('MODEL_PROBE_RESPONSE_CONTENT_EMPTY');
+    error.code = 'MODEL_PROBE_RESPONSE_CONTENT_EMPTY';
+    throw error;
+  }
+  let parsedContent;
+  try {
+    parsedContent = JSON.parse(content);
+  } catch {
+    const error = new Error('MODEL_PROBE_RESPONSE_CONTENT_JSON_INVALID');
+    error.code = 'MODEL_PROBE_RESPONSE_CONTENT_JSON_INVALID';
+    throw error;
+  }
+  if (!parsedContent || typeof parsedContent !== 'object' || Array.isArray(parsedContent)) {
+    const error = new Error('MODEL_PROBE_RESPONSE_CONTENT_JSON_OBJECT_REQUIRED');
+    error.code = 'MODEL_PROBE_RESPONSE_CONTENT_JSON_OBJECT_REQUIRED';
+    throw error;
+  }
+  return { content, parsedContent, usage: value?.usage || null };
+}
 async function call(label, base, key, body, description) {
   for (let attempt = 1; attempt <= 3; attempt += 1) {
     reporter.throwIfCancelled();
@@ -28,8 +51,19 @@ async function call(label, base, key, body, description) {
       continue;
     }
     if (response.ok) {
-      const value = await response.json();
-      return { content: value?.choices?.[0]?.message?.content, usage: value?.usage || null, attempts: attempt };
+      try {
+        const parsed = parseSuccessfulResponseBody(await response.text());
+        return { ...parsed, attempts: attempt };
+      } catch {
+        if (attempt === 3) {
+          const failure = new Error(`MODEL_PROBE_${label}_INVALID_RESPONSE_AFTER_${attempt}_ATTEMPTS`);
+          failure.code = `MODEL_PROBE_${label}_INVALID_RESPONSE`;
+          throw failure;
+        }
+        reporter.activity(`${description}第${attempt}/3次响应不完整，将进行下一次尝试`);
+        await new Promise(resolve => setTimeout(resolve, attempt * 1_000));
+        continue;
+      }
     }
     if (attempt === 3 || (response.status !== 429 && response.status < 500)) {
       assert.fail(`MODEL_PROBE_${label}_HTTP_${response.status}_AFTER_${attempt}_ATTEMPTS`);
@@ -46,7 +80,7 @@ async function main() {
     model: process.env.CONTROL_MODEL_NAME, temperature: 0, max_tokens: 256, response_format: { type: 'json_object' },
     messages: [{ role: 'user', content: '仅输出JSON对象，字段probe必须为HENGZHUN_I10_CONTROL_OK，字段toolBoundary必须为MCP_ONLY。' }]
   }, '主控结构化输出');
-  const controllerJson = JSON.parse(controller.content);
+  const controllerJson = controller.parsedContent;
   assert.equal(controllerJson.probe, 'HENGZHUN_I10_CONTROL_OK');
   assert.equal(controllerJson.toolBoundary, 'MCP_ONLY');
   const probeRunAt = new Date(Date.now() + 86_400_000).toISOString();
@@ -57,7 +91,7 @@ async function main() {
       { role: 'user', content: `确认单次定时（ONE_TIME），执行时间${probeRunAt}，时区Asia/Shanghai。` }
     ]
   }, '主控时间语义保持');
-  const scheduleJson = JSON.parse(schedule.content);
+  const scheduleJson = schedule.parsedContent;
   assert.equal(scheduleJson.scheduleType, 'ONE_TIME');
   assert.equal(scheduleJson.runAt, probeRunAt, 'CONTROL_SCHEDULE_ISO_INSTANT_NOT_PRESERVED');
   assert.equal(scheduleJson.timezone, 'Asia/Shanghai');
@@ -78,7 +112,7 @@ async function main() {
       { type: 'image_url', image_url: { url: `data:image/png;base64,${screenshot.toString('base64')}` } }
     ] }]
   }, '视觉截图理解');
-  const visionJson = JSON.parse(vision.content);
+  const visionJson = vision.parsedContent;
   assert.match(String(visionJson.title), /衡准/);
   assert.equal(String(visionJson.pageId), 'I10-VISION-01');
   const evidence = {
@@ -92,12 +126,16 @@ async function main() {
   if (process.env.HENGZHUN_PROGRESS_SUBTASK !== '1') reporter.finish('模型探针完成');
   process.stdout.write(`${JSON.stringify(evidence, null, 2)}\n`);
 }
-main().catch(error => {
-  reporter.fail(error, '.data/evidence/i10/model-probes');
-  const safeMessage = String(error.message || error)
-    .replace(/sk-[A-Za-z0-9_-]+/g, '[REDACTED]')
-    .replace(/Bearer\s+[A-Za-z0-9._~-]+/gi, 'Bearer [REDACTED]')
-    .slice(0, 320);
-  process.stderr.write(`${safeMessage}\n`);
-  process.exitCode = error.exitCode || 2;
-});
+if (require.main === module) {
+  main().catch(error => {
+    reporter.fail(error, '.data/evidence/i10/model-probes');
+    const safeMessage = String(error.message || error)
+      .replace(/sk-[A-Za-z0-9_-]+/g, '[REDACTED]')
+      .replace(/Bearer\s+[A-Za-z0-9._~-]+/gi, 'Bearer [REDACTED]')
+      .slice(0, 320);
+    process.stderr.write(`${safeMessage}\n`);
+    process.exitCode = error.exitCode || 2;
+  });
+}
+
+module.exports = { endpoint, parseSuccessfulResponseBody, call };

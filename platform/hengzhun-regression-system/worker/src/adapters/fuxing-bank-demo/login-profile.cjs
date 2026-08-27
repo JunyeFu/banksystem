@@ -1,18 +1,17 @@
 const fs = require('node:fs');
 const path = require('node:path');
 const { chromium } = require('../../../../runtime/node_modules/playwright');
-const { artifact, credentialEnvironmentName, resolveCredential, sha256 } = require('../../i10-worker-utils.cjs');
+const {
+  artifact, quarantinedScreenshotArtifact, throwIfLeaseAborted, bindLeaseAbortToBrowser,
+  credentialEnvironmentName, resolveCredential, resolveExecutionCredential, sha256
+} = require('../../i10-worker-utils.cjs');
 
 async function executeLoginProfile(task, environment = process.env, options = {}) {
-  const alias = task.execution?.credentialAlias;
   // I10 tasks retain credentials only as a DPAPI-backed credentialRef.  The
   // Worker resolves that reference just-in-time and supplies it in memory.
   // Keep the alias fallback for replaying older I3/I8 tasks, but never require
   // a legacy environment secret when an injected credential is available.
-  const suppliedCredential = options?.credential;
-  const credential = suppliedCredential?.username && suppliedCredential?.password
-    ? { username: suppliedCredential.username, password: suppliedCredential.password }
-    : resolveCredential(alias, environment);
+  const credential = resolveExecutionCredential(task, environment, options);
   const productRoot = path.resolve(__dirname, '..', '..', '..', '..');
   const executablePath = environment.HENGZHUN_CHROMIUM_EXECUTABLE
     || path.join(productRoot, 'runtime', 'browsers', 'chromium-1217', 'chrome-win64', 'chrome.exe');
@@ -42,6 +41,7 @@ async function executeLoginProfile(task, environment = process.env, options = {}
     }
   };
   const browser = await chromium.launch({ executablePath, headless: true });
+  const detachLeaseAbort = bindLeaseAbortToBrowser(options.signal, browser);
   const context = await browser.newContext({
     locale: 'zh-CN',
     timezoneId: 'Asia/Shanghai',
@@ -59,6 +59,7 @@ async function executeLoginProfile(task, environment = process.env, options = {}
   });
 
   try {
+    throwIfLeaseAborted(options.signal);
     await page.goto(`${portalBaseUrl}/portal/login`, { waitUntil: 'domcontentloaded', timeout: 30000 });
     steps.push({ step: 'portal-login-opened', passed: true });
     await atTarget('LOGIN_USERNAME', () => locator('LOGIN_USERNAME', () => page.getByTestId('login-username')).fill(credential.username));
@@ -125,7 +126,7 @@ async function executeLoginProfile(task, environment = process.env, options = {}
         assertionCount: Object.keys(assertions).length,
         passed
       }),
-      artifact('SCREENSHOT', 'image/png', 'REDACTED', 'png', screenshot, {
+      quarantinedScreenshotArtifact(screenshot, {
         pageId: 'customer.profile',
         maskedFields: ['customerId', 'email', 'phone']
       }),
@@ -146,6 +147,7 @@ async function executeLoginProfile(task, environment = process.env, options = {}
           evidence
         };
   } catch (error) {
+    throwIfLeaseAborted(options.signal);
     const loginError = await page.getByTestId('login-error').textContent().catch(() => null);
     if (!error.category) {
       error.category = loginError ? 'TEST_FAILURE' : (error.name === 'TimeoutError' ? 'ENVIRONMENT' : 'TEST_FAILURE');
@@ -169,14 +171,16 @@ async function executeLoginProfile(task, environment = process.env, options = {}
       maskColor: '#202020'
     }).catch(() => null);
     if (failureScreenshot) {
-      failureEvidence.push(artifact('SCREENSHOT', 'image/png', 'REDACTED', 'png', failureScreenshot, { maskedFields: ['username', 'password'] }));
+      failureEvidence.push(quarantinedScreenshotArtifact(failureScreenshot, { maskedFields: ['username', 'password'], captureContext: 'FAILURE' }));
     }
     error.evidence = failureEvidence;
+    throwIfLeaseAborted(options.signal);
     throw error;
   } finally {
-    await context.close();
-    await browser.close();
+    detachLeaseAbort();
+    await context.close().catch(() => {});
+    await browser.close().catch(() => {});
   }
 }
 
-module.exports = { executeLoginProfile, resolveCredential, credentialEnvironmentName, artifact, sha256 };
+module.exports = { executeLoginProfile, resolveCredential, credentialEnvironmentName, artifact, quarantinedScreenshotArtifact, sha256 };

@@ -8,6 +8,7 @@ const crypto = require('node:crypto')
 const fs = require('node:fs')
 const path = require('node:path')
 const { createRequire } = require('node:module')
+const { currentReleaseIdentity, sameReleaseIdentity } = require('./i10-release-identity.cjs')
 
 const root = path.resolve(__dirname, '..')
 const stage8 = require('./i10-stage8-live.cjs')
@@ -130,6 +131,7 @@ function resolveExecutionEvidence(preparationId) {
   } finally { database.close() }
 }
 async function main() {
+  const frozenReleaseIdentity = currentReleaseIdentity()
   loadRuntimeEnv()
   const scenario = JSON.parse(fs.readFileSync(scenarioPath, 'utf8'))
   const fixtureName = neutralFixtureName
@@ -193,9 +195,11 @@ async function main() {
   const taskId = opaque(serialized, 'task') || persisted.taskId
   const fixtureProfile = persisted.fixtureProfile || genericPlanProfile(preparationId)
   if (fixtureProfile !== 'GENERIC_WEB') fail(`I10_L2_UNEXPECTED_PROFILE:${fixtureProfile}`)
+  if (!sameReleaseIdentity(frozenReleaseIdentity, currentReleaseIdentity())) fail('I10_L2_RELEASE_IDENTITY_CHANGED_DURING_RUN')
   fs.mkdirSync(evidenceDir, { recursive: true })
   const evidence = {
     schemaVersion: 'hengzhun-i10-l2-generic-screenshot-evidence-v1', mock: false, degraded: false,
+    releaseIdentity: frozenReleaseIdentity,
     status: 'PASSED', inputType: 'NATURAL_LANGUAGE_WITH_SCREENSHOT', targetSystem: neutral?.targetSystem || '内网账户服务',
     preparationId, candidateId, taskId, fixtureProfile, flowId: publication.flowId,
     ...(neutral ? { neutralFixture: fixtureName } : {}),

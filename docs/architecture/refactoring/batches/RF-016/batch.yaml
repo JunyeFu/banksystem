@@ -1,0 +1,20 @@
+schemaVersion: 1
+id: RF-016
+title: Independent MCP and contract normalization
+status: CLOSED
+owner: project-owner
+authorizedBy: agent/plans/active/v54-implementation-batches.md
+scope:
+  includePaths: [platform/hengzhun-regression-system/mcp, platform/hengzhun-regression-system/harness/src/i10, platform/hengzhun-regression-system/harness/src/server.ts, platform/hengzhun-regression-system/contracts/mcp/hengzhun-i8.json, platform/hengzhun-regression-system/controller/tool-policy-v1.json, platform/hengzhun-regression-system/controller/src/tool-policy.cjs, platform/hengzhun-regression-system/scripts/verification, platform/hengzhun-regression-system/package.json, platform/hengzhun-regression-system/package-lock.json, docs/architecture/refactoring/batches/RF-016, docs/architecture/refactoring/module-boundaries-v1.yaml, agent/backlog.yaml, agent/plans/active/v54-implementation-batches.md, agent/plans/active/hengzhun-i10-cli-agent-task-packages-v1.yaml, agent/plans/active/hengzhun-i10-agcli-tp01-mcp-decouple-task-package.md]
+  excludePaths: [platform/hengzhun-regression-system/.data, platform/hengzhun-regression-system/flowise, platform/hengzhun-regression-system/worker, platform/hengzhun-regression-system/agent-cli, apps, services, infra]
+budgets: {maxChangedFiles: 25, maxNewFiles: 14, maxChangedLines: 2200, maxContractsChanged: 4, maxMigrationsAdded: 0, maxOpenModules: 2}
+baseline: {gitCommit: 9d79b7c1e6cfedd995093cc7a378dc8e9218fa98, dirtyTreeManifest: docs/architecture/refactoring/batches/RF-016/baseline.md, releaseIdentity: fbe97820dbb5d8132a3f678d886524a5f75215b212bb5181cfda8960fca69630, capturedAt: "2026-08-26T12:20:00+08:00"}
+architecture: {businessCapability: independent-governed-mcp, publicContract: platform/hengzhun-regression-system/contracts/mcp/hengzhun-i8.json, dependencyManifest: docs/architecture/refactoring/module-boundaries-v1.yaml, allowedModules: [hengzhun.mcp, hengzhun.harness], forbiddenModules: [hengzhun.flowise, hengzhun.worker]}
+mustPreserve: [Harness owns business state and attachment storage, MCP reads never mutate, one approved mutator performs one Harness mutation, no runtime start publication ledger or LIVE_E2E]
+verification:
+  requiredCommands:
+    - {name: focused-contracts, command: "runtime/node-v20.20.2-win-x64/node.exe --test scripts/verification/mcp-v2-decoupling.test.cjs scripts/verification/agent-controller-port.test.cjs scripts/verification/mcp-interaction-contract.test.cjs", expectedExitCode: 0, evidence: docs/architecture/refactoring/batches/RF-016/evidence-index.md, blocking: true}
+    - {name: registered-suite, command: "runtime/node-v20.20.2-win-x64/node.exe scripts/run-registered-tests.cjs run", expectedExitCode: 0, evidence: docs/architecture/refactoring/batches/RF-016/evidence-index.md, blocking: true}
+    - {name: governance, command: "py -3 scripts/architecture/validate_refactoring.py --batch RF-016", expectedExitCode: 0, evidence: docs/architecture/refactoring/batches/RF-016/evidence-index.md, blocking: true}
+rollback: {triggerConditions: [read tool mutates, SDK resolves through Flowise, attachment escape, contract count mismatch], recoveryPoint: RF-015 closed state, maxRtoMinutes: 20, maxRpoMinutes: 0}
+exceptions: {allowedVagueNames: [], crossModule: [Controller tool policy is a downstream contract projection only, contracts tests and governance files synchronize the two open modules]}

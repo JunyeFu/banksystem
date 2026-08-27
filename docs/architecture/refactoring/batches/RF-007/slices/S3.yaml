@@ -1,0 +1,9 @@
+id: RF-007-S3
+title: Managed reload, publication readback and L1 proof
+status: COMPLETED
+allowedPaths: [platform/hengzhun-regression-system/scripts, platform/hengzhun-regression-system/harness/src, platform/hengzhun-regression-system/flowise/i10, platform/hengzhun-regression-system/tests, docs/architecture/refactoring/batches/RF-007, docs/current-state]
+forbiddenPaths: [apps, services, infra]
+workSteps: [managed reload, public API publish/readback, inspector alignment, real L1 thin chain, evidence reuse decision]
+verification: [releaseAligned true, deployed true, LIVE_E2E L1 ledger delta]
+rollback: managed rollback and public API republish
+result: [migration CRLF/LF portability fixed without history rewrite, Worker health v2 aligned, Flowise v7 public API readback verified, releaseAligned true, L1 TEXT_ONLY LIVE_E2E passed, old 18 reuse rejected by identity mismatch]

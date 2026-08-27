@@ -1,0 +1,8 @@
+id: RF-006-S2
+title: Selective invalidation, authoring idempotency and timing implementation
+status: COMPLETED
+allowedPaths: [platform/hengzhun-regression-system/scripts, platform/hengzhun-regression-system/worker/src, platform/hengzhun-regression-system/tests, docs/architecture/refactoring/batches/RF-006]
+forbiddenPaths: [platform/hengzhun-regression-system/harness, platform/hengzhun-regression-system/mcp, platform/hengzhun-regression-system/flowise]
+workSteps: [implement invalidation plan, prevent duplicate authoring, add adaptive terminal polling, emit timing ledger]
+verification: [unit tests, integration tests, failure injection]
+rollback: feature switch restores legacy full execution

@@ -4,16 +4,17 @@ const test = require('node:test')
 const assert = require('node:assert/strict')
 const fs = require('node:fs')
 const path = require('node:path')
+const { parseJsonArgument } = require('../../mcp/src/rf001-contract-adapter.cjs')
 
 const root = path.resolve(__dirname, '../..')
 
-test('runtime MCP registrations equal the authoritative 33-tool contract', () => {
+test('runtime MCP registrations equal the authoritative 35-tool contract', () => {
   const source = fs.readFileSync(path.join(root, 'mcp/src/server.cjs'), 'utf8')
   const runtimeTools = [...source.matchAll(/server\.registerTool\('([^']+)'/g)].map(match => match[1]).sort()
   const contract = JSON.parse(fs.readFileSync(path.join(root, 'contracts/mcp/hengzhun-i8.json'), 'utf8'))
   const contractTools = contract.tools.map(tool => tool.name).sort()
-  assert.equal(runtimeTools.length, 33)
-  assert.equal(new Set(runtimeTools).size, 33)
+  assert.equal(runtimeTools.length, 35)
+  assert.equal(new Set(runtimeTools).size, 35)
   assert.deepEqual(runtimeTools, contractTools)
   assert.ok(runtimeTools.includes('schedule_disable'))
   assert.ok(runtimeTools.includes('artifact_download_grant'))
@@ -21,6 +22,8 @@ test('runtime MCP registrations equal the authoritative 33-tool contract', () =>
   assert.ok(runtimeTools.includes('target_profile_prepare'))
   assert.ok(runtimeTools.includes('target_profile_get'))
   assert.ok(runtimeTools.includes('target_profile_decision_submit'))
+  assert.ok(runtimeTools.includes('candidate_compile'))
+  assert.ok(runtimeTools.includes('result_inbox_ack'))
 })
 
 test('both Journey reads and writes use the bounded Flowise response projection', () => {
@@ -74,6 +77,25 @@ test('generated Flowise v6 has exact interaction semantics and no raw tool-resul
   const unified = flow.nodes.find(node => node.id === 'directReplyAgentflow_i10_v3_card')
   assert.equal(unified.data.inputs.directReplyMessage, '{{$flow.state.journeyRenderedMarkdown}}')
 
+  const start = flow.nodes.find(node => node.data?.name === 'startAgentflow')
+  assert.ok(start.data.inputs.startState.some(item => item.key === 'confirmedDecisionEventId'))
+  const journeyProjections = flow.nodes.filter(node => node.id?.includes('journey_projection'))
+  assert.ok(journeyProjections.length > 0)
+  for (const projection of journeyProjections) {
+    const updates = new Map(projection.data.inputs.customFunctionUpdateState.map(item => [item.key,item.value]))
+    assert.equal(updates.get('confirmedDecisionEventId'),'{{ output.references.confirmedDecisionEventId }}')
+  }
+  const executionTools = flow.nodes.filter(node => {
+    const mcpActions = node.data?.inputs?.toolAgentflowSelectedToolConfig?.mcpActions || []
+    return mcpActions.includes('run_submit') || mcpActions.includes('schedule_create')
+  })
+  assert.ok(executionTools.length > 0)
+  for (const tool of executionTools) {
+    const args = new Map(tool.data.inputs.toolInputArgs.map(item => [item.inputArgName,item.inputArgValue]))
+    assert.equal(args.get('journeyId'),'{{$flow.state.journeyId}}')
+    assert.equal(args.get('confirmedDecisionEventId'),'{{$flow.state.confirmedDecisionEventId}}')
+  }
+
   for (const id of ['toolAgentflow_i10_v3_prepare', 'toolAgentflow_i10_v3_resume']) {
     const tool = flow.nodes.find(node => node.id === id)
     const updates = new Map(tool.data.inputs.toolUpdateState.map(item => [item.key, item.value]))
@@ -112,6 +134,7 @@ test('authoring approval submits a frozen context and never Flowise parallel act
   const compiler = flow.nodes.find(node => node.id === 'llmAgentflow_intent')
   assert.ok(compiler)
   assert.deepEqual(compiler.data.inputs.customFunctionUpdateState, [
+    { key: 'targetProfileLaunchUrl', value: '{{ output.route }}' },
     { key: 'authoringContext', value: '{{ output.authoringContext }}' }
   ])
   for (const field of ['actions', 'expectedOutcomes', 'riskLevels', 'inputValues', 'inputValueSources', 'assertions', 'intentStepIds']) {
@@ -153,6 +176,73 @@ test('authoring compiler reads canonical CaseDraft steps instead of stale parall
   assert.match(compiler.data.inputs.customFunctionJavascriptFunction, /draftSteps\.map\(step => text\(step && step\.action\)\)/)
 })
 
+test('bounded Journey projection preserves fields required to revalidate a target-bound CaseDraft', () => {
+  const source = fs.readFileSync(path.join(root, 'mcp/src/server.cjs'), 'utf8')
+  assert.match(source,/confidence: Number\.isFinite\(Number\(draft\.confidence\)\)/)
+  assert.match(source,/targetProfileId: text\(draft\.targetProfileId, 160\)/)
+  assert.match(source,/targetProfileVersion: draft\.targetProfileVersion/)
+  assert.match(source,/normalizeRegisteredAdapterSelection\(draft\.adapterSelection\)/)
+  assert.match(source,/normalizeRegisteredAdapterSelection\(business\.adapterSelection\)/)
+  assert.match(source,/adapterSelection:\s*z\.string\(\)\.trim\(\)\.max\(160\)\.optional\(\)/)
+})
+
+test('bounded Journey projection preserves authoritative attachment target bindings', () => {
+  const source = fs.readFileSync(path.join(root, 'mcp/src/server.cjs'), 'utf8')
+  assert.match(source,/targetProfileId: text\(body\.references\.targetProfileId, 160\)/)
+  assert.match(source,/ingestJobId: text\(body\.references\.ingestJobId, 160\)/)
+})
+
+test('authoring compiler restores a lost cross-session route from the immutable CaseDraft', () => {
+  const flow = JSON.parse(fs.readFileSync(path.join(root, 'flowise/i10/agentflow-v6.json'), 'utf8'))
+  const compiler = flow.nodes.find(node => node.id === 'llmAgentflow_intent')
+  assert.ok(compiler)
+  const execute = new Function(
+    '$caseDraftJson', '$route', '$targetProfileId', '$targetProfileVersion', '$targetProfileHash', '$targetProfileSnapshot',
+    compiler.data.inputs.customFunctionJavascriptFunction
+  )
+  const result = execute(JSON.stringify({
+    entryUrl: 'http://127.0.0.1:18082/portal/login',
+    steps: [
+      { action: '登录门户', expected: '进入首页' },
+      { action: '打开账户页', expected: '显示账户卡片' }
+    ],
+    assertions: ['账户页可用']
+  }), '', '', 0, '', '{}')
+  assert.equal(result.valid, 'YES')
+  assert.equal(result.route, 'http://127.0.0.1:18082/portal/login')
+  assert.equal(result.authoringContext, '')
+})
+
+test('authoring compiler transports only a complete frozen generic target profile', () => {
+  const flow = JSON.parse(fs.readFileSync(path.join(root, 'flowise/i10/agentflow-v6.json'), 'utf8'))
+  const compiler = flow.nodes.find(node => node.id === 'llmAgentflow_intent')
+  const execute = new Function(
+    '$caseDraftJson', '$route', '$targetProfileId', '$targetProfileVersion', '$targetProfileHash', '$targetProfileSnapshot',
+    compiler.data.inputs.customFunctionJavascriptFunction
+  )
+  const snapshot = {
+    schemaVersion: 'hengzhun-target-profile-v1', status: 'ACTIVE',
+    targetProfileId: 'target-profile-test', launchUrl: 'https://example.test/login'
+  }
+  const result = execute(JSON.stringify({
+    entryUrl: snapshot.launchUrl,
+    steps: [{ action: '打开登录页', expected: '显示登录页' }],
+    assertions: ['登录页可见']
+  }), '', snapshot.targetProfileId, 1, 'a'.repeat(64), JSON.stringify(snapshot))
+  assert.match(result.authoringContext, /^uri:/)
+  const context = parseJsonArgument(result.authoringContext, 'TEST_INVALID')
+  assert.equal(context.targetProfileId, snapshot.targetProfileId)
+  assert.equal(context.targetProfileVersion, 1)
+  assert.equal(context.targetProfileHash, 'a'.repeat(64))
+  assert.deepEqual(context.targetProfileSnapshot, snapshot)
+})
+
+test('MCP object boundary decodes governed URI transport and rejects arrays', () => {
+  const encoded = `uri:${encodeURIComponent(JSON.stringify({ route: 'https://example.test/login' }))}`
+  assert.deepEqual(parseJsonArgument(encoded, 'TEST_INVALID'), { route: 'https://example.test/login' })
+  assert.throws(() => parseJsonArgument(`uri:${encodeURIComponent('[1,2]')}`, 'TEST_INVALID'), /TEST_INVALID/)
+})
+
 test('authoring context reconstruction preserves ACTIVE target-profile status', () => {
   const service = fs.readFileSync(path.join(root, 'harness/src/service.ts'), 'utf8')
   assert.match(service, /schemaVersion: 'hengzhun-target-profile-v1',\s+status: 'ACTIVE'/)
@@ -172,4 +262,10 @@ test('interaction matrix covers every supported input, intent and interaction mo
   assert.equal(matrix.decisionRules.secondConfirmationBeforeMutation, true)
   assert.equal(matrix.inputRules.currentHumanInputFeedbackOnly, true)
   assert.equal(matrix.delivery.rawToolOutput, false)
+})
+
+test('repair propose reuses an in-flight proposal for the same incident', () => {
+  const source = fs.readFileSync(path.join(root, 'mcp/src/server.cjs'), 'utf8')
+  assert.match(source, /const reusableProposalStatuses = new Set\(\['STABILITY_QUEUED', 'STABILITY_VALIDATING', 'WAITING_USER'\]\)/)
+  assert.match(source, /if \(reusableProposalStatuses\.has\(String\(current\.body\.proposal\?\.status \|\| ''\)\)\) return textResult\(current\.body/)
 })

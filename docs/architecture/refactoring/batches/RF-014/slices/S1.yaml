@@ -1,0 +1,9 @@
+id: RF-014-S1
+title: Read-only Shadow candidate preparation
+status: COMPLETED
+allowedPaths: [platform/hengzhun-regression-system/controller, docs/architecture/refactoring/batches/RF-014, agent/backlog.yaml, agent/plans/active/v54-implementation-batches.md, agent/plans/active/hengzhun-i10-langgraph-deepagents-controller-migration-task-package.md, agent/plans/active/hengzhun-i10-tp00-change-inventory-v1.json]
+forbiddenPaths: [platform/hengzhun-regression-system/.data, platform/hengzhun-regression-system/flowise, platform/hengzhun-regression-system/harness, platform/hengzhun-regression-system/mcp, platform/hengzhun-regression-system/worker]
+workSteps: [implement comparator, reject unredacted input, aggregate fail-closed metrics, bind source into identity]
+verification: [focused tests exit 0, governance exits 0, ledger remains 0/18]
+rollback: preserve historical identities and keep Flowise as sole writer
+evidence: docs/architecture/refactoring/batches/RF-014/evidence-index.md

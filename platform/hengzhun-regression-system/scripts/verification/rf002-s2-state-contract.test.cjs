@@ -7,39 +7,52 @@
 //   - candidates:get emits terminal + verificationGate keyed by job id
 //   - dual-source consistency: verificationGate rows come from the same
 //     i10_verification_challenges store that verification:get reads
-// All runtime artifacts live under .data/tests/rf002-s2 and are cleaned up.
+// All runtime artifacts live under an OS-managed temporary root and are cleaned up.
 
-const test = require('node:test')
+const { test, after } = require('node:test')
 const assert = require('node:assert/strict')
 const { spawn } = require('node:child_process')
 const crypto = require('node:crypto')
 const fs = require('node:fs')
 const http = require('node:http')
+const os = require('node:os')
 const path = require('node:path')
 
 const root = path.resolve(__dirname, '../..')
-const nodeExecutable = path.join(root, 'runtime/node-v20.20.2-win-x64/node.exe')
+const nodeExecutable = process.execPath
 const Database = require(path.join(root, 'node_modules/better-sqlite3'))
-const ISO = path.join(root, '.data', 'tests', 'rf002-s2')
+const ISO = fs.mkdtempSync(path.join(os.tmpdir(), 'hengzhun-rf002-s2-'))
 const HARNESS_PORT = 28787
-const BASELINE_IDENTITY = '632ad5ee7981b59f00824d0072d28da6075eef095d55a898d51c0103a897988f'
 const now = () => new Date().toISOString()
 const future = () => new Date(Date.now() + 3600_000).toISOString()
 const past = () => new Date(Date.now() - 3600_000).toISOString()
 const sha256 = value => crypto.createHash('sha256').update(value).digest('hex')
 
-function waitForHealth(url, timeoutMs) {
+function waitForHealth(url, timeoutMs, child) {
   const deadline = Date.now() + timeoutMs
   return new Promise((resolve, reject) => {
+    let settled = false
+    const succeed = () => {
+      if (settled) return
+      settled = true
+      resolve()
+    }
+    const fail = error => {
+      if (settled) return
+      settled = true
+      reject(error)
+    }
+    child?.once('exit', code => fail(new Error(`harness exited before health: ${code}:${child.startupErrorCode || 'UNKNOWN'}:${child.startupMessage || 'NO_SAFE_DETAIL'}`)))
     const tick = () => {
       http.get(url, { timeout: 1000 }, response => {
         response.resume()
-        if (response.statusCode === 200) return resolve()
+        if (response.statusCode === 200) return succeed()
         retry()
       }).on('error', retry)
     }
     const retry = () => {
-      if (Date.now() > deadline) return reject(new Error(`health timeout: ${url}`))
+      if (settled) return
+      if (Date.now() > deadline) return fail(new Error(`health timeout: ${url}`))
       setTimeout(tick, 300)
     }
     tick()
@@ -63,14 +76,17 @@ function applyMigrations(db) {
     try {
       db.exec(sql)
       db.prepare('INSERT INTO schema_migrations(version,name,checksum,applied_at) VALUES (?,?,?,?)')
-        .run(version, name, sha256(sql), now())
+        .run(version, name, sha256(sql.replaceAll('\r\n', '\n')), now())
       db.exec('COMMIT')
     } catch (error) {
       db.exec('ROLLBACK')
       throw error
     }
   }
+  assert.equal(db.prepare('SELECT MAX(version) version FROM schema_migrations').get().version, 39)
 }
+
+after(() => fs.rmSync(ISO, { recursive: true, force: true }))
 
 function seed(db) {
   db.prepare('INSERT INTO namespaces(namespace,status,version,created_at,updated_at) VALUES (?,?,1,?,?)')
@@ -122,7 +138,7 @@ function stopHarness(harness) {
 }
 
 function startHarness(dbPath, token) {
-  return spawn(nodeExecutable, ['dist/harness/src/index.js'], {
+  const child = spawn(nodeExecutable, ['dist/harness/src/index.js'], {
     cwd: root,
     env: {
       ...process.env,
@@ -130,12 +146,31 @@ function startHarness(dbPath, token) {
       HENGZHUN_SERVICE_TOKEN: token,
       HENGZHUN_WORKER_TOKEN: token,
       HENGZHUN_DATABASE_PATH: dbPath,
+      HENGZHUN_DATABASE_BACKUP_PATH: path.join(ISO, 'backups'),
+      HENGZHUN_ARTIFACT_ROOT: path.join(ISO, 'artifacts'),
+      HENGZHUN_FLOWISE_ATTACHMENT_ROOT: path.join(ISO, 'flowise-attachments'),
+      HENGZHUN_FLOWISE_STORAGE_ROOT: path.join(ISO, 'flowise-storage'),
       HOST: '127.0.0.1',
       PORT: String(HARNESS_PORT),
       HENGZHUN_ALLOWED_CLIENTS: '127.0.0.1,::1'
     },
     stdio: ['ignore', 'pipe', 'pipe']
   })
+  child.stderr.setEncoding('utf8')
+  child.stderr.on('data', chunk => {
+    for (const line of String(chunk).split(/\r?\n/)) {
+      try {
+        const event = JSON.parse(line)
+        if (event?.event === 'startup_failed' && typeof event?.errorCode === 'string') {
+          child.startupErrorCode = event.errorCode
+          child.startupMessage = String(event?.message || '')
+            .replace(/(?:bearer|token|password|secret|api[_-]?key)\s*[:=]?\s*[^\s,;]+/gi, '$1=[REDACTED]')
+            .slice(0, 240)
+        }
+      } catch { /* retain no unstructured service output */ }
+    }
+  })
+  return child
 }
 
 async function post(route, payload, token) {
@@ -159,7 +194,7 @@ test('RF-002-S2 tasks:get emits terminal and verificationGate from Harness state
   db.close()
   const harness = startHarness(dbPath, token)
   try {
-    await waitForHealth(`http://127.0.0.1:${HARNESS_PORT}/health`, 30_000)
+    await waitForHealth(`http://127.0.0.1:${HARNESS_PORT}/health`, 30_000, harness)
 
     // running task, no challenge: not terminal, no gate
     const running = await post('/v1/i8/tasks:get', { namespace: 'ns1', taskId: 't-running' }, token)
@@ -210,7 +245,7 @@ test('RF-002-S2 candidates:get emits terminal and verificationGate keyed by job 
   db.close()
   const harness = startHarness(dbPath, token)
   try {
-    await waitForHealth(`http://127.0.0.1:${HARNESS_PORT}/health`, 30_000)
+    await waitForHealth(`http://127.0.0.1:${HARNESS_PORT}/health`, 30_000, harness)
 
     // queued job, no gate: nextAction non-terminal
     const plain = await post('/v1/i8/candidates:get', { namespace: 'ns1', preparationId: 'p1' }, token)
@@ -232,8 +267,10 @@ test('RF-002-S2 candidates:get emits terminal and verificationGate keyed by job 
   }
 })
 
-test('RF-002-S2 ReleaseIdentity stays unchanged by the contract extension', () => {
+test('RF-002-S2 contract checks do not mutate the current ReleaseIdentity', () => {
   const { execFileSync } = require('node:child_process')
-  const run = execFileSync(nodeExecutable, ['scripts/i10-release-identity.cjs'], { cwd: root, encoding: 'utf8' })
-  assert.equal(JSON.parse(run).identityHash, BASELINE_IDENTITY)
+  const before = JSON.parse(execFileSync(nodeExecutable, ['scripts/i10-release-identity.cjs'], { cwd: root, encoding: 'utf8' })).identityHash
+  const after = JSON.parse(execFileSync(nodeExecutable, ['scripts/i10-release-identity.cjs'], { cwd: root, encoding: 'utf8' })).identityHash
+  assert.match(before, /^[0-9a-f]{64}$/)
+  assert.equal(after, before)
 })

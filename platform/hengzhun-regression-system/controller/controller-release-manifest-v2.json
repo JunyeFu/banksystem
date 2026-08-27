@@ -1,0 +1,41 @@
+{
+  "schemaVersion": "hengzhun-controller-release-manifest/v2",
+  "kind": "langgraph-json-v2",
+  "profile": "DETERMINISTIC_PREFETCH_JSON",
+  "activationStatus": "INACTIVE",
+  "checkpointSchemaVersion": "1",
+  "frameworkLockPath": "controller/package-lock.json",
+  "graphSourcePath": "controller/src/agent-controller-v2.mjs",
+  "promptPaths": ["controller/prompt-v2.txt"],
+  "toolPolicyPath": "controller/tool-policy-v1.json",
+  "riskPolicyPath": "controller/risk-policy-v2.json",
+  "modelConfigIdentity": {
+    "bindingStatus": "UNBOUND_INACTIVE",
+    "providerProtocol": "OPENAI_COMPATIBLE",
+    "profile": "CONTROL_GENERIC",
+    "modelNameSource": "CONTROL_MODEL_NAME",
+    "temperature": 0,
+    "streaming": false,
+    "toolMode": "NONE"
+  },
+  "releaseFiles": [
+    "controller/package.json",
+    "controller/package-lock.json",
+    "controller/controller-release-manifest-v2.json",
+    "controller/prompt-v2.txt",
+    "controller/tool-policy-v1.json",
+    "controller/risk-policy-v2.json",
+    "controller/session-schema-v1.json",
+    "controller/operation-session-schema-v1.json",
+    "controller/src/agent-controller-v2.mjs",
+    "controller/src/controller-port.cjs",
+    "controller/src/controller-runtime.mjs",
+    "controller/src/risk-policy.cjs",
+    "controller/src/runtime-adapters.mjs",
+    "controller/src/session-checkpointer.mjs",
+    "controller/src/session-store.mjs",
+    "controller/src/operation-store.mjs",
+    "controller/src/state-security.mjs",
+    "controller/src/tool-policy.cjs"
+  ]
+}

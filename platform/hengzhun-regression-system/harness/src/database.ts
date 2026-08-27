@@ -10,6 +10,12 @@ export interface DatabaseOptions {
   busyTimeoutMs?: number;
 }
 
+function migrationChecksum(sql: string): string {
+  // Git may materialize the same SQL blob as CRLF on Windows. Migration
+  // identity is line-ending portable, while every other byte remains strict.
+  return require('node:crypto').createHash('sha256').update(sql.replaceAll('\r\n', '\n')).digest('hex') as string;
+}
+
 export class WriteQueue {
   private tail: Promise<void> = Promise.resolve();
 
@@ -73,7 +79,7 @@ export class HarnessDatabase {
       .map(name => {
         const version = Number(name.split('_', 1)[0]);
         const sql = fs.readFileSync(path.join(this.options.migrationsDirectory, name), 'utf8');
-        const checksum = require('node:crypto').createHash('sha256').update(sql).digest('hex') as string;
+        const checksum = migrationChecksum(sql);
         return { version, name, sql, checksum };
       });
 

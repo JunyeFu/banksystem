@@ -1,0 +1,9 @@
+id: RF-019-S1
+title: DPAPI encrypted sessions and recovery
+status: COMPLETED
+allowedPaths: [platform/hengzhun-regression-system/controller, platform/hengzhun-regression-system/scripts/verification, docs/architecture/refactoring/batches/RF-019, docs/architecture/refactoring/module-boundaries-v1.yaml, agent/backlog.yaml, agent/plans/active/v54-implementation-batches.md, agent/plans/active/hengzhun-i10-cli-agent-task-packages-v1.yaml, agent/plans/active/hengzhun-i10-agcli-tp04-dpapi-sessions-task-package.md]
+forbiddenPaths: [platform/hengzhun-regression-system/.data, platform/hengzhun-regression-system/flowise, platform/hengzhun-regression-system/harness, platform/hengzhun-regression-system/mcp, platform/hengzhun-regression-system/worker, platform/hengzhun-regression-system/agent-cli]
+workSteps: [lock DPAPI dependency, freeze schemas, implement atomic encrypted store, persist checkpointer and proposal vault, restore and negative drills]
+verification: [Node20 matrix exits 0, Node24 matrix exits 0, controller regression exits 0, registered impact exits 0, governance exits 0]
+rollback: restore only RF-019 changed paths to recorded dirty baseline
+evidence: docs/architecture/refactoring/batches/RF-019/evidence-index.md

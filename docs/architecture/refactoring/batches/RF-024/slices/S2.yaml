@@ -1,0 +1,9 @@
+id: RF-024-S2
+title: Managed normal profile and ordered L1 LIVE
+status: BLOCKED
+allowedPaths: [platform/hengzhun-regression-system/agent-cli, platform/hengzhun-regression-system/controller, platform/hengzhun-regression-system/scripts/i10-agent-lifecycle.cjs, platform/hengzhun-regression-system/scripts/i10-agent-l1-live.cjs, platform/hengzhun-regression-system/scripts/verification, docs/architecture/refactoring/batches/RF-024, agent/backlog.yaml, agent/plans/active/v54-implementation-batches.md, agent/plans/active/hengzhun-i10-cli-agent-task-packages-v1.yaml, agent/plans/active/hengzhun-i10-agcli-tp09-l1-live-task-package.md]
+forbiddenPaths: [platform/hengzhun-regression-system/flowise/app, platform/hengzhun-regression-system/flowise/i10/agentflow-v7.json]
+workSteps: [bind configured model identity, managed normal start, public identity readback, exact approval checkpoint, TEXT_ONLY, TEXT_WITH_IMAGE, owned-process stop and evidence]
+verification: [same bound v4 identity throughout, both L1 variants immutable PASSED, first deterministic failure stops, no Flowise or shadow retry]
+rollback: stop only exact owned normal-profile processes and preserve pre-existing runtime state
+evidence: docs/architecture/refactoring/batches/RF-024/evidence-index.md

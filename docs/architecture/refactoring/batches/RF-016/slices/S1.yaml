@@ -1,0 +1,9 @@
+id: RF-016-S1
+title: Independent MCP and contract normalization
+status: COMPLETED
+allowedPaths: [platform/hengzhun-regression-system/mcp, platform/hengzhun-regression-system/harness/src/i10, platform/hengzhun-regression-system/harness/src/server.ts, platform/hengzhun-regression-system/contracts/mcp/hengzhun-i8.json, platform/hengzhun-regression-system/controller, platform/hengzhun-regression-system/scripts/verification, platform/hengzhun-regression-system/package.json, platform/hengzhun-regression-system/package-lock.json, docs/architecture/refactoring/batches/RF-016, docs/architecture/refactoring/module-boundaries-v1.yaml, agent/backlog.yaml, agent/plans/active/v54-implementation-batches.md, agent/plans/active/hengzhun-i10-cli-agent-task-packages-v1.yaml, agent/plans/active/hengzhun-i10-agcli-tp01-mcp-decouple-task-package.md]
+forbiddenPaths: [platform/hengzhun-regression-system/.data, platform/hengzhun-regression-system/flowise, platform/hengzhun-regression-system/worker, platform/hengzhun-regression-system/agent-cli]
+workSteps: [lock root SDK, freeze v2 contract tests, split conditional mutations, add canonical attachment import, verify offline]
+verification: [focused contracts exit 0, typecheck exits 0, registered suite exits 0, governance exits 0]
+rollback: restore only RF-016 changed paths to recorded dirty baseline
+evidence: docs/architecture/refactoring/batches/RF-016/evidence-index.md

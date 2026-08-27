@@ -73,6 +73,31 @@ test('persisted UKey uses three independent observations before it asks for hand
   assert.deepEqual(attempts.map(item => item.attempt), [1, 2, 3]);
 });
 
+test('persisted UKey resumes the same visible page only after three failed web observations and explicit confirmation', async () => {
+  const page = pageAt('/portal/verification');
+  let observations = 0;
+  let handoffs = 0;
+  const result = await resolveVerificationAfterAction(
+    page,
+    policyForAction({ semanticTargetRef: 'TRANSFER_FIRST_CONFIRM' }, 'TRANSFER_UKEY_ORDER_QUERY', fuxingBinding),
+    {
+      observeControl: async () => { observations += 1; throw Object.assign(new Error('not found'), { code: 'I10_UKEY_WEB_CONTROL_NOT_FOUND' }); },
+      executeControl: async () => { throw new Error('must not execute without an observation'); },
+      allowExternalFallback: true,
+      onExternalChallenge: async ({ attempts }) => {
+        handoffs += 1;
+        assert.equal(attempts.length, 3);
+        page.moveTo('/portal/orders/query');
+        return { status: 'VERIFICATION_CONFIRMED' };
+      },
+      assertSuccessEvidence: async () => undefined
+    }
+  );
+  assert.equal(observations, 3);
+  assert.equal(handoffs, 1);
+  assert.equal(result.status, 'EXTERNAL_CONFIRMED_AFTER_AUTO_ATTEMPTS');
+});
+
 test('workers do not scan whole-page static text after every action', () => {
   const root = path.resolve(__dirname, '..', '..');
   const authoring = fs.readFileSync(path.join(root, 'worker/src/i10-midscene-candidate-authoring.cjs'), 'utf8');

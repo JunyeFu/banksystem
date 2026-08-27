@@ -1,0 +1,10 @@
+id: RF-024-S1
+title: Fresh Journey bootstrap before Controller hydration
+status: COMPLETED
+allowedPaths: [platform/hengzhun-regression-system/agent-cli, platform/hengzhun-regression-system/controller, platform/hengzhun-regression-system/scripts/verification, docs/architecture/refactoring/batches/RF-024, docs/architecture/refactoring/module-boundaries-v1.yaml, agent/backlog.yaml, agent/plans/active/v54-implementation-batches.md, agent/plans/active/hengzhun-i10-cli-agent-task-packages-v1.yaml, agent/plans/active/hengzhun-i10-agcli-tp09-l1-live-task-package.md]
+forbiddenPaths: [platform/hengzhun-regression-system/.data, platform/hengzhun-regression-system/flowise, platform/hengzhun-regression-system/harness/src, platform/hengzhun-regression-system/mcp/src, platform/hengzhun-regression-system/worker/src]
+workSteps: [freeze bootstrap proposal, store encrypted arguments, invoke journey_prepare once after approval, rebind session once, hydrate Controller after authoritative readback]
+verification: [Node24 bootstrap integration 5/5, Node20 session-store 11/11, no runtime mutation]
+rollback: restore only RF-024-S1 changed sources and governance paths
+evidence: docs/architecture/refactoring/batches/RF-024/evidence-index.md
+

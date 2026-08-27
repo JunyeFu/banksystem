@@ -1,0 +1,29 @@
+{
+  "schemaVersion": "hengzhun-controller-risk-policy/v2",
+  "profile": "DETERMINISTIC_PREFETCH_JSON",
+  "proposalTtlMs": 300000,
+  "toolRisk": {
+    "credential_session_create": "HIGH",
+    "target_profile_prepare": "LOW",
+    "target_profile_decision_submit": "HIGH",
+    "ingest_submit": "LOW",
+    "ingest_decision_submit": "MEDIUM",
+    "image_ingest_submit": "LOW",
+    "image_ingest_decision_submit": "MEDIUM",
+    "verification_decision_submit": "HIGH",
+    "journey_prepare": "LOW",
+    "journey_input_submit": "MEDIUM",
+    "journey_decision_submit": "HIGH",
+    "case_prepare": "LOW",
+    "authoring_submit": "MEDIUM",
+    "candidate_compile": "MEDIUM",
+    "candidate_decide": "HIGH",
+    "run_submit": "HIGH",
+    "schedule_create": "HIGH",
+    "schedule_disable": "HIGH",
+    "artifact_download_grant": "MEDIUM",
+    "result_inbox_ack": "LOW",
+    "repair_propose": "MEDIUM",
+    "decision_submit": "HIGH"
+  }
+}

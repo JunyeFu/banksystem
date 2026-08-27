@@ -1,0 +1,19 @@
+schemaVersion: 1
+id: RF-014
+title: Read-only Shadow candidate preparation
+status: CLOSED
+owner: project-owner
+authorizedBy: agent/plans/active/v54-implementation-batches.md
+scope:
+  includePaths: [platform/hengzhun-regression-system/controller, docs/architecture/refactoring/batches/RF-014, agent/backlog.yaml, agent/plans/active/v54-implementation-batches.md, agent/plans/active/hengzhun-i10-langgraph-deepagents-controller-migration-task-package.md, agent/plans/active/hengzhun-i10-tp00-change-inventory-v1.json]
+  excludePaths: [platform/hengzhun-regression-system/.data, platform/hengzhun-regression-system/flowise, platform/hengzhun-regression-system/harness, platform/hengzhun-regression-system/mcp, platform/hengzhun-regression-system/worker, apps, services, infra]
+budgets: {maxChangedFiles: 20, maxNewFiles: 14, maxChangedLines: 1800, maxContractsChanged: 1, maxMigrationsAdded: 0, maxOpenModules: 2}
+baseline: {gitCommit: 9d79b7c1e6cfedd995093cc7a378dc8e9218fa98, dirtyTreeManifest: docs/architecture/refactoring/batches/RF-014/baseline.md, releaseIdentity: ca0430ca9cac496937901f5980c5bd7df4c6f3598ae4ffa58718ea453fac9089, capturedAt: "2026-08-25T11:30:00+08:00"}
+architecture: {businessCapability: controller-read-only-shadow, publicContract: agent/plans/active/hengzhun-i10-langgraph-deepagents-controller-migration-task-package.md, dependencyManifest: docs/architecture/refactoring/module-boundaries-v1.yaml, allowedModules: [governance.refactoring, hengzhun.controller], forbiddenModules: [hengzhun.flowise, hengzhun.harness, hengzhun.mcp, hengzhun.worker]}
+mustPreserve: [Shadow receives no mutation port, Flowise remains the sole writer, raw input and arguments never enter reports, real Shadow requires separate authorization]
+verification:
+  requiredCommands:
+    - {name: shadow-contracts, command: "runtime/node-v20.20.2-win-x64/node.exe --test controller/test/shadow-comparator.test.mjs controller/test/release-identity.test.cjs", expectedExitCode: 0, evidence: docs/architecture/refactoring/batches/RF-014/evidence-index.md, blocking: true}
+    - {name: refactoring-governance, command: "py -3 scripts/architecture/validate_refactoring.py --batch RF-014", expectedExitCode: 0, evidence: docs/architecture/refactoring/batches/RF-014/evidence-index.md, blocking: true}
+rollback: {triggerConditions: [raw data emission, mutation capability, fail-open threshold, identity omission], recoveryPoint: RF-013 closed state, maxRtoMinutes: 20, maxRpoMinutes: 0}
+exceptions: {allowedVagueNames: [], crossModule: []}

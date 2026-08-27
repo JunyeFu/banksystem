@@ -3,6 +3,7 @@
 const crypto = require('node:crypto')
 const fs = require('node:fs')
 const path = require('node:path')
+const { projectJourneyEvidenceFields } = require('./journey-evidence-projection.cjs')
 const {
   createShadowObserver,
   normalizeAuthoringSubmitRequest,
@@ -13,6 +14,7 @@ const {
   normalizeIngestDecisionSubmitRequest,
   normalizeIngestSubmitRequest,
   normalizeJourneyPrepareDraft,
+  normalizeRegisteredAdapterSelection,
   normalizeRepairProposeRequest,
   parseJsonArgument,
   projectCanonicalHarnessError,
@@ -35,12 +37,12 @@ const runtimeContractVersion = (() => {
     throw new Error(`HENGZHUN_CONTRACT_VERSION_INVALID: ${error.message}`)
   }
 })()
-const flowiseAppPath = path.resolve(process.env.FLOWISE_APP_PATH || path.join(productRoot, '.data', 'flowise', 'app'))
-const runtimeRequire = require('node:module').createRequire(path.join(flowiseAppPath, 'package.json'))
-const { McpServer } = runtimeRequire('@modelcontextprotocol/sdk/server/mcp.js')
-const { StreamableHTTPServerTransport } = runtimeRequire('@modelcontextprotocol/sdk/server/streamableHttp.js')
-const { createMcpExpressApp } = runtimeRequire('@modelcontextprotocol/sdk/server/express.js')
-const z = runtimeRequire('zod/v4')
+// RF-016: MCP owns its runtime dependencies. Normal execution must not resolve
+// SDK or schema code from a Flowise installation tree.
+const { McpServer } = require('@modelcontextprotocol/sdk/server/mcp.js')
+const { StreamableHTTPServerTransport } = require('@modelcontextprotocol/sdk/server/streamableHttp.js')
+const { createMcpExpressApp } = require('@modelcontextprotocol/sdk/server/express.js')
+const z = require('zod/v4')
 
 const harnessUrl = new URL(process.env.HENGZHUN_HARNESS_URL || 'http://127.0.0.1:18788')
 const namespace = process.env.HENGZHUN_NAMESPACE || 'hengzhun-local'
@@ -63,6 +65,18 @@ const legacyErrorOutput = process.env.HENGZHUN_RF001_LEGACY_ERROR === '1'
 const legacyCredentialBinding = process.env.HENGZHUN_RF004_LEGACY_CREDENTIAL === '1'
 const safeRef = z.string().trim().min(3).max(160).regex(/^[A-Za-z0-9._:-]+$/)
 const controlledAttachmentRef = z.string().trim().min(8).max(1024).regex(/^[A-Za-z0-9._:-]+$/)
+const flowiseColdRollback = process.env.HENGZHUN_FLOWISE_COLD_ROLLBACK === '1'
+const requiredAttachmentInput = flowiseColdRollback
+  ? { flowiseFileRef: controlledAttachmentRef }
+  : { attachmentRef: controlledAttachmentRef }
+const optionalAttachmentInput = flowiseColdRollback
+  ? { flowiseFileRef: z.union([controlledAttachmentRef, z.literal('')]).optional() }
+  : { attachmentRef: z.union([controlledAttachmentRef, z.literal('')]).optional() }
+const attachmentRefFromInput = input => {
+  const value = flowiseColdRollback ? input.flowiseFileRef : input.attachmentRef
+  if (!value) throw Object.assign(new Error('I10_ATTACHMENT_REF_REQUIRED'), { code: 'I10_ATTACHMENT_REF_REQUIRED' })
+  return value
+}
 const jsonObjectArgument = z.union([
   z.string().trim().min(2).max(24_000),
   z.record(z.string(), z.unknown())
@@ -286,6 +300,10 @@ function compactJourneyForFlowise(body) {
       preconditions: texts(draft.preconditions, 8, 160), steps, assertions: texts(draft.assertions, 8, 160),
       credentialRef: text(draft.credentialRef, 160), missingFields: texts(draft.missingFields, 20, 160),
       confirmationStatus: text(draft.confirmationStatus, 80),
+      confidence: Number.isFinite(Number(draft.confidence)) ? Number(draft.confidence) : 0,
+      ...(typeof draft.targetProfileId === 'string' && draft.targetProfileId ? { targetProfileId: text(draft.targetProfileId, 160) } : {}),
+      ...(Number.isInteger(draft.targetProfileVersion) && draft.targetProfileVersion > 0 ? { targetProfileVersion: draft.targetProfileVersion } : {}),
+      ...(normalizeRegisteredAdapterSelection(draft.adapterSelection) ? { adapterSelection: normalizeRegisteredAdapterSelection(draft.adapterSelection) } : {}),
       ...(businessInputs ? { businessInputs } : {})
     }
   }
@@ -303,6 +321,9 @@ function compactJourneyForFlowise(body) {
   if (body?.references && typeof body.references === 'object') {
     compact.references = {
       candidateId: text(body.references.candidateId, 160),
+      targetProfileId: text(body.references.targetProfileId, 160),
+      ingestJobId: text(body.references.ingestJobId, 160),
+      confirmedDecisionEventId: text(body.references.confirmedDecisionEventId, 160),
       taskId: text(body.references.taskId, 160),
       runId: text(body.references.runId, 160),
       scheduleId: text(body.references.scheduleId, 160),
@@ -329,6 +350,10 @@ function compactJourneyForFlowise(body) {
   }
   if (proposal) compact.proposal = proposal
   if (nextAction) compact.nextAction = nextAction
+  const evidence = projectJourneyEvidenceFields(body)
+  compact.terminal = evidence.terminal
+  compact.references = { ...(compact.references || {}), ...evidence.references }
+  compact.artifactCards = evidence.artifactCards
   return compact
 }
 
@@ -390,7 +415,10 @@ function createServer() {
       credentialRef: z.string().trim().max(160).optional(),
       // Only a registry-owned symbolic id crosses the Flowise boundary.  The
       // Harness, not Flowise or the model, resolves it to a signed binding.
-      adapterSelection: z.union([z.literal(''), z.literal('fuxing-bank-demo')]).optional(),
+      // Accept bounded transport text so an unresolved Flowise optional-state
+      // template reaches the registry normalizer below; only a registered id
+      // survives into the Harness request.
+      adapterSelection: z.string().trim().max(160).optional(),
       adapterBinding: z.object({
         adapterId: z.string().trim().min(1).max(80),
         adapterVersion: z.string().trim().min(1).max(40),
@@ -407,12 +435,20 @@ function createServer() {
       tlsPolicy: z.enum(['STRICT', 'ALLOW_SELF_SIGNED']).optional(),
       sessionRef: safeRef
     }
-  }, async ({ sessionRef, ...business }) => callHarness('/v1/i10/target-profiles:prepare', {
-    namespace,
-    idempotencyKey: idempotencyKey('target_profile_prepare', sessionRef, business),
-    sessionRef,
-    ...business
-  }))
+  }, async ({ sessionRef, ...business }) => {
+    // Native Flowise may render an absent optional state leaf as its template
+    // text. Only the registry-owned symbolic id is meaningful; normalize all
+    // other values to omission before idempotency and Harness validation.
+    const adapterSelection = normalizeRegisteredAdapterSelection(business.adapterSelection)
+    const canonical = { ...business, ...(adapterSelection ? { adapterSelection } : {}) }
+    if (!adapterSelection) delete canonical.adapterSelection
+    return callHarness('/v1/i10/target-profiles:prepare', {
+      namespace,
+      idempotencyKey: idempotencyKey('target_profile_prepare', sessionRef, canonical),
+      sessionRef,
+      ...canonical
+    })
+  })
 
   server.registerTool('target_profile_get', {
     description: '按目标站点档案ID或入口URL读取冻结的站点、跳转、凭据域名与版本策略。',
@@ -442,15 +478,15 @@ function createServer() {
   }))
 
   server.registerTool('ingest_submit', {
-    description: '提交Flowise受控附件引用。案例文件同步解析，视频进入本机异步抽帧/OCR/视觉分析；禁止任意本机路径。',
+    description: '提交Harness受控 attachmentRef。案例文件同步解析，视频进入本机异步抽帧/OCR/视觉分析；禁止任意本机路径。',
     inputSchema: {
-      inputType: z.enum(['CASE_FILE', 'VIDEO']), flowiseFileRef: controlledAttachmentRef,
+      inputType: z.enum(['CASE_FILE', 'VIDEO']), ...requiredAttachmentInput,
       originalFilename: z.string().trim().min(1).max(260), credentialRef: safeRef.optional(),
       targetSystemHint: z.string().trim().min(1).max(160).optional(),
       entryUrlHint: z.string().url().max(2048).optional(), supportingImageIngestId: z.union([safeRef,z.literal('')]).optional(), sessionRef: safeRef
     }
   }, async ({ sessionRef, ...business }) => {
-    const request = normalizeIngestSubmitRequest(business)
+    const request = normalizeIngestSubmitRequest({ ...business, flowiseFileRef: attachmentRefFromInput(business), attachmentRef: undefined })
     return callHarness('/v1/i10/ingest:submit', {
       namespace, idempotencyKey: idempotencyKey('ingest_submit', sessionRef, request), ...request
     })
@@ -491,12 +527,15 @@ function createServer() {
     description: '为自然语言、案例文件或视频主输入提交0到20张受控补充图片；图片在本机脱敏后由MiMo视觉观察并结合中英文OCR，再由主控模型筛选案例事实。',
     inputSchema: {
       sourceRef: safeRef, primaryInputType: z.enum(['NATURAL_LANGUAGE','CASE_FILE','VIDEO']),
-      images: z.array(z.object({ flowiseFileRef: controlledAttachmentRef, originalFilename: z.string().trim().min(1).max(260).optional(), purposeHint: z.string().trim().max(500).optional() })).min(1).max(20),
+      images: z.array(z.object({ ...requiredAttachmentInput, originalFilename: z.string().trim().min(1).max(260).optional(), purposeHint: z.string().trim().max(500).optional() })).min(1).max(20),
       primaryText: z.string().trim().max(8000).optional(), credentialRef: safeRef.optional(), sessionRef: safeRef
     }
-  }, async ({ sessionRef, ...business }) => callHarness('/v1/i10/images:submit', {
-    namespace, idempotencyKey: idempotencyKey('image_ingest_submit',sessionRef,business), ...business
-  }))
+  }, async ({ sessionRef, ...business }) => {
+    const canonical = { ...business, images: business.images.map(image => ({ ...image, flowiseFileRef: attachmentRefFromInput(image), attachmentRef: undefined })) }
+    return callHarness('/v1/i10/images:submit', {
+      namespace, idempotencyKey: idempotencyKey('image_ingest_submit',sessionRef,canonical), ...canonical
+    })
+  })
 
   server.registerTool('image_ingest_get', {
     description: '查询补充图片OCR、主控模型事实筛选和人工确认状态；不返回未脱敏图片或敏感值。',
@@ -554,17 +593,19 @@ function createServer() {
       naturalLanguage: z.string().trim().max(8000).optional(),
       entryUrl: z.string().max(4096).optional(),
       targetSystem: z.string().trim().max(160).optional(),
-      flowiseFileRef: z.union([controlledAttachmentRef,z.literal('')]).optional(),
+      ...optionalAttachmentInput,
       originalFilename: z.string().trim().max(260).optional(),
       credentialRef: z.string().trim().max(160).optional(),
       // Flowise serializes optional references as "" when no profile exists.
       targetProfileId: z.union([safeRef,z.literal('')]).optional(),
+      preparationId: z.union([safeRef,z.literal('')]).optional(),
+      ingestJobId: z.union([safeRef,z.literal('')]).optional(),
       // Flowise persists an empty start-state collection as the string "" in
       // a fresh resumed chat. Accept that transport representation here and
       // normalize it before calling Harness; the Harness contract remains an
       // array and never receives an ambiguous string.
       supportingImages: z.union([z.array(z.object({
-        flowiseFileRef: controlledAttachmentRef,
+        ...requiredAttachmentInput,
         // Signed Flowise attachment references carry the canonical filename.
         // Keep this optional so the LLM cannot invent a filename merely to
         // satisfy the transport schema. Harness verifies an explicitly
@@ -592,15 +633,22 @@ function createServer() {
         normalizedSupportingImages = text ? parseJsonArgument(text, 'I10_JOURNEY_SUPPORTING_IMAGES_INVALID') : []
       }
       if (!Array.isArray(normalizedSupportingImages)) throw new Error('I10_JOURNEY_SUPPORTING_IMAGES_INVALID')
+      normalizedSupportingImages = normalizedSupportingImages.map(image => ({
+        ...image,
+        flowiseFileRef: attachmentRefFromInput(image),
+        attachmentRef: undefined
+      }))
       const payload = {
         ...business,
+        ...(business.attachmentRef || business.flowiseFileRef ? { flowiseFileRef: attachmentRefFromInput(business) } : {}),
+        attachmentRef: undefined,
         sessionRef,
         supportingImages: normalizedSupportingImages,
         ...(normalizedDraft ? { draftJson: normalizedDraft } : {}),
         ...(semanticAssessment ? { semanticAssessment } : {}),
         ...(inputRevision === undefined ? {} : { inputRevision })
       }
-      for (const key of ['journeyId','flowiseFileRef','originalFilename','credentialRef','targetProfileId','scheduleId','taskId']) {
+      for (const key of ['journeyId','flowiseFileRef','originalFilename','credentialRef','targetProfileId','preparationId','ingestJobId','scheduleId','taskId']) {
         // A fresh Flowise execution can retain an unresolved upstream
         // template literally (for example "{{ output.journeyId }}"). These
         // are absent optional values, not valid opaque IDs; fail closed for
@@ -819,46 +867,48 @@ function createServer() {
     inputSchema: { preparationId: safeRef }
   }, async ({ preparationId }) => callHarness('/v1/i8/authoring:get', { namespace, preparationId }))
 
-  server.registerTool('candidate_get', {
-    description: '从已确认 IntentPlan 确定性编译阶段3计划，或读取当前候选生成状态；可受控等待本地Worker完成六次稳定性签证，技术参数由 MCP 注入。',
+  server.registerTool('candidate_compile', {
+    description: '对已冻结的作者化版本显式提交一次候选编译；版本、重试目标和原因必须在批准前确定。',
     inputSchema: {
       preparationId: safeRef,
       sessionRef: safeRef,
-      waitForCertificate: z.boolean().optional(),
-      waitTimeoutSeconds: z.number().int().min(1).max(180).optional(),
-      retryFailed: z.boolean().optional(),
+      expectedPreparationVersion: z.number().int().positive(),
+      previousJobId: safeRef.optional(),
+      retryFailed: z.boolean().default(false),
       revisionReason: z.string().trim().min(8).max(500).optional()
     }
-  }, async ({ preparationId, sessionRef, waitForCertificate, waitTimeoutSeconds, retryFailed, revisionReason }) => {
-    let current = await shadowedRequest('candidate_get', '/v1/i8/candidates:get', { namespace, preparationId })
-    if (!current.response.ok && current.response.status !== 404) {
-      return textResult({ errorCode: current.body.errorCode || 'I8_CANDIDATE_STATUS_UNAVAILABLE', status: current.response.status }, true)
+  }, async ({ preparationId, sessionRef, expectedPreparationVersion, previousJobId, retryFailed, revisionReason }) => {
+    const business = {
+      preparationId,
+      expectedPreparationVersion,
+      stabilityPolicyVersion: 'I10_2X2_V1',
+      retryFailed,
+      previousJobId: previousJobId || null,
+      revisionReason: revisionReason || null
     }
-    if (current.response.status === 404 || (retryFailed === true &&
-        ['AUTHORING_REVIEW_REQUIRED', 'CANDIDATE_REPAIR_REQUIRED'].includes(current.body?.nextAction))) {
-      const authoring = await shadowedRequest('candidate_get', '/v1/i8/authoring:get', { namespace, preparationId })
-      if (!authoring.response.ok || !Number.isInteger(authoring.body.version)) {
-        return textResult({ errorCode: authoring.body.errorCode || 'I8_PREPARATION_VERSION_UNAVAILABLE', status: authoring.response.status }, true)
-      }
-      const compiled = await shadowedRequest('candidate_get', '/v1/i8/candidates:compile', {
-        namespace,
-        idempotencyKey: idempotencyKey('candidate_get', sessionRef, {
-          preparationId,
-          expectedPreparationVersion: authoring.body.version,
-          retryFailed: retryFailed === true,
-          revisionReason: revisionReason || null,
-          previousJobId: current.body?.job?.jobId || null
-        }),
-        preparationId,
-        expectedPreparationVersion: authoring.body.version,
-        stabilityPolicyVersion: 'I10_2X2_V1',
-        retryFailed: retryFailed === true,
-        ...(revisionReason ? { revisionReason } : {})
-      })
-      if (!compiled.response.ok) {
-        return textResult({ errorCode: compiled.body.errorCode || 'I8_CANDIDATE_COMPILE_FAILED', status: compiled.response.status }, true)
-      }
-      current = compiled
+    return callHarness('/v1/i8/candidates:compile', {
+      namespace,
+      idempotencyKey: idempotencyKey('candidate_compile', sessionRef, business),
+      preparationId,
+      expectedPreparationVersion,
+      stabilityPolicyVersion: 'I10_2X2_V1',
+      retryFailed,
+      ...(previousJobId ? { previousJobId } : {}),
+      ...(revisionReason ? { revisionReason } : {})
+    })
+  })
+
+  server.registerTool('candidate_get', {
+    description: '纯读取当前候选生成状态；可受控等待本地Worker完成稳定性签证，但绝不创建或重试候选。',
+    inputSchema: {
+      preparationId: safeRef,
+      waitForCertificate: z.boolean().optional(),
+      waitTimeoutSeconds: z.number().int().min(1).max(180).optional()
+    }
+  }, async ({ preparationId, waitForCertificate, waitTimeoutSeconds }) => {
+    let current = await shadowedRequest('candidate_get', '/v1/i8/candidates:get', { namespace, preparationId })
+    if (!current.response.ok) {
+      return textResult({ errorCode: current.body.errorCode || 'I8_CANDIDATE_STATUS_UNAVAILABLE', status: current.response.status }, true)
     }
     if (waitForCertificate !== true) return textResult(current.body)
     const deadline = Date.now() + (waitTimeoutSeconds ?? 120) * 1000
@@ -910,23 +960,22 @@ function createServer() {
   })
 
   server.registerTool('candidate_preview', {
-    description: '仅预览已取得稳定性证书且Hash复核通过的候选脚本；按完整行分页，下载链接为短时一次性授权。',
+    description: '纯预览已取得稳定性证书且Hash复核通过的候选脚本；下载授权由独立工具签发。',
     inputSchema: {
       preparationId: safeRef,
       cursor: z.string().regex(/^line:\d+$/).optional(),
-      limit: z.number().int().min(1).max(100).optional(),
-      includeDownload: z.boolean().optional()
+      limit: z.number().int().min(1).max(100).optional()
     }
-  }, async ({ preparationId, cursor, limit, includeDownload }) => {
+  }, async ({ preparationId, cursor, limit }) => {
     const current = await shadowedRequest('candidate_preview', '/v1/i8/candidates:get', { namespace, preparationId })
     if (!current.response.ok || !current.body.candidate?.candidateId) {
       return textResult({ errorCode: current.body.errorCode || 'I8_CANDIDATE_UNAVAILABLE', status: current.response.status }, true)
     }
     const preview = await shadowedRequest('candidate_preview', '/v1/i8/candidates:preview', {
-      namespace, candidateId: current.body.candidate.candidateId, ...(cursor ? { cursor } : {}), ...(limit ? { limit } : {}), includeDownload: includeDownload === true
+      namespace, candidateId: current.body.candidate.candidateId, ...(cursor ? { cursor } : {}), ...(limit ? { limit } : {}), includeDownload: false
     })
     if (!preview.response.ok) return textResult({ errorCode: preview.body.errorCode || 'I8_PREVIEW_FAILED', status: preview.response.status }, true)
-    if (preview.body.download?.href) preview.body.download.href = new URL(preview.body.download.href, harnessUrl).toString()
+    if (preview.body.download) delete preview.body.download
     return textResult(preview.body, false, 16 * 1024)
   })
 
@@ -953,13 +1002,19 @@ function createServer() {
 
   server.registerTool('run_submit', {
     description: '仅对已明确激活的精确脚本版本提交一次按需纯Playwright回归。',
-    inputSchema: { preparationId: safeRef, sessionRef: safeRef }
-  }, async ({ preparationId, sessionRef }) => {
+    inputSchema: {
+      preparationId: safeRef,
+      journeyId: z.string().regex(/^journey_[0-9a-f-]{36}$/),
+      confirmedDecisionEventId: z.string().regex(/^journeyevent_[0-9a-f-]{36}$/),
+      sessionRef: safeRef
+    }
+  }, async ({ preparationId, journeyId, confirmedDecisionEventId, sessionRef }) => {
     const binding = normalizeCredentialBinding(legacyCredentialBinding)
+    const business = { preparationId, journeyId, confirmedDecisionEventId }
     return callHarness('/v1/i8/runs:submit', {
       namespace,
-      idempotencyKey: idempotencyKey('run_submit', sessionRef, { preparationId }),
-      preparationId,
+      idempotencyKey: idempotencyKey('run_submit', sessionRef, business),
+      ...business,
       ...(binding.credentialAlias ? { credentialAlias: binding.credentialAlias } : {})
     })
   })
@@ -1013,23 +1068,37 @@ function createServer() {
     description: '在用户确认规范化时间后，为已激活候选创建精确绑定脚本版本的周期或一次性回归。用户不提供技术版本和凭据。',
     inputSchema: {
       preparationId: safeRef,
+      journeyId: z.string().regex(/^journey_[0-9a-f-]{36}$/),
+      confirmedDecisionEventId: z.string().regex(/^journeyevent_[0-9a-f-]{36}$/),
       scheduleType: z.enum(['RECURRING', 'ONE_TIME']),
       cronExpression: z.union([z.string().trim().min(9).max(128), z.literal('')]).optional(),
       runAt: z.union([z.string().datetime({ offset: true }), z.literal('')]).optional(),
       timezone: z.string().trim().min(1).max(80).default('Asia/Shanghai'),
-      misfirePolicy: z.enum(['SKIP', 'RUN_ONCE']).default('RUN_ONCE'),
-      misfireGraceSeconds: z.number().int().min(0).max(86400).default(300),
-      maxRetries: z.number().int().min(0).max(5).default(1),
+      misfirePolicy: z.enum(['SKIP', 'RUN_ONCE', 'RUN_ONCE_WITHIN_GRACE']).default('RUN_ONCE_WITHIN_GRACE'),
+      // Flowise serializes CustomFunction state leaves as strings when they
+      // are passed into a later Tool node. Coerce only these two bounded
+      // integer fields at the MCP boundary; Harness still receives numbers.
+      misfireGraceSeconds: z.coerce.number().int().min(0).max(86400).default(300),
+      maxRetries: z.coerce.number().int().min(0).max(5).default(1),
       confirmationRef: safeRef,
       sessionRef: safeRef
     }
-  }, async ({ preparationId, scheduleType, cronExpression, runAt, timezone, misfirePolicy, misfireGraceSeconds, maxRetries, confirmationRef, sessionRef }) => {
+  }, async ({ preparationId, journeyId, confirmedDecisionEventId, scheduleType, cronExpression, runAt, timezone, misfirePolicy, misfireGraceSeconds, maxRetries, confirmationRef, sessionRef }) => {
     const binding = normalizeCredentialBinding(legacyCredentialBinding)
-    const business = { preparationId, scheduleType, cronExpression, runAt, timezone, misfirePolicy, misfireGraceSeconds, maxRetries, confirmationRef }
+    // The Journey normalizer owns misfire semantics. Legacy Flow nodes may
+    // still echo user wording such as RUN_ONCE; never let that weaken the
+    // frozen ONE_TIME grace deadline or override recurring SKIP semantics.
+    const governedMisfirePolicy = scheduleType === 'ONE_TIME' ? 'RUN_ONCE_WITHIN_GRACE' : 'SKIP'
+    const governedMisfireGraceSeconds = 300
+    const governedMaxRetries = 1
+    const business = { preparationId, journeyId, confirmedDecisionEventId, scheduleType, cronExpression, runAt, timezone,
+      misfirePolicy: governedMisfirePolicy, misfireGraceSeconds: governedMisfireGraceSeconds,
+      maxRetries: governedMaxRetries, confirmationRef }
     return callHarness('/v1/i8/schedules:create', {
       namespace, idempotencyKey: idempotencyKey('schedule_create', sessionRef, business),
-      preparationId, scheduleType, ...(cronExpression ? { cronExpression } : {}), ...(runAt ? { runAt } : {}),
-      timezone, misfirePolicy, misfireGraceSeconds, maxRetries, confirmationRef,
+      preparationId, journeyId, confirmedDecisionEventId, scheduleType, ...(cronExpression ? { cronExpression } : {}), ...(runAt ? { runAt } : {}),
+      timezone, misfirePolicy: governedMisfirePolicy, misfireGraceSeconds: governedMisfireGraceSeconds,
+      maxRetries: governedMaxRetries, confirmationRef,
       ...(binding.credentialAlias ? { credentialAlias: binding.credentialAlias } : {})
     })
   })
@@ -1076,19 +1145,35 @@ function createServer() {
   })
 
   server.registerTool('result_inbox_list', {
-    description: '分页读取正式运行的离线结果收件箱，并可显式确认已读；只返回脱敏摘要和制品元数据。',
+    description: '纯分页读取正式运行的离线结果收件箱；只返回脱敏摘要和制品元数据。',
     inputSchema: {
       cursor: z.string().regex(/^seq:\d+$/).optional(),
       limit: z.number().int().min(1).max(20).default(10),
-      unreadOnly: z.boolean().default(false),
-      acknowledgeInboxIds: z.array(safeRef).max(50).default([])
+      unreadOnly: z.boolean().default(false)
     }
-  }, async ({ cursor, limit, unreadOnly, acknowledgeInboxIds }) => {
+  }, async ({ cursor, limit, unreadOnly }) => {
     const result = await shadowedRequest('result_inbox_list', '/v1/i8/results:inbox-list', {
-      namespace, ...(cursor ? { cursor } : {}), limit, unreadOnly, acknowledgeInboxIds
+      namespace, ...(cursor ? { cursor } : {}), limit, unreadOnly, acknowledgeInboxIds: []
     })
     if (!result.response.ok) return textResult({ errorCode: result.body.errorCode || 'I8_RESULT_INBOX_FAILED', status: result.response.status }, true)
     return textResult(result.body, false, 16 * 1024)
+  })
+
+  server.registerTool('result_inbox_ack', {
+    description: '对批准前冻结的一组 inboxId 与 itemHash 显式确认已读；不接受游标或查询条件。',
+    inputSchema: {
+      items: z.array(z.object({ inboxId: safeRef, expectedItemHash: z.string().regex(/^[0-9a-f]{64}$/) }).strict()).min(1).max(50),
+      sessionRef: safeRef
+    }
+  }, async ({ items, sessionRef }) => {
+    const business = { items: [...items].sort((left, right) => left.inboxId.localeCompare(right.inboxId)) }
+    const result = await shadowedRequest('result_inbox_ack', '/v1/i8/results:inbox-ack', {
+      namespace,
+      items: business.items,
+      idempotencyKey: idempotencyKey('result_inbox_ack', sessionRef, business)
+    })
+    if (!result.response.ok) return textResult({ errorCode: result.body.errorCode || 'I8_RESULT_INBOX_ACK_FAILED', status: result.response.status }, true)
+    return textResult(result.body)
   })
 
   server.registerTool('failure_get', {
@@ -1130,6 +1215,8 @@ function createServer() {
       const { patch } = normalizeRepairProposeRequest({ patchJson, operationType, targetRef, locatorKind, locatorValue, rationale })
       const current = await shadowedRequest('repair_propose', '/v1/i8/failures:get', { namespace, incidentId })
       if (!current.response.ok || !current.body.failureEnvelope?.envelopeHash) return textResult({ errorCode: current.body.errorCode || 'I8_FAILURE_ENVELOPE_UNAVAILABLE', status: current.response.status }, true)
+      const reusableProposalStatuses = new Set(['STABILITY_QUEUED', 'STABILITY_VALIDATING', 'WAITING_USER'])
+      if (reusableProposalStatuses.has(String(current.body.proposal?.status || ''))) return textResult(current.body, false, 16 * 1024)
       const business = { incidentId, expectedEnvelopeHash: current.body.failureEnvelope.envelopeHash, patch }
       return callHarness('/v1/i8/repairs:propose', { namespace, idempotencyKey: idempotencyKey('repair_propose', sessionRef, business), ...business })
     } catch (error) { return textResult({ errorCode: error.code || 'MCP_ARGUMENT_INVALID' }, true) }

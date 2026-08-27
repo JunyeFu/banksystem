@@ -1,0 +1,34 @@
+schemaVersion: 1
+portfolioId: HENGZHUN-I10-AGCLI-V1
+title: Hengzhun I10 CLI Agent delivery portfolio
+baseline: agent/plans/active/hengzhun-i10-cli-agent-baseline-v1.md
+capturedAt: "2026-08-26T11:44:41+08:00"
+sourceCommit: 9d79b7c1e6cfedd995093cc7a378dc8e9218fa98
+sourceReleaseIdentity: fbe97820dbb5d8132a3f678d886524a5f75215b212bb5181cfda8960fca69630
+evidenceClass: DOC_GOVERNANCE_ONLY
+executionPolicy:
+  orderAuthority: agent/plans/active/v54-implementation-batches.md
+  statusAuthority: agent/backlog.yaml
+  requireDedicatedRfBatch: true
+  maxActiveImplementationPackages: 1
+  mutationApproval: EXACT_PROPOSAL_ONCE
+  liveFirstDeterministicFailure: STOP
+packages:
+  - {order: 0, id: HENGZHUN-I10-AGCLI-TP00-AUTHORITY-REBASELINE-001, file: agent/plans/active/hengzhun-i10-agcli-tp00-authority-rebaseline-task-package.md, status: REVIEW, dependsOn: [], rfBatch: RF-015}
+  - {order: 1, id: HENGZHUN-I10-AGCLI-TP01-MCP-DECOUPLE-001, file: agent/plans/active/hengzhun-i10-agcli-tp01-mcp-decouple-task-package.md, status: REVIEW, dependsOn: [HENGZHUN-I10-AGCLI-TP00-AUTHORITY-REBASELINE-001], rfBatch: RF-016}
+  - {order: 2, id: HENGZHUN-I10-AGCLI-TP02-CONTROLLER-V2-001, file: agent/plans/active/hengzhun-i10-agcli-tp02-controller-v2-task-package.md, status: REVIEW, dependsOn: [HENGZHUN-I10-AGCLI-TP01-MCP-DECOUPLE-001], rfBatch: RF-017}
+  - {order: 3, id: HENGZHUN-I10-AGCLI-TP03-RUNTIME-ADAPTERS-001, file: agent/plans/active/hengzhun-i10-agcli-tp03-runtime-adapters-task-package.md, status: REVIEW, dependsOn: [HENGZHUN-I10-AGCLI-TP02-CONTROLLER-V2-001], rfBatch: RF-018}
+  - {order: 4, id: HENGZHUN-I10-AGCLI-TP04-DPAPI-SESSIONS-001, file: agent/plans/active/hengzhun-i10-agcli-tp04-dpapi-sessions-task-package.md, status: REVIEW, dependsOn: [HENGZHUN-I10-AGCLI-TP03-RUNTIME-ADAPTERS-001], rfBatch: RF-019}
+  - {order: 5, id: HENGZHUN-I10-AGCLI-TP05-CLI-HEADLESS-001, file: agent/plans/active/hengzhun-i10-agcli-tp05-cli-headless-task-package.md, status: REVIEW, dependsOn: [HENGZHUN-I10-AGCLI-TP04-DPAPI-SESSIONS-001], rfBatch: RF-020}
+  - {order: 6, id: HENGZHUN-I10-AGCLI-TP06-TERMINAL-UI-001, file: agent/plans/active/hengzhun-i10-agcli-tp06-terminal-ui-task-package.md, status: REVIEW, dependsOn: [HENGZHUN-I10-AGCLI-TP05-CLI-HEADLESS-001], rfBatch: RF-021}
+  - {order: 7, id: HENGZHUN-I10-AGCLI-TP07-LIFECYCLE-RELEASE-V4-001, file: agent/plans/active/hengzhun-i10-agcli-tp07-lifecycle-release-v4-task-package.md, status: REVIEW, dependsOn: [HENGZHUN-I10-AGCLI-TP06-TERMINAL-UI-001], rfBatch: RF-022}
+  - {order: 8, id: HENGZHUN-I10-AGCLI-TP08-OFFLINE-INTEGRATION-GATES-001, file: agent/plans/active/hengzhun-i10-agcli-tp08-offline-integration-gates-task-package.md, status: REVIEW, dependsOn: [HENGZHUN-I10-AGCLI-TP07-LIFECYCLE-RELEASE-V4-001], rfBatch: RF-023}
+  - {order: 9, id: HENGZHUN-I10-AGCLI-TP09-L1-LIVE-001, file: agent/plans/active/hengzhun-i10-agcli-tp09-l1-live-task-package.md, status: BLOCKED, dependsOn: [HENGZHUN-I10-AGCLI-TP08-OFFLINE-INTEGRATION-GATES-001], rfBatch: RF-024}
+  - {order: 10, id: HENGZHUN-I10-AGCLI-TP10-FULL18-RELEASE-001, file: agent/plans/active/hengzhun-i10-agcli-tp10-full18-release-task-package.md, status: BLOCKED, dependsOn: [HENGZHUN-I10-AGCLI-TP09-L1-LIVE-001], rfBatch: RF-025}
+completionPredicate:
+  releaseIdentityVersion: 4
+  sameIdentityLiveE2e: 18/18
+  requirePublicReadback: true
+  requireSupplyChainGate: true
+  requireDpapiRestoreDrill: true
+  requireColdRollbackDrill: true

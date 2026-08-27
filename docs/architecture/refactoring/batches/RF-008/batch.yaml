@@ -1,0 +1,91 @@
+schemaVersion: 1
+id: RF-008
+title: Cross-document temporal consistency and governance validation
+status: CLOSED
+owner: project-owner
+authorizedBy: agent/plans/active/v54-implementation-batches.md
+scope:
+  includePaths:
+    - scripts/architecture
+    - agent/backlog.yaml
+    - agent/plans/active/v54-implementation-batches.md
+    - docs/architecture/refactoring
+    - docs/current-state
+  excludePaths:
+    - platform/hengzhun-regression-system
+    - apps
+    - services
+    - infra
+    - data
+    - .data
+    - secrets
+    - .env
+budgets:
+  maxChangedFiles: 25
+  maxNewFiles: 3
+  maxChangedLines: 1600
+  maxContractsChanged: 1
+  maxMigrationsAdded: 0
+  maxOpenModules: 1
+baseline:
+  gitCommit: 9d79b7c1e6cfedd995093cc7a378dc8e9218fa98
+  dirtyTreeManifest: docs/architecture/refactoring/batches/RF-008/baseline.md
+  releaseIdentity: 632ad5ee7981b59f00824d0072d28da6075eef095d55a898d51c0103a897988f
+  capturedAt: "2026-08-03T17:48:34+08:00"
+architecture:
+  businessCapability: refactoring-temporal-governance
+  publicContract: docs/architecture/refactoring-control-process-v1.md
+  dependencyManifest: docs/architecture/refactoring/module-boundaries-v1.yaml
+  allowedModules: [governance.refactoring]
+  forbiddenModules: [hengzhun.flowise, hengzhun.harness, hengzhun.mcp, hengzhun.worker, bank.identity, bank.accounts, bank.payments]
+mustPreserve:
+  - Historical decisions and evidence bodies are immutable.
+  - Current status derives from batch, slice, task and evidence predicates, not prose labels.
+  - User-owned RF-005 decision-log edits and .pi remain untouched unless separately authorized.
+  - Temporal normalization cannot create runtime acceptance.
+verification:
+  requiredCommands:
+    - name: base-refactoring-validator
+      command: python scripts/architecture/validate_refactoring.py
+      expectedExitCode: 0
+      evidence: docs/architecture/refactoring/batches/RF-008/evidence-index.md
+      blocking: true
+    - name: temporal-validator
+      command: python scripts/architecture/validate_refactoring_temporal.py --enforce
+      expectedExitCode: 0
+      evidence: docs/architecture/refactoring/batches/RF-008/evidence-index.md
+      blocking: true
+rollback:
+  triggerConditions: [historical evidence mutation, false runtime promotion, excessive grandfathered conflicts]
+  recoveryPoint: 9d79b7c1 plus RF-008 baseline
+  maxRtoMinutes: 20
+  maxRpoMinutes: 0
+exceptions:
+  allowedVagueNames: []
+  crossModule: []
+  temporalGrandfathered:
+    - batchId: RF-001
+      code: BATCH_CLOSED_WITH_NONTERMINAL_SLICE
+      fingerprint: 6ccb25bb21a3dec55c815557711966cc2d62258adf35576d50c6adfc320d3ef1
+      asOf: "2026-08-04"
+      rationale: Legacy slice projections predate RF-008; historical closure evidence remains immutable.
+    - batchId: RF-002
+      code: BATCH_CLOSED_WITH_NONTERMINAL_SLICE
+      fingerprint: 63307666ad700ae7da40260f97448c6f2b65c2bc870a2d28bc150bc50ec94ac3
+      asOf: "2026-08-04"
+      rationale: Legacy slice projections predate RF-008; historical closure evidence remains immutable.
+    - batchId: RF-003
+      code: BATCH_CLOSED_WITH_NONTERMINAL_SLICE
+      fingerprint: 16b17232f118652eb9e3dfaa407dca94aeead0a5be0777289c5c4cf4f6910c57
+      asOf: "2026-08-04"
+      rationale: Legacy slice projections predate RF-008; historical closure evidence remains immutable.
+    - batchId: RF-004
+      code: BATCH_CLOSED_WITH_NONTERMINAL_SLICE
+      fingerprint: 36e318da80034443ac97324765af07ec4b1c3610ab48ee9cd8d5cdde574e3a96
+      asOf: "2026-08-04"
+      rationale: Legacy slice projections predate RF-008; historical closure evidence remains immutable.
+    - batchId: RF-005
+      code: BATCH_CLOSED_WITH_NONTERMINAL_SLICE
+      fingerprint: f680ac90b9b81ead7483dc0512c7d51baac8c4e42e5273c0598d52405a93dbae
+      asOf: "2026-08-04"
+      rationale: Legacy slice projections predate RF-008; user-owned decision history remains untouched.

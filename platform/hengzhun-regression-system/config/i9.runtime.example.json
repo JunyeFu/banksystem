@@ -8,6 +8,7 @@
   },
   "paths": {
     "nodeExecutable": "runtime/node-v20.20.2-win-x64/node.exe",
+    "flowiseNodeExecutable": "runtime/node-v24.19.0-win-x64/node.exe",
     "flowiseApp": "flowise/app",
     "flowiseData": ".data/flowise",
     "harnessDatabase": ".data/sqlite/regression_platform.sqlite",

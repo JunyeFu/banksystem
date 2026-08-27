@@ -1,0 +1,20 @@
+schemaVersion: 1
+id: RF-015
+title: CLI Agent authority rebaseline and task portfolio
+status: CLOSED
+owner: project-owner
+authorizedBy: agent/plans/active/v54-implementation-batches.md
+scope:
+  includePaths: [agent/plans/active/hengzhun-i10-cli-agent-baseline-v1.md, agent/plans/active/hengzhun-i10-cli-agent-task-packages-v1.yaml, agent/plans/active/hengzhun-i10-agcli-tp00-authority-rebaseline-task-package.md, agent/plans/active/hengzhun-i10-agcli-tp01-mcp-decouple-task-package.md, agent/plans/active/hengzhun-i10-agcli-tp02-controller-v2-task-package.md, agent/plans/active/hengzhun-i10-agcli-tp03-runtime-adapters-task-package.md, agent/plans/active/hengzhun-i10-agcli-tp04-dpapi-sessions-task-package.md, agent/plans/active/hengzhun-i10-agcli-tp05-cli-headless-task-package.md, agent/plans/active/hengzhun-i10-agcli-tp06-terminal-ui-task-package.md, agent/plans/active/hengzhun-i10-agcli-tp07-lifecycle-release-v4-task-package.md, agent/plans/active/hengzhun-i10-agcli-tp08-offline-integration-gates-task-package.md, agent/plans/active/hengzhun-i10-agcli-tp09-l1-live-task-package.md, agent/plans/active/hengzhun-i10-agcli-tp10-full18-release-task-package.md, docs/architecture/refactoring/batches/RF-015, agent/backlog.yaml, agent/plans/active/v54-implementation-batches.md]
+  excludePaths: [platform/hengzhun-regression-system/.data, platform/hengzhun-regression-system/flowise, platform/hengzhun-regression-system/controller, platform/hengzhun-regression-system/harness, platform/hengzhun-regression-system/mcp, platform/hengzhun-regression-system/worker, apps, services, infra]
+budgets: {maxChangedFiles: 30, maxNewFiles: 25, maxChangedLines: 5000, maxContractsChanged: 0, maxMigrationsAdded: 0, maxOpenModules: 1}
+baseline: {gitCommit: 9d79b7c1e6cfedd995093cc7a378dc8e9218fa98, dirtyTreeManifest: docs/architecture/refactoring/batches/RF-015/baseline.md, releaseIdentity: fbe97820dbb5d8132a3f678d886524a5f75215b212bb5181cfda8960fca69630, capturedAt: "2026-08-26T11:44:41+08:00"}
+architecture: {businessCapability: cli-agent-governance-baseline, publicContract: agent/plans/active/hengzhun-i10-cli-agent-baseline-v1.md, dependencyManifest: docs/architecture/refactoring/module-boundaries-v1.yaml, allowedModules: [governance.refactoring], forbiddenModules: [hengzhun.controller, hengzhun.flowise, hengzhun.harness, hengzhun.mcp, hengzhun.worker]}
+mustPreserve: [No product or runtime mutation, no ReleaseIdentity or ledger mutation, future implementation remains blocked until dedicated RF batch authorization, historical evidence is not promoted]
+verification:
+  requiredCommands:
+    - {name: refactoring-governance, command: "py -3 scripts/architecture/validate_refactoring.py --batch RF-015", expectedExitCode: 0, evidence: docs/architecture/refactoring/batches/RF-015/evidence-index.md, blocking: true}
+    - {name: refactoring-temporal, command: "py -3 scripts/architecture/validate_refactoring_temporal.py", expectedExitCode: 0, evidence: docs/architecture/refactoring/batches/RF-015/evidence-index.md, blocking: true}
+    - {name: docs-governance, command: "python scripts/docs/validate_docs.py", expectedExitCode: 0, evidence: docs/architecture/refactoring/batches/RF-015/evidence-index.md, blocking: true}
+rollback: {triggerConditions: [authority conflict, invalid task dependency, false runtime claim, governance validator failure], recoveryPoint: RF-014 closed state, maxRtoMinutes: 15, maxRpoMinutes: 0}
+exceptions: {allowedVagueNames: [], crossModule: []}

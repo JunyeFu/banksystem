@@ -1,0 +1,10 @@
+id: RF-006-S3
+title: Focused comparison and controlled cutover
+status: COMPLETED
+allowedPaths: [platform/hengzhun-regression-system/scripts, platform/hengzhun-regression-system/tests, docs/architecture/refactoring/batches/RF-006, docs/current-state]
+forbiddenPaths: [platform/hengzhun-regression-system/harness, platform/hengzhun-regression-system/mcp, platform/hengzhun-regression-system/flowise]
+workSteps: [compare legacy and selective outcomes, prove required gates remain, record cost delta]
+verification: [focused L1 comparison after RF-007, timing ledger reconciliation]
+rollback: disable selective mode and retain comparison evidence
+evidence:
+  - docs/architecture/refactoring/batches/RF-006/evidence/acceptance-mode-comparison-s3-2026-08-04.json

@@ -2,6 +2,16 @@ import path from 'node:path';
 import fs from 'node:fs';
 import { startHarness } from './server';
 
+export function resolveHarnessHost(value: string | undefined): string {
+  const host = (value ?? '127.0.0.1').trim().toLowerCase();
+  if (!['127.0.0.1', 'localhost', '::1'].includes(host)) {
+    throw Object.assign(new Error('Harness listener host must be an explicit loopback address.'), {
+      code: 'HENGZHUN_HOST_NOT_LOOPBACK'
+    });
+  }
+  return host;
+}
+
 async function main(): Promise<void> {
   const productRoot = path.resolve(process.env.HENGZHUN_PRODUCT_ROOT ?? process.cwd());
   const { server, application } = await startHarness({
@@ -9,7 +19,7 @@ async function main(): Promise<void> {
     databasePath: process.env.HENGZHUN_DATABASE_PATH,
     backupDirectory: process.env.HENGZHUN_DATABASE_BACKUP_PATH,
     artifactRoot: process.env.HENGZHUN_ARTIFACT_ROOT,
-    host: process.env.HOST ?? '127.0.0.1',
+    host: resolveHarnessHost(process.env.HOST),
     port: Number(process.env.PORT ?? 18788)
   });
   const address = server.address();
@@ -32,7 +42,12 @@ async function main(): Promise<void> {
   process.once('SIGTERM', shutdown);
 }
 
-main().catch(error => {
-  process.stderr.write(JSON.stringify({ event: 'startup_failed', errorCode: 'HARNESS_STARTUP_FAILED', message: error instanceof Error ? error.message : 'unknown' }) + '\n');
-  process.exitCode = 1;
-});
+if (require.main === module) {
+  void main().catch(error => {
+    const errorCode = typeof (error as {code?: unknown})?.code === 'string'
+      ? String((error as {code: string}).code)
+      : 'HARNESS_STARTUP_FAILED';
+    process.stderr.write(JSON.stringify({ event: 'startup_failed', errorCode, message: error instanceof Error ? error.message : 'unknown' }) + '\n');
+    process.exitCode = 1;
+  });
+}

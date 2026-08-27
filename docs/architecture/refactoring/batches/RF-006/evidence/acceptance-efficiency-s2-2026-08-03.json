@@ -1,0 +1,72 @@
+{
+  "schemaVersion": "hengzhun-rf006-s2-evidence-v1",
+  "capturedAt": "2026-08-03T20:22:38+08:00",
+  "scope": "RF-006-S2",
+  "evidenceClass": [
+    "CONTRACT",
+    "ISOLATED_INTEGRATION"
+  ],
+  "releaseIdentity": "632ad5ee7981b59f00824d0072d28da6075eef095d55a898d51c0103a897988f",
+  "ledgerObservation": {
+    "currentPassed": 0,
+    "required": 18,
+    "historicalStale": 18,
+    "checkpoints": 18,
+    "note": "Point-in-time read-only observation; RF-006-S2 did not create LIVE_E2E evidence."
+  },
+  "verification": {
+    "bundledNode": "runtime/node-v20.20.2-win-x64/node.exe",
+    "syntaxCheckedFiles": 5,
+    "focusedTests": {
+      "passed": 27,
+      "failed": 0,
+      "exitCode": 0
+    },
+    "costAnalyzerExitCode": 0,
+    "findings": {
+      "RF006-B02": "RESOLVED",
+      "RF006-B03": "MITIGATED",
+      "RF006-B04": "RESOLVED",
+      "RF006-B05": "RESOLVED"
+    }
+  },
+  "implementedControls": {
+    "changeSurfaceClassification": true,
+    "exactReusePredicate": true,
+    "authoringIdempotencyKey": true,
+    "inFlightRecoverInPlace": true,
+    "terminalAwareBoundedBackoff": true,
+    "legacyPollingRollbackSwitch": true,
+    "reconciledTimingLedger": true,
+    "latestAuthoritativeReplyWins": true
+  },
+  "sourceFiles": [
+    {
+      "path": "platform/hengzhun-regression-system/scripts/i10-18-chain-acceptance-live.cjs",
+      "sha256": "273528fe35eeed6600663ebf073250b89fac4bb3abdb343711ae7decf5b1f653",
+      "bytes": 56014
+    },
+    {
+      "path": "platform/hengzhun-regression-system/scripts/i10-stage8-live.cjs",
+      "sha256": "c46618605593443736a4046c6b8149bfb99c10193369db81edc32a9281c60848",
+      "bytes": 91091
+    },
+    {
+      "path": "platform/hengzhun-regression-system/scripts/i10-stage8-orchestrator.cjs",
+      "sha256": "73d21af445892db7c7e9d08c22ee78a6e0be47d8be3c1edbff8526de970c2774",
+      "bytes": 16508
+    },
+    {
+      "path": "platform/hengzhun-regression-system/scripts/i10-acceptance-execution-policy.cjs",
+      "sha256": "6e13dfdf050f175754b82cf9921f9be0d9d23e779f798d713b8f03647996867d",
+      "bytes": 9215
+    }
+  ],
+  "negativeClaims": {
+    "liveE2eExecuted": false,
+    "flowisePublished": false,
+    "servicesRestarted": false,
+    "full18Executed": false,
+    "runtimeAcceptanceEarned": false
+  }
+}

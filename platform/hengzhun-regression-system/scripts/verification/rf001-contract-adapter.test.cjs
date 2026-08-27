@@ -62,6 +62,27 @@ test('credential session read normalization is deterministic and bounded to the 
   })
 })
 
+test('registered adapter selection survives Journey projection and case normalization only by exact id', () => {
+  assert.equal(adapter.normalizeRegisteredAdapterSelection('fuxing-bank-demo'),'fuxing-bank-demo')
+  assert.equal(adapter.normalizeRegisteredAdapterSelection('forged-adapter'),undefined)
+  const base = {
+    title:'转账首次确认',objective:'验证转账确认',summary:'验证首次确认路由',targetSystem:'复兴银行门户',
+    entryUrl:'http://127.0.0.1:18082/portal/login',preconditions:['门户可访问'],
+    steps:[{action:'登录',expected:'登录成功'}],assertions:['登录成功'],missingFields:[],
+    credentialRef:'credential_12345678-1234-1234-1234-123456789abc'
+  }
+  const normalized = adapter.normalizeI10NaturalDraft(
+    {...base,adapterSelection:'fuxing-bank-demo'},'验证转账','session-adapter-selection-001',base.credentialRef
+  )
+  const forged = adapter.normalizeI10NaturalDraft(
+    {...base,adapterSelection:'forged-adapter'},'验证转账','session-adapter-selection-002',base.credentialRef
+  )
+  assert.equal(normalized.adapterSelection,'fuxing-bank-demo')
+  assert.equal(forged.adapterSelection,undefined)
+  const serverSource = fs.readFileSync(path.join(root,'mcp/src/server.cjs'),'utf8')
+  assert.match(serverSource,/normalizeRegisteredAdapterSelection\(draft\.adapterSelection\)/)
+})
+
 test('B3 integration uses one Harness response and keeps legacy output active', () => {
   const source = fs.readFileSync(path.join(root, 'mcp/src/server.cjs'), 'utf8')
   assert.match(source, /const \{ response, body \} = await requestHarness\(route, payload\)/)
@@ -103,15 +124,17 @@ test('B3-S2 all ten orchestration tools observe every direct Harness round-trip'
   }
 })
 
-test('B3-S2/S4 conditional-write tools declare their side effects: schedule_get retired to read-only', () => {
+test('RF-016 explicit mutation tools leave schedule, candidate and inbox reads pure', () => {
   const source = fs.readFileSync(path.join(root, 'mcp/src/server.cjs'), 'utf8')
   // RF-002-S4 (G5): schedule_get is read-only since the v7 consumer evidence
   // showed zero action=DISABLE calls; the authoritative disable path is
   // schedule_disable only.
   assert.equal((toolBlock(source, 'schedule_get').match(/\/v1\/plugin\/schedules:disable/g) || []).length, 0, 'schedule_get must no longer call schedules:disable')
   assert.doesNotMatch(toolBlock(source, 'schedule_get'), /z\.enum\(\['READ', 'DISABLE'\]/, 'schedule_get must no longer carry the DISABLE enum')
-  assert.equal((toolBlock(source, 'candidate_get').match(/\/v1\/i8\/candidates:compile/g) || []).length, 1, 'candidate_get compile path must call candidates:compile exactly once')
+  assert.equal((toolBlock(source, 'candidate_get').match(/\/v1\/i8\/candidates:compile/g) || []).length, 0, 'candidate_get must not compile')
+  assert.equal((toolBlock(source, 'candidate_compile').match(/\/v1\/i8\/candidates:compile/g) || []).length, 1, 'candidate_compile must call compile exactly once')
   assert.equal((toolBlock(source, 'result_inbox_list').match(/\/v1\/i8\/results:inbox-list/g) || []).length, 1, 'result_inbox_list must call inbox-list exactly once')
+  assert.equal((toolBlock(source, 'result_inbox_ack').match(/\/v1\/i8\/results:inbox-ack/g) || []).length, 1, 'result_inbox_ack must call ack exactly once')
 })
 
 test('B3-S2 shadow wrapper projects errors through legacy and canonical envelopes', () => {

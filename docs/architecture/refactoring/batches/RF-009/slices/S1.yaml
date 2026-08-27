@@ -1,0 +1,9 @@
+id: RF-009-S1
+title: Synthetic bounded LangGraph and Deep Agents feasibility slice
+status: COMPLETED
+allowedPaths: [platform/hengzhun-regression-system/experiments/agent-controller-ag00, docs/architecture/refactoring/batches/RF-009, scripts/architecture, agent/backlog.yaml, agent/plans/active/v54-implementation-batches.md, agent/plans/active/hengzhun-i10-langgraph-deepagents-controller-migration-task-package.md, agent/plans/active/hengzhun-i10-tp00-change-inventory-v1.json]
+forbiddenPaths: [platform/hengzhun-regression-system/.data, platform/hengzhun-regression-system/flowise, platform/hengzhun-regression-system/harness, platform/hengzhun-regression-system/mcp, platform/hengzhun-regression-system/worker, platform/hengzhun-regression-system/package.json, platform/hengzhun-regression-system/package-lock.json, apps, services, infra]
+workSteps: [freeze dependency metadata, implement bounded synthetic graph, test interrupt and exact resume, test security boundaries, record architecture decision]
+verification: [focused Node test exit 0, audit exit 0, governance validators exit 0, ReleaseIdentity unchanged, formal ledger unchanged]
+rollback: remove only the isolated experiment after explicit approval; preserve all product and user-owned files
+evidence: docs/architecture/refactoring/batches/RF-009/evidence-index.md

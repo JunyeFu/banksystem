@@ -1,0 +1,23 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "hengzhun-session-envelope/v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schemaVersion", "cipher", "sessionId", "revision", "createdAt", "updatedAt", "expiresAt", "status", "releaseIdentityHash", "namespaceHash", "threadIdHash", "journeyIdHash", "ciphertextSha256", "ciphertextBase64"],
+  "properties": {
+    "schemaVersion": { "const": "hengzhun-session-envelope/v1" },
+    "cipher": { "const": "WINDOWS_DPAPI_CURRENT_USER" },
+    "sessionId": { "type": "string", "pattern": "^session-[a-f0-9]{32}$" },
+    "revision": { "type": "integer", "minimum": 1 },
+    "createdAt": { "type": "string", "format": "date-time" },
+    "updatedAt": { "type": "string", "format": "date-time" },
+    "expiresAt": { "type": "string", "format": "date-time" },
+    "status": { "enum": ["ACTIVE", "COMPLETED", "ARCHIVED"] },
+    "releaseIdentityHash": { "type": "string", "pattern": "^[a-f0-9]{64}$" },
+    "namespaceHash": { "type": "string", "pattern": "^[a-f0-9]{64}$" },
+    "threadIdHash": { "type": "string", "pattern": "^[a-f0-9]{64}$" },
+    "journeyIdHash": { "type": "string", "pattern": "^[a-f0-9]{64}$" },
+    "ciphertextSha256": { "type": "string", "pattern": "^[a-f0-9]{64}$" },
+    "ciphertextBase64": { "type": "string", "minLength": 1 }
+  }
+}

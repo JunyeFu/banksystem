@@ -1,0 +1,29 @@
+{
+  "schemaVersion": "hengzhun-controller-release-manifest/v1",
+  "kind": "langgraph-deepagents-v1",
+  "checkpointSchemaVersion": "1",
+  "frameworkLockPath": "controller/package-lock.json",
+  "graphSourcePath": "controller/src/agent-controller.mjs",
+  "promptPaths": ["controller/prompt-v1.txt"],
+  "toolPolicyPath": "controller/tool-policy-v1.json",
+  "modelConfigIdentity": {
+    "bindingStatus": "UNBOUND_INACTIVE",
+    "providerProtocol": "OPENAI_COMPATIBLE",
+    "profile": "CONTROL_GENERIC",
+    "modelNameSource": "CONTROL_MODEL_NAME",
+    "temperature": 0,
+    "streaming": false
+  },
+  "releaseFiles": [
+    "controller/package.json",
+    "controller/package-lock.json",
+    "controller/controller-release-manifest-v1.json",
+    "controller/prompt-v1.txt",
+    "controller/tool-policy-v1.json",
+    "controller/src/agent-controller.mjs",
+    "controller/src/controller-port.cjs",
+    "controller/src/shadow-comparator.mjs",
+    "controller/src/state-security.mjs",
+    "controller/src/tool-policy.cjs"
+  ]
+}

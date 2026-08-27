@@ -1,0 +1,7 @@
+{
+  "name": "xlsx",
+  "version": "0.20.2",
+  "private": true,
+  "description": "Hengzhun fail-closed disabled stub; not an upstream xlsx release.",
+  "main": "index.js"
+}

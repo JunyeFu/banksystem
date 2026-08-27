@@ -29,14 +29,15 @@ const boundaryContract = readRepoJson('docs/architecture/refactoring/batches/RF-
 const serverSource = read('mcp/src/server.cjs')
 const matrixSource = readRepo('docs/architecture/refactoring/batches/RF-001/field-error-adapter-matrix.md')
 
-test('B4-S1 33 tool names are identical across the three authoritative sources', () => {
+test('RF-016 current 35-tool surface preserves the historical RF-001 33-tool subset', () => {
   const contractNames = runtimeContract.tools.map(tool => tool.name).sort()
   const boundaryNames = boundaryContract.tools.map(tool => tool.name).sort()
   const registered = [...serverSource.matchAll(/registerTool\('([a-z_]+)'/g)].map(match => match[1]).sort()
-  assert.equal(contractNames.length, 33, 'runtime contract must freeze exactly 33 tools')
+  assert.equal(contractNames.length, 35, 'runtime contract must freeze exactly 35 tools')
   assert.equal(boundaryNames.length, 33, 'boundary contract must freeze exactly 33 tools')
-  assert.equal(registered.length, 33, 'server.cjs must register exactly 33 tools')
-  assert.deepEqual(contractNames, boundaryNames, 'runtime and boundary contract tool sets must match')
+  assert.equal(registered.length, 35, 'server.cjs must register exactly 35 tools')
+  assert.deepEqual(boundaryNames.filter(name => !contractNames.includes(name)), [], 'historical RF-001 tools must remain available')
+  assert.deepEqual(contractNames.filter(name => !boundaryNames.includes(name)), ['candidate_compile', 'result_inbox_ack'])
   assert.deepEqual(contractNames, registered, 'server.cjs must register exactly the frozen tool set')
 })
 

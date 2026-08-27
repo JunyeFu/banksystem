@@ -1,0 +1,31 @@
+{
+  "schemaVersion": "hengzhun-agent-controller-ag00-dependencies/v1",
+  "capturedAt": "2026-08-25T10:12:00+08:00",
+  "registry": "https://registry.npmjs.org/",
+  "installPolicy": {
+    "exactVersions": true,
+    "ignoreScripts": true,
+    "productPackageMutation": false,
+    "externalModelCalls": false,
+    "maximumInstalledBytes": 268435456
+  },
+  "verification": {
+    "installedBytes": 53872573,
+    "installedFiles": 5808,
+    "npmLsExit": 0,
+    "productionAuditExit": 0,
+    "vulnerabilities": {"info":0,"low":0,"moderate":0,"high":0,"critical":0,"total":0},
+    "installScriptsExecuted": false,
+    "node20FocusedTests": 10
+  },
+  "packages": [
+    {"name":"@langchain/langgraph","version":"1.4.12","license":"MIT","node":">=18","integrity":"sha512-63iH/igH5Fh5fHqmWp09YYWaDKKB9v4RCmYNJBrnQ224rFRbjebgyYW6o5RCczN5FZxIhQj+xT51rrNmG0zi5A==","unpackedSize":4348357},
+    {"name":"deepagents","version":"1.12.2","license":"MIT","node":"NOT_DECLARED","integrity":"sha512-KtZI30xjCfNtZEQn+P8yaPV4bl6ZfxmZIgEhUHq50sXK/7MDHRD3T/jmbaVYkd5k1wOSHltFbhNv4eyMg/5udg==","unpackedSize":2460181},
+    {"name":"langchain","version":"1.5.0","license":"MIT","node":">=20","integrity":"sha512-7xc4JXynyRH64McYVw0Pb6wFGi8gkYDr1UmTKu8otO3tG86VyHE0jjd2ICqyJP10wpV6NHoSXFIZQI1bF+JrRw==","unpackedSize":3179620},
+    {"name":"@langchain/core","version":"1.2.0","license":"MIT","node":">=20","integrity":"sha512-nXmyH0FbcsASlRmC9sbqX0gjQdxgB9KcS13vkw9PMaH0zzylwZkGFU9sY0XCPa2/AokmaNTU9DOW3IUDfAtQow==","unpackedSize":7589565},
+    {"name":"@langchain/langgraph-sdk","version":"1.9.30","license":"MIT","node":"NOT_DECLARED","integrity":"sha512-hPzbhenvvFRn46PHnlkad3E+TuUIfRhNGpekR5cY12D1WKh3Viwfyz9HpzCbfVebChU9Kgk494V9RJTnh1jrPQ==","unpackedSize":4772459},
+    {"name":"@langchain/langgraph-checkpoint","version":"1.1.5","license":"MIT","node":">=18","integrity":"sha512-BwDwl5VeTOh6CVuiIPgsUgfK51vTJDMSbFcSCUfjJWsl8/DPdK/mbv+ejxJstkSk/BlSPMP4JfXWcN6jD2ea2Q==","unpackedSize":478850},
+    {"name":"langsmith","version":"0.7.1","license":"MIT","node":"NOT_DECLARED","integrity":"sha512-Wjk90UjNoY5cBHMlNAC/eZx5clI8jnjBOBW8uJu8+MWBtx0QesNjsUiLtjI+I3UnrpxFFpDqGXcnhBjH654Mqg==","unpackedSize":2370530},
+    {"name":"zod","version":"4.3.6","license":"MIT","node":"NOT_DECLARED","integrity":"sha512-rftlrkhHZOcjDwkGlnUtZZkvaPHCsDATp4pGpuOOMDaTdDDXF91wuVDJoWoPsKX/3YPQ5fHuF3STjcYyKr+Qhg==","unpackedSize":4343491}
+  ]
+}

@@ -1,0 +1,41 @@
+{
+  "schemaVersion": "hengzhun-i10-flowise-acquisition-policy-v1",
+  "install": {
+    "ignoreScripts": true,
+    "nativeScriptAllowlist": [
+      { "name": "better-sqlite3", "version": "12.11.1" },
+      { "name": "sqlite3", "version": "5.1.7" }
+    ]
+  },
+  "riskAcceptance": null,
+  "prunedGovernedPackagePaths": [
+    { "path": "@langchain/google-gauth/node_modules/@langchain/core", "name": "@langchain/core", "version": "1.1.19", "packageJsonSha256": "25dbbf9f24d112e47a750ee6fb75ac0ebe6d2d498d8c74d2c8b60d1429e62b30" },
+    { "path": "@puppeteer/browsers", "name": "@puppeteer/browsers", "version": "1.4.6", "packageJsonSha256": "9bcad7c54ab2f20a5fbc12c6b5d9d411bcce84f486b8f4667151dbde8c330330" },
+    { "path": "@xenova/transformers", "name": "@xenova/transformers", "version": "2.17.2", "packageJsonSha256": "0d605ca8d31ccbcff74729534f6f5e2f722d047c534cef6f53fafd22ef0b4c3d" },
+    { "path": "adm-zip", "name": "adm-zip", "version": "0.6.0", "packageJsonSha256": "76a6fc3e9bf811c9ada1173b7a7c0621d36329c29c221428f46f75762d3aeb5a" },
+    { "path": "epub2", "name": "epub2", "version": "3.0.2", "packageJsonSha256": "bcae3828262d2e35d355d4bd0cf975d6f436757c1bbf67fe9be57e71de54bb39" },
+    { "path": "extract-zip", "name": "extract-zip", "version": "2.0.2", "packageJsonSha256": "28788ff2ff87353472ceeef2503003c0cf03e14217bdaaae8dc0e1415b3117f0" },
+    { "path": "findup-sync", "name": "findup-sync", "version": "3.0.0", "packageJsonSha256": "e16cefba6cffae49c0178cd5ede8933be5d4f368f31b9715a0266552a21d3740" },
+    { "path": "flowise-components/node_modules/@getzep/zep-cloud", "name": "@getzep/zep-cloud", "version": "1.0.12", "packageJsonSha256": "7726974542f56fb492995a710199d7e0a46d550f66a65ac0fe9dc6e5612d71fa" },
+    { "path": "flowise-components/node_modules/@langchain/community", "name": "@langchain/community", "version": "1.1.12", "packageJsonSha256": "b9160495feab270acb6e14b82d036c582ee50b97dce74861c555b68c88443408" },
+    { "path": "flowise-embed", "name": "flowise-embed", "version": "3.1.6", "packageJsonSha256": "808cfd3fe514b8528153e9a1ce23901fbeadb45970b92702de2088724e85c6f4" },
+    { "path": "flowise-ui/node_modules/flowise-embed-react", "name": "flowise-embed-react", "version": "3.1.6", "packageJsonSha256": "d4cc71a80936aac42818ca83cb753399d34b2d70059e38d4baea19570dc7e577" },
+    { "path": "glob-watcher", "name": "glob-watcher", "version": "5.0.5", "packageJsonSha256": "f1d66857a0db25f5568b7461c569e9f193475e59f3d544236ecd75ab245cbc90" },
+    { "path": "gulp", "name": "gulp", "version": "4.0.2", "packageJsonSha256": "2b9b9964cf7416d606222ccb9131e71dd525c731bb84655a3e487e31697c1da7" },
+    { "path": "matchdep", "name": "matchdep", "version": "2.0.0", "packageJsonSha256": "36ef883ca86559a4ade38b1464c01fe6bc3713eb8e40620096dee031980f1e75" },
+    { "path": "onnx-proto", "name": "onnx-proto", "version": "4.0.4", "packageJsonSha256": "8cd708f578db632bc4dad53e5046df20e39de1e1ae72e756bf53605ec5592706" },
+    { "path": "onnxruntime-web", "name": "onnxruntime-web", "version": "1.14.0", "packageJsonSha256": "c238d02785f6449ccb642e883a4d6e5f60919154328092e1a3b67f7f10a6e597" },
+    { "path": "pdfjs-dist", "name": "pdfjs-dist", "version": "6.2.108", "packageJsonSha256": "d7918934bf0ef5b18beed1bd2d9b49a04447de445c171305a2de082ccee369ed" },
+    { "path": "puppeteer", "name": "puppeteer", "version": "20.9.0", "packageJsonSha256": "98f8221f37d1fe72bc13cb8b99ad080a714bce2eb5376afb7a5b4df7739e8afb" },
+    { "path": "puppeteer-core", "name": "puppeteer-core", "version": "20.9.0", "packageJsonSha256": "0c3d2bef5290be8b2ae00bb437a5f986a2e36487f01a3ae609ef4f888e767d35" },
+    { "path": "request", "name": "request", "version": "2.88.2", "packageJsonSha256": "d1d14f7fbeda187a0e35e542ebaf8f7a3885d484966c63fd7b61e80b0e4f7fbe" },
+    { "path": "seroval", "name": "seroval", "version": "1.6.2", "packageJsonSha256": "1d13945e8ec3121da8fa3af1c23a9b89c947b82732e7ff02fed8316b0bcb888d" },
+    { "path": "sharp", "name": "sharp", "version": "0.35.3", "packageJsonSha256": "0f3a7e7eb4f22978dfde46e6c7c6ecf3b86b43e33c3d366de88b334b4610c3ff" },
+    { "path": "solid-js", "name": "solid-js", "version": "1.9.15", "packageJsonSha256": "4dded6d2829e0b61ee215f7378d1703781e60ea0aa67ce36f9680077693ddb23" },
+    { "path": "@opentelemetry/auto-instrumentations-node", "name": "@opentelemetry/auto-instrumentations-node", "version": "0.79.0", "packageJsonSha256": "63ae8259d526ec5c71046611c0ed02532eee0d0d01ba78784ec78643c0a472b0" },
+    { "path": "@opentelemetry/sdk-node", "name": "@opentelemetry/sdk-node", "version": "0.221.0", "packageJsonSha256": "3688df387053d42ae25de7f151084ca0832391b0bd9962bba8b1a1d3baaf8d5b" },
+    { "path": "tmp", "name": "tmp", "version": "0.2.7", "packageJsonSha256": "58dddc0fa17fbd6f4329189ffcd66d7c4a6c0487896accaf4e9853ba7462df2c" },
+    { "path": "vite", "name": "vite", "version": "6.4.3", "packageJsonSha256": "a1d0149fd986fd34b6d35503d2c0d8d9f743c4dbaaf94fbc11812bc84b05884d" },
+    { "path": "xlsx", "name": "xlsx", "version": "0.20.2", "packageJsonSha256": "19a5eca8ce8cb1bd0d83144be145129212cf07a15a74bf9a1a955adb5806b874" }
+  ]
+}

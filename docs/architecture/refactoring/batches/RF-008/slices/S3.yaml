@@ -1,0 +1,9 @@
+id: RF-008-S3
+title: Governance cutover and residual conflict register
+status: COMPLETED
+allowedPaths: [scripts/architecture, agent/backlog.yaml, agent/plans/active/v54-implementation-batches.md, docs/architecture/refactoring, docs/current-state]
+forbiddenPaths: [platform/hengzhun-regression-system, apps, services, infra]
+workSteps: [enable failure gate, record grandfathered conflicts, verify changed-file scope]
+verification: [all governance validators, zero product changes]
+rollback: return gate to warning mode
+evidence: docs/architecture/refactoring/batches/RF-008/evidence-index.md

@@ -2,6 +2,8 @@ const os = require('node:os');
 const crypto = require('node:crypto');
 const fs = require('node:fs');
 const path = require('node:path');
+const { currentWorkerCodeSet } = require('../../scripts/i10-worker-code-set.cjs');
+const { startRunLeaseHeartbeat } = require('./run-lease.cjs');
 const { executeLoginProfile } = require('./adapters/fuxing-bank-demo/login-profile.cjs');
 const { executeAccountOwnership } = require('./adapters/fuxing-bank-demo/account-ownership.cjs');
 const { executeAuthRejectionRecovery } = require('./adapters/fuxing-bank-demo/auth-rejection-recovery.cjs');
@@ -29,31 +31,28 @@ const workerId = process.env.HENGZHUN_WORKER_ID || `worker-${os.hostname().toLow
 const healthFile = process.env.HENGZHUN_WORKER_HEALTH_FILE;
 const stopFile = process.env.HENGZHUN_STOP_FILE;
 
-function workerCodeVersion() {
-  const hash = crypto.createHash('sha256');
-  for (const relativePath of [
-    'index.cjs',
-    'i10-midscene-candidate-authoring.cjs',
-    'i8-candidate-runner.cjs',
-    'i8-formal-runner.cjs',
-    'i10-verification-execution.cjs'
-  ]) {
-    const absolutePath = path.join(__dirname, relativePath);
-    hash.update(`worker/src/${relativePath}`).update('\0');
-    if (!fs.existsSync(absolutePath)) hash.update('MISSING\0');
-    else hash.update(fs.readFileSync(absolutePath)).update('\0');
-  }
-  return hash.digest('hex');
-}
-
-const currentWorkerCodeVersion = workerCodeVersion();
+const currentWorkerCodeSetIdentity = currentWorkerCodeSet({ productRoot: path.resolve(__dirname, '..', '..') });
+const currentWorkerCodeVersion = currentWorkerCodeSetIdentity.workerCodeSetHash;
 
 function writeHealth(status, errorCode) {
   if (!healthFile) return;
   const target = path.resolve(healthFile);
   fs.mkdirSync(path.dirname(target), { recursive: true });
   const temporary = `${target}.${process.pid}.tmp`;
-  fs.writeFileSync(temporary, JSON.stringify({ schemaVersion: 'hengzhun-worker-health-v1', service: 'worker', status, pid: process.pid, workerId, workerCodeVersion: currentWorkerCodeVersion, updatedAt: new Date().toISOString(), ...(errorCode ? { errorCode } : {}) }));
+  fs.writeFileSync(temporary, JSON.stringify({
+    schemaVersion: 'hengzhun-worker-health-v2',
+    service: 'worker',
+    status,
+    pid: process.pid,
+    workerId,
+    workerCodeVersion: currentWorkerCodeVersion,
+    workerCodeSetVersion: currentWorkerCodeSetIdentity.workerCodeSetVersion,
+    workerCodeSetHash: currentWorkerCodeSetIdentity.workerCodeSetHash,
+    workerCodeSetManifestHash: currentWorkerCodeSetIdentity.workerCodeSetManifestHash,
+    workerCodeSetFileCount: currentWorkerCodeSetIdentity.workerCodeSetFileCount,
+    updatedAt: new Date().toISOString(),
+    ...(errorCode ? { errorCode } : {})
+  }));
   fs.renameSync(temporary, target);
 }
 
@@ -62,11 +61,12 @@ if (!workerToken || workerToken.length < 32) {
   process.exit(1);
 }
 
-async function post(pathname, body) {
+async function post(pathname, body, timeoutMs = 30_000) {
   const response = await fetch(`${harnessUrl}${pathname}`, {
     method: 'POST',
     headers: { authorization: `Bearer ${workerToken}`, 'content-type': 'application/json' },
-    body: JSON.stringify(body)
+    body: JSON.stringify(body),
+    signal: AbortSignal.timeout(timeoutMs)
   });
   const result = await response.json();
   if (!response.ok) {
@@ -107,6 +107,7 @@ async function completeFailure(task, error) {
     : null;
   return post(`/internal/worker/tasks/${encodeURIComponent(task.taskId)}:complete`, {
     workerId,
+    leaseVersion: task.leaseVersion,
     outcome: category === 'TEST_FAILURE' ? 'FAILED' : 'BLOCKED',
     summary: category === 'TEST_FAILURE' ? '门户回归断言失败。' : '门户回归被本机环境阻断。',
     errorCode: report.errorCode,
@@ -115,7 +116,7 @@ async function completeFailure(task, error) {
     userActionRequired: category === 'ENVIRONMENT',
     ...(diagnostic ? { failureDiagnostic: diagnostic } : {}),
     evidence
-  });
+  }, 120_000);
 }
 
 const verificationTerminalStatuses = new Set([
@@ -164,6 +165,7 @@ async function runOnce() {
   if (task.status === 'EMPTY') return false;
   process.stdout.write(JSON.stringify({ event: 'claimed', taskId: task.taskId, runId: task.runId }) + '\n');
   let i10Credential;
+  const leaseHeartbeat = startRunLeaseHeartbeat(task, { post, workerId });
   try {
     const executor = task.execution?.candidate ? executeI8FormalRun : executors.get(task.execution?.scriptPath);
     if (!executor) throw Object.assign(new Error('脚本不在已验证执行白名单中。'), { code: 'SCRIPT_NOT_ALLOWLISTED', category: 'ENVIRONMENT' });
@@ -175,19 +177,27 @@ async function runOnce() {
     }
     const result = await executor(task, process.env, i10Credential ? {
       credential: i10Credential,
+      signal: leaseHeartbeat.signal,
       entryUrl: task.execution.entryUrl,
       onVerificationChallenge: challenge => waitForVerificationConfirmation(challenge, task.namespace),
       onVerificationAttempt: attempt => post('/internal/worker/i10/verification:attempt', { ...attempt, workerId })
-    } : {});
+    } : { signal: leaseHeartbeat.signal });
+    leaseHeartbeat.assertCurrent();
     const completed = await post(`/internal/worker/tasks/${encodeURIComponent(task.taskId)}:complete`, {
       workerId,
+      leaseVersion: task.leaseVersion,
       ...result
-    });
+    }, 120_000);
     process.stdout.write(JSON.stringify({ event: 'completed', taskId: task.taskId, outcome: completed.outcome }) + '\n');
   } catch (error) {
+    if (error?.code === 'WORKER_LEASE_CONFLICT') {
+      process.stdout.write(JSON.stringify({ event: 'lease_lost', taskId: task.taskId, errorCode: error.code }) + '\n');
+      return true;
+    }
     const completed = await completeFailure(task, error);
     process.stdout.write(JSON.stringify({ event: 'completed', taskId: task.taskId, outcome: completed.outcome }) + '\n');
   } finally {
+    leaseHeartbeat.stop();
     if (i10Credential) {
       i10Credential.username = '';
       i10Credential.password = '';

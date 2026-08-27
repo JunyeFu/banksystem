@@ -1,0 +1,20 @@
+schemaVersion: 1
+id: RF-017
+title: Deterministic JSON Controller v2
+status: CLOSED
+owner: project-owner
+authorizedBy: agent/plans/active/v54-implementation-batches.md
+scope:
+  includePaths: [platform/hengzhun-regression-system/controller, platform/hengzhun-regression-system/scripts/verification, docs/architecture/refactoring/batches/RF-017, docs/architecture/refactoring/module-boundaries-v1.yaml, agent/backlog.yaml, agent/plans/active/v54-implementation-batches.md, agent/plans/active/hengzhun-i10-cli-agent-task-packages-v1.yaml, agent/plans/active/hengzhun-i10-agcli-tp02-controller-v2-task-package.md]
+  excludePaths: [platform/hengzhun-regression-system/.data, platform/hengzhun-regression-system/flowise, platform/hengzhun-regression-system/harness, platform/hengzhun-regression-system/mcp, platform/hengzhun-regression-system/worker, platform/hengzhun-regression-system/agent-cli, apps, services, infra]
+budgets: {maxChangedFiles: 18, maxNewFiles: 13, maxChangedLines: 2200, maxContractsChanged: 2, maxMigrationsAdded: 0, maxOpenModules: 1}
+baseline: {gitCommit: 9d79b7c1e6cfedd995093cc7a378dc8e9218fa98, dirtyTreeManifest: docs/architecture/refactoring/batches/RF-017/baseline.md, releaseIdentity: 03b6b55797832af8979f97a2dc6b5f6730c3abb680d76fde4f4ad2d8ba815dfa, capturedAt: "2026-08-26T14:35:00+08:00"}
+architecture: {businessCapability: deterministic-json-agent-control, publicContract: platform/hengzhun-regression-system/controller/src/controller-port.cjs, dependencyManifest: docs/architecture/refactoring/module-boundaries-v1.yaml, allowedModules: [hengzhun.controller], forbiddenModules: [hengzhun.flowise, hengzhun.harness, hengzhun.mcp, hengzhun.worker]}
+mustPreserve: [model has no mutation port, deterministic code owns prefetch risk transitions approval and reconciliation, frozen arguments are never recomputed, no runtime start model call publication ledger or LIVE_E2E]
+verification:
+  requiredCommands:
+    - {name: controller-v2-matrix, command: "runtime/node-v20.20.2-win-x64/node.exe --test controller/test/agent-controller-v2.test.mjs", expectedExitCode: 0, evidence: docs/architecture/refactoring/batches/RF-017/evidence-index.md, blocking: true}
+    - {name: controller-regression, command: "runtime/node-v20.20.2-win-x64/node.exe --test controller/test/*.test.mjs controller/test/*.test.cjs", expectedExitCode: 0, evidence: docs/architecture/refactoring/batches/RF-017/evidence-index.md, blocking: true}
+    - {name: governance, command: "py -3 scripts/architecture/validate_refactoring.py --batch RF-017", expectedExitCode: 0, evidence: docs/architecture/refactoring/batches/RF-017/evidence-index.md, blocking: true}
+rollback: {triggerConditions: [model can mutate, policy risk can be lowered, frozen arguments are recomputed, replay causes second mutation], recoveryPoint: RF-016 closed state, maxRtoMinutes: 20, maxRpoMinutes: 0}
+exceptions: {allowedVagueNames: [], crossModule: [Verification registration release identity projection and governance files are downstream projections of the sole open controller module]}

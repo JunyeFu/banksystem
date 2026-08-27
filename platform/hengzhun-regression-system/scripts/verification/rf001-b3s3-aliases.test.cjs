@@ -153,7 +153,7 @@ test('B3-S3 projections are deterministic, pure and never issue Harness requests
 // ---- handlers are wired to the projections ----
 test('B3-S3 tool handlers route alias fields through the adapter projections', () => {
   const source = serverSource()
-  assert.match(source, /const request = normalizeIngestSubmitRequest\(business\)/)
+  assert.match(source, /const request = normalizeIngestSubmitRequest\(\{ \.\.\.business, flowiseFileRef: attachmentRefFromInput\(business\)/)
   assert.match(source, /normalizeIngestDecisionSubmitRequest\(\{ correctionsJson, itemDecisionsJson \}\)/)
   assert.match(source, /const normalizedDraft = normalizeJourneyPrepareDraft\(draftJson\)/)
   assert.match(source, /const \{ normalizedCredentialRef, draft \} = normalizeCasePrepareRequest\(/)

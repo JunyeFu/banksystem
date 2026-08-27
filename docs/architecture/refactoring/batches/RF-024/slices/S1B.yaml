@@ -1,0 +1,9 @@
+id: RF-024-S1B
+title: Production TUI and bounded evidence closure
+status: COMPLETED
+allowedPaths: [platform/hengzhun-regression-system/agent-cli, platform/hengzhun-regression-system/scripts/verification, docs/architecture/refactoring/batches/RF-024, docs/architecture/refactoring/module-boundaries-v1.yaml, agent/plans/active/hengzhun-i10-agcli-tp06-terminal-ui-task-package.md, agent/plans/active/hengzhun-i10-agcli-tp08-offline-integration-gates-task-package.md]
+forbiddenPaths: [platform/hengzhun-regression-system/.data, platform/hengzhun-regression-system/flowise, platform/hengzhun-regression-system/harness/src, platform/hengzhun-regression-system/mcp/src, platform/hengzhun-regression-system/worker/src]
+workSteps: [bind interactive modes to production service, fork encrypted follow-up sessions on the same Journey, preserve exact approval gates, expose bounded read-only Journey evidence, prove terminal lifecycle]
+verification: [Node24 headless 12/12, Node24 TUI 13/13, Node24 offline integration 10/10, Node24 lifecycle v4 18/18, real PTY application exit code 0]
+rollback: restore only RF-024-S1B sources and governance paths
+evidence: docs/architecture/refactoring/batches/RF-024/evidence-index.md

@@ -7,28 +7,34 @@ const fs = require('node:fs')
 const path = require('node:path')
 
 const root = path.resolve(__dirname, '..')
-const target = path.join(root, 'flowise/app/node_modules/flowise-components/dist/nodes/agentflow/Retriever/Retriever.js')
-const structuredOutputTarget = path.join(root, 'flowise/app/node_modules/flowise-components/dist/src/utils.js')
-const customMcpTarget = path.join(root, 'flowise/app/node_modules/flowise-components/dist/nodes/tools/MCP/CustomMCP/CustomMCP.js')
-const customMcpCoreTarget = path.join(root, 'flowise/app/node_modules/flowise-components/dist/nodes/tools/MCP/core.js')
-const agentflowToolTarget = path.join(root, 'flowise/app/node_modules/flowise-components/dist/nodes/agentflow/Tool/Tool.js')
-const agentflowLlmTarget = path.join(root, 'flowise/app/node_modules/flowise-components/dist/nodes/agentflow/LLM/LLM.js')
-const agentflowRuntimeTarget = path.join(root, 'flowise/app/node_modules/flowise/dist/utils/buildAgentflow.js')
-const flowiseUiBuildRoot = path.join(root, 'flowise/app/node_modules/flowise-ui/build')
+const flowiseAppRoot = process.env.FLOWISE_APP_PATH
+  ? path.resolve(process.env.FLOWISE_APP_PATH)
+  : path.join(root, 'flowise/app')
+const target = path.join(flowiseAppRoot, 'node_modules/flowise-components/dist/nodes/agentflow/Retriever/Retriever.js')
+const structuredOutputTarget = path.join(flowiseAppRoot, 'node_modules/flowise-components/dist/src/utils.js')
+const customMcpTarget = path.join(flowiseAppRoot, 'node_modules/flowise-components/dist/nodes/tools/MCP/CustomMCP/CustomMCP.js')
+const customMcpCoreTarget = path.join(flowiseAppRoot, 'node_modules/flowise-components/dist/nodes/tools/MCP/core.js')
+const agentflowToolTarget = path.join(flowiseAppRoot, 'node_modules/flowise-components/dist/nodes/agentflow/Tool/Tool.js')
+const agentflowLlmTarget = path.join(flowiseAppRoot, 'node_modules/flowise-components/dist/nodes/agentflow/LLM/LLM.js')
+const agentflowRuntimeTarget = path.join(flowiseAppRoot, 'node_modules/flowise/dist/utils/buildAgentflow.js')
+const flowiseUiBuildRoot = path.join(flowiseAppRoot, 'node_modules/flowise-ui/build')
 const attachmentBridgeSource = path.join(root, 'flowise/i10/hengzhun-attachment-bridge-v1.js')
 const attachmentBridgeTarget = path.join(flowiseUiBuildRoot, 'hengzhun-attachment-bridge.js')
 const flowiseUiIndexTarget = path.join(flowiseUiBuildRoot, 'index.html')
 const frozenUpstreamHash = '6164ee560a979738fd1827e802a2e91d8697ca019fadbe9a29a20dbf53c4c3f1'
-const frozenStructuredOutputHash = '7a33b1205cd0fa9d661e0a93aa5632aae0e511ea7a3494fcd23e2da6246499c1'
-const frozenCustomMcpHash = '28a617e861c21d1b9b468602c7dcf2b10ea791c66a72facf709f58804ea17347'
-const frozenCustomMcpCoreHash = 'e0800ff304b6ba9331848eb504021483ba5227ccb0d145a4763d1456f4d797cc'
-const frozenAgentflowToolHash = 'b60dd350a0855cfa5f7a18f3b8f9b04d5470228d4076bbecdf8cdc7faadb62fe'
-const frozenAgentflowLlmHash = 'c31d348cb71e095c1c925f85686414699ea2c487831d9ba814ae613504a1c42c'
-const frozenAgentflowRuntimeHash = '0585270c9401de3466e79a7137e528281130720df9a2df95718b4c669773b9ca'
+const frozenStructuredOutputHash = 'e72bb516655fcc99182e26e10b1bea6cee36af0c10a5368cd103a5a9c4b0de99'
+const frozenCustomMcpHash = 'f660c0055d0ee3f193df478389a8a32ae32d48b6a68d127125b741a6f8777f58'
+const frozenCustomMcpCoreHash = 'b976824e21d83268f7f89a951a809ae7a083dacfdc1ef8aba9a11a730bc577c5'
+const frozenAgentflowToolHash = '225e63afe4b3b5390760cfea6c6a4f9d515d5d4c75be2aa4d912eb5d04057ded'
+const frozenAgentflowLlmHash = 'd3e58d5c1c7ea639e6290198e351637d651fbdfba9f5262d561d12e63597aadf'
+const frozenAgentflowRuntimeHash = '411cfdaad77eb982c4d8e30b16d584cee165e4f7e64fbdcd48d1852384f07edc'
 const marker = 'I9_PLATFORM_KNOWLEDGE_SQLITE_FALLBACK'
 const structuredOutputMarker = 'I9_MIMO_JSON_MODE_STRUCTURED_OUTPUT'
+const previousGovernedUploadMimeMarker = 'I10_FLOWISE_GOVERNED_FULL_UPLOAD_MIME_TYPES_V1'
+const governedUploadMimeMarker = 'I10_FLOWISE_GOVERNED_FULL_UPLOAD_MIME_TYPES_V2'
 const customMcpMarker = 'I9_RUNTIME_MCP_TOKEN_OVERLAY'
-const localMcpAuthorizationMarker = 'I9_LOOPBACK_MCP_AUTHORIZATION_OVERLAY'
+const previousLocalMcpAuthorizationMarker = 'I9_LOOPBACK_MCP_AUTHORIZATION_OVERLAY'
+const localMcpAuthorizationMarker = 'I9_LOOPBACK_MCP_AUTHORIZATION_OVERLAY_V2'
 const legacyMcpFailClosedMarker = 'I9_MCP_TOOL_ERROR_FAIL_CLOSED'
 const previousMcpFailClosedMarker = 'I9_MCP_TOOL_ERROR_FAIL_CLOSED_V2'
 const mcpFailClosedMarker = 'I9_MCP_TOOL_ERROR_FAIL_CLOSED_V3'
@@ -39,6 +45,7 @@ const i10McpStatePayloadMarker = 'I10_FLOWISE_MCP_STATE_PAYLOAD_UNWRAP_V1'
 const i10McpArgumentDiagnosticsMarker = 'I10_FLOWISE_MCP_ARGUMENT_TYPE_DIAGNOSTICS_V1'
 const i10McpArgumentChecksMarker = 'I10_FLOWISE_MCP_ARGUMENT_CONSTRAINT_CHECKS_V1'
 const i10McpTypedSchemaMarker = 'I10_FLOWISE_MCP_TYPED_SCHEMA_V1'
+const i10McpLoopbackTransportMarker = 'I10_FLOWISE_MCP_LOOPBACK_TRANSPORT_V1'
 const previousI10UploadMetadataMarker = 'I10_FLOWISE_CONTROLLED_ATTACHMENT_METADATA_V1'
 const i10UploadMetadataMarker = 'I10_FLOWISE_CONTROLLED_ATTACHMENT_METADATA_V2'
 const previousI10AttachmentOnlyInputMarkers = ['I10_FLOWISE_ATTACHMENT_ONLY_INPUT_V1', 'I10_FLOWISE_ATTACHMENT_ONLY_INPUT_V2']
@@ -105,12 +112,41 @@ function applyStructuredOutputOverlay() {
   const current = fs.readFileSync(structuredOutputTarget, 'utf8')
   if (current.includes(structuredOutputMarker)) return false
   assert.equal(sha256(current), frozenStructuredOutputHash, 'I9_FLOWISE_STRUCTURED_OUTPUT_UPSTREAM_HASH_DRIFT')
-  const patchPoint = 'return llmNodeInstance.withStructuredOutput(structuredOutputSchema);'
+  const patchPoint = `return llmNodeInstance.withStructuredOutput(structuredOutputSchema, {
+            method: 'functionCalling'
+        });`
   assert.ok(current.includes(patchPoint), 'I9_FLOWISE_STRUCTURED_OUTPUT_PATCH_POINT_MISSING')
   fs.writeFileSync(structuredOutputTarget, current.replace(
     patchPoint,
     `// ${structuredOutputMarker}: Qwen3.5-compatible ceiling uses non-thinking OpenAI JSON mode; MCP remains outside the model.\n        return llmNodeInstance.withStructuredOutput(structuredOutputSchema, { method: 'jsonMode' });`
   ))
+  return true
+}
+
+function applyGovernedUploadMimeOverlay() {
+  assert.ok(fs.existsSync(structuredOutputTarget), 'I10_FLOWISE_UPLOAD_MIME_RUNTIME_MISSING')
+  let current = fs.readFileSync(structuredOutputTarget, 'utf8')
+  if (current.includes(governedUploadMimeMarker)) return false
+  if (current.includes(previousGovernedUploadMimeMarker)) {
+    current = current.replace(previousGovernedUploadMimeMarker, governedUploadMimeMarker)
+      .replace("    'image/png',", "    'application/vnd.ms-excel',\n    'image/png',")
+    fs.writeFileSync(structuredOutputTarget, current)
+    return true
+  }
+  const patchPoint = `    'application/vnd.openxmlformats-officedocument.presentationml.presentation'
+]);`
+  assert.ok(current.includes(patchPoint), 'I10_FLOWISE_UPLOAD_MIME_PATCH_POINT_MISSING')
+  const governed = `    'application/vnd.openxmlformats-officedocument.presentationml.presentation',
+    // ${governedUploadMimeMarker}: the I10 graph accepts only these additional
+    // full-upload media types. Raw bytes remain outside controller LLM context.
+    'application/vnd.ms-excel',
+    'image/png',
+    'image/jpeg',
+    'image/webp',
+    'image/bmp',
+    'video/mp4'
+]);`
+  fs.writeFileSync(structuredOutputTarget, current.replace(patchPoint, governed))
   return true
 }
 
@@ -128,12 +164,28 @@ function applyCustomMcpOverlay() {
     )
     changed = true
   }
-  if (!current.includes(localMcpAuthorizationMarker)) {
+  if (current.includes(previousLocalMcpAuthorizationMarker) && !current.includes(localMcpAuthorizationMarker)) {
+    const legacyBlock = `            // ${previousLocalMcpAuthorizationMarker}: authorize only the bundled loopback Harness MCP at execution time.
+            if (serverParams?.url === 'http://127.0.0.1:18789/mcp' && process.env.HENGZHUN_MCP_TOKEN) {
+                serverParams.headers = { ...(serverParams.headers || {}), Authorization: \`Bearer \${process.env.HENGZHUN_MCP_TOKEN}\` };
+            }
+            if (process.env.CUSTOM_MCP_SECURITY_CHECK !== 'false') {`
+    assert.ok(current.includes(legacyBlock), 'I9_FLOWISE_CUSTOM_MCP_AUTHORIZATION_V1_PATCH_POINT_MISSING')
+    current = current.replace(legacyBlock, `            // ${localMcpAuthorizationMarker}: the only private destination is the exact bundled
+            // loopback MCP endpoint, authenticated with the process-scoped token. All other
+            // custom MCP destinations retain Flowise SSRF validation.
+            const governedLoopbackMcp = serverParams?.url === 'http://127.0.0.1:18789/mcp' && Boolean(process.env.HENGZHUN_MCP_TOKEN);
+            if (governedLoopbackMcp) {
+                serverParams.headers = { ...(serverParams.headers || {}), Authorization: \`Bearer \${process.env.HENGZHUN_MCP_TOKEN}\` };
+            }
+            if (!governedLoopbackMcp && process.env.CUSTOM_MCP_SECURITY_CHECK !== 'false') {`)
+    changed = true
+  } else if (!current.includes(localMcpAuthorizationMarker)) {
     const authorizationPatchPoint = "            if (process.env.CUSTOM_MCP_SECURITY_CHECK !== 'false') {"
     assert.ok(current.includes(authorizationPatchPoint), 'I9_FLOWISE_CUSTOM_MCP_AUTHORIZATION_PATCH_POINT_MISSING')
     current = current.replace(
       authorizationPatchPoint,
-      `            // ${localMcpAuthorizationMarker}: authorize only the bundled loopback Harness MCP at execution time.\n            if (serverParams?.url === 'http://127.0.0.1:18789/mcp' && process.env.HENGZHUN_MCP_TOKEN) {\n                serverParams.headers = { ...(serverParams.headers || {}), Authorization: \`Bearer \${process.env.HENGZHUN_MCP_TOKEN}\` };\n            }\n${authorizationPatchPoint}`
+      `            // ${localMcpAuthorizationMarker}: the only private destination is the exact bundled\n            // loopback MCP endpoint, authenticated with the process-scoped token. All other\n            // custom MCP destinations retain Flowise SSRF validation.\n            const governedLoopbackMcp = serverParams?.url === 'http://127.0.0.1:18789/mcp' && Boolean(process.env.HENGZHUN_MCP_TOKEN);\n            if (governedLoopbackMcp) {\n                serverParams.headers = { ...(serverParams.headers || {}), Authorization: \`Bearer \${process.env.HENGZHUN_MCP_TOKEN}\` };\n            }\n            if (!governedLoopbackMcp && process.env.CUSTOM_MCP_SECURITY_CHECK !== 'false') {`
     )
     changed = true
   }
@@ -146,6 +198,14 @@ function applyI10TypedMcpSchemaOverlay() {
   const current = fs.readFileSync(customMcpCoreTarget, 'utf8')
   if (current.includes(i10McpTypedSchemaMarker)) return false
   assert.equal(sha256(current), frozenCustomMcpCoreHash, 'I10_FLOWISE_CUSTOM_MCP_CORE_UPSTREAM_HASH_DRIFT')
+  const nativeJsonSchemaPoint = `            const argsSchema = tool.inputSchema ?? { type: 'object', properties: {} };`
+  if (current.includes(nativeJsonSchemaPoint) && current.includes('        schema: argsSchema')) {
+    fs.writeFileSync(customMcpCoreTarget, current.replace(
+      nativeJsonSchemaPoint,
+      `            // ${i10McpTypedSchemaMarker}: Flowise 3.1.4 passes the complete MCP JSON Schema\n            // directly to LangChain, preserving primitive and collection types.\n${nativeJsonSchemaPoint}`
+    ))
+    return true
+  }
   const before = `function createSchemaModel(inputSchema) {
     if (inputSchema.type !== 'object' || !inputSchema.properties) {
         throw new Error('Invalid schema type or missing properties');
@@ -187,6 +247,36 @@ function createSchemaModel(inputSchema) {
     return jsonSchemaToZod(inputSchema);
 }`
   fs.writeFileSync(customMcpCoreTarget, current.replace(before, after))
+  return true
+}
+
+function applyI10McpLoopbackTransportOverlay() {
+  assert.ok(fs.existsSync(customMcpCoreTarget), 'I10_FLOWISE_CUSTOM_MCP_CORE_MISSING')
+  let current = fs.readFileSync(customMcpCoreTarget, 'utf8')
+  if (current.includes(i10McpLoopbackTransportMarker)) return false
+  const securityPoint = `            const baseUrl = new URL(this.serverParams.url);
+            await (0, httpSecurity_1.checkDenyList)(this.serverParams.url);
+            const mergedHeaders = { ...this.serverParams?.headers, ...injectHeaders };`
+  assert.ok(current.includes(securityPoint), 'I10_FLOWISE_MCP_LOOPBACK_SECURITY_PATCH_POINT_MISSING')
+  current = current.replace(securityPoint, `            const baseUrl = new URL(this.serverParams.url);
+            const mergedHeaders = { ...this.serverParams?.headers, ...injectHeaders };
+            // ${i10McpLoopbackTransportMarker}: permit only the exact bundled loopback MCP
+            // when its Authorization header proves possession of the process-scoped token.
+            const governedLoopbackMcp = this.serverParams.url === 'http://127.0.0.1:18789/mcp' &&
+                Boolean(process.env.HENGZHUN_MCP_TOKEN) &&
+                mergedHeaders.Authorization === \`Bearer \${process.env.HENGZHUN_MCP_TOKEN}\`;
+            if (!governedLoopbackMcp)
+                await (0, httpSecurity_1.checkDenyList)(this.serverParams.url);`)
+  const fallbackPoint = `                                return (0, httpSecurity_1.secureFetch)(url.toString(), {
+                                    ...init,
+                                    headers
+                                });`
+  assert.ok(current.includes(fallbackPoint), 'I10_FLOWISE_MCP_LOOPBACK_FALLBACK_PATCH_POINT_MISSING')
+  current = current.replace(fallbackPoint, `                                const request = { ...init, headers };
+                                return governedLoopbackMcp
+                                    ? fetch(url.toString(), request)
+                                    : (0, httpSecurity_1.secureFetch)(url.toString(), request);`)
+  fs.writeFileSync(customMcpCoreTarget, current)
   return true
 }
 
@@ -289,7 +379,13 @@ function applyI10McpArgumentDiagnosticsOverlay() {
 function applyI10ToolArgumentCoercionOverlay() {
   assert.ok(fs.existsSync(agentflowToolTarget), 'I10_FLOWISE_AGENTFLOW_TOOL_RUNTIME_MISSING')
   let current = fs.readFileSync(agentflowToolTarget, 'utf8')
-  if (current.includes(i10ToolArgumentCoercionMarker)) return false
+  if (current.includes(i10ToolArgumentCoercionMarker)) {
+    const legacyConversion = 'const schema = (0, zod_to_json_schema_1.default)(tool.schema);'
+    if (!current.includes(legacyConversion)) return false
+    current = current.replace(legacyConversion, 'const schema = (0, utils_2.toolSchemaToJsonSchema)(tool.schema);')
+    fs.writeFileSync(agentflowToolTarget, current)
+    return true
+  }
 
   const instancePatchPoint = `        const toolInstance = (await newToolNodeInstance.init(newNodeData, '', options));
         let toolCallArgs = {};`
@@ -300,7 +396,7 @@ function applyI10ToolArgumentCoercionOverlay() {
         const toolArgumentProperties = (Array.isArray(toolInstance) ? toolInstance : [toolInstance]).reduce((properties, tool) => {
             if (!tool?.schema)
                 return properties;
-            const schema = (0, zod_to_json_schema_1.default)(tool.schema);
+            const schema = (0, utils_2.toolSchemaToJsonSchema)(tool.schema);
             return { ...properties, ...(schema.properties || {}) };
         }, {});
         let toolCallArgs = {};`)
@@ -340,7 +436,8 @@ function applyI10ToolInputSchemaDiagnosticsOverlay() {
   assert.ok(fs.existsSync(agentflowToolTarget), 'I10_FLOWISE_AGENTFLOW_TOOL_RUNTIME_MISSING')
   let current = fs.readFileSync(agentflowToolTarget, 'utf8')
   if (current.includes(i10ToolInputSchemaDiagnosticsV2Marker)) return false
-  if (!current.includes(i10ToolInputSchemaDiagnosticsMarker)) {
+  const hadV1Diagnostics = current.includes(i10ToolInputSchemaDiagnosticsMarker)
+  if (!hadV1Diagnostics) {
     const tryPatchPoint = `        try {
             let toolOutput;`
     assert.ok(current.includes(tryPatchPoint), 'I10_FLOWISE_TOOL_INPUT_SCHEMA_TRY_PATCH_POINT_MISSING')
@@ -360,12 +457,32 @@ function applyI10ToolInputSchemaDiagnosticsOverlay() {
                     itemRequired: Array.isArray(schema?.items?.required) ? schema.items.required : undefined,
                     itemKeys: schema?.items?.properties ? Object.keys(schema.items.properties).sort() : undefined
                 }]));
-            return { actual, expected };
+            const invalidKeys = Object.entries(toolCallArgs).filter(([key, value]) => {
+                const schema = toolArgumentProperties[key] || {};
+                if (Array.isArray(schema.enum) && !schema.enum.includes(value)) return true;
+                if (typeof schema.pattern === 'string' && typeof value === 'string' && !(new RegExp(schema.pattern)).test(value)) return true;
+                if (schema.type === 'integer' && (!Number.isInteger(value))) return true;
+                if (schema.type === 'number' && typeof value !== 'number') return true;
+                if (schema.type === 'string' && typeof value !== 'string') return true;
+                if (typeof schema.minLength === 'number' && typeof value === 'string' && value.length < schema.minLength) return true;
+                if (typeof schema.maxLength === 'number' && typeof value === 'string' && value.length > schema.maxLength) return true;
+                return false;
+            }).map(([key]) => key).sort();
+            const schemaIssues = (Array.isArray(toolInstance) ? toolInstance : [toolInstance]).flatMap((tool) => {
+                if (!tool?.schema || typeof tool.schema.safeParse !== 'function') return [];
+                const parsed = tool.schema.safeParse(toolCallArgs);
+                return parsed.success ? [] : parsed.error.issues.map((issue) => ({
+                    path: Array.isArray(issue.path) ? issue.path.map(String).join('.') : '',
+                    code: String(issue.code || 'invalid'),
+                    expected: typeof issue.expected === 'string' ? issue.expected : undefined
+                }));
+            });
+            return { actual, expected, invalidKeys, schemaIssues };
         };
         try {
             let toolOutput;`)
   }
-  const catchPatchPoint = current.includes(i10ToolInputSchemaDiagnosticsMarker)
+  const catchPatchPoint = hadV1Diagnostics
     ? `        catch (e) {
             const safeMessage = e instanceof Error ? e.message : String(e);
             if (/Received tool input did not match expected schema|ToolInputParsingException/i.test(safeMessage)) {
@@ -382,7 +499,18 @@ function applyI10ToolInputSchemaDiagnosticsOverlay() {
             if (/Received tool input did not match expected schema|ToolInputParsingException/i.test(safeMessage)) {
                 // ${i10ToolInputSchemaDiagnosticsV2Marker}: schema paths/types
                 // only; values, credentials and free-form input stay redacted.
-                const schemaError = safeMessage
+                const argumentStrings = [];
+                const collectArgumentStrings = (value) => {
+                    if (typeof value === 'string' && value) argumentStrings.push(value);
+                    else if (Array.isArray(value)) value.forEach(collectArgumentStrings);
+                    else if (value && typeof value === 'object') Object.values(value).forEach(collectArgumentStrings);
+                };
+                collectArgumentStrings(toolCallArgs);
+                let schemaError = safeMessage;
+                for (const argumentValue of [...new Set(argumentStrings)].sort((a, b) => b.length - a.length)) {
+                    schemaError = schemaError.split(argumentValue).join('[REDACTED]');
+                }
+                schemaError = schemaError
                     .replace(/sk-[A-Za-z0-9_-]+/g, '[REDACTED]')
                     .replace(/Bearer\\s+[^\\s"']+/gi, 'Bearer [REDACTED]')
                     .slice(0, 1200);
@@ -504,8 +632,12 @@ function applyI10AttachmentOnlyInputOverlay() {
     if (resolvePoint < 0) continue
     current = `${current.slice(0, legacyStart)}${current.slice(resolvePoint)}`
   }
-  const patchPoint = `        const reactFlowNodeData = await (0, exports.resolveVariables)(flowNodeData, incomingInput.question ?? '', incomingInput.form ?? agentflowRuntime.form ?? {}, flowConfig, availableVariables, variableOverrides, uploadedFilesContent, chatHistory, componentNodes, agentFlowExecutedData, iterationContext, loopCounts);`
-  assert.ok(current.includes(patchPoint), 'I10_FLOWISE_ATTACHMENT_ONLY_INPUT_PATCH_POINT_MISSING')
+  const patchPoints = [
+    `        const reactFlowNodeData = await (0, exports.resolveVariables)(flowNodeData, incomingInput.question ?? '', formValue, flowConfig, availableVariables, variableOverrides, uploadedFilesContent, chatHistory, componentNodes, agentFlowExecutedData, iterationContext, loopCounts, webhookValue);`,
+    `        const reactFlowNodeData = await (0, exports.resolveVariables)(flowNodeData, incomingInput.question ?? '', incomingInput.form ?? agentflowRuntime.form ?? {}, flowConfig, availableVariables, variableOverrides, uploadedFilesContent, chatHistory, componentNodes, agentFlowExecutedData, iterationContext, loopCounts);`
+  ]
+  const patchPoint = patchPoints.find((candidate) => current.includes(candidate))
+  assert.ok(patchPoint, 'I10_FLOWISE_ATTACHMENT_ONLY_INPUT_PATCH_POINT_MISSING')
   const replacement = `        // ${i10AttachmentOnlyInputMarker}: represent only the current turn's
         // Flowise-managed uploads as signed, opaque references. This envelope
         // contains no file bytes, machine path, or user secret and is available
@@ -587,8 +719,10 @@ function applyI10AttachmentBridgeOverlay() {
 
 function applyAdditionalOverlays() {
   const structured = applyStructuredOutputOverlay()
+  const governedUploadMime = applyGovernedUploadMimeOverlay()
   const customMcp = applyCustomMcpOverlay()
   const typedMcpSchema = applyI10TypedMcpSchemaOverlay()
+  const mcpLoopbackTransport = applyI10McpLoopbackTransportOverlay()
   const agentflowTool = applyAgentflowToolOverlay()
   const mcpArgumentDiagnostics = applyI10McpArgumentDiagnosticsOverlay()
   const mcpArgumentChecks = applyI10McpArgumentChecksOverlay()
@@ -599,7 +733,7 @@ function applyAdditionalOverlays() {
   const conditionalMerge = applyI10ConditionalMergeOverlay()
   const attachmentOnlyInput = applyI10AttachmentOnlyInputOverlay()
   const attachmentBridge = applyI10AttachmentBridgeOverlay()
-  return structured || customMcp || typedMcpSchema || agentflowTool || mcpArgumentDiagnostics || mcpArgumentChecks || toolArgumentCoercion || toolInputSchemaDiagnostics || mcpStatePayload || uploadMetadata || conditionalMerge || attachmentOnlyInput || attachmentBridge
+  return structured || governedUploadMime || customMcp || typedMcpSchema || mcpLoopbackTransport || agentflowTool || mcpArgumentDiagnostics || mcpArgumentChecks || toolArgumentCoercion || toolInputSchemaDiagnostics || mcpStatePayload || uploadMetadata || conditionalMerge || attachmentOnlyInput || attachmentBridge
 }
 
 assert.ok(fs.existsSync(target), 'I9_FLOWISE_RETRIEVER_RUNTIME_MISSING')

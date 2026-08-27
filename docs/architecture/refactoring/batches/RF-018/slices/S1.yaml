@@ -1,0 +1,9 @@
+id: RF-018-S1
+title: Controller runtime adapters
+status: COMPLETED
+allowedPaths: [platform/hengzhun-regression-system/controller, platform/hengzhun-regression-system/scripts/verification, docs/architecture/refactoring/batches/RF-018, docs/architecture/refactoring/module-boundaries-v1.yaml, agent/backlog.yaml, agent/plans/active/v54-implementation-batches.md, agent/plans/active/hengzhun-i10-cli-agent-task-packages-v1.yaml, agent/plans/active/hengzhun-i10-agcli-tp03-runtime-adapters-task-package.md]
+forbiddenPaths: [platform/hengzhun-regression-system/.data, platform/hengzhun-regression-system/flowise, platform/hengzhun-regression-system/harness, platform/hengzhun-regression-system/mcp/src, platform/hengzhun-regression-system/worker, platform/hengzhun-regression-system/agent-cli]
+workSteps: [lock adapter dependencies, implement tool-free model adapter, implement fenced MCP broker, fault inject, verify offline]
+verification: [adapter fault matrix exits 0, controller regression exits 0, registered impact exits 0, governance exits 0]
+rollback: restore only RF-018 changed paths to recorded dirty baseline
+evidence: docs/architecture/refactoring/batches/RF-018/evidence-index.md

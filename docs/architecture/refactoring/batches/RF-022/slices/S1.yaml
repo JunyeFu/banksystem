@@ -1,0 +1,9 @@
+id: RF-022-S1
+title: CLI lifecycle and ReleaseIdentity v4
+status: COMPLETED
+allowedPaths: [platform/hengzhun-regression-system/agent-cli, platform/hengzhun-regression-system/controller, platform/hengzhun-regression-system/config, platform/hengzhun-regression-system/scripts, platform/hengzhun-regression-system/package.json, docs/architecture/refactoring/batches/RF-022, docs/architecture/refactoring/module-boundaries-v1.yaml, agent/backlog.yaml, agent/plans/active/v54-implementation-batches.md, agent/plans/active/hengzhun-i10-cli-agent-task-packages-v1.yaml, agent/plans/active/hengzhun-i10-agcli-tp07-lifecycle-release-v4-task-package.md]
+forbiddenPaths: [platform/hengzhun-regression-system/.data, platform/hengzhun-regression-system/flowise/app, platform/hengzhun-regression-system/flowise/i10/agentflow-v7.json, platform/hengzhun-regression-system/harness/src, platform/hengzhun-regression-system/mcp/src, platform/hengzhun-regression-system/worker/src]
+workSteps: [freeze process and runtime specs, implement Flowise absence planner, implement v4 code sets and comparator, add doctor ownership and drift tests, verify offline]
+verification: [Node24 lifecycle identity matrix exits 0, registered product suite exits 0, governance exits 0]
+rollback: restore only RF-022 changed paths to recorded dirty baseline
+evidence: docs/architecture/refactoring/batches/RF-022/evidence-index.md

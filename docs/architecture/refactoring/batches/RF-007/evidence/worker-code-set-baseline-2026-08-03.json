@@ -1,0 +1,67 @@
+{
+  "schemaVersion": "rf007-worker-code-set-baseline-v1",
+  "evidenceClass": ["STATIC", "CONTRACT"],
+  "capturedAt": "2026-08-03T12:42:30.311Z",
+  "gitCommit": "9d79b7c1e6cfedd995093cc7a378dc8e9218fa98",
+  "runtimeMutationPerformed": false,
+  "releaseIdentity": {
+    "identityHash": "632ad5ee7981b59f00824d0072d28da6075eef095d55a898d51c0103a897988f",
+    "legacySingleFileWorkerHash": "3f5c348e80a0cd794429d58955362b522895834c712bdaa6077b47d1ea9fcdbd",
+    "runtimeFiveFileWorkerHash": "58257b9f94a094ecdd260ca9354e3f3d2f7b22059f02741c4979637ae70d01bc",
+    "completeWorkerCodeSetHash": "828f4d68da2717db95823783db0567adbdad3d397f962e99c5bb10c1dead3cba",
+    "releaseAligned": false,
+    "currentPassed": "0/18"
+  },
+  "workerCodeSet": {
+    "contractVersion": "WORKER_CODE_SET_V1_PROPOSED",
+    "entry": "worker/src/index.cjs",
+    "algorithm": "SHA256_SORTED_POSIX_PATH_NUL_RAW_BYTES_NUL",
+    "governedFileCount": 24,
+    "governedFiles": [
+      "dist/harness/src/context-envelope.js",
+      "dist/harness/src/errors.js",
+      "dist/harness/src/i8/adapters/fuxing-bank-demo.js",
+      "dist/harness/src/i8/script-package-builder.js",
+      "dist/harness/src/i8/stage3-schemas.js",
+      "dist/harness/src/i8/target-adapter-registry.js",
+      "dist/harness/src/schemas.js",
+      "dist/harness/src/utils.js",
+      "worker/src/adapters/fuxing-bank-demo/account-ownership.cjs",
+      "worker/src/adapters/fuxing-bank-demo/auth-rejection-recovery.cjs",
+      "worker/src/adapters/fuxing-bank-demo/index.cjs",
+      "worker/src/adapters/fuxing-bank-demo/login-profile.cjs",
+      "worker/src/adapters/fuxing-bank-demo/verification-policy.cjs",
+      "worker/src/i10-image-ingest-runner.cjs",
+      "worker/src/i10-midscene-candidate-authoring.cjs",
+      "worker/src/i10-onnx-ocr.cjs",
+      "worker/src/i10-verification-execution.cjs",
+      "worker/src/i10-verification-policy.cjs",
+      "worker/src/i10-video-ingest-runner.cjs",
+      "worker/src/i10-worker-utils.cjs",
+      "worker/src/i8-candidate-runner.cjs",
+      "worker/src/i8-formal-runner.cjs",
+      "worker/src/i8-stability-runner.cjs",
+      "worker/src/index.cjs"
+    ],
+    "unresolvedLocalImports": [],
+    "dynamicImports": [{
+      "from": "worker/src/i8-candidate-runner.cjs",
+      "count": 1,
+      "classification": "validated candidate artifact; governed by candidate hash, not WorkerCodeSet"
+    }],
+    "externalRuntimeDependencies": [
+      "node:child_process", "node:crypto", "node:fs", "node:module", "node:os", "node:path",
+      "ppu-paddle-ocr", "runtime/node_modules/playwright/index.js", "zod"
+    ]
+  },
+  "characterizationTest": {
+    "command": "runtime/node-v20.20.2-win-x64/node.exe --test tests/i10-release-identity-worker-set.test.cjs",
+    "tests": 3,
+    "passed": 2,
+    "failed": 1,
+    "exitCode": 1,
+    "expectedRedTest": "RF-007-S1 red gate: ReleaseIdentity must use the complete WorkerCodeSet hash",
+    "unexpectedFailures": 0,
+    "meaning": "The graph and hash contract are frozen; the current ReleaseIdentity still binds only one Worker file. RF-007-S2 must turn this assertion green."
+  }
+}

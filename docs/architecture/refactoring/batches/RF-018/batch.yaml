@@ -1,0 +1,20 @@
+schemaVersion: 1
+id: RF-018
+title: Controller runtime adapters
+status: CLOSED
+owner: project-owner
+authorizedBy: agent/plans/active/v54-implementation-batches.md
+scope:
+  includePaths: [platform/hengzhun-regression-system/controller, platform/hengzhun-regression-system/scripts/verification, docs/architecture/refactoring/batches/RF-018, docs/architecture/refactoring/module-boundaries-v1.yaml, agent/backlog.yaml, agent/plans/active/v54-implementation-batches.md, agent/plans/active/hengzhun-i10-cli-agent-task-packages-v1.yaml, agent/plans/active/hengzhun-i10-agcli-tp03-runtime-adapters-task-package.md]
+  excludePaths: [platform/hengzhun-regression-system/.data, platform/hengzhun-regression-system/flowise, platform/hengzhun-regression-system/harness, platform/hengzhun-regression-system/mcp/src, platform/hengzhun-regression-system/worker, platform/hengzhun-regression-system/agent-cli, apps, services, infra]
+budgets: {maxChangedFiles: 18, maxNewFiles: 13, maxChangedLines: 2200, maxContractsChanged: 2, maxMigrationsAdded: 0, maxOpenModules: 1}
+baseline: {gitCommit: 9d79b7c1e6cfedd995093cc7a378dc8e9218fa98, dirtyTreeManifest: docs/architecture/refactoring/batches/RF-018/baseline.md, releaseIdentity: d35cc71109b5e61dd95aa706540ad32e8f2914051a14a0d6f06f94b4980fc67a, capturedAt: "2026-08-26T15:20:00+08:00"}
+architecture: {businessCapability: controller-runtime-adapters, publicContract: platform/hengzhun-regression-system/controller/src/runtime-adapters.mjs, dependencyManifest: docs/architecture/refactoring/module-boundaries-v1.yaml, allowedModules: [hengzhun.controller], forbiddenModules: [hengzhun.flowise, hengzhun.harness, hengzhun.mcp, hengzhun.worker]}
+mustPreserve: [only exact loopback MCP endpoint is allowed, model adapter exposes no tools, mutations are never retried, proposal arguments and fencing remain bound, no runtime model request ledger or LIVE_E2E]
+verification:
+  requiredCommands:
+    - {name: adapter-fault-matrix, command: "runtime/node-v20.20.2-win-x64/node.exe --test controller/test/runtime-adapters.test.mjs", expectedExitCode: 0, evidence: docs/architecture/refactoring/batches/RF-018/evidence-index.md, blocking: true}
+    - {name: controller-regression, command: "npm test --prefix controller", expectedExitCode: 0, evidence: docs/architecture/refactoring/batches/RF-018/evidence-index.md, blocking: true}
+    - {name: governance, command: "py -3 scripts/architecture/validate_refactoring.py --batch RF-018", expectedExitCode: 0, evidence: docs/architecture/refactoring/batches/RF-018/evidence-index.md, blocking: true}
+rollback: {triggerConditions: [adapter retries mutation, non-loopback URL admitted, transport error treated as success, proposal fence mismatch admitted], recoveryPoint: RF-017 closed state, maxRtoMinutes: 20, maxRpoMinutes: 0}
+exceptions: {allowedVagueNames: [], crossModule: [Verification registration and governance projections are downstream of the sole open controller module]}

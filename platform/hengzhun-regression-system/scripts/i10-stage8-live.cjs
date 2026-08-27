@@ -5,9 +5,14 @@ const assert = require('node:assert/strict')
 const crypto = require('node:crypto')
 const fs = require('node:fs')
 const path = require('node:path')
+const { createRequire } = require('node:module')
 const opaqueReferences = require('./i10-reference-contracts.cjs')
+const acceptancePolicy = require('./i10-acceptance-execution-policy.cjs')
+const { currentReleaseIdentity, sameReleaseIdentity } = require('./i10-release-identity.cjs')
 
 const root = path.resolve(__dirname, '..')
+const runtimeRequire = createRequire(path.join(root, 'runtime/node_modules/_hengzhun_loader.cjs'))
+const Database = runtimeRequire('better-sqlite3')
 const matrix = JSON.parse(fs.readFileSync(path.join(root, 'flowise/i10/stage8-acceptance-matrix-v1.json'), 'utf8'))
 const publication = JSON.parse(fs.readFileSync(path.join(root, 'flowise/i10/publication-manifest-v1.json'), 'utf8'))
 const flowiseBase = process.env.FLOWISE_URL || 'http://127.0.0.1:3006'
@@ -16,6 +21,7 @@ let activeEvidenceRoot = evidenceRoot
 const scheduleWaitMs = boundedIntegerEnvironment('I10_STAGE8_SCHEDULE_WAIT_MS', 420_000, 60_000, 900_000)
 const schedulePollMs = boundedIntegerEnvironment('I10_STAGE8_SCHEDULE_POLL_MS', 10_000, 1_000, 60_000)
 const traceEnabled = process.env.I10_STAGE8_TRACE === '1'
+const rf006S2Enabled = process.env.I10_RF006_S2_ENABLED !== '0'
 
 function traceStage8(message) {
   if (traceEnabled) process.stderr.write(`[I10 stage8] ${message}\n`)
@@ -198,14 +204,25 @@ function authoringProcessingPending(body) {
   // keeps the acceptance driver polling forever merely because its first
   // asynchronous status card remains in the trace.
   const latestReply = [...executed].reverse().find(item => String(item?.nodeId || '').startsWith('directReplyAgentflow_'))
-  return latestReply?.nodeId === 'directReplyAgentflow_i10_v4_candidate_processing' ||
-    (/候选仍在处理中/.test(text) && /同一会话发送[“"]继续/.test(text))
+  if (latestReply) return canonicalRepairNodeId(latestReply.nodeId) === 'directReplyAgentflow_i10_v4_candidate_processing'
+  return /候选仍在处理中/.test(text) && /同一会话发送[“"]继续/.test(text)
+}
+
+function authoringFailedTerminal(body) {
+  const executed = Array.isArray(body?.agentFlowExecutedData) ? body.agentFlowExecutedData : []
+  const latestReply = [...executed].reverse().find(item => String(item?.nodeId || '').startsWith('directReplyAgentflow_'))
+  return latestReply?.nodeId === 'directReplyAgentflow_i10_v7_cross_session_authoring_failed' ||
+    /作者化已失败/.test(String(body?.text || ''))
 }
 
 function targetProfileTransitionPending(body) {
   const executed = Array.isArray(body?.agentFlowExecutedData) ? body.agentFlowExecutedData : []
   const latestReply = [...executed].reverse().find(item => String(item?.nodeId || '').startsWith('directReplyAgentflow_'))
-  return latestReply?.nodeId === 'directReplyAgentflow_i10_v6_target_profile_transition'
+  return [
+    'directReplyAgentflow_i10_v6_target_profile_transition',
+    'directReplyAgentflow_i10_v6_target_profile_transition_cross_session',
+    'directReplyAgentflow_i10_v6_target_profile_transition_already_active_cross_session'
+  ].includes(latestReply?.nodeId)
 }
 
 function imageFactsTransitionPending(body) {
@@ -342,6 +359,45 @@ function unique(values) {
   return [...new Set(values.filter(Boolean))]
 }
 
+function latestDirectReplyNodeId(body) {
+  const executed = Array.isArray(body?.agentFlowExecutedData) ? body.agentFlowExecutedData : []
+  return [...executed].reverse().find(item => String(item?.nodeId || '').startsWith('directReplyAgentflow_'))?.nodeId
+}
+
+function attachmentIngestTransitionPending(body) {
+  return latestDirectReplyNodeId(body) === 'directReplyAgentflow_i10_v6_attachment_ingest_confirmed'
+}
+
+function attachmentTargetTransitionPending(body) {
+  return latestDirectReplyNodeId(body) === 'directReplyAgentflow_i10_v6_attachment_target_profile_ready'
+}
+
+function attachmentJourneyTransitionPending(body) {
+  return latestDirectReplyNodeId(body) === 'directReplyAgentflow_i10_v6_attachment_journey_ready'
+}
+
+function initialCaseSupplement({ caseDefinition, sourceDescription, scenario }) {
+  const entryUrl = `${scenario.portalUrl}/portal/login`
+  const targetSystem = caseDefinition?.targetSystem || '复兴银行'
+  const supplement = {
+    inputType: 'NATURAL_LANGUAGE',
+    naturalLanguage: sourceDescription,
+    credentialRef: scenario.credentialRef,
+    entryUrl,
+    targetSystem
+  }
+  if (caseDefinition?.draftJson || caseDefinition?.typedBusinessInputs) {
+    supplement.draftJson = {
+      ...(caseDefinition?.draftJson || {}),
+      entryUrl,
+      targetSystem,
+      ...(caseDefinition?.typedBusinessInputs ? { businessInputs: caseDefinition.typedBusinessInputs } : {}),
+      missingFields: []
+    }
+  }
+  return supplement
+}
+
 function scenarioMetadata(transcript) {
   const text = serialized(transcript)
   const flow = JSON.parse(fs.readFileSync(path.join(root, 'flowise/i10/agentflow-v6.json'), 'utf8'))
@@ -375,6 +431,48 @@ function extractOpaqueId(value, prefix) {
 
 function latestOpaqueId(value, prefix) {
   return opaqueReferences.latestReference(serialized(value), prefix)
+}
+
+function structuredReferenceByKey(value, key, kind) {
+  const queue = [value]
+  let inspected = 0
+  while (queue.length > 0 && inspected < 20_000) {
+    inspected += 1
+    let current = queue.shift()
+    if (typeof current === 'string' && current.length <= 256_000 && /^[\[{]/.test(current.trim())) {
+      try { current = JSON.parse(current) } catch { continue }
+    }
+    if (!current || typeof current !== 'object') continue
+    if (!Array.isArray(current) && opaqueReferences.isReference(kind, current[key])) return String(current[key])
+    queue.push(...(Array.isArray(current) ? current : Object.values(current)))
+  }
+  return null
+}
+
+function authoritativeJourneyId(body) {
+  const executed = Array.isArray(body?.agentFlowExecutedData) ? body.agentFlowExecutedData : []
+  for (const item of [...executed].reverse()) {
+    const nodeId = String(item?.nodeId || item?.data?.id || '')
+    if (!/(?:journey_projection|journey_prepare|journey_get)/.test(nodeId)) continue
+    const value = item?.data?.output ?? item?.output
+    const journeyId = structuredReferenceByKey(value, 'journeyId', 'journey')
+    if (journeyId) return journeyId
+  }
+  return null
+}
+
+function authoritativeScheduleId(value) {
+  const bodies = Array.isArray(value) ? value : [value]
+  for (const body of [...bodies].reverse()) {
+    const executed = Array.isArray(body?.agentFlowExecutedData) ? body.agentFlowExecutedData : []
+    for (const item of [...executed].reverse()) {
+      const nodeId = String(item?.nodeId || item?.data?.id || '')
+      if (!/(?:schedule_create|schedule_get|result_inbox)/.test(nodeId)) continue
+      const scheduleId = structuredReferenceByKey(item?.data?.output ?? item?.output, 'scheduleId', 'schedule')
+      if (scheduleId) return scheduleId
+    }
+  }
+  return null
 }
 
 function latestStructuredNumber(value, key) {
@@ -411,16 +509,44 @@ function visitStructuredValues(value, visitor, maximum = 50_000) {
 }
 
 function findTaskTerminal(value, taskId = null) {
-  return visitStructuredValues(value, current => {
+  const queue = [value]
+  const terminals = []
+  let inspected = 0
+  while (queue.length > 0 && inspected < 50_000) {
+    inspected += 1
+    const current = queue.shift()
+    if (current && typeof current === 'object') {
+      if (Array.isArray(current)) {
+        queue.push(...current)
+        continue
+      }
     const currentTaskId = String(current.taskId || '')
-    if (!/^task_[0-9a-f-]{36}$/i.test(currentTaskId)) return false
-    if (taskId && currentTaskId !== taskId) return false
-    if (!/^(SUCCEEDED|FAILED|CANCELLED|BLOCKED)$/i.test(String(current.status || ''))) return false
-    if (!/^run_[0-9a-f-]{36}$/i.test(String(current.runId || ''))) return false
-    if (String(current.status).toUpperCase() === 'SUCCEEDED' &&
-      !/^(PASSED|SUCCEEDED)$/i.test(String(current.outcome || current.status || ''))) return false
-    return true
+      if (/^task_[0-9a-f-]{36}$/i.test(currentTaskId) &&
+          (!taskId || currentTaskId === taskId) &&
+          /^(SUCCEEDED|FAILED|CANCELLED|BLOCKED)$/i.test(String(current.status || '')) &&
+          /^run_[0-9a-f-]{36}$/i.test(String(current.runId || '')) &&
+          (String(current.status).toUpperCase() !== 'SUCCEEDED' ||
+            /^(PASSED|SUCCEEDED)$/i.test(String(current.outcome || current.status || '')))) {
+        terminals.push({
+          value: current,
+          observedOrder: terminals.length,
+          updatedAtMs: Date.parse(String(current.updatedAt || current.completedAt || ''))
+        })
+      }
+      queue.push(...Object.values(current))
+      continue
+    }
+    if (typeof current !== 'string') continue
+    const trimmed = current.trim()
+    if (!trimmed || !/^[{[]/.test(trimmed)) continue
+    try { queue.push(JSON.parse(trimmed)) } catch {}
+  }
+  terminals.sort((left, right) => {
+    const leftTime = Number.isFinite(left.updatedAtMs) ? left.updatedAtMs : -Infinity
+    const rightTime = Number.isFinite(right.updatedAtMs) ? right.updatedAtMs : -Infinity
+    return rightTime - leftTime || right.observedOrder - left.observedOrder
   })
+  return terminals[0]?.value || null
 }
 
 function findOnDemandInboxItem(value, taskId) {
@@ -494,6 +620,16 @@ function sha256(value) {
 
 function sleep(milliseconds) {
   return new Promise(resolve => setTimeout(resolve, milliseconds))
+}
+
+function acceptancePollDelayMs(attempt, options = {}) {
+  const enabled = options.enabled === undefined ? rf006S2Enabled : options.enabled === true
+  if (!enabled) return 15_000
+  return acceptancePolicy.pollDelayMs(attempt, {
+    initialDelayMs: options.initialDelayMs || 1_000,
+    multiplier: options.multiplier || 1.5,
+    maximumDelayMs: options.maximumDelayMs || 15_000
+  })
 }
 
 function assertCandidateDeliveryEvidence(transcript, context) {
@@ -573,7 +709,12 @@ function latestCaseDraft(body) {
   return null
 }
 
+function canonicalRepairNodeId(nodeId) {
+  return String(nodeId || '').replace(/_i10_v7_cross_session$/, '')
+}
+
 function feedbackFor(nodeId, mode, scenario, body, inputType) {
+  nodeId = canonicalRepairNodeId(nodeId)
   if (nodeId === 'humanInputAgentflow_clarify') return scenario.clarification || '目标是门户账号密码登录后核对页眉姓名、头像与个人资料一致。'
   if (nodeId === 'humanInputAgentflow_ingest_confirm') {
     if (inputType !== 'VIDEO') return ''
@@ -629,6 +770,67 @@ function retryablePredictionStatus(status) {
   return [500, 502, 503, 504].includes(Number(status))
 }
 
+function candidateActionTrace(database, candidateId, namespace = 'hengzhun-local') {
+  if (!candidateId) return undefined
+  const direct = database.prepare(`
+    SELECT t.trace_hash, t.playwright_fact_hash, t.consumer_model, t.status
+    FROM i8_script_candidates c
+    JOIN i8_executable_plans p
+      ON p.namespace=c.namespace AND p.executable_plan_id=c.executable_plan_id
+    JOIN i10_action_traces t
+      ON t.namespace=p.namespace AND t.case_id=p.case_id AND t.preparation_id=p.preparation_id
+    WHERE c.namespace=? AND c.candidate_id=?
+    ORDER BY t.updated_at DESC LIMIT 1
+  `).get(namespace, candidateId)
+  if (direct) return direct
+  return database.prepare(`
+    SELECT t.trace_hash, t.playwright_fact_hash, t.consumer_model, t.status
+    FROM i8_script_patch_proposals repair
+    JOIN i8_script_candidates c
+      ON c.namespace=repair.namespace AND c.candidate_id=repair.base_candidate_id
+    JOIN i8_executable_plans p
+      ON p.namespace=c.namespace AND p.executable_plan_id=c.executable_plan_id
+    JOIN i10_action_traces t
+      ON t.namespace=p.namespace AND t.case_id=p.case_id AND t.preparation_id=p.preparation_id
+    WHERE repair.namespace=? AND repair.repair_candidate_id=? AND repair.status='ACTIVATED'
+    ORDER BY t.updated_at DESC LIMIT 1
+  `).get(namespace, candidateId)
+}
+
+function assertCandidateDeliveryEvidenceWithTraceFallback(transcript, candidateId, context) {
+  try {
+    assertCandidateDeliveryEvidence(transcript, context)
+  } catch (error) {
+    if (String(error?.code || error?.message || '') !== 'I10_STAGE8_MIDSCENE_EVIDENCE_MISSING') throw error
+    // Fast certification can finish between public polling responses, so the
+    // candidate payload never appears in the transcript. Accept only the
+    // exact candidate -> executable plan -> immutable action-trace binding.
+    const database = new Database(path.join(root, '.data/sqlite/regression_platform.sqlite'), {
+      readonly: true,
+      fileMustExist: true
+    })
+    let trace
+    try {
+      trace = candidateActionTrace(database, candidateId)
+    } finally {
+      database.close()
+    }
+    if (!trace || trace.status !== 'PLAYWRIGHT_VERIFIED' ||
+        !/^[0-9a-f]{64}$/i.test(String(trace.trace_hash || '')) ||
+        !/^[0-9a-f]{64}$/i.test(String(trace.playwright_fact_hash || '')) ||
+        !String(trace.consumer_model || '')) fail('I10_STAGE8_MIDSCENE_EVIDENCE_MISSING', context)
+  }
+}
+
+function predictionRetryDecision({ status, attempt = 1, readOnlyRetry = false } = {}) {
+  const maximumAttempts = readOnlyRetry === true ? 3 : 1
+  return {
+    retry: readOnlyRetry === true && retryablePredictionStatus(status) &&
+      Number.isInteger(attempt) && attempt >= 1 && attempt < maximumAttempts,
+    maximumAttempts
+  }
+}
+
 function safePredictionFailure(body) {
   // Flowise may return a NodeVM/MCP error body on a non-2xx response.  Keep
   // the acceptance driver diagnosable without copying user text, credentials,
@@ -640,9 +842,24 @@ function safePredictionFailure(body) {
     .replace(/(?:credential|token|password|authorization|bearer|api[_ -]?key)\s*[:=]\s*[^\s,;]+/gi, '[REDACTED]')
     .replace(/\bsk-[A-Za-z0-9_-]+\b/g, '[REDACTED]')
     .trim()
+  const schemaMarker = 'I10_MCP_TOOL_INPUT_SCHEMA_FAILED:'
+  const schemaOffset = normalized.indexOf(schemaMarker)
+  if (schemaOffset >= 0) {
+    try {
+      const diagnostic = JSON.parse(normalized.slice(schemaOffset + schemaMarker.length))
+      // The runtime-generated actual/expected maps contain only field names,
+      // runtime types, lengths and schema shapes. Never retain schemaError,
+      // which can quote the rejected argument value.
+      return `${schemaMarker}${JSON.stringify({ actual: diagnostic.actual || {}, expected: diagnostic.expected || {}, invalidKeys: diagnostic.invalidKeys || [], schemaIssues: diagnostic.schemaIssues || [], schemaError: String(diagnostic.schemaError || '').slice(0, 1_200) })}`.slice(0, 3_500)
+    } catch {}
+  }
+  const governedArgumentDiagnostic = /^Error: predictionsServices\.buildChatflow - Error: I9_MCP_TOOL_FAILED_CLOSED:[A-Z0-9_]+:ARG_TYPES=\{.*\}(?::ARG_CHECKS=\{.*\})?$/s.test(normalized)
   // Only return a compact error classifier.  Long free-form output is an
   // untrusted transport payload and must not become acceptance evidence.
-  return normalized ? normalized.slice(0, 240) : 'FLOWISE_HTTP_ERROR'
+  // The governed MCP diagnostic is generated locally and contains only
+  // argument names, runtime types, lengths and booleans—never values—so keep
+  // enough of it to identify the exact schema boundary.
+  return normalized ? normalized.slice(0, governedArgumentDiagnostic ? 2_000 : 240) : 'FLOWISE_HTTP_ERROR'
 }
 
 async function predict(payload, { readOnlyRetry = false } = {}) {
@@ -653,19 +870,11 @@ async function predict(payload, { readOnlyRetry = false } = {}) {
       method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(payload)
     })
     if (result.response.ok) return result.body
-    // A 500 whose body shows the controller LLM returned empty text (or was
-    // terminated) failed before any tool call, so no state was written; that
-    // class is a transient model fault and safe to retry in place.  The probe
-    // measured the same prompt completing in ~2-3k completion tokens, far
-    // below the output budget, so it is not budget exhaustion.  Match without
-    // quote literals: the serialized 500 body escapes them (\"\"), which
-    // previously let this exact class slip through unretried.
-    const bodyText = serialized(result.body)
-    const transientEmptyModelOutput = /Failed to parse\. Text:/.test(bodyText) ||
-      /Error in LLM node: terminated/.test(bodyText)
-    const maximumAttempts = transientEmptyModelOutput ? 3 : (readOnlyRetry ? 3 : 1)
-    const retryable = transientEmptyModelOutput || (readOnlyRetry && retryablePredictionStatus(result.response.status))
-    if (!retryable || attempt >= maximumAttempts) {
+    // Prediction is a whole-Flowise-execution boundary. Response prose cannot
+    // prove that no mutating MCP call occurred, so only an explicitly declared
+    // read-only request may retry a classified transient HTTP failure.
+    const decision = predictionRetryDecision({ status: result.response.status, attempt, readOnlyRetry })
+    if (!decision.retry) {
       fail('I10_STAGE8_FLOWISE_PREDICTION_FAILED', {
         status: result.response.status,
         attempts: attempt,
@@ -783,7 +992,10 @@ async function awaitScheduledResult(scheduleId, mode, sequence) {
         attempts: attempt
       }
     }
-    await sleep(schedulePollMs)
+    await sleep(acceptancePollDelayMs(attempt, {
+      initialDelayMs: Math.min(1_000, schedulePollMs),
+      maximumDelayMs: schedulePollMs
+    }))
   }
   fail('I10_STAGE8_SCHEDULED_RESULT_TIMEOUT', { scheduleId, mode, waitMs: scheduleWaitMs })
 }
@@ -899,10 +1111,10 @@ async function runConversation({
     ? '当前尚未录入安全凭据，请先创建本机安全凭据录入会话；不得要求我在对话中输入明文账号密码'
     : `使用已有安全凭据引用${scenario.credentialRef}`
   const sourceDescription = variant === 'F014_VERIFICATION_RESUME_ON_DEMAND'
-    ? `创建并立即执行一个新的转账自动化回归案例：目标系统为复兴银行，${credentialClause}。从${scenario.portalUrl}/portal/login登录后进入转账汇款，收款户名填写“测试收款人”，收款账号填写“6222000000000001”，金额填写“1.00”，用途填写“自动化回归测试”；第一次确认后会弹出U盾验证。Midscene必须临场识别该阻断并暂停，提醒用户只在U盾或被测页面直接确认，不得在Flowise输入PIN、验证码或口令。确认完成后必须在同一个浏览器和同一个任务继续，进入单号查询页面并验证单号存在、状态为“受理成功”。`
+    ? `创建并立即执行一个新的转账自动化回归案例：目标系统为复兴银行，明确选择并使用复兴银行演示适配器（fuxing-bank-demo），${credentialClause}。从${scenario.portalUrl}/portal/login登录后进入转账汇款，收款户名填写“测试收款人”，收款账号填写“6222000000000001”，金额填写“1.00”，用途填写“自动化回归测试”；第一次确认后会弹出U盾验证。Midscene必须临场识别该阻断并暂停，提醒用户只在U盾或被测页面直接确认，不得在Flowise输入PIN、验证码或口令。确认完成后必须在同一个浏览器和同一个任务继续，进入单号查询页面并验证单号存在、状态为“受理成功”。`
     : caseDefinition && typeof caseDefinition.naturalLanguage === 'string' && caseDefinition.naturalLanguage.trim()
-      ? `创建并执行一个新的自动化回归案例：目标系统为${caseDefinition.targetSystem || '复兴银行'}，${credentialClause}，入口地址为${scenario.portalUrl}/portal/login。${caseDefinition.naturalLanguage.trim()}`
-      : `创建并执行一个新的自动化回归案例：目标系统为复兴银行，${credentialClause}，验证客户在${scenario.portalUrl}/portal/login输入账号密码登录后，右上角姓名和头像与个人资料一致。`
+      ? `创建并执行一个新的自动化回归案例：目标系统为${caseDefinition.targetSystem || '复兴银行'}，明确选择并使用复兴银行演示适配器（fuxing-bank-demo），${credentialClause}，入口地址为${scenario.portalUrl}/portal/login。${caseDefinition.naturalLanguage.trim()}`
+      : `创建并执行一个新的自动化回归案例：目标系统为复兴银行，明确选择并使用复兴银行演示适配器（fuxing-bank-demo），${credentialClause}，验证客户在${scenario.portalUrl}/portal/login输入账号密码登录后，右上角姓名和头像与个人资料一致。`
   const question = variant === 'F006_IMAGE_ONLY_CLARIFY_RECURRING'
     ? ''
     : inputType === 'NATURAL_LANGUAGE'
@@ -991,7 +1203,7 @@ async function runConversation({
   const verificationPhaseEvidence = []
   let formalVerificationArmed = false
   let authoringFinalHealth = null
-  while (stopped(body) || journeyProcessingPending(body) || ingestProcessingPending(body) || imageProcessingPending(body) || authoringProcessingPending(body) || targetProfileTransitionPending(body) || imageFactsTransitionPending(body) || imageConfirmedTransitionPending(body) || isolatedJourneyTransitionPending(body) || crossSessionProposalDecisionPending(body) || crossSessionToolContinuationPending(body) || crossSessionAuthoringAsyncPending(body) || crossSessionExecutionPlanPending(body) || crossSessionCaseInputPending(body) || crossSessionSilentPending(body) ||
+  while (stopped(body) || journeyProcessingPending(body) || ingestProcessingPending(body) || imageProcessingPending(body) || authoringProcessingPending(body) || targetProfileTransitionPending(body) || imageFactsTransitionPending(body) || imageConfirmedTransitionPending(body) || isolatedJourneyTransitionPending(body) || attachmentIngestTransitionPending(body) || attachmentTargetTransitionPending(body) || attachmentJourneyTransitionPending(body) || crossSessionProposalDecisionPending(body) || crossSessionToolContinuationPending(body) || crossSessionAuthoringAsyncPending(body) || crossSessionExecutionPlanPending(body) || crossSessionCaseInputPending(body) || crossSessionSilentPending(body) ||
     (variant === 'F006_IMAGE_ONLY_CLARIFY_RECURRING' && Boolean(findCredentialCapture(body)))) {
     // Real MiMo authoring may span several minutes. Each asynchronous status
     // poll is a human gate continuation, so bound wall time without treating
@@ -1016,7 +1228,34 @@ async function runConversation({
     }
     const node = stopped(body)
     if (!node) {
-      const journeyId = latestOpaqueId(transcript, 'journey')
+      // Prefer the current response's authoritative Journey projection/tool
+      // output. Flowise execution state may repeat an older Journey id after
+      // the projection, so textual "last reference wins" is only a fallback.
+      const journeyId = authoritativeJourneyId(body) || latestOpaqueId(transcript, 'journey')
+      if (attachmentIngestTransitionPending(body) || attachmentTargetTransitionPending(body)) {
+        const preparationId = latestOpaqueId(transcript, 'preparation')
+        if (!preparationId) fail('I10_STAGE8_ATTACHMENT_PREPARATION_ID_MISSING', { inputType, mode, reverse })
+        const targetReady = attachmentTargetTransitionPending(body)
+        body = await predict({
+          question: `${targetReady ? '继续附件旅程' : '继续附件目标'} ${preparationId}`,
+          chatId: body.chatId || chatId,
+          overrideConfig: { sessionId: body.sessionId || flowSessionId }
+        })
+        transcript.push(body)
+        safeWrite(`${sequence}-${String(step).padStart(2, '0')}-${targetReady ? 'attachment-target' : 'attachment-ingest'}-transition-resume.json`, body)
+        continue
+      }
+      if (attachmentJourneyTransitionPending(body)) {
+        if (!journeyId) fail('I10_STAGE8_ASYNC_JOURNEY_ID_MISSING', { inputType, mode, reverse })
+        body = await predict({
+          question: `继续旅程 ${journeyId}`,
+          chatId: body.chatId || chatId,
+          overrideConfig: { sessionId: body.sessionId || flowSessionId }
+        })
+        transcript.push(body)
+        safeWrite(`${sequence}-${String(step).padStart(2, '0')}-attachment-journey-transition-resume.json`, body)
+        continue
+      }
       if (!journeyId && !imageFactsTransitionPending(body) && !imageConfirmedTransitionPending(body)) fail('I10_STAGE8_ASYNC_JOURNEY_ID_MISSING', { inputType, mode, reverse })
       if (crossSessionScheduleCreated(body)) {
         // The schedule exists (fresh or idempotent replay); end the
@@ -1063,6 +1302,15 @@ async function runConversation({
       }
       if (crossSessionExecutionPlanPending(body)) {
         if (!journeyId) fail('I10_STAGE8_ASYNC_JOURNEY_ID_MISSING', { inputType, mode, reverse })
+        // The current graph executes ON_DEMAND through the durable
+        // cross-session Journey route; it never visits the legacy
+        // humanInputAgentflow_run node. Inject the controlled locator drift
+        // immediately before the authoritative run decision so the reverse
+        // case actually exercises failure and repair instead of a clean run.
+        if (reverse && !failureInjected) {
+          await setFailureMode(scenario.failureControlUrl, 'changed')
+          failureInjected = true
+        }
         const planAnswer = mode === 'ONE_TIME'
           ? `继续处理旅程${journeyId}：确认单次定时（ONE_TIME），执行时间${new Date(Date.now() + 120_000).toISOString()}，时区Asia/Shanghai。`
           : mode === 'RECURRING'
@@ -1083,15 +1331,7 @@ async function runConversation({
         // JSON via journey_input_submit.  Typed business inputs (transfer
         // cases) come from the acceptance case definition, never from the
         // controller's prose re-inference.
-        const supplement = {
-          inputType: 'NATURAL_LANGUAGE',
-          naturalLanguage: sourceDescription,
-          credentialRef: scenario.credentialRef,
-          entryUrl: `${scenario.portalUrl}/portal/login`,
-          targetSystem: caseDefinition?.targetSystem || '复兴银行',
-          ...(caseDefinition?.documentName ? { documentName: caseDefinition.documentName } : {}),
-          ...(caseDefinition?.typedBusinessInputs ? { draftJson: { businessInputs: caseDefinition.typedBusinessInputs, missingFields: [] } } : {})
-        }
+        const supplement = initialCaseSupplement({ caseDefinition, sourceDescription, scenario })
         body = await predict({
           question: `继续处理旅程${journeyId}：补充初始案例输入 ${JSON.stringify(supplement)}`,
           chatId: body.chatId || chatId,
@@ -1124,7 +1364,7 @@ async function runConversation({
           // to null here would turn every pending predicate false and exit the
           // loop into the terminal assert, so keep the previous body instead.
           traceStage8(`candidate preview not ready at gate ${step}; polling again`)
-          await sleep(15_000)
+          await sleep(acceptancePollDelayMs(step))
           continue
         }
         body = polled
@@ -1144,7 +1384,7 @@ async function runConversation({
         traceStage8(`received ${stopped(body)?.nodeId || 'terminal-or-async'} after target transition resume`)
         continue
       }
-      await sleep(15_000)
+      await sleep(acceptancePollDelayMs(step))
       const resumePrefix = `继续处理旅程${journeyId}：`
       const polled = await predictOrCandidatePending({
         question: ingestProcessingPending(body) || journeyProcessingPending(body)
@@ -1186,7 +1426,7 @@ async function runConversation({
       await setFailureMode(scenario.failureControlUrl, 'changed')
       failureInjected = true
     }
-    if (reverse && node.nodeId === 'humanInputAgentflow_repair_rerun' && !recovered) {
+    if (reverse && canonicalRepairNodeId(node.nodeId) === 'humanInputAgentflow_repair_rerun' && !recovered) {
       await setFailureMode(scenario.failureControlUrl, 'recovered')
       recovered = true
     }
@@ -1265,7 +1505,7 @@ async function runConversation({
         videoDraft.missingFields.includes('crossSourceConflict:PAGE_LABEL')) {
       crossSourceConflictObserved = true
     }
-    const reject = node.nodeId === 'humanInputAgentflow_repair_schedule' ||
+    const reject = canonicalRepairNodeId(node.nodeId) === 'humanInputAgentflow_repair_schedule' ||
       (['F003_REVISE_RETAIN', 'F005_NL_MULTI_IMAGE_CONFLICT_RETAIN'].includes(variant) && (
         node.nodeId === 'humanInputAgentflow_i10_v3_decision' ||
         node.nodeId === 'humanInputAgentflow_activate'
@@ -1284,7 +1524,7 @@ async function runConversation({
       (variant === 'F005_NL_MULTI_IMAGE_CONFLICT_RETAIN' &&
         node.nodeId === 'humanInputAgentflow_i10_v4_image_facts_gate') ||
       (variant === 'F002_CAPTURE_ACTIVATE_NO_RUN' && node.nodeId === 'humanInputAgentflow_run')
-    const delay = /generation|ingest_wait|image_wait|repair_wait/.test(node.nodeId) ? 15_000 : 0
+    const delay = /generation|ingest_wait|image_wait|repair_wait/.test(node.nodeId) ? acceptancePollDelayMs(step) : 0
     if (delay) await new Promise(resolve => setTimeout(resolve, delay))
     const feedback = variant === 'F006_IMAGE_ONLY_CLARIFY_RECURRING' &&
       node.nodeId === 'humanInputAgentflow_clarify'
@@ -1334,7 +1574,12 @@ async function runConversation({
       })
     }
   }
-  if (!deferCandidateEvidenceCheck) assertCandidateDeliveryEvidence(transcript, { inputType, mode, reverse })
+  if (!deferCandidateEvidenceCheck) {
+    const candidateId = reverse
+      ? latestOpaqueId(transcript, 'candidate') || scenarioMetadata(transcript).candidateIds.at(-1)
+      : scenarioMetadata(transcript).candidateIds.at(-1)
+    assertCandidateDeliveryEvidenceWithTraceFallback(transcript, candidateId, { inputType, mode, reverse })
+  }
   if (supportingImageCount > 0) {
     const multimodal = scenarioMetadata(transcript)
     // The terminal reply intentionally contains only a short human summary.
@@ -1526,6 +1771,15 @@ async function runConversation({
       humanGateCount: step
     }
   }
+  if (authoringFailedTerminal(body)) {
+    fail('I10_STAGE8_AUTHORING_FAILED_NO_IMPLICIT_RETRY', {
+      inputType,
+      mode,
+      reverse,
+      variant,
+      instruction: '作者化失败已保留；正向验收不会误报为调度终态缺失，也不会自动批准重试。'
+    })
+  }
   let executionEvidence
   if (reverse) {
     if (!failureInjected || !recovered) fail('I10_STAGE8_REVERSE_RECOVERY_NOT_EXECUTED', { inputType, mode })
@@ -1537,7 +1791,7 @@ async function runConversation({
   } else if (mode === 'ON_DEMAND') {
     executionEvidence = requireOnDemandTerminalEvidence(transcript, text)
   } else {
-    const scheduleId = extractOpaqueId(transcript, 'schedule')
+    const scheduleId = authoritativeScheduleId(transcript) || latestOpaqueId(transcript, 'schedule')
     if (!scheduleId || !/schedule|调度/i.test(text)) fail('I10_STAGE8_SCHEDULE_TERMINAL_MISSING', { inputType, mode })
     const scheduledResult = await awaitScheduledResult(scheduleId, mode, sequence)
     const scheduleDisabled = mode === 'RECURRING' ? await disableRecurringSchedule(scheduleId, sequence) : null
@@ -1620,6 +1874,7 @@ async function runConversation({
 }
 
 async function main() {
+  const frozenReleaseIdentity = currentReleaseIdentity()
   for (const name of ['CONTROL_API_KEY', 'CONTROL_BASE_URL', 'CONTROL_MODEL_NAME', 'VISION_API_KEY', 'VISION_BASE_URL', 'VISION_MODEL_NAME']) if (!process.env[name]) fail(`${name}_MISSING`)
   assert.equal(matrix.forwardScenarioCount, matrix.inputTypes.length * matrix.executionModes.length)
   const scenario = requireSafeScenarioFile()
@@ -1663,8 +1918,12 @@ async function main() {
   const runEvidenceId = `run-${new Date().toISOString().replace(/[:.]/g, '-')}-${crypto.randomBytes(4).toString('hex')}`
   activeEvidenceRoot = path.join(evidenceRoot, 'runs', runEvidenceId)
   for (const item of selected) results.push(await runConversation({ ...item, scenario }))
+  if (!sameReleaseIdentity(frozenReleaseIdentity, currentReleaseIdentity())) {
+    fail('I10_STAGE8_RELEASE_IDENTITY_CHANGED_DURING_RUN')
+  }
   const evidence = {
     schemaVersion: 'hengzhun-i10-stage8-live-evidence-v1', mock: false, degraded: false,
+    releaseIdentity: frozenReleaseIdentity,
     modelProbeCompletedAt: modelEvidence.completedAt, publicationCompletedAt: publicationEvidence.completedAt,
     forwardScenarioCount: results.filter(item => !item.reverse).length,
     reverseScenarioCount: results.filter(item => item.reverse).length,
@@ -1686,10 +1945,10 @@ if (require.main === module) main().catch(error => {
 })
 
 module.exports = {
-  assertCandidateDeliveryEvidence, awaitScheduledResult, disableRecurringSchedule,
-  authoringProcessingPending, ingestProcessingPending, journeyProcessingPending, stopped, targetProfileTransitionPending, imageFactsTransitionPending, imageConfirmedTransitionPending, isolatedJourneyTransitionPending, crossSessionProposalDecisionPending, crossSessionToolContinuationPending,
-  extractOpaqueId, latestOpaqueId, feedbackFor, findAuthoringEvidence, findCaseDraft, findOnDemandInboxItem,
+  assertCandidateDeliveryEvidence, assertCandidateDeliveryEvidenceWithTraceFallback, awaitScheduledResult, candidateActionTrace, canonicalRepairNodeId, disableRecurringSchedule,
+  authoringFailedTerminal, authoringProcessingPending, ingestProcessingPending, journeyProcessingPending, stopped, targetProfileTransitionPending, imageFactsTransitionPending, imageConfirmedTransitionPending, isolatedJourneyTransitionPending, attachmentIngestTransitionPending, attachmentTargetTransitionPending, attachmentJourneyTransitionPending, crossSessionProposalDecisionPending, crossSessionToolContinuationPending,
+  extractOpaqueId, latestOpaqueId, authoritativeJourneyId, authoritativeScheduleId, feedbackFor, findAuthoringEvidence, findCaseDraft, findOnDemandInboxItem,
   findScheduledInboxItem, findTaskTerminal, latestCaseDraft, requireOnDemandTerminalEvidence,
-  requireSafeScenarioFile, retryablePredictionStatus, runConversation, scenarioMetadata,
-  setEvidenceRootForAcceptance, setFailureMode, visitStructuredValues
+  initialCaseSupplement, requireSafeScenarioFile, retryablePredictionStatus, predictionRetryDecision, runConversation, scenarioMetadata,
+  setEvidenceRootForAcceptance, setFailureMode, visitStructuredValues, acceptancePollDelayMs, safePredictionFailure
 }

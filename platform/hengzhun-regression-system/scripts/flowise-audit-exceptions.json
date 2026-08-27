@@ -1,0 +1,1030 @@
+{
+  "schemaVersion": "hengzhun-flowise-audit-exceptions-v2",
+  "generatedAt": "2026-08-12",
+  "expiresAt": "2026-09-11T00:00:00.000Z",
+  "policy": "TEMPORARY_KNOWN_FINDINGS_ONLY_NOT_A_NON_REACHABILITY_CLAIM",
+  "allowed": [
+    {
+      "name": "@getzep/zep-cloud",
+      "severity": "critical",
+      "range": "<=2.2.0",
+      "nodes": [
+        "node_modules/flowise-components/node_modules/@getzep/zep-cloud"
+      ],
+      "via": [
+        "dependency:@langchain/core",
+        "dependency:form-data",
+        "dependency:langchain",
+        "dependency:qs"
+      ],
+      "advisories": [],
+      "fingerprint": "88aa806c8fef8e1770b43aa1d34a44a371c30d35f7980c101a18741cbd2d6912"
+    },
+    {
+      "name": "@langchain/community",
+      "severity": "critical",
+      "range": "*",
+      "nodes": [
+        "node_modules/@mem0/community/node_modules/@langchain/community",
+        "node_modules/flowise-components/node_modules/@langchain/community"
+      ],
+      "via": [
+        "advisory:1113156",
+        "advisory:1113503",
+        "dependency:@getzep/zep-cloud",
+        "dependency:@google-cloud/storage",
+        "dependency:@langchain/classic",
+        "dependency:@langchain/core",
+        "dependency:@langchain/openai",
+        "dependency:@langchain/weaviate",
+        "dependency:epub2",
+        "dependency:langchain",
+        "dependency:langsmith",
+        "dependency:mem0ai",
+        "dependency:officeparser",
+        "dependency:uuid"
+      ],
+      "advisories": [
+        "1113156",
+        "1113503"
+      ],
+      "fingerprint": "ba039416891c28cab73cb22ee802aa23edb4f540adfd122885faae30836d2146"
+    },
+    {
+      "name": "@langchain/core",
+      "severity": "high",
+      "range": "<=1.1.28 || 1.1.50-dev-1781580357424 - 1.2.0-dev-1775763803878",
+      "nodes": [
+        "node_modules/@langchain/google-gauth/node_modules/@langchain/core",
+        "node_modules/@langchain/langgraph/node_modules/@langchain/core",
+        "node_modules/@mem0/community/node_modules/@langchain/core",
+        "node_modules/flowise-components/node_modules/@langchain/core",
+        "node_modules/langwatch/node_modules/@langchain/core"
+      ],
+      "via": [
+        "advisory:1113339",
+        "dependency:langsmith",
+        "dependency:langsmith",
+        "dependency:uuid"
+      ],
+      "advisories": [
+        "1113339"
+      ],
+      "fingerprint": "26defe1de1961826de31a40d39dc94bd15b419d00a73e112fbf4a5f4af2cca8d"
+    },
+    {
+      "name": "@langchain/langgraph",
+      "severity": "high",
+      "range": "<=1.3.2",
+      "nodes": [
+        "node_modules/@langchain/langgraph"
+      ],
+      "via": [
+        "dependency:@langchain/core",
+        "dependency:uuid"
+      ],
+      "advisories": [],
+      "fingerprint": "7c782181762998adf97e8566c36530f9d87d942b9ca77a4adb9e7c3ddbd787ee"
+    },
+    {
+      "name": "@mapbox/node-pre-gyp",
+      "severity": "high",
+      "range": "<=1.0.11",
+      "nodes": [
+        "node_modules/@mapbox/node-pre-gyp"
+      ],
+      "via": [
+        "dependency:tar"
+      ],
+      "advisories": [],
+      "fingerprint": "db9c2eb8dcc9c397c40cb2fc46cc46d9eaed752ce00468f2b436c3934260cd5d"
+    },
+    {
+      "name": "@opentelemetry/auto-instrumentations-node",
+      "severity": "high",
+      "range": "<=0.76.0",
+      "nodes": [
+        "node_modules/@opentelemetry/auto-instrumentations-node"
+      ],
+      "via": [
+        "advisory:1120251",
+        "dependency:@opentelemetry/instrumentation-amqplib",
+        "dependency:@opentelemetry/instrumentation-aws-sdk",
+        "dependency:@opentelemetry/instrumentation-connect",
+        "dependency:@opentelemetry/instrumentation-express",
+        "dependency:@opentelemetry/instrumentation-fastify",
+        "dependency:@opentelemetry/instrumentation-fs",
+        "dependency:@opentelemetry/instrumentation-hapi",
+        "dependency:@opentelemetry/instrumentation-http",
+        "dependency:@opentelemetry/instrumentation-koa",
+        "dependency:@opentelemetry/instrumentation-mongoose",
+        "dependency:@opentelemetry/instrumentation-mysql2",
+        "dependency:@opentelemetry/instrumentation-pg",
+        "dependency:@opentelemetry/instrumentation-pino",
+        "dependency:@opentelemetry/instrumentation-restify",
+        "dependency:@opentelemetry/instrumentation-undici",
+        "dependency:@opentelemetry/resource-detector-alibaba-cloud",
+        "dependency:@opentelemetry/resource-detector-aws",
+        "dependency:@opentelemetry/resource-detector-azure",
+        "dependency:@opentelemetry/resource-detector-container",
+        "dependency:@opentelemetry/resource-detector-gcp",
+        "dependency:@opentelemetry/resources",
+        "dependency:@opentelemetry/sdk-node"
+      ],
+      "advisories": [
+        "1120251"
+      ],
+      "fingerprint": "f31566e0da1a64e4ac9e8c256b8889c4cd8c2fbbeca6bbb10b71a2e27413b43a"
+    },
+    {
+      "name": "@opentelemetry/propagator-jaeger",
+      "severity": "high",
+      "range": "<=2.8.0",
+      "nodes": [
+        "node_modules/@opentelemetry/propagator-jaeger"
+      ],
+      "via": [
+        "advisory:1124011",
+        "dependency:@opentelemetry/core"
+      ],
+      "advisories": [
+        "1124011"
+      ],
+      "fingerprint": "3262252f63023e611d20de431715c267fdcf0edd44e70ee63fd5e4b27266784e"
+    },
+    {
+      "name": "@opentelemetry/sdk-node",
+      "severity": "high",
+      "range": "<=0.218.0",
+      "nodes": [
+        "node_modules/@opentelemetry/sdk-node"
+      ],
+      "via": [
+        "advisory:1120252",
+        "dependency:@opentelemetry/core",
+        "dependency:@opentelemetry/exporter-logs-otlp-grpc",
+        "dependency:@opentelemetry/exporter-logs-otlp-http",
+        "dependency:@opentelemetry/exporter-logs-otlp-proto",
+        "dependency:@opentelemetry/exporter-trace-otlp-grpc",
+        "dependency:@opentelemetry/exporter-trace-otlp-http",
+        "dependency:@opentelemetry/exporter-trace-otlp-proto",
+        "dependency:@opentelemetry/exporter-zipkin",
+        "dependency:@opentelemetry/resources",
+        "dependency:@opentelemetry/sdk-logs",
+        "dependency:@opentelemetry/sdk-metrics",
+        "dependency:@opentelemetry/sdk-trace-base",
+        "dependency:@opentelemetry/sdk-trace-node"
+      ],
+      "advisories": [
+        "1120252"
+      ],
+      "fingerprint": "cd05297cd8732549ce9d78d9f6dd164333abbd60977fd6da7ef901373063cd47"
+    },
+    {
+      "name": "@opentelemetry/sdk-trace-node",
+      "severity": "high",
+      "range": "<=2.7.1",
+      "nodes": [
+        "node_modules/@opentelemetry/sdk-trace-node"
+      ],
+      "via": [
+        "dependency:@opentelemetry/core",
+        "dependency:@opentelemetry/propagator-b3",
+        "dependency:@opentelemetry/propagator-jaeger",
+        "dependency:@opentelemetry/sdk-trace-base"
+      ],
+      "advisories": [],
+      "fingerprint": "1a783f335a48075194ab9027919ac233d083061d706b1825553b9cd220bdff5c"
+    },
+    {
+      "name": "@xenova/transformers",
+      "severity": "high",
+      "range": ">=1.4.3",
+      "nodes": [
+        "node_modules/@xenova/transformers"
+      ],
+      "via": [
+        "dependency:onnxruntime-web",
+        "dependency:sharp"
+      ],
+      "advisories": [],
+      "fingerprint": "515a38e91ea55e3f263d98b393ffd9888503ba5bbe0d61586ecee0c54dddda22"
+    },
+    {
+      "name": "adm-zip",
+      "severity": "high",
+      "range": "<0.6.0",
+      "nodes": [
+        "node_modules/adm-zip"
+      ],
+      "via": [
+        "advisory:1123686"
+      ],
+      "advisories": [
+        "1123686"
+      ],
+      "fingerprint": "17f28256771450b00d3a6d64a40131c233b3abf5c0ec2b36effcf400394a91b0"
+    },
+    {
+      "name": "braces",
+      "severity": "high",
+      "range": "<3.0.3",
+      "nodes": [
+        "node_modules/findup-sync/node_modules/braces",
+        "node_modules/glob-watcher/node_modules/braces",
+        "node_modules/matchdep/node_modules/braces"
+      ],
+      "via": [
+        "advisory:1098094"
+      ],
+      "advisories": [
+        "1098094"
+      ],
+      "fingerprint": "03f4165df412f126ebc5720a903dff6185d723eced2dca7113eedc7cf0d8609a"
+    },
+    {
+      "name": "cacache",
+      "severity": "high",
+      "range": "14.0.0 - 18.0.4",
+      "nodes": [
+        "node_modules/cacache"
+      ],
+      "via": [
+        "dependency:tar"
+      ],
+      "advisories": [],
+      "fingerprint": "af611567c8e19e1f97bed9d383351204ef75059ef8131b4b110728b13a20fd44"
+    },
+    {
+      "name": "canvas",
+      "severity": "high",
+      "range": "",
+      "nodes": [
+        "node_modules/canvas"
+      ],
+      "via": [
+        "dependency:@mapbox/node-pre-gyp"
+      ],
+      "advisories": [],
+      "fingerprint": "03d3fc571a60bd0f32d809decb964f1164fac6ba3518acfbb235f00501f10646"
+    },
+    {
+      "name": "chokidar",
+      "severity": "high",
+      "range": "1.3.0 - 2.1.8",
+      "nodes": [
+        "node_modules/glob-watcher/node_modules/chokidar"
+      ],
+      "via": [
+        "dependency:anymatch",
+        "dependency:braces",
+        "dependency:readdirp"
+      ],
+      "advisories": [],
+      "fingerprint": "1278d5a8968de2c24e1d40ca41d76aebc9694ce685c6003eed7e2934e8df2fd8"
+    },
+    {
+      "name": "cmake-js",
+      "severity": "high",
+      "range": "<=7.4.0",
+      "nodes": [
+        "node_modules/cmake-js"
+      ],
+      "via": [
+        "dependency:tar"
+      ],
+      "advisories": [],
+      "fingerprint": "420e162fc539633756f0c8699b1313f23d94041951c2c0c84c96bac7565f010a"
+    },
+    {
+      "name": "couchbase",
+      "severity": "high",
+      "range": "4.0.0 - 4.6.0",
+      "nodes": [
+        "node_modules/couchbase"
+      ],
+      "via": [
+        "dependency:cmake-js"
+      ],
+      "advisories": [],
+      "fingerprint": "f84aaab096896b7f50cd9dd99236754496be94c5ae37afce52365b2b0656a25e"
+    },
+    {
+      "name": "epub2",
+      "severity": "high",
+      "range": "*",
+      "nodes": [
+        "node_modules/epub2"
+      ],
+      "via": [
+        "dependency:adm-zip"
+      ],
+      "advisories": [],
+      "fingerprint": "b903c4771de7e4daa162037dc1a2780f9ae9439a35c9acbca724f4018b5f07a9"
+    },
+    {
+      "name": "flowise",
+      "severity": "high",
+      "range": "*",
+      "nodes": [
+        "node_modules/flowise"
+      ],
+      "via": [
+        "dependency:@opentelemetry/auto-instrumentations-node",
+        "dependency:@opentelemetry/core",
+        "dependency:@opentelemetry/exporter-metrics-otlp-grpc",
+        "dependency:@opentelemetry/exporter-metrics-otlp-http",
+        "dependency:@opentelemetry/exporter-metrics-otlp-proto",
+        "dependency:@opentelemetry/exporter-trace-otlp-grpc",
+        "dependency:@opentelemetry/exporter-trace-otlp-http",
+        "dependency:@opentelemetry/exporter-trace-otlp-proto",
+        "dependency:@opentelemetry/resources",
+        "dependency:@opentelemetry/sdk-metrics",
+        "dependency:@opentelemetry/sdk-node",
+        "dependency:@opentelemetry/sdk-trace-base",
+        "dependency:bullmq",
+        "dependency:flowise-components",
+        "dependency:flowise-nim-container-manager",
+        "dependency:flowise-ui",
+        "dependency:geoip-lite",
+        "dependency:gulp",
+        "dependency:multer-azure-blob-storage",
+        "dependency:multer-cloud-storage",
+        "dependency:nodemailer",
+        "dependency:sqlite3",
+        "dependency:uuid"
+      ],
+      "advisories": [],
+      "fingerprint": "a3a5f8491de5418cfd893fe65f1c2655ac4b5d4d1d1ce3a6e0adab8a69193c2a"
+    },
+    {
+      "name": "@puppeteer/browsers",
+      "severity": "high",
+      "range": "<=2.13.2",
+      "nodes": [
+        "node_modules/@puppeteer/browsers"
+      ],
+      "via": [
+        "dependency:extract-zip"
+      ],
+      "advisories": [],
+      "fingerprint": "23da2135d69a980c6f029a10b01c0e6a7729f1e7e005d45025c9c55da5ca1eb3"
+    },
+    {
+      "name": "extract-zip",
+      "severity": "high",
+      "range": "*",
+      "nodes": [
+        "node_modules/extract-zip"
+      ],
+      "via": [
+        "advisory:1139346"
+      ],
+      "advisories": [
+        "1139346"
+      ],
+      "fingerprint": "e0a7b9d5b860f8d6737c6be7006ea4653cc9a38ef9b8e9b5324cffaa676e203a"
+    },
+    {
+      "name": "puppeteer",
+      "severity": "high",
+      "range": "19.8.1 - 24.43.1",
+      "nodes": [
+        "node_modules/puppeteer"
+      ],
+      "via": [
+        "dependency:@puppeteer/browsers",
+        "dependency:puppeteer-core"
+      ],
+      "advisories": [],
+      "fingerprint": "d56f5161acf80b1ce5c2b80346377e35db481010b74b2e3ee67afa22676f7122"
+    },
+    {
+      "name": "puppeteer-core",
+      "severity": "high",
+      "range": "19.8.4 - 24.43.1",
+      "nodes": [
+        "node_modules/puppeteer-core"
+      ],
+      "via": [
+        "dependency:@puppeteer/browsers"
+      ],
+      "advisories": [],
+      "fingerprint": "c98ffb9f58d660bafa27e18b27ade6d6748e123c5134c57b429219ff8cb74497"
+    },
+    {
+      "name": "flowise-components",
+      "severity": "critical",
+      "range": "*",
+      "nodes": [
+        "node_modules/flowise-components"
+      ],
+      "via": [
+        "dependency:@arizeai/openinference-instrumentation-langchain",
+        "dependency:@getzep/zep-cloud",
+        "dependency:@google-cloud/storage",
+        "dependency:@langchain/classic",
+        "dependency:@langchain/cloudflare",
+        "dependency:@langchain/cohere",
+        "dependency:@langchain/community",
+        "dependency:@langchain/core",
+        "dependency:@langchain/google-genai",
+        "dependency:@langchain/google-vertexai",
+        "dependency:@langchain/langgraph",
+        "dependency:@langchain/ollama",
+        "dependency:@langchain/pinecone",
+        "dependency:@langchain/qdrant",
+        "dependency:@langchain/redis",
+        "dependency:@langchain/weaviate",
+        "dependency:@mem0/community",
+        "dependency:@opentelemetry/auto-instrumentations-node",
+        "dependency:@opentelemetry/core",
+        "dependency:@opentelemetry/exporter-metrics-otlp-grpc",
+        "dependency:@opentelemetry/exporter-metrics-otlp-http",
+        "dependency:@opentelemetry/exporter-metrics-otlp-proto",
+        "dependency:@opentelemetry/exporter-trace-otlp-grpc",
+        "dependency:@opentelemetry/exporter-trace-otlp-http",
+        "dependency:@opentelemetry/exporter-trace-otlp-proto",
+        "dependency:@opentelemetry/resources",
+        "dependency:@opentelemetry/sdk-metrics",
+        "dependency:@opentelemetry/sdk-node",
+        "dependency:@opentelemetry/sdk-trace-base",
+        "dependency:@stripe/agent-toolkit",
+        "dependency:composio-core",
+        "dependency:couchbase",
+        "dependency:epub2",
+        "dependency:langchain",
+        "dependency:langfuse-langchain",
+        "dependency:langsmith",
+        "dependency:langwatch",
+        "dependency:llamaindex",
+        "dependency:officeparser",
+        "dependency:puppeteer",
+        "dependency:uuid",
+        "dependency:weaviate-client",
+        "dependency:xlsx"
+      ],
+      "advisories": [],
+      "fingerprint": "45cffef7f20ed92880e84ce776556c0bd8c5dc5f25f5d9ef20ae0e32b6d2299c"
+    },
+    {
+      "name": "flowise-embed",
+      "severity": "high",
+      "range": "*",
+      "nodes": [
+        "node_modules/flowise-embed"
+      ],
+      "via": [
+        "dependency:solid-js"
+      ],
+      "advisories": [],
+      "fingerprint": "fbae3100a4afdc392f827a7b1ee452c6e12f73c2d6314466d28f7574357fbc2c"
+    },
+    {
+      "name": "flowise-embed-react",
+      "severity": "high",
+      "range": "*",
+      "nodes": [
+        "node_modules/flowise-ui/node_modules/flowise-embed-react"
+      ],
+      "via": [
+        "dependency:@ladle/react",
+        "dependency:flowise-embed"
+      ],
+      "advisories": [],
+      "fingerprint": "75a5dc80b966b9c864e4cd412907e47e08998570702ba4360420a2609b88c732"
+    },
+    {
+      "name": "flowise-ui",
+      "severity": "high",
+      "range": "*",
+      "nodes": [
+        "node_modules/flowise-ui"
+      ],
+      "via": [
+        "dependency:flowise-embed",
+        "dependency:flowise-embed-react",
+        "dependency:react-code-blocks",
+        "dependency:react-router",
+        "dependency:react-router-dom",
+        "dependency:react-syntax-highlighter",
+        "dependency:showdown",
+        "dependency:uuid"
+      ],
+      "advisories": [],
+      "fingerprint": "1ae106d3ee181c2ed39f83f3fce75faf07db85d75d906c1a64a2914cda24f75f"
+    },
+    {
+      "name": "form-data",
+      "severity": "critical",
+      "range": "<=2.5.5 || 4.0.0 - 4.0.5",
+      "nodes": [
+        "node_modules/flowise-components/node_modules/@getzep/zep-cloud/node_modules/form-data",
+        "node_modules/llamaindex/node_modules/form-data",
+        "node_modules/request/node_modules/form-data"
+      ],
+      "via": [
+        "advisory:1109538",
+        "advisory:1109540",
+        "advisory:1120743",
+        "advisory:1120745"
+      ],
+      "advisories": [
+        "1109538",
+        "1109540",
+        "1120743",
+        "1120745"
+      ],
+      "fingerprint": "9cd8f25a6a3c0f12c02e0ea41d417c13445b231c2287ad72a2df7976ab2940ab"
+    },
+    {
+      "name": "glob-watcher",
+      "severity": "high",
+      "range": "5.0.0 - 5.0.5",
+      "nodes": [
+        "node_modules/glob-watcher"
+      ],
+      "via": [
+        "dependency:anymatch",
+        "dependency:chokidar"
+      ],
+      "advisories": [],
+      "fingerprint": "0d88de867c2e4e4f7bbd89b02cee9c69be56d8d16a328ece95a9f8c20c5f0c93"
+    },
+    {
+      "name": "gulp",
+      "severity": "high",
+      "range": "4.0.0 - 4.0.2",
+      "nodes": [
+        "node_modules/gulp"
+      ],
+      "via": [
+        "dependency:glob-watcher",
+        "dependency:gulp-cli"
+      ],
+      "advisories": [],
+      "fingerprint": "3588e364d4ad1d8fac368176487bc16a7c4255a6d53ad5eefb434c723246e261"
+    },
+    {
+      "name": "ip-address",
+      "severity": "high",
+      "range": "<=10.3.0",
+      "nodes": [
+        "node_modules/geoip-lite/node_modules/ip-address"
+      ],
+      "via": [
+        "advisory:1118827",
+        "advisory:1130722"
+      ],
+      "advisories": [
+        "1118827",
+        "1130722"
+      ],
+      "fingerprint": "9855f91501c4278be250883dc42cfdda23780053f197d79c3ee97105ee174d90"
+    },
+    {
+      "name": "langsmith",
+      "severity": "high",
+      "range": "<=0.5.26",
+      "nodes": [
+        "node_modules/@langchain/langgraph/node_modules/langsmith",
+        "node_modules/@mem0/community/node_modules/@langchain/community/node_modules/langsmith",
+        "node_modules/@mem0/community/node_modules/@langchain/core/node_modules/langsmith",
+        "node_modules/langchain/node_modules/langsmith",
+        "node_modules/langsmith",
+        "node_modules/langwatch/node_modules/@langchain/core/node_modules/langsmith"
+      ],
+      "via": [
+        "advisory:1113091",
+        "advisory:1116472",
+        "advisory:1117058",
+        "advisory:1120161",
+        "dependency:uuid"
+      ],
+      "advisories": [
+        "1113091",
+        "1116472",
+        "1117058",
+        "1120161"
+      ],
+      "fingerprint": "a590e71a4b79f0b8c15d29d71fd4a828e992920673632e43d45373468add1c12"
+    },
+    {
+      "name": "langwatch",
+      "severity": "high",
+      "range": "<=0.2.0",
+      "nodes": [
+        "node_modules/langwatch"
+      ],
+      "via": [
+        "dependency:@langchain/core",
+        "dependency:@opentelemetry/otlp-transformer",
+        "dependency:@opentelemetry/sdk-trace-base",
+        "dependency:ai"
+      ],
+      "advisories": [],
+      "fingerprint": "8640b20c76d192a0104c7357862b1e76c030e2259492cbe8f94f480b46389b29"
+    },
+    {
+      "name": "llamaindex",
+      "severity": "high",
+      "range": "<=0.0.0-20240314032004 || 0.0.36 - 0.7.10",
+      "nodes": [
+        "node_modules/llamaindex"
+      ],
+      "via": [
+        "dependency:@xenova/transformers",
+        "dependency:unpdf"
+      ],
+      "advisories": [],
+      "fingerprint": "fc0e4ec78681e8554b04ef77a6b1e4b2be7a192af2b8a8cefa34dbd3db85a08e"
+    },
+    {
+      "name": "make-fetch-happen",
+      "severity": "high",
+      "range": "7.1.1 - 14.0.0",
+      "nodes": [
+        "node_modules/make-fetch-happen"
+      ],
+      "via": [
+        "dependency:cacache",
+        "dependency:http-proxy-agent"
+      ],
+      "advisories": [],
+      "fingerprint": "8d36991e152e5fe60e159d89bce994d36a80d81f6be3dd2930572c87dd92ef47"
+    },
+    {
+      "name": "micromatch",
+      "severity": "high",
+      "range": "<=4.0.7",
+      "nodes": [
+        "node_modules/findup-sync/node_modules/micromatch",
+        "node_modules/glob-watcher/node_modules/micromatch",
+        "node_modules/matchdep/node_modules/micromatch"
+      ],
+      "via": [
+        "advisory:1098681",
+        "dependency:braces"
+      ],
+      "advisories": [
+        "1098681"
+      ],
+      "fingerprint": "feb37242a38c9ddcf26a01216a7df961639abc0bbffef60c95c477cf915051bf"
+    },
+    {
+      "name": "node-gyp",
+      "severity": "high",
+      "range": "<=10.3.1",
+      "nodes": [
+        "node_modules/node-gyp"
+      ],
+      "via": [
+        "dependency:make-fetch-happen",
+        "dependency:tar"
+      ],
+      "advisories": [],
+      "fingerprint": "2088d6582f4f3fd1a9495b9560588140d960767c1549a7ef4e9c177f88f6bbf5"
+    },
+    {
+      "name": "nodemailer",
+      "severity": "high",
+      "range": "<=9.0.0",
+      "nodes": [
+        "node_modules/nodemailer"
+      ],
+      "via": [
+        "advisory:1115470",
+        "advisory:1116270",
+        "advisory:1120795",
+        "advisory:1120796",
+        "advisory:1120797",
+        "advisory:1121191"
+      ],
+      "advisories": [
+        "1115470",
+        "1116270",
+        "1120795",
+        "1120796",
+        "1120797",
+        "1121191"
+      ],
+      "fingerprint": "78f56bb95c04d853c981d87b15a52518cb07cf8cab6d2b6531d6909e2eb71ba5"
+    },
+    {
+      "name": "onnx-proto",
+      "severity": "high",
+      "range": "*",
+      "nodes": [
+        "node_modules/onnx-proto"
+      ],
+      "via": [
+        "dependency:protobufjs"
+      ],
+      "advisories": [],
+      "fingerprint": "9f16ef9ed6b54b412e5699514d2b974e7641d4ea93263bdb576d83f36e00a1d6"
+    },
+    {
+      "name": "onnxruntime-web",
+      "severity": "high",
+      "range": "<=1.16.0-dev.20230910-24f0893d3c",
+      "nodes": [
+        "node_modules/onnxruntime-web"
+      ],
+      "via": [
+        "dependency:onnx-proto"
+      ],
+      "advisories": [],
+      "fingerprint": "19820e5fa4319b1c13900aa179f1e31735bd4d7c5fcf57f842e3c1d5b04060a0"
+    },
+    {
+      "name": "pdfjs-dist",
+      "severity": "high",
+      "range": ">=5.6.83 <6.2.108",
+      "nodes": [
+        "node_modules/pdfjs-dist"
+      ],
+      "via": [
+        "advisory:1138116"
+      ],
+      "advisories": [
+        "1138116"
+      ],
+      "fingerprint": "1201b80fc74dd486f0511ebc60cfef1c9c1059d1a2251d9ad799289f89f1445d"
+    },
+    {
+      "name": "protobufjs",
+      "severity": "critical",
+      "range": "<=7.6.2",
+      "nodes": [
+        "node_modules/onnx-proto/node_modules/protobufjs"
+      ],
+      "via": [
+        "advisory:1117571",
+        "advisory:1118641",
+        "advisory:1118924",
+        "advisory:1118926",
+        "advisory:1118928",
+        "advisory:1118930",
+        "advisory:1118932",
+        "advisory:1118935",
+        "advisory:1119378",
+        "advisory:1123488",
+        "advisory:1123492"
+      ],
+      "advisories": [
+        "1117571",
+        "1118641",
+        "1118924",
+        "1118926",
+        "1118928",
+        "1118930",
+        "1118932",
+        "1118935",
+        "1119378",
+        "1123488",
+        "1123492"
+      ],
+      "fingerprint": "e95fffde02aee59be736ed6db4953cbceca891bef619d6466df595a2aaacedbd"
+    },
+    {
+      "name": "request",
+      "severity": "critical",
+      "range": "*",
+      "nodes": [
+        "node_modules/request"
+      ],
+      "via": [
+        "advisory:1096727",
+        "dependency:form-data",
+        "dependency:qs",
+        "dependency:tough-cookie",
+        "dependency:uuid"
+      ],
+      "advisories": [
+        "1096727"
+      ],
+      "fingerprint": "91a22b10fd792ee8b5b2498a0f1dfa1352fc764634c4d46432b99a8c962389e2"
+    },
+    {
+      "name": "seroval",
+      "severity": "critical",
+      "range": "<=1.5.2",
+      "nodes": [
+        "node_modules/seroval"
+      ],
+      "via": [
+        "advisory:1112482",
+        "advisory:1112487",
+        "advisory:1112488",
+        "advisory:1112494",
+        "advisory:1119405",
+        "advisory:1124299"
+      ],
+      "advisories": [
+        "1112482",
+        "1112487",
+        "1112488",
+        "1112494",
+        "1119405",
+        "1124299"
+      ],
+      "fingerprint": "a25a42e752b473ac30fe54f828bc1e6ed8aa2cc6e8e72f77b13609bdf903a2d6"
+    },
+    {
+      "name": "sharp",
+      "severity": "high",
+      "range": "<0.35.0",
+      "nodes": [
+        "node_modules/sharp"
+      ],
+      "via": [
+        "advisory:1124066"
+      ],
+      "advisories": [
+        "1124066"
+      ],
+      "fingerprint": "e4b55ad92f0d111027a048673e13d647da0897d4135eb79622e88b462df9fa3e"
+    },
+    {
+      "name": "solid-js",
+      "severity": "high",
+      "range": "<=1.9.3 || 1.9.7 - 1.9.10 || 1.10.0-beta.0 - 2.0.0-experimental.13",
+      "nodes": [
+        "node_modules/solid-js"
+      ],
+      "via": [
+        "advisory:1102828",
+        "dependency:seroval"
+      ],
+      "advisories": [
+        "1102828"
+      ],
+      "fingerprint": "5a1c2d1ce42e9ac03192932cdafc267e03027aee775d7cc70ef09f9654efe9bb"
+    },
+    {
+      "name": "sqlite3",
+      "severity": "high",
+      "range": "5.0.0 - 5.1.7",
+      "nodes": [
+        "node_modules/sqlite3"
+      ],
+      "via": [
+        "dependency:node-gyp",
+        "dependency:tar"
+      ],
+      "advisories": [],
+      "fingerprint": "8b59c1f799cfc412cf57e90039003810d4fc244e2b41666435ca0d337d408db8"
+    },
+    {
+      "name": "tar",
+      "severity": "critical",
+      "range": "<=7.5.20",
+      "nodes": [
+        "node_modules/tar"
+      ],
+      "via": [
+        "advisory:1112659",
+        "advisory:1113300",
+        "advisory:1113375",
+        "advisory:1114200",
+        "advisory:1114302",
+        "advisory:1114680",
+        "advisory:1120782",
+        "advisory:1123939",
+        "advisory:1123940",
+        "advisory:1123941",
+        "advisory:1123942",
+        "advisory:1124287"
+      ],
+      "advisories": [
+        "1112659",
+        "1113300",
+        "1113375",
+        "1114200",
+        "1114302",
+        "1114680",
+        "1120782",
+        "1123939",
+        "1123940",
+        "1123941",
+        "1123942",
+        "1124287"
+      ],
+      "fingerprint": "e73f8c7cb4b6af582f306a08873896c33daa4ec7b910320b88a95200cec2cdcf"
+    },
+    {
+      "name": "tmp",
+      "severity": "high",
+      "range": "<=0.2.5",
+      "nodes": [
+        "node_modules/tmp"
+      ],
+      "via": [
+        "advisory:1109537",
+        "advisory:1120654"
+      ],
+      "advisories": [
+        "1109537",
+        "1120654"
+      ],
+      "fingerprint": "2eb5b3210b20b1eca1cbe8e02d48a8f0d03310b7c8dff8ae588eb83a13a9d9a4"
+    },
+    {
+      "name": "undici",
+      "severity": "high",
+      "range": "<=6.27.0",
+      "nodes": [
+        "node_modules/@mem0/community/node_modules/undici"
+      ],
+      "via": [
+        "advisory:1112496",
+        "advisory:1113069",
+        "advisory:1114594",
+        "advisory:1114638",
+        "advisory:1114640",
+        "advisory:1114642",
+        "advisory:1121242",
+        "advisory:1121245",
+        "advisory:1121255",
+        "advisory:1130716",
+        "advisory:1130727",
+        "advisory:1130732",
+        "advisory:1137243"
+      ],
+      "advisories": [
+        "1112496",
+        "1113069",
+        "1114594",
+        "1114638",
+        "1114640",
+        "1114642",
+        "1121242",
+        "1121245",
+        "1121255",
+        "1130716",
+        "1130727",
+        "1130732",
+        "1137243"
+      ],
+      "fingerprint": "c2e3bbcdefec6fd044074db7c79698241cc0bedeafe3fe5f80d4972d75bb6756"
+    },
+    {
+      "name": "unpdf",
+      "severity": "high",
+      "range": "0.7.0 - 0.12.2",
+      "nodes": [
+        "node_modules/unpdf"
+      ],
+      "via": [
+        "dependency:canvas"
+      ],
+      "advisories": [],
+      "fingerprint": "e9df680286aeb42c8fe93d85fca6daf82537476ea92ade2e85323c6da938d387"
+    },
+    {
+      "name": "vite",
+      "severity": "high",
+      "range": "<=6.4.2",
+      "nodes": [
+        "node_modules/vite"
+      ],
+      "via": [
+        "advisory:1107323",
+        "advisory:1107327",
+        "advisory:1109132",
+        "advisory:1116229",
+        "advisory:1120061",
+        "advisory:1120784",
+        "advisory:1123525",
+        "dependency:esbuild"
+      ],
+      "advisories": [
+        "1107323",
+        "1107327",
+        "1109132",
+        "1116229",
+        "1120061",
+        "1120784",
+        "1123525"
+      ],
+      "fingerprint": "04aa64b94b76ff7ba37829b75397c6c0d9729d74935fbc74e1b882a4f4bca56e"
+    },
+    {
+      "name": "xlsx",
+      "severity": "high",
+      "range": "*",
+      "nodes": [
+        "node_modules/xlsx"
+      ],
+      "via": [
+        "advisory:1108110",
+        "advisory:1108111"
+      ],
+      "advisories": [
+        "1108110",
+        "1108111"
+      ],
+      "fingerprint": "fdb3bd9f98479d48c8c320b6329a4dbb3e727baabad88fbfcc2f3ac26dd4c15c"
+    }
+  ]
+}

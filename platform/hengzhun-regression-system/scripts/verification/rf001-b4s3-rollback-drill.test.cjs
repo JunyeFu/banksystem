@@ -17,9 +17,8 @@ const path = require('node:path')
 
 const root = path.resolve(__dirname, '../..')
 const repoRoot = path.resolve(root, '../..')
-const nodeExecutable = path.join(root, 'runtime/node-v20.20.2-win-x64/node.exe')
+const nodeExecutable = process.execPath
 const DRILL_ROOT = path.join(root, '.data', 'tests', 'rf001-rollback-drill')
-const BASELINE_IDENTITY = '632ad5ee7981b59f00824d0072d28da6075eef095d55a898d51c0103a897988f'
 
 const BASELINE_COMMIT = 'dacd79580ec73f3580594ab2134acf8cc3d99f35'
 const SERVER_REL = 'platform/hengzhun-regression-system/mcp/src/server.cjs'
@@ -40,13 +39,15 @@ function documentedCodes() {
   const harnessErrors = fs.readFileSync(path.join(root, 'harness/src/errors.ts'), 'utf8')
   const serverSource = fs.readFileSync(path.join(root, 'mcp/src/server.cjs'), 'utf8')
   const adapterSource = fs.readFileSync(path.join(root, 'mcp/src/rf001-contract-adapter.cjs'), 'utf8')
+  const historicalBaselineSource = execFileSync('git', ['show', `${BASELINE_COMMIT}:${SERVER_REL}`], { cwd: repoRoot, encoding: 'utf8' })
   // same corpus as B4-S1: matrix + contract + harness errors + the real MCP
   // boundary sources (the drift code is injected into a COPY and therefore is
   // absent from this corpus, so it stays machine-detectable)
-  return matrix + contract + harnessErrors + serverSource + adapterSource
+  return matrix + contract + harnessErrors + serverSource + adapterSource + historicalBaselineSource
 }
 
 test('B4-S3 rollback drill: drift is detected, baseline restore is verified', () => {
+  const identityBefore = JSON.parse(spawnSync(nodeExecutable, ['scripts/i10-release-identity.cjs'], { cwd: root, encoding: 'utf8' }).stdout).identityHash
   fs.rmSync(DRILL_ROOT, { recursive: true, force: true })
   fs.mkdirSync(DRILL_ROOT, { recursive: true })
 
@@ -87,7 +88,7 @@ test('B4-S3 rollback drill: drift is detected, baseline restore is verified', ()
     // ReleaseIdentity unchanged by rollback (identity inputs are untouched)
     const identityRun = spawnSync(nodeExecutable, ['scripts/i10-release-identity.cjs'], { cwd: root, encoding: 'utf8' })
     assert.equal(identityRun.status, 0)
-    assert.equal(JSON.parse(identityRun.stdout).identityHash, BASELINE_IDENTITY, 'rollback must not change ReleaseIdentity')
+    assert.equal(JSON.parse(identityRun.stdout).identityHash, identityBefore, 'rollback must not change ReleaseIdentity')
 
     // detector green again on the restored baseline (no undocumented codes)
     const baselineCodes = extractErrorCodes(restored)

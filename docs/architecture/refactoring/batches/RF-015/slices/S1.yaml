@@ -1,0 +1,9 @@
+id: RF-015-S1
+title: Persist CLI Agent baseline and task portfolio
+status: COMPLETED
+allowedPaths: [agent/plans/active/hengzhun-i10-cli-agent-baseline-v1.md, agent/plans/active/hengzhun-i10-cli-agent-task-packages-v1.yaml, agent/plans/active/hengzhun-i10-agcli-tp00-authority-rebaseline-task-package.md, agent/plans/active/hengzhun-i10-agcli-tp01-mcp-decouple-task-package.md, agent/plans/active/hengzhun-i10-agcli-tp02-controller-v2-task-package.md, agent/plans/active/hengzhun-i10-agcli-tp03-runtime-adapters-task-package.md, agent/plans/active/hengzhun-i10-agcli-tp04-dpapi-sessions-task-package.md, agent/plans/active/hengzhun-i10-agcli-tp05-cli-headless-task-package.md, agent/plans/active/hengzhun-i10-agcli-tp06-terminal-ui-task-package.md, agent/plans/active/hengzhun-i10-agcli-tp07-lifecycle-release-v4-task-package.md, agent/plans/active/hengzhun-i10-agcli-tp08-offline-integration-gates-task-package.md, agent/plans/active/hengzhun-i10-agcli-tp09-l1-live-task-package.md, agent/plans/active/hengzhun-i10-agcli-tp10-full18-release-task-package.md, docs/architecture/refactoring/batches/RF-015, agent/backlog.yaml, agent/plans/active/v54-implementation-batches.md]
+forbiddenPaths: [platform/hengzhun-regression-system/.data, platform/hengzhun-regression-system/flowise, platform/hengzhun-regression-system/controller, platform/hengzhun-regression-system/harness, platform/hengzhun-regression-system/mcp, platform/hengzhun-regression-system/worker]
+workSteps: [freeze current authority facts, persist baseline and portfolio, register task statuses and implementation order, validate governance]
+verification: [RF-015 validator exits 0, temporal validator exits 0, docs validator exits 0, git diff check exits 0]
+rollback: remove only RF-015 and exact new planning entries
+evidence: docs/architecture/refactoring/batches/RF-015/evidence-index.md

@@ -1,0 +1,9 @@
+id: RF-013-S1
+title: Controller-bound ReleaseIdentity v3
+status: COMPLETED
+allowedPaths: [platform/hengzhun-regression-system/controller, platform/hengzhun-regression-system/scripts/i10-release-identity.cjs, platform/hengzhun-regression-system/scripts/verification/i10-final-standardization-contracts.test.cjs, platform/hengzhun-regression-system/scripts/verification/release-toolchain-integrity.test.cjs, platform/hengzhun-regression-system/tests/i10-release-identity-worker-set.test.cjs, docs/architecture/refactoring/batches/RF-013, agent/backlog.yaml, agent/plans/active/v54-implementation-batches.md, agent/plans/active/hengzhun-i10-langgraph-deepagents-controller-migration-task-package.md, agent/plans/active/hengzhun-i10-tp00-change-inventory-v1.json]
+forbiddenPaths: [platform/hengzhun-regression-system/.data, platform/hengzhun-regression-system/flowise, platform/hengzhun-regression-system/harness, platform/hengzhun-regression-system/mcp, platform/hengzhun-regression-system/worker, apps, services, infra]
+workSteps: [freeze controller manifest and prompt, implement controller identity, advance schema, test drift and secret rejection, recompute ledger projection]
+verification: [focused identity tests exit 0, release regressions exit 0, governance gates exit 0, new ledger remains 0/18]
+rollback: preserve both schema histories and never reuse evidence across them
+evidence: docs/architecture/refactoring/batches/RF-013/evidence-index.md

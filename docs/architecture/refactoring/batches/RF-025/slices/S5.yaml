@@ -1,0 +1,9 @@
+id: RF-025-S5
+title: Final human release decision
+status: BLOCKED
+allowedPaths: [platform/hengzhun-regression-system/scripts/i10-agent-release-decision.cjs, platform/hengzhun-regression-system/package.json, platform/hengzhun-regression-system/scripts/verification/agent-release-decision.test.cjs, docs/architecture/refactoring/batches/RF-025, agent/backlog.yaml, agent/plans/active/v54-implementation-batches.md, agent/plans/active/hengzhun-i10-cli-agent-task-packages-v1.yaml, agent/plans/active/hengzhun-i10-agcli-tp10-full18-release-task-package.md]
+forbiddenPaths: [platform/hengzhun-regression-system/.data/evidence/i10/acceptance-records-v3, platform/hengzhun-regression-system/flowise]
+workSteps: [re-read all current gates, emit eligible or not-ready machine projection, require explicit project-owner GO or NO_GO, freeze decision and evidence pointers]
+verification: [machine cannot manufacture GO, final readback current, all gates same identity, human decision explicit and immutable]
+rollback: a terminal decision is superseded by a new identity or explicit human decision; never edited in place
+evidence: docs/architecture/refactoring/batches/RF-025/evidence-index.md

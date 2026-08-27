@@ -1,7 +1,8 @@
 const fs = require('node:fs');
 const path = require('node:path');
 const { chromium } = require('../../../../runtime/node_modules/playwright');
-const { artifact, resolveCredential, sha256 } = require('./login-profile.cjs');
+const { artifact, quarantinedScreenshotArtifact, sha256 } = require('./login-profile.cjs');
+const { throwIfLeaseAborted, bindLeaseAbortToBrowser, resolveExecutionCredential } = require('../../i10-worker-utils.cjs');
 
 async function login(page, username, password) {
   await page.getByTestId('login-username').fill(username);
@@ -9,14 +10,15 @@ async function login(page, username, password) {
   await page.getByTestId('login-submit').click();
 }
 
-async function executeAuthRejectionRecovery(task, environment = process.env) {
-  const credential = resolveCredential(task.execution?.credentialAlias, environment);
+async function executeAuthRejectionRecovery(task, environment = process.env, options = {}) {
+  const credential = resolveExecutionCredential(task, environment, options);
   const productRoot = path.resolve(__dirname, '..', '..', '..', '..');
   const executablePath = environment.HENGZHUN_CHROMIUM_EXECUTABLE
     || path.join(productRoot, 'runtime', 'browsers', 'chromium-1217', 'chrome-win64', 'chrome.exe');
   if (!fs.existsSync(executablePath)) throw Object.assign(new Error('固定 Chromium 不可用。'), { code: 'CHROMIUM_UNAVAILABLE', category: 'ENVIRONMENT' });
   const portalBaseUrl = (environment.HENGZHUN_PORTAL_BASE_URL || 'http://127.0.0.1:18082').replace(/\/$/, '');
   const browser = await chromium.launch({ executablePath, headless: true });
+  const detachLeaseAbort = bindLeaseAbortToBrowser(options.signal, browser);
   const context = await browser.newContext({ locale: 'zh-CN', timezoneId: 'Asia/Shanghai', viewport: { width: 1440, height: 1100 } });
   const page = await context.newPage();
   const authStatuses = [];
@@ -24,6 +26,7 @@ async function executeAuthRejectionRecovery(task, environment = process.env) {
     try { if (new URL(response.url()).pathname.endsWith('/protocol/openid-connect/token')) authStatuses.push(response.status()); } catch { }
   });
   try {
+    throwIfLeaseAborted(options.signal);
     await page.goto(`${portalBaseUrl}/portal/login`, { waitUntil: 'domcontentloaded', timeout: 30000 });
     const impossiblePassword = `invalid-${task.execution?.fixtureNamespace || 'fixture'}-not-a-secret`;
     await login(page, credential.username, impossiblePassword);
@@ -57,21 +60,24 @@ async function executeAuthRejectionRecovery(task, environment = process.env) {
     const log = Object.entries(assertions).map(([name, value]) => `${value ? 'PASS' : 'FAIL'} ${name}`).join('\n') + '\n';
     const evidence = [
       artifact('REPORT', 'application/json', 'REDACTED', 'json', JSON.stringify(report, null, 2), { schemaVersion: report.schemaVersion, passed }),
-      artifact('SCREENSHOT', 'image/png', 'REDACTED', 'png', screenshot, { pageId: 'customer.dashboard', maskedFields: ['profileMenu'] }),
+      quarantinedScreenshotArtifact(screenshot, { pageId: 'customer.dashboard', maskedFields: ['profileMenu'] }),
       artifact('LOG', 'text/plain; charset=utf-8', 'REDACTED', 'log', log, { containsCredentials: false })
     ];
     return passed
       ? { outcome: 'PASSED', summary: '错误凭据与失效会话均被安全拒绝，重新登录恢复成功。', evidence }
       : { outcome: 'FAILED', summary: '身份拒绝或恢复断言失败。', errorCode: 'AUTH_RECOVERY_ASSERTION_FAILED', errorCategory: 'TEST_FAILURE', evidence };
   } catch (error) {
+    throwIfLeaseAborted(options.signal);
     if (!error.category) {
       error.category = error.name === 'TimeoutError' ? 'ENVIRONMENT' : 'TEST_FAILURE';
       error.code = error.name === 'TimeoutError' ? 'PORTAL_TIMEOUT' : 'AUTH_RECOVERY_EXECUTION_FAILED';
     }
+    throwIfLeaseAborted(options.signal);
     throw error;
   } finally {
-    await context.close();
-    await browser.close();
+    detachLeaseAbort();
+    await context.close().catch(() => {});
+    await browser.close().catch(() => {});
   }
 }
 

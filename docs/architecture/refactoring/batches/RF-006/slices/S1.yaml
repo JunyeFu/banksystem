@@ -1,0 +1,8 @@
+id: RF-006-S1
+title: Acceptance cost and invalidation baseline
+status: COMPLETED
+allowedPaths: [platform/hengzhun-regression-system/scripts, platform/hengzhun-regression-system/tests, docs/architecture/refactoring/batches/RF-006]
+forbiddenPaths: [platform/hengzhun-regression-system/harness, platform/hengzhun-regression-system/mcp, platform/hengzhun-regression-system/flowise]
+workSteps: [freeze current behavior, inventory repeated authoring and polling, define timing schema and reuse predicates]
+verification: [focused feature tests, baseline timing capture]
+rollback: documentation and tests only; remove no historical evidence

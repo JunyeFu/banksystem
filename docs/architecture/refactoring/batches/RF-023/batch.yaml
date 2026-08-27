@@ -1,0 +1,23 @@
+schemaVersion: 1
+id: RF-023
+title: CLI offline production composition and release gates
+status: CLOSED
+owner: project-owner
+authorizedBy: agent/plans/active/v54-implementation-batches.md
+scope:
+  includePaths: [platform/hengzhun-regression-system/agent-cli, platform/hengzhun-regression-system/controller, platform/hengzhun-regression-system/scripts/i10-agent-lifecycle.cjs, platform/hengzhun-regression-system/scripts/i10-agent-offline-sbom.cjs, platform/hengzhun-regression-system/scripts/verification, platform/hengzhun-regression-system/package.json, docs/architecture/refactoring/batches/RF-023, docs/architecture/refactoring/module-boundaries-v1.yaml, agent/backlog.yaml, agent/plans/active/v54-implementation-batches.md, agent/plans/active/hengzhun-i10-cli-agent-task-packages-v1.yaml, agent/plans/active/hengzhun-i10-agcli-tp08-offline-integration-gates-task-package.md]
+  excludePaths: [platform/hengzhun-regression-system/.data, platform/hengzhun-regression-system/flowise/app, platform/hengzhun-regression-system/flowise/i10/agentflow-v7.json, platform/hengzhun-regression-system/harness/src, platform/hengzhun-regression-system/mcp/src, platform/hengzhun-regression-system/worker/src, apps, services, infra]
+budgets: {maxChangedFiles: 30, maxNewFiles: 16, maxChangedLines: 5000, maxContractsChanged: 4, maxMigrationsAdded: 0, maxOpenModules: 2}
+baseline: {gitCommit: 9d79b7c1e6cfedd995093cc7a378dc8e9218fa98, dirtyTreeManifest: docs/architecture/refactoring/batches/RF-023/baseline.md, releaseIdentity: b709dfa998672354004547df5e43b739404e4650a6146bcb7966b2321ff5766e, capturedAt: "2026-08-26T19:00:00+08:00"}
+architecture: {businessCapability: cli-offline-production-composition, publicContract: platform/hengzhun-regression-system/agent-cli/src/production-service.mjs, dependencyManifest: docs/architecture/refactoring/module-boundaries-v1.yaml, allowedModules: [hengzhun.agent-cli, hengzhun.controller], forbiddenModules: [hengzhun.flowise]}
+mustPreserve: [Flowise remains absent from normal composition, every local or remote write checks Flowise absence first, exact approval survives real CurrentUser DPAPI restart, one approval causes at most one MCP mutation, secrets do not enter output SBOM or v4 identity, cold rollback stays separately authorized and non-executing, formal Stage9 remains blocked on dirty source, LIVE ledger remains 0/18]
+verification:
+  requiredCommands:
+    - {name: offline-integration, command: "runtime/node-v24.19.0-win-x64/node.exe --test agent-cli/test/offline-integration.test.mjs", expectedExitCode: 0, evidence: docs/architecture/refactoring/batches/RF-023/evidence-index.md, blocking: true}
+    - {name: agent-cli-matrix, command: "npm run test:agent-cli", expectedExitCode: 0, evidence: docs/architecture/refactoring/batches/RF-023/evidence-index.md, blocking: true}
+    - {name: sbom-lock-check, command: "npm run check:agent-sbom", expectedExitCode: 0, evidence: docs/architecture/refactoring/batches/RF-023/evidence-index.md, blocking: true}
+    - {name: registered-suite, command: "npm run test:registered", expectedExitCode: 0, evidence: docs/architecture/refactoring/batches/RF-023/evidence-index.md, blocking: true}
+    - {name: governance, command: "py -3 scripts/architecture/validate_refactoring.py --batch RF-023", expectedExitCode: 0, evidence: docs/architecture/refactoring/batches/RF-023/evidence-index.md, blocking: true}
+rollback: {triggerConditions: [write occurs before Flowise absence proof, DPAPI restore loses exact proposal, more than one mutation, secret enters identity or output, cold rollback executes or shares normal evidence], recoveryPoint: RF-022 closed state, maxRtoMinutes: 20, maxRpoMinutes: 0}
+exceptions: {allowedVagueNames: [], crossModule: [CLI production composition imports Controller v2 public runtime and encrypted session surfaces; tests inject MCP and model transports without changing their ownership]}
+

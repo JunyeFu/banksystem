@@ -20,11 +20,14 @@ test('all required opaque identifier kinds are centrally declared', () => {
   }
 })
 
-test('current release identity contains a versioned case catalog and hashes', () => {
+test('current release identity contains versioned case catalog and complete WorkerCodeSet hashes', () => {
   const value = release.currentReleaseIdentity({ requireDeployed: false })
-  assert.equal(value.schemaVersion, 'hengzhun-i10-release-identity-v1')
+  assert.equal(value.schemaVersion, 'hengzhun-i10-release-identity-v3')
   assert.equal(value.flowVersion, 7)
-  for (const field of ['sourceFlowHash', 'normalizedFlowHash', 'harnessCodeHash', 'workerCodeHash', 'caseCatalogHash', 'identityHash']) assert.match(value[field], /^[0-9a-f]{64}$/)
+  assert.equal(value.workerCodeSetVersion, 'WORKER_CODE_SET_V1')
+  assert.equal(value.workerCodeSetFileCount, 25)
+  for (const field of ['sourceFlowHash', 'normalizedFlowHash', 'harnessCodeHash', 'workerCodeHash', 'workerCodeSetManifestHash', 'workerCodeSetHash', 'caseCatalogHash', 'identityHash']) assert.match(value[field], /^[0-9a-f]{64}$/)
+  for (const field of ['frameworkLockHash', 'graphSourceHash', 'promptAndSkillsHash', 'toolPolicyHash', 'controllerCodeSetHash']) assert.match(value.controller[field], /^[0-9a-f]{64}$/)
   const publication = JSON.parse(fs.readFileSync(path.join(release.root, 'flowise/i10/publication-manifest-v1.json'), 'utf8'))
   const expectedReady = Boolean(publication.deployed === true && /^[0-9a-f]{64}$/i.test(String(publication.deployedFlowDataSha256 || '')))
   assert.equal(value.deploymentReady, expectedReady)

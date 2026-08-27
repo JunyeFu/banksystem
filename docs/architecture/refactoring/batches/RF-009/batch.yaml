@@ -1,0 +1,82 @@
+schemaVersion: 1
+id: RF-009
+title: Isolated open-source agent controller proof of concept
+status: CLOSED
+owner: project-owner
+authorizedBy: agent/plans/active/v54-implementation-batches.md
+scope:
+  includePaths:
+    - platform/hengzhun-regression-system/experiments/agent-controller-ag00
+    - docs/architecture/refactoring/batches/RF-009
+    - scripts/architecture
+    - agent/backlog.yaml
+    - agent/plans/active/v54-implementation-batches.md
+    - agent/plans/active/hengzhun-i10-langgraph-deepagents-controller-migration-task-package.md
+    - agent/plans/active/hengzhun-i10-tp00-change-inventory-v1.json
+  excludePaths:
+    - platform/hengzhun-regression-system/.data
+    - platform/hengzhun-regression-system/flowise
+    - platform/hengzhun-regression-system/harness
+    - platform/hengzhun-regression-system/mcp
+    - platform/hengzhun-regression-system/worker
+    - platform/hengzhun-regression-system/package.json
+    - platform/hengzhun-regression-system/package-lock.json
+    - apps
+    - services
+    - infra
+    - secrets
+    - .env
+budgets:
+  maxChangedFiles: 25
+  maxNewFiles: 18
+  maxChangedLines: 2600
+  maxContractsChanged: 0
+  maxMigrationsAdded: 0
+  maxOpenModules: 2
+baseline:
+  gitCommit: 9d79b7c1e6cfedd995093cc7a378dc8e9218fa98
+  dirtyTreeManifest: docs/architecture/refactoring/batches/RF-009/baseline.md
+  releaseIdentity: 02ae6b18ed678415488db431f1c271ec258ec6475a1414864731d495a8d81dc4
+  capturedAt: "2026-08-25T10:06:24+08:00"
+architecture:
+  businessCapability: isolated-agent-controller-feasibility
+  publicContract: agent/plans/active/hengzhun-i10-langgraph-deepagents-controller-migration-task-package.md
+  dependencyManifest: docs/architecture/refactoring/module-boundaries-v1.yaml
+  allowedModules: [governance.refactoring, hengzhun.tests]
+  forbiddenModules: [hengzhun.flowise, hengzhun.harness, hengzhun.mcp, hengzhun.worker, bank.identity, bank.accounts, bank.payments]
+mustPreserve:
+  - Flowise remains the unchanged formal controller baseline and rollback candidate.
+  - Harness, MCP, Worker, SQLite, Midscene and Playwright remain authoritative and unmodified.
+  - The proof of concept uses synthetic in-memory facts and cannot write product state.
+  - ReleaseIdentity and the formal 0/18 acceptance ledger remain unchanged.
+  - No credential, host filesystem, shell, browser, database or unrestricted MCP tool reaches the planner.
+verification:
+  requiredCommands:
+    - name: ag00-focused-tests
+      command: runtime/node-v20.20.2-win-x64/node.exe --test experiments/agent-controller-ag00/test/controller.test.mjs
+      expectedExitCode: 0
+      evidence: docs/architecture/refactoring/batches/RF-009/evidence-index.md
+      blocking: true
+    - name: ag00-supply-chain
+      command: runtime/node-v24.19.0-win-x64/npm.cmd --prefix experiments/agent-controller-ag00 audit --omit=dev --json
+      expectedExitCode: 0
+      evidence: docs/architecture/refactoring/batches/RF-009/evidence-index.md
+      blocking: true
+    - name: refactoring-governance
+      command: py -3 scripts/architecture/validate_refactoring.py --batch RF-009
+      expectedExitCode: 0
+      evidence: docs/architecture/refactoring/batches/RF-009/evidence-index.md
+      blocking: true
+    - name: documentation-governance
+      command: py -3 scripts/docs/validate_docs.py
+      expectedExitCode: 0
+      evidence: docs/architecture/refactoring/batches/RF-009/evidence-index.md
+      blocking: true
+rollback:
+  triggerConditions: [write-tool exposure, checkpoint overrides harness facts, secret exposure, product identity drift, dependency gate failure]
+  recoveryPoint: 9d79b7c1 plus RF-009 baseline and deletion of the isolated experiment only
+  maxRtoMinutes: 15
+  maxRpoMinutes: 0
+exceptions:
+  allowedVagueNames: []
+  crossModule: []

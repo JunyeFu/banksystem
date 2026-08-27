@@ -3,7 +3,7 @@
 const crypto = require('node:crypto');
 const fs = require('node:fs');
 const path = require('node:path');
-const { chromium } = require('../../runtime/node_modules/playwright');
+const { assertTargetUrlResolution, chromiumHostResolverRules } = require('./i10-worker-utils.cjs');
 const { executeCandidatePackage } = require('./i8-candidate-runner.cjs');
 const { resolveCredential } = require('./i10-worker-utils.cjs');
 const { policyForAction } = require('./i10-verification-policy.cjs');
@@ -29,6 +29,10 @@ const VIEWPORTS = Object.freeze([
   Object.freeze({ viewportId: 'NARROW_390X844', width: 390, height: 844, suffix: 'narrow' })
 ]);
 const SCREENSHOT_UNAVAILABLE_PNG = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=', 'base64');
+
+function loadChromium() {
+  return require('../../runtime/node_modules/playwright').chromium;
+}
 
 function sha256(value) {
   return crypto.createHash('sha256').update(value).digest('hex');
@@ -105,7 +109,7 @@ function evidenceDescriptor(productRoot, target, artifactType, mediaType) {
   return {
     artifactType,
     mediaType,
-    redactionStatus: 'REDACTED',
+    redactionStatus: artifactType === 'SCREENSHOT' ? 'QUARANTINED' : 'REDACTED',
     relativePath: path.relative(productRoot, target).split(path.sep).join('/'),
     sha256: sha256(bytes),
     byteLength: bytes.byteLength
@@ -217,7 +221,7 @@ async function executeRun(browser, claim, run, options, credential, fingerprint)
   const assertionSetHash = sha256(stableJson(assertionSet));
   const evidenceShape = [
     { artifactType: 'REPORT', mediaType: 'application/json', redactionStatus: 'REDACTED' },
-    { artifactType: 'SCREENSHOT', mediaType: 'image/png', redactionStatus: 'REDACTED', masked: true },
+    { artifactType: 'SCREENSHOT', mediaType: 'image/png', redactionStatus: 'QUARANTINED' },
     { artifactType: 'LOG', mediaType: 'text/plain; charset=utf-8', redactionStatus: 'REDACTED' }
   ];
   const evidenceSetHash = sha256(stableJson(evidenceShape));
@@ -287,10 +291,19 @@ async function executeStabilityBatch(claim, options = {}) {
       || !['http:', 'https:'].includes(parsedBase.protocol) || parsedBase.username || parsedBase.password) {
     fail('STABILITY_BASE_URL_NOT_ALLOWED', '稳定性运行只允许受控本机门户地址。', 'CONTRACT');
   }
+  if (genericTarget) {
+    for (const origin of stabilityAllowedOrigins(targetProfile, baseUrl)) {
+      await assertTargetUrlResolution(origin, targetProfile);
+    }
+  }
   const credential = options.credential || resolveCredential(claim.credentialAlias, options.environment || process.env);
   if (!credential?.username || !credential?.password) fail('STABILITY_CREDENTIAL_UNAVAILABLE', '稳定性运行凭据不可用。', 'SECURITY');
   const fingerprint = runtimeFingerprint(runtimeProductRoot, executablePath);
-  const browser = await chromium.launch({ executablePath, headless: options.headless !== false });
+  const browser = await loadChromium().launch({
+    executablePath,
+    headless: options.headless !== false,
+    ...(genericTarget ? { args: [chromiumHostResolverRules(targetProfile)] } : {})
+  });
   const results = [];
   if (options.forceFailureValidationRunId &&
       !claim.runs.some(run => run.validationRunId === options.forceFailureValidationRunId)) {
@@ -321,4 +334,4 @@ async function executeStabilityBatch(claim, options = {}) {
   };
 }
 
-module.exports = { VIEWPORTS, assertClaim, executeStabilityBatch, ordinalForStep, runtimeFingerprint, safeEvidenceDirectory, stabilityAllowedOrigins };
+module.exports = { VIEWPORTS, assertClaim, evidenceDescriptor, executeStabilityBatch, ordinalForStep, runtimeFingerprint, safeEvidenceDirectory, stabilityAllowedOrigins };

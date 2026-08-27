@@ -33,6 +33,18 @@
       "reason": "Defines executable plan fixture profile compatibility."
     },
     {
+      "path": "harness/src/i8/stage2-schemas.ts",
+      "classification": "LEGACY_CONTRACT",
+      "owner": "GZ-01",
+      "reason": "Defines historical intent fixture-profile compatibility at the stage-2 boundary."
+    },
+    {
+      "path": "harness/src/i10/schemas.ts",
+      "classification": "LEGACY_CONTRACT",
+      "owner": "GZ-01",
+      "reason": "Carries the explicit adapter and controlled fixture vocabulary in current I10 schemas."
+    },
+    {
       "path": "harness/src/i10/service.ts",
       "classification": "DEMO_EXAMPLE",
       "owner": "GZ-05",
@@ -147,6 +159,12 @@
       "reason": "Retains controlled portal route normalization for legacy flat intent inputs."
     },
     {
+      "path": "mcp/src/rf001-contract-adapter.cjs",
+      "classification": "LEGACY_COMPAT",
+      "owner": "GZ-01",
+      "reason": "Maps historical controlled fixture contracts at the MCP compatibility boundary."
+    },
+    {
       "path": "scripts/i10-stage8-controlled-portal.cjs",
       "classification": "DEMO_FIXTURE",
       "owner": "GZ-05",
@@ -181,6 +199,54 @@
       "classification": "GENERIC_CONTROLLER_SOURCE",
       "owner": "GZ-05",
       "reason": "Current v6 builder delegates to this source; the IntentPlan prompt is constrained to GENERIC_WEB and cannot infer an adapter from prose or route."
+    },
+    {
+      "path": "scripts/build-i10-agentflow-v6.cjs",
+      "classification": "GENERIC_CONTROLLER_SOURCE",
+      "owner": "GZ-05",
+      "reason": "Current derived graph builder preserves explicit controlled examples without selecting adapters from prose."
+    },
+    {
+      "path": "scripts/i10-18-chain-acceptance-live.cjs",
+      "classification": "DEMO_FIXTURE",
+      "owner": "GZ-05",
+      "reason": "Live acceptance driver whose case catalog intentionally targets the controlled portal."
+    },
+    {
+      "path": "scripts/i10-browser-ocr-case-suite-live.cjs",
+      "classification": "DEMO_FIXTURE",
+      "owner": "GZ-05",
+      "reason": "Browser and OCR acceptance driver for controlled fixture cases."
+    },
+    {
+      "path": "scripts/i10-gz06-account-ownership-image-live.cjs",
+      "classification": "EXPLICIT_ADAPTER_ACCEPTANCE",
+      "owner": "GZ-06",
+      "reason": "Image acceptance for the explicitly bound controlled account-ownership adapter."
+    },
+    {
+      "path": "scripts/i10-gz06-account-ownership-live.cjs",
+      "classification": "EXPLICIT_ADAPTER_ACCEPTANCE",
+      "owner": "GZ-06",
+      "reason": "Live acceptance for the explicitly bound controlled account-ownership adapter."
+    },
+    {
+      "path": "scripts/i10-verification-branches-live.cjs",
+      "classification": "EXPLICIT_ADAPTER_ACCEPTANCE",
+      "owner": "GZ-04",
+      "reason": "Identity-bound live probe for the three controlled U-key policy branches."
+    },
+    {
+      "path": "scripts/i10-worker-code-set-v1.json",
+      "classification": "RELEASE_IDENTITY_MANIFEST",
+      "owner": "GZ-07",
+      "reason": "Enumerates adapter-bearing worker files whose bytes invalidate release evidence."
+    },
+    {
+      "path": "scripts/verify-i10-final-standardization.cjs",
+      "classification": "BOUNDARY_TOOL",
+      "owner": "GZ-00",
+      "reason": "Verifies final contracts that intentionally name controlled acceptance profiles."
     },
     {
       "path": "scripts/i10-case-draft-normalizer.cjs",

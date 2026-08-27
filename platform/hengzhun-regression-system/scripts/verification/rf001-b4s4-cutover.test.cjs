@@ -40,11 +40,12 @@ test('B4-S4 tool error projection is idempotent and maps legacy validationIssues
 })
 
 test('B4-S4 tool error projection redacts secrets and bounds free-text fields', () => {
+  const syntheticApiKey = ['sk', 'abcdefghijklmnop'].join('-')
   const projected = adapter.projectCanonicalToolError({
     errorCode: 'X', category: 'TOOL', status: 500,
-    message: 'Bearer sk-abcdefghijklmnop failed', requestId: 'req_' + 'x'.repeat(500)
+    message: `Bearer ${syntheticApiKey} failed`, requestId: 'req_' + 'x'.repeat(500)
   })
-  assert.ok(!JSON.stringify(projected).includes('sk-abcdefghijklmnop'), 'secret values must be redacted')
+  assert.ok(!JSON.stringify(projected).includes(syntheticApiKey), 'secret values must be redacted')
   assert.ok(!projected.safeMessage.includes('Bearer'), 'bearer tokens must be redacted')
   assert.ok(projected.correlationRef.length <= 160, 'correlationRef must be bounded')
 })

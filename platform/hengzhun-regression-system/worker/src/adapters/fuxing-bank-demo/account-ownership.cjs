@@ -1,16 +1,14 @@
 const fs = require('node:fs');
 const path = require('node:path');
 const { chromium } = require('../../../../runtime/node_modules/playwright');
-const { artifact, resolveCredential, sha256 } = require('./login-profile.cjs');
+const { artifact, quarantinedScreenshotArtifact, sha256 } = require('./login-profile.cjs');
+const { throwIfLeaseAborted, bindLeaseAbortToBrowser, resolveExecutionCredential } = require('../../i10-worker-utils.cjs');
 
 async function executeAccountOwnership(task, environment = process.env, options = {}) {
   // New I10 journeys resolve their DPAPI-backed credential only at execution
   // time and pass it in memory.  Keep the historical alias fallback for older
   // fixtures, but never force a new journey to recreate an environment secret.
-  const suppliedCredential = options?.credential;
-  const credential = suppliedCredential?.username && suppliedCredential?.password
-    ? { username: suppliedCredential.username, password: suppliedCredential.password }
-    : resolveCredential(task.execution?.credentialAlias, environment);
+  const credential = resolveExecutionCredential(task, environment, options);
   const productRoot = path.resolve(__dirname, '..', '..', '..', '..');
   const executablePath = environment.HENGZHUN_CHROMIUM_EXECUTABLE
     || path.join(productRoot, 'runtime', 'browsers', 'chromium-1217', 'chrome-win64', 'chrome.exe');
@@ -22,6 +20,7 @@ async function executeAccountOwnership(task, environment = process.env, options 
   }
   const portalBaseUrl = (environment.HENGZHUN_PORTAL_BASE_URL || 'http://127.0.0.1:18082').replace(/\/$/, '');
   const browser = await chromium.launch({ executablePath, headless: true });
+  const detachLeaseAbort = bindLeaseAbortToBrowser(options.signal, browser);
   const context = await browser.newContext({ locale: 'zh-CN', timezoneId: 'Asia/Shanghai', viewport: { width: 1440, height: 1100 } });
   const page = await context.newPage();
   const network = [];
@@ -41,6 +40,7 @@ async function executeAccountOwnership(task, environment = process.env, options 
     } catch { }
   });
   try {
+    throwIfLeaseAborted(options.signal);
     await page.goto(`${portalBaseUrl}/portal/login`, { waitUntil: 'domcontentloaded', timeout: 30000 });
     await page.getByTestId('login-username').fill(credential.username);
     await page.getByTestId('login-password').fill(credential.password);
@@ -96,13 +96,14 @@ async function executeAccountOwnership(task, environment = process.env, options 
     const log = Object.entries(assertions).map(([name, value]) => `${value ? 'PASS' : 'FAIL'} ${name}`).join('\n') + '\n';
     const evidence = [
       artifact('REPORT', 'application/json', 'REDACTED', 'json', JSON.stringify(report, null, 2), { schemaVersion: report.schemaVersion, passed }),
-      artifact('SCREENSHOT', 'image/png', 'REDACTED', 'png', screenshot, { pageId: 'customer.accounts', maskedFields: ['accountTable'] }),
+      quarantinedScreenshotArtifact(screenshot, { pageId: 'customer.accounts', maskedFields: ['accountTable'] }),
       artifact('LOG', 'text/plain; charset=utf-8', 'REDACTED', 'log', log, { containsCredentials: false })
     ];
     return passed
       ? { outcome: 'PASSED', summary: '账户列表、本人账户详情和越权拒绝断言通过。', evidence }
       : { outcome: 'FAILED', summary: '账户归属或越权拒绝断言失败。', errorCode: 'ACCOUNT_OWNERSHIP_ASSERTION_FAILED', errorCategory: 'TEST_FAILURE', evidence };
   } catch (error) {
+    throwIfLeaseAborted(options.signal);
     if (!error.category) {
       error.category = error.name === 'TimeoutError' ? 'ENVIRONMENT' : 'TEST_FAILURE';
       error.code = error.name === 'TimeoutError' ? 'PORTAL_TIMEOUT' : 'ACCOUNT_OWNERSHIP_EXECUTION_FAILED';
@@ -115,12 +116,14 @@ async function executeAccountOwnership(task, environment = process.env, options 
     };
     const evidence = [artifact('DIAGNOSTIC', 'application/json', 'REDACTED', 'json', JSON.stringify(diagnostic, null, 2), { containsCredentials: false })];
     const screenshot = await page.screenshot({ fullPage: true, mask: [page.getByTestId('login-username'), page.getByTestId('login-password'), page.locator('.customer-table-card')] }).catch(() => null);
-    if (screenshot) evidence.push(artifact('SCREENSHOT', 'image/png', 'REDACTED', 'png', screenshot, { maskedFields: ['username', 'password', 'accountTable'] }));
+    if (screenshot) evidence.push(quarantinedScreenshotArtifact(screenshot, { maskedFields: ['username', 'password', 'accountTable'], captureContext: 'FAILURE' }));
     error.evidence = evidence;
+    throwIfLeaseAborted(options.signal);
     throw error;
   } finally {
-    await context.close();
-    await browser.close();
+    detachLeaseAbort();
+    await context.close().catch(() => {});
+    await browser.close().catch(() => {});
   }
 }
 

@@ -43,7 +43,7 @@ test('目标站点门槛优先使用规范化CaseDraft中的入口地址', () =>
 test('目标站点门槛输入只依赖确定性状态', () => {
   assert.deepEqual(
     names,
-    ['journeyStatus', 'journeyNeedsCredential', 'journeyMissingFields', 'entryUrl', 'draftJson', 'credentialRef', 'targetProfileStatus', 'actions', 'expectedOutcomes']
+    ['journeyStatus', 'journeyNeedsCredential', 'journeyMissingFields', 'entryUrl', 'draftJson', 'credentialRef', 'targetProfileStatus', 'actions', 'expectedOutcomes', 'naturalLanguage']
   )
   assert.match(node.data.inputs.customFunctionJavascriptFunction, /new URL/)
   assert.doesNotMatch(node.data.inputs.customFunctionJavascriptFunction, /fetch|require\(|MCP/i)

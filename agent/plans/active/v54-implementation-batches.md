@@ -520,6 +520,23 @@ I10 的 S0—S9 及 R0—R7 已按当前本机交付边界完成。2026-08-02回
 | RF-003 | 版本来源统一（F09：8.0.0/10.0.0/10.1.0 单一来源） | **CLOSED（2026-08-03）**：S1版本基线→S2统一实现（SDK/健康从合同派生，失败关闭）→S3生产切流（/health=10.1.0、工具正常、62/62） | RF-002 CLOSED ✓ | 三源一致断言达成；**RF-004解禁登记**（待用户批准） |
 | RF-004 | 执行凭据绑定迁移（F08：i3-customer → 权威 credentialRef） | **CLOSED（2026-08-03）**：S1基线→S2 MCP停注入（DP-S4-1=A）→S3 Harness解析（schema可选化、caseCredentialRef、失败关闭DP-S4-2=A）→S4生产切流（run_submit无注入实测202、75/75） | RF-003 CLOSED ✓ | 凭据链权威化达成；**RF-005解禁登记**（待用户批准） |
 | RF-005 | 历史兼容层退场（F07：case_prepare 双路由/I8 草案入口） | **CLOSED（2026-08-03）**：S1双路由基线→S2单路由实现（i8路由/三输入退场、DP-R5-1改名、aliases 13→10）→S3生产切流（case_prepare i10链路、81/81） | RF-004 CLOSED ✓ | **L1重构全景全部批次CLOSED，终态指标8/8达成** |
+| RF-009 | 开源 Agent 控制器隔离可行性（AG-00） | **CLOSED（2026-08-25）**：10/10 CONTRACT/synthetic INTEGRATION；依赖 audit 0；`GO_LANGGRAPH` | 已冻结迁移决策；Flowise/Harness/MCP/Worker/ReleaseIdentity 不变 | AG-01 需另建控制链；不得切流或发布 |
+| RF-010 | ControllerPort 与 33 工具权威分类（AG-01） | **CLOSED（2026-08-25）**：11 READ_ONLY + 22 MUTATING；8/8 合同断言 | RF-009 `GO_LANGGRAPH` | 33/33 唯一分类；未知拒绝；Flowise 行为和身份不变 |
+| RF-011 | 未激活 AgentController 内核（AG-02） | **CLOSED（2026-08-25）**：10/10 synthetic CONTRACT/INTEGRATION；audit 0 | RF-010 CLOSED | 只接注入端口；不接真实流量 |
+| RF-012 | Controller 状态与安全边界（AG-03） | **CLOSED（2026-08-25）**：15/15；ephemeral payload vault + schema/TTL/trace/scratch | RF-011 CLOSED | 安全矩阵与内核回归通过；身份不变 |
+| RF-013 | Controller-bound ReleaseIdentity v3（AG-04） | **CLOSED（2026-08-25）**：lock/code/prompt/policy/model/checkpoint identity | RF-012 CLOSED | 新身份 0/18；旧证据自动 stale；不发布 |
+| RF-014 | Read-only Shadow candidate preparation（AG-05-PREP） | **CLOSED（2026-08-25）**：offline comparator/metrics/fail-closed contract | RF-013 CLOSED | 不启动真实 Shadow；Flowise 仍唯一写入者 |
+| RF-015 | CLI Agent 权威重基线与任务组合（AGCLI-TP00） | **CLOSED（2026-08-26）**：基线 + YAML 组合 + TP00～TP10 | RF-014 CLOSED | 仅 DOC/GOVERNANCE；TP01～TP10 仍 BLOCKED |
+| RF-016 | 独立 MCP 与合同标准化（AGCLI-TP01） | **CLOSED（2026-08-26）**：SDK 去 Flowise、35 工具纯度、attachmentRef | RF-015 CLOSED | 离线门全绿；未启动或发布 |
+| RF-017 | 确定性 JSON Controller v2（AGCLI-TP02） | **CLOSED（2026-08-26）**：prefetch、三态输出、策略风险、精确批准 | RF-016 CLOSED | 仅离线；未调用真实模型或发布 |
+| RF-018 | Controller 运行适配器（AGCLI-TP03） | **CLOSED（2026-08-26）**：OpenAI JSON + MCP loopback + 故障关闭 | RF-017 CLOSED | 仅适配器故障注入；未发真实流量 |
+| RF-019 | DPAPI 加密会话与恢复（AGCLI-TP04） | **CLOSED（2026-08-26）**：CurrentUser、原子写、30 天保留、重启恢复 | RF-018 CLOSED | Node20/24 与 521 项离线门全绿；未写正式数据或启动运行态 |
+| RF-020 | CLI 与 JSONL Headless（AGCLI-TP05） | **CLOSED（2026-08-26）**：命令语法、事件协议、退出码、附件预检、精确批准 | RF-019 CLOSED | Node24 11 项与 522 项离线门全绿；运行时仍 UNBOUND |
+| RF-021 | 终端 TUI（AGCLI-TP06） | **CLOSED（2026-08-26）**：同事件 reducer、布局、modal、slash commands | RF-020 CLOSED | TUI 11项、CLI 22项、全量523项全绿；仅快照与伪终端 |
+| RF-022 | CLI 生命周期与 ReleaseIdentity v4（AGCLI-TP07） | **CLOSED（2026-08-26）**：无 Flowise 正常链、身份闭包、冷回滚隔离 | RF-021 CLOSED | v4源码候选 b709dfa9（UNBOUND）；524项全绿，未运行或发布 |
+| RF-023 | CLI 离线生产组合与发布门（AGCLI-TP08） | **CLOSED（2026-08-26）**：Controller v2 组合、DPAPI 恢复、SBOM/审计、冷回滚演练 | RF-022 CLOSED | 525项全绿；v4源码候选45f1b937（UNBOUND）；Stage9无产物；0/18未变 |
+| RF-024 | CLI Fresh Journey 与 L1 LIVE（AGCLI-TP09） | **PROPOSED；S1 COMPLETED / S2 BLOCKED**：bootstrap→hydrate 已落地 | RF-023 CLOSED | 等待新的 CLI LIVE 授权；禁止复用 Flowise 授权 |
+| RF-025 | CLI v4 18链证据与发布裁决（AGCLI-TP10） | **PROPOSED；S0/S1/S2 COMPLETED / S3-S5实现就绪但执行BLOCKED** | RF-024 S2 COMPLETED | 577项离线门全绿；等待 TP09/18链 LIVE、同身份S3、独立冷回滚与人工裁决 |
 
 #### 4. 通用批次执行模式（绞杀者式，每批次强制）
 
@@ -573,6 +590,169 @@ I10 的 S0—S9 及 R0—R7 已按当前本机交付边界完成。2026-08-02回
 
 - 重构控制体系（RC-D0 拦截/RC-D1 逐级同步/四级细化链）全程执行；正式环境四服务运行中（全景完成后状态）。
 - 后续：重构全景关闭；命名收口/DSL 扩展/新能力需新立项。
+
+#### 5.9 RF-006 至 RF-008 后续治理链（2026-08-03 批准建链，未批准实施）
+
+本链响应当前运行态证据漂移和验收执行成本问题，不反向改写 RF-000 至 RF-005 的历史关闭事实。唯一顺序为：
+
+```text
+RF-006 验收执行效率与阶段耗时
+→ RF-007 完整 Worker 文件集身份 + 受管重载/发布回读 + 新 L1 细链
+→ 旧 18/18 严格复用或重跑判定
+→ RF-008 跨文档时态一致性与校验器收口
+```
+
+| 批次 | 当前状态 | 允许目标 | 硬门槛 |
+|---|---|---|---|
+| RF-006 | CLOSED（S1/S2/S3 COMPLETED） | 选择性失效、阻止重复作者化、终态感知轮询、阶段耗时账本 | 同一L1旧/新模式完整门槛等价；85,825→62,870 ms；回退开关实测通过；正式账本保持1/18 |
+| RF-007 | CLOSED（S1/S2/S3 COMPLETED） | 统一完整 WorkerCodeSet，受管重载当前 main，公共 API 发布回读，新身份 L1 细链 | ReleaseIdentity `6a1fd9a7...`; `releaseAligned=true`; L1 TEXT_ONLY `LIVE_E2E` 通过；旧18不可复用，17条待另行授权重跑 |
+| RF-008 | CLOSED（S1/S2/S3 COMPLETED） | 清理任务源/切片/任务包/证据索引的当前时态冲突，增强跨文档状态校验 | 精确指纹grandfather登记5组遗留投影；`--enforce`阻断未登记矛盾；ReleaseIdentity与正式账本不变 |
+
+权限时态：四级控制链已落盘；RF-006、RF-007与RF-008均已关闭。当前main受管运行、Flowise已公开API发布回读，ReleaseIdentity `6a1fd9a7...`保持对齐；RF-006隔离对比与RF-008治理收口均未改变正式L1账本`1/18`。时态门禁已启用，五组旧投影按精确指纹登记；剩余17条仍需另行授权。
+
+RF-005 决策日志中后续出现的“强制 18 条重跑”等未纳入本链任务包的文字，保留为用户工作区历史，但不构成本链执行授权；是否复用或重跑由 RF-007-S3 的机器证据门槛决定。
+
+#### 5.10 当前 ReleaseIdentity 剩余17条 LIVE_E2E 补验（2026-08-04 已建任务包，未批准执行）
+
+RF-007-S3 已以机器证据判定旧18/18不能复用；当前身份 `6a1fd9a7d44086e6dcb29fa7cc23382712a61d103868f14f1e2f44c754b3a687` 下只有 L1 `TEXT_ONLY` 一条正式 `LIVE_E2E`，账本为 `1/18`。剩余17条不是新的重构批次，不命名为 RF-009；其任务包为 [`hengzhun-i10-live-e2e-17-revalidation-task-package.md`](./hengzhun-i10-live-e2e-17-revalidation-task-package.md)。
+
+执行顺序固定为：P0身份/发布/账本冻结 → P1补L1图片细链 → P2补L2-L3 → P3补M1-M3 → P4补H1-H3 → P5同身份账本和完整性收口。2026-08-04 P3获批后在M3图片链的确定性编译缺陷处停止：适配器绑定错误地把非登录案例编译为`LOGIN_PROFILE`。旧身份原始账本虽为`11/18`，但业务语义审计后只有L1两条可信。修复源码已构建并通过57项聚焦测试；文件系统身份随之漂移为`2a173f90b9b915e20df3eb1a68cd134a3ded9b76d1916c0c8a54ae20fe51df51`，旧记录全部历史化，当前`0/18`，且受管Worker文件集Hash不匹配、公共API回读过期。P4/P5未授权；下一门槛是批准适配器路由修复、受管重载和新ReleaseIdentity重基线任务。
+
+#### 5.11 TP-00 变更盘点与源码冻结准备（2026-08-24 COMPLETE）
+
+在继续任何受管重载、发布回读或 LIVE_E2E 前，当前跨 Harness、Worker、MCP、Flowise、迁移、验收与发布工具链的脏树必须先建立单一所有权。TP-00 只建立治理事实，不修改业务行为、不启动运行时、不发布，也不把旧证据提升为当前证据。
+
+唯一顺序调整为：
+
+```text
+TP-00 文件级变更盘点与隔离
+→ 各变更批次分别 REVIEW、验证和形成可冻结候选
+→ 重算并冻结 ReleaseIdentity
+→ 受管重载与公共 API 回读
+→ 恢复剩余 LIVE_E2E 重验
+```
+
+机器可读清单为 [`hengzhun-i10-tp00-change-inventory-v1.json`](./hengzhun-i10-tp00-change-inventory-v1.json)，任务包为 [`hengzhun-i10-tp00-change-inventory-task-package.md`](./hengzhun-i10-tp00-change-inventory-task-package.md)。当前 LIVE_E2E 补验在新的源码冻结和身份重基线完成前保持 `BLOCKED`；该阻塞不改写既有历史记录。
+
+#### 5.12 TP-01 B03 Harness/Journey 合同审查与验证（2026-08-24 COMPLETE）
+
+TP-01 只审查和行为验证 B03：Harness/MCP、迁移 037–039、Journey 执行绑定、ONE_TIME grace 与目标解析固定。任务包为 [`hengzhun-i10-tp01-b03-harness-journey-review-task-package.md`](./hengzhun-i10-tp01-b03-harness-journey-review-task-package.md)。
+
+本包使用受管 Node 和临时 SQLite，禁止运行会重建 Agentflow 的 `npm run test:i10:journey`，也不启动正式运行时。精确绑定、迁移、grace、DNS 固定与 artifact fail-safe 的 103 项聚焦行为矩阵已全部通过，ReleaseIdentity 工具链 6 项通过。Harness 身份闭包已扩展到全部源码 TS 和运行 JS，源码计算身份由 `b514f9d8...` 变为 `eccd00de...`，正式账本保持 `0/18`，没有复用旧证据。
+
+首次旧 RF 进程夹具暴露数据库/artifact 根错配清理风险，测试根与产品自动清理策略均已安全化；但仓库规则禁止在本包读取主数据库或制品内容，因此上线前仍需授权运维执行 artifact 元数据与文件存在性的只读完整性核查。2026-08-24 以当前身份补跑共享聚焦矩阵 `143/143`，最新完整注册套件 `504/504`，TP-01 代码/合同审查完成；运行时重载和 LIVE_E2E 继续阻塞。
+
+#### 5.13 TP-02 B04 Worker 执行安全审查与验证（2026-08-24 COMPLETE）
+
+TP-02 审查 Worker claim/renew/complete fencing、执行期 lease cancellation、原子制品提交、截图隔离、目标解析固定与 WorkerCodeSet 闭包。任务包为 [`hengzhun-i10-tp02-b04-worker-execution-safety-task-package.md`](./hengzhun-i10-tp02-b04-worker-execution-safety-task-package.md)。
+
+本包使用受管 Node 和临时 SQLite；不访问 TP-01 遗留的共享 artifact 根，不启动正式运行时。服务端 fencing 与执行期浏览器取消现已同时成立：heartbeat 只接受精确续租响应，传输失败不延长 deadline，本地到期或冲突会关闭活动浏览器并禁止 stale completion。三个受控适配器已统一进程内 DPAPI 凭据注入，所有未经完整脱敏证明的 Worker 截图均隔离。
+
+Worker 静态 import 闭包保持 25 文件、未解析依赖 0，当前 `workerCodeSetHash=33df4b7d...`；正式账本保持 `0/18`。2026-08-24 以当前身份补跑共享聚焦矩阵 `143/143`，最新完整注册套件 `504/504`，TP-02 完成；运行时重载、发布回读和 LIVE_E2E 继续阻塞。
+
+#### 5.14 TP-03 B01 Flowise 供应链与安装态收口（2026-08-24 COMPLETE）
+
+TP-03 核对 Flowise 三件套声明/锁/安装态、Node engine、`npm ls`、实时 audit、限时例外和 I10 node allowlist。任务包为 [`hengzhun-i10-tp03-b01-flowise-supply-chain-task-package.md`](./hengzhun-i10-tp03-b01-flowise-supply-chain-task-package.md)。
+
+三件套已一致为 3.1.4；`tar 6.2.1 → 7.5.22`、`vm2 3.11.5 → 3.11.6` 已消除对应审计项，实时审计降至 8 critical / 36 high / 98 moderate / 17 low。运行策略新增 Node engine fail-closed 门：Node 24 可完成策略计算，现有受管 Node 20.20.2 明确拒绝。聚焦合同测试 7/7 通过，源码身份变为 `d9f40cc2...`。
+
+历史阻塞为无修复 Critical/High 与上游 peer-invalid；TP-04/05/07 随后分别提供 Node24、受控有效 runtime fork 与可达风险闭包，未通过修改上游 peer 声明伪造绿色安装树。
+
+2026-08-24 最终收口把 `extract-zip`/`xlsx` 替换为显式 fail-closed 本地 stub，并由隔离 acquisition 复制、锁定、校验后在 fork 阶段物理裁除。source/lock audit 达到 `0 critical / 0 high / 82 moderate / 11 low`；exception gate 识别 53 项均已解析。原子 promotion 与 Node24 探针 READY，fork closure `8be1c36a...` 的实际保留闭包 `reachablePeerIssues=[]`。ReleaseIdentity 纳入 stub 后为 `02ae6b18...`，正式账本保持 `0/18`。TP-03 完成；运行时重载、公共回读和 LIVE_E2E 仍属于另行授权门。
+
+#### 5.15 TP-04 独立 Node 24 Flowise Runtime 与便携打包（2026-08-24 COMPLETE）
+
+TP-04 只解除 TP-03 的 Node engine/便携资产阻塞：Node20 继续服务 Harness/MCP/Worker，Flowise 单独使用由官方 SHA-256 固定的 Node24；生命周期、进程所有权、Stage9 runtime tree 和 ReleaseIdentity 必须同时收口。任务包为 [`hengzhun-i10-tp04-node24-flowise-runtime-task-package.md`](./hengzhun-i10-tp04-node24-flowise-runtime-task-package.md)。本包不接受剩余 audit 风险、不启动服务、不发布 Flowise，也不执行 LIVE_E2E。
+
+Node20.20.2 与 Node24.19.0 已按官方归档 SHA-256 固定并验证；Flowise 私有 `better-sqlite3` 升至 12.11.1，Node24 探针已真实执行两种 SQLite native module 的内存 SQL。生命周期按服务选择 executable 并核对所有权；Stage9 两套 runtime 均无缺失。2026-08-24 的 VerifyOnly、Node24 探针和完整注册套件复核后 TP-04 完成；TP-03 的 source audit 风险决定仍独立阻塞。
+
+#### 5.16 TP-05 受控 Flowise Runtime Fork 与有效依赖闭包（2026-08-24 COMPLETE）
+
+TP-05 不再把 `DISABLED_NODES` 当成供应链隔离，因为 Flowise 3.1.4 在 disabled 判断前已经加载节点文件。本包将上游 acquisition lock 与实际可发布 runtime closure 分证：精确锁定 3.1.4 来源，overlay 后按 policy 生成可复现裁剪树，物理移除无修复 Critical 链，并让 PREPARE、Stage9、SBOM 与 ReleaseIdentity 绑定有效 runtime manifest。任务包为 [`hengzhun-i10-tp05-controlled-flowise-runtime-fork-task-package.md`](./hengzhun-i10-tp05-controlled-flowise-runtime-fork-task-package.md)。
+
+本包不接受或隐藏上游源锁风险，不启动正式服务、不发布 Flowise、不重建 Agentflow，也不执行 LIVE_E2E；只有实际装运树的物理缺失、入口闭包不可达和隔离加载验证同时成立，才解除对应 runtime 阻塞。
+
+受控 fork 已落地：runtime lock 镜像与 3.1.4 acquisition lock 字节一致；可发布闭包物理移除 `officeparser → decompress` Critical 链及四类非治理分支依赖，保留入口为 63 个直接包且 peer 冲突为 0。Node24 实际 NodesPool 精确回读 9 个治理节点和 1 个 credential，两种 SQLite native module 均 READY。Stage9 改由 runtime fork manifest 生成实际装运 SBOM，并单列 acquisition lock provenance；PREPARE/lifecycle/ReleaseIdentity 全部绑定 fork。
+
+当前 fork closure 为 `095fa545...`，完整注册套件 `504/504`、Node24 readback、隔离 acquisition、Stage9 与 TP-00 库存门通过，源码身份为 `b5db9201...`。TP-05 完成。上游 acquisition peer/risk 门仍独立保持；不能用 runtime 不可达证明替代上游升级或风险接受。
+
+#### 5.17 TP-06 Flowise Advisory 处置矩阵与隔离 Acquisition（2026-08-24 COMPLETE）
+
+TP-06 将 live npm audit 的每个 high/critical node path 与 TP-05 runtime manifest 的物理路径和依赖可达图连接，区分 `RUNTIME_REACHABLE`、`RUNTIME_PRESENT_UNREACHABLE` 与 `ACQUISITION_ONLY`。前两类通过修复、入口退役或裁剪继续收口；第三类进入 `npm ci --ignore-scripts` 的隔离 acquisition 和人工风险决策，不允许由 Codex 自动签署。任务包为 [`hengzhun-i10-tp06-flowise-advisory-disposition-isolated-acquisition-task-package.md`](./hengzhun-i10-tp06-flowise-advisory-disposition-isolated-acquisition-task-package.md)。
+
+落地后 44 个 high/critical finding 的有效处置为 `9 RUNTIME_REACHABLE / 0 RUNTIME_PRESENT_UNREACHABLE / 35 ACQUISITION_ONLY / 0 UNKNOWN`，可达 Critical 为 0。受控 I10 runtime 退役 Lunary community callback、整文档上传和三类云存储，当前 fork closure 为 `3f5d8104...`；九个治理节点、一个 credential 和两种 SQLite native module 的 Node24 readback 通过。隔离 acquisition 的 ignore-scripts、精确 native allowlist、同盘 rename+rollback 与 `-VerifyOnly` 门已落地，风险接受仍为空。受管 Node20 完整注册套件 `500/500` 通过，当前源码 identity 为 `2ca140e5...`；未发布、未启动正式服务、未推进 LIVE_E2E。
+
+#### 5.18 TP-07 Runtime High Advisory 闭包（2026-08-24 COMPLETE）
+
+TP-07 先把 direct advisory range 与每个物理 node path 的安装版本精确连接，再退役当前 I10 AgentflowV2 不使用的 legacy MultiAgent、外部 analytics、GeoIP telemetry 和 SMTP。完成谓词是有效 runtime 的 reachable high/critical 均为 0，同时 acquisition-only 风险继续未签署；任务包为 [`hengzhun-i10-tp07-runtime-high-advisory-closure-task-package.md`](./hengzhun-i10-tp07-runtime-high-advisory-closure-task-package.md)。
+
+当前 fork closure 为 `095fa545...`；Node24 精确回读 9 个治理节点、一个 credential 和两种 SQLite native module。原始 source/lock audit 为 `0 critical / 6 high / 81 moderate / 11 low`，6 个 governed finding 的有效 runtime 处置为 `0 RUNTIME_REACHABLE / 0 RUNTIME_PRESENT_UNREACHABLE / 6 ACQUISITION_ONLY / 0 UNKNOWN`，reachable High/Critical 均为 0，风险接受仍为空。source audit exception gate 在不刷新基线的情况下通过。受管 Node20 完整注册套件 `504/504` 通过，当前 ReleaseIdentity 为 `b5db9201...`；未启动服务、未发布、未写账本、未执行 LIVE_E2E。
+
+#### 5.19 新 ReleaseIdentity 重基线与18条 LIVE_E2E 补验（2026-08-24 STOPPED ON FIRST DETERMINISTIC FAILURE）
+
+TP-00～TP-07 全部完成后的文件系统身份为 `02ae6b18ed678415488db431f1c271ec258ec6475a1414864731d495a8d81dc4`。首次授权前，受管运行时不可用、公共 API 回读缓存已过期、`releaseAligned=false`，正式账本为 `0/18`；因此 2026-08-04 的“剩余17条”只保留为历史任务名和历史证据，当前完成谓词必须从新身份 `0/18 → 18/18`。
+
+任务包为 [`hengzhun-i10-live-e2e-17-revalidation-task-package.md`](./hengzhun-i10-live-e2e-17-revalidation-task-package.md)。用户已授权 managed reload、公共回读、身份冻结与 L1 双变体薄链；运行时和发布回读在身份 `02ae6b18...` 下对齐，但 L1 `TEXT_ONLY` 在进入 Flowise 前以 `I10_ACCEPTANCE_BROWSER_OCR_EVIDENCE_INVALID` 确定性失败，按约停止且未运行图片变体。元数据复核确认 Browser/OCR 套件本身为真实 PASSED，但绑定旧身份 `b514f9d8...`。任务包已补齐遗漏的“隔离门户 bootstrap → 当前身份 Browser/OCR 刷新 → L1 双链”前置顺序；再次执行该 LIVE 前置与 L1 重试仍需新的明确授权。
+
+#### 5.20 RF-009 / AG-00 开源 Agent 控制器隔离 PoC（2026-08-25 CLOSED）
+
+用户接受 [`hengzhun-i10-langgraph-deepagents-controller-migration-task-package.md`](./hengzhun-i10-langgraph-deepagents-controller-migration-task-package.md) 后要求完成计划任务。RF-009 只授权 AG-00：在 `platform/hengzhun-regression-system/experiments/agent-controller-ag00` 使用 synthetic data 验证 LangGraph.js 持久中断/恢复与 Deep Agents 只读规划边界。2026-08-04 的剩余17条 LIVE_E2E 任务仍不命名为 RF-009；两者不存在证据或权限复用。
+
+固定边界：不修改产品 package、Flowise、Harness、MCP、Worker、SQLite、发布物和正式证据；不启动服务、不调用外部模型、不运行 LIVE_E2E。输出只能是 `GO_LANGGRAPH`、`TRY_MASTRA` 或 `NO_GO`。只有 `GO_LANGGRAPH` 才允许另建 AG-01 控制链；本批次不授权产品嫁接或 shadow traffic。
+
+终态为 `GO_LANGGRAPH`：精确依赖安装树 53,872,573 bytes，生产 audit 0，Node20 聚焦矩阵 10/10；真实 Deep Agents synthetic 调用只观察到 `journey_get`。LangGraph 中断/恢复、精确批准、一次模拟变更和 Harness 回读对账成立；冲突/篡改/过期/重放/注入路径均失败关闭。ReleaseIdentity `02ae6b18...dc4` 与正式账本 `0/18` 不变。证据仅为 CONTRACT/synthetic INTEGRATION。
+
+#### 5.21 RF-010 / AG-01 ControllerPort 与工具分类（2026-08-25 CLOSED）
+
+RF-010 只建立未接流量的框架无关 `ControllerPort`、语义透明的 `FlowiseAdapter` 骨架，以及把现行 33 个 ACTIVE MCP 工具与审查策略做精确 join 的分类器。所有可条件产生副作用的工具整体按 `MUTATING` 管理；未知、遗漏或重叠均失败关闭。本批次不安装 Agent 到产品、不连接 Gateway、不改变 Flowise、运行态、发布态或 LIVE_E2E。
+
+终态为 11 个 `READ_ONLY`、22 个 `MUTATING`，33/33 唯一分类；`candidate_preview` 与 `result_inbox_list` 按条件副作用归入变更。聚焦合同断言 8/8，未知/遗漏/重叠/条件误分均拒绝。ReleaseIdentity `02ae6b18...dc4` 与账本 `0/18` 不变。
+
+#### 5.22 RF-011 / AG-02 未激活 AgentController 内核（2026-08-25 CLOSED）
+
+RF-011 把 RF-009 的 synthetic 结论提升为 `controller` 子包内的未激活实现：Deep Agents 只可调用受策略约束的 `governed_read`，模型只生成结构化提案，LangGraph 的确定性节点负责冻结、精确批准、一次变更和 Harness 回读对账。checkpoint 仍为内存实现；不连接真实 MCP/Harness/SQLite/流量。
+
+终态：controller 子包精确依赖 audit 0；聚焦矩阵 10/10。真实 Deep Agents 结构化规划仅暴露具名 `governed_read`，批准/版本/TTL/重放/对账/注入均失败关闭。ReleaseIdentity `02ae6b18...dc4`、账本 `0/18` 不变。
+
+#### 5.23 RF-012 / AG-03 Controller 状态与安全边界（2026-08-25 CLOSED）
+
+RF-012 为未激活内核增加 checkpoint schema v1、不可变 namespace/thread 绑定、TTL/cleanup、allowlist trace 和内存限额 scratch VFS。恢复时同时使用 `thread_id` 与 `checkpoint_ns`；secret-like 字段、宿主绝对路径和跨 namespace resume 均失败关闭。
+
+终态：原始 user input 与 mutation arguments 只进入 ephemeral vault，checkpoint 仅保留 hash/ref；安全与内核矩阵 15/15。ReleaseIdentity `02ae6b18...dc4`、账本 `0/18` 不变。
+
+#### 5.24 RF-013 / AG-04 Controller-bound ReleaseIdentity v3（2026-08-25 CLOSED）
+
+RF-013 已将 controller kind、精确 lock、内核源码、独立 prompt、工具策略、非秘密模型配置和 checkpoint schema 纳入 ReleaseIdentity v3。冻结身份为 `ca0430ca9cac496937901f5980c5bd7df4c6f3598ae4ffa58718ea453fac9089`，controller code set 9 文件、release code set 169 文件；29/29 聚焦回归通过，账本保持 `0/18`，228 条历史记录 stale。未启动服务、未发布、未写入验收账本。
+
+#### 5.25 RF-014 / AG-05-PREP Read-only Shadow candidate（2026-08-25 CLOSED）
+
+RF-014 建立无 mutation port 的只读 Shadow 比较器、脱敏输入门、无原文指标投影及窗口阈值判定。8/8 synthetic 合同通过；源码纳入 ReleaseIdentity v3 后当前身份为 `fbe97820dbb5d8132a3f678d886524a5f75215b212bb5181cfda8960fca69630`，controller 10 文件、release set 170 文件、账本 `0/18`。本批不建立真实 Shadow 成功声明，运行仍需单独授权。
+
+`HENGZHUN-I10-AG05-SHADOW-LIVE-001` 的受管 START、模型探针和公共 API 发布回读通过，但首个 Shadow 基线执行器在请求前因 CommonJS stdin 顶层 `await` 语法错误确定性失败。按授权立即停止且未重试；Flowise、Worker、MCP、Harness 已安全停止，身份/source/deployed hash 不变，账本仍为 `0/18`。真实 Shadow 仍未执行。
+
+#### 5.26 RF-015 / AGCLI-TP00 CLI Agent 权威重基线（2026-08-26 CLOSED）
+
+RF-015 将 [`hengzhun-i10-cli-agent-baseline-v1.md`](./hengzhun-i10-cli-agent-baseline-v1.md) 冻结为 CLI Agent 的规范规划基线，并以 [`hengzhun-i10-cli-agent-task-packages-v1.yaml`](./hengzhun-i10-cli-agent-task-packages-v1.yaml) 登记 TP00～TP10 的唯一顺序和依赖。目标正常链为 Terminal/JSONL → `hz-agent` → LangGraph Controller → independent MCP → Harness → Worker；Flowise 仅保留为默认关闭、需独立授权的冷回滚资产。
+
+本批只落盘规划与治理文件，不修改产品、运行态、ReleaseIdentity、账本或发布状态。捕获时身份仍为 `fbe97820dbb5d8132a3f678d886524a5f75215b212bb5181cfda8960fca69630`，当前正式证据仍为 `0/18`。TP00 进入 REVIEW；TP01～TP10 均保持 BLOCKED，必须按顺序建立各自的单变化轴 RF 批次、切片和命令级任务后才可授权实施。下一硬门为 TP01 MCP 去 Flowise 耦合的 RF 批次细化与授权。
+
+#### 5.27 RF-016 / AGCLI-TP01 独立 MCP 与合同标准化（2026-08-26 CLOSED）
+
+RF-016 将 MCP SDK 从 Flowise 运行树移至产品根锁定依赖，并将工具合同冻结为 35 项：13 项纯读、22 项显式写。`candidate_compile` 与 `result_inbox_ack` 消除了查询中的隐式写；Harness 新增摘要校验、路径隔离的二进制附件导入并只返回不透明 `attachmentRef`。Flowise 文件引用仅留在显式冷回滚开关后。
+
+聚焦测试 57/57、完整注册测试 517/517、Harness typecheck/build、依赖审计及治理验证通过。证据仅为 CONTRACT、隔离 INTEGRATION 和 GOVERNANCE；未启动服务、未执行 LIVE、未冻结或发布身份、未写验收账本。源码变更产生的未冻结候选身份为 `03b6b55797832af8979f97a2dc6b5f6730c3abb680d76fde4f4ad2d8ba815dfa`，正式账本仍为 `0/18`。
+
+#### 5.28 RF-017 / AGCLI-TP02 确定性 JSON Controller v2（2026-08-26 CLOSED）
+
+RF-017 新增未激活 `langgraph-json-v2`：控制器先执行确定性 prefetch，再向无工具模型适配器发送有界 JSON；严格输出仅允许 `ANSWER | CLARIFY | PROPOSE`。22 个 mutator 的风险由完整策略表确定，模型不能提交或降低风险。PROPOSE 将 namespace、thread、journey、release、权威版本、目标上下文、工具、参数 hash、风险和 TTL 一并冻结，精确批准后最多写一次并由 Harness 权威回读。
+
+Controller 回归 46/46、完整注册测试 519/519、依赖审计和治理门通过。v2 仍为 `INACTIVE`/`UNBOUND_INACTIVE`，未调用真实模型、未启动服务、未执行 LIVE、未发布或写账本。旧 v3 计算器的未冻结候选为 `d35cc71109b5e61dd95aa706540ad32e8f2914051a14a0d6f06f94b4980fc67a`，尚未覆盖全部 v2 文件；完整 ReleaseIdentity v4 归 TP07，当前不得冻结或复用该候选作为上线证据。
+
+#### 5.29 RF-018 / AGCLI-TP03 Controller 运行适配器（2026-08-26 CLOSED）
+
+RF-018 精确锁定 `@langchain/openai@1.5.0` 与 MCP SDK 1.30.0，新增无工具 JSON 模型适配器、只允许 `127.0.0.1` 精确 `/mcp` 的认证客户端、MCP 结果/错误规范化与 Controller v2 组合工厂。mutation 的参数 hash、版本和 idempotency fence 在传输前验证，重复 key 失败关闭，mutation 不自动重试；成功后仍由 controller 执行 Harness 权威回读。
+
+故障矩阵 19/19、Controller 65/65、完整注册测试 520/520、依赖审计及治理门通过。全部模型/传输行为均为注入式离线测试；未启动服务或请求真实端点。旧 v3 未冻结候选 `80d2c166f175c562ebb956edf5b11f622f60a6ef4b488f3cdf3c184fd8f5d640` 仍未覆盖完整 v2/adapter 集，不能用于发布；v4 身份冻结归 TP07。
 
 #### 6. 缺陷归属登记（RF-001-B1 九项）
 

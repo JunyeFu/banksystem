@@ -1,0 +1,20 @@
+schemaVersion: 1
+id: RF-021
+title: Terminal user interface
+status: CLOSED
+owner: project-owner
+authorizedBy: agent/plans/active/v54-implementation-batches.md
+scope:
+  includePaths: [platform/hengzhun-regression-system/agent-cli, platform/hengzhun-regression-system/scripts/verification, docs/architecture/refactoring/batches/RF-021, docs/architecture/refactoring/module-boundaries-v1.yaml, agent/backlog.yaml, agent/plans/active/v54-implementation-batches.md, agent/plans/active/hengzhun-i10-cli-agent-task-packages-v1.yaml, agent/plans/active/hengzhun-i10-agcli-tp06-terminal-ui-task-package.md]
+  excludePaths: [platform/hengzhun-regression-system/.data, platform/hengzhun-regression-system/flowise, platform/hengzhun-regression-system/harness, platform/hengzhun-regression-system/mcp, platform/hengzhun-regression-system/worker, platform/hengzhun-regression-system/controller, apps, services, infra]
+budgets: {maxChangedFiles: 18, maxNewFiles: 14, maxChangedLines: 2600, maxContractsChanged: 1, maxMigrationsAdded: 0, maxOpenModules: 1}
+baseline: {gitCommit: 9d79b7c1e6cfedd995093cc7a378dc8e9218fa98, dirtyTreeManifest: docs/architecture/refactoring/batches/RF-021/baseline.md, releaseIdentity: fda94df59b0b9cc05eb156d6d9092a694a84eaa0b96f91552b086dedd4474334, capturedAt: "2026-08-26T17:05:00+08:00"}
+architecture: {businessCapability: local-terminal-agent-interface, publicContract: platform/hengzhun-regression-system/agent-cli/cli-event-schema-v1.json, dependencyManifest: docs/architecture/refactoring/module-boundaries-v1.yaml, allowedModules: [hengzhun.agent-cli], forbiddenModules: [hengzhun.flowise, hengzhun.harness, hengzhun.mcp, hengzhun.worker]}
+mustPreserve: [TUI consumes the same v1 events as JSONL, reducer owns no business truth, HIGH approval requires proposal suffix, render never persists input or host paths, resize Unicode Ctrl-C and slash commands are deterministic, no runtime LIVE or publication]
+verification:
+  requiredCommands:
+    - {name: tui-matrix, command: "runtime/node-v24.19.0-win-x64/node.exe --test agent-cli/test/tui.test.mjs", expectedExitCode: 0, evidence: docs/architecture/refactoring/batches/RF-021/evidence-index.md, blocking: true}
+    - {name: registered-suite, command: "npm run test:registered", expectedExitCode: 0, evidence: docs/architecture/refactoring/batches/RF-021/evidence-index.md, blocking: true}
+    - {name: governance, command: "py -3 scripts/architecture/validate_refactoring.py --batch RF-021", expectedExitCode: 0, evidence: docs/architecture/refactoring/batches/RF-021/evidence-index.md, blocking: true}
+rollback: {triggerConditions: [event semantic drift, approval modal bypass, Unicode overflow, secret or path render, Ctrl-C failure], recoveryPoint: RF-020 closed state, maxRtoMinutes: 15, maxRpoMinutes: 0}
+exceptions: {allowedVagueNames: [], crossModule: [Verification registration and governance projections are downstream of the sole open agent-cli module]}

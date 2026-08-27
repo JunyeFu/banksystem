@@ -1,0 +1,10 @@
+id: RF-024-S1C
+title: Typed credential enrollment operation
+status: COMPLETED
+allowedPaths: [platform/hengzhun-regression-system/agent-cli, platform/hengzhun-regression-system/controller, platform/hengzhun-regression-system/scripts/verification, docs/architecture/refactoring/batches/RF-024, docs/architecture/refactoring/module-boundaries-v1.yaml, agent/plans/active/hengzhun-i10-agcli-tp08-offline-integration-gates-task-package.md]
+forbiddenPaths: [platform/hengzhun-regression-system/.data, platform/hengzhun-regression-system/flowise, platform/hengzhun-regression-system/harness/src, platform/hengzhun-regression-system/mcp/src, platform/hengzhun-regression-system/worker/src]
+workSteps: [create a typed non-Journey DPAPI operation store, freeze one HIGH credential_session_create proposal, restore and approve exactly once, launch only a validated loopback capture URL, persist no capture URL token or plaintext]
+verification: [Node24 operation-store DPAPI tests, Node24 headless and TUI contract tests, Node24 offline integration restart and replay tests, Node24 ReleaseIdentity v4 drift test, registered suite]
+donePredicate: credential enroll emits approval-required with zero MCP calls; exact approve after store restart invokes credential_session_create once; persisted envelope and JSONL contain no capture token URL username password or credential value; replay and reject invoke zero additional writes
+rollback: restore only RF-024-S1C sources and governance paths
+evidence: docs/architecture/refactoring/batches/RF-024/evidence-index.md

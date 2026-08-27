@@ -1,14 +1,14 @@
 {
   "name": "hengzhun-flowise-runtime",
   "private": true,
-  "description": "衡准 I9 固定的 Windows 原生 Flowise 运行时依赖声明",
+  "description": "衡准 I10 Flowise 3.1.4 上游获取锁镜像；实际装运闭包由 runtime-fork manifest 管理",
   "engines": {
-    "node": "20.20.2"
+    "node": "24.19.0"
   },
   "dependencies": {
     "connect-sqlite3": "0.9.15",
-    "flowise": "3.0.12",
-    "flowise-components": "3.0.12",
-    "flowise-ui": "3.0.12"
+    "flowise": "3.1.4",
+    "flowise-components": "3.1.4",
+    "flowise-ui": "3.1.4"
   }
 }

@@ -9,23 +9,26 @@
 //   - schedule_create without alias: credentialRef case -> traceable
 //     credref:<hash12> placeholder; no credentialRef -> fail closed
 
-const { test, afterEach } = require('node:test')
+const { test, after, afterEach } = require('node:test')
 const assert = require('node:assert/strict')
 const { spawn } = require('node:child_process')
 const crypto = require('node:crypto')
 const fs = require('node:fs')
 const http = require('node:http')
+const os = require('node:os')
 const path = require('node:path')
 
 const root = path.resolve(__dirname, '../..')
-const nodeExecutable = path.join(root, 'runtime/node-v20.20.2-win-x64/node.exe')
+const nodeExecutable = process.execPath
 const Database = require(path.join(root, 'node_modules/better-sqlite3'))
-const ISO = path.join(root, '.data', 'tests', 'rf004-s3')
+const ISO = fs.mkdtempSync(path.join(os.tmpdir(), 'hengzhun-rf004-s3-'))
 const HARNESS_PORT = 28817
 const now = () => new Date().toISOString()
 const future = () => new Date(Date.now() + 3600_000).toISOString()
 const sha256 = value => crypto.createHash('sha256').update(value).digest('hex')
 const CRED = 'credential_12345678-1234-1234-1234-123456789abc'
+const JOURNEY = 'journey_11111111-1111-4111-8111-111111111111'
+const DECISION_EVENT = 'journeyevent_22222222-2222-4222-8222-222222222222'
 
 function waitForHealth(url, timeoutMs) {
   const deadline = Date.now() + timeoutMs
@@ -51,12 +54,13 @@ function applyMigrations(db) {
     const version = Number(name.split('_', 1)[0])
     const sql = fs.readFileSync(path.join(root, 'harness/migrations', name), 'utf8')
     db.exec('BEGIN')
-    try { db.exec(sql); db.prepare('INSERT INTO schema_migrations(version,name,checksum,applied_at) VALUES (?,?,?,?)').run(version, name, sha256(sql), now()); db.exec('COMMIT') }
+    try { db.exec(sql); db.prepare('INSERT INTO schema_migrations(version,name,checksum,applied_at) VALUES (?,?,?,?)').run(version, name, sha256(sql.replaceAll('\r\n', '\n')), now()); db.exec('COMMIT') }
     catch (error) { db.exec('ROLLBACK'); throw error }
   }
+  assert.equal(db.prepare('SELECT MAX(version) version FROM schema_migrations').get().version, 39)
 }
 
-function seed(db, withCredentialRef) {
+function seed(db, withCredentialRef, executionDecision = 'RUN_ON_DEMAND') {
   db.prepare('INSERT INTO namespaces(namespace,status,version,created_at,updated_at) VALUES (?,?,1,?,?)').run('ns1', 'ACTIVE', now(), now())
   const definition = withCredentialRef
     ? JSON.stringify({ schemaVersion: 'hengzhun-i10-case-draft-v1', credentialRef: CRED, entryUrl: 'https://bank.example.com/portal/login' })
@@ -87,10 +91,51 @@ function seed(db, withCredentialRef) {
   db.prepare(`INSERT INTO i8_script_delivery_decisions(decision_id,namespace,candidate_id,certificate_id,expected_candidate_version,choice,reason,confirmation_ref,effect,case_version,executable_plan_id,executable_plan_version,activated_plan_id,script_id,script_version,script_sha256,created_at)
     VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`)
     .run('d1', 'ns1', 'cand1', 'cert1', 1, 'ACTIVATE', 'r', 'conf', 'SCRIPT_VERSION_ACTIVATED', 1, 'ep1', 1, 'plan1', 's1', 1, sha256('script'), now())
+  const scheduleDecision = executionDecision !== 'RUN_ON_DEMAND'
+  const executionPlan = scheduleDecision ? {
+    mode: 'ONE_TIME', runAt: future(), timezone: 'Asia/Shanghai',
+    misfirePolicy: 'SKIP', misfireGraceSeconds: 300, maxRetries: 1
+  } : undefined
+  const stage = scheduleDecision ? 'COMPLETED' : 'RUNNING'
+  const status = scheduleDecision ? 'COMPLETED' : 'PROCESSING'
+  const nextAction = scheduleDecision ? 'CALL_SCHEDULE_CREATE' : 'CALL_RUN_SUBMIT'
+  const references = {
+    preparationId:'prep1',caseId:'c1',planId:'plan1',candidateId:'cand1',
+    confirmedDecisionEventId:DECISION_EVENT,
+    ...(executionPlan ? { executionPlan } : {})
+  }
+  const executionBinding = {
+    namespace:'ns1',journeyId:JOURNEY,preparationId:'prep1',caseId:'c1',planId:'plan1',candidateId:'cand1'
+  }
+  db.prepare(`INSERT INTO i10_interaction_journeys(
+      journey_id,namespace,session_ref,idempotency_key,request_intent,input_type,stage,status,
+      input_envelope_json,missing_fields_json,allowed_actions_json,next_action_json,references_json,
+      progress_json,error_json,version,recoverable,created_at,updated_at
+    ) VALUES (?,?,'rf004-session','rf004-journey','CASE_AUTHORING','NATURAL_LANGUAGE',?,?,
+      '{}','[]','[]',?,?, '{}',NULL,1,1,?,?)`)
+    .run(JOURNEY,'ns1',stage,status,JSON.stringify({type:nextAction}),JSON.stringify(references),now(),now())
+  db.prepare(`INSERT INTO i10_interaction_events(
+      event_id,journey_id,sequence,event_type,from_stage,to_stage,decision,safe_payload_json,confirmation_ref,created_at
+    ) VALUES (?,?,1,'DECISION','READY_FOR_EXECUTION_DECISION',?,?,?,'rf004-confirm',?)`)
+    .run(DECISION_EVENT,JOURNEY,stage,executionDecision,JSON.stringify({executionBinding}),now())
+  return { journeyId:JOURNEY, confirmedDecisionEventId:DECISION_EVENT, executionPlan }
 }
 
 function startHarness(dbPath, token) {
-  return spawn(nodeExecutable, ['dist/harness/src/index.js'], { cwd: root, env: { ...process.env, HENGZHUN_PRODUCT_ROOT: root, HENGZHUN_SERVICE_TOKEN: token, HENGZHUN_WORKER_TOKEN: token, HENGZHUN_DATABASE_PATH: dbPath, HOST: '127.0.0.1', PORT: String(HARNESS_PORT), HENGZHUN_ALLOWED_CLIENTS: '127.0.0.1,::1' }, stdio: ['ignore', 'pipe', 'pipe'] })
+  return spawn(nodeExecutable, ['dist/harness/src/index.js'], { cwd: root, env: {
+    ...process.env,
+    HENGZHUN_PRODUCT_ROOT: root,
+    HENGZHUN_SERVICE_TOKEN: token,
+    HENGZHUN_WORKER_TOKEN: token,
+    HENGZHUN_DATABASE_PATH: dbPath,
+    HENGZHUN_DATABASE_BACKUP_PATH: path.join(ISO, 'backups'),
+    HENGZHUN_ARTIFACT_ROOT: path.join(ISO, 'artifacts'),
+    HENGZHUN_FLOWISE_ATTACHMENT_ROOT: path.join(ISO, 'flowise-attachments'),
+    HENGZHUN_FLOWISE_STORAGE_ROOT: path.join(ISO, 'flowise-storage'),
+    HOST: '127.0.0.1',
+    PORT: String(HARNESS_PORT),
+    HENGZHUN_ALLOWED_CLIENTS: '127.0.0.1,::1'
+  }, stdio: ['ignore', 'pipe', 'pipe'] })
 }
 
 function stop(child) {
@@ -110,6 +155,8 @@ afterEach(async () => {
   }
 })
 
+after(() => fs.rmSync(ISO, { recursive: true, force: true }))
+
 async function post(route, payload, token) {
   const r = await fetch(`http://127.0.0.1:${HARNESS_PORT}${route}`, { method: 'POST', headers: { authorization: `Bearer ${token}`, 'content-type': 'application/json' }, body: JSON.stringify(payload) })
   return { status: r.status, body: await r.json() }
@@ -117,8 +164,15 @@ async function post(route, payload, token) {
 
 async function withHarness(dbPath, token, fn) {
   const harness = startHarness(dbPath, token)
+  let diagnostics = ''
+  harness.stderr.on('data', chunk => { diagnostics = `${diagnostics}${chunk}`.slice(-4000) })
   try {
-    await waitForHealth(`http://127.0.0.1:${HARNESS_PORT}/health`, 30_000)
+    await Promise.race([
+      waitForHealth(`http://127.0.0.1:${HARNESS_PORT}/health`, 30_000),
+      new Promise((_, reject) => harness.once('exit', (code, signal) => {
+        reject(new Error(`harness exited before health (code=${code}, signal=${signal}): ${diagnostics.trim()}`))
+      }))
+    ])
     return await fn()
   } finally {
     await stop(harness)
@@ -132,11 +186,11 @@ test('RF-004-S3 run_submit resolves the authoritative binding from the case', as
   const token = crypto.randomBytes(32).toString('hex')
   const db = new Database(dbPath)
   applyMigrations(db)
-  seed(db, true)
+  const binding = seed(db, true)
   db.close()
   await withHarness(dbPath, token, async () => {
     // no alias, case has credentialRef -> accepted, alias column stays NULL
-    const ok = await post('/v1/i8/runs:submit', { namespace: 'ns1', idempotencyKey: 'key-run-ok', preparationId: 'prep1' }, token)
+    const ok = await post('/v1/i8/runs:submit', { namespace: 'ns1', idempotencyKey: 'key-run-ok', preparationId: 'prep1', ...binding }, token)
     if (ok.status !== 202) console.log('DEBUG run_submit 409 body:', JSON.stringify(ok.body).slice(0, 300))
     assert.equal(ok.status, 202, 'run without alias + case credentialRef must be accepted')
     assert.ok(ok.body.runId, 'runId must be returned')
@@ -154,10 +208,10 @@ test('RF-004-S3 run_submit fails closed without any binding (DP-S4-2=A)', async 
   const token = crypto.randomBytes(32).toString('hex')
   const db = new Database(dbPath)
   applyMigrations(db)
-  seed(db, false)
+  const binding = seed(db, false)
   db.close()
   await withHarness(dbPath, token, async () => {
-    const rejected = await post('/v1/i8/runs:submit', { namespace: 'ns1', idempotencyKey: 'key-run-no-cred', preparationId: 'prep1' }, token)
+    const rejected = await post('/v1/i8/runs:submit', { namespace: 'ns1', idempotencyKey: 'key-run-no-cred', preparationId: 'prep1', ...binding }, token)
     assert.equal(rejected.status, 409)
     assert.equal(rejected.body.errorCode, 'I10_EXECUTION_CREDENTIAL_BINDING_REQUIRED')
   })
@@ -170,10 +224,10 @@ test('RF-004-S3 run_submit with legacy alias injection keeps the original path',
   const token = crypto.randomBytes(32).toString('hex')
   const db = new Database(dbPath)
   applyMigrations(db)
-  seed(db, false)
+  const binding = seed(db, false)
   db.close()
   await withHarness(dbPath, token, async () => {
-    const ok = await post('/v1/i8/runs:submit', { namespace: 'ns1', idempotencyKey: 'key-run-legacy', preparationId: 'prep1', credentialAlias: 'i3-customer' }, token)
+    const ok = await post('/v1/i8/runs:submit', { namespace: 'ns1', idempotencyKey: 'key-run-legacy', preparationId: 'prep1', credentialAlias: 'i3-customer', ...binding }, token)
     assert.equal(ok.status, 202, 'legacy injected alias must keep the original path')
   })
   const check = new Database(dbPath)
@@ -189,13 +243,15 @@ test('RF-004-S3 schedule_create stores a traceable placeholder for credentialRef
   const token = crypto.randomBytes(32).toString('hex')
   const db = new Database(dbPath)
   applyMigrations(db)
-  seed(db, true)
+  const { executionPlan, ...binding } = seed(db, true, 'CREATE_ONE_TIME_SCHEDULE')
   db.close()
   await withHarness(dbPath, token, async () => {
     const ok = await post('/v1/i8/schedules:create', {
       namespace: 'ns1', idempotencyKey: 'key-sched-ok', preparationId: 'prep1',
-      scheduleType: 'ONE_TIME', runAt: future(), timezone: 'Asia/Shanghai',
-      misfirePolicy: 'SKIP', misfireGraceSeconds: 300, maxRetries: 1, confirmationRef: 'conf-1'
+      ...binding,
+      scheduleType: executionPlan.mode, runAt: executionPlan.runAt, timezone: executionPlan.timezone,
+      misfirePolicy: executionPlan.misfirePolicy, misfireGraceSeconds: executionPlan.misfireGraceSeconds,
+      maxRetries: executionPlan.maxRetries, confirmationRef: 'conf-1'
     }, token)
     assert.equal(ok.status, 201, 'schedule without alias + case credentialRef must be accepted')
     assert.ok(ok.body.scheduleId)
@@ -214,13 +270,15 @@ test('RF-004-S3 schedule_create fails closed without any binding', async () => {
   const token = crypto.randomBytes(32).toString('hex')
   const db = new Database(dbPath)
   applyMigrations(db)
-  seed(db, false)
+  const { executionPlan, ...binding } = seed(db, false, 'CREATE_ONE_TIME_SCHEDULE')
   db.close()
   await withHarness(dbPath, token, async () => {
     const rejected = await post('/v1/i8/schedules:create', {
       namespace: 'ns1', idempotencyKey: 'key-sched-no-cred', preparationId: 'prep1',
-      scheduleType: 'ONE_TIME', runAt: future(), timezone: 'Asia/Shanghai',
-      misfirePolicy: 'SKIP', misfireGraceSeconds: 300, maxRetries: 1, confirmationRef: 'conf-2'
+      ...binding,
+      scheduleType: executionPlan.mode, runAt: executionPlan.runAt, timezone: executionPlan.timezone,
+      misfirePolicy: executionPlan.misfirePolicy, misfireGraceSeconds: executionPlan.misfireGraceSeconds,
+      maxRetries: executionPlan.maxRetries, confirmationRef: 'conf-2'
     }, token)
     assert.equal(rejected.status, 409)
     assert.equal(rejected.body.errorCode, 'I10_EXECUTION_CREDENTIAL_BINDING_REQUIRED')

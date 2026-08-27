@@ -7,7 +7,23 @@ const path = require('node:path')
 const { currentReleaseIdentity, sameReleaseIdentity } = require('./i10-release-identity.cjs')
 
 const root = path.resolve(__dirname, '..')
-const evidenceRoot = path.join(root, '.data', 'evidence', 'i10', 'acceptance-records-v3')
+const defaultEvidenceRoot = path.join(root, '.data', 'evidence', 'i10', 'acceptance-records-v3')
+const comparisonRoot = path.join(root, '.data', 'evidence', 'i10', 'rf006-comparison')
+
+function resolveEvidenceRoot(configured = process.env.I10_RF006_ACCEPTANCE_EVIDENCE_ROOT) {
+  const value = String(configured || '').trim()
+  if (!value) return defaultEvidenceRoot
+  const candidate = path.resolve(root, value)
+  const allowed = path.resolve(comparisonRoot)
+  if (candidate !== allowed && !candidate.startsWith(`${allowed}${path.sep}`)) {
+    const error = new Error('I10_RF006_COMPARISON_ROOT_INVALID')
+    error.code = 'I10_RF006_COMPARISON_ROOT_INVALID'
+    throw error
+  }
+  return candidate
+}
+
+const evidenceRoot = resolveEvidenceRoot()
 const ledgerPath = path.join(evidenceRoot, 'ledger.json')
 const legacyLedgerPath = path.join(root, '.data', 'evidence', 'i10', 'acceptance-records-v2', 'ledger.json')
 const CASES = ['L1', 'L2', 'L3', 'M1', 'M2', 'M3', 'H1', 'H2', 'H3']
@@ -174,7 +190,23 @@ function existingTerminal(caseId, variant, attempt = 1, identity = currentReleas
 }
 
 function currentRecords(ledger = readLedger(), identity = currentReleaseIdentity({ requireDeployed: false })) {
-  return Object.values(ledger.records).filter(record => record.status === 'PASSED' && sameReleaseIdentity(record.releaseIdentity, identity))
+  const latestByCaseVariant = new Map()
+  for (const [recordKey, record] of Object.entries(ledger?.records || {})) {
+    if (record?.status !== 'PASSED' || !sameReleaseIdentity(record.releaseIdentity, identity)) continue
+    const parsedKey = /^([^:]+):([^:]+):(\d+)$/.exec(recordKey)
+    if (!parsedKey) continue
+    const caseId = String(record.caseId || parsedKey[1])
+    const variant = String(record.variant || parsedKey[2])
+    const attempt = Number(record.attempt ?? parsedKey[3])
+    if (!CASES.includes(caseId) || !VARIANTS.includes(variant) || !Number.isInteger(attempt) || attempt < 1) continue
+    if (caseId !== parsedKey[1] || variant !== parsedKey[2] || attempt !== Number(parsedKey[3])) continue
+    const uniqueKey = `${caseId}:${variant}`
+    const existing = latestByCaseVariant.get(uniqueKey)
+    if (!existing || attempt > existing.attempt) latestByCaseVariant.set(uniqueKey, { attempt, record })
+  }
+  return CASES.flatMap(caseId => VARIANTS
+    .map(variant => latestByCaseVariant.get(`${caseId}:${variant}`)?.record)
+    .filter(Boolean))
 }
 
 function status() {
@@ -244,7 +276,7 @@ function sweepContradictionCheckpoints() {
   return { swept, remaining: Object.keys(ledger.checkpoints).length }
 }
 
-module.exports = { root, evidenceRoot, ledgerPath, CASES, VARIANTS, CHECKPOINT_STAGES, atomicWrite, emptyLedger, readLedger, writeLedger, key, writeCheckpoint, recordTerminal, existingTerminal, currentRecords, status, migrateLegacyV2, contradictionCheckpointKeys, sweepContradictionCheckpoints }
+module.exports = { root, evidenceRoot, ledgerPath, resolveEvidenceRoot, CASES, VARIANTS, CHECKPOINT_STAGES, atomicWrite, emptyLedger, readLedger, writeLedger, key, writeCheckpoint, recordTerminal, existingTerminal, currentRecords, status, migrateLegacyV2, contradictionCheckpointKeys, sweepContradictionCheckpoints }
 if (require.main === module) {
   const command = process.argv[2] || 'status'
   if (command === 'status') process.stdout.write(`${JSON.stringify(status(), null, 2)}\n`)

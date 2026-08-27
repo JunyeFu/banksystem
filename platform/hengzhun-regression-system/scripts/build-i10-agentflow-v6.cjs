@@ -188,6 +188,17 @@ ensureAuthoringFallbackArg('targetProfileSnapshot', '{{$flow.state.targetProfile
 authoringSubmit.data.inputs.toolInputArgs = authoringArgs
 const start = flow.nodes.find(node => node.data?.name === 'startAgentflow')
 if (!start) throw new Error('I10_V6_START_NODE_MISSING')
+const classificationScheduleMerge = flow.nodes.find(node => node.id === 'customFunctionAgentflow_i10_v4_classification_merge')
+if (!classificationScheduleMerge) throw new Error('I10_V6_CLASSIFICATION_MERGE_MISSING')
+const scheduleProjection = "scheduleId: parsedValue('scheduleId', $classifiedScheduleId) || clean($scheduleId),"
+if (!classificationScheduleMerge.data.inputs.customFunctionJavascriptFunction.includes('explicitScheduleRef')) {
+  classificationScheduleMerge.data.inputs.customFunctionJavascriptFunction = classificationScheduleMerge.data.inputs.customFunctionJavascriptFunction
+    .replace(
+      'const rawQuestion = clean($question);',
+      "const rawQuestion = clean($question);\nconst scheduleRefs = rawQuestion.match(/schedule_[0-9a-f-]{36}/ig) || [];\nconst explicitScheduleRef = scheduleRefs.length === 1 ? scheduleRefs[0] : '';"
+    )
+    .replace(scheduleProjection, "scheduleId: explicitScheduleRef || parsedValue('scheduleId', $classifiedScheduleId) || clean($scheduleId),")
+}
 const startState = start.data.inputs.startState || []
 if (!startState.some(item => item.key === 'controllerDraftRaw')) {
   startState.push({ key: 'controllerDraftRaw', value: '' })
@@ -197,6 +208,9 @@ if (!startState.some(item => item.key === 'authoringContext')) {
 }
 if (!startState.some(item => item.key === 'candidateId')) {
   startState.push({ key: 'candidateId', value: '' })
+}
+if (!startState.some(item => item.key === 'confirmedDecisionEventId')) {
+  startState.push({ key: 'confirmedDecisionEventId', value: '' })
 }
 if (!startState.some(item => item.key === 'crossSessionHasCandidate')) {
   startState.push({ key: 'crossSessionHasCandidate', value: 'NO' })
@@ -212,7 +226,7 @@ start.data.inputs.startState = startState
 // The Harness resolves the small symbolic id against its own registry.
 const applicationProfileDerive = flow.nodes.find(node => node.id === 'customFunctionAgentflow_i10_v5_application_profile_derive')
 const targetProfilePrepare = flow.nodes.find(node => node.id === 'toolAgentflow_i10_v4_target_profile_prepare')
-if (!applicationProfileDerive || !targetProfilePrepare) throw new Error('I10_V6_TARGET_ADAPTER_SELECTION_NODES_MISSING')
+if (!applicationProfileDerive || !targetProfilePrepare || !targetProfilePrerequisite) throw new Error('I10_V6_TARGET_ADAPTER_SELECTION_NODES_MISSING')
 if (!startState.some(item => item.key === 'targetAdapterSelection')) {
   startState.push({ key: 'targetAdapterSelection', value: '' })
 }
@@ -220,6 +234,11 @@ if (!applicationProfileDerive.data.inputs.customFunctionInputVariables.some(item
   applicationProfileDerive.data.inputs.customFunctionInputVariables.push({
     variableName: 'naturalLanguage',
     variableValue: '{{$flow.state.accumulatedCaseInput}}\n{{$flow.state.naturalLanguage}}'
+  })
+}
+if (!applicationProfileDerive.data.inputs.customFunctionInputVariables.some(item => item.variableName === 'frozenAdapterSelection')) {
+  applicationProfileDerive.data.inputs.customFunctionInputVariables.push({
+    variableName: 'frozenAdapterSelection', variableValue: '{{$flow.state.targetAdapterSelection}}'
   })
 }
 if (!applicationProfileDerive.data.inputs.customFunctionJavascriptFunction.includes('explicitAdapterSelection')) {
@@ -239,6 +258,23 @@ if (!targetProfileArgs.some(item => item.inputArgName === 'adapterSelection')) {
   })
 }
 targetProfilePrepare.data.inputs.toolInputArgs = targetProfileArgs
+if (!targetProfilePrerequisite.data.inputs.customFunctionInputVariables.some(item => item.variableName === 'naturalLanguage')) {
+  targetProfilePrerequisite.data.inputs.customFunctionInputVariables.push({
+    variableName: 'naturalLanguage',
+    variableValue: '{{$flow.state.accumulatedCaseInput}}\n{{$flow.state.naturalLanguage}}'
+  })
+}
+if (!targetProfilePrerequisite.data.inputs.customFunctionJavascriptFunction.includes('explicitAdapterSelection')) {
+  targetProfilePrerequisite.data.inputs.customFunctionJavascriptFunction = targetProfilePrerequisite.data.inputs.customFunctionJavascriptFunction
+    .replace(
+      "const credentialRef = String($credentialRef || '').trim();",
+      "const credentialRef = String($credentialRef || '').trim();\nconst explicitAdapterSelection = /(?:明确选择|使用|采用)\\s*(?:本机)?(?:复兴银行)?(?:演示)?适配器(?:\\s*[（(]?)?fuxing-bank-demo|fuxing-bank-demo/i.test(String($naturalLanguage || ''));"
+    )
+    .replace(
+      "if (route === 'PREPARE_TARGET_PROFILE' && String($targetProfileStatus || '').trim().toUpperCase() === 'ACTIVE') {",
+      "if (route === 'PREPARE_TARGET_PROFILE' && !explicitAdapterSelection && String($targetProfileStatus || '').trim().toUpperCase() === 'ACTIVE') {"
+    )
+}
 
 // Native Flowise Agentflow executions can reliably resume one Human Input
 // gate, but a second Human Input reached in the same resumed execution can be
@@ -287,6 +323,7 @@ const journeyProjectionFields = [
   ['journeyArtifactCards', 'artifactCards'], ['journeyNeedsCredential', 'needsCredential'],
   ['caseDraftJson', 'caseDraft'], ['caseId', 'caseId'], ['caseVersion', 'caseVersion'],
   ['preparationId', 'preparationId'], ['preparationVersion', 'preparationVersion'],
+  ['confirmedDecisionEventId', 'references.confirmedDecisionEventId'],
   // The QUERY_TASK / RESULT_AVAILABLE branches and the schedule paths bind
   // these references; legacy toolUpdateState cannot project them out of the
   // custom-MCP content string and would persist the literal template.
@@ -733,7 +770,7 @@ return {
   runAt: plan.mode === 'ONE_TIME' ? plan.runAt : '',
   cronExpression: plan.mode === 'RECURRING' ? plan.cronExpression : '',
   timezone: plan.timezone,
-  misfirePolicy: plan.mode === 'ONE_TIME' ? 'RUN_ONCE' : 'SKIP',
+  misfirePolicy: plan.mode === 'ONE_TIME' ? 'RUN_ONCE_WITHIN_GRACE' : 'SKIP',
   misfireGraceSeconds: 300,
   maxRetries: 1
 };`,
@@ -1277,20 +1314,98 @@ function redirectEdge(sourceId, sourceHandle, fromId, toId, edgeId) {
 function attachIsolatedAuthoringChain({ suffix, sourceId, sourceHandle, y }) {
   const promptId = `customFunctionAgentflow_i10_v6_${suffix}_prompt`
   const structureId = `llmAgentflow_i10_v6_${suffix}_structure`
+  const structureParseId = `customFunctionAgentflow_i10_v6_${suffix}_structure_parse`
   const normalizerId = `customFunctionAgentflow_i10_v6_${suffix}_normalize`
   const hydrateId = `customFunctionAgentflow_i10_v6_${suffix}_prepare_hydrate`
   const prepareId = `toolAgentflow_i10_v6_${suffix}_journey_prepare`
   const projectionId = `customFunctionAgentflow_i10_v6_${suffix}_journey_projection`
   const replyId = `directReplyAgentflow_i10_v6_${suffix}_journey_ready`
-  const ids = [promptId, structureId, normalizerId, hydrateId, prepareId, projectionId, replyId]
+  const ids = [promptId, structureId, structureParseId, normalizerId, hydrateId, prepareId, projectionId, replyId]
   if (ids.some(id => flow.nodes.some(node => node.id === id))) {
     throw new Error(`I10_V6_ISOLATED_AUTHORING_DUPLICATE:${suffix}`)
   }
   cloneNode(sharedInitialPrompt, promptId, '形成紧凑案例上下文（隔离恢复）', { x: 3400, y })
-  cloneNode(sharedStructure, structureId, '紧凑结构化案例草案（隔离恢复）', { x: 3620, y })
-  cloneNode(sharedNormalizer, normalizerId, '确定性规范化候选草案（隔离恢复）', { x: 3840, y })
-  cloneNode(sharedPrepareHydrate, hydrateId, '从权威草案回填旅程参数（隔离恢复）', { x: 4060, y })
-  const isolatedPrepare = cloneNode(journeyPrepare, prepareId, 'MCP建立权威交互旅程（隔离恢复）', { x: 4280, y })
+  const isolatedStructure = cloneNode(sharedStructure, structureId, '紧凑案例JSON生成（隔离恢复）', { x: 3620, y })
+  const structuredStateUpdates = JSON.parse(JSON.stringify(isolatedStructure.data.inputs.llmUpdateState || []))
+  // Flowise's llmStructuredOutput wrapper may convert an otherwise valid
+  // response-format JSON completion into content:"", which then fails inside
+  // its parser before the graph can preserve evidence.  Ask the model for the
+  // same bounded JSON text and parse it in the following deterministic node.
+  isolatedStructure.data.inputs.llmStructuredOutput = []
+  isolatedStructure.data.inputs.llmReturnResponseAs = ''
+  isolatedStructure.data.inputs.llmUpdateState = [{ key: 'controllerDraftRawJson', value: '{{ output }}' }]
+  flow.nodes.push({
+    id: structureParseId, position: { x: 3840, y }, type: 'customNode',
+    data: {
+      id: structureParseId, label: '严格解析紧凑案例JSON（隔离恢复）', name: 'customFunctionAgentflow', version: 1,
+      type: 'Custom Function', baseClasses: ['customFunctionAgentflow'], category: 'Agent Flows',
+      inputs: {
+        customFunctionInputVariables: [
+          { variableName: 'raw', variableValue: '{{$flow.state.controllerDraftRawJson}}' },
+          { variableName: 'priorDraft', variableValue: '{{$flow.state.caseDraftJson}}' }
+        ],
+        customFunctionJavascriptFunction: `
+const source = String($raw || '').trim();
+const fenced = source.match(/^\\x60\\x60\\x60(?:json)?\\s*([\\s\\S]*?)\\s*\\x60\\x60\\x60$/i);
+const text = fenced ? fenced[1] : source;
+let value;
+if (text) {
+  try { value = JSON.parse(text); } catch { throw new Error('I10_CONTROLLER_DRAFT_JSON_INVALID'); }
+} else {
+  // Image-confirmation resumes already own an authoritative CaseDraft in
+  // durable Flow state. Some OpenAI-compatible providers occasionally expose
+  // an empty native LLM output even though the prior draft is intact. Reuse
+  // only that frozen draft; image facts are merged deterministically by the
+  // following normalizer. Fresh authoring without a prior draft still fails
+  // closed instead of fabricating controller content.
+  let prior = $priorDraft;
+  try { if (typeof prior === 'string') prior = JSON.parse(prior || '{}'); } catch { prior = {}; }
+  if (!prior || typeof prior !== 'object' || Array.isArray(prior) || !String(prior.entryUrl || '').trim()) {
+    throw new Error('I10_CONTROLLER_DRAFT_JSON_EMPTY');
+  }
+  const steps = Array.isArray(prior.steps) ? prior.steps : [];
+  value = {
+    caseTitle: String(prior.title || ''),
+    objective: String(prior.objective || ''),
+    targetSystem: String(prior.targetSystem || ''),
+    entryUrl: String(prior.entryUrl || ''),
+    actions: steps.map(step => String(step && step.action || '')).filter(Boolean),
+    expectedOutcomes: steps.map(step => String(step && step.expected || '')).filter(Boolean),
+    missingFields: Array.isArray(prior.missingFields) ? prior.missingFields : []
+  };
+}
+if (!value || typeof value !== 'object' || Array.isArray(value)) throw new Error('I10_CONTROLLER_DRAFT_JSON_OBJECT_REQUIRED');
+const keys = ['actions','caseTitle','entryUrl','expectedOutcomes','missingFields','objective','targetSystem'];
+const actual = Object.keys(value).sort();
+if (JSON.stringify(actual) !== JSON.stringify(keys)) throw new Error('I10_CONTROLLER_DRAFT_JSON_FIELDS_INVALID');
+for (const key of ['caseTitle','objective','targetSystem','entryUrl']) {
+  if (typeof value[key] !== 'string' || value[key].length > 1024) throw new Error('I10_CONTROLLER_DRAFT_JSON_STRING_INVALID');
+  value[key] = value[key].trim();
+}
+for (const key of ['actions','expectedOutcomes','missingFields']) {
+  if (!Array.isArray(value[key]) || value[key].some(item => typeof item !== 'string')) {
+    throw new Error('I10_CONTROLLER_DRAFT_JSON_ARRAY_INVALID');
+  }
+  // The controller is instructed to stay within these limits, but some
+  // providers can still return additional prose-equivalent items.  Keep the
+  // boundary deterministic without turning a safely bounded response into a
+  // chat-wide HTTP 500: normalize strings and retain only the declared prefix.
+  // Non-string values still fail closed above, and action/outcome cardinality
+  // is checked before the paired prefix is selected below.
+  value[key] = value[key].map(item => item.trim().slice(0, 256)).filter(Boolean);
+}
+if (value.actions.length !== value.expectedOutcomes.length) throw new Error('I10_CONTROLLER_DRAFT_JSON_CARDINALITY_INVALID');
+value.actions = value.actions.slice(0, 6);
+value.expectedOutcomes = value.expectedOutcomes.slice(0, 6);
+value.missingFields = value.missingFields.slice(0, 8);
+return value;`,
+        customFunctionUpdateState: structuredStateUpdates
+      }
+    }
+  })
+  cloneNode(sharedNormalizer, normalizerId, '确定性规范化候选草案（隔离恢复）', { x: 4060, y })
+  cloneNode(sharedPrepareHydrate, hydrateId, '从权威草案回填旅程参数（隔离恢复）', { x: 4280, y })
+  const isolatedPrepare = cloneNode(journeyPrepare, prepareId, 'MCP建立权威交互旅程（隔离恢复）', { x: 4500, y })
   // The normal journey tool also carries scheduling/result-resume fields.
   // A Flowise chat session can retain those opaque ids from an earlier run;
   // they are neither needed nor valid input for a fresh authoring Journey.
@@ -1304,7 +1419,7 @@ function attachIsolatedAuthoringChain({ suffix, sourceId, sourceHandle, y }) {
   isolatedPrepare.data.inputs.toolInputArgs = (isolatedPrepare.data.inputs.toolInputArgs || [])
     .filter(item => authoringArgs.has(item?.inputArgName))
   flow.nodes.push({
-    id: projectionId, position: { x: 4500, y }, type: 'customNode',
+    id: projectionId, position: { x: 4720, y }, type: 'customNode',
     data: {
       id: projectionId, label: '解析权威旅程响应（隔离恢复）', name: 'customFunctionAgentflow', version: 1,
       type: 'Custom Function', baseClasses: ['customFunctionAgentflow'], category: 'Agent Flows',
@@ -1316,7 +1431,7 @@ function attachIsolatedAuthoringChain({ suffix, sourceId, sourceHandle, y }) {
     }
   })
   flow.nodes.push({
-    id: replyId, position: { x: 4720, y }, type: 'customNode',
+    id: replyId, position: { x: 4940, y }, type: 'customNode',
     data: {
       id: replyId, label: '提示继续处理隔离恢复旅程', name: 'directReplyAgentflow', version: 1,
       type: 'Direct Reply', baseClasses: ['directReplyAgentflow'], category: 'Agent Flows',
@@ -1326,7 +1441,8 @@ function attachIsolatedAuthoringChain({ suffix, sourceId, sourceHandle, y }) {
   redirectEdge(sourceId, sourceHandle, sharedInitialPrompt.id, promptId, `i10-v6-${suffix}-isolated-entry`)
   for (const [source, target, id] of [
     [promptId, structureId, `i10-v6-${suffix}-prompt-structure`],
-    [structureId, normalizerId, `i10-v6-${suffix}-structure-normalize`],
+    [structureId, structureParseId, `i10-v6-${suffix}-structure-parse`],
+    [structureParseId, normalizerId, `i10-v6-${suffix}-parse-normalize`],
     [normalizerId, hydrateId, `i10-v6-${suffix}-normalize-hydrate`],
     [hydrateId, prepareId, `i10-v6-${suffix}-hydrate-prepare`],
     [prepareId, projectionId, `i10-v6-${suffix}-prepare-projection`],
@@ -1424,7 +1540,11 @@ const expectedOutcomes = draftSteps.length
   : (Array.isArray(draft.expectedOutcomes) ? draft.expectedOutcomes.map(text).filter(Boolean) : []);
 const suppliedAssertions = Array.isArray(draft.assertions) ? draft.assertions.map(text).filter(Boolean) : [];
 const actionSteps = Array.isArray(draft.actionStepsV2) ? draft.actionStepsV2 : [];
-const route = text($route);
+// Native Flowise Human Input continuations can lose transient scalar state.
+// Recover the already-confirmed launch URL from durable inputs rather than
+// rejecting an otherwise immutable CaseDraft.  The ACTIVE TargetProfile
+// snapshot wins when present; CaseDraft.entryUrl is the final bounded fallback.
+const route = text($route) || text(targetProfileSnapshot.launchUrl) || text(draft.entryUrl);
 if (!/^https?:\\/\\/[^\\s]+$/i.test(route) || !actions.length || actions.length !== expectedOutcomes.length) {
   return { valid: 'NO', errorCode: 'I10_INTENT_COMPILE_PREREQUISITES_INVALID', route: '', executionProfile: 'GENERIC_WEB', actions: '[]', expectedOutcomes: '[]', riskLevels: '[]', inputValues: '[]', inputValueSources: '[]', assertions: '[]', authoringContext: '' };
 }
@@ -1446,15 +1566,42 @@ const inputValueSources = actions.map((action, index) => {
 });
 const riskLevels = actions.map(action => /转账|支付|提交|确认/i.test(action) ? 'MEDIUM' : 'LOW');
 const encodeArray = value => 'uri:' + encodeURIComponent(JSON.stringify(value));
+const targetProfileId = text($targetProfileId);
+const targetProfileVersion = Number($targetProfileVersion || 0);
+const targetProfileHash = text($targetProfileHash);
 const authoringContext = {
   route, executionProfile,
-  targetProfileId: text($targetProfileId),
-  targetProfileVersion: Number($targetProfileVersion || 0),
-  targetProfileHash: text($targetProfileHash),
-  targetProfileSnapshot,
+  ...(targetProfileId ? { targetProfileId } : {}),
+  ...(Number.isInteger(targetProfileVersion) && targetProfileVersion > 0 ? { targetProfileVersion } : {}),
+  ...(targetProfileHash ? { targetProfileHash } : {}),
+  ...(Object.keys(targetProfileSnapshot).length ? { targetProfileSnapshot } : {}),
   ...(executionProfile !== 'GENERIC_WEB' ? { adapterBinding: binding } : {})
 };
-return { valid: 'YES', errorCode: '', route, executionProfile, actions: encodeArray(actions), expectedOutcomes: encodeArray(expectedOutcomes), riskLevels: encodeArray(riskLevels), inputValues: encodeArray(inputValues), inputValueSources: encodeArray(inputValueSources), assertions: encodeArray(suppliedAssertions.length ? suppliedAssertions : [expectedOutcomes.at(-1)]), authoringContext: JSON.stringify(authoringContext) };`
+// A Human Input continuation may retain the immutable CaseDraft URL while
+// losing every transient TargetProfile scalar.  Sending that partial generic
+// context would suppress the Harness' strict credentialRef -> ACTIVE profile
+// recovery and then fail intentPlan validation.  Submit context only when it
+// is complete; an explicit empty value delegates recovery to the Harness and
+// never authorizes URL-based adapter inference.
+const completeGenericProfile = executionProfile === 'GENERIC_WEB'
+  && targetProfileId
+  && Number.isInteger(targetProfileVersion) && targetProfileVersion > 0
+  && /^[0-9a-f]{64}$/.test(targetProfileHash)
+  && Object.keys(targetProfileSnapshot).length > 0;
+const completeControlledBinding = executionProfile !== 'GENERIC_WEB'
+  && binding.adapterId && binding.adapterVersion && binding.manifestHash;
+const authoringContextTransport = completeGenericProfile || completeControlledBinding
+  ? 'uri:' + encodeURIComponent(JSON.stringify(authoringContext))
+  : '';
+return { valid: 'YES', errorCode: '', route, executionProfile, actions: encodeArray(actions), expectedOutcomes: encodeArray(expectedOutcomes), riskLevels: encodeArray(riskLevels), inputValues: encodeArray(inputValues), inputValueSources: encodeArray(inputValueSources), assertions: encodeArray(suppliedAssertions.length ? suppliedAssertions : [expectedOutcomes.at(-1)]), authoringContext: authoringContextTransport };`
+
+// Persist the reconstructed route together with the frozen authoring context.
+// The following Tool node deliberately reads Flow state instead of a literal
+// Custom Function output template, so both values must survive continuations.
+intentCompilerV6.data.inputs.customFunctionUpdateState = [
+  { key: 'targetProfileLaunchUrl', value: '{{ output.route }}' },
+  { key: 'authoringContext', value: '{{ output.authoringContext }}' }
+]
 
 // The recovery compiler is cloned before the v6 compiler is hardened above.
 // Copy the finished authoritative inputs now, otherwise the clone retains the
@@ -1512,6 +1659,472 @@ if (!flow.nodes.some(node => node.id === alreadyActiveRouteId)) {
     targetHandle: candidateAuthoringFailed.id,
     type: 'buttonedge'
   })
+}
+
+// A cross-session CASE_AUTHORING journey can carry an adapter choice that was
+// explicitly frozen in its CaseDraft. Route that choice through the same
+// TargetProfile human confirmation gate before approving/authoring the case;
+// otherwise the recovery branch would silently reuse a credential-bound
+// GENERIC_DYNAMIC profile and discard the user's adapter selection.
+const crossSessionProjection = flow.nodes.find(node => node.id === 'customFunctionAgentflow_i10_v6_cross_session_journey_projection')
+const crossSessionDecisionParse = flow.nodes.find(node => node.id === 'customFunctionAgentflow_i10_v6_cross_session_decision_parse')
+const crossSessionAdapterRouteId = 'conditionAgentflow_i10_v6_cross_session_adapter_route'
+if (!crossSessionProjection || !crossSessionDecisionParse) throw new Error('I10_V6_CROSS_SESSION_ADAPTER_ROUTE_NODES_MISSING')
+const crossSessionProjectionUpdates = crossSessionProjection.data.inputs.customFunctionUpdateState || []
+if (!crossSessionProjection.data.inputs.customFunctionJavascriptFunction.includes('adapterConfirmationRequired')) {
+  crossSessionProjection.data.inputs.customFunctionJavascriptFunction = crossSessionProjection.data.inputs.customFunctionJavascriptFunction.replace(
+    'return payload;',
+    "return { ...payload, adapterConfirmationRequired: payload?.caseDraft?.adapterSelection === 'fuxing-bank-demo' && !payload?.caseDraft?.targetProfileId && !payload?.references?.targetProfileId ? 'YES' : 'NO' };"
+  )
+}
+// Every cross-session proposal without a frozen TargetProfile must pass the
+// same prepare/confirm chain. Restricting this to an explicit adapter choice
+// let ordinary GENERIC_WEB cases reach authoring with an unbound credential.
+crossSessionProjection.data.inputs.customFunctionJavascriptFunction =
+  crossSessionProjection.data.inputs.customFunctionJavascriptFunction.replace(
+    "adapterConfirmationRequired: payload?.caseDraft?.adapterSelection === 'fuxing-bank-demo' && !payload?.caseDraft?.targetProfileId && !payload?.references?.targetProfileId ? 'YES' : 'NO'",
+    "adapterConfirmationRequired: !payload?.caseDraft?.targetProfileId && !payload?.references?.targetProfileId ? 'YES' : 'NO'"
+  )
+// Native Flowise state updates do not consistently resolve nested Custom
+// Function output paths after a fresh chat execution.  Publish the immutable
+// CaseDraft fields needed by TargetProfile preparation as explicit top-level
+// scalars; never reconstruct them from the user continuation command.
+if (!crossSessionProjection.data.inputs.customFunctionJavascriptFunction.includes('projectedTargetSystem')) {
+  crossSessionProjection.data.inputs.customFunctionJavascriptFunction =
+    crossSessionProjection.data.inputs.customFunctionJavascriptFunction.replace(
+      "return { ...payload, adapterConfirmationRequired: !payload?.caseDraft?.targetProfileId && !payload?.references?.targetProfileId ? 'YES' : 'NO' };",
+      `const projectedCaseDraft = payload && payload.caseDraft && typeof payload.caseDraft === 'object' && !Array.isArray(payload.caseDraft)
+  ? payload.caseDraft : {};
+return {
+  ...payload,
+  adapterConfirmationRequired: !projectedCaseDraft.targetProfileId && !payload?.references?.targetProfileId ? 'YES' : 'NO',
+  projectedTargetSystem: String(projectedCaseDraft.targetSystem || ''),
+  projectedEntryUrl: String(projectedCaseDraft.entryUrl || ''),
+  projectedCredentialRef: String(projectedCaseDraft.credentialRef || ''),
+  projectedAdapterSelection: String(projectedCaseDraft.adapterSelection || '')
+};`
+    )
+}
+for (const [key, value] of [
+  ['targetAdapterSelection', '{{ output.projectedAdapterSelection }}'],
+  ['targetAdapterConfirmationRequired', '{{ output.adapterConfirmationRequired }}'],
+  ['controllerDraft_entryUrl', '{{ output.projectedEntryUrl }}'],
+  ['controllerDraft_targetSystem', '{{ output.projectedTargetSystem }}'],
+  ['credentialRef', '{{ output.projectedCredentialRef }}']
+]) {
+  const existing = crossSessionProjectionUpdates.find(item => item?.key === key)
+  if (existing) existing.value = value
+  else crossSessionProjectionUpdates.push({ key, value })
+}
+crossSessionProjection.data.inputs.customFunctionUpdateState = crossSessionProjectionUpdates
+if (!flow.nodes.some(node => node.id === crossSessionAdapterRouteId)) {
+  flow.nodes.push({
+    id: crossSessionAdapterRouteId,
+    position: { x: 1740, y: 120 },
+    type: 'customNode',
+    data: {
+      id: crossSessionAdapterRouteId,
+      label: '跨会话显式适配器是否待确认',
+      name: 'conditionAgentflow', version: 1, type: 'Condition',
+      baseClasses: ['conditionAgentflow'], category: 'Agent Flows',
+      inputs: { conditions: [{ type: 'string', value1: '{{$flow.state.targetAdapterConfirmationRequired}}', operation: 'equal', value2: 'YES' }] }
+    }
+  })
+  const proposalEdge = flow.edges.find(edge => edge.source === crossSessionRoute.id && edge.target === crossSessionDecisionParse.id)
+  if (!proposalEdge) throw new Error('I10_V6_CROSS_SESSION_PROPOSAL_EDGE_MISSING')
+  proposalEdge.target = crossSessionAdapterRouteId
+  proposalEdge.targetHandle = crossSessionAdapterRouteId
+  const crossTargetSourceIds = [
+    'toolAgentflow_i10_v4_target_profile_prepare',
+    'humanInputAgentflow_i10_v4_target_profile_confirm',
+    'toolAgentflow_i10_v4_target_profile_approve',
+    'toolAgentflow_i10_v4_target_profile_reject',
+    'toolAgentflow_i10_v4_target_profile_get',
+    'directReplyAgentflow_i10_v4_target_profile_rejected',
+    'toolAgentflow_i10_v6_post_target_journey_prepare',
+    'customFunctionAgentflow_i10_v6_post_target_journey_projection',
+    'directReplyAgentflow_i10_v6_target_profile_transition'
+  ]
+  const crossTargetSources = new Map(crossTargetSourceIds.map(id => [id, flow.nodes.find(node => node.id === id)]))
+  if ([...crossTargetSources.values()].some(node => !node)) throw new Error('I10_V6_CROSS_SESSION_TARGET_CHAIN_SOURCE_MISSING')
+  const crossTargetIds = new Map(crossTargetSourceIds.map(id => [id, `${id}_cross_session`]))
+  for (const [index, sourceId] of crossTargetSourceIds.entries()) {
+    const source = crossTargetSources.get(sourceId)
+    cloneNode(source, crossTargetIds.get(sourceId), `${source.data.label}（跨会话隔离）`, {
+      x: 1960 + index * 220,
+      y: 120
+    })
+  }
+  const crossTargetPrepareId = crossTargetIds.get('toolAgentflow_i10_v4_target_profile_prepare')
+  const crossTargetStatusRouteId = 'conditionAgentflow_i10_v6_cross_session_target_profile_status'
+  const crossTargetConfirmId = crossTargetIds.get('humanInputAgentflow_i10_v4_target_profile_confirm')
+  const crossTargetApproveId = crossTargetIds.get('toolAgentflow_i10_v4_target_profile_approve')
+  const crossTargetRejectId = crossTargetIds.get('toolAgentflow_i10_v4_target_profile_reject')
+  const crossTargetGetId = crossTargetIds.get('toolAgentflow_i10_v4_target_profile_get')
+  const crossTargetRejectedId = crossTargetIds.get('directReplyAgentflow_i10_v4_target_profile_rejected')
+  const crossTargetJourneyPrepareId = crossTargetIds.get('toolAgentflow_i10_v6_post_target_journey_prepare')
+  const crossTargetJourneyProjectionId = crossTargetIds.get('customFunctionAgentflow_i10_v6_post_target_journey_projection')
+  const crossTargetTransitionId = crossTargetIds.get('directReplyAgentflow_i10_v6_target_profile_transition')
+  const activeJourneyPrepareId = 'toolAgentflow_i10_v6_post_target_journey_prepare_already_active_cross_session'
+  const activeJourneyProjectionId = 'customFunctionAgentflow_i10_v6_post_target_journey_projection_already_active_cross_session'
+  const activeTransitionId = 'directReplyAgentflow_i10_v6_target_profile_transition_already_active_cross_session'
+  cloneNode(crossTargetSources.get('toolAgentflow_i10_v6_post_target_journey_prepare'), activeJourneyPrepareId, 'MCP冻结已激活目标站点后的案例提案准备（跨会话隔离）', { x: 2840, y: -100 })
+  cloneNode(crossTargetSources.get('customFunctionAgentflow_i10_v6_post_target_journey_projection'), activeJourneyProjectionId, '解析已激活目标站点后的权威旅程响应（跨会话隔离）', { x: 3060, y: -100 })
+  cloneNode(crossTargetSources.get('directReplyAgentflow_i10_v6_target_profile_transition'), activeTransitionId, '提示继续确认已激活目标站点后的冻结案例（跨会话隔离）', { x: 3280, y: -100 })
+  // Flowise templates embedded in a cloned Custom Function still name the
+  // source node. Bind each projection to its own prepare node so a continuation
+  // cannot project an empty object and retain a stale Journey id in flow state.
+  for (const [projectionId, prepareId] of [
+    [crossTargetJourneyProjectionId, crossTargetJourneyPrepareId],
+    [activeJourneyProjectionId, activeJourneyPrepareId]
+  ]) {
+    const projectionNode = flow.nodes.find(node => node.id === projectionId)
+    const contentVariable = projectionNode?.data?.inputs?.customFunctionInputVariables
+      ?.find(item => item?.variableName === 'content')
+    if (!contentVariable) throw new Error(`I10_V6_CROSS_SESSION_JOURNEY_PROJECTION_INPUT_MISSING:${projectionId}`)
+    contentVariable.variableValue = `{{ ${prepareId}.output.content }}`
+  }
+  const crossTargetPrepareNode = flow.nodes.find(node => node.id === crossTargetPrepareId)
+  crossTargetPrepareNode.data.inputs.toolInputArgs = (crossTargetPrepareNode.data.inputs.toolInputArgs || [])
+    .filter(item => item?.inputArgName !== 'applicationProfile')
+  flow.nodes.push({
+    id: crossTargetStatusRouteId, position: { x: 2180, y: 20 }, type: 'customNode',
+    data: {
+      id: crossTargetStatusRouteId, label: '跨会话目标档案状态路由', name: 'conditionAgentflow', version: 1,
+      type: 'Condition', baseClasses: ['conditionAgentflow'], category: 'Agent Flows',
+      inputs: { conditions: [
+        { type: 'string', value1: '{{$flow.state.targetProfileStatus}}', operation: 'equal', value2: 'PENDING_CONFIRMATION' },
+        { type: 'string', value1: '{{$flow.state.targetProfileStatus}}', operation: 'equal', value2: 'ACTIVE' }
+      ] }
+    }
+  })
+  flow.edges.push({
+    id: `edge-${crossSessionAdapterRouteId}-prepare`, source: crossSessionAdapterRouteId,
+    target: crossTargetPrepareId, sourceHandle: `${crossSessionAdapterRouteId}-output-0`,
+    targetHandle: crossTargetPrepareId, type: 'buttonedge'
+  })
+  flow.edges.push({
+    id: `edge-${crossSessionAdapterRouteId}-continue`, source: crossSessionAdapterRouteId,
+    target: crossSessionDecisionParse.id, sourceHandle: `${crossSessionAdapterRouteId}-output-1`,
+    targetHandle: crossSessionDecisionParse.id, type: 'buttonedge'
+  })
+  for (const edge of [
+    ['cross-target-prepared', crossTargetPrepareId, `${crossTargetPrepareId}-output-toolAgentflow`, crossTargetStatusRouteId],
+    ['cross-target-pending', crossTargetStatusRouteId, `${crossTargetStatusRouteId}-output-0`, crossTargetConfirmId],
+    ['cross-target-already-active', crossTargetStatusRouteId, `${crossTargetStatusRouteId}-output-1`, activeJourneyPrepareId],
+    ['cross-target-unavailable', crossTargetStatusRouteId, `${crossTargetStatusRouteId}-output-2`, crossTargetRejectedId],
+    ['cross-target-approved', crossTargetConfirmId, `${crossTargetConfirmId}-output-0`, crossTargetApproveId],
+    ['cross-target-rejected', crossTargetConfirmId, `${crossTargetConfirmId}-output-1`, crossTargetRejectId],
+    ['cross-target-readback', crossTargetApproveId, `${crossTargetApproveId}-output-toolAgentflow`, crossTargetGetId],
+    ['cross-target-stop', crossTargetRejectId, `${crossTargetRejectId}-output-toolAgentflow`, crossTargetRejectedId],
+    ['cross-target-continue', crossTargetGetId, `${crossTargetGetId}-output-toolAgentflow`, crossTargetJourneyPrepareId],
+    ['cross-target-journey-project', crossTargetJourneyPrepareId, `${crossTargetJourneyPrepareId}-output-toolAgentflow`, crossTargetJourneyProjectionId],
+    ['cross-target-transition', crossTargetJourneyProjectionId, `${crossTargetJourneyProjectionId}-output-customFunctionAgentflow`, crossTargetTransitionId]
+    ,['cross-target-active-journey-project', activeJourneyPrepareId, `${activeJourneyPrepareId}-output-toolAgentflow`, activeJourneyProjectionId]
+    ,['cross-target-active-transition', activeJourneyProjectionId, `${activeJourneyProjectionId}-output-customFunctionAgentflow`, activeTransitionId]
+  ]) {
+    flow.edges.push({ id: `i10-v6-${edge[0]}`, source: edge[1], sourceHandle: edge[2], target: edge[3], targetHandle: edge[3], type: 'buttonedge' })
+  }
+}
+
+// The Harness owns the frozen preparation -> CaseDraft -> TargetProfile
+// projection. Cross-session authoring must confirm that preparation only;
+// replaying controller-derived context fields is redundant and can diverge
+// from the authoritative snapshot (or fail the remote MCP union schema).
+for (const nodeId of [
+  'toolAgentflow_i10_v6_cross_session_authoring_submit',
+  'toolAgentflow_i10_v6_cross_session_authoring_resume_submit'
+]) {
+  const node = flow.nodes.find(item => item.id === nodeId)
+  if (!node) throw new Error(`I10_V6_CROSS_SESSION_AUTHORING_NODE_MISSING:${nodeId}`)
+  const required = new Set(['preparationId', 'expectedVersion', 'choice', 'confirmationRef', 'reason', 'sessionRef', 'authoringContext'])
+  const args = node.data.inputs.toolInputArgs || []
+  if (!args.some(item => item?.inputArgName === 'authoringContext')) {
+    args.push({ inputArgName: 'authoringContext', inputArgValue: '{{$flow.state.authoringContext}}' })
+  }
+  node.data.inputs.toolInputArgs = args
+    .filter(item => required.has(item?.inputArgName))
+}
+
+// Journey-driven run and schedule writes consume the immutable decision event
+// projected from the authoritative Journey.  Add the pair at the generated
+// graph boundary so cloned normal/cross-session nodes cannot silently omit it.
+for (const node of flow.nodes) {
+  const actions = node.data?.inputs?.toolAgentflowSelectedToolConfig?.mcpActions
+  if (!Array.isArray(actions) || !actions.some(action => action === 'run_submit' || action === 'schedule_create')) continue
+  const args = node.data.inputs.toolInputArgs || []
+  const preparationIndex = args.findIndex(item => item?.inputArgName === 'preparationId')
+  if (preparationIndex < 0) throw new Error(`I10_V6_EXECUTION_BINDING_PREPARATION_MISSING:${node.id}`)
+  const required = [
+    ['journeyId', '{{$flow.state.journeyId}}'],
+    ['confirmedDecisionEventId', '{{$flow.state.confirmedDecisionEventId}}']
+  ]
+  let offset = 1
+  for (const [inputArgName, inputArgValue] of required) {
+    const existing = args.find(item => item?.inputArgName === inputArgName)
+    if (existing) existing.inputArgValue = inputArgValue
+    else args.splice(preparationIndex + offset++, 0, { inputArgName, inputArgValue })
+  }
+  node.data.inputs.toolInputArgs = args
+}
+
+// Primary CASE_FILE and VIDEO uploads must create their governed ingest job
+// before Journey preparation.  Creating a PROCESSING_INGEST Journey first
+// leaves no durable ingestJobId to poll and the reconciler correctly marks it
+// orphaned.  Give the legacy ingest route one unique inbound edge: its former
+// post-proposal fallback is semantically the non-attachment result route.
+const primaryAttachmentRouteId = 'conditionAgentflow_i10_v6_primary_attachment_route'
+if (!flow.nodes.some(node => node.id === primaryAttachmentRouteId)) {
+  const imageNoSubmitEdge = flow.edges.find(edge =>
+    edge.source === 'conditionAgentflow_i10_v4_image_route' &&
+    edge.sourceHandle === 'conditionAgentflow_i10_v4_image_route-output-2' &&
+    edge.target === 'customFunctionAgentflow_i10_v6_no_image_prompt')
+  const postProposalIngestEdge = flow.edges.find(edge =>
+    edge.source === 'conditionAgentflow_i10_v3_awaiting_user' &&
+    edge.target === 'conditionAgentflow_i10_v3_route_ingest')
+  const legacyIngestDispatchEdge = flow.edges.find(edge =>
+    edge.source === 'conditionAgentflow_i10_v3_route_ingest' &&
+    edge.target === 'conditionAgentflow_i10_v3_ingest_video')
+  if (!imageNoSubmitEdge || !postProposalIngestEdge || !legacyIngestDispatchEdge) {
+    throw new Error('I10_V6_PRIMARY_ATTACHMENT_ROUTE_SOURCE_MISSING')
+  }
+  const primaryAttachmentClassifyId = 'customFunctionAgentflow_i10_v6_primary_attachment_classify'
+  flow.nodes.push({
+    id: primaryAttachmentClassifyId,
+    position: { x: 900, y: 460 },
+    type: 'customNode',
+    data: {
+      id: primaryAttachmentClassifyId,
+      label: '归一化主附件导入路由',
+      name: 'customFunctionAgentflow', version: 1, type: 'Custom Function',
+      baseClasses: ['customFunctionAgentflow'], category: 'Agent Flows',
+      inputs: {
+        customFunctionInputVariables: [{ variableName: 'inputType', variableValue: '{{$flow.state.inputType}}' }],
+        customFunctionJavascriptFunction: "const inputType=String($inputType||'').trim().toUpperCase(); return { primaryAttachment: inputType==='CASE_FILE'||inputType==='VIDEO'?'YES':'NO' };",
+        customFunctionUpdateState: [{ key: 'primaryAttachmentRoute', value: '{{ output.primaryAttachment }}' }]
+      }
+    }
+  })
+  flow.nodes.push({
+    id: primaryAttachmentRouteId,
+    position: { x: 1120, y: 460 },
+    type: 'customNode',
+    data: {
+      id: primaryAttachmentRouteId,
+      label: '主附件是否进入受控导入',
+      name: 'conditionAgentflow', version: 1, type: 'Condition',
+      baseClasses: ['conditionAgentflow'], category: 'Agent Flows',
+      inputs: { conditions: [
+        { type: 'string', value1: '{{$flow.state.primaryAttachmentRoute}}', operation: 'equal', value2: 'YES' }
+      ] }
+    }
+  })
+  imageNoSubmitEdge.target = primaryAttachmentClassifyId
+  imageNoSubmitEdge.targetHandle = primaryAttachmentClassifyId
+  postProposalIngestEdge.target = 'conditionAgentflow_i10_v3_route_result'
+  postProposalIngestEdge.targetHandle = 'conditionAgentflow_i10_v3_route_result'
+  legacyIngestDispatchEdge.target = 'conditionAgentflow_i10_v3_route_result'
+  legacyIngestDispatchEdge.targetHandle = 'conditionAgentflow_i10_v3_route_result'
+  flow.edges.push(
+    {
+      id: 'i10-v6-primary-attachment-classified', source: primaryAttachmentClassifyId,
+      sourceHandle: `${primaryAttachmentClassifyId}-output-customFunctionAgentflow`, target: primaryAttachmentRouteId,
+      targetHandle: primaryAttachmentRouteId, type: 'buttonedge'
+    },
+    {
+      id: 'i10-v6-primary-attachment-ingest', source: primaryAttachmentRouteId,
+      sourceHandle: `${primaryAttachmentRouteId}-output-0`, target: 'conditionAgentflow_i10_v3_ingest_video',
+      targetHandle: 'conditionAgentflow_i10_v3_ingest_video', type: 'buttonedge'
+    },
+    {
+      id: 'i10-v6-primary-natural-language', source: primaryAttachmentRouteId,
+      sourceHandle: `${primaryAttachmentRouteId}-output-1`, target: 'customFunctionAgentflow_i10_v6_no_image_prompt',
+      targetHandle: 'customFunctionAgentflow_i10_v6_no_image_prompt', type: 'buttonedge'
+    }
+  )
+  flow.nodes = flow.nodes.filter(node => node.id !== 'conditionAgentflow_i10_v3_route_ingest')
+  flow.edges = flow.edges.filter(edge => edge.source !== 'conditionAgentflow_i10_v3_route_ingest' && edge.target !== 'conditionAgentflow_i10_v3_route_ingest')
+
+  // A confirmed ingest already owns the immutable case and preparation. Do
+  // not feed it into the natural-language compiler (which would duplicate the
+  // case and has no active TargetProfile). Split the remaining writes across
+  // fresh Flowise executions: target profile, Journey binding, then authoring.
+  const attachmentIngestReadyId = 'directReplyAgentflow_i10_v6_attachment_ingest_confirmed'
+  const attachmentIngestProjectionId = 'customFunctionAgentflow_i10_v6_attachment_ingest_projection'
+  const attachmentContextId = 'customFunctionAgentflow_i10_v6_attachment_context_restore'
+  const attachmentApplicationId = 'customFunctionAgentflow_i10_v6_attachment_application_profile_derive'
+  const attachmentTargetPrepareId = 'toolAgentflow_i10_v6_attachment_target_profile_prepare'
+  const attachmentTargetStatusId = 'conditionAgentflow_i10_v6_attachment_target_profile_status'
+  const attachmentTargetConfirmId = 'humanInputAgentflow_i10_v6_attachment_target_profile_confirm'
+  const attachmentTargetApproveId = 'toolAgentflow_i10_v6_attachment_target_profile_approve'
+  const attachmentTargetRejectId = 'toolAgentflow_i10_v6_attachment_target_profile_reject'
+  const attachmentTargetGetId = 'toolAgentflow_i10_v6_attachment_target_profile_get'
+  const attachmentTargetRejectedId = 'directReplyAgentflow_i10_v6_attachment_target_profile_rejected'
+  const attachmentTargetReadyId = 'directReplyAgentflow_i10_v6_attachment_target_profile_ready'
+  const attachmentJourneyPrepareId = 'toolAgentflow_i10_v6_attachment_journey_prepare'
+  const attachmentJourneyReadyId = 'directReplyAgentflow_i10_v6_attachment_journey_ready'
+  const resumeRouteNode = flow.nodes.find(node => node.id === 'conditionAgentflow_i10_v4_candidate_resume_route')
+  const sourceTargetConfirm = flow.nodes.find(node => node.id === 'humanInputAgentflow_i10_v4_target_profile_confirm')
+  const sourceTargetApprove = flow.nodes.find(node => node.id === 'toolAgentflow_i10_v4_target_profile_approve')
+  const sourceTargetReject = flow.nodes.find(node => node.id === 'toolAgentflow_i10_v4_target_profile_reject')
+  const sourceTargetGet = flow.nodes.find(node => node.id === 'toolAgentflow_i10_v4_target_profile_get')
+  const sourceTargetRejected = flow.nodes.find(node => node.id === 'directReplyAgentflow_i10_v4_target_profile_rejected')
+  const ingestDecisionEdge = flow.edges.find(edge =>
+    edge.source === 'toolAgentflow_i10_v3_ingest_decide' && edge.target === 'llmAgentflow_intent')
+  const normalClassifyEdge = flow.edges.find(edge =>
+    edge.source === 'conditionAgentflow_i10_v4_candidate_resume_route' && edge.target === 'llmAgentflow_i10_v3_classify')
+  if (!resumeRouteNode || !sourceTargetConfirm || !sourceTargetApprove || !sourceTargetReject || !sourceTargetGet ||
+      !sourceTargetRejected || !ingestDecisionEdge || !normalClassifyEdge) {
+    throw new Error('I10_V6_ATTACHMENT_AUTHORING_CHAIN_SOURCE_MISSING')
+  }
+  for (const [source, id, label, position] of [
+    [applicationProfileDerive, attachmentApplicationId, '恢复附件案例应用能力边界', { x: 2600, y: 520 }],
+    [targetProfilePrepare, attachmentTargetPrepareId, 'MCP准备附件案例目标档案', { x: 2820, y: 520 }],
+    [sourceTargetConfirm, attachmentTargetConfirmId, '确认附件案例目标档案', { x: 3260, y: 520 }],
+    [sourceTargetApprove, attachmentTargetApproveId, 'MCP批准附件案例目标档案', { x: 3480, y: 460 }],
+    [sourceTargetReject, attachmentTargetRejectId, 'MCP拒绝附件案例目标档案', { x: 3480, y: 620 }],
+    [sourceTargetGet, attachmentTargetGetId, '回读附件案例目标档案', { x: 3700, y: 460 }],
+    [sourceTargetRejected, attachmentTargetRejectedId, '附件案例目标档案已拒绝', { x: 3700, y: 620 }],
+    [postTargetPrepareId && flow.nodes.find(node => node.id === postTargetPrepareId), attachmentJourneyPrepareId, 'MCP绑定已确认导入准备的旅程', { x: 2820, y: 740 }]
+  ]) {
+    if (!source) throw new Error(`I10_V6_ATTACHMENT_CLONE_SOURCE_MISSING:${id}`)
+    const clone = JSON.parse(JSON.stringify(source))
+    clone.id = id
+    clone.data.id = id
+    clone.data.label = label
+    clone.position = position
+    flow.nodes.push(clone)
+  }
+
+  flow.nodes.push(
+    {
+      id: attachmentIngestProjectionId, position: { x: 2820, y: 740 }, type: 'customNode',
+      data: { id: attachmentIngestProjectionId, label: '解析已确认导入的权威引用', name: 'customFunctionAgentflow', version: 1,
+        type: 'Custom Function', baseClasses: ['customFunctionAgentflow'], category: 'Agent Flows', inputs: {
+          customFunctionInputVariables: [{ variableName: 'content', variableValue: '{{ toolAgentflow_i10_v3_ingest_decide.output.content }}' }],
+          customFunctionJavascriptFunction: journeyProjectionSource.replace(
+            'return payload;',
+            `const confirmed=Array.isArray(payload.cases)?payload.cases[0]:null;if(!confirmed||!/^${opaqueReferences.source('preparation')}$/i.test(String(confirmed.preparationId||'')))throw new Error('I10_ATTACHMENT_INGEST_CONFIRMATION_INVALID');return {preparationId:confirmed.preparationId,preparationVersion:confirmed.preparationVersion,caseId:confirmed.caseId,caseVersion:confirmed.version,credentialRef:confirmed.credentialRef};`
+          ),
+          customFunctionUpdateState: [
+            { key: 'preparationId', value: '{{ output.preparationId }}' },
+            { key: 'preparationVersion', value: '{{ output.preparationVersion }}' },
+            { key: 'caseId', value: '{{ output.caseId }}' },
+            { key: 'caseVersion', value: '{{ output.caseVersion }}' },
+            { key: 'credentialRef', value: '{{ output.credentialRef }}' }
+          ]
+        } }
+    },
+    {
+      id: attachmentIngestReadyId, position: { x: 3040, y: 740 }, type: 'customNode',
+      data: { id: attachmentIngestReadyId, label: '导入准备已冻结', name: 'directReplyAgentflow', version: 1,
+        type: 'Direct Reply', baseClasses: ['directReplyAgentflow'], category: 'Agent Flows', inputs: {
+          directReplyMessage: '## 附件案例已确认\n\n已冻结准备 `{{$flow.state.preparationId}}`，本回合不再执行其他写操作。\n\n请发送：`继续附件目标 {{$flow.state.preparationId}}`。'
+        } }
+    },
+    {
+      id: attachmentContextId, position: { x: 2380, y: 520 }, type: 'customNode',
+      data: { id: attachmentContextId, label: '校验并恢复已确认附件上下文', name: 'customFunctionAgentflow', version: 1,
+        type: 'Custom Function', baseClasses: ['customFunctionAgentflow'], category: 'Agent Flows', inputs: {
+          customFunctionInputVariables: [
+            { variableName: 'draft', variableValue: '{{$flow.state.caseDraftJson}}' },
+            { variableName: 'preparationId', variableValue: '{{$flow.state.preparationId}}' },
+            { variableName: 'ingestJobId', variableValue: '{{$flow.state.ingestJobId}}' }
+          ],
+          customFunctionJavascriptFunction: "const parse=v=>{if(v&&typeof v==='object')return v;try{return JSON.parse(String(v||'{}'))}catch{return {}}};const draft=parse($draft);const preparationId=String($preparationId||'').trim();const ingestJobId=String($ingestJobId||'').trim();if(!/^prep_[0-9a-f-]{36}$/i.test(preparationId)||!/^ingest_[0-9a-f-]{36}$/i.test(ingestJobId)||!draft.entryUrl||!draft.targetSystem||!draft.credentialRef)throw new Error('I10_ATTACHMENT_RESUME_CONTEXT_INVALID');return {entryUrl:draft.entryUrl,targetSystem:draft.targetSystem,credentialRef:draft.credentialRef};",
+          customFunctionUpdateState: [
+            { key: 'controllerDraft_entryUrl', value: '{{ output.entryUrl }}' },
+            { key: 'controllerDraft_targetSystem', value: '{{ output.targetSystem }}' },
+            { key: 'credentialRef', value: '{{ output.credentialRef }}' }
+          ]
+        } }
+    },
+    {
+      id: attachmentTargetStatusId, position: { x: 3040, y: 520 }, type: 'customNode',
+      data: { id: attachmentTargetStatusId, label: '附件目标档案状态路由', name: 'conditionAgentflow', version: 1,
+        type: 'Condition', baseClasses: ['conditionAgentflow'], category: 'Agent Flows', inputs: { conditions: [
+          { type: 'string', value1: '{{$flow.state.targetProfileStatus}}', operation: 'equal', value2: 'PENDING_CONFIRMATION' },
+          { type: 'string', value1: '{{$flow.state.targetProfileStatus}}', operation: 'equal', value2: 'ACTIVE' }
+        ] } }
+    },
+    {
+      id: attachmentTargetReadyId, position: { x: 3920, y: 520 }, type: 'customNode',
+      data: { id: attachmentTargetReadyId, label: '附件目标档案已冻结', name: 'directReplyAgentflow', version: 1,
+        type: 'Direct Reply', baseClasses: ['directReplyAgentflow'], category: 'Agent Flows', inputs: {
+          directReplyMessage: '## 目标档案已冻结\n\n本回合不创建 Journey。请发送：`继续附件旅程 {{$flow.state.preparationId}}`。'
+        } }
+    },
+    {
+      id: attachmentJourneyReadyId, position: { x: 3260, y: 740 }, type: 'customNode',
+      data: { id: attachmentJourneyReadyId, label: '附件权威旅程已创建', name: 'directReplyAgentflow', version: 1,
+        type: 'Direct Reply', baseClasses: ['directReplyAgentflow'], category: 'Agent Flows', inputs: {
+          directReplyMessage: '## 附件案例旅程已精确绑定\n\n请发送：`继续旅程 {{$flow.state.journeyId}}`，以在新回合提交作者化。'
+        } }
+    }
+  )
+
+  const attachmentJourneyNode = flow.nodes.find(node => node.id === attachmentJourneyPrepareId)
+  const attachmentTargetPrepareNode = flow.nodes.find(node => node.id === attachmentTargetPrepareId)
+  attachmentTargetPrepareNode.data.inputs.toolInputArgs = (attachmentTargetPrepareNode.data.inputs.toolInputArgs || [])
+    .filter(argument => argument?.inputArgName !== 'applicationProfile')
+  attachmentJourneyNode.data.inputs.toolInputArgs = [
+    { inputArgName: 'sessionRef', inputArgValue: '{{$flow.sessionId}}' },
+    { inputArgName: 'requestIntent', inputArgValue: 'CASE_AUTHORING' },
+    { inputArgName: 'inputType', inputArgValue: '{{$flow.state.inputType}}' },
+    { inputArgName: 'credentialRef', inputArgValue: '{{$flow.state.credentialRef}}' },
+    { inputArgName: 'targetProfileId', inputArgValue: '{{$flow.state.targetProfileId}}' },
+    { inputArgName: 'preparationId', inputArgValue: '{{$flow.state.preparationId}}' },
+    { inputArgName: 'ingestJobId', inputArgValue: '{{$flow.state.ingestJobId}}' },
+    { inputArgName: 'supportingImages', inputArgValue: [] },
+    { inputArgName: 'interactionContractVersion', inputArgValue: 'v6' }
+  ]
+
+  for (const variable of [
+    { variableName: 'preparationId', variableValue: '{{$flow.state.preparationId}}' },
+    { variableName: 'targetProfileId', variableValue: '{{$flow.state.targetProfileId}}' }
+  ]) {
+    if (!resumeDetect.data.inputs.customFunctionInputVariables.some(item => item.variableName === variable.variableName)) {
+      resumeDetect.data.inputs.customFunctionInputVariables.push(variable)
+    }
+  }
+  resumeDetect.data.inputs.customFunctionJavascriptFunction = resumeDetect.data.inputs.customFunctionJavascriptFunction
+    .replace(
+      "const currentJourneyId = String($journeyId || '').trim();",
+      `const currentJourneyId = String($journeyId || '').trim();\nconst currentPreparationId=String($preparationId||'').trim();\nconst currentTargetProfileId=String($targetProfileId||'').trim();\nconst attachmentTarget=text.match(/^继续附件目标\\s*(${opaqueReferences.source('preparation')})$/i);\nconst attachmentJourney=text.match(/^继续附件旅程\\s*(${opaqueReferences.source('preparation')})$/i);\nconst exactAttachmentTarget=attachmentTarget&&attachmentTarget[1]===currentPreparationId&&/^${opaqueReferences.source('ingest')}$/i.test(ingestJobId);\nconst exactAttachmentJourney=attachmentJourney&&attachmentJourney[1]===currentPreparationId&&/^${opaqueReferences.source('targetprofile')}$/i.test(currentTargetProfileId);`
+    )
+    .replace(
+      "route: imageIngestId && imageDecision === 'CONTINUE_CONFIRMED'",
+      "route: exactAttachmentTarget ? 'RESUME_ATTACHMENT_TARGET' : (exactAttachmentJourney ? 'RESUME_ATTACHMENT_JOURNEY' : (imageIngestId && imageDecision === 'CONTINUE_CONFIRMED'"
+    )
+    .replace(
+      ": (wantsResume && ingestJobId ? 'RESUME_INGEST' : (journeyId ? 'RESUME_JOURNEY' : (wantsResume && candidateJobId ? 'RESUME_CANDIDATE' : 'CLASSIFY')))),",
+      ": (journeyId ? 'RESUME_JOURNEY' : (wantsResume && ingestJobId ? 'RESUME_INGEST' : (wantsResume && candidateJobId ? 'RESUME_CANDIDATE' : 'CLASSIFY')))))),"
+    )
+  resumeRouteNode.data.inputs.conditions.push(
+    { type: 'string', value1: '{{$flow.state.resumeRoute}}', operation: 'equal', value2: 'RESUME_ATTACHMENT_TARGET' },
+    { type: 'string', value1: '{{$flow.state.resumeRoute}}', operation: 'equal', value2: 'RESUME_ATTACHMENT_JOURNEY' }
+  )
+  normalClassifyEdge.sourceHandle = 'conditionAgentflow_i10_v4_candidate_resume_route-output-7'
+  ingestDecisionEdge.target = attachmentIngestProjectionId
+  ingestDecisionEdge.targetHandle = attachmentIngestProjectionId
+  flow.edges.push(
+    { id: 'i10-v6-attachment-ingest-project', source: attachmentIngestProjectionId, sourceHandle: `${attachmentIngestProjectionId}-output-customFunctionAgentflow`, target: attachmentIngestReadyId, targetHandle: attachmentIngestReadyId, type: 'buttonedge' },
+    { id: 'i10-v6-attachment-target-resume', source: resumeRouteNode.id, sourceHandle: `${resumeRouteNode.id}-output-5`, target: attachmentContextId, targetHandle: attachmentContextId, type: 'buttonedge' },
+    { id: 'i10-v6-attachment-context-application', source: attachmentContextId, sourceHandle: `${attachmentContextId}-output-customFunctionAgentflow`, target: attachmentApplicationId, targetHandle: attachmentApplicationId, type: 'buttonedge' },
+    { id: 'i10-v6-attachment-application-target', source: attachmentApplicationId, sourceHandle: `${attachmentApplicationId}-output-customFunctionAgentflow`, target: attachmentTargetPrepareId, targetHandle: attachmentTargetPrepareId, type: 'buttonedge' },
+    { id: 'i10-v6-attachment-target-status', source: attachmentTargetPrepareId, sourceHandle: `${attachmentTargetPrepareId}-output-toolAgentflow`, target: attachmentTargetStatusId, targetHandle: attachmentTargetStatusId, type: 'buttonedge' },
+    { id: 'i10-v6-attachment-target-confirm', source: attachmentTargetStatusId, sourceHandle: `${attachmentTargetStatusId}-output-0`, target: attachmentTargetConfirmId, targetHandle: attachmentTargetConfirmId, type: 'buttonedge' },
+    { id: 'i10-v6-attachment-target-active', source: attachmentTargetStatusId, sourceHandle: `${attachmentTargetStatusId}-output-1`, target: attachmentTargetReadyId, targetHandle: attachmentTargetReadyId, type: 'buttonedge' },
+    { id: 'i10-v6-attachment-target-unavailable', source: attachmentTargetStatusId, sourceHandle: `${attachmentTargetStatusId}-output-2`, target: attachmentTargetRejectedId, targetHandle: attachmentTargetRejectedId, type: 'buttonedge' },
+    { id: 'i10-v6-attachment-target-approved', source: attachmentTargetConfirmId, sourceHandle: `${attachmentTargetConfirmId}-output-0`, target: attachmentTargetApproveId, targetHandle: attachmentTargetApproveId, type: 'buttonedge' },
+    { id: 'i10-v6-attachment-target-rejected', source: attachmentTargetConfirmId, sourceHandle: `${attachmentTargetConfirmId}-output-1`, target: attachmentTargetRejectId, targetHandle: attachmentTargetRejectId, type: 'buttonedge' },
+    { id: 'i10-v6-attachment-target-readback', source: attachmentTargetApproveId, sourceHandle: `${attachmentTargetApproveId}-output-toolAgentflow`, target: attachmentTargetGetId, targetHandle: attachmentTargetGetId, type: 'buttonedge' },
+    { id: 'i10-v6-attachment-target-stop', source: attachmentTargetRejectId, sourceHandle: `${attachmentTargetRejectId}-output-toolAgentflow`, target: attachmentTargetRejectedId, targetHandle: attachmentTargetRejectedId, type: 'buttonedge' },
+    { id: 'i10-v6-attachment-target-ready', source: attachmentTargetGetId, sourceHandle: `${attachmentTargetGetId}-output-toolAgentflow`, target: attachmentTargetReadyId, targetHandle: attachmentTargetReadyId, type: 'buttonedge' },
+    { id: 'i10-v6-attachment-journey-resume', source: resumeRouteNode.id, sourceHandle: `${resumeRouteNode.id}-output-6`, target: attachmentJourneyPrepareId, targetHandle: attachmentJourneyPrepareId, type: 'buttonedge' },
+    { id: 'i10-v6-attachment-journey-project', source: attachmentJourneyPrepareId, sourceHandle: `${attachmentJourneyPrepareId}-output-toolAgentflow`, target: attachmentJourneyReadyId, targetHandle: attachmentJourneyReadyId, type: 'buttonedge' }
+  )
+  attachJourneyProjection(attachmentJourneyPrepareId, attachmentJourneyReadyId, 'attachment')
 }
 flow.name = '衡准自动化回归主控-I10 v6本机验收收口版'
 flow.description = '衡准 I10 Agentflow v6：唯一构建、发布回读、迁移就绪与验证策略收口。'

@@ -1,0 +1,26 @@
+{
+  "schemaVersion": "hengzhun-i10-release-identity-v4-manifest/v1",
+  "profile": "NORMAL_CLI",
+  "dynamicGroups": {
+    "harness": ["harness/src/**/*.ts", "dist/harness/src/**/*.js"],
+    "worker": ["worker/src/**/*.cjs", "scripts/i10-worker-code-set-v1.json"]
+  },
+  "groups": {
+    "agentCli": [
+      "agent-cli/package.json", "agent-cli/package-lock.json", "agent-cli/cli-event-schema-v1.json",
+      "agent-cli/node-runtime-manifest-v1.json", "agent-cli/managed-process-spec-v1.json", "agent-cli/flowise-cold-rollback-v1.json", "agent-cli/offline-sbom.cdx.json",
+      "agent-cli/release-identity-v4-manifest.json", "agent-cli/bin/hz-agent.mjs",
+      "agent-cli/src/contracts.mjs", "agent-cli/src/headless-app.mjs", "agent-cli/src/preflight.mjs", "agent-cli/src/production-service.mjs",
+      "agent-cli/tui/model.mjs", "agent-cli/tui/runtime-bridge.mjs", "agent-cli/tui/terminal-app.mjs", "agent-cli/tui/view.mjs"
+    ],
+    "controller": [
+      "controller/package.json", "controller/package-lock.json", "controller/controller-release-manifest-v2.json",
+      "controller/prompt-v2.txt", "controller/tool-policy-v1.json", "controller/risk-policy-v2.json", "controller/session-schema-v1.json", "controller/operation-session-schema-v1.json",
+      "controller/src/agent-controller-v2.mjs", "controller/src/controller-port.cjs", "controller/src/controller-runtime.mjs",
+      "controller/src/risk-policy.cjs", "controller/src/runtime-adapters.mjs", "controller/src/session-checkpointer.mjs",
+      "controller/src/session-store.mjs", "controller/src/operation-store.mjs", "controller/src/state-security.mjs", "controller/src/tool-policy.cjs"
+    ],
+    "mcp": ["contracts/mcp/hengzhun-i8.json", "mcp/src/server.cjs", "mcp/src/rf001-contract-adapter.cjs", "mcp/src/journey-evidence-projection.cjs"],
+    "lifecycle": ["scripts/i10-agent-acceptance-ledger-v4.cjs", "scripts/i10-agent-full18-live.cjs", "scripts/i10-agent-lifecycle.cjs", "scripts/i10-agent-l1-live.cjs", "scripts/i10-agent-offline-sbom.cjs", "scripts/i10-agent-release-decision.cjs", "scripts/i10-release-identity-v4.cjs", "scripts/i10-stage9-portable.cjs", "flowise/i10/s9-portability-policy-v1.json", "package.json"]
+  }
+}

@@ -1,0 +1,20 @@
+{
+  "schemaVersion": "hengzhun-agent-managed-process-spec/v1",
+  "profile": "NORMAL_CLI",
+  "interactive": {
+    "name": "hz-agent",
+    "executable": "runtime/node-v24.19.0-win-x64/node.exe",
+    "entrypoint": "agent-cli/bin/hz-agent.mjs"
+  },
+  "services": [
+    { "name": "harness", "executable": "runtime/node-v20.20.2-win-x64/node.exe", "entrypoint": "dist/harness/src/index.js", "port": 18788 },
+    { "name": "mcp", "executable": "runtime/node-v20.20.2-win-x64/node.exe", "entrypoint": "mcp/src/server.cjs", "port": 18789 },
+    { "name": "worker", "executable": "runtime/node-v20.20.2-win-x64/node.exe", "entrypoint": "worker/src/index.cjs" }
+  ],
+  "forbiddenRuntime": {
+    "name": "flowise",
+    "processMarker": "flowise/app/node_modules/flowise/bin/run",
+    "port": 3006,
+    "writePolicy": "FAIL_CLOSED"
+  }
+}

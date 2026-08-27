@@ -1,0 +1,67 @@
+name: Hengzhun quality gates
+
+on:
+  push:
+    paths:
+      - platform/hengzhun-regression-system/**
+      - .github/workflows/ci.yml
+  pull_request:
+    paths:
+      - platform/hengzhun-regression-system/**
+      - .github/workflows/ci.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  quality:
+    runs-on: windows-latest
+    timeout-minutes: 45
+    defaults:
+      run:
+        shell: pwsh
+        working-directory: platform/hengzhun-regression-system
+
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v4
+
+      - name: Use governed Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20.20.2
+          cache: npm
+          cache-dependency-path: |
+            platform/hengzhun-regression-system/package-lock.json
+            platform/hengzhun-regression-system/flowise/app/package-lock.json
+
+      - name: Install locked root dependencies
+        run: npm ci
+
+      - name: Install locked Flowise dependencies for MCP integration tests
+        run: npm ci --prefix flowise/app --ignore-scripts
+
+      - name: Generate TypeScript output
+        run: npm run generate:dist
+
+      - name: Check test discovery manifest
+        run: npm run check:tests
+
+      - name: Type-check source
+        run: npm run typecheck
+
+      - name: Lint JavaScript syntax
+        run: npm run lint
+
+      - name: Run complete CI-registered suite
+        run: npm run test:registered
+
+      - name: Enforce coverage thresholds
+        run: npm run test:coverage
+
+      - name: Audit root production dependencies
+        run: npm run audit:critical
+
+      - name: Gate Flowise known production audit findings
+        run: npm run audit:flowise:critical

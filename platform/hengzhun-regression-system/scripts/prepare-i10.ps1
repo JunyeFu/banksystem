@@ -1,18 +1,97 @@
 ﻿[CmdletBinding()]
-param()
+param(
+    [switch]$FingerprintOnly
+)
 $ErrorActionPreference = 'Stop'
 $root = Split-Path -Parent $PSScriptRoot
 $node = Join-Path $root 'runtime\node-v20.20.2-win-x64\node.exe'
 . (Join-Path $PSScriptRoot 'progress.ps1')
 . (Join-Path $PSScriptRoot 'recovery.ps1')
-Initialize-HengzhunProgress -Operation 'PREPARE' -StageTotal 5
-$operationVersion = 'i10-prepare-recovery-v3'
+$operationVersion = 'i10-prepare-recovery-v5'
 $lockPath = $null
-$inputFingerprint = Get-HengzhunRecoveryInputFingerprint @{
-    operationVersion = $operationVersion
-    migrationNames = @(Get-ChildItem -LiteralPath (Join-Path $root 'harness\migrations') -Filter '*.sql' -File | Sort-Object Name | ForEach-Object { $_.Name + ':' + $_.Length })
-    agentflowBuilder = (Get-Item -LiteralPath (Join-Path $PSScriptRoot 'build-i10-agentflow-v7.cjs')).Length
+
+function Get-I10PrepareContentRecord {
+    param([Parameter(Mandatory=$true)][string]$RelativePath)
+    $normalized = $RelativePath.Replace('\', '/')
+    $absolute = Join-Path $root ($normalized.Replace('/', '\'))
+    if (-not (Test-Path -LiteralPath $absolute -PathType Leaf)) { throw "PREPARE_INPUT_MISSING:$normalized" }
+    $sha = [Security.Cryptography.SHA256]::Create()
+    $stream = [IO.File]::OpenRead($absolute)
+    try { $contentHash = ([BitConverter]::ToString($sha.ComputeHash($stream))).Replace('-', '').ToLowerInvariant() }
+    finally { $stream.Dispose(); $sha.Dispose() }
+    return [ordered]@{
+        path = $normalized
+        sha256 = $contentHash
+    }
 }
+
+$migrationFiles = @(Get-ChildItem -LiteralPath (Join-Path $root 'harness\migrations') -Filter '*.sql' -File | Sort-Object Name)
+if ($migrationFiles.Count -eq 0) { throw 'PREPARE_SQLITE_MIGRATIONS_MISSING' }
+foreach ($migration in $migrationFiles) {
+    if ($migration.Name -notmatch '^(\d+)_.+\.sql$') { throw "PREPARE_SQLITE_MIGRATION_INVALID:$($migration.Name)" }
+}
+$migrationInputs = @($migrationFiles | ForEach-Object { Get-I10PrepareContentRecord ("harness/migrations/{0}" -f $_.Name) })
+$migrationVersion = [int](($migrationFiles | ForEach-Object { [int]([Regex]::Match($_.Name, '^(\d+)_').Groups[1].Value) } | Measure-Object -Maximum).Maximum)
+
+# v7 is a projection over the current v6 authority. Bind the wrapper, v6
+# builder, direct code dependencies, and v6's frozen v5 source inputs. The
+# publication manifest is deliberately excluded because the builder rewrites
+# it; binding that output would invalidate every successful recovery record.
+$agentflowAuthorityPaths = @(
+    'scripts/build-i10-agentflow-v7.cjs',
+    'scripts/build-i10-agentflow-v6.cjs',
+    'scripts/i10-case-draft-normalizer.cjs',
+    'scripts/i10-reference-contracts.cjs',
+    'contracts/i10/opaque-reference-v1.json',
+    'flowise/i10/agentflow-v5.json'
+)
+if (Test-Path -LiteralPath (Join-Path $root 'flowise\i10\agentflow-v5-layout.json') -PathType Leaf) {
+    $agentflowAuthorityPaths += 'flowise/i10/agentflow-v5-layout.json'
+}
+$agentflowAuthorityInputs = @($agentflowAuthorityPaths | ForEach-Object { Get-I10PrepareContentRecord $_ })
+$runtimeAuthorityPaths = @(
+    'config/i9.runtime.example.json',
+    'flowise/app/package.json',
+    'flowise/app/package-lock.json',
+    'flowise/i10/flowise-acquisition-policy-v1.json',
+    'flowise/i10/flowise-runtime-fork-policy-v1.json',
+    'flowise/i10/node-runtime-manifest-v1.json',
+    'flowise/i10/s9-portability-policy-v1.json',
+    'scripts/apply-i9-flowise-overlays.cjs',
+    'scripts/check-flowise-audit.cjs',
+    'scripts/i10-acquire-flowise-runtime.ps1',
+    'scripts/i10-build-flowise-runtime-fork.cjs',
+    'scripts/i10-flowise-advisory-disposition.cjs',
+    'scripts/i10-provision-node-runtimes.ps1',
+    'scripts/i10-flowise-runtime-policy.cjs',
+    'scripts/i10-flowise-runtime-probe.cjs',
+    'scripts/i9-lifecycle.cjs'
+)
+$runtimeAuthorityInputs = @($runtimeAuthorityPaths | ForEach-Object { Get-I10PrepareContentRecord $_ })
+$fingerprintValue = [ordered]@{
+    operationVersion = $operationVersion
+    migrations = $migrationInputs
+    agentflowAuthority = $agentflowAuthorityInputs
+    runtimeAuthority = $runtimeAuthorityInputs
+}
+$inputFingerprint = Get-HengzhunRecoveryInputFingerprint $fingerprintValue
+if ($FingerprintOnly) {
+    [ordered]@{
+        schemaVersion = 'hengzhun-i10-prepare-input-fingerprint-v1'
+        operationVersion = $operationVersion
+        migrationVersion = $migrationVersion
+        migrations = $migrationInputs
+        agentflowAuthority = $agentflowAuthorityInputs
+        runtimeAuthority = $runtimeAuthorityInputs
+        inputFingerprint = $inputFingerprint
+    } | ConvertTo-Json -Depth 8
+    return
+}
+
+& (Join-Path $PSScriptRoot 'i10-provision-node-runtimes.ps1') | Out-Null
+if ($LASTEXITCODE -ne 0) { throw "PREPARE_NODE_RUNTIME_PROVISION_FAILED:$LASTEXITCODE" }
+
+Initialize-HengzhunProgress -Operation 'PREPARE' -StageTotal 5
 
 try {
     $lockPath = Enter-HengzhunRecoveryLock -Operation 'PREPARE'
@@ -58,8 +137,7 @@ try {
     Write-HengzhunStageResult '内部令牌已生成或安全保留，未输出令牌内容'
 
     Write-HengzhunStage -Index 3 -Name '准备SQLite目录并校验迁移输入'
-    $migrations = @(Get-ChildItem -LiteralPath (Join-Path $root 'harness\migrations') -Filter '*.sql' -File | Sort-Object Name)
-    if ($migrations.Count -eq 0) { throw 'PREPARE_SQLITE_MIGRATIONS_MISSING' }
+    $migrations = $migrationFiles
     foreach ($migration in $migrations) {
         if ($migration.Length -le 0 -or $migration.Name -notmatch '^\d+_.+\.sql$') { throw "PREPARE_SQLITE_MIGRATION_INVALID:$($migration.Name)" }
     }

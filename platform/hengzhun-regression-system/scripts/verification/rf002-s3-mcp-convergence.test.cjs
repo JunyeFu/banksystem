@@ -15,7 +15,7 @@ const http = require('node:http')
 const path = require('node:path')
 
 const root = path.resolve(__dirname, '../..')
-const nodeExecutable = path.join(root, 'runtime/node-v20.20.2-win-x64/node.exe')
+const nodeExecutable = process.execPath
 const Database = require(path.join(root, 'node_modules/better-sqlite3'))
 const ISO = path.join(root, '.data', 'tests', 'rf002-s3')
 const HARNESS_PORT = 28797
@@ -49,7 +49,7 @@ function applyMigrations(db) {
     const version = Number(name.split('_', 1)[0])
     const sql = fs.readFileSync(path.join(root, 'harness/migrations', name), 'utf8')
     db.exec('BEGIN')
-    try { db.exec(sql); db.prepare('INSERT INTO schema_migrations(version,name,checksum,applied_at) VALUES (?,?,?,?)').run(version, name, sha256(sql), now()); db.exec('COMMIT') }
+    try { db.exec(sql); db.prepare('INSERT INTO schema_migrations(version,name,checksum,applied_at) VALUES (?,?,?,?)').run(version, name, sha256(sql.replaceAll('\r\n', '\n')), now()); db.exec('COMMIT') }
     catch (error) { db.exec('ROLLBACK'); throw error }
   }
 }

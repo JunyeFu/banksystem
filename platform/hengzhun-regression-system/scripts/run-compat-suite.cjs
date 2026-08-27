@@ -7,7 +7,7 @@
 const { spawnSync } = require('node:child_process')
 const path = require('node:path')
 const root = path.resolve(__dirname, '..')
-const node = path.join(root, 'runtime/node-v20.20.2-win-x64/node.exe')
+const node = process.execPath
 const test = name => `scripts/verification/${name}.test.cjs`
 const suites = {
   i2: [test('input-safety'), test('runtime-verification')],

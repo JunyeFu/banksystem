@@ -1,0 +1,9 @@
+id: RF-025-S0
+title: Freeze full18 v4 governance and task decomposition
+status: COMPLETED
+allowedPaths: [docs/architecture/refactoring/batches/RF-025, agent/plans/active/hengzhun-i10-cli-agent-task-packages-v1.yaml, agent/plans/active/hengzhun-i10-agcli-tp10-full18-release-task-package.md, agent/backlog.yaml, agent/plans/active/v54-implementation-batches.md]
+forbiddenPaths: [platform/hengzhun-regression-system/.data, platform/hengzhun-regression-system/flowise, platform/hengzhun-regression-system/agent-cli, platform/hengzhun-regression-system/controller, platform/hengzhun-regression-system/harness, platform/hengzhun-regression-system/mcp, platform/hengzhun-regression-system/worker]
+workSteps: [freeze current source and runtime facts, separate v3 and v4 acceptance authorities, define slices and exact gates, validate governance]
+verification: [RF-025 governance exits zero, temporal enforcement exits zero, docs validation exits zero, whitespace check exits zero]
+rollback: remove only RF-025 and exact TP10 governance references
+evidence: docs/architecture/refactoring/batches/RF-025/evidence-index.md

@@ -1,0 +1,33 @@
+{
+  "schemaVersion": "hengzhun-worker-code-set-manifest-v1",
+  "workerCodeSetVersion": "WORKER_CODE_SET_V1",
+  "entry": "worker/src/index.cjs",
+  "algorithm": "SHA256_SORTED_POSIX_PATH_NUL_RAW_BYTES_NUL",
+  "files": [
+    "dist/harness/src/context-envelope.js",
+    "dist/harness/src/errors.js",
+    "dist/harness/src/i8/adapters/fuxing-bank-demo.js",
+    "dist/harness/src/i8/script-package-builder.js",
+    "dist/harness/src/i8/stage3-schemas.js",
+    "dist/harness/src/i8/target-adapter-registry.js",
+    "dist/harness/src/schemas.js",
+    "dist/harness/src/utils.js",
+    "worker/src/adapters/fuxing-bank-demo/account-ownership.cjs",
+    "worker/src/adapters/fuxing-bank-demo/auth-rejection-recovery.cjs",
+    "worker/src/adapters/fuxing-bank-demo/index.cjs",
+    "worker/src/adapters/fuxing-bank-demo/login-profile.cjs",
+    "worker/src/adapters/fuxing-bank-demo/verification-policy.cjs",
+    "worker/src/i10-image-ingest-runner.cjs",
+    "worker/src/i10-midscene-candidate-authoring.cjs",
+    "worker/src/i10-onnx-ocr.cjs",
+    "worker/src/i10-verification-execution.cjs",
+    "worker/src/i10-verification-policy.cjs",
+    "worker/src/i10-video-ingest-runner.cjs",
+    "worker/src/i10-worker-utils.cjs",
+    "worker/src/i8-candidate-runner.cjs",
+    "worker/src/i8-formal-runner.cjs",
+    "worker/src/i8-stability-runner.cjs",
+    "worker/src/index.cjs",
+    "worker/src/run-lease.cjs"
+  ]
+}

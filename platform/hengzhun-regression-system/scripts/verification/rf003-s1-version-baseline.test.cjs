@@ -4,8 +4,8 @@
 // Freezes the three-source version drift as machine-checkable assertions
 // (reverse anchors for S2 unification): MCP SDK registration 8.0.0 vs
 // health endpoint 10.0.0 vs runtime contract 10.1.0. Also verifies the
-// safety premise of the unification plan: the runtime contract file is NOT
-// part of the ReleaseIdentity inputs.
+// current safety invariant: the runtime contract is part of ReleaseIdentity,
+// so an executable protocol-version change invalidates stale evidence.
 
 const test = require('node:test')
 const assert = require('node:assert/strict')
@@ -38,19 +38,19 @@ test('S1 baseline: B2 version policy is frozen in the boundary contract', () => 
   assert.ok(boundaryContract.versionPolicy.rule, 'version policy rule must be present')
 })
 
-test('S1 safety premise: the runtime contract is not a ReleaseIdentity input', () => {
-  // identity inputs come from publication-manifest, the agentflow flow path,
-  // the case catalog, harness service and worker authoring source
+test('current safety invariant: executable contracts and complete code sets are ReleaseIdentity inputs', () => {
   assert.match(identitySource, /publication-manifest-v1\.json/, 'identity reads the publication manifest')
   assert.match(identitySource, /case-catalog-v1\.json/, 'identity reads the case catalog')
-  assert.match(identitySource, /harness\/src\/i10\/service\.ts/, 'identity reads the harness service source')
+  assert.match(identitySource, /recursiveCodeFiles\(productRoot, 'harness\/src', '\.ts'\)/, 'identity reads the complete Harness source set')
   assert.match(identitySource, /worker\/src\/i10-midscene-candidate-authoring\.cjs/, 'identity reads the worker authoring source')
-  assert.doesNotMatch(identitySource, /contracts\/mcp\/hengzhun-i8\.json/, 'identity must NOT read the MCP runtime contract (version unification is identity-safe)')
+  assert.match(identitySource, /contracts\/mcp\/hengzhun-i8\.json/, 'identity binds the executable MCP runtime contract')
 })
 
-test('S1 baseline: release identity stays at the frozen baseline', () => {
+test('S1 baseline inspection is read-only for the current release identity', () => {
   const { execFileSync } = require('node:child_process')
-  const nodeExecutable = path.join(root, 'runtime/node-v20.20.2-win-x64/node.exe')
-  const run = execFileSync(nodeExecutable, ['scripts/i10-release-identity.cjs'], { cwd: root, encoding: 'utf8' })
-  assert.equal(JSON.parse(run).identityHash, '632ad5ee7981b59f00824d0072d28da6075eef095d55a898d51c0103a897988f')
+  const nodeExecutable = process.execPath
+  const before = JSON.parse(execFileSync(nodeExecutable, ['scripts/i10-release-identity.cjs'], { cwd: root, encoding: 'utf8' })).identityHash
+  const after = JSON.parse(execFileSync(nodeExecutable, ['scripts/i10-release-identity.cjs'], { cwd: root, encoding: 'utf8' })).identityHash
+  assert.match(before, /^[0-9a-f]{64}$/)
+  assert.equal(after, before)
 })

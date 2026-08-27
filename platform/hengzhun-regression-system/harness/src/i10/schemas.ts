@@ -152,6 +152,7 @@ export const caseDraftSchema = z.object({
   actionStepsV2: z.array(actionStepV2Schema).max(100).default([]),
   verificationRequirements: z.array(verificationRequirementSchema).max(20).default([]),
   businessInputs: typedBusinessInputsV1Schema.optional(),
+  adapterSelection: z.literal('fuxing-bank-demo').optional(),
   credentialRef: credentialRefSchema.optional(),
   source: z.object({
     inputType: z.enum(['NATURAL_LANGUAGE', 'CASE_FILE', 'VIDEO']),
@@ -424,13 +425,27 @@ export const journeyPrepareSchema = z.object({
   originalFilename: boundedText(260).optional(),
   credentialRef: credentialRefSchema.optional(),
   targetProfileId: targetProfileIdSchema.optional(),
+  preparationId: z.string().regex(/^prep_[0-9a-f-]{36}$/).optional(),
+  ingestJobId: z.string().regex(/^ingest_[0-9a-f-]{36}$/).optional(),
   supportingImages: z.array(supportingImageAttachmentSchema).max(20).default([]),
   scheduleId: safeRef.optional(),
   taskId: safeRef.optional(),
   draftJson: z.record(z.string(), z.unknown()).optional(),
   semanticAssessment: semanticAssessmentSchema.optional(),
   inputRevision: z.number().int().min(1).optional()
-}).strict();
+}).strict().superRefine((value, context) => {
+  const hasPreparation = Boolean(value.preparationId);
+  const hasIngestJob = Boolean(value.ingestJobId);
+  if (hasPreparation !== hasIngestJob) {
+    context.addIssue({ code: 'custom', path: ['preparationId'], message: 'preparationId与ingestJobId必须成对提供。' });
+  }
+  if (hasPreparation && !['CASE_FILE', 'VIDEO'].includes(value.inputType)) {
+    context.addIssue({ code: 'custom', path: ['inputType'], message: '已确认导入准备仅支持CASE_FILE或VIDEO。' });
+  }
+  if (hasPreparation && !value.targetProfileId) {
+    context.addIssue({ code: 'custom', path: ['targetProfileId'], message: '已确认导入准备进入作者化前必须绑定活跃目标档案。' });
+  }
+});
 
 export const journeyGetSchema = z.object({
   namespace: namespaceSchema,

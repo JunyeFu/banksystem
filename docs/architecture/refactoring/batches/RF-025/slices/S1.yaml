@@ -1,0 +1,9 @@
+id: RF-025-S1
+title: CLI Agent acceptance ledger v4
+status: COMPLETED
+allowedPaths: [platform/hengzhun-regression-system/scripts/i10-agent-acceptance-ledger-v4.cjs, platform/hengzhun-regression-system/scripts/verification/agent-acceptance-ledger-v4.test.cjs, platform/hengzhun-regression-system/scripts/verification/test-manifest.json, platform/hengzhun-regression-system/scripts/i10-release-identity-v4.cjs, platform/hengzhun-regression-system/agent-cli/release-identity-v4-manifest.json, docs/architecture/refactoring/batches/RF-025]
+forbiddenPaths: [platform/hengzhun-regression-system/.data, platform/hengzhun-regression-system/flowise, platform/hengzhun-regression-system/scripts/i10-acceptance-ledger-v3.cjs]
+workSteps: [define immutable v4 record and checkpoint schemas, implement identity-bound append and current projection, exclude v3 imports and stale identities, add isolated contract tests]
+verification: [exact 9x2 cardinality, duplicate suppression, immutable terminal evidence, stale identity exclusion, safe checkpoint fields only, zero formal data writes]
+rollback: restore only S1 source test manifest and release manifest paths
+evidence: docs/architecture/refactoring/batches/RF-025/evidence-index.md

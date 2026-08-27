@@ -1,0 +1,9 @@
+id: RF-025-S4
+title: Separately authorized cold rollback drill
+status: BLOCKED
+allowedPaths: [platform/hengzhun-regression-system/scripts/i10-agent-lifecycle.cjs, platform/hengzhun-regression-system/scripts/i10-agent-release-decision.cjs, platform/hengzhun-regression-system/agent-cli/flowise-cold-rollback-v1.json, platform/hengzhun-regression-system/package.json, platform/hengzhun-regression-system/scripts/verification, docs/architecture/refactoring/batches/RF-025]
+forbiddenPaths: [platform/hengzhun-regression-system/.data/evidence/agent-v4, platform/hengzhun-regression-system/flowise/i10/agentflow-v7.json]
+workSteps: [require separate exact rollback authorization, prove normal profile is disabled, execute and restore cold path, record non-reusable recovery evidence]
+verification: [separate authorization identity, normal and cold pre-state absent, no normal evidence mutation, no identity reuse, all four cold services exact owned stop, immutable isolated evidence]
+rollback: stop only exact rollback-owned processes and restore pre-drill normal state
+evidence: docs/architecture/refactoring/batches/RF-025/evidence-index.md

@@ -1,0 +1,9 @@
+id: RF-010-S1
+title: ControllerPort and governed tool classification
+status: COMPLETED
+allowedPaths: [platform/hengzhun-regression-system/controller, platform/hengzhun-regression-system/scripts/verification/agent-controller-port.test.cjs, docs/architecture/refactoring/batches/RF-010, docs/architecture/refactoring/module-boundaries-v1.yaml, agent/backlog.yaml, agent/plans/active/v54-implementation-batches.md, agent/plans/active/hengzhun-i10-langgraph-deepagents-controller-migration-task-package.md, agent/plans/active/hengzhun-i10-tp00-change-inventory-v1.json]
+forbiddenPaths: [platform/hengzhun-regression-system/.data, platform/hengzhun-regression-system/flowise, platform/hengzhun-regression-system/harness, platform/hengzhun-regression-system/mcp, platform/hengzhun-regression-system/worker, platform/hengzhun-regression-system/package.json, platform/hengzhun-regression-system/package-lock.json, apps, services, infra]
+workSteps: [freeze 33-tool population, define stable controller port, classify tools exhaustively, verify default deny and adapter neutrality]
+verification: [focused Node test exit 0, governance validators exit 0, ReleaseIdentity unchanged, ledger unchanged]
+rollback: remove only inactive controller artifacts after explicit approval
+evidence: docs/architecture/refactoring/batches/RF-010/evidence-index.md

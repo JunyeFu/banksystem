@@ -238,6 +238,173 @@ tracks:
         dependsOn: [REFACTOR-RF-002-STATE-OWNERSHIP]
         acceptance:
           - Candidate per L1 roadmap; not authorized until user approves batch entry.
+      - id: REFACTOR-RF-006-ACCEPTANCE-EFFICIENCY
+        title: Add evidence-preserving selective reruns, authoring idempotency, terminal-aware polling and stage timing
+        status: DONE
+        owner: 傅钧烨
+        dependsOn: [REFACTOR-RF-005-CASE-ROUTE-RETIREMENT]
+        evidence: [docs/architecture/refactoring/batches/RF-006/evidence-index.md]
+        allowedPaths: [platform/hengzhun-regression-system/scripts/**, platform/hengzhun-regression-system/worker/src/**, platform/hengzhun-regression-system/tests/**, docs/architecture/refactoring/batches/RF-006/**, docs/current-state/**, agent/backlog.yaml, agent/plans/active/v54-implementation-batches.md]
+        acceptance:
+          - Four-level control chain exists; implementation remains blocked until task packages are separately approved.
+          - Selective execution uses exact identity/input/artifact predicates and never bypasses required LIVE_E2E, Playwright, 2x2, activation or formal-run gates.
+          - Duplicate authoring is prevented and each acceptance stage emits reproducible duration, poll and invalidation evidence.
+          - RF-006-S1 established the cost baseline; S2 implemented selective invalidation, idempotency, terminal-aware polling and timing; S3 completed a same-L1 legacy/selective LIVE_E2E comparison under unchanged ReleaseIdentity `6a1fd9a7...`.
+          - Legacy L1 took 85,825 ms and selective L1 took 62,870 ms while preserving authoring, pure Playwright, 2x2, activation, formal execution and result-readback gates; replay created no duplicate record or run directory.
+      - id: REFACTOR-RF-007-WORKER-RELEASE-IDENTITY
+        title: Bind ReleaseIdentity and runtime readiness to one complete Worker file set and realign managed runtime/publication
+        status: DONE
+        owner: 傅钧烨
+        dependsOn: [REFACTOR-RF-006-ACCEPTANCE-EFFICIENCY]
+        evidence: [docs/architecture/refactoring/batches/RF-007/evidence-index.md]
+        allowedPaths: [platform/hengzhun-regression-system/scripts/**, platform/hengzhun-regression-system/worker/src/**, platform/hengzhun-regression-system/harness/src/**, platform/hengzhun-regression-system/tests/**, platform/hengzhun-regression-system/flowise/i10/**, docs/architecture/refactoring/batches/RF-007/**, docs/current-state/**, agent/backlog.yaml, agent/plans/active/v54-implementation-batches.md]
+        acceptance:
+          - ReleaseIdentity, Worker runtime, Harness health and inspector consume the same versioned WorkerCodeSet hash.
+          - RF-007-S1 froze the 24-file closure; S2 completed the shared ReleaseIdentity/Worker/Harness/lifecycle source contract; S3 fixed CRLF/LF migration portability, aligned the managed runtime and public Flowise readback, and passed one current-identity L1 TEXT_ONLY LIVE_E2E thin chain.
+          - Managed current-main reload and Flowise public API readback establish release alignment before any runtime claim.
+          - One new LIVE_E2E L1 thin chain precedes a machine-backed decision to reuse or rerun old 18/18 evidence.
+          - Final ReleaseIdentity is 6a1fd9a7d44086e6dcb29fa7cc23382712a61d103868f14f1e2f44c754b3a687; old 18/18 is not reusable and 17 remaining variants await separate rerun authorization.
+      - id: REFACTOR-RF-008-TEMPORAL-GOVERNANCE
+        title: Enforce cross-document temporal consistency across task source, batches, slices, task packages and evidence indexes
+        status: DONE
+        owner: 傅钧烨
+        dependsOn: [REFACTOR-RF-007-WORKER-RELEASE-IDENTITY]
+        evidence: [docs/architecture/refactoring/batches/RF-008/evidence-index.md]
+        allowedPaths: [scripts/architecture/**, agent/backlog.yaml, agent/plans/active/v54-implementation-batches.md, docs/architecture/refactoring/**, docs/current-state/**]
+        acceptance:
+          - Current lifecycle projections are consistent and dated historical facts remain immutable.
+          - A cross-document validator rejects invalid batch/slice/task/evidence combinations and unsupported PASS labels.
+          - Governance synchronization cannot create or upgrade runtime acceptance evidence.
+      - id: HENGZHUN-I10-TP00-CHANGE-INVENTORY-001
+        title: Inventory the current dirty tree into independently reviewable Hengzhun I10 change batches
+        status: DONE
+        owner: Codex
+        dependsOn: [REFACTOR-RF-008-TEMPORAL-GOVERNANCE]
+        evidence: [agent/plans/active/hengzhun-i10-tp00-change-inventory-task-package.md, agent/plans/active/hengzhun-i10-tp00-change-inventory-v1.json]
+        allowedPaths: [agent/backlog.yaml, agent/plans/active/v54-implementation-batches.md, agent/plans/active/hengzhun-i10-tp00-change-inventory-task-package.md, agent/plans/active/hengzhun-i10-tp00-change-inventory-v1.json, scripts/architecture/validate_hengzhun_i10_tp00_inventory.cjs, platform/hengzhun-regression-system/scripts/verification/stage8-terminal-evidence.test.cjs]
+        acceptance:
+          - Every file-level dirty path has exactly one exclusive batch or preservation disposition; unknown and overlapping assignments are both zero.
+          - Each change batch records business context, common failure modes, review commands, runtime-evidence limits and a rollback boundary.
+          - Runtime reports and user-owned helper files remain preserved and excluded from source-freeze candidates without reading their contents.
+          - Inventory validation, JavaScript syntax, repository documentation validation and git diff whitespace validation pass without starting runtime or publishing.
+          - Completion of TP-00 is governance evidence only and does not establish ReleaseIdentity alignment, LIVE_E2E acceptance or production readiness.
+      - id: HENGZHUN-I10-TP01-B03-HARNESS-JOURNEY-REVIEW-001
+        title: Review and behavior-verify the B03 Harness Journey contract and migrations 037-039
+        status: DONE
+        owner: Codex
+        dependsOn: [HENGZHUN-I10-TP00-CHANGE-INVENTORY-001]
+        evidence: [agent/plans/active/hengzhun-i10-tp01-b03-harness-journey-review-task-package.md]
+        allowedPaths: [agent/backlog.yaml, agent/plans/active/v54-implementation-batches.md, agent/plans/active/hengzhun-i10-tp00-change-inventory-v1.json, agent/plans/active/hengzhun-i10-tp01-b03-harness-journey-review-task-package.md, platform/hengzhun-regression-system/contracts/target-generalization-boundary-v1.json, platform/hengzhun-regression-system/harness/src/**, platform/hengzhun-regression-system/harness/migrations/037_i10_one_time_grace.sql, platform/hengzhun-regression-system/harness/migrations/038_i10_target_resolution_pinning.sql, platform/hengzhun-regression-system/harness/migrations/039_i10_journey_execution_binding.sql, platform/hengzhun-regression-system/mcp/src/**, platform/hengzhun-regression-system/scripts/i10-release-identity.cjs, platform/hengzhun-regression-system/scripts/verification/context-envelope.test.cjs, platform/hengzhun-regression-system/scripts/verification/harness-loopback-host.test.cjs, platform/hengzhun-regression-system/scripts/verification/journey-state-machine.test.cjs, platform/hengzhun-regression-system/scripts/verification/mcp-interaction-contract.test.cjs, platform/hengzhun-regression-system/scripts/verification/release-toolchain-integrity.test.cjs, platform/hengzhun-regression-system/scripts/verification/rf001-contract-adapter.test.cjs, platform/hengzhun-regression-system/scripts/verification/rf002-s2-state-contract.test.cjs, platform/hengzhun-regression-system/scripts/verification/rf002-s3-mcp-convergence.test.cjs, platform/hengzhun-regression-system/scripts/verification/rf004-s3-harness-credential-resolution.test.cjs, platform/hengzhun-regression-system/scripts/verification/target-profile.test.cjs, platform/hengzhun-regression-system/scripts/verification/target-resolution-pinning.test.cjs, platform/hengzhun-regression-system/scripts/verification/worker-lease-scheduler.test.cjs]
+        acceptance:
+          - Migrations 037-039 apply in order to an isolated SQLite database and the effective schema version is 39.
+          - Journey run/schedule projection and creation use one exact immutable decision binding and reject time-based or cross-Journey adoption.
+          - ONE_TIME preserves RUN_ONCE_WITHIN_GRACE semantics and expires at the deadline without unbounded mutex deferral.
+          - Target confirmation and runtime launch enforce DNS/IP class and resolution pinning; rebinding is rejected.
+          - Artifact startup recovery deletes only stale hidden staging files and never treats final files as disposable merely because a different database does not register them.
+          - Build and the B03 focused STATIC, CONTRACT and INTEGRATION tests pass with no publication, LIVE_E2E, production database write or acceptance-ledger mutation.
+          - The before/after inspector preserves currentPassed and records any ReleaseIdentity change rather than reusing old evidence.
+      - id: HENGZHUN-I10-TP02-B04-WORKER-EXECUTION-SAFETY-001
+        title: Review and harden B04 Worker lease cancellation, artifact fencing, screenshot quarantine and identity closure
+        status: DONE
+        owner: Codex
+        dependsOn: [HENGZHUN-I10-TP01-B03-HARNESS-JOURNEY-REVIEW-001]
+        evidence: [agent/plans/active/hengzhun-i10-tp02-b04-worker-execution-safety-task-package.md]
+        allowedPaths: [agent/backlog.yaml, agent/plans/active/v54-implementation-batches.md, agent/plans/active/hengzhun-i10-tp00-change-inventory-v1.json, agent/plans/active/hengzhun-i10-tp02-b04-worker-execution-safety-task-package.md, platform/hengzhun-regression-system/worker/src/**, platform/hengzhun-regression-system/scripts/i10-worker-code-set-audit.cjs, platform/hengzhun-regression-system/scripts/i10-worker-code-set-v1.json, platform/hengzhun-regression-system/scripts/i10-worker-code-set.cjs, platform/hengzhun-regression-system/scripts/i10-release-identity.cjs, platform/hengzhun-regression-system/scripts/verification/midscene-diagnostics.test.cjs, platform/hengzhun-regression-system/scripts/verification/release-toolchain-integrity.test.cjs, platform/hengzhun-regression-system/scripts/verification/screenshot-quarantine.test.cjs, platform/hengzhun-regression-system/scripts/verification/target-resolution-pinning.test.cjs, platform/hengzhun-regression-system/scripts/verification/worker-lease-scheduler.test.cjs, platform/hengzhun-regression-system/tests/i10-release-identity-worker-set.test.cjs]
+        acceptance:
+          - Worker lease conflicts and locally reached server-issued deadlines abort active browser execution before further actions and never send stale completion.
+          - Fenced completion publishes artifacts and terminal state atomically; lease loss or downstream failure removes only the current staged/final files.
+          - Every raw or partially masked Worker screenshot is QUARANTINED and cannot support a redacted-evidence claim.
+          - Target resolution pinning and network-class checks fail closed before browser launch.
+          - WorkerCodeSet equals the complete static import closure and is bound into ReleaseIdentity and readiness.
+          - Build, focused CONTRACT/INTEGRATION tests and quality gates pass under bundled Node without runtime start, publication, LIVE_E2E or ledger mutation.
+      - id: HENGZHUN-I10-TP03-B01-FLOWISE-SUPPLY-CHAIN-001
+        title: Reconcile Flowise version, lock, install tree, Node engine and expiring audit exceptions
+        status: DONE
+        owner: Codex
+        dependsOn: [HENGZHUN-I10-TP02-B04-WORKER-EXECUTION-SAFETY-001]
+        evidence: [agent/plans/active/hengzhun-i10-tp03-b01-flowise-supply-chain-task-package.md]
+        blockedBy: []
+        allowedPaths: [agent/backlog.yaml, agent/plans/active/v54-implementation-batches.md, agent/plans/active/hengzhun-i10-tp00-change-inventory-v1.json, agent/plans/active/hengzhun-i10-tp03-b01-flowise-supply-chain-task-package.md, platform/hengzhun-regression-system/flowise/app/package.json, platform/hengzhun-regression-system/flowise/app/package-lock.json, platform/hengzhun-regression-system/scripts/check-flowise-audit.cjs, platform/hengzhun-regression-system/scripts/flowise-audit-exceptions.json, platform/hengzhun-regression-system/scripts/i10-flowise-runtime-policy.cjs, platform/hengzhun-regression-system/scripts/verification/flowise-audit-gate.test.cjs, platform/hengzhun-regression-system/scripts/verification/flowise-runtime-policy.test.cjs]
+        acceptance:
+          - Flowise, flowise-components and flowise-ui declarations, lock roots and installed versions are identical.
+          - The managed Flowise Node runtime satisfies the installed package engines contract.
+          - The controlled effective runtime manifest reports no reachable peer issue and verifies the exact retained package/file closure; ordinary npm ls is not used against the deliberately pruned lock tree.
+          - Fixable governed vulnerabilities are upgraded or replaced by explicit fail-closed local stubs; source/lock audit has zero high or critical finding.
+          - I10 runtime policy exposes only the governed graph node set and does not make a non-reachability claim for remaining advisories.
+          - Focused STATIC/CONTRACT/INTEGRATION gates pass without managed runtime start, publication, graph rebuild, LIVE_E2E or ledger mutation.
+      - id: HENGZHUN-I10-TP04-NODE24-FLOWISE-RUNTIME-001
+        title: Provision a pinned Node24 runtime for Flowise and bind it into lifecycle and Stage9 packaging
+        status: DONE
+        owner: Codex
+        dependsOn: [HENGZHUN-I10-TP03-B01-FLOWISE-SUPPLY-CHAIN-001]
+        evidence: [agent/plans/active/hengzhun-i10-tp04-node24-flowise-runtime-task-package.md]
+        allowedPaths: [agent/backlog.yaml, agent/plans/active/v54-implementation-batches.md, agent/plans/active/hengzhun-i10-tp00-change-inventory-v1.json, agent/plans/active/hengzhun-i10-tp04-node24-flowise-runtime-task-package.md, platform/hengzhun-regression-system/config/i9.runtime.example.json, platform/hengzhun-regression-system/flowise/app/package.json, platform/hengzhun-regression-system/flowise/app/package-lock.json, platform/hengzhun-regression-system/flowise/i10/node-runtime-manifest-v1.json, platform/hengzhun-regression-system/flowise/i10/s9-portability-policy-v1.json, platform/hengzhun-regression-system/scripts/i10-provision-node-runtimes.ps1, platform/hengzhun-regression-system/scripts/i10-flowise-runtime-probe.cjs, platform/hengzhun-regression-system/scripts/i9-lifecycle.cjs, platform/hengzhun-regression-system/scripts/prepare-i10.ps1, platform/hengzhun-regression-system/scripts/i10-release-identity.cjs, platform/hengzhun-regression-system/scripts/i10-stage9-portable.cjs, platform/hengzhun-regression-system/scripts/verification/flowise-runtime-policy.test.cjs, platform/hengzhun-regression-system/scripts/verification/lifecycle-entrypoints.test.cjs, platform/hengzhun-regression-system/scripts/verification/release-toolchain-integrity.test.cjs]
+        acceptance:
+          - Harness, MCP and Worker retain Node20 while Flowise exclusively selects the pinned Node24 executable.
+          - Runtime provisioning verifies official archive SHA-256, extracted root and exact node version before atomic promotion.
+          - Lifecycle ownership and process records use the service-specific executable and reject stale Node20 Flowise processes.
+          - Stage9 requires and hashes both Node runtime trees without relying on system Node or Codex runtime.
+          - Runtime manifest and provisioning/lifecycle/packaging code are bound into ReleaseIdentity.
+          - Focused STATIC/CONTRACT gates pass without service start, publication, Agentflow rebuild, LIVE_E2E or ledger mutation.
+      - id: HENGZHUN-I10-TP05-CONTROLLED-FLOWISE-RUNTIME-FORK-001
+        title: Build and verify a controlled Flowise runtime fork with an effective dependency closure
+        status: DONE
+        owner: Codex
+        dependsOn: [HENGZHUN-I10-TP04-NODE24-FLOWISE-RUNTIME-001]
+        evidence: [agent/plans/active/hengzhun-i10-tp05-controlled-flowise-runtime-fork-task-package.md]
+        allowedPaths: [agent/backlog.yaml, agent/plans/active/v54-implementation-batches.md, agent/plans/active/hengzhun-i10-tp00-change-inventory-v1.json, agent/plans/active/hengzhun-i10-tp05-controlled-flowise-runtime-fork-task-package.md, platform/hengzhun-regression-system/.gitignore, platform/hengzhun-regression-system/package.json, platform/hengzhun-regression-system/flowise/app/package.json, platform/hengzhun-regression-system/flowise/app/package-lock.json, platform/hengzhun-regression-system/flowise/runtime-package.json, platform/hengzhun-regression-system/flowise/runtime-package-lock.json, platform/hengzhun-regression-system/flowise/i10/flowise-runtime-fork-policy-v1.json, platform/hengzhun-regression-system/flowise/i10/s9-portability-policy-v1.json, platform/hengzhun-regression-system/scripts/apply-i9-flowise-overlays.cjs, platform/hengzhun-regression-system/scripts/i10-build-flowise-runtime-fork.cjs, platform/hengzhun-regression-system/scripts/i10-flowise-runtime-policy.cjs, platform/hengzhun-regression-system/scripts/i10-flowise-runtime-probe.cjs, platform/hengzhun-regression-system/scripts/i10-release-identity.cjs, platform/hengzhun-regression-system/scripts/i10-stage9-portable.cjs, platform/hengzhun-regression-system/scripts/i9-lifecycle.cjs, platform/hengzhun-regression-system/scripts/prepare-i9.ps1, platform/hengzhun-regression-system/scripts/prepare-i10.ps1, platform/hengzhun-regression-system/scripts/verification/flowise-runtime-fork.test.cjs, platform/hengzhun-regression-system/scripts/verification/flowise-runtime-policy.test.cjs, platform/hengzhun-regression-system/scripts/verification/lifecycle-entrypoints.test.cjs, platform/hengzhun-regression-system/scripts/verification/release-toolchain-integrity.test.cjs, platform/hengzhun-regression-system/scripts/verification/rf003-s1-version-baseline.test.cjs, platform/hengzhun-regression-system/scripts/verification/test-manifest.json]
+        acceptance:
+          - Exact Flowise 3.1.4 upstream versions and acquisition-lock hash are verified before runtime mutation.
+          - The effective runtime exposes exactly the nine governed node names and only the openAIApi credential.
+          - The retained relative-import closure has no unresolved file and every prohibited package is absent and unreferenced.
+          - officeparser and decompress are physically absent from the effective runtime tree; source acquisition audit remains separately reported.
+          - PREPARE regenerates or verifies the fork idempotently and lifecycle refuses a partial or stale fork.
+          - Stage9 SBOM and manifest use effective runtime inventory while preserving acquisition-lock provenance.
+          - Policy and runtime-fork tooling are bound into ReleaseIdentity and focused STATIC, CONTRACT and INTEGRATION gates pass without service start, publication, LIVE_E2E or ledger mutation.
+      - id: HENGZHUN-I10-TP06-FLOWISE-ADVISORY-DISPOSITION-001
+        title: Classify every Flowise advisory against the effective runtime and isolate dependency acquisition
+        status: DONE
+        owner: Codex
+        dependsOn: [HENGZHUN-I10-TP05-CONTROLLED-FLOWISE-RUNTIME-FORK-001]
+        evidence: [agent/plans/active/hengzhun-i10-tp06-flowise-advisory-disposition-isolated-acquisition-task-package.md]
+        allowedPaths: [agent/backlog.yaml, agent/plans/active/v54-implementation-batches.md, agent/plans/active/hengzhun-i10-tp00-change-inventory-v1.json, agent/plans/active/hengzhun-i10-tp06-flowise-advisory-disposition-isolated-acquisition-task-package.md, platform/hengzhun-regression-system/package.json, platform/hengzhun-regression-system/flowise/i10/flowise-acquisition-policy-v1.json, platform/hengzhun-regression-system/flowise/i10/s9-portability-policy-v1.json, platform/hengzhun-regression-system/scripts/check-flowise-audit.cjs, platform/hengzhun-regression-system/scripts/i10-acquire-flowise-runtime.ps1, platform/hengzhun-regression-system/scripts/i10-build-flowise-runtime-fork.cjs, platform/hengzhun-regression-system/scripts/i10-flowise-advisory-disposition.cjs, platform/hengzhun-regression-system/scripts/i10-flowise-runtime-probe.cjs, platform/hengzhun-regression-system/scripts/i10-release-identity.cjs, platform/hengzhun-regression-system/scripts/i10-stage9-portable.cjs, platform/hengzhun-regression-system/scripts/i9-lifecycle.cjs, platform/hengzhun-regression-system/scripts/prepare-i9.ps1, platform/hengzhun-regression-system/scripts/verification/flowise-advisory-disposition.test.cjs, platform/hengzhun-regression-system/scripts/verification/flowise-isolated-acquisition.test.cjs, platform/hengzhun-regression-system/scripts/verification/release-toolchain-integrity.test.cjs, platform/hengzhun-regression-system/scripts/verification/test-manifest.json]
+        acceptance:
+          - Every live high or critical audit node path maps to exactly one physical, reachable or acquisition-only disposition.
+          - Reachable critical and present-but-unreachable governed packages fail closed until fixed or pruned.
+          - Acquisition-only findings remain explicitly unaccepted and cannot be converted into a green runtime claim.
+          - npm acquisition uses an owned isolated staging root, ignore-scripts, exact lock verification and a pinned native-script allowlist.
+          - Only a fork/readback/native-ABI verified staging tree may atomically replace generated node_modules with rollback.
+          - ReleaseIdentity and Stage9 bind classifier/acquisition policy without service start, publication, LIVE_E2E or ledger mutation.
+      - id: HENGZHUN-I10-TP07-RUNTIME-HIGH-ADVISORY-CLOSURE-001
+        title: Eliminate every high advisory from the effective Flowise runtime closure
+        status: DONE
+        owner: Codex
+        dependsOn: [HENGZHUN-I10-TP06-FLOWISE-ADVISORY-DISPOSITION-001]
+        evidence: [agent/plans/active/hengzhun-i10-tp07-runtime-high-advisory-closure-task-package.md]
+        allowedPaths: [agent/backlog.yaml, agent/plans/active/v54-implementation-batches.md, agent/plans/active/hengzhun-i10-tp00-change-inventory-v1.json, agent/plans/active/hengzhun-i10-tp07-runtime-high-advisory-closure-task-package.md, platform/hengzhun-regression-system/flowise/app/package.json, platform/hengzhun-regression-system/flowise/app/package-lock.json, platform/hengzhun-regression-system/flowise/runtime-package.json, platform/hengzhun-regression-system/flowise/runtime-package-lock.json, platform/hengzhun-regression-system/flowise/i10/flowise-acquisition-policy-v1.json, platform/hengzhun-regression-system/flowise/i10/flowise-runtime-fork-policy-v1.json, platform/hengzhun-regression-system/flowise/i10/s9-portability-policy-v1.json, platform/hengzhun-regression-system/scripts/i10-acquire-flowise-runtime.ps1, platform/hengzhun-regression-system/scripts/i10-build-flowise-runtime-fork.cjs, platform/hengzhun-regression-system/scripts/i10-flowise-advisory-disposition.cjs, platform/hengzhun-regression-system/scripts/i10-flowise-runtime-probe.cjs, platform/hengzhun-regression-system/scripts/i10-release-identity.cjs, platform/hengzhun-regression-system/scripts/prepare-i10.ps1, platform/hengzhun-regression-system/scripts/verification/flowise-advisory-disposition.test.cjs, platform/hengzhun-regression-system/scripts/verification/flowise-runtime-fork.test.cjs, platform/hengzhun-regression-system/scripts/verification/release-toolchain-integrity.test.cjs]
+        acceptance:
+          - Direct advisories match exact installed versions and ranges while aggregate findings follow the actual runtime parent chain.
+          - Reachable high and critical counts are both zero; present-unreachable and unknown counts remain zero.
+          - Legacy MultiAgent, external analytics, GeoIP telemetry and SMTP are disabled fail-closed without changing active AgentflowV2 behavior.
+          - All remaining governed findings remain acquisition-only and explicitly unaccepted.
+          - Isolated acquisition, fork, Node24 readback, native ABI, ReleaseIdentity and full registered tests pass without service start or publication.
+      - id: HENGZHUN-I10-LIVE-E2E-17-REVALIDATION-001
+        title: Rebaseline and complete all 18 LIVE_E2E records under a newly frozen current ReleaseIdentity
+        status: BLOCKED
+        owner: 傅钧烨
+        dependsOn: [HENGZHUN-I10-TP07-RUNTIME-HIGH-ADVISORY-CLOSURE-001]
+        blockedBy: [USER_AUTHORIZATION_FOR_CURRENT_IDENTITY_BROWSER_OCR_REFRESH_AND_L1_RETRY]
+        evidence: [agent/plans/active/hengzhun-i10-live-e2e-17-revalidation-task-package.md, docs/evidence/platform/hengzhun-i10-live-e2e-17-revalidation-2026-08.md]
+        allowedPaths: [platform/hengzhun-regression-system/.data/**, platform/hengzhun-regression-system/flowise/i10/publication-manifest-v1.json, docs/evidence/platform/**, agent/backlog.yaml, agent/plans/active/v54-implementation-batches.md, agent/plans/active/hengzhun-i10-live-e2e-17-revalidation-task-package.md]
+        acceptance:
+          - Execution requires separate user authorization and starts with managed reload, public readback, identity freeze, current-identity Browser/OCR refresh, then both L1 variants; task-package creation or source completion does not authorize LIVE_E2E execution.
+          - The 2026-08-04 P0-P3 records remain immutable historical facts under their original identities and cannot support the current release.
+          - The 2026-08-24 authorized reload and public readback aligned source identity 02ae6b18ed678415488db431f1c271ec258ec6475a1414864731d495a8d81dc4, but L1 TEXT_ONLY stopped before Flowise execution because Browser/OCR evidence belonged to identity b514f9d8b55ce623ec210cc11c448d385aa048d6ec7a4311ef60ccdd6a373738; currentPassed remains 0/18 and managed services were rolled back.
+          - After authorization, managed services must load the exact current source identity, public readback must be fresh, and any first deterministic failure stops the campaign without deleting or rewriting terminal records.
+          - All new records remain immutable under their original ReleaseIdentity; identity drift or semantic-plan mismatch stops the campaign and cannot be hidden by the raw ledger count.
+          - The current ledger advances from 0/18 to 18/18 by exactly 18 records without promoting historical stale evidence.
+          - Each text/image pair preserves semantic equivalence and every chain retains authoring, deterministic Builder, pure Playwright, I10_2X2_V1, activation, formal execution or schedule, result inbox and artifact gates.
+          - Completion is computed by the inspector and ledger with full18ChainAccepted=true; VERIFY-only, static, contract, integration or historical PASS evidence cannot satisfy this item.
       - id: HENGZHUN-POST-I8-INPUTS-001
         title: External case adapters and video-case authoring extensions
         status: DONE
@@ -249,6 +416,113 @@ tracks:
           - Playwright, Selenium, Cypress, Postman and Gherkin imports preserve source, version, normalized intent and unsupported semantics without executing untrusted source directly.
           - Video inputs are processed locally into redacted, reviewable action candidates and never sent to the Agent platform as raw sensitive media.
           - Imported or video-derived candidates pass the same Harness, Midscene, deterministic Builder, six-run Playwright stability and explicit-activation gates as natural-language cases.
+      - id: HENGZHUN-RF-009-AG00-AGENT-CONTROLLER-POC
+        title: Prove bounded LangGraph.js and Deep Agents JS controller feasibility with synthetic data
+        status: REVIEW
+        owner: Codex
+        dependsOn: [HENGZHUN-I10-TP07-RUNTIME-HIGH-ADVISORY-CLOSURE-001]
+        evidence: [docs/architecture/refactoring/batches/RF-009/evidence-index.md]
+        allowedPaths: [platform/hengzhun-regression-system/experiments/agent-controller-ag00/**, docs/architecture/refactoring/batches/RF-009/**, scripts/architecture/**, agent/backlog.yaml, agent/plans/active/v54-implementation-batches.md, agent/plans/active/hengzhun-i10-langgraph-deepagents-controller-migration-task-package.md, agent/plans/active/hengzhun-i10-tp00-change-inventory-v1.json]
+        acceptance:
+          - Exact pinned dependencies have official registry provenance, compatible Node engines, reviewed licenses, bounded disk impact and zero high or critical production audit finding.
+          - A synthetic graph interrupts after one frozen proposal and resumes only with the exact proposalId, contentHash, expectedVersion and idempotency key.
+          - The planner sees only read-only synthetic tools; shell, host filesystem, SQLite, browser, credentials, network MCP, unknown and mutating tools are unavailable and fail closed under injection attempts.
+          - Exactly one simulated mutation can occur per turn and post-mutation state is accepted only after authoritative synthetic Harness readback.
+          - Checkpoint state cannot override Harness facts; version, approval, expiry, replay and authority conflicts perform zero mutation.
+          - Flowise, product packages, runtime services, publication, ReleaseIdentity and the formal 0/18 ledger remain unchanged.
+          - Evidence earns only CONTRACT and synthetic INTEGRATION labels and ends with GO_LANGGRAPH, TRY_MASTRA or NO_GO.
+      - id: HENGZHUN-RF-010-AG01-CONTROLLER-PORT
+        title: Establish a framework-neutral ControllerPort and exact governed MCP tool classification
+        status: REVIEW
+        owner: Codex
+        dependsOn: [HENGZHUN-RF-009-AG00-AGENT-CONTROLLER-POC]
+        evidence: [docs/architecture/refactoring/batches/RF-010/evidence-index.md]
+        allowedPaths: [platform/hengzhun-regression-system/controller/**, platform/hengzhun-regression-system/scripts/verification/agent-controller-port.test.cjs, docs/architecture/refactoring/batches/RF-010/**, docs/architecture/refactoring/module-boundaries-v1.yaml, agent/backlog.yaml, agent/plans/active/v54-implementation-batches.md, agent/plans/active/hengzhun-i10-langgraph-deepagents-controller-migration-task-package.md, agent/plans/active/hengzhun-i10-tp00-change-inventory-v1.json]
+        acceptance:
+          - ControllerPort exposes framework-neutral start and resume operations with stable validated result semantics.
+          - FlowiseAdapter delegates the current controller callback without importing LangGraph or changing payload/result semantics.
+          - All 33 ACTIVE MCP tools have exactly one reviewed READ_ONLY or MUTATING classification.
+          - Conditional-side-effect tools are MUTATING and planner projection contains no mutating tool.
+          - Unknown, missing, duplicated, inactive or overlapping tools fail closed.
+          - No runtime, publication, Flowise, Harness, MCP, Worker, package, ReleaseIdentity or ledger state changes.
+      - id: HENGZHUN-RF-011-AG02-AGENT-KERNEL
+        title: Implement the inactive bounded LangGraph and Deep Agents controller kernel
+        status: REVIEW
+        owner: Codex
+        dependsOn: [HENGZHUN-RF-010-AG01-CONTROLLER-PORT]
+        evidence: [docs/architecture/refactoring/batches/RF-011/evidence-index.md]
+        allowedPaths: [platform/hengzhun-regression-system/controller/**, docs/architecture/refactoring/batches/RF-011/**, agent/backlog.yaml, agent/plans/active/v54-implementation-batches.md, agent/plans/active/hengzhun-i10-langgraph-deepagents-controller-migration-task-package.md, agent/plans/active/hengzhun-i10-tp00-change-inventory-v1.json]
+        acceptance:
+          - Deep Agents planning is structurally limited to a governed read broker over the 11 READ_ONLY names.
+          - Structured proposals are schema-validated and deterministically frozen before LangGraph interrupt.
+          - Resume requires exact proposal, hash, expected version, unexpired approval and idempotency key.
+          - Exactly one mutation port call can occur and only from the deterministic mutation node.
+          - Harness facts are re-read after resume and after mutation; conflicts and mismatches fail closed with zero additional mutation.
+          - Exact controller dependency audit and focused synthetic integration tests pass.
+          - The kernel remains inactive and product runtime, publication, ReleaseIdentity and ledger do not change.
+      - id: HENGZHUN-RF-012-AG03-STATE-SECURITY
+        title: Enforce controller checkpoint, namespace, TTL, trace and scratch security
+        status: REVIEW
+        owner: Codex
+        dependsOn: [HENGZHUN-RF-011-AG02-AGENT-KERNEL]
+        evidence: [docs/architecture/refactoring/batches/RF-012/evidence-index.md]
+        allowedPaths: [platform/hengzhun-regression-system/controller/**, docs/architecture/refactoring/batches/RF-012/**, agent/backlog.yaml, agent/plans/active/v54-implementation-batches.md, agent/plans/active/hengzhun-i10-langgraph-deepagents-controller-migration-task-package.md, agent/plans/active/hengzhun-i10-tp00-change-inventory-v1.json]
+        acceptance:
+          - Checkpoint schema version and immutable namespace/thread/journey/release binding are enforced.
+          - Cross-namespace, wrong-journey and expired resumes fail closed before graph execution.
+          - Expired checkpoint cleanup calls the owned checkpointer deletion path and is idempotent.
+          - Secret-like fields, host absolute paths and unsafe nested state are rejected.
+          - Trace output is allowlist-only and contains no raw user/tool payload.
+          - Scratch VFS is in-memory, relative-path-only and quota bounded.
+          - Kernel regression, governance, ReleaseIdentity and ledger checks pass without runtime activation.
+      - id: HENGZHUN-RF-013-AG04-CONTROLLER-RELEASE-IDENTITY
+        title: Bind the inactive controller into ReleaseIdentity v3
+        status: REVIEW
+        owner: Codex
+        dependsOn: [HENGZHUN-RF-012-AG03-STATE-SECURITY]
+        evidence: [docs/architecture/refactoring/batches/RF-013/evidence-index.md]
+        allowedPaths: [platform/hengzhun-regression-system/controller/**, platform/hengzhun-regression-system/scripts/i10-release-identity.cjs, platform/hengzhun-regression-system/scripts/verification/i10-final-standardization-contracts.test.cjs, platform/hengzhun-regression-system/scripts/verification/release-toolchain-integrity.test.cjs, platform/hengzhun-regression-system/tests/i10-release-identity-worker-set.test.cjs, docs/architecture/refactoring/batches/RF-013/**, agent/backlog.yaml, agent/plans/active/v54-implementation-batches.md, agent/plans/active/hengzhun-i10-langgraph-deepagents-controller-migration-task-package.md, agent/plans/active/hengzhun-i10-tp00-change-inventory-v1.json]
+        acceptance:
+          - ReleaseIdentity v3 contains controller kind, framework lock, code/graph, prompt, tool policy, non-secret model config and checkpoint schema identities.
+          - Every governed controller file is in the release code set and individual controlled-input drift changes identity.
+          - Secret-like controller manifest fields are rejected and no endpoint credential enters identity.
+          - v1/v2 remain readable but cannot compare equal with v3.
+          - The new identity has currentPassed=0 and no old evidence is promoted.
+          - No runtime start, publication or acceptance write occurs.
+      - id: HENGZHUN-RF-014-AG05-SHADOW-PREP
+        title: Prepare the read-only AgentController shadow candidate
+        status: REVIEW
+        owner: Codex
+        dependsOn: [HENGZHUN-RF-013-AG04-CONTROLLER-RELEASE-IDENTITY]
+        evidence: [docs/architecture/refactoring/batches/RF-014/evidence-index.md]
+        allowedPaths: [platform/hengzhun-regression-system/controller/**, docs/architecture/refactoring/batches/RF-014/**, agent/backlog.yaml, agent/plans/active/v54-implementation-batches.md, agent/plans/active/hengzhun-i10-langgraph-deepagents-controller-migration-task-package.md, agent/plans/active/hengzhun-i10-tp00-change-inventory-v1.json]
+        acceptance:
+          - Shadow code has no mutation port and emits no raw input or proposal arguments.
+          - Secret-like unredacted input is rejected before planner invocation.
+          - Window thresholds fail closed on schema, tool, major-risk, state-write or authorization drift.
+          - Shadow source is bound into ReleaseIdentity v3 and the ledger remains 0/18.
+          - Real traffic, model calls and runtime activation remain separately authorized.
+      - id: HENGZHUN-I10-AGCLI-TP00-AUTHORITY-REBASELINE-001
+        title: Persist CLI Agent authority baseline and task portfolio
+        status: REVIEW
+        owner: Codex
+        dependsOn: [HENGZHUN-RF-014-AG05-SHADOW-PREP]
+        evidence: [docs/architecture/refactoring/batches/RF-015/evidence-index.md]
+        allowedPaths: [agent/plans/active/hengzhun-i10-cli-agent-baseline-v1.md, agent/plans/active/hengzhun-i10-cli-agent-task-packages-v1.yaml, agent/plans/active/hengzhun-i10-agcli-*, docs/architecture/refactoring/batches/RF-015/**, agent/backlog.yaml, agent/plans/active/v54-implementation-batches.md]
+        acceptance:
+          - CLI Agent baseline and TP00-TP10 portfolio are locally persisted and governance-valid.
+          - TP01-TP10 remain blocked until dedicated RF batch and slice authorization.
+          - Product code, runtime, ReleaseIdentity, ledger and publication remain unchanged.
+      - {id: HENGZHUN-I10-AGCLI-TP01-MCP-DECOUPLE-001, title: Independent MCP and contract normalization, status: REVIEW, owner: Codex, dependsOn: [HENGZHUN-I10-AGCLI-TP00-AUTHORITY-REBASELINE-001], evidence: [docs/architecture/refactoring/batches/RF-016/evidence-index.md]}
+      - {id: HENGZHUN-I10-AGCLI-TP02-CONTROLLER-V2-001, title: Deterministic controller v2, status: REVIEW, owner: Codex, dependsOn: [HENGZHUN-I10-AGCLI-TP01-MCP-DECOUPLE-001], evidence: [docs/architecture/refactoring/batches/RF-017/evidence-index.md]}
+      - {id: HENGZHUN-I10-AGCLI-TP03-RUNTIME-ADAPTERS-001, title: Controller runtime adapters, status: REVIEW, owner: Codex, dependsOn: [HENGZHUN-I10-AGCLI-TP02-CONTROLLER-V2-001], evidence: [docs/architecture/refactoring/batches/RF-018/evidence-index.md]}
+      - {id: HENGZHUN-I10-AGCLI-TP04-DPAPI-SESSIONS-001, title: DPAPI session persistence, status: REVIEW, owner: Codex, dependsOn: [HENGZHUN-I10-AGCLI-TP03-RUNTIME-ADAPTERS-001], evidence: [docs/architecture/refactoring/batches/RF-019/evidence-index.md]}
+      - {id: HENGZHUN-I10-AGCLI-TP05-CLI-HEADLESS-001, title: CLI and JSONL headless interface, status: REVIEW, owner: Codex, dependsOn: [HENGZHUN-I10-AGCLI-TP04-DPAPI-SESSIONS-001], evidence: [docs/architecture/refactoring/batches/RF-020/evidence-index.md]}
+      - {id: HENGZHUN-I10-AGCLI-TP06-TERMINAL-UI-001, title: Terminal user interface, status: REVIEW, owner: Codex, dependsOn: [HENGZHUN-I10-AGCLI-TP05-CLI-HEADLESS-001], evidence: [docs/architecture/refactoring/batches/RF-021/evidence-index.md]}
+      - {id: HENGZHUN-I10-AGCLI-TP07-LIFECYCLE-RELEASE-V4-001, title: CLI lifecycle and ReleaseIdentity v4, status: REVIEW, owner: Codex, dependsOn: [HENGZHUN-I10-AGCLI-TP06-TERMINAL-UI-001], evidence: [docs/architecture/refactoring/batches/RF-022/evidence-index.md]}
+      - {id: HENGZHUN-I10-AGCLI-TP08-OFFLINE-INTEGRATION-GATES-001, title: Offline integration and release gates, status: REVIEW, owner: Codex, dependsOn: [HENGZHUN-I10-AGCLI-TP07-LIFECYCLE-RELEASE-V4-001], evidence: [docs/architecture/refactoring/batches/RF-023/evidence-index.md]}
+      - {id: HENGZHUN-I10-AGCLI-TP09-L1-LIVE-001, title: CLI Agent L1 live validation, status: BLOCKED, owner: project-owner, dependsOn: [HENGZHUN-I10-AGCLI-TP08-OFFLINE-INTEGRATION-GATES-001], evidence: [docs/architecture/refactoring/batches/RF-024/evidence-index.md]}
+      - {id: HENGZHUN-I10-AGCLI-TP10-FULL18-RELEASE-001, title: Full 18-chain release validation, status: BLOCKED, owner: project-owner, dependsOn: [HENGZHUN-I10-AGCLI-TP09-L1-LIVE-001], evidence: [docs/architecture/refactoring/batches/RF-025/evidence-index.md]}
       - id: HZ-OBSERVABILITY-001
         title: Hengzhun read-only observability implementation
         status: BLOCKED

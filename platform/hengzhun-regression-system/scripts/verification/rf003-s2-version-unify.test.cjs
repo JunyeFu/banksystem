@@ -15,7 +15,7 @@ const http = require('node:http')
 const path = require('node:path')
 
 const root = path.resolve(__dirname, '../..')
-const nodeExecutable = path.join(root, 'runtime/node-v20.20.2-win-x64/node.exe')
+const nodeExecutable = process.execPath
 const serverSource = fs.readFileSync(path.join(root, 'mcp/src/server.cjs'), 'utf8')
 const runtimeContract = JSON.parse(fs.readFileSync(path.join(root, 'contracts/mcp/hengzhun-i8.json'), 'utf8'))
 const ISO = path.join(root, '.data', 'tests', 'rf003-s2')

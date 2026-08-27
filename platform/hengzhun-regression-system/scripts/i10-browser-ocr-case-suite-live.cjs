@@ -13,6 +13,7 @@ const crypto = require('node:crypto')
 const fs = require('node:fs')
 const path = require('node:path')
 const { chromium } = require('../runtime/node_modules/playwright')
+const { currentReleaseIdentity, sameReleaseIdentity } = require('./i10-release-identity.cjs')
 
 const root = path.resolve(__dirname, '..')
 const scenarioPath = path.join(root, '.data', 'tests', 'i10-stage8-live', 'scenario.json')
@@ -263,6 +264,7 @@ async function runCase(page, caseId, base) {
   return result
 }
 async function main() {
+  const frozenReleaseIdentity = currentReleaseIdentity()
   phase = 'LOAD_RUNTIME'; loadRuntimeEnvironment()
   phase = 'RESOLVE_CREDENTIAL'; const credential = await resolveCredential()
   const selected = (process.env.I10_CASE_SUITE_CASES || 'L1,L2,L3,M1,M2,M3,H1,H2,H3').split(',').map(value => value.trim()).filter(Boolean)
@@ -289,7 +291,8 @@ async function main() {
     }
   } finally { await browser.close(); credential.username = ''; credential.password = '' }
   phase = 'WRITE_EVIDENCE'
-  const evidence = { schemaVersion: 'hengzhun-i10-browser-ocr-case-suite-evidence-v1', mock: false, degraded: false, status: results.every(item => item.browser.status === 'PASSED' && item.ocr.status === 'PASSED') ? 'PASSED' : 'PARTIAL', results, completedAt: new Date().toISOString() }
+  if (!sameReleaseIdentity(frozenReleaseIdentity, currentReleaseIdentity())) fail('I10_CASE_SUITE_RELEASE_IDENTITY_CHANGED_DURING_RUN')
+  const evidence = { schemaVersion: 'hengzhun-i10-browser-ocr-case-suite-evidence-v1', mock: false, degraded: false, releaseIdentity: frozenReleaseIdentity, status: results.every(item => item.browser.status === 'PASSED' && item.ocr.status === 'PASSED') ? 'PASSED' : 'PARTIAL', results, completedAt: new Date().toISOString() }
   fs.mkdirSync(path.dirname(evidencePath), { recursive: true }); fs.writeFileSync(evidencePath, `${JSON.stringify(evidence, null, 2)}\n`); process.stdout.write(`${JSON.stringify(evidence, null, 2)}\n`)
   if (evidence.status !== 'PASSED') process.exitCode = 2
 }

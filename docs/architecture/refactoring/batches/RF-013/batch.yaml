@@ -1,0 +1,73 @@
+schemaVersion: 1
+id: RF-013
+title: Controller-bound ReleaseIdentity v3
+status: CLOSED
+owner: project-owner
+authorizedBy: agent/plans/active/v54-implementation-batches.md
+scope:
+  includePaths:
+    - platform/hengzhun-regression-system/controller
+    - platform/hengzhun-regression-system/scripts/i10-release-identity.cjs
+    - platform/hengzhun-regression-system/scripts/verification/i10-final-standardization-contracts.test.cjs
+    - platform/hengzhun-regression-system/scripts/verification/release-toolchain-integrity.test.cjs
+    - platform/hengzhun-regression-system/tests/i10-release-identity-worker-set.test.cjs
+    - docs/architecture/refactoring/batches/RF-013
+    - agent/backlog.yaml
+    - agent/plans/active/v54-implementation-batches.md
+    - agent/plans/active/hengzhun-i10-langgraph-deepagents-controller-migration-task-package.md
+    - agent/plans/active/hengzhun-i10-tp00-change-inventory-v1.json
+  excludePaths:
+    - platform/hengzhun-regression-system/.data
+    - platform/hengzhun-regression-system/flowise
+    - platform/hengzhun-regression-system/harness
+    - platform/hengzhun-regression-system/mcp
+    - platform/hengzhun-regression-system/worker
+    - apps
+    - services
+    - infra
+    - secrets
+    - .env
+budgets:
+  maxChangedFiles: 24
+  maxNewFiles: 15
+  maxChangedLines: 2200
+  maxContractsChanged: 1
+  maxMigrationsAdded: 0
+  maxOpenModules: 2
+baseline:
+  gitCommit: 9d79b7c1e6cfedd995093cc7a378dc8e9218fa98
+  dirtyTreeManifest: docs/architecture/refactoring/batches/RF-013/baseline.md
+  releaseIdentity: 02ae6b18ed678415488db431f1c271ec258ec6475a1414864731d495a8d81dc4
+  capturedAt: "2026-08-25T10:43:00+08:00"
+architecture:
+  businessCapability: controller-release-identity
+  publicContract: agent/plans/active/hengzhun-i10-langgraph-deepagents-controller-migration-task-package.md
+  dependencyManifest: docs/architecture/refactoring/module-boundaries-v1.yaml
+  allowedModules: [governance.refactoring, hengzhun.controller]
+  forbiddenModules: [hengzhun.flowise, hengzhun.harness, hengzhun.mcp, hengzhun.worker, bank.identity, bank.accounts, bank.payments]
+mustPreserve:
+  - Identity includes controller lock, code, prompt, tool policy, model non-secret config and checkpoint schema.
+  - Secret names or values never enter the controller identity manifest.
+  - Every controlled controller input mutation changes identity.
+  - Old v1/v2 identities remain readable but never equal v3.
+  - No runtime, publication or ledger write occurs.
+verification:
+  requiredCommands:
+    - name: controller-identity-tests
+      command: runtime/node-v20.20.2-win-x64/node.exe --test controller/test/release-identity.test.cjs tests/i10-release-identity-worker-set.test.cjs scripts/verification/release-toolchain-integrity.test.cjs scripts/verification/i10-final-standardization-contracts.test.cjs
+      expectedExitCode: 0
+      evidence: docs/architecture/refactoring/batches/RF-013/evidence-index.md
+      blocking: true
+    - name: refactoring-governance
+      command: py -3 scripts/architecture/validate_refactoring.py --batch RF-013
+      expectedExitCode: 0
+      evidence: docs/architecture/refactoring/batches/RF-013/evidence-index.md
+      blocking: true
+rollback:
+  triggerConditions: [controlled input not bound, secret in identity, cross-schema equality, ledger mutation, incomplete identity]
+  recoveryPoint: RF-012 closed state and historical v2 identity baseline
+  maxRtoMinutes: 20
+  maxRpoMinutes: 0
+exceptions:
+  allowedVagueNames: []
+  crossModule: []

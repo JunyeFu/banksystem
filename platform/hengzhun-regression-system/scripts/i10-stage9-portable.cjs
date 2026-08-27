@@ -8,15 +8,17 @@ const fs = require('node:fs')
 const path = require('node:path')
 const { ProgressReporter, enabledFromEnvironment } = require('./progress.cjs')
 const { RecoveryStore, fingerprint } = require('./recovery.cjs')
+const { verifyRuntimeFork } = require('./i10-build-flowise-runtime-fork.cjs')
 
+const posix = value => value.split(path.sep).join('/')
 const productRoot = path.resolve(__dirname, '..')
-const repoRoot = path.resolve(productRoot, '..', '..')
+const repositoryContext = discoverRepositoryContext(productRoot)
+const repoRoot = repositoryContext.repoRoot
 const releaseRoot = path.join(productRoot, '.release')
-const productRepoPath = path.relative(repoRoot, productRoot).split(path.sep).join('/')
+const productRepoPath = repositoryContext.productRepoPath
 const policyPath = path.join(productRoot, 'flowise', 'i10', 's9-portability-policy-v1.json')
 const policy = JSON.parse(fs.readFileSync(policyPath, 'utf8'))
 
-const posix = value => value.split(path.sep).join('/')
 const sha256Buffer = value => crypto.createHash('sha256').update(value).digest('hex')
 const sha256File = file => sha256Buffer(fs.readFileSync(file))
 
@@ -31,10 +33,26 @@ function run(command, args, options = {}) {
   return result
 }
 
-function git(args) {
-  const result = run('git.exe', ['-C', repoRoot, ...args])
+function discoverRepositoryContext(targetProductRoot, options = {}) {
+  const resolvedProductRoot = path.resolve(targetProductRoot)
+  const runCommand = options.run || run
+  const result = runCommand('git.exe', ['-C', resolvedProductRoot, 'rev-parse', '--show-toplevel'])
+  assert.equal(result.status, 0, String(result.stderr || result.stdout || 'I10_S9_GIT_ROOT_DISCOVERY_FAILED').trim())
+  const discoveredRoot = path.resolve(String(result.stdout || '').trim())
+  const relative = path.relative(discoveredRoot, resolvedProductRoot)
+  assert.ok(!relative.startsWith('..') && !path.isAbsolute(relative), `I10_S9_PRODUCT_OUTSIDE_GIT_ROOT:${resolvedProductRoot}`)
+  return Object.freeze({
+    repoRoot: discoveredRoot,
+    productRoot: resolvedProductRoot,
+    productRepoPath: posix(relative)
+  })
+}
+
+function git(args, context = repositoryContext, options = {}) {
+  const result = run('git.exe', ['-C', context.repoRoot, ...args])
   assert.equal(result.status, 0, String(result.stderr || result.stdout || `git ${args.join(' ')} failed`).trim())
-  return String(result.stdout || '').trim()
+  const output = String(result.stdout || '')
+  return options.raw === true ? output : output.trim()
 }
 
 function currentCommit() {
@@ -44,7 +62,7 @@ function currentCommit() {
 }
 
 function sourceStatus() {
-  const output = git(['status', '--porcelain=v1', '--untracked-files=all', '--', productRepoPath])
+  const output = git(['status', '--porcelain=v1', '--untracked-files=all', '--', productRepoPath || '.'])
   return output ? output.split(/\r?\n/).filter(Boolean) : []
 }
 
@@ -53,28 +71,77 @@ function assertSourceFrozen() {
   assert.deepEqual(dirty, [], `I10_S9_SOURCE_NOT_FROZEN:${dirty.slice(0, 20).join('|')}`)
 }
 
-function trackedFilesFor(entries) {
-  const repoEntries = entries.map(entry => `${productRepoPath}/${entry}`)
-  const output = git(['ls-files', '--', ...repoEntries])
-  return output ? output.split(/\r?\n/).filter(Boolean) : []
+function worktreeFilesFor(entries, context = repositoryContext) {
+  const prefix = context.productRepoPath ? `${context.productRepoPath}/` : ''
+  const repoEntries = entries.map(entry => `${prefix}${posix(entry)}`)
+  const output = git(['ls-files', '--cached', '--others', '--exclude-standard', '-z', '--', ...repoEntries], context, { raw: true })
+  return output ? output.split('\0').filter(Boolean) : []
 }
 
-function governedTrackedFiles() {
-  const requested = [...policy.trackedPrefixes, ...policy.trackedFiles]
-  const files = trackedFilesFor(requested)
-  const required = policy.trackedFiles.map(item => `${productRepoPath}/${item}`)
-  for (const repoFile of required) assert.ok(files.includes(repoFile), `I10_S9_TRACKED_FILE_MISSING:${repoFile}`)
+function governedWorktreeFiles() {
+  const files = portableWorktreeFiles()
+  const prefix = productRepoPath ? `${productRepoPath}/` : ''
+  const required = policy.trackedFiles.map(item => `${prefix}${item}`)
+  for (const repoFile of required) assert.ok(files.includes(repoFile), `I10_S9_SOURCE_FILE_MISSING:${repoFile}`)
   return files
 }
 
-function copyTracked(candidateRoot) {
-  for (const repoFile of governedTrackedFiles()) {
-    const relative = repoFile.slice(productRepoPath.length + 1)
-    const source = path.join(repoRoot, ...repoFile.split('/'))
+function portableWorktreeFiles(context = repositoryContext, sourcePolicy = policy) {
+  const prefixLength = context.productRepoPath ? context.productRepoPath.length + 1 : 0
+  const forbiddenTopLevels = new Set(sourcePolicy.forbiddenPathSegments.map(value => String(value).toLowerCase()))
+  return worktreeFilesFor(['.'], context).filter(repoFile => {
+    const relative = repoFile.slice(prefixLength)
+    const top = relative.toLowerCase().split('/')[0]
+    if (top === '.release' || top.startsWith('.i10-stage9-staging-') || forbiddenTopLevels.has(top)) return false
+    return !sourcePolicy.forbiddenFilePatterns.some(pattern => matchesGlobName(path.basename(relative), pattern))
+  })
+}
+
+function contentSnapshot(baseRoot, relativeFiles) {
+  const files = [...relativeFiles].map(posix).sort((left, right) => left.localeCompare(right, 'en'))
+  const aggregate = crypto.createHash('sha256')
+  for (const relative of files) {
+    const absolute = path.resolve(baseRoot, ...relative.split('/'))
+    const boundary = path.relative(baseRoot, absolute)
+    assert.ok(boundary && !boundary.startsWith('..') && !path.isAbsolute(boundary), `I10_S9_SOURCE_PATH_INVALID:${relative}`)
+    aggregate.update(relative, 'utf8').update('\0').update(fs.readFileSync(absolute)).update('\0')
+  }
+  return Object.freeze({ files: Object.freeze(files), fileCount: files.length, sha256: aggregate.digest('hex') })
+}
+
+function worktreeContentSnapshot(context = repositoryContext, sourcePolicy = policy) {
+  const prefixLength = context.productRepoPath ? context.productRepoPath.length + 1 : 0
+  const repoFiles = portableWorktreeFiles(context, sourcePolicy)
+  const relativeFiles = repoFiles.map(repoFile => repoFile.slice(prefixLength))
+  const snapshot = contentSnapshot(context.productRoot, relativeFiles)
+  return Object.freeze({ ...snapshot, repoFiles: Object.freeze(repoFiles) })
+}
+
+function governedWorktreeSnapshot() {
+  const files = governedWorktreeFiles()
+  const prefixLength = productRepoPath ? productRepoPath.length + 1 : 0
+  const relativeFiles = files.map(repoFile => repoFile.slice(prefixLength))
+  return Object.freeze({ ...contentSnapshot(productRoot, relativeFiles), repoFiles: Object.freeze(files) })
+}
+
+function assertSourceSnapshotCurrent(sourceCommit, expectedSnapshot) {
+  assertSourceFrozen()
+  assert.equal(currentCommit(), sourceCommit, 'I10_S9_HEAD_CHANGED_DURING_PACKAGE')
+  const currentSnapshot = governedWorktreeSnapshot()
+  assert.deepEqual(currentSnapshot.files, expectedSnapshot.files, 'I10_S9_SOURCE_FILE_SET_CHANGED_DURING_PACKAGE')
+  assert.equal(currentSnapshot.sha256, expectedSnapshot.sha256, 'I10_S9_SOURCE_CONTENT_CHANGED_DURING_PACKAGE')
+}
+
+function copyWorktree(candidateRoot, snapshot = governedWorktreeSnapshot()) {
+  for (const relative of snapshot.files) {
+    const source = path.join(productRoot, ...relative.split('/'))
     const destination = path.join(candidateRoot, ...relative.split('/'))
     fs.mkdirSync(path.dirname(destination), { recursive: true })
     fs.copyFileSync(source, destination)
   }
+  const copiedSnapshot = contentSnapshot(candidateRoot, snapshot.files)
+  assert.equal(copiedSnapshot.sha256, snapshot.sha256, 'I10_S9_SOURCE_CHANGED_DURING_COPY')
+  return snapshot
 }
 
 function copyRuntimeTree(relative, candidateRoot) {
@@ -257,10 +324,23 @@ function lockComponents(lockFile, scope) {
   return components
 }
 
+function effectiveFlowiseComponents(candidateRoot) {
+  const manifestPath = path.join(candidateRoot, 'flowise', 'app', 'node_modules', '.hengzhun-runtime-fork-v1.json')
+  const manifest = JSON.parse(fs.readFileSync(manifestPath, 'utf8'))
+  const packages = [
+    ...Object.entries(manifest.upstream || {}).map(([name, version]) => ({ name, version })),
+    ...(manifest.packages || [])
+  ]
+  return [...new Map(packages.map(item => [`${item.name}@${item.version}`, item])).values()].map(item => {
+    const purl = `pkg:npm/${encodeURIComponent(item.name)}@${item.version}`
+    return { type: 'library', 'bom-ref': purl, name: item.name, version: item.version, scope: 'required', license: item.license || 'NOASSERTION', purl }
+  })
+}
+
 function writeComplianceFiles(candidateRoot, sourceCommit) {
   const components = [
     ...lockComponents(path.join(candidateRoot, 'package-lock.json'), 'required'),
-    ...lockComponents(path.join(candidateRoot, 'flowise', 'runtime-package-lock.json'), 'required')
+    ...effectiveFlowiseComponents(candidateRoot)
   ]
   const unique = [...new Map(components.map(component => [component['bom-ref'], component])).values()].sort((a, b) => a['bom-ref'].localeCompare(b['bom-ref'], 'en'))
   const sbomComponents = unique.map(({ license, ...component }) => ({ ...component, licenses: license === 'NOASSERTION' ? undefined : [{ expression: license }] }))
@@ -268,7 +348,11 @@ function writeComplianceFiles(candidateRoot, sourceCommit) {
   const serial = `${serialSeed.slice(0, 8)}-${serialSeed.slice(8, 12)}-4${serialSeed.slice(13, 16)}-a${serialSeed.slice(17, 20)}-${serialSeed.slice(20, 32)}`
   writeJson(path.join(candidateRoot, 'manifest', 'cyclonedx-sbom.json'), {
     bomFormat: 'CycloneDX', specVersion: '1.5', serialNumber: `urn:uuid:${serial}`, version: 1,
-    metadata: { component: { type: 'application', name: 'hengzhun-regression-system', version: '0.1.0', properties: [{ name: 'hengzhun:sourceCommit', value: sourceCommit }] } },
+    metadata: { component: { type: 'application', name: 'hengzhun-regression-system', version: '0.1.0', properties: [
+      { name: 'hengzhun:sourceCommit', value: sourceCommit },
+      { name: 'hengzhun:flowiseAcquisitionLockSha256', value: sha256File(path.join(candidateRoot, 'flowise', 'runtime-package-lock.json')) },
+      { name: 'hengzhun:flowiseRuntimeForkManifest', value: 'flowise/app/node_modules/.hengzhun-runtime-fork-v1.json' }
+    ] } },
     components: sbomComponents
   })
   writeJson(path.join(candidateRoot, 'manifest', 'licenses.json'), {
@@ -300,7 +384,7 @@ function writeGeneratedFiles(candidateRoot, sourceCommit) {
     supportedOperatingSystems: policy.supportedOperatingSystems, requiredPathScenarios: policy.requiredPathScenarios,
     bundled: {
       node: '20.20.2',
-      flowise: '3.0.12',
+      flowise: '3.1.4',
       chromium: '1217',
       ffmpeg: true,
       ocr: ['PP-OCRv5-mobile-ONNX-zh-en'],
@@ -545,46 +629,129 @@ function safeReleasePath(target) {
   return resolved
 }
 
+function promoteReleaseArtifacts(options) {
+  const stagingRoot = path.resolve(options.stagingRoot)
+  const targetReleaseRoot = path.resolve(options.releaseRoot)
+  const relativeToRelease = path.relative(targetReleaseRoot, stagingRoot)
+  assert.ok(relativeToRelease.startsWith('..') && !path.isAbsolute(relativeToRelease), 'I10_S9_STAGING_MUST_BE_OUTSIDE_RELEASE_ROOT')
+  const artifactNames = [...options.artifactNames]
+  assert.ok(artifactNames.length > 0, 'I10_S9_PROMOTION_ARTIFACTS_MISSING')
+  for (const name of artifactNames) {
+    assert.equal(path.basename(name), name, `I10_S9_PROMOTION_NAME_INVALID:${name}`)
+    assert.ok(fs.existsSync(path.join(stagingRoot, name)), `I10_S9_STAGED_ARTIFACT_MISSING:${name}`)
+  }
+  const renameSync = options.renameSync || fs.renameSync
+  const backupRoot = path.join(stagingRoot, '.previous-release')
+  fs.mkdirSync(backupRoot, { recursive: true })
+  fs.mkdirSync(targetReleaseRoot, { recursive: true })
+  const backedUp = []
+  const promoted = []
+  try {
+    for (const [index, name] of artifactNames.entries()) {
+      const target = path.join(targetReleaseRoot, name)
+      if (!fs.existsSync(target)) continue
+      const backup = path.join(backupRoot, `${String(index).padStart(3, '0')}-${name}`)
+      renameSync(target, backup)
+      backedUp.push({ target, backup })
+    }
+    for (const name of artifactNames) {
+      const staged = path.join(stagingRoot, name)
+      const target = path.join(targetReleaseRoot, name)
+      renameSync(staged, target)
+      promoted.push(target)
+    }
+  } catch (error) {
+    const rollbackErrors = []
+    for (const target of [...promoted].reverse()) {
+      try { fs.rmSync(target, { recursive: true, force: true }) } catch (rollbackError) { rollbackErrors.push(rollbackError.message) }
+    }
+    for (const { target, backup } of [...backedUp].reverse()) {
+      try { if (fs.existsSync(backup)) renameSync(backup, target) } catch (rollbackError) { rollbackErrors.push(rollbackError.message) }
+    }
+    if (rollbackErrors.length) error.rollbackErrors = rollbackErrors
+    throw error
+  }
+  fs.rmSync(backupRoot, { recursive: true, force: true })
+  return artifactNames.map(name => path.join(targetReleaseRoot, name))
+}
+
+function createExternalStagingRoot(targetProductRoot = productRoot) {
+  const resolvedProductRoot = path.resolve(targetProductRoot)
+  const stagingRoot = fs.mkdtempSync(path.join(path.dirname(resolvedProductRoot), '.hengzhun-i10-stage9-staging-'))
+  const relative = path.relative(resolvedProductRoot, stagingRoot)
+  assert.ok(relative.startsWith('..') && !path.isAbsolute(relative), 'I10_S9_STAGING_MUST_BE_OUTSIDE_PRODUCT_ROOT')
+  return stagingRoot
+}
+
 function packageRelease() {
   assert.equal(process.platform, 'win32', 'I10_S9_WINDOWS_REQUIRED')
   assert.equal(process.arch, 'x64', 'I10_S9_X64_REQUIRED')
-  assertSourceFrozen()
+  const readiness = preflight({ emit: false })
+  assert.equal(readiness.status, 'I10_S9_PREFLIGHT_READY', `I10_S9_PREFLIGHT_NOT_READY:${readiness.status}`)
   const sourceCommit = currentCommit()
+  const sourceSnapshot = governedWorktreeSnapshot()
+  assertSourceSnapshotCurrent(sourceCommit, sourceSnapshot)
+  // Keep all construction outside .release and on the same volume.  Existing
+  // outputs stay intact until the candidate, archive, and checksum have all
+  // passed verification; promotion then uses same-volume atomic renames with
+  // transaction rollback.
+  const stagingRoot = createExternalStagingRoot()
+  const stagedCandidateRoot = path.join(stagingRoot, policy.candidateName)
+  const stagedArchivePath = path.join(stagingRoot, policy.archiveName)
+  const stagedChecksumPath = `${stagedArchivePath}.sha256`
   const candidateRoot = safeReleasePath(path.join(releaseRoot, policy.candidateName))
   const archivePath = safeReleasePath(path.join(releaseRoot, policy.archiveName))
   const checksumPath = safeReleasePath(`${archivePath}.sha256`)
-  for (const target of [candidateRoot, archivePath, checksumPath]) if (fs.existsSync(target)) fs.rmSync(target, { recursive: fs.statSync(target).isDirectory(), force: true })
-  fs.mkdirSync(candidateRoot, { recursive: true })
-  copyTracked(candidateRoot)
-  for (const relative of policy.runtimeTrees) copyRuntimeTree(relative, candidateRoot)
-  for (const relative of policy.emptyRuntimeDirectories) fs.mkdirSync(path.join(candidateRoot, ...relative.split('/')), { recursive: true })
-  writeGeneratedFiles(candidateRoot, sourceCommit)
-  const findings = forbiddenCoreFindings(candidateRoot)
-  assert.deepEqual(findings, [], `I10_S9_FORBIDDEN_CONTENT:${findings.slice(0, 10).join(',')}`)
-  writeJson(path.join(candidateRoot, 'manifest', 'files.sha256.json'), buildManifest(candidateRoot, sourceCommit))
-  verifyCandidate(candidateRoot)
-  const archiveResult = run('tar.exe', ['-a', '-c', '-f', archivePath, '-C', releaseRoot, policy.candidateName])
-  assert.equal(archiveResult.status, 0, `I10_S9_ARCHIVE_FAILED:${String(archiveResult.stderr || '').trim()}`)
-  const archiveSha256 = sha256File(archivePath)
-  fs.writeFileSync(checksumPath, `${archiveSha256}  ${path.basename(archivePath)}\r\n`, 'utf8')
-  const result = verifyRelease(candidateRoot, archivePath, checksumPath)
-  process.stdout.write(`${JSON.stringify({ ...result, outputFolder: candidateRoot, archivePath, checksumPath }, null, 2)}\n`)
-  return result
+  try {
+    fs.mkdirSync(stagedCandidateRoot, { recursive: true })
+    copyWorktree(stagedCandidateRoot, sourceSnapshot)
+    for (const relative of policy.runtimeTrees) copyRuntimeTree(relative, stagedCandidateRoot)
+    for (const relative of policy.emptyRuntimeDirectories) fs.mkdirSync(path.join(stagedCandidateRoot, ...relative.split('/')), { recursive: true })
+    writeGeneratedFiles(stagedCandidateRoot, sourceCommit)
+    const findings = forbiddenCoreFindings(stagedCandidateRoot)
+    assert.deepEqual(findings, [], `I10_S9_FORBIDDEN_CONTENT:${findings.slice(0, 10).join(',')}`)
+    writeJson(path.join(stagedCandidateRoot, 'manifest', 'files.sha256.json'), buildManifest(stagedCandidateRoot, sourceCommit))
+    verifyCandidate(stagedCandidateRoot)
+    const archiveResult = run('tar.exe', ['-a', '-c', '-f', stagedArchivePath, '-C', stagingRoot, policy.candidateName])
+    assert.equal(archiveResult.status, 0, `I10_S9_ARCHIVE_FAILED:${String(archiveResult.stderr || '').trim()}`)
+    const archiveSha256 = sha256File(stagedArchivePath)
+    fs.writeFileSync(stagedChecksumPath, `${archiveSha256}  ${path.basename(stagedArchivePath)}\r\n`, 'utf8')
+    const result = verifyRelease(stagedCandidateRoot, stagedArchivePath, stagedChecksumPath)
+    assertSourceSnapshotCurrent(sourceCommit, sourceSnapshot)
+    promoteReleaseArtifacts({
+      stagingRoot,
+      releaseRoot,
+      artifactNames: [policy.candidateName, policy.archiveName, `${policy.archiveName}.sha256`]
+    })
+    process.stdout.write(`${JSON.stringify({ ...result, outputFolder: candidateRoot, archivePath, checksumPath }, null, 2)}\n`)
+    return result
+  } finally {
+    fs.rmSync(stagingRoot, { recursive: true, force: true })
+  }
 }
 
-function preflight() {
+function preflight(options = {}) {
   const missingRuntimeTrees = policy.runtimeTrees.filter(relative => !fs.existsSync(path.join(productRoot, ...relative.split('/'))))
   const missingSourceFiles = policy.trackedFiles.filter(relative => !fs.existsSync(path.join(productRoot, ...relative.split('/'))))
   const missingHostTools = ['git.exe', 'powershell.exe', 'robocopy.exe', 'tar.exe'].filter(command => run('where.exe', [command]).status !== 0)
   const dirtyEntries = sourceStatus()
+  let runtimeFork = null
+  let runtimeForkError = null
+  try { runtimeFork = verifyRuntimeFork({ appRoot: path.join(productRoot, 'flowise', 'app') }) } catch (error) { runtimeForkError = error.code || error.message }
+  const appLock = path.join(productRoot, 'flowise', 'app', 'package-lock.json')
+  const runtimeLock = path.join(productRoot, 'flowise', 'runtime-package-lock.json')
+  const flowiseAcquisitionLockMirrored = fs.existsSync(appLock) && fs.existsSync(runtimeLock) && sha256File(appLock) === sha256File(runtimeLock)
   const result = {
-    status: missingRuntimeTrees.length || missingSourceFiles.length || missingHostTools.length ? 'I10_S9_PREFLIGHT_FAILED' : dirtyEntries.length ? 'I10_S9_PREFLIGHT_BLOCKED_SOURCE_NOT_FROZEN' : 'I10_S9_PREFLIGHT_READY',
+    status: missingRuntimeTrees.length || missingSourceFiles.length || missingHostTools.length || runtimeForkError || !flowiseAcquisitionLockMirrored ? 'I10_S9_PREFLIGHT_FAILED' : dirtyEntries.length ? 'I10_S9_PREFLIGHT_BLOCKED_SOURCE_NOT_FROZEN' : 'I10_S9_PREFLIGHT_READY',
     platform: `${process.platform}-${process.arch}`, portabilityContract: policy.portabilityContract,
     machineSpecificAcceptanceRequired: policy.machineSpecificAcceptanceRequired,
     missingRuntimeTrees, missingSourceFiles, missingHostTools, dirtyEntryCount: dirtyEntries.length,
+    flowiseRuntimeFork: runtimeFork ? { status: runtimeFork.status, closureHash: runtimeFork.manifest.closureHash } : null,
+    flowiseRuntimeForkError: runtimeForkError,
+    flowiseAcquisitionLockMirrored,
     exportCreated: false, archiveCreated: false
   }
-  process.stdout.write(`${JSON.stringify(result, null, 2)}\n`)
+  if (options.emit !== false) process.stdout.write(`${JSON.stringify(result, null, 2)}\n`)
   return result
 }
 
@@ -627,4 +794,20 @@ if (require.main === module) {
   }
 }
 
-module.exports = { buildManifest, forbiddenCoreFindings, hashTree, preflight, refreshManifest, verifyCandidate, verifyRelease }
+module.exports = {
+  buildManifest,
+  contentSnapshot,
+  createExternalStagingRoot,
+  discoverRepositoryContext,
+  forbiddenCoreFindings,
+  hashTree,
+  packageRelease,
+  portableWorktreeFiles,
+  preflight,
+  promoteReleaseArtifacts,
+  refreshManifest,
+  verifyCandidate,
+  verifyRelease,
+  worktreeContentSnapshot,
+  worktreeFilesFor
+}

@@ -1,0 +1,8 @@
+id: RF-007-S1
+title: Worker identity archaeology and contract freeze
+status: COMPLETED
+allowedPaths: [platform/hengzhun-regression-system/scripts, platform/hengzhun-regression-system/worker/src, platform/hengzhun-regression-system/harness/src, platform/hengzhun-regression-system/tests, docs/architecture/refactoring/batches/RF-007]
+forbiddenPaths: [platform/hengzhun-regression-system/.data, apps, services, infra]
+workSteps: [trace Worker imports, freeze governed file set, freeze aggregate hash algorithm, characterize historical identity limits]
+verification: [manifest tests, consumer call graph review]
+rollback: contract documents and tests only

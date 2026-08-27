@@ -1,0 +1,7 @@
+{
+  "name": "extract-zip",
+  "version": "2.0.2",
+  "private": true,
+  "description": "Hengzhun fail-closed disabled stub; not an upstream extract-zip release.",
+  "main": "index.js"
+}

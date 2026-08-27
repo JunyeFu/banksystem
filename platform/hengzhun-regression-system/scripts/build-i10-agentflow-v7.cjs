@@ -47,6 +47,138 @@ for (const nodeItem of flow.nodes) {
     }
   }
 }
+
+// A cross-session poll can observe a journey whose asynchronous authoring job
+// has already failed.  v6 only distinguished "candidate exists" from
+// "candidate absent", so a terminal FAILED journey fell through to the
+// default "authoring processing" reply forever.  Keep the rollback graph
+// byte-addressable and close the gap only in v7: FAILED is an explicit terminal
+// route, while the unmatched default remains the sole processing route.
+const crossSessionRouteId = 'conditionAgentflow_i10_v4_cross_session_route'
+const crossSessionProcessingReplyId = 'directReplyAgentflow_i10_v6_cross_session_authoring_processing'
+const crossSessionFailureReplyId = 'directReplyAgentflow_i10_v7_cross_session_authoring_failed'
+const crossSessionRoute = flow.nodes.find(nodeItem => nodeItem.id === crossSessionRouteId)
+const crossSessionProcessingReply = flow.nodes.find(nodeItem => nodeItem.id === crossSessionProcessingReplyId)
+if (!crossSessionRoute || !crossSessionProcessingReply) {
+  throw new Error('I10_V7_CROSS_SESSION_AUTHORING_ROUTE_MISSING')
+}
+const existingCrossSessionConditions = [...crossSessionRoute.data.inputs.conditions]
+const existingCrossSessionAnchors = [...crossSessionRoute.data.outputAnchors]
+if (existingCrossSessionAnchors.length !== existingCrossSessionConditions.length + 1 ||
+    existingCrossSessionAnchors.at(-1)?.label !== '作者化处理中') {
+  throw new Error('I10_V7_CROSS_SESSION_ROUTE_SHAPE_INVALID')
+}
+const crossSessionExecutionFailureOutputIndex = existingCrossSessionConditions.length
+const crossSessionFailureOutputIndex = crossSessionExecutionFailureOutputIndex + 1
+const crossSessionProcessingOutputIndex = crossSessionFailureOutputIndex + 1
+crossSessionRoute.data.inputs.conditions = [
+  ...existingCrossSessionConditions,
+  {
+    type: 'string',
+    value1: '{{$flow.state.journeyNextActionType}}',
+    operation: 'equal',
+    value2: 'QUERY_FAILURE'
+  },
+  {
+    type: 'string',
+    value1: '{{$flow.state.journeyStatus}}',
+    operation: 'equal',
+    value2: 'FAILED'
+  }
+]
+crossSessionRoute.data.outputAnchors = [
+  ...existingCrossSessionAnchors.slice(0, -1),
+  { label: '读取执行失败并进入修复', name: String(crossSessionExecutionFailureOutputIndex) },
+  { label: '作者化失败', name: String(crossSessionFailureOutputIndex) },
+  { ...existingCrossSessionAnchors.at(-1), name: String(crossSessionProcessingOutputIndex) }
+]
+const processingEdge = flow.edges.find(edge =>
+  edge.source === crossSessionRouteId && edge.target === crossSessionProcessingReplyId)
+if (!processingEdge) throw new Error('I10_V7_CROSS_SESSION_PROCESSING_EDGE_MISSING')
+processingEdge.sourceHandle = `${crossSessionRouteId}-output-${crossSessionProcessingOutputIndex}`
+const crossSessionFailureReply = JSON.parse(JSON.stringify(crossSessionProcessingReply))
+crossSessionFailureReply.id = crossSessionFailureReplyId
+crossSessionFailureReply.data.id = crossSessionFailureReplyId
+crossSessionFailureReply.data.label = '返回跨会话作者化失败终态'
+crossSessionFailureReply.data.inputs.directReplyMessage =
+  '## 作者化已失败\n\n系统已保留失败任务和脱敏诊断，没有生成候选、证书或正式运行。请先修复被测环境或失败原因，再从同一案例重新发起作者化；系统不会把失败任务继续显示为处理中。'
+crossSessionFailureReply.position = {
+  x: Number(crossSessionProcessingReply.position?.x || 0),
+  y: Number(crossSessionProcessingReply.position?.y || 0) + 160
+}
+flow.nodes.push(crossSessionFailureReply)
+const crossSessionFailureTaskId = 'toolAgentflow_i10_v7_cross_session_failure_task_get'
+const legacyFailureTask = flow.nodes.find(nodeItem => nodeItem.id === 'toolAgentflow_task')
+if (!legacyFailureTask) throw new Error('I10_V7_FAILURE_TASK_NODE_MISSING')
+const crossSessionFailureTask = JSON.parse(JSON.stringify(legacyFailureTask))
+crossSessionFailureTask.id = crossSessionFailureTaskId
+crossSessionFailureTask.data.id = crossSessionFailureTaskId
+crossSessionFailureTask.data.label = '跨会话读取失败任务'
+crossSessionFailureTask.position = {
+  x: Number(legacyFailureTask.position?.x || 0),
+  y: Number(legacyFailureTask.position?.y || 0) + 160
+}
+flow.nodes.push(crossSessionFailureTask)
+// Flowise condition/tool nodes with multiple inbound edges behave as joins.
+// Reusing the legacy terminal parser therefore waits for the unrelated old
+// task branch and silently stops. Clone the governed failure/repair subgraph
+// so every node has one authoritative inbound chain in this execution.
+const repairStartId = 'llmAgentflow_terminal'
+const repairIds = new Set([repairStartId])
+const repairQueue = [repairStartId]
+while (repairQueue.length) {
+  const source = repairQueue.shift()
+  for (const edge of flow.edges.filter(item => item.source === source)) {
+    if (source === 'conditionAgentflow_terminal' && edge.sourceHandle.endsWith('-output-0')) continue
+    if (!repairIds.has(edge.target)) {
+      repairIds.add(edge.target)
+      repairQueue.push(edge.target)
+    }
+  }
+}
+const repairIdMap = new Map([...repairIds].map(id => [id, `${id}_i10_v7_cross_session`]))
+function rewriteRepairReferences(value) {
+  let text = JSON.stringify(value)
+  for (const [from, to] of [...repairIdMap.entries()].sort((a, b) => b[0].length - a[0].length)) {
+    text = text.split(from).join(to)
+  }
+  return JSON.parse(text)
+}
+for (const id of repairIds) {
+  const original = flow.nodes.find(nodeItem => nodeItem.id === id)
+  if (!original) throw new Error(`I10_V7_REPAIR_NODE_MISSING:${id}`)
+  const cloned = rewriteRepairReferences(original)
+  if (id === repairStartId) {
+    cloned.data.inputs = JSON.parse(JSON.stringify(cloned.data.inputs)
+      .split('toolAgentflow_task').join(crossSessionFailureTaskId))
+  }
+  flow.nodes.push(cloned)
+}
+const repairEdges = flow.edges.filter(edge => repairIds.has(edge.source) && repairIds.has(edge.target) &&
+  !(edge.source === 'conditionAgentflow_terminal' && edge.sourceHandle.endsWith('-output-0')))
+for (const edge of repairEdges) flow.edges.push(rewriteRepairReferences(edge))
+flow.edges.push({
+  id: 'edge-i10-v7-cross-session-execution-failed',
+  source: crossSessionRouteId,
+  target: crossSessionFailureTaskId,
+  sourceHandle: `${crossSessionRouteId}-output-${crossSessionExecutionFailureOutputIndex}`,
+  targetHandle: crossSessionFailureTaskId
+})
+flow.edges.push({
+  id: 'edge-i10-v7-cross-session-failure-task-terminal',
+  source: crossSessionFailureTaskId,
+  target: repairIdMap.get(repairStartId),
+  sourceHandle: `${crossSessionFailureTaskId}-output-toolAgentflow`,
+  targetHandle: repairIdMap.get(repairStartId)
+})
+flow.edges.push({
+  id: 'edge-i10-v7-cross-session-authoring-failed',
+  source: crossSessionRouteId,
+  target: crossSessionFailureReplyId,
+  sourceHandle: `${crossSessionRouteId}-output-${crossSessionFailureOutputIndex}`,
+  targetHandle: crossSessionFailureReplyId,
+  type: 'buttonedge'
+})
 writeJson('flowise/i10/agentflow-v7.json', flow)
 const layout = readJson('flowise/i10/agentflow-v6-layout.json')
 writeJson('flowise/i10/agentflow-v7-layout.json', { ...layout, schemaVersion: 'hengzhun-i10-agentflow-layout-v7', flowVersion: 7 })

@@ -12,6 +12,7 @@ if (!fixtureUsername || !fixturePassword) {
 }
 let locatorChanged = false
 let verificationMode = false
+let verificationHandoffMode = false
 let verificationCompleted = false
 let transferFirstConfirmCount = 0
 const transferConfirmCountByExecution = new Map()
@@ -28,6 +29,7 @@ const server = http.createServer((request, response) => {
     status: 'ok',
     locatorChanged,
     verificationMode,
+    verificationHandoffMode,
     verificationCompleted,
     transferFirstConfirmCount,
     transferConfirmCountByExecution: Object.fromEntries(transferConfirmCountByExecution)
@@ -42,13 +44,23 @@ const server = http.createServer((request, response) => {
   }
   if (route === '/__mode/verification' && request.method === 'POST') {
     verificationMode = true
+    verificationHandoffMode = false
     verificationCompleted = false
     transferFirstConfirmCount = 0
     transferConfirmCountByExecution.clear()
     return response.end(JSON.stringify({ status: 'verification-required' }))
   }
+  if (route === '/__mode/verification-handoff' && request.method === 'POST') {
+    verificationMode = true
+    verificationHandoffMode = true
+    verificationCompleted = false
+    transferFirstConfirmCount = 0
+    transferConfirmCountByExecution.clear()
+    return response.end(JSON.stringify({ status: 'verification-handoff-required' }))
+  }
   if (route === '/__mode/standard' && request.method === 'POST') {
     verificationMode = false
+    verificationHandoffMode = false
     verificationCompleted = false
     return response.end(JSON.stringify({ status: 'standard' }))
   }
@@ -107,7 +119,8 @@ const server = http.createServer((request, response) => {
   // from depending on an obsolete one-page transfer fixture.
   const header = `<header class="portal-header"><span class="brand">${portalBrand}</span><div class="user-area"><a class="profile-link" data-testid="accounts-entry" href="/portal/accounts">账户页面</a><a class="profile-link" data-testid="messages-entry" href="/portal/messages">消息页面</a><a class="profile-link" data-testid="transactions-entry" href="/portal/transactions">账户明细</a><a class="profile-link" data-testid="recipients-entry" href="/portal/recipients">收款人页面</a><a class="profile-link" data-testid="documents-entry" href="/portal/documents">文档页面</a><a class="profile-link" data-testid="transfer-entry" href="/portal/transfers">转账</a><span class="avatar avatar-small" data-testid="customer-profile-avatar">张</span><span class="display-name" data-testid="customer-profile-name">张三</span><a class="profile-link" data-testid="profile-link" href="/portal/profile">个人资料</a></div></header>`
   if (route === '/portal/verification') {
-    return response.end(html(`<header class="portal-header"><span class="brand">复兴银行门户</span></header><main class="page"><section class="login-card"><h1>网页U盾验证</h1><p>转账信息已完成第一次确认。此本地演示只模拟已持久化U盾的网页确认，不收集PIN、验证码或口令。</p><p data-testid="verification-status">等待U盾确认完成</p><button class="primary" data-testid="ukey-verify-control">确认U盾验证</button></section></main><script>const complete=async()=>{await fetch('/__verification/complete',{method:'POST'});location.href='/portal/orders/query'};document.querySelector('[data-testid=ukey-verify-control]').onclick=complete;const timer=setInterval(async()=>{const state=await fetch('/__verification/status').then(r=>r.json());if(state.completed){clearInterval(timer);location.href='/portal/orders/query'}},300)</script>`))
+    const webControl = verificationHandoffMode ? '' : '<button class="primary" data-testid="ukey-verify-control">确认U盾验证</button>'
+    return response.end(html(`<header class="portal-header"><span class="brand">复兴银行门户</span></header><main class="page"><section class="login-card"><h1>网页U盾验证</h1><p>转账信息已完成第一次确认。此本地演示只模拟已持久化U盾的网页确认，不收集PIN、验证码或口令。</p><p data-testid="verification-status">等待U盾确认完成</p>${webControl}</section></main><script>const control=document.querySelector('[data-testid=ukey-verify-control]');if(control)control.onclick=async()=>{await fetch('/__verification/complete',{method:'POST'});location.href='/portal/orders/query'};const timer=setInterval(async()=>{const state=await fetch('/__verification/status').then(r=>r.json());if(state.completed){clearInterval(timer);location.href='/portal/orders/query'}},300)</script>`))
   }
   if (route === '/portal/dashboard') return response.end(html(`${header}<main class="page"><section class="profile-card"><h1>欢迎登录复兴银行门户</h1></section></main>`))
   if (route === '/portal/accounts') return response.end(html(`${header}<main class="page"><section class="profile-card" data-testid="account-overview"><span class="avatar avatar-large">账</span><div class="profile-details"><h1 data-testid="account-card-heading">账户卡片</h1><span class="label">账户概览</span><span class="value" data-testid="account-overview-title">我的账户</span><span class="label">账户状态</span><span class="value" data-testid="account-status">正常</span><span class="label">余额</span><span class="value" data-testid="account-available-balance">12,345.67</span><p class="label" data-testid="account-overview-summary">账户卡片、余额和账户状态正常显示</p></div></section></main>`))

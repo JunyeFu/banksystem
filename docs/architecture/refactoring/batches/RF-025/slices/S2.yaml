@@ -1,0 +1,9 @@
+id: RF-025-S2
+title: Restartable ordered full18 CLI runner
+status: COMPLETED
+allowedPaths: [platform/hengzhun-regression-system/scripts/i10-agent-full18-live.cjs, platform/hengzhun-regression-system/scripts/verification/agent-full18-live.test.cjs, platform/hengzhun-regression-system/scripts/verification/agent-journey-evidence-projection.test.cjs, platform/hengzhun-regression-system/scripts/verification/test-manifest.json, platform/hengzhun-regression-system/scripts/i10-agent-acceptance-ledger-v4.cjs, platform/hengzhun-regression-system/agent-cli, platform/hengzhun-regression-system/mcp/src/journey-evidence-projection.cjs, platform/hengzhun-regression-system/mcp/src/server.cjs, docs/architecture/refactoring/batches/RF-025]
+forbiddenPaths: [platform/hengzhun-regression-system/flowise, platform/hengzhun-regression-system/scripts/i10-18-chain-acceptance-live.cjs]
+workSteps: [lock one bound v4 identity, resume first missing ordered chain, pause for every exact approval, require terminal public readback, stop on first deterministic failure]
+verification: [real MCP projection preserves bounded terminal evidence without URLs or secrets, L1 pair prerequisite, exact L1 through H3 order, no auto approval, restart preserves safe checkpoint, readback after every terminal, no chain after deterministic failure]
+rollback: stop exact owned processes and restore only S2 sources and tests
+evidence: docs/architecture/refactoring/batches/RF-025/evidence-index.md

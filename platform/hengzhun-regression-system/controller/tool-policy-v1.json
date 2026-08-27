@@ -1,0 +1,53 @@
+{
+  "schemaVersion": "hengzhun-controller-tool-policy/v1",
+  "contract": "contracts/mcp/hengzhun-i8.json",
+  "expectedActiveToolCount": 35,
+  "readOnlyTools": [
+    "credential_session_get",
+    "target_profile_get",
+    "ingest_get",
+    "image_ingest_get",
+    "verification_get",
+    "journey_get",
+    "authoring_get",
+    "candidate_get",
+    "candidate_preview",
+    "task_get",
+    "schedule_get",
+    "result_inbox_list",
+    "failure_get"
+  ],
+  "mutatingTools": [
+    "credential_session_create",
+    "target_profile_prepare",
+    "target_profile_decision_submit",
+    "ingest_submit",
+    "ingest_decision_submit",
+    "image_ingest_submit",
+    "image_ingest_decision_submit",
+    "verification_decision_submit",
+    "journey_prepare",
+    "journey_input_submit",
+    "journey_decision_submit",
+    "case_prepare",
+    "authoring_submit",
+    "candidate_compile",
+    "candidate_decide",
+    "run_submit",
+    "schedule_create",
+    "schedule_disable",
+    "artifact_download_grant",
+    "result_inbox_ack",
+    "repair_propose",
+    "decision_submit"
+  ],
+  "conditionalSideEffectTools": [],
+  "forbiddenCapabilities": [
+    "HOST_FILESYSTEM",
+    "SHELL",
+    "SQLITE_DIRECT",
+    "CREDENTIAL_PLAINTEXT",
+    "BROWSER_DIRECT",
+    "UNRESTRICTED_NETWORK"
+  ]
+}

@@ -13,4 +13,7 @@ test('L1 live bootstrap accepts an explicit isolated local port instead of reusi
   assert.match(source, /I10_L1_PORT_IN_USE/)
   assert.match(source, /await assertControlledPortalPortAvailable\(\);[\s\S]*const serviceToken/)
   assert.match(source, /HENGZHUN_I10_STAGE8_PORT: String\(port\)/)
+  assert.match(source, /\/v1\/i10\/target-profiles:prepare/)
+  assert.match(source, /\/v1\/i10\/target-profiles:decide/)
+  assert.match(source, /activatedProfile\.status !== 'ACTIVE'/)
 })

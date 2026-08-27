@@ -1,0 +1,10 @@
+id: RF-023-S1
+title: CLI offline production composition and release gates
+status: COMPLETED
+allowedPaths: [platform/hengzhun-regression-system/agent-cli, platform/hengzhun-regression-system/controller, platform/hengzhun-regression-system/scripts/i10-agent-lifecycle.cjs, platform/hengzhun-regression-system/scripts/i10-agent-offline-sbom.cjs, platform/hengzhun-regression-system/scripts/verification, platform/hengzhun-regression-system/package.json, docs/architecture/refactoring/batches/RF-023, docs/architecture/refactoring/module-boundaries-v1.yaml, agent/backlog.yaml, agent/plans/active/v54-implementation-batches.md, agent/plans/active/hengzhun-i10-cli-agent-task-packages-v1.yaml, agent/plans/active/hengzhun-i10-agcli-tp08-offline-integration-gates-task-package.md]
+forbiddenPaths: [platform/hengzhun-regression-system/.data, platform/hengzhun-regression-system/flowise/app, platform/hengzhun-regression-system/flowise/i10/agentflow-v7.json, platform/hengzhun-regression-system/harness/src, platform/hengzhun-regression-system/mcp/src, platform/hengzhun-regression-system/worker/src]
+workSteps: [bind CLI to injected production service, enforce Flowise pre-write gate, restore exact DPAPI approval, add SBOM and audits, drill non-executing cold rollback, verify all offline layers]
+verification: [Node24 offline integration exits 0, CLI and registered matrices exit 0, SBOM current, secret and dependency scans clean, Stage9 report-only preserves no-output boundary, governance exits 0]
+rollback: restore only RF-023 changed paths to recorded dirty baseline
+evidence: docs/architecture/refactoring/batches/RF-023/evidence-index.md
+

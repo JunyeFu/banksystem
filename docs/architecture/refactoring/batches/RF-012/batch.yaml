@@ -1,0 +1,69 @@
+schemaVersion: 1
+id: RF-012
+title: Controller checkpoint state and security boundary
+status: CLOSED
+owner: project-owner
+authorizedBy: agent/plans/active/v54-implementation-batches.md
+scope:
+  includePaths:
+    - platform/hengzhun-regression-system/controller
+    - docs/architecture/refactoring/batches/RF-012
+    - agent/backlog.yaml
+    - agent/plans/active/v54-implementation-batches.md
+    - agent/plans/active/hengzhun-i10-langgraph-deepagents-controller-migration-task-package.md
+    - agent/plans/active/hengzhun-i10-tp00-change-inventory-v1.json
+  excludePaths:
+    - platform/hengzhun-regression-system/.data
+    - platform/hengzhun-regression-system/flowise
+    - platform/hengzhun-regression-system/harness
+    - platform/hengzhun-regression-system/mcp
+    - platform/hengzhun-regression-system/worker
+    - apps
+    - services
+    - infra
+    - secrets
+    - .env
+budgets:
+  maxChangedFiles: 22
+  maxNewFiles: 14
+  maxChangedLines: 2300
+  maxContractsChanged: 0
+  maxMigrationsAdded: 0
+  maxOpenModules: 2
+baseline:
+  gitCommit: 9d79b7c1e6cfedd995093cc7a378dc8e9218fa98
+  dirtyTreeManifest: docs/architecture/refactoring/batches/RF-012/baseline.md
+  releaseIdentity: 02ae6b18ed678415488db431f1c271ec258ec6475a1414864731d495a8d81dc4
+  capturedAt: "2026-08-25T10:36:00+08:00"
+architecture:
+  businessCapability: controller-state-security
+  publicContract: agent/plans/active/hengzhun-i10-langgraph-deepagents-controller-migration-task-package.md
+  dependencyManifest: docs/architecture/refactoring/module-boundaries-v1.yaml
+  allowedModules: [governance.refactoring, hengzhun.controller]
+  forbiddenModules: [hengzhun.flowise, hengzhun.harness, hengzhun.mcp, hengzhun.worker, bank.identity, bank.accounts, bank.payments]
+mustPreserve:
+  - Checkpoint remains a projection and cannot authorize or override Harness state.
+  - Namespace and thread bindings are immutable and cross-namespace resume is denied.
+  - Secret-like keys, host paths and raw user/tool payloads are absent from checkpoint and traces.
+  - Scratch storage is in-memory, bounded and cannot resolve host paths.
+  - Product runtime, publication, ReleaseIdentity and ledger remain unchanged.
+verification:
+  requiredCommands:
+    - name: state-security-tests
+      command: runtime/node-v20.20.2-win-x64/node.exe --test controller/test/state-security.test.mjs controller/test/agent-controller-kernel.test.mjs
+      expectedExitCode: 0
+      evidence: docs/architecture/refactoring/batches/RF-012/evidence-index.md
+      blocking: true
+    - name: refactoring-governance
+      command: py -3 scripts/architecture/validate_refactoring.py --batch RF-012
+      expectedExitCode: 0
+      evidence: docs/architecture/refactoring/batches/RF-012/evidence-index.md
+      blocking: true
+rollback:
+  triggerConditions: [cross-namespace access, secret trace/checkpoint acceptance, unbounded scratch, expired thread resume, identity drift]
+  recoveryPoint: RF-011 closed state plus removal of RF-012 state-security additions
+  maxRtoMinutes: 15
+  maxRpoMinutes: 0
+exceptions:
+  allowedVagueNames: []
+  crossModule: []

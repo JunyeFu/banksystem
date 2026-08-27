@@ -27,6 +27,7 @@
     {"name":"case_prepare","status":"ACTIVE","outputLevel":"OUT-L1"},
     {"name":"authoring_submit","status":"ACTIVE","outputLevel":"OUT-L1"},
     {"name":"authoring_get","status":"ACTIVE","outputLevel":"OUT-L0"},
+    {"name":"candidate_compile","status":"ACTIVE","outputLevel":"OUT-L1"},
     {"name":"candidate_get","status":"ACTIVE","outputLevel":"OUT-L1"},
     {"name":"candidate_preview","status":"ACTIVE","outputLevel":"OUT-L1"},
     {"name":"candidate_decide","status":"ACTIVE","outputLevel":"OUT-L1"},
@@ -37,6 +38,7 @@
     {"name":"schedule_disable","status":"ACTIVE","outputLevel":"OUT-L1"},
     {"name":"artifact_download_grant","status":"ACTIVE","outputLevel":"OUT-L1"},
     {"name":"result_inbox_list","status":"ACTIVE","outputLevel":"OUT-L1"},
+    {"name":"result_inbox_ack","status":"ACTIVE","outputLevel":"OUT-L1"},
     {"name":"failure_get","status":"ACTIVE","outputLevel":"OUT-L2"},
     {"name":"repair_propose","status":"ACTIVE","outputLevel":"OUT-L2"},
     {"name":"decision_submit","status":"ACTIVE","outputLevel":"OUT-L1"}

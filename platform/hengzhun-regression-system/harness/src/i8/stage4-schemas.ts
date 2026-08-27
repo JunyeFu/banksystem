@@ -10,14 +10,32 @@ export const I8_STABILITY_VIEWPORTS = Object.freeze([
   { viewportId: 'NARROW_390X844', width: 390, height: 844, suffix: 'narrow' }
 ] as const);
 
-export const stabilityEvidenceSchema = z.object({
-  artifactType: z.enum(['REPORT', 'SCREENSHOT', 'LOG']),
-  mediaType: z.enum(['application/json', 'image/png', 'text/plain; charset=utf-8']),
-  redactionStatus: z.literal('REDACTED'),
+const stabilityEvidenceIdentity = {
   relativePath: evidencePathSchema,
   sha256: sha256Schema,
   byteLength: z.number().int().positive().max(8 * 1024 * 1024)
-}).strict();
+};
+
+export const stabilityEvidenceSchema = z.discriminatedUnion('artifactType', [
+  z.object({
+    artifactType: z.literal('REPORT'),
+    mediaType: z.literal('application/json'),
+    redactionStatus: z.literal('REDACTED'),
+    ...stabilityEvidenceIdentity
+  }).strict(),
+  z.object({
+    artifactType: z.literal('SCREENSHOT'),
+    mediaType: z.literal('image/png'),
+    redactionStatus: z.literal('QUARANTINED'),
+    ...stabilityEvidenceIdentity
+  }).strict(),
+  z.object({
+    artifactType: z.literal('LOG'),
+    mediaType: z.literal('text/plain; charset=utf-8'),
+    redactionStatus: z.literal('REDACTED'),
+    ...stabilityEvidenceIdentity
+  }).strict()
+]);
 
 export const stabilityRunResultSchema = z.object({
   validationRunId: safeRef,
@@ -42,7 +60,7 @@ export const stabilityRunResultSchema = z.object({
   }
   const types = [...value.evidence.map(item => item.artifactType)].sort();
   if (types.join(',') !== 'LOG,REPORT,SCREENSHOT') {
-    context.addIssue({ code: 'custom', path: ['evidence'], message: '每次验证必须包含报告、遮罩截图和步骤日志。' });
+    context.addIssue({ code: 'custom', path: ['evidence'], message: '每次验证必须包含报告、隔离截图和步骤日志。' });
   }
 });
 

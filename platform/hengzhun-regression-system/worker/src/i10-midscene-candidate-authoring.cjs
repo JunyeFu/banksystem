@@ -7,9 +7,8 @@ const path = require('node:path');
 
 const productRoot = path.resolve(__dirname, '..', '..');
 const runtimeRequire = createRequire(path.join(productRoot, 'runtime', 'node_modules', '_hengzhun_loader.cjs'));
-const { chromium } = runtimeRequire('playwright');
-const { PlaywrightAgent } = runtimeRequire('@midscene/web/playwright');
 const { policyForAction, resolveVerificationAfterAction } = require('./i10-verification-policy.cjs');
+const { assertTargetUrlResolution, chromiumHostResolverRules } = require('./i10-worker-utils.cjs');
 const { FUXING_BANK_DEMO_ROUTES: FUXING_ROUTES, FUXING_BANK_DEMO_TARGETS: controlled, FUXING_BANK_DEMO_ROUTE_PATTERNS: FUXING_ROUTE_PATTERNS } = require('./adapters/fuxing-bank-demo/index.cjs');
 const { buildMidscenePrompt, normalizeMidscenePromptEnvelope } = require('../../dist/harness/src/context-envelope.js');
 const manifest = JSON.parse(fs.readFileSync(path.join(productRoot, 'config', 'demo-runtime-freeze.json'), 'utf8'));
@@ -35,7 +34,18 @@ const I10_MIDSCENE_SCREENSHOT_SHRINK_FACTOR = 2;
 const I10_BROWSER_CLOSE_TIMEOUT_MS = 10_000;
 const midsceneDiagnosticRoot = path.join(productRoot, '.data', 'evidence', 'i10', 'midscene-diagnostics');
 
+let browserAutomationRuntime;
+function loadBrowserAutomationRuntime() {
+  if (!browserAutomationRuntime) {
+    const { chromium } = runtimeRequire('playwright');
+    const { PlaywrightAgent } = runtimeRequire('@midscene/web/playwright');
+    browserAutomationRuntime = { chromium, PlaywrightAgent };
+  }
+  return browserAutomationRuntime;
+}
+
 function createMidsceneAgent(page) {
+  const { PlaywrightAgent } = loadBrowserAutomationRuntime();
   return new PlaywrightAgent(page, { screenshotShrinkFactor: I10_MIDSCENE_SCREENSHOT_SHRINK_FACTOR });
 }
 
@@ -54,15 +64,15 @@ function stableJson(value) {
 }
 function sha256(value) { return crypto.createHash('sha256').update(value).digest('hex'); }
 
-async function closeWithinTimeout(closeOperation, timeoutMs = I10_BROWSER_CLOSE_TIMEOUT_MS) {
+async function closeWithinTimeout(closeOperation, timeoutMs = I10_BROWSER_CLOSE_TIMEOUT_MS, clock = globalThis) {
   let timer;
   try {
     await Promise.race([
       Promise.resolve().then(closeOperation).catch(() => undefined),
-      new Promise(resolve => { timer = setTimeout(resolve, timeoutMs); })
+      new Promise(resolve => { timer = clock.setTimeout(resolve, timeoutMs); })
     ]);
   } finally {
-    if (timer) clearTimeout(timer);
+    if (timer !== undefined) clock.clearTimeout(timer);
   }
 }
 
@@ -221,9 +231,45 @@ async function deriveDynamicLocator(page, location, options = {}) {
   const expectedTerms = Array.isArray(options.expectedTerms)
     ? options.expectedTerms.map(value => String(value || '').replace(/\s+/g, '').toLowerCase()).filter(Boolean).slice(0, 3)
     : [];
-  const result = await page.evaluate(({ x, y, expectedTerms, regionMatch }) => {
+  const result = await page.evaluate(({ x, y, expectedTerms, regionMatch, interactionMatch }) => {
     let node = document.elementFromPoint(x, y);
-    if (!(node instanceof HTMLElement)) return null;
+    if (!(node instanceof Element)) return null;
+    // Visual models often point at the icon or text node painted inside a
+    // control. Preserve the model-selected hit target, but promote that exact
+    // descendant to its nearest interactive ancestor before deriving a
+    // Playwright locator. This is deliberately not a document-wide lookup.
+    if (interactionMatch) {
+      let interactive = node.closest('a,button,input,select,textarea,[contenteditable="true"],[role="button"],[role="link"],[role="textbox"],[role="combobox"],[role="checkbox"],[role="radio"],[role="switch"]');
+      // A model coordinate can land on the painted text of an HTML label.
+      // Follow only that exact label's native control association; this keeps
+      // the visual hit as authority and does not search the document by a
+      // guessed field name or selector.
+      if (!(interactive instanceof HTMLElement)) {
+        const selectedLabel = node.closest('label');
+        interactive = selectedLabel?.control ||
+          (selectedLabel?.htmlFor ? document.getElementById(selectedLabel.htmlFor) : null);
+      }
+      // Input libraries often paint an affix wrapper around the real input.
+      // If Midscene hits the wrapper itself (not just a child icon), inspect
+      // that exact visual hit before walking its ancestors. Accept a control
+      // only when the bounded subtree contains one unambiguous interactive
+      // descendant. Stop at body so this can never become a page-wide lookup.
+      if (!(interactive instanceof HTMLElement)) {
+        for (let current = node; current instanceof HTMLElement && current !== document.body; current = current.parentElement) {
+          const nearbyControls = [...current.querySelectorAll('a,button,input,select,textarea,[contenteditable="true"],[role="button"],[role="link"],[role="textbox"],[role="combobox"],[role="checkbox"],[role="radio"],[role="switch"]')];
+          if (nearbyControls.length === 1) {
+            interactive = nearbyControls[0];
+            break;
+          }
+          if (nearbyControls.length > 1) break;
+        }
+      }
+      if (!(interactive instanceof HTMLElement)) return null;
+      node = interactive;
+    } else if (!(node instanceof HTMLElement)) {
+      node = node.parentElement;
+      if (!(node instanceof HTMLElement)) return null;
+    }
     // A visual assertion normally refers to a whole card/region, while the
     // model centre may fall on one of its values.  Inspect only the element
     // at Midscene's returned position and its own ancestors; never search
@@ -247,20 +293,34 @@ async function deriveDynamicLocator(page, location, options = {}) {
     const placeholder = node.getAttribute('placeholder');
     if (placeholder) return { kind: 'PLACEHOLDER', value: placeholder };
     const role = node.getAttribute('role') || ({ BUTTON: 'button', A: 'link', INPUT: 'textbox', SELECT: 'combobox' })[node.tagName];
-    const name = node.getAttribute('aria-label') || node.textContent?.trim();
-    if (role && name && name.length <= 160) return { kind: 'ROLE', value: `${role}|${name}` };
+    const explicitAccessibleName = String(node.getAttribute('aria-label') || '').replace(/\s+/g, ' ').trim();
+    // Browser accessible-name computation may reorder or omit nested React
+    // text nodes, so textContent is not a sound exact ROLE name. Use ROLE only
+    // when the hit element provides an explicit aria-label. Otherwise retain
+    // the exact Midscene-selected DOM element through the bounded structural
+    // CSS path below, and validate its visible evidence before execution.
+    if (role && explicitAccessibleName && explicitAccessibleName.length <= 160) {
+      return { kind: 'ROLE', value: `${role}|${explicitAccessibleName}` };
+    }
     if (id) return { kind: 'CSS', value: `#${CSS.escape(id)}` };
     const segments = [];
     let current = node;
-    while (current && current !== document.body && segments.length < 6) {
+    while (current && current !== document.body && segments.length < 24) {
       let segment = current.tagName.toLowerCase();
       const siblings = current.parentElement ? [...current.parentElement.children].filter(item => item.tagName === current.tagName) : [];
       if (siblings.length > 1) segment += `:nth-of-type(${siblings.indexOf(current) + 1})`;
       segments.unshift(segment);
       current = current.parentElement;
     }
+    if (current !== document.body || !segments.length) return null;
     return { kind: 'CSS', value: `body > ${segments.join(' > ')}` };
-  }, { x, y, expectedTerms, regionMatch: options.regionMatch === true });
+  }, {
+    x,
+    y,
+    expectedTerms,
+    regionMatch: options.regionMatch === true,
+    interactionMatch: options.interactionMatch === true
+  });
   if (!result) throw Object.assign(new Error('I10_DYNAMIC_LOCATOR_DERIVATION_FAILED'), { code: 'I10_DYNAMIC_LOCATOR_DERIVATION_FAILED' });
   return result;
 }
@@ -277,15 +337,17 @@ async function accessibleControlHint(page, maximum = 24) {
     const redact = value => normalize(value)
       .replace(/\b\d{4,}\b/g, '***')
       .slice(0, 96);
-    return [...document.querySelectorAll('a,button,select,input[type="button"],input[type="submit"],[role="button"]')]
+    return [...document.querySelectorAll('a,button,select,input:not([type="hidden"]),textarea,[contenteditable="true"],[role="button"],[role="textbox"],[role="combobox"]')]
       .map(node => {
         const element = /** @type {HTMLElement} */ (node);
         const tag = element.tagName.toLowerCase();
         const role = element.getAttribute('role') || tag;
-        const associatedLabel = element instanceof HTMLInputElement || element instanceof HTMLSelectElement
+        const associatedLabel = element instanceof HTMLInputElement || element instanceof HTMLSelectElement || element instanceof HTMLTextAreaElement
           ? [...element.labels || []].map(label => label.textContent || '').join(' ')
           : '';
-        const name = redact(element.getAttribute('aria-label') || element.getAttribute('title') || associatedLabel || element.textContent || element.getAttribute('value'));
+        const inputValueIsSafeLabel = element instanceof HTMLInputElement && ['button', 'submit', 'reset'].includes(String(element.type || '').toLowerCase());
+        const name = redact(element.getAttribute('aria-label') || element.getAttribute('title') || associatedLabel ||
+          element.getAttribute('placeholder') || element.textContent || (inputValueIsSafeLabel ? element.getAttribute('value') : ''));
         return name ? `${role}:${name}` : null;
       })
       .filter(Boolean)
@@ -300,20 +362,52 @@ function genericLocateInstruction(action) {
   // one visible *region* that carries those facts; Playwright then verifies
   // the region it receives. This is not a DOM-selector fallback: missing
   // visual evidence remains a failed authoring attempt.
-  if (action?.operation !== 'expectVisible') return '';
   const instruction = String(action.instruction || '').replace(/\s+/g, ' ').trim().slice(0, 240);
+  // Keep the visual prompt and the later Playwright term check on the same
+  // durable business noun. Controller prose may call a list/table an account
+  // "card", even when the rendered application correctly labels the region
+  // "账户列表". Repeating that invented presentation noun in the prompt makes
+  // Midscene search for text that cannot exist and contradicts
+  // genericActionTerms().
+  const visualInstruction = action?.operation === 'expectVisible'
+    ? instruction.replace(/(?:账户|账号)卡片/gu, '账户列表')
+    : instruction;
+  if (action?.operation === 'fill') {
+    return `\n当前动作需要填写字段：请在当前截图中定位“${instruction}”对应的可编辑输入控件本体中心。不要返回字段标签文字、表单卡片、容器边框或说明文字。`;
+  }
+  if (action?.operation === 'download') {
+    return '\n当前动作需要下载：请在当前截图中定位可点击的下载按钮或下载链接本体中心。标题、日期等相邻只读事实由Playwright另行验证；不要定位文档标题、日期文字、卡片或容器。';
+  }
+  if (action?.operation === 'click') {
+    if (/^(?:进入|打开|查看|前往).*(?:明细|详情)(?:页|页面)?$/u.test(instruction) &&
+        !/(?:提交|删除|转账|汇款|保存|确认|激活|创建|新增)/u.test(instruction)) {
+      return `\n当前动作需要进入具体记录的明细或详情：请定位能直接打开具体记录的卡片、行内按钮或明确的详情链接。不要定位只进入列表页的顶层导航链接；不要返回周围容器。`;
+    }
+    return `\n当前动作需要点击控件：请在当前截图中定位“${instruction}”对应的可点击按钮或链接本体中心。不要返回周围卡片、标题或说明文字。`;
+  }
+  if (action?.operation === 'select' || action?.operation === 'check' || action?.operation === 'upload') {
+    return `\n当前动作需要操作表单控件：请在当前截图中定位“${instruction}”对应的控件本体中心，不要返回标签或容器。`;
+  }
+  if (action?.operation !== 'expectVisible') return '';
+  if (/(?:主页|首页).*(?:与|和).*(?:个人资料|个人中心).*(?:姓名|名称|头像)/u.test(instruction)) {
+    return '\n当前动作是跨页面只读一致性断言：请在当前个人资料页截图中定位承载客户姓名或大头像的个人资料内容卡中心。不要定位顶部导航栏、页头小头像、客户菜单或“个人资料”导航链接；Playwright将对已记录的两页事实执行确定性比较。';
+  }
+  if (/(?:主页|首页).*(?:姓名|名称).*(?:头像)|(?:主页|首页).*(?:头像).*(?:姓名|名称)/u.test(instruction)) {
+    return '\n当前动作是主页身份区只读观察：请定位页面顶部或右上角同时承载当前用户姓名文本与头像视觉元素的身份区域中心。不要定位页面中央欢迎卡、品牌标题、导航链接或普通内容卡。';
+  }
   // Use the first named fact as the visual anchor. A phrase such as
   // “确认账户卡片、余额和账户状态正常显示” describes an assertion set, not
   // a single target. The card title is the one visual target, while the
   // generated Playwright assertion keeps the full fact set in scope.
-  const anchor = instruction
+  const anchor = visualInstruction
     .replace(/^(?:确认|验证|检查|查看|确保|查询)\s*[:：]?\s*/, '')
+    .replace(/^(?:显示|展示)\s*/, '')
     .replace(/(?:是否)?(?:正常)?(?:显示|一致|存在|正确).*$/, '')
     .split(/[、，,；;]/)[0]
     .trim()
     .slice(0, 80);
-  return instruction
-    ? `\n当前动作是只读视觉定位：请在当前截图中优先定位与“${anchor || instruction}”一致的标题或信息卡片；该卡片承载“${instruction}”所述事实。不要判断业务规则是否成立；只返回该信息区块的中心位置，不要定位导航或输入框。`
+  return visualInstruction
+    ? `\n当前动作是只读视觉定位：请在当前截图中优先定位与“${anchor || visualInstruction}”一致的标题或信息卡片；该卡片承载“${visualInstruction}”所述事实。不要判断业务规则是否成立；只返回该信息区块的中心位置，不要定位导航或输入框。`
     : '';
 }
 
@@ -324,6 +418,13 @@ function genericActionTerms(action) {
     if (/密码|password/i.test(instruction)) return ['密码'];
     if (/用户名|账号|账户|username|user name/i.test(instruction)) return ['用户名'];
   }
+  if (action.operation === 'select') {
+    const selection = instruction
+      .replace(/^按\s*/u, '')
+      .replace(/(?:进行)?(?:筛选|过滤|选择)$/u, '')
+      .trim();
+    if (selection.length >= 2) return [selection];
+  }
   if (action.operation === 'click') {
     if (/登录|login|sign[ _-]?in/i.test(instruction)) return ['登录'];
     const page = instruction.match(/(?:打开|进入|导航(?:至|到)?|前往)\s*(.+?(?:页|页面|中心|工作台|汇款)?)(?:$|[，,；;])/i)?.[1]?.trim();
@@ -332,14 +433,37 @@ function genericActionTerms(action) {
       // “个人资料页面”, while the rendered navigation label is simply
       // “个人资料”.  Normalize only this navigation presentation suffix:
       // mutation labels keep their literal text and remain fail-closed.
-      const navigationLabel = page.replace(/(?:页面|页)$/u, '').trim();
+      const navigationLabel = page
+        .replace(/(?:页面|页)$/u, '')
+        // “进入账户明细” commonly targets an account card whose accessible
+        // name contains the durable noun “账户”, while the destination URL
+        // and later assertions prove that the click reached the detail view.
+        // This applies only to the navigation branch; mutation labels below
+        // never pass through this normalization.
+        .replace(/(?:明细|详情)$/u, '')
+        .trim();
+      if (/^(?:转账汇款|汇款转账)$/u.test(navigationLabel)) return ['转账'];
       return [navigationLabel || page];
     }
   }
+  if (action.operation === 'download') return ['下载'];
   const compact = instruction
-    .replace(/^(?:确认|验证|检查|查看|确保|查询|打开|进入|导航(?:至|到)?)\s*[:：]?\s*/, '')
+    .replace(/^(?:确认|验证|检查|校验|核对|查看|确保|查询|打开|进入|导航(?:至|到)?)\s*[:：]?\s*/, '')
+    .replace(/^(?:显示|展示)\s*/, '')
     .replace(/(?:是否)?(?:正常)?(?:显示|一致|存在|正确).*$/, '');
-  const isCrossPageComparison = /(?:一致|相同|比较|对比)/u.test(instruction);
+  // A controller may omit punctuation between several read-only document
+  // facts ("标题日期下载入口"). That is an assertion set, not one literal DOM
+  // label. Anchor the first visible fact and let the Playwright assertion
+  // validate the complete surrounding region selected by the visual model.
+  if (action.operation === 'expectVisible' && /标题.*日期.*下载入口/u.test(compact) && !/[、，,；;]/u.test(compact)) {
+    return ['标题'];
+  }
+  const listThenInspect = action.operation === 'expectVisible'
+    ? compact.match(/^(.+?)(?:列表|清单)(?:并核对|并确认|并检查|并验证|并查看|且核对|且确认|以及核对)/u)
+    : null;
+  if (listThenInspect?.[1]?.trim()) return [listThenInspect[1].trim()];
+  const isCrossPageComparison = /(?:一致|相同|比较|对比)/u.test(instruction) ||
+    /(?:主页|首页).*(?:与|和).*(?:个人资料|个人中心).*(?:姓名|名称|头像)/u.test(instruction);
   const terms = compact.split(/[、，,；;]|(?:以及|并且|且|及|和)/)
     .map(value => value.trim())
     // "查看收款人列表" normally refers to a page region whose visible heading
@@ -358,9 +482,23 @@ function genericActionTerms(action) {
           .replace(/^(?:一|某|任意)?份/u, '')
           .replace(/(?:页面)?(?:显示)?(?:列表|清单|详情)$/u, '')
           .replace(/页面$/u, '')
+          // A generated read-only intent may call a table/card collection
+          // "账户卡片", while the live application exposes durable labels
+          // such as "账户列表" and "可用余额".  Anchor the business noun;
+          // Playwright still validates balance and status in the selected
+          // surrounding region.
+          .replace(/(?:账户|账号)卡片/gu, '账户列表')
+          // A read-only assertion names the semantic fact as "文档下载入口",
+          // while the actual interactive affordance is commonly labelled
+          // only "下载".  Midscene locates that visible affordance and
+          // Playwright retains the full surrounding assertion.  Keep this
+          // normalization inside expectVisible only; mutation operations
+          // continue to require their literal labels.
+          .replace(/^(?:文档|文件|报告)?下载入口$/u, '下载')
           .replace(/(?:文档|文件|报告)标题$/u, match => match.replace(/标题$/u, ''))
           .replace(/(?:账户|账号)掩码/gu, '账户')
           .replace(/(?:正确|正常)(?:展示|显示)?$/u, '')
+          .replace(/(?:清晰)?可读$/u, '')
           .replace(/(?:展示|显示)$/u, '')
           .trim();
         // A cross-page comparison (for example, homepage versus profile
@@ -405,9 +543,48 @@ function requiresVisualLocator(action) {
   ].includes(String(action?.operation || ''));
 }
 
+function requiresInteractiveLocator(action) {
+  return ['click', 'fill', 'select', 'check', 'upload', 'download'].includes(String(action?.operation || ''));
+}
+
+function identityEvidenceMatches(action, evidence) {
+  const crossPageIdentityAction = action.operation === 'expectVisible' &&
+    /(?:主页|首页).*(?:与|和).*(?:个人资料|个人中心).*(?:姓名|名称|头像)/u.test(String(action.instruction || ''));
+  const identityRegionAction = action.operation === 'expectVisible' &&
+    /(?:主页|首页).*(?:姓名|名称).*(?:头像)|(?:主页|首页).*(?:头像).*(?:姓名|名称)/u.test(String(action.instruction || ''));
+  if (crossPageIdentityAction) return evidence.identityVisual || /(?:姓名|名称)/u.test(String(evidence.text || ''));
+  if (identityRegionAction) return evidence.identityVisual && String(evidence.text || '').trim().length > 0;
+  return null;
+}
+
+function genericEvidenceMatchesTerms(action, evidenceText, terms = genericActionTerms(action)) {
+  const normalized = String(evidenceText || '').replace(/\s+/g, '').toLowerCase();
+  // Generic applications often label the row/card affordance simply “查看”
+  // even when the controller describes the read-only navigation as “进入账户
+  // 明细页面”. Accept that presentation equivalence only for a click whose
+  // approved instruction explicitly enters/opens a detail view. Mutation
+  // clicks (submit, delete, transfer, save, confirm) retain literal matching.
+  if (action?.operation === 'click' &&
+      /^(?:进入|打开|查看|前往).*(?:明细|详情)(?:页|页面)?$/u.test(String(action?.instruction || '').trim()) &&
+      !/(?:提交|删除|转账|汇款|保存|确认|激活|创建|新增)/u.test(String(action?.instruction || '')) &&
+      /(?:查看|详情|明细)/u.test(normalized)) return true;
+  // A document-query observation may legitimately resolve to the concrete
+  // document title (for example "七月电子对账单") rather than a container that
+  // literally repeats the word "文档". Bound this equivalence to read-only
+  // observation on the documents route; Playwright still validates the full
+  // title/date/download assertion set after the visual proposal.
+  if (action?.operation === 'expectVisible' && /查询.*(?:文档|文件|对账单)|(?:文档|文件|对账单).*查询/iu.test(String(action?.instruction || ''))) {
+    return /文档|文件|对账单|statement/iu.test(normalized);
+  }
+  return terms.every(term => normalized.includes(String(term).replace(/\s+/g, '').toLowerCase()));
+}
+
 async function genericLocatorMatchesAction(page, locatorProposal, action) {
   const terms = genericActionTerms(action);
-  if (!terms.length) return false;
+  const readOnlyDetailNavigation = isReadOnlyDetailNavigation(action);
+  const identityMatch = identityEvidenceMatches(action, {});
+  const identityRegionAction = identityMatch !== null;
+  if (!terms.length && !identityRegionAction) return false;
   const candidate = dynamicLocator(page, locatorProposal);
   await candidate.waitFor({ state: 'visible', timeout: 15_000 });
   const evidence = await candidate.evaluate(node => {
@@ -420,12 +597,21 @@ async function genericLocatorMatchesAction(page, locatorProposal, action) {
     const role = normalize(element.getAttribute('role'));
     const type = normalize(element.getAttribute('type')).toLowerCase();
     return {
+      tagName,
       text: normalize([
       element.getAttribute('aria-label'), element.getAttribute('title'),
       label, wrappingLabel, element.textContent, element.getAttribute('placeholder'), element.getAttribute('value')
       ].filter(Boolean).join(' ')),
+      regionText: normalize(element.closest('section,article,[role="region"],[class*="card" i]')?.textContent || ''),
       clickable: tagName === 'button' || tagName === 'a' || role === 'button' ||
-        (tagName === 'input' && ['button', 'submit', 'reset', 'image'].includes(type))
+        (tagName === 'input' && ['button', 'submit', 'reset', 'image'].includes(type)),
+      editable: tagName === 'textarea' || element.isContentEditable ||
+        (tagName === 'input' && !['button', 'submit', 'reset', 'image', 'checkbox', 'radio', 'file', 'hidden'].includes(type)),
+      selectable: tagName === 'select' || role === 'combobox' || role === 'listbox',
+      checkable: (tagName === 'input' && ['checkbox', 'radio'].includes(type)) ||
+        role === 'checkbox' || role === 'radio' || role === 'switch',
+      uploadable: tagName === 'input' && type === 'file'
+      ,identityVisual: Boolean(element.matches('img,svg,[class*="avatar" i]') || element.querySelector('img,svg,[class*="avatar" i]'))
     };
   });
   // A visual proposal for a click must resolve to an interactive control. A
@@ -433,8 +619,36 @@ async function genericLocatorMatchesAction(page, locatorProposal, action) {
   // input, leaving the browser on the login page. This validates Midscene's
   // observation and then retries it; it is not a DOM-selector fallback.
   if (action.operation === 'click' && !evidence.clickable) return false;
-  const normalized = String(evidence.text || '').replace(/\s+/g, '').toLowerCase();
-  return terms.every(term => normalized.includes(String(term).replace(/\s+/g, '').toLowerCase()));
+  const detailEvidenceMatch = readOnlyDetailLocatorEvidence(action, evidence, terms);
+  if (detailEvidenceMatch !== null) return detailEvidenceMatch;
+  if (action.operation === 'fill' && !evidence.editable) return false;
+  if (action.operation === 'select' && !evidence.selectable) return false;
+  if (action.operation === 'check' && !evidence.checkable) return false;
+  if (action.operation === 'upload' && !evidence.uploadable) return false;
+  if (action.operation === 'download' && !evidence.clickable) return false;
+  const evaluatedIdentityMatch = identityEvidenceMatches(action, evidence);
+  if (evaluatedIdentityMatch !== null) return evaluatedIdentityMatch;
+  return genericEvidenceMatchesTerms(action,
+    action.operation === 'expectVisible' || readOnlyDetailNavigation
+      ? `${evidence.text} ${evidence.regionText}`
+      : evidence.text,
+    terms);
+}
+
+function isReadOnlyDetailNavigation(action) {
+  const instruction = String(action?.instruction || '').trim();
+  return action?.operation === 'click' &&
+    /^(?:进入|打开|查看|前往).*(?:明细|详情)(?:页|页面)?$/u.test(instruction) &&
+    !/(?:提交|删除|转账|汇款|保存|确认|激活|创建|新增)/u.test(instruction);
+}
+
+function readOnlyDetailLocatorEvidence(action, evidence, terms = genericActionTerms(action)) {
+  if (!isReadOnlyDetailNavigation(action)) return null;
+  const normalizedText = String(evidence?.text || '').replace(/\s+/g, '').toLowerCase();
+  const exactListNavigation = evidence?.tagName === 'a' && terms
+    .some(term => normalizedText === String(term).replace(/\s+/g, '').toLowerCase());
+  if (exactListNavigation || /(?:提交|删除|转账|汇款|保存|确认|激活|创建|新增)/u.test(normalizedText)) return false;
+  return evidence?.clickable === true && ['a', 'button'].includes(String(evidence?.tagName || '').toLowerCase());
 }
 
 function dynamicLocator(page, item) {
@@ -559,6 +773,11 @@ async function executeI10MidsceneCandidate(claim, credential, options={}) {
   const allowedNavigationOrigins = new Set(generic
     ? (claim.plan.targetProfileSnapshot?.allowedNavigationOrigins || [])
     : [portal.origin]);
+  if (generic) {
+    for (const origin of allowedNavigationOrigins) {
+      await assertTargetUrlResolution(origin, claim.plan.targetProfileSnapshot);
+    }
+  }
   process.env.MIDSCENE_RUN_DIR ||= path.join(productRoot, '.data', 'midscene-runs');
   // A task that explicitly allows human external confirmation starts in a
   // recoverable visible context.  Normal cases remain headless and never ask
@@ -569,7 +788,12 @@ async function executeI10MidsceneCandidate(claim, credential, options={}) {
   const requiresVisibleHandoff = claim.plan.actions.some(action =>
     ['AUTO_PERSISTED_UKEY', 'EXTERNAL_CONFIRM_REQUIRED'].includes(action?.verificationPolicy?.mode)
   );
-  const browser = await chromium.launch({ headless: !requiresVisibleHandoff, executablePath: path.join(productRoot, 'runtime', manifest.chromium.executable) });
+  const { chromium } = loadBrowserAutomationRuntime();
+  const browser = await chromium.launch({
+    headless: !requiresVisibleHandoff,
+    executablePath: path.join(productRoot, 'runtime', manifest.chromium.executable),
+    ...(generic ? { args: [chromiumHostResolverRules(claim.plan.targetProfileSnapshot)] } : {})
+  });
   const context = await browser.newContext({ locale: 'zh-CN', timezoneId: 'Asia/Shanghai', viewport: { width: 1440, height: 900 } });
   const page = await context.newPage();
   const records = [];
@@ -709,7 +933,8 @@ async function executeI10MidsceneCandidate(claim, credential, options={}) {
             try {
               genericLocatorProposal = await deriveDynamicLocator(page, location, {
                 expectedTerms: genericActionTerms(action),
-                regionMatch: action.operation === 'expectVisible'
+                regionMatch: action.operation === 'expectVisible',
+                interactionMatch: requiresInteractiveLocator(action)
               });
               if (await genericLocatorMatchesAction(page, genericLocatorProposal, action)) break;
             } catch (error) {
@@ -947,8 +1172,13 @@ module.exports = {
   deriveDynamicLocator,
   accessibleControlHint,
   genericActionTerms,
+  genericEvidenceMatchesTerms,
+  readOnlyDetailLocatorEvidence,
+  genericLocateInstruction,
   requiresVisualLocator,
   genericLocatorMatchesAction,
+  identityEvidenceMatches,
+  requiresInteractiveLocator,
   withMidsceneLocateTimeout,
   I10_MIDSCENE_LOCATE_TIMEOUT_MS,
   I10_MIDSCENE_SCREENSHOT_SHRINK_FACTOR,

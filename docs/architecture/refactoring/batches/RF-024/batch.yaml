@@ -1,0 +1,22 @@
+schemaVersion: 1
+id: RF-024
+title: CLI fresh Journey bootstrap and L1 LIVE cutover
+status: PROPOSED
+owner: project-owner
+authorizedBy: agent/plans/active/v54-implementation-batches.md
+scope:
+  includePaths: [platform/hengzhun-regression-system/agent-cli, platform/hengzhun-regression-system/controller, platform/hengzhun-regression-system/scripts/i10-agent-lifecycle.cjs, platform/hengzhun-regression-system/scripts/i10-agent-l1-live.cjs, platform/hengzhun-regression-system/scripts/verification, platform/hengzhun-regression-system/package.json, docs/architecture/refactoring/batches/RF-024, docs/architecture/refactoring/module-boundaries-v1.yaml, agent/backlog.yaml, agent/plans/active/v54-implementation-batches.md, agent/plans/active/hengzhun-i10-cli-agent-task-packages-v1.yaml, agent/plans/active/hengzhun-i10-agcli-tp06-terminal-ui-task-package.md, agent/plans/active/hengzhun-i10-agcli-tp08-offline-integration-gates-task-package.md, agent/plans/active/hengzhun-i10-agcli-tp09-l1-live-task-package.md]
+  excludePaths: [platform/hengzhun-regression-system/flowise/app, platform/hengzhun-regression-system/flowise/i10/agentflow-v7.json, apps, services, infra]
+budgets: {maxChangedFiles: 40, maxNewFiles: 20, maxChangedLines: 6500, maxContractsChanged: 4, maxMigrationsAdded: 0, maxOpenModules: 2}
+baseline: {gitCommit: 9d79b7c1e6cfedd995093cc7a378dc8e9218fa98, dirtyTreeManifest: docs/architecture/refactoring/batches/RF-024/baseline.md, releaseIdentity: 45f1b93707f55ebe9a13e1fe6e23f0f565348b66b93b9c231d01e9abcd3ed60b, capturedAt: "2026-08-26T20:00:00+08:00"}
+architecture: {businessCapability: cli-l1-live-cutover, publicContract: platform/hengzhun-regression-system/agent-cli/src/production-service.mjs, dependencyManifest: docs/architecture/refactoring/module-boundaries-v1.yaml, allowedModules: [hengzhun.agent-cli, hengzhun.controller], forbiddenModules: [hengzhun.flowise]}
+mustPreserve: [fresh run creates no Journey before exact approval, bootstrap proposal is LOW and encrypted, approval invokes journey_prepare once, session rebind occurs once before any checkpoint, TUI delegates to the production service and never owns business state, follow-up forks a new encrypted thread on the same Journey, unresolved approval cannot be bypassed, evidence is a pure bounded Journey read without download grants, credential enrollment is a typed non-Journey operation, credential enrollment requires HIGH exact approval and invokes credential_session_create at most once, capture URL and token are never persisted or emitted, normal lifecycle excludes Flowise, configured model creates a new bound v4 identity, TEXT_ONLY precedes TEXT_WITH_IMAGE, first deterministic failure stops, same identity public readback is required, L1 never implies 18/18]
+verification:
+  requiredCommands:
+    - {name: bootstrap-integration, command: "runtime/node-v24.19.0-win-x64/node.exe --test agent-cli/test/offline-integration.test.mjs", expectedExitCode: 0, evidence: docs/architecture/refactoring/batches/RF-024/evidence-index.md, blocking: true}
+    - {name: session-rebind, command: "runtime/node-v20.20.2-win-x64/node.exe --test controller/test/session-store.test.mjs", expectedExitCode: 0, evidence: docs/architecture/refactoring/batches/RF-024/evidence-index.md, blocking: true}
+    - {name: registered-suite, command: "npm run test:registered", expectedExitCode: 0, evidence: docs/architecture/refactoring/batches/RF-024/evidence-index.md, blocking: true}
+    - {name: l1-live, command: "runtime/node-v24.19.0-win-x64/node.exe scripts/i10-agent-l1-live.cjs run", expectedExitCode: 0, evidence: docs/architecture/refactoring/batches/RF-024/evidence-index.md, blocking: true}
+    - {name: governance, command: "py -3 scripts/architecture/validate_refactoring.py --batch RF-024", expectedExitCode: 0, evidence: docs/architecture/refactoring/batches/RF-024/evidence-index.md, blocking: true}
+rollback: {triggerConditions: [bootstrap writes before approval, session rebind after checkpoint, Journey identity is inferred, Flowise enters normal lifecycle, variant order changes, deterministic failure is retried], recoveryPoint: RF-023 closed state, maxRtoMinutes: 20, maxRpoMinutes: 0}
+exceptions: {allowedVagueNames: [], crossModule: [S1 uses the governed journey_prepare MCP mutator and Harness Journey authority; S2 may start only the registered normal services under exact LIVE authorization]}

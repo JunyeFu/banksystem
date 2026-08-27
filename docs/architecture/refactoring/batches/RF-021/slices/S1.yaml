@@ -1,0 +1,9 @@
+id: RF-021-S1
+title: Terminal user interface
+status: COMPLETED
+allowedPaths: [platform/hengzhun-regression-system/agent-cli, platform/hengzhun-regression-system/scripts/verification, docs/architecture/refactoring/batches/RF-021, docs/architecture/refactoring/module-boundaries-v1.yaml, agent/backlog.yaml, agent/plans/active/v54-implementation-batches.md, agent/plans/active/hengzhun-i10-cli-agent-task-packages-v1.yaml, agent/plans/active/hengzhun-i10-agcli-tp06-terminal-ui-task-package.md]
+forbiddenPaths: [platform/hengzhun-regression-system/.data, platform/hengzhun-regression-system/flowise, platform/hengzhun-regression-system/harness, platform/hengzhun-regression-system/mcp, platform/hengzhun-regression-system/worker, platform/hengzhun-regression-system/controller]
+workSteps: [lock pi-tui dependency, implement pure reducer and intents, implement bounded layout and modal, add snapshots and fake terminal, verify offline]
+verification: [Node24 TUI matrix exits 0, registered product suite exits 0, governance exits 0]
+rollback: restore only RF-021 changed paths to recorded dirty baseline
+evidence: docs/architecture/refactoring/batches/RF-021/evidence-index.md

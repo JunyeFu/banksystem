@@ -1,0 +1,9 @@
+id: RF-017-S1
+title: Deterministic JSON Controller v2
+status: COMPLETED
+allowedPaths: [platform/hengzhun-regression-system/controller, platform/hengzhun-regression-system/scripts/verification, docs/architecture/refactoring/batches/RF-017, docs/architecture/refactoring/module-boundaries-v1.yaml, agent/backlog.yaml, agent/plans/active/v54-implementation-batches.md, agent/plans/active/hengzhun-i10-cli-agent-task-packages-v1.yaml, agent/plans/active/hengzhun-i10-agcli-tp02-controller-v2-task-package.md]
+forbiddenPaths: [platform/hengzhun-regression-system/.data, platform/hengzhun-regression-system/flowise, platform/hengzhun-regression-system/harness, platform/hengzhun-regression-system/mcp, platform/hengzhun-regression-system/worker, platform/hengzhun-regression-system/agent-cli]
+workSteps: [freeze v2 schemas and risk policy, implement deterministic prefetch JSON graph, validate transitions and frozen approval, verify replay conflicts and readback]
+verification: [controller v2 matrix exits 0, controller regression exits 0, registered impact exits 0, governance exits 0]
+rollback: restore only RF-017 changed paths to recorded dirty baseline
+evidence: docs/architecture/refactoring/batches/RF-017/evidence-index.md

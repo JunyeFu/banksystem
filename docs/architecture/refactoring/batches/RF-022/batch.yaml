@@ -1,0 +1,20 @@
+schemaVersion: 1
+id: RF-022
+title: CLI lifecycle and ReleaseIdentity v4
+status: CLOSED
+owner: project-owner
+authorizedBy: agent/plans/active/v54-implementation-batches.md
+scope:
+  includePaths: [platform/hengzhun-regression-system/agent-cli, platform/hengzhun-regression-system/controller, platform/hengzhun-regression-system/config, platform/hengzhun-regression-system/scripts, platform/hengzhun-regression-system/package.json, docs/architecture/refactoring/batches/RF-022, docs/architecture/refactoring/module-boundaries-v1.yaml, agent/backlog.yaml, agent/plans/active/v54-implementation-batches.md, agent/plans/active/hengzhun-i10-cli-agent-task-packages-v1.yaml, agent/plans/active/hengzhun-i10-agcli-tp07-lifecycle-release-v4-task-package.md]
+  excludePaths: [platform/hengzhun-regression-system/.data, platform/hengzhun-regression-system/flowise/app, platform/hengzhun-regression-system/flowise/i10/agentflow-v7.json, platform/hengzhun-regression-system/harness/src, platform/hengzhun-regression-system/mcp/src, platform/hengzhun-regression-system/worker/src, apps, services, infra]
+budgets: {maxChangedFiles: 24, maxNewFiles: 16, maxChangedLines: 3000, maxContractsChanged: 3, maxMigrationsAdded: 0, maxOpenModules: 2}
+baseline: {gitCommit: 9d79b7c1e6cfedd995093cc7a378dc8e9218fa98, dirtyTreeManifest: docs/architecture/refactoring/batches/RF-022/baseline.md, releaseIdentity: fda94df59b0b9cc05eb156d6d9092a694a84eaa0b96f91552b086dedd4474334, capturedAt: "2026-08-26T17:30:00+08:00"}
+architecture: {businessCapability: cli-normal-lifecycle-release-v4, publicContract: platform/hengzhun-regression-system/agent-cli/release-identity-v4-manifest.json, dependencyManifest: docs/architecture/refactoring/module-boundaries-v1.yaml, allowedModules: [hengzhun.agent-cli, hengzhun.controller], forbiddenModules: [hengzhun.flowise]}
+mustPreserve: [normal profile never starts Flowise, unexpected Flowise blocks write readiness, Node24 CLI source locks schemas policies prompts and lifecycle enter v4, secrets and user data excluded, v1-v3 evidence never equals v4, cold rollback requires separate explicit authorization, no service mutation LIVE or publication]
+verification:
+  requiredCommands:
+    - {name: lifecycle-identity-matrix, command: "runtime/node-v24.19.0-win-x64/node.exe --test agent-cli/test/release-lifecycle.test.mjs", expectedExitCode: 0, evidence: docs/architecture/refactoring/batches/RF-022/evidence-index.md, blocking: true}
+    - {name: registered-suite, command: "npm run test:registered", expectedExitCode: 0, evidence: docs/architecture/refactoring/batches/RF-022/evidence-index.md, blocking: true}
+    - {name: governance, command: "py -3 scripts/architecture/validate_refactoring.py --batch RF-022", expectedExitCode: 0, evidence: docs/architecture/refactoring/batches/RF-022/evidence-index.md, blocking: true}
+rollback: {triggerConditions: [Flowise in normal service order, identity misses governed byte, secret or data enters identity, legacy evidence compares equal, cold rollback shares normal switch], recoveryPoint: RF-021 closed state, maxRtoMinutes: 20, maxRpoMinutes: 0}
+exceptions: {allowedVagueNames: [], crossModule: [Release calculator projects existing Harness MCP Worker code sets read-only; their source is forbidden]}

@@ -1,0 +1,76 @@
+schemaVersion: 1
+id: RF-011
+title: Inactive bounded AgentController kernel
+status: CLOSED
+owner: project-owner
+authorizedBy: agent/plans/active/v54-implementation-batches.md
+scope:
+  includePaths:
+    - platform/hengzhun-regression-system/controller
+    - docs/architecture/refactoring/batches/RF-011
+    - agent/backlog.yaml
+    - agent/plans/active/v54-implementation-batches.md
+    - agent/plans/active/hengzhun-i10-langgraph-deepagents-controller-migration-task-package.md
+    - agent/plans/active/hengzhun-i10-tp00-change-inventory-v1.json
+  excludePaths:
+    - platform/hengzhun-regression-system/.data
+    - platform/hengzhun-regression-system/flowise
+    - platform/hengzhun-regression-system/harness
+    - platform/hengzhun-regression-system/mcp
+    - platform/hengzhun-regression-system/worker
+    - platform/hengzhun-regression-system/package.json
+    - platform/hengzhun-regression-system/package-lock.json
+    - apps
+    - services
+    - infra
+    - secrets
+    - .env
+budgets:
+  maxChangedFiles: 24
+  maxNewFiles: 16
+  maxChangedLines: 2800
+  maxContractsChanged: 0
+  maxMigrationsAdded: 0
+  maxOpenModules: 2
+baseline:
+  gitCommit: 9d79b7c1e6cfedd995093cc7a378dc8e9218fa98
+  dirtyTreeManifest: docs/architecture/refactoring/batches/RF-011/baseline.md
+  releaseIdentity: 02ae6b18ed678415488db431f1c271ec258ec6475a1414864731d495a8d81dc4
+  capturedAt: "2026-08-25T10:28:00+08:00"
+architecture:
+  businessCapability: inactive-agent-controller-kernel
+  publicContract: agent/plans/active/hengzhun-i10-langgraph-deepagents-controller-migration-task-package.md
+  dependencyManifest: docs/architecture/refactoring/module-boundaries-v1.yaml
+  allowedModules: [governance.refactoring, hengzhun.controller]
+  forbiddenModules: [hengzhun.flowise, hengzhun.harness, hengzhun.mcp, hengzhun.worker, bank.identity, bank.accounts, bank.payments]
+mustPreserve:
+  - AgentController remains inactive and receives only injected synthetic ports in tests.
+  - Deep Agents sees one governed read broker whose tool name is constrained to the 11 READ_ONLY tools.
+  - Only the deterministic graph mutation node can invoke the injected mutation port.
+  - Checkpoint state cannot override authoritative Harness version or hash.
+  - Product runtime, publication, ReleaseIdentity and ledger remain unchanged.
+verification:
+  requiredCommands:
+    - name: agent-kernel-tests
+      command: runtime/node-v20.20.2-win-x64/node.exe --test test/agent-controller-kernel.test.mjs
+      expectedExitCode: 0
+      evidence: docs/architecture/refactoring/batches/RF-011/evidence-index.md
+      blocking: true
+    - name: controller-audit
+      command: runtime/node-v24.19.0-win-x64/npm.cmd --prefix controller audit --omit=dev --json
+      expectedExitCode: 0
+      evidence: docs/architecture/refactoring/batches/RF-011/evidence-index.md
+      blocking: true
+    - name: refactoring-governance
+      command: py -3 scripts/architecture/validate_refactoring.py --batch RF-011
+      expectedExitCode: 0
+      evidence: docs/architecture/refactoring/batches/RF-011/evidence-index.md
+      blocking: true
+rollback:
+  triggerConditions: [planner sees mutating tool, non-deterministic mutation invocation, authority conflict writes, secret or host capability exposure, product identity drift]
+  recoveryPoint: RF-010 closed state plus removal of inactive RF-011 kernel files
+  maxRtoMinutes: 15
+  maxRpoMinutes: 0
+exceptions:
+  allowedVagueNames: []
+  crossModule: []

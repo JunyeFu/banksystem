@@ -94,6 +94,39 @@ async function main() {
     method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ captureToken: token, username, password })
   });
   if (!/^credential_[0-9a-f-]{36}$/.test(String(stored.credentialRef))) fail('I10_L1_CREDENTIAL_STORE_INVALID');
+  // The authoring contract requires an exact ACTIVE TargetProfile bound to
+  // the newly captured credential. This bootstrap owns both the loopback
+  // fixture and the one-time credential, so freeze and explicitly approve
+  // that exact pair before the Flowise journey starts.
+  const targetProfile = await request('http://127.0.0.1:18788/v1/i10/target-profiles:prepare', {
+    method: 'POST',
+    headers: { authorization: `Bearer ${serviceToken}`, 'content-type': 'application/json' },
+    body: JSON.stringify({
+      namespace: 'hengzhun-local',
+      idempotencyKey: `i10-l1-profile-${crypto.randomUUID()}`,
+      sessionRef: `i10-l1-${crypto.randomUUID()}`,
+      displayName: 'L1受控门户',
+      launchUrl: `${portalUrl}/portal/login`,
+      credentialRef: stored.credentialRef,
+      tlsPolicy: 'STRICT'
+    })
+  });
+  if (!/^targetprofile_[0-9a-f-]{36}$/.test(String(targetProfile.targetProfileId)) || !Number.isInteger(targetProfile.version)) {
+    fail('I10_L1_TARGET_PROFILE_PREPARE_INVALID');
+  }
+  const activatedProfile = await request('http://127.0.0.1:18788/v1/i10/target-profiles:decide', {
+    method: 'POST',
+    headers: { authorization: `Bearer ${serviceToken}`, 'content-type': 'application/json' },
+    body: JSON.stringify({
+      namespace: 'hengzhun-local',
+      idempotencyKey: `i10-l1-profile-decision-${crypto.randomUUID()}`,
+      targetProfileId: targetProfile.targetProfileId,
+      expectedVersion: targetProfile.version,
+      decision: 'APPROVE',
+      confirmationRef: `i10-l1-${crypto.randomUUID()}`
+    })
+  });
+  if (activatedProfile.status !== 'ACTIVE') fail('I10_L1_TARGET_PROFILE_ACTIVATION_FAILED');
   const prior = JSON.parse(fs.readFileSync(scenarioPath, 'utf8'));
   fs.writeFileSync(scenarioPath, `${JSON.stringify({ ...prior, credentialRef: stored.credentialRef, portalUrl, failureControlUrl: portalUrl }, null, 2)}\n`, 'utf8');
   fs.writeFileSync(path.join(root, '.data', 'tests', 'i10-stage8-live', 'l1-bootstrap.json'), `${JSON.stringify({ schemaVersion: 'hengzhun-i10-l1-bootstrap-v1', portalPid: child.pid, portalUrl, createdAt: new Date().toISOString() }, null, 2)}\n`, 'utf8');

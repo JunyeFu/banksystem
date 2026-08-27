@@ -1,23 +1,45 @@
 'use strict'
 
 const assert = require('node:assert/strict')
+const fs = require('node:fs')
+const path = require('node:path')
 const test = require('node:test')
+const root = path.resolve(__dirname, '..', '..')
 
 const {
+  authoringFailedTerminal,
   authoringProcessingPending,
   ingestProcessingPending,
   journeyProcessingPending,
   stopped,
+  attachmentIngestTransitionPending,
+  attachmentTargetTransitionPending,
+  attachmentJourneyTransitionPending,
   isolatedJourneyTransitionPending,
   crossSessionProposalDecisionPending,
   crossSessionToolContinuationPending,
   latestOpaqueId,
+  authoritativeJourneyId,
+  authoritativeScheduleId,
   findOnDemandInboxItem,
   findScheduledInboxItem,
   findTaskTerminal,
   requireOnDemandTerminalEvidence,
-  retryablePredictionStatus
+  retryablePredictionStatus,
+  predictionRetryDecision,
+  safePredictionFailure
 } = require('../i10-stage8-live.cjs')
+
+test('cross-session authoring failure is a failed terminal, never a missing schedule', () => {
+  assert.equal(authoringFailedTerminal({
+    text: '## 作者化已失败',
+    agentFlowExecutedData: [{
+      nodeId: 'directReplyAgentflow_i10_v7_cross_session_authoring_failed',
+      status: 'FINISHED'
+    }]
+  }), true)
+  assert.equal(authoringFailedTerminal({ text: '作者化仍在处理中', agentFlowExecutedData: [] }), false)
+})
 
 const taskId = 'task_11111111-1111-4111-8111-111111111111'
 const runId = 'run_22222222-2222-4222-8222-222222222222'
@@ -247,4 +269,156 @@ test('only transient server failures are eligible for read-only prediction retry
   assert.equal(retryablePredictionStatus(503), true)
   assert.equal(retryablePredictionStatus(400), false)
   assert.equal(retryablePredictionStatus(401), false)
+})
+
+test('recognizes every governed attachment continuation boundary', () => {
+  const body = nodeId => ({ agentFlowExecutedData: [{ nodeId, status: 'SUCCEEDED' }] })
+  assert.equal(attachmentIngestTransitionPending(body('directReplyAgentflow_i10_v6_attachment_ingest_confirmed')), true)
+  assert.equal(attachmentTargetTransitionPending(body('directReplyAgentflow_i10_v6_attachment_target_profile_ready')), true)
+  assert.equal(attachmentJourneyTransitionPending(body('directReplyAgentflow_i10_v6_attachment_journey_ready')), true)
+  assert.equal(attachmentJourneyTransitionPending(body('directReplyAgentflow_result')), false)
+})
+
+test('prefers the newest repair rerun terminal over an older failed task in one cumulative response', () => {
+  const failedTaskId = 'task_aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa'
+  const repairedTaskId = 'task_bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb'
+  const repairedRunId = 'run_cccccccc-cccc-4ccc-8ccc-cccccccccccc'
+  const repairedInboxId = 'inbox_dddddddd-dddd-4ddd-8ddd-dddddddddddd'
+  const repairedArtifactId = 'art_eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee'
+  const transcript = [{
+    output: {
+      history: [{
+        taskId: failedTaskId,
+        runId: 'run_ffffffff-ffff-4fff-8fff-ffffffffffff',
+        status: 'FAILED',
+        updatedAt: '2026-08-13T00:58:20.414Z'
+      }, {
+        taskId: repairedTaskId,
+        runId: repairedRunId,
+        status: 'SUCCEEDED',
+        outcome: 'PASSED',
+        resultArtifactId: repairedArtifactId,
+        updatedAt: '2026-08-13T00:59:11.295Z'
+      }, {
+        taskId: repairedTaskId,
+        runId: repairedRunId,
+        inboxId: repairedInboxId,
+        executionMode: 'ON_DEMAND',
+        outcome: 'PASSED',
+        artifact: { artifactId: repairedArtifactId }
+      }]
+    }
+  }]
+
+  assert.equal(
+    requireOnDemandTerminalEvidence(transcript, '修复复跑已结束').taskId,
+    repairedTaskId
+  )
+})
+
+test('target-profile resume prefers the authoritative projected Journey over stale trailing state', () => {
+  const oldJourneyId = 'journey_11111111-1111-4111-8111-111111111111'
+  const newJourneyId = 'journey_22222222-2222-4222-8222-222222222222'
+  const body = {
+    agentFlowExecutedData: [{
+      nodeId: 'customFunctionAgentflow_i10_v6_post_target_journey_projection_cross_session',
+      data: { output: { journeyId: newJourneyId }, state: { journeyId: oldJourneyId } }
+    }, {
+      nodeId: 'directReplyAgentflow_i10_v6_target_profile_transition_cross_session',
+      data: { state: { journeyId: oldJourneyId } }
+    }]
+  }
+  assert.equal(latestOpaqueId([body], 'journey'), oldJourneyId)
+  assert.equal(authoritativeJourneyId(body), newJourneyId)
+})
+
+test('scheduled terminal handling prefers the authoritative created schedule over stale transcript ids', () => {
+  const oldScheduleId = 'schedule_11111111-1111-4111-8111-111111111111'
+  const newScheduleId = 'schedule_22222222-2222-4222-8222-222222222222'
+  const transcript = [{ text: oldScheduleId }, {
+    agentFlowExecutedData: [{
+      nodeId: 'toolAgentflow_i10_v6_cross_session_schedule_create',
+      data: { output: { scheduleId: newScheduleId }, state: { scheduleId: oldScheduleId } }
+    }]
+  }]
+  assert.equal(authoritativeScheduleId(transcript), newScheduleId)
+})
+
+test('schema failure evidence retains only safe type and length diagnostics', () => {
+  const prefix = 'Error: predictionsServices.buildChatflow - I10_MCP_TOOL_INPUT_SCHEMA_FAILED:'
+  const diagnostic = {
+    actual: { preparationId: { type: 'string', length: 41 } },
+    expected: { preparationId: { type: 'string' } },
+    schemaError: 'Input validation error at targetProfileSnapshot: expected object'
+  }
+  assert.equal(
+    safePredictionFailure({ message: prefix + JSON.stringify(diagnostic) }),
+    'I10_MCP_TOOL_INPUT_SCHEMA_FAILED:' + JSON.stringify({ actual: diagnostic.actual, expected: diagnostic.expected, invalidKeys: [], schemaIssues: [], schemaError: diagnostic.schemaError })
+  )
+  assert.doesNotMatch(safePredictionFailure({ message: prefix + JSON.stringify(diagnostic) }), /rejected value/)
+})
+
+test('prediction retry requires an explicit read-only call and ignores failure prose', () => {
+  assert.deepEqual(predictionRetryDecision({
+    status: 500,
+    attempt: 1,
+    readOnlyRetry: false,
+    responseError: 'Failed to parse. Text: empty before any tool call'
+  }), { retry: false, maximumAttempts: 1 })
+  assert.deepEqual(predictionRetryDecision({
+    status: 503,
+    attempt: 1,
+    readOnlyRetry: true,
+    responseError: 'arbitrary untrusted error text'
+  }), { retry: true, maximumAttempts: 3 })
+  assert.deepEqual(predictionRetryDecision({ status: 503, attempt: 3, readOnlyRetry: true }), {
+    retry: false,
+    maximumAttempts: 3
+  })
+  assert.deepEqual(predictionRetryDecision({ status: 400, attempt: 1, readOnlyRetry: true }), {
+    retry: false,
+    maximumAttempts: 3
+  })
+})
+
+test('live Stage8 evidence is bound to one unchanged ReleaseIdentity', () => {
+  const source = fs.readFileSync(path.join(root, 'scripts/i10-stage8-live.cjs'), 'utf8')
+  assert.match(source, /const frozenReleaseIdentity = currentReleaseIdentity\(\)/)
+  assert.match(source, /sameReleaseIdentity\(frozenReleaseIdentity, currentReleaseIdentity\(\)\)/)
+  assert.match(source, /releaseIdentity: frozenReleaseIdentity/)
+})
+
+test('fast certification uses an exact candidate-to-action-trace fallback instead of transcript timing', () => {
+  const source = fs.readFileSync(path.join(root, 'scripts/i10-stage8-live.cjs'), 'utf8')
+  assert.match(source, /function assertCandidateDeliveryEvidenceWithTraceFallback/)
+  assert.match(source, /JOIN i8_executable_plans p/)
+  assert.match(source, /JOIN i10_action_traces t/)
+  assert.match(source, /c\.candidate_id=\?/)
+  assert.match(source, /FROM i8_script_patch_proposals repair/)
+  assert.match(source, /repair\.repair_candidate_id=\?/)
+  assert.match(source, /assertCandidateDeliveryEvidenceWithTraceFallback\(transcript, candidateId/)
+})
+
+test('the controlled Fuxing portal explicitly selects its registered adapter', () => {
+  const source = fs.readFileSync(path.join(root, 'scripts/i10-stage8-live.cjs'), 'utf8')
+  assert.match(source, /明确选择并使用复兴银行演示适配器（fuxing-bank-demo）/)
+})
+
+test('reverse recovery injects the controlled drift before cross-session run submission', () => {
+  const source = fs.readFileSync(path.join(root, 'scripts/i10-stage8-live.cjs'), 'utf8')
+  assert.match(source, /if \(reverse && !failureInjected\) \{\s*await setFailureMode\(scenario\.failureControlUrl, 'changed'\)\s*failureInjected = true\s*\}\s*const planAnswer/)
+})
+
+test('v7 routes a cross-session execution failure into the governed failure and repair chain', () => {
+  const source = fs.readFileSync(path.join(root, 'scripts/build-i10-agentflow-v7.cjs'), 'utf8')
+  assert.match(source, /value1: '\{\{\$flow\.state\.journeyNextActionType\}\}'[\s\S]*value2: 'QUERY_FAILURE'/)
+  assert.match(source, /crossSessionFailureTaskId = 'toolAgentflow_i10_v7_cross_session_failure_task_get'/)
+  assert.match(source, /target: crossSessionFailureTaskId/)
+  assert.match(source, /split\('toolAgentflow_task'\)\.join\(crossSessionFailureTaskId\)/)
+})
+
+test('Stage8 classifies cloned cross-session repair nodes by their canonical base id', () => {
+  const source = fs.readFileSync(path.join(root, 'scripts/i10-stage8-live.cjs'), 'utf8')
+  assert.match(source, /function canonicalRepairNodeId\(nodeId\)/)
+  assert.match(source, /canonicalRepairNodeId\(node\.nodeId\) === 'humanInputAgentflow_repair_rerun'/)
 })

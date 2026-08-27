@@ -1,0 +1,9 @@
+id: RF-008-S1
+title: Cross-document contradiction inventory
+status: COMPLETED
+allowedPaths: [scripts/architecture, agent/backlog.yaml, agent/plans/active/v54-implementation-batches.md, docs/architecture/refactoring, docs/current-state]
+forbiddenPaths: [platform/hengzhun-regression-system, apps, services, infra]
+workSteps: [define lifecycle relations, scan RF000-RF008, classify historical versus current conflicts]
+verification: [reproducible inventory, zero writes outside governance]
+rollback: inventory is read-only
+evidence: docs/architecture/refactoring/batches/RF-008/evidence/temporal-contradiction-inventory-s1-2026-08-04.json

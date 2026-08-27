@@ -1,0 +1,9 @@
+id: RF-008-S2
+title: Temporal validator and bounded normalization
+status: COMPLETED
+allowedPaths: [scripts/architecture, agent/backlog.yaml, agent/plans/active/v54-implementation-batches.md, docs/architecture/refactoring, docs/current-state]
+forbiddenPaths: [platform/hengzhun-regression-system, apps, services, infra]
+workSteps: [implement validator, add fixtures, normalize current projections, preserve dated history]
+verification: [temporal validator, base validator, docs validator]
+rollback: restore projections and disable new gate
+evidence: docs/architecture/refactoring/batches/RF-008/evidence-index.md

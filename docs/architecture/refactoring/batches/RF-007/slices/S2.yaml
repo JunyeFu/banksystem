@@ -1,0 +1,8 @@
+id: RF-007-S2
+title: Shared WorkerCodeSet implementation
+status: COMPLETED
+allowedPaths: [platform/hengzhun-regression-system/scripts, platform/hengzhun-regression-system/worker/src, platform/hengzhun-regression-system/harness/src, platform/hengzhun-regression-system/tests, docs/architecture/refactoring/batches/RF-007]
+forbiddenPaths: [platform/hengzhun-regression-system/.data, apps, services, infra]
+workSteps: [implement one manifest/algorithm, bind identity runtime and health, add compatibility projection, fail closed on drift]
+verification: [unit tests, contract tests, inspector fixture tests]
+rollback: restore prior schema and consumers

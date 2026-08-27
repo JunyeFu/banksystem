@@ -29,7 +29,7 @@ import {
 } from './i8/stage3-schemas';
 import { i8StabilityCompletionSchema } from './i8/stage4-schemas';
 import { i8CandidateDecisionSchema, i8CandidatePreviewSchema, i8RunSubmitSchema, i8TaskGetSchema } from './i8/stage5-schemas';
-import { i8ResultInboxListSchema, i8ScheduleCreateSchema, i8ScheduleGetSchema } from './i8/stage6-schemas';
+import { i8ResultInboxAckSchema, i8ResultInboxListSchema, i8ScheduleCreateSchema, i8ScheduleGetSchema } from './i8/stage6-schemas';
 import { i8FailureGetSchema, i8RepairDecisionSchema, i8RepairProposeSchema } from './i8/stage7-schemas';
 import { authorizeRequest, loadSecurityConfig, remoteAddressForAudit, SecurityConfig, SecurityResult } from './security';
 import { HarnessService } from './service';
@@ -82,6 +82,7 @@ const authoringWorkerClaimSchema = workerClaimSchema.extend({
 
 const workerCompletionSchema = z.object({
   workerId: z.string().trim().min(3).max(128).regex(/^[A-Za-z0-9._:-]+$/),
+  leaseVersion: z.number().int().positive(),
   outcome: z.enum(['PASSED', 'FAILED', 'BLOCKED']),
   summary: z.string().trim().min(1).max(1000),
   errorCode: z.string().trim().min(1).max(128).optional(),
@@ -104,10 +105,15 @@ const workerCompletionSchema = z.object({
     extension: z.string().trim().min(1).max(10).regex(/^[A-Za-z0-9]+$/),
     base64Content: z.string().min(1).max(7 * 1024 * 1024).regex(/^[A-Za-z0-9+/]+={0,2}$/),
     metadata: z.record(z.string(), z.unknown()).optional()
-  }).strict()).max(8)
+  }).strict()).min(1).max(8)
 }).strict();
 
-const repairWorkerCompletionSchema = workerCompletionSchema;
+const repairWorkerCompletionSchema = workerCompletionSchema.omit({ leaseVersion: true });
+
+const workerLeaseRenewalSchema = z.object({
+  workerId: z.string().trim().min(3).max(128).regex(/^[A-Za-z0-9._:-]+$/),
+  leaseVersion: z.number().int().positive()
+}).strict();
 
 const authoringActionCompletionSchema = z.object({
   workerId: z.string().trim().min(3).max(128).regex(/^[A-Za-z0-9._:-]+$/),
@@ -175,7 +181,16 @@ export interface HarnessApplication {
   handler: http.RequestListener;
   service: HarnessService;
   database: HarnessDatabase;
+  schedulerHealth(): Record<string, unknown>;
+  runSchedulerTick(): Promise<void>;
   close(): Promise<void>;
+}
+
+function safeSchedulerErrorCode(error: unknown): string {
+  const candidate = typeof (error as { code?: unknown })?.code === 'string'
+    ? String((error as { code: string }).code)
+    : 'SCHEDULER_TASK_FAILED';
+  return /^[A-Z][A-Z0-9_:-]{2,127}$/.test(candidate) ? candidate : 'SCHEDULER_TASK_FAILED';
 }
 
 async function readJson(request: http.IncomingMessage, maximumBytes = MAX_REQUEST_BYTES): Promise<unknown> {
@@ -244,18 +259,77 @@ function omitNullValues(value: Record<string, unknown>): Record<string, unknown>
   return Object.fromEntries(Object.entries(value).filter(([, item]) => item !== null && item !== undefined));
 }
 
-function runtimeFileSetHash(productRoot: string, relativePaths: string[]): string {
-  const hash = crypto.createHash('sha256');
-  for (const relativePath of relativePaths) {
-    const absolutePath = path.join(productRoot, relativePath);
-    hash.update(relativePath).update('\0');
-    if (!fs.existsSync(absolutePath)) {
-      hash.update('MISSING\0');
-      continue;
-    }
-    hash.update(fs.readFileSync(absolutePath)).update('\0');
+async function readRaw(request: http.IncomingMessage, maximumBytes = MAX_WORKER_REQUEST_BYTES): Promise<Buffer> {
+  const chunks: Buffer[] = [];
+  let total = 0;
+  for await (const chunk of request) {
+    const bytes = Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk);
+    total += bytes.byteLength;
+    if (total > maximumBytes) throw new HarnessError(413, 'I10_ATTACHMENT_TOO_LARGE', 'CONTRACT', '附件超过允许的大小。');
+    chunks.push(bytes);
   }
-  return hash.digest('hex');
+  if (total === 0) throw new HarnessError(400, 'I10_ATTACHMENT_EMPTY', 'CONTRACT', '附件内容不能为空。');
+  return Buffer.concat(chunks);
+}
+
+function attachmentFilenameFromHeader(value: string | string[] | undefined): string {
+  if (typeof value !== 'string' || value.length < 1 || value.length > 512 || !/^[A-Za-z0-9_-]+$/.test(value)) {
+    throw new HarnessError(400, 'I10_ATTACHMENT_FILENAME_HEADER_INVALID', 'CONTRACT', '附件文件名请求头无效。');
+  }
+  const decoded = Buffer.from(value, 'base64url').toString('utf8');
+  if (!decoded || decoded.includes('\uFFFD') || path.basename(decoded) !== decoded || /[\u0000-\u001f]/.test(decoded) || Buffer.byteLength(decoded, 'utf8') > 260) {
+    throw new HarnessError(400, 'I10_ATTACHMENT_FILENAME_INVALID', 'CONTRACT', '附件文件名无效。');
+  }
+  return decoded;
+}
+
+export function projectWorkerCodeSetReadiness(productRoot: string, workerHealth?: Record<string, unknown>): Record<string, unknown> {
+  try {
+    const workerCodeSetModule = require(path.join(productRoot, 'scripts', 'i10-worker-code-set.cjs')) as {
+      currentWorkerCodeSet(input: { productRoot: string }): Record<string, unknown>;
+      compareWorkerCodeSetHealth(expected: Record<string, unknown>, observed: Record<string, unknown>): Record<string, unknown>;
+    };
+    const expected = workerCodeSetModule.currentWorkerCodeSet({ productRoot });
+    const expectedHash = String(expected.workerCodeSetHash || '');
+    if (!workerHealth) {
+      return {
+        status: 'UNAVAILABLE',
+        workerCodeSetVersion: expected.workerCodeSetVersion,
+        workerCodeSetManifestHash: expected.workerCodeSetManifestHash,
+        workerCodeSetFileCount: expected.workerCodeSetFileCount,
+        expectedWorkerCodeSetHash: expectedHash,
+        expectedCodeVersion: expectedHash,
+        versionMatch: false,
+        hashMatch: false,
+        codeSetReady: false
+      };
+    }
+    const comparison = workerCodeSetModule.compareWorkerCodeSetHealth(expected, workerHealth);
+    const observedHash = comparison.observedWorkerCodeSetHash ?? null;
+    return {
+      status: workerHealth.status ?? 'UNKNOWN',
+      workerCodeSetVersion: expected.workerCodeSetVersion,
+      observedWorkerCodeSetVersion: comparison.observedWorkerCodeSetVersion ?? null,
+      workerCodeSetManifestHash: expected.workerCodeSetManifestHash,
+      workerCodeSetFileCount: expected.workerCodeSetFileCount,
+      expectedWorkerCodeSetHash: expectedHash,
+      observedWorkerCodeSetHash: observedHash,
+      expectedCodeVersion: expectedHash,
+      observedCodeVersion: observedHash,
+      versionMatch: comparison.versionMatch === true,
+      hashMatch: comparison.hashMatch === true,
+      codeSetReady: comparison.ready === true,
+      updatedAt: workerHealth.updatedAt ?? null
+    };
+  } catch (error) {
+    return {
+      status: 'UNAVAILABLE',
+      versionMatch: false,
+      hashMatch: false,
+      codeSetReady: false,
+      errorCode: typeof (error as { code?: unknown })?.code === 'string' ? (error as { code: string }).code : 'I10_WORKER_CODE_SET_INVALID'
+    };
+  }
 }
 
 export async function createHarnessApplication(options: HarnessApplicationOptions): Promise<HarnessApplication> {
@@ -269,17 +343,71 @@ export async function createHarnessApplication(options: HarnessApplicationOption
   const workerToken = options.workerToken ?? process.env.HENGZHUN_WORKER_TOKEN;
   const schedulerIntervalMs = options.schedulerIntervalMs ?? 15_000;
   let schedulerRunning = false;
+  const schedulerState: {
+    lastStartedAt: string | null;
+    lastSuccessAt: string | null;
+    lastFailureAt: string | null;
+    lastDurationMs: number | null;
+    consecutiveFailures: number;
+    overlapSkips: number;
+    lastErrorCodes: string[];
+  } = {
+    lastStartedAt: null,
+    lastSuccessAt: null,
+    lastFailureAt: null,
+    lastDurationMs: null,
+    consecutiveFailures: 0,
+    overlapSkips: 0,
+    lastErrorCodes: []
+  };
+  const schedulerHealth = (): Record<string, unknown> => {
+    const enabled = schedulerIntervalMs > 0;
+    const lastSuccessMs = schedulerState.lastSuccessAt ? Date.parse(schedulerState.lastSuccessAt) : Number.NaN;
+    const staleAfterMs = Math.max(60_000, schedulerIntervalMs * 3);
+    const stale = enabled && (!Number.isFinite(lastSuccessMs) || Date.now() - lastSuccessMs > staleAfterMs);
+    const ready = !enabled || (!stale && schedulerState.consecutiveFailures < 2);
+    return {
+      status: !enabled ? 'DISABLED' : ready ? 'READY' : 'DEGRADED',
+      enabled,
+      running: schedulerRunning,
+      ready,
+      stale,
+      intervalMs: schedulerIntervalMs,
+      ...schedulerState
+    };
+  };
   const schedulerTick = async () => {
-    if (schedulerRunning) return;
+    if (schedulerRunning) {
+      schedulerState.overlapSkips += 1;
+      return;
+    }
     schedulerRunning = true;
+    const startedAtMs = Date.now();
+    schedulerState.lastStartedAt = new Date(startedAtMs).toISOString();
+    const errors: string[] = [];
     try {
-      await service.tickSchedules();
-      await service.i10.cleanupAbandonedImageIngests();
-      await service.i10.reconcileExpiredRuntimeState();
-    } finally { schedulerRunning = false; }
+      for (const operation of [
+        () => service.tickSchedules(),
+        () => service.i10.cleanupAbandonedImageIngests(),
+        () => service.i10.reconcileExpiredRuntimeState()
+      ]) {
+        try { await operation(); } catch (error) { errors.push(safeSchedulerErrorCode(error)); }
+      }
+      schedulerState.lastDurationMs = Date.now() - startedAtMs;
+      schedulerState.lastErrorCodes = [...new Set(errors)];
+      if (errors.length === 0) {
+        schedulerState.lastSuccessAt = nowIso();
+        schedulerState.consecutiveFailures = 0;
+      } else {
+        schedulerState.lastFailureAt = nowIso();
+        schedulerState.consecutiveFailures += 1;
+      }
+    } finally {
+      schedulerRunning = false;
+    }
   };
   await schedulerTick();
-  const scheduler = schedulerIntervalMs > 0 ? setInterval(() => void schedulerTick().catch(() => undefined), schedulerIntervalMs) : undefined;
+  const scheduler = schedulerIntervalMs > 0 ? setInterval(() => void schedulerTick(), schedulerIntervalMs) : undefined;
   scheduler?.unref();
 
   const handler: http.RequestListener = async (request, response) => {
@@ -290,25 +418,9 @@ export async function createHarnessApplication(options: HarnessApplicationOption
       if (request.method === 'GET' && url.pathname === '/health') {
         const migrations = database.migrationStatus();
         const workerHealthPath = path.join(options.productRoot, '.data', 'runtime', 'worker-health.json');
-        const expectedWorkerCodeVersion = runtimeFileSetHash(options.productRoot, [
-          'worker/src/index.cjs',
-          'worker/src/i10-midscene-candidate-authoring.cjs',
-          'worker/src/i8-candidate-runner.cjs',
-          'worker/src/i8-formal-runner.cjs',
-          'worker/src/i10-verification-execution.cjs'
-        ]);
-        let worker: Record<string, unknown> = { status: 'UNAVAILABLE', expectedCodeVersion: expectedWorkerCodeVersion, versionMatch: false };
-        try {
-          const workerHealth = JSON.parse(fs.readFileSync(workerHealthPath, 'utf8')) as Record<string, unknown>;
-          const observedCodeVersion = typeof workerHealth.workerCodeVersion === 'string' ? workerHealth.workerCodeVersion : null;
-          worker = {
-            status: workerHealth.status ?? 'UNKNOWN',
-            expectedCodeVersion: expectedWorkerCodeVersion,
-            observedCodeVersion,
-            versionMatch: observedCodeVersion === expectedWorkerCodeVersion,
-            updatedAt: workerHealth.updatedAt ?? null
-          };
-        } catch { /* Worker may not be running while Harness starts. */ }
+        let workerHealth: Record<string, unknown> | undefined;
+        try { workerHealth = JSON.parse(fs.readFileSync(workerHealthPath, 'utf8')) as Record<string, unknown>; } catch { /* Worker may not be running while Harness starts. */ }
+        const worker = projectWorkerCodeSetReadiness(options.productRoot, workerHealth);
         const manifestPath = path.join(options.productRoot, 'flowise', 'i10', 'publication-manifest-v1.json');
         let agentflow: Record<string, unknown> = { status: 'UNAVAILABLE' };
         try {
@@ -321,8 +433,10 @@ export async function createHarnessApplication(options: HarnessApplicationOption
             publishState: manifest.publishState ?? null
           };
         } catch { agentflow = { status: 'UNAVAILABLE' }; }
+        const schedulerReadiness = schedulerHealth();
         return sendJson(response, 200, {
-          status: migrations.pending.length === 0 && agentflow.status === 'PUBLISHED' && worker.versionMatch === true ? 'ok' : 'degraded',
+          status: migrations.pending.length === 0 && agentflow.status === 'PUBLISHED'
+            && worker.codeSetReady === true && schedulerReadiness.ready === true ? 'ok' : 'degraded',
           service: 'hengzhun-harness',
           version: '1.1.0',
           database: {
@@ -336,7 +450,8 @@ export async function createHarnessApplication(options: HarnessApplicationOption
             actualMigrationVersion: migrations.appliedVersion,
             migrationsReady: migrations.pending.length === 0
           },
-          worker
+          worker,
+          scheduler: schedulerReadiness
         }, 'L0', requestId);
       }
 
@@ -413,6 +528,14 @@ export async function createHarnessApplication(options: HarnessApplicationOption
         // can legitimately exceed the L0 8 KiB hard limit after image facts are
         // merged. L1 remains bounded at 16 KiB and exposes no credential value.
         return sendJson(response, 200, await service.claimNextRun(input.workerId), 'L1', requestId);
+      }
+      const workerRenewMatch = url.pathname.match(/^\/internal\/worker\/tasks\/([^/]+):renew$/);
+      if (request.method === 'POST' && workerRenewMatch) {
+        authorizeWorker(request.headers.authorization, workerToken);
+        const input = workerLeaseRenewalSchema.parse(await readJson(request));
+        return sendJson(response, 200, await service.renewRunLease(
+          decodeURIComponent(workerRenewMatch[1] as string), input.workerId, input.leaseVersion
+        ), 'L0', requestId);
       }
       if (request.method === 'POST' && url.pathname === '/internal/worker/i10/ingest:claim') {
         authorizeWorker(request.headers.authorization, workerToken);
@@ -579,6 +702,20 @@ export async function createHarnessApplication(options: HarnessApplicationOption
         credentialFingerprint: fingerprint,
         actorType: url.pathname.startsWith('/v1/i8/') ? 'SYSTEM' as const : 'COZE' as const
       };
+      if (request.method === 'POST' && url.pathname === '/v1/i10/attachments:import') {
+        if (request.headers['content-type'] !== 'application/octet-stream') {
+          throw new HarnessError(415, 'I10_ATTACHMENT_MEDIA_TYPE_INVALID', 'CONTRACT', '附件导入只接受 application/octet-stream。');
+        }
+        const originalFilename = attachmentFilenameFromHeader(request.headers['x-hengzhun-filename-base64url']);
+        const purpose = typeof request.headers['x-hengzhun-attachment-purpose'] === 'string'
+          ? request.headers['x-hengzhun-attachment-purpose'] : '';
+        const expectedSha256 = typeof request.headers['x-hengzhun-content-sha256'] === 'string'
+          ? request.headers['x-hengzhun-content-sha256'].toLowerCase() : '';
+        if (!/^[A-Z][A-Z0-9_:-]{2,63}$/.test(purpose)) throw new HarnessError(400, 'I10_ATTACHMENT_PURPOSE_INVALID', 'CONTRACT', '附件 purpose 无效。');
+        if (!/^[0-9a-f]{64}$/.test(expectedSha256)) throw new HarnessError(400, 'I10_ATTACHMENT_SHA256_INVALID', 'CONTRACT', '附件 SHA-256 无效。');
+        const content = await readRaw(request);
+        return sendJson(response, 201, await service.i10.importAttachment({ originalFilename, purpose, expectedSha256, content }), 'L1', requestId);
+      }
       if (request.method === 'POST' && url.pathname === '/v1/i10/credentials:sessions-create') {
         const input = credentialSessionCreateSchema.parse(await readJson(request));
         return sendJson(response, 200, await service.i10.createCredentialSession(input, context), 'L0', requestId);
@@ -715,6 +852,11 @@ export async function createHarnessApplication(options: HarnessApplicationOption
       if (request.method === 'POST' && url.pathname === '/v1/i8/results:inbox-list') {
         const input = i8ResultInboxListSchema.parse(await readJson(request));
         return sendJson(response, 200, await service.listI8ResultInbox(input), 'L2', requestId);
+      }
+      if (request.method === 'POST' && url.pathname === '/v1/i8/results:inbox-ack') {
+        const input = i8ResultInboxAckSchema.parse(await readJson(request));
+        const result = await service.ackI8ResultInbox(input, context);
+        return sendJson(response, result.status, result.response, 'L1', requestId);
       }
       if (request.method === 'POST' && url.pathname === '/v1/i8/failures:get') {
         const input = i8FailureGetSchema.parse(await readJson(request));
@@ -855,6 +997,8 @@ export async function createHarnessApplication(options: HarnessApplicationOption
     handler,
     service,
     database,
+    schedulerHealth,
+    runSchedulerTick: schedulerTick,
     close: async () => {
       if (scheduler) clearInterval(scheduler);
       while (schedulerRunning) await new Promise(resolve => setTimeout(resolve, 5));

@@ -2,13 +2,19 @@
 
 const fs = require('node:fs');
 const path = require('node:path');
-const { chromium } = require('../../runtime/node_modules/playwright');
 const { executeCandidatePackage } = require('./i8-candidate-runner.cjs');
-const { artifact, resolveCredential, sha256 } = require('./i10-worker-utils.cjs');
+const {
+  artifact, throwIfLeaseAborted, bindLeaseAbortToBrowser,
+  assertTargetUrlResolution, chromiumHostResolverRules, resolveCredential, sha256
+} = require('./i10-worker-utils.cjs');
 const { policyForAction } = require('./i10-verification-policy.cjs');
 const { requiresVisibleVerification, runVerificationPolicy } = require('./i10-verification-execution.cjs');
 
 const EMPTY_SCREENSHOT = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=', 'base64');
+
+function loadChromium() {
+  return require('../../runtime/node_modules/playwright').chromium;
+}
 
 function fail(code, message, category = 'ENVIRONMENT') {
   throw Object.assign(new Error(message), { code, category });
@@ -93,6 +99,14 @@ function ordinalForStep(step) {
   return match ? Number(match[1]) : 0;
 }
 
+function quarantinedScreenshotArtifact(content, metadata = {}) {
+  return artifact('SCREENSHOT', 'image/png', 'QUARANTINED', 'png', content, {
+    ...metadata,
+    pixelRedactionVerified: false,
+    quarantineReason: 'PIXEL_REDACTION_NOT_VERIFIED'
+  });
+}
+
 async function executeI8FormalRun(task, environment = process.env, options = {}) {
   const descriptor = task.execution?.candidate;
   if (!descriptor?.candidateId || !descriptor.relativeDirectory || !descriptor.scriptHash || !descriptor.manifestHash) {
@@ -111,6 +125,9 @@ async function executeI8FormalRun(task, environment = process.env, options = {})
   const baseUrl = formalBaseUrl(task, environment, options);
   const targetProfile = task.execution?.targetProfile;
   const allowedOrigins = runtimeAllowedOrigins(task, baseUrl);
+  if (targetProfile) {
+    for (const origin of allowedOrigins) await assertTargetUrlResolution(origin, targetProfile);
+  }
   const candidateManifestPath = path.resolve(productRoot, descriptor.relativeDirectory, 'manifest.json');
   let candidateManifest;
   try { candidateManifest = JSON.parse(fs.readFileSync(candidateManifestPath, 'utf8')); }
@@ -118,7 +135,12 @@ async function executeI8FormalRun(task, environment = process.env, options = {})
   // A handoff can only work when the original browser context is visible from
   // the beginning.  Headless runs remain the default for ordinary policies.
   const visibleHandoff = requiresVisibleVerification(candidateManifest, typeof options.onVerificationChallenge === 'function');
-  const browser = await chromium.launch({ executablePath, headless: !visibleHandoff });
+  const browser = await loadChromium().launch({
+    executablePath,
+    headless: !visibleHandoff,
+    ...(targetProfile ? { args: [chromiumHostResolverRules(targetProfile)] } : {})
+  });
+  const detachLeaseAbort = bindLeaseAbortToBrowser(options.signal, browser);
   const context = await browser.newContext({
     locale: 'zh-CN', timezoneId: 'Asia/Shanghai', viewport: { width: 1440, height: 900 },
     storageState: { cookies: [], origins: [] }, ignoreHTTPSErrors: targetProfile?.tlsPolicy === 'ALLOW_SELF_SIGNED'
@@ -127,6 +149,7 @@ async function executeI8FormalRun(task, environment = process.env, options = {})
   let screenshot = EMPTY_SCREENSHOT;
   let currentStep = null;
   try {
+    throwIfLeaseAborted(options.signal);
     await context.route('**/*', async route => {
       const url = new URL(route.request().url());
       if (['data:', 'blob:'].includes(url.protocol) || allowedOrigins.has(url.origin)) return route.continue();
@@ -195,13 +218,14 @@ async function executeI8FormalRun(task, environment = process.env, options = {})
     };
     const evidence = [
       artifact('REPORT', 'application/json', 'REDACTED', 'json', JSON.stringify(report, null, 2), { schemaVersion: report.schemaVersion, passed }),
-      artifact('SCREENSHOT', 'image/png', 'REDACTED', 'png', screenshot, { masked: true }),
+      quarantinedScreenshotArtifact(screenshot),
       artifact('LOG', 'text/plain; charset=utf-8', 'REDACTED', 'log', `${facts.map(item => `${item.passed ? 'PASS' : 'FAIL'} ${item.stepId} ${item.operation}`).join('\n')}\n`, { containsCredentials: false })
     ];
     return passed
       ? { outcome: 'PASSED', summary: '已激活脚本通过纯 Playwright 正式回归。', evidence }
       : { outcome: 'FAILED', summary: '已激活脚本正式回归断言失败。', errorCode: 'I8_FORMAL_ASSERTION_FAILED', errorCategory: 'TEST_FAILURE', retryable: false, userActionRequired: false, evidence };
   } catch (error) {
+    throwIfLeaseAborted(options.signal);
     if (!error.code && error.name === 'TimeoutError' && currentStep?.stepId) {
       // Do not infer a page control from arbitrary timeout text.  The frozen
       // step reference in the diagnostic is the factual boundary; a later
@@ -227,7 +251,7 @@ async function executeI8FormalRun(task, environment = process.env, options = {})
     error.failureDiagnostic = diagnostic;
     error.evidence = [
       artifact('DIAGNOSTIC', 'application/json', 'REDACTED', 'json', JSON.stringify(diagnostic, null, 2), { containsCredentials: false }),
-      artifact('SCREENSHOT', 'image/png', 'REDACTED', 'png', await page.screenshot({
+      quarantinedScreenshotArtifact(await page.screenshot({
         fullPage: true,
         mask: [
           page.getByTestId('login-username'), page.getByTestId('login-password'),
@@ -235,14 +259,16 @@ async function executeI8FormalRun(task, environment = process.env, options = {})
           page.getByTestId('transfer-amount'), page.getByTestId('transfer-purpose')
         ],
         maskColor: '#202020'
-      }).catch(() => EMPTY_SCREENSHOT), { masked: true })
+      }).catch(() => EMPTY_SCREENSHOT), { captureContext: 'FAILURE' })
     ];
     if (!error.category) error.category = error.name === 'TimeoutError' ? 'ENVIRONMENT' : 'TEST_FAILURE';
+    throwIfLeaseAborted(options.signal);
     throw error;
   } finally {
-    await context.close();
-    await browser.close();
+    detachLeaseAbort();
+    await context.close().catch(() => {});
+    await browser.close().catch(() => {});
   }
 }
 
-module.exports = { executeI8FormalRun, formalBaseUrl, ordinalForStep, runtimeAllowedOrigins };
+module.exports = { executeI8FormalRun, formalBaseUrl, ordinalForStep, quarantinedScreenshotArtifact, runtimeAllowedOrigins };

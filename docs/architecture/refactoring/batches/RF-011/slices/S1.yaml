@@ -1,0 +1,9 @@
+id: RF-011-S1
+title: Inactive bounded AgentController kernel
+status: COMPLETED
+allowedPaths: [platform/hengzhun-regression-system/controller, docs/architecture/refactoring/batches/RF-011, agent/backlog.yaml, agent/plans/active/v54-implementation-batches.md, agent/plans/active/hengzhun-i10-langgraph-deepagents-controller-migration-task-package.md, agent/plans/active/hengzhun-i10-tp00-change-inventory-v1.json]
+forbiddenPaths: [platform/hengzhun-regression-system/.data, platform/hengzhun-regression-system/flowise, platform/hengzhun-regression-system/harness, platform/hengzhun-regression-system/mcp, platform/hengzhun-regression-system/worker, platform/hengzhun-regression-system/package.json, platform/hengzhun-regression-system/package-lock.json, apps, services, infra]
+workSteps: [promote exact dependencies, implement bounded planner, implement graph and deterministic mutation node, test fail-closed matrix]
+verification: [focused Node test exit 0, dependency audit exit 0, governance gates exit 0, identity and ledger unchanged]
+rollback: remove only inactive kernel artifacts after explicit approval
+evidence: docs/architecture/refactoring/batches/RF-011/evidence-index.md

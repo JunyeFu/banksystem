@@ -19,23 +19,21 @@ const net = require('node:net')
 const path = require('node:path')
 
 const root = path.resolve(__dirname, '../..')
-const nodeExecutable = path.join(root, 'runtime/node-v20.20.2-win-x64/node.exe')
+const nodeExecutable = process.execPath
 const ISOLATED_ROOT = path.join(root, '.data', 'tests', 'rf001-shadow')
 const HARNESS_PORT = 28887
 const PROXY_PORT = 28888
 const MCP_PORT = 28889
-const BASELINE_IDENTITY_HASH = '632ad5ee7981b59f00824d0072d28da6075eef095d55a898d51c0103a897988f'
 
 const ROUTE_EXPECTATIONS = {
   '/v1/i10/credentials:sessions-create': 3,
   '/v1/i10/credentials:sessions-get': 3,
   '/v1/i10/cases:prepare': 1,
   '/v1/i8/candidates:get': 2,
-  '/v1/i8/authoring:get': 1,
+  '/v1/i8/candidates:compile': 1,
   '/v1/i8/tasks:get': 1,
   '/v1/i8/schedules:get': 2,
   '/v1/i8/failures:get': 3,
-  '/v1/i8/runs:submit': 1,
   '/v1/i8/authoring:submit': 1,
   '/v1/i10/ingest:submit': 1,
   '/v1/i10/ingest:decide': 1
@@ -119,7 +117,6 @@ function startMcp(token) {
       ...process.env,
       HENGZHUN_MCP_PORT: String(MCP_PORT),
       HENGZHUN_HARNESS_URL: `http://127.0.0.1:${PROXY_PORT}`,
-      FLOWISE_APP_PATH: path.join(root, 'flowise', 'app'),
       HENGZHUN_SERVICE_TOKEN: token,
       HENGZHUN_MCP_TOKEN: token,
       HENGZHUN_RF001_SHADOW: '1',
@@ -152,6 +149,9 @@ async function mcpCall(name, args) {
   }
   if (body?.error) return { transportError: body.error }
   const text = body?.result?.content?.[0]?.text
+  if (body?.result?.isError === true) {
+    return { transportError: { code: -32602, message: String(text || 'MCP_TOOL_VALIDATION_FAILED').slice(0, 200) } }
+  }
   let parsed = null
   try { parsed = JSON.parse(text) } catch { parsed = { raw: String(text).slice(0, 200) } }
   return { status: response.status, parsed }
@@ -174,6 +174,7 @@ test('B3-S5 isolated runtime shadow: zero duplicate writes and zero projection m
   assert.equal(await freePort(MCP_PORT), true, `port ${MCP_PORT} must be free`)
 
   const token = crypto.randomBytes(32).toString('hex')
+  const identityBefore = JSON.parse(spawnSync(nodeExecutable, ['scripts/i10-release-identity.cjs'], { cwd: root, encoding: 'utf8' }).stdout).identityHash
   process.env.__RF001_EPHEMERAL_TOKEN = token
 
   fs.rmSync(ISOLATED_ROOT, { recursive: true, force: true })
@@ -206,7 +207,8 @@ test('B3-S5 isolated runtime shadow: zero duplicate writes and zero projection m
       draftJson: JSON.stringify({ schemaVersion: 'hengzhun-i10-case-draft-v1', title: 'T', objective: 'O', summary: 'S', targetSystem: '复兴银行', entryUrl: 'https://bank.example.com/portal/login', preconditions: ['P'], steps: [{ action: 'a', expected: 'b' }], assertions: ['A'], credentialRef: '', missingFields: ['credentialRef'] }),
       sessionRef: 'sess-case'
     })
-    await mcpCall('candidate_get', { preparationId: 'prep_nonexistent_0001', sessionRef: 'sess' })
+    await mcpCall('candidate_compile', { preparationId: 'prep_nonexistent_0001', expectedPreparationVersion: 1, sessionRef: 'sess' })
+    await mcpCall('candidate_get', { preparationId: 'prep_nonexistent_0001' })
     await mcpCall('candidate_decide', { preparationId: 'prep_nonexistent_0001', choice: 'REJECT', confirmationRef: 'conf', reason: 'r', sessionRef: 'sess' })
     await mcpCall('task_get', { taskId: 'task_nonexistent_0001' })
     await mcpCall('schedule_get', { scheduleId: 'sch_nonexistent_0001' })
@@ -214,12 +216,17 @@ test('B3-S5 isolated runtime shadow: zero duplicate writes and zero projection m
     await mcpCall('failure_get', { incidentId: 'inc_nonexistent_0001' })
     await mcpCall('repair_propose', { incidentId: 'inc_nonexistent_0001', patchJson: JSON.stringify({ schemaVersion: 'i8-script-patch-proposal-v1', operations: [] }), sessionRef: 'sess' })
     await mcpCall('decision_submit', { incidentId: 'inc_nonexistent_0001', proposalId: 'proposal_' + '0'.repeat(32), choice: 'REJECT', confirmationRef: 'conf', reason: 'r', sessionRef: 'sess' })
-    await mcpCall('run_submit', { preparationId: 'prep_nonexistent_0001', sessionRef: 'sess' })
+    // Current run_submit requires one immutable Journey decision link. This
+    // intentionally malformed invocation must fail at MCP validation and make
+    // zero Harness calls; the matrix below counts only requests that crossed
+    // the transport boundary.
+    const invalidRunSubmit = await mcpCall('run_submit', { preparationId: 'prep_nonexistent_0001', sessionRef: 'sess' })
+    assert.ok(invalidRunSubmit.transportError, 'run_submit without Journey binding must fail before Harness')
     await mcpCall('authoring_submit', { preparationId: 'prep_nonexistent_0001', expectedVersion: 1, choice: 'REJECT', confirmationRef: 'conf', reason: 'r', sessionRef: 'sess' })
-    await mcpCall('ingest_submit', { inputType: 'CASE_FILE', flowiseFileRef: 'uri:att_00000000000000000000', originalFilename: 'f.txt', sessionRef: 'sess', supportingImageIngestId: 'NONE' })
+    await mcpCall('ingest_submit', { inputType: 'CASE_FILE', attachmentRef: 'att_00000000-0000-4000-8000-000000000000', originalFilename: 'f.txt', sessionRef: 'sess', supportingImageIngestId: 'NONE' })
     await mcpCall('ingest_decision_submit', { ingestJobId: 'job_nonexistent_0001', expectedVersion: 1, choice: 'REJECT', reason: 'r', confirmationRef: 'conf', sessionRef: 'sess' })
     const noHarnessCall = await mcpCall('verification_get', {})
-    assert.ok(noHarnessCall.parsed?.errorCode, 'verification_get with no refs must fail closed at MCP level')
+    assert.ok(noHarnessCall.transportError || noHarnessCall.parsed?.errorCode, 'verification_get with no refs must fail closed at MCP level')
 
     // ---- assertions ----
     // zero duplicate writes: per-route counts must equal the expected matrix
@@ -244,7 +251,7 @@ test('B3-S5 isolated runtime shadow: zero duplicate writes and zero projection m
     const identityRun = spawnSync(nodeExecutable, ['scripts/i10-release-identity.cjs'], { cwd: root, encoding: 'utf8' })
     assert.equal(identityRun.status, 0, 'i10-release-identity must exit 0')
     const identity = JSON.parse(identityRun.stdout)
-    assert.equal(identity.identityHash, BASELINE_IDENTITY_HASH, 'ReleaseIdentity must be unchanged by B3-S5')
+    assert.equal(identity.identityHash, identityBefore, 'ReleaseIdentity must be unchanged by B3-S5')
   } finally {
     await stopChild(mcp)
     await stopChild(harness)

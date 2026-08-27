@@ -1,0 +1,9 @@
+id: RF-012-S1
+title: Controller state and security boundary
+status: COMPLETED
+allowedPaths: [platform/hengzhun-regression-system/controller, docs/architecture/refactoring/batches/RF-012, agent/backlog.yaml, agent/plans/active/v54-implementation-batches.md, agent/plans/active/hengzhun-i10-langgraph-deepagents-controller-migration-task-package.md, agent/plans/active/hengzhun-i10-tp00-change-inventory-v1.json]
+forbiddenPaths: [platform/hengzhun-regression-system/.data, platform/hengzhun-regression-system/flowise, platform/hengzhun-regression-system/harness, platform/hengzhun-regression-system/mcp, platform/hengzhun-regression-system/worker, apps, services, infra]
+workSteps: [define checkpoint schema, bind namespace/thread, enforce TTL cleanup, add safe trace projection, add bounded scratch VFS, integrate kernel]
+verification: [state/security and kernel tests exit 0, governance gates exit 0, identity and ledger unchanged]
+rollback: remove only inactive RF-012 additions after explicit approval
+evidence: docs/architecture/refactoring/batches/RF-012/evidence-index.md

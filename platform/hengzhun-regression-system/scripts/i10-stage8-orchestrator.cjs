@@ -14,10 +14,12 @@ const ffmpeg = path.join(root, 'runtime/node_modules/@ffmpeg-installer/win32-x64
 const runtimeRequire = createRequire(path.join(root, 'runtime/node_modules/_hengzhun_loader.cjs'))
 const { chromium } = runtimeRequire('playwright')
 const ExcelJS = runtimeRequire('exceljs')
+const acceptancePolicy = require('./i10-acceptance-execution-policy.cjs')
 const portalPort = 28884
 const portalBase = `http://127.0.0.1:${portalPort}`
 const dataRoot = path.join(root, '.data/tests/i10-stage8-live')
 const attachmentRoot = path.join(dataRoot, 'attachments')
+let preparationTiming = null
 
 // The portable entrypoints load this non-versioned local runtime configuration
 // before launching child processes.  Stage 8 is an internal live acceptance
@@ -62,9 +64,15 @@ async function request(url, options = {}) {
 }
 
 async function phase(stageName, action) {
+  if (preparationTiming) preparationTiming.startStage(stageName)
   try {
-    return await action()
+    const result = await action()
+    if (preparationTiming) preparationTiming.endStage(stageName)
+    return result
   } catch (error) {
+    if (preparationTiming) {
+      try { preparationTiming.endStage(stageName) } catch {}
+    }
     if (typeof error?.code === 'string' && error.code.startsWith('I10_STAGE8_')) {
       error.details = { stageName, ...(error.details || {}) }
       throw error
@@ -245,6 +253,7 @@ async function main() {
     env: { SystemRoot: process.env.SystemRoot, WINDIR: process.env.WINDIR, PATH: process.env.PATH, HENGZHUN_I10_STAGE8_PORT: String(portalPort), I10_STAGE8_FIXTURE_USERNAME: username, I10_STAGE8_FIXTURE_PASSWORD: password }
   })
   fs.closeSync(portalOut); fs.closeSync(portalErr)
+  preparationTiming = acceptancePolicy.createTimingLedger({ runId: `stage8-prepare-${Date.now()}` })
   try {
     await phase('controlled_portal_health', waitForPortal)
     const credentialRef = await phase('credential_capture', () => createCredentialRef(username, password))
@@ -278,6 +287,17 @@ async function main() {
     })
     if (live.error || live.status !== 0) fail('I10_STAGE8_LIVE_MATRIX_FAILED', { exitCode: live.status })
   } finally {
+    if (preparationTiming) {
+      try {
+        fs.mkdirSync(path.join(root, '.data/evidence/i10/stage8'), { recursive: true })
+        fs.writeFileSync(
+          path.join(root, '.data/evidence/i10/stage8/preparation-timing.json'),
+          `${JSON.stringify(preparationTiming.finalize(), null, 2)}\n`,
+          'utf8'
+        )
+      } catch {}
+      preparationTiming = null
+    }
     if (portal.exitCode === null) portal.kill('SIGTERM')
     await new Promise(resolve => { if (portal.exitCode !== null) resolve(); else { portal.once('exit', resolve); setTimeout(resolve, 5_000) } })
   }

@@ -1,0 +1,326 @@
+{
+  "schemaVersion": "hengzhun-i10-tp00-change-inventory/v1",
+  "taskPackage": "TP-00",
+  "title": "变更盘点、分批审查与源码冻结准备",
+  "baseline": {
+    "capturedAt": "2026-08-23",
+    "branch": "main",
+    "head": "9d79b7c1e6cfedd995093cc7a378dc8e9218fa98",
+    "fileLevelDirtyEntriesBeforeTp00": 177,
+    "expectedFileLevelDirtyEntriesAfterTp00": 300,
+    "pathSetDigest": "50580239a0b6579f0fb827bfe89e0c3d596e7afe5ce739fae7b2c103fc4d06c8",
+    "pathSetHistory": [
+      {
+        "taskPackage": "TP-00",
+        "count": 180,
+        "pathSetDigest": "4a646ba4399da8e0649889b7eb9aa09fbed37ebbda81ccc093c0ed1ab22f4e06"
+      },
+      {
+        "taskPackage": "TP-01",
+        "reason": "新增经授权的 B03 审查任务包；产品源码文件集合未新增。",
+        "count": 181,
+        "pathSetDigest": "9fc215c8bf44c33d6ee972f8568d0440f4f63a568cd02b4b1ee141897549cb3b"
+      },
+      {
+        "taskPackage": "TP-02",
+        "reason": "新增经授权的 B04 Worker 执行安全任务包；产品源码文件集合未新增。",
+        "count": 182,
+        "pathSetDigest": "081ee2c4e104e9ceefdafb9e371b69d1aa5b92faea16954234ffd49918e00d09"
+      },
+      {
+        "taskPackage": "TP-02-IMPLEMENTATION",
+        "reason": "B04 行为审查确认三个原本干净的受控银行适配器需要接入租约中止、内存凭据与截图隔离合同；变更仍完全落在既有 B04 排他路由内。",
+        "count": 185,
+        "pathSetDigest": "4ad72d29eb50e9349ecf9c86d06ae3f3ee7c451c7c8714d273849f1c25825b5e"
+      },
+      {
+        "taskPackage": "TP-03",
+        "reason": "新增经授权的 B01 Flowise 供应链任务包；产品路径均已属于既有 B01 排他路由。",
+        "count": 186,
+        "pathSetDigest": "7b9c75320f65ae795580be338cff6a328a32e8ce62535afa6615e62ec2998438"
+      },
+      {
+        "taskPackage": "TP-04",
+        "reason": "新增 Node24 runtime 任务包、受控 runtime 配置/清单/供应与探针源码；所有路径已路由至既有 B00/B02/B06 批次。",
+        "count": 192,
+        "pathSetDigest": "59bcf8d5502580a30f0b42fd43ff10ea3199f82a6b27ca73feeafa2af65119e5"
+      },
+      {
+        "taskPackage": "TP-05",
+        "reason": "新增受控 Flowise runtime fork 任务包、policy、builder、行为测试与同步的 runtime acquisition metadata；现有 PREPARE、Stage9 和 ReleaseIdentity 同批收口。",
+        "count": 199,
+        "pathSetDigest": "2af5b364048f1056ceb098f617e09d61c2de3115d6c6d07881968a9c7380fe90"
+      },
+      {
+        "taskPackage": "TP-06",
+        "reason": "新增 advisory 精确路径处置、隔离 acquisition、对应行为测试与任务包；路径路由到既有 B00/B01/B02，未扩大正式服务、发布或 LIVE_E2E 范围。",
+        "count": 205,
+        "pathSetDigest": "a979076da1e792dcde88a5e4c497509802c1a02b9bf477f5f39eb29d14c77ce1"
+      },
+      {
+        "taskPackage": "TP-07",
+        "reason": "新增 runtime High advisory 闭包任务包；实现继续使用既有 B01/B02/B06 排他路由，未新增正式运行时、发布或 LIVE_E2E 路径。",
+        "count": 206,
+        "pathSetDigest": "9bf82718c04067b99f0ae1b5540023e1847009a122a45a9b0097de35f8aaf942"
+      },
+      {
+        "taskPackage": "TP-03-FINAL",
+        "reason": "B01 新增四个 fail-closed Flowise stub；B06 调整 progress 覆盖率子进程隔离。全部沿既有排他批次路由，不扩大 managed runtime、发布或 LIVE_E2E 权限。",
+        "count": 211,
+        "pathSetDigest": "d43618bdabf57b95ef395202fce944f7a60ecca258fb29eeb617fbcb51e499b8"
+      },
+      {
+        "taskPackage": "AGENT-CONTROLLER-MIGRATION-DECISION",
+        "reason": "新增 LangGraph.js 与 Deep Agents JS 控制器迁移架构决策及 AG-00 至 AG-08 内部任务包；仅归入 B00 文档治理，不安装依赖、不改产品源码、运行态、发布态或 LIVE_E2E。",
+        "count": 212,
+        "pathSetDigest": "419a2aab8c60826f3f298b5677bc92d18b01e885fd438a91f1a14a8a82f5095b"
+      },
+      {
+        "taskPackage": "RF-009-AG-00",
+        "reason": "启用并实现 synthetic LangGraph.js + Deep Agents JS 隔离 PoC；新增 RF-009 治理链、精确依赖、最小控制图和合同测试，未改产品 package、运行态、发布态或 LIVE_E2E。",
+        "count": 229,
+        "pathSetDigest": "df588249c86520097271822db149b88c1cf6c5d2df98ce413ac8b9e04798dea8"
+      },
+      {
+        "taskPackage": "RF-010-AG-01",
+        "reason": "新增框架无关 ControllerPort、语义透明 FlowiseAdapter、33 工具审查分类策略、RF-010 治理链和聚焦合同测试；未接流量、未改产品依赖或运行发布证据。",
+        "count": 245,
+        "pathSetDigest": "32ae423b5eeea3071e7ae9b62cbd4f77e1dd5004f3af8022715caa51d8eafe5a"
+      },
+      {
+        "taskPackage": "RF-011-AG-02",
+        "reason": "新增未激活 LangGraph/Deep Agents AgentController 内核、精确 controller 子包 lock、synthetic 集成测试与 RF-011 治理链；未连接真实服务、数据库、发布或验收。",
+        "count": 260,
+        "pathSetDigest": "c556ce2eb68e9117654d26ad74a0f5e02d14465729e55747deaa85a65fada7b4"
+      },
+      {
+        "taskPackage": "RF-012-AG-03",
+        "reason": "新增 checkpoint schema、namespace/thread TTL、cleanup、allowlist trace、内存 scratch VFS、内核安全接线与 RF-012 治理链；未访问持久运行数据。",
+        "count": 273,
+        "pathSetDigest": "edae43ab94e9aec1fa0dadfcfab41f4579b454b493d7f085e841cc0e701b3b0c"
+      },
+      {
+        "taskPackage": "RF-013-AG-04",
+        "reason": "将未激活控制器的精确 lock、源码、独立 prompt、工具策略、非秘密模型配置和 checkpoint schema 纳入 ReleaseIdentity v3；新增 RF-013 治理链与身份漂移测试，未启动服务、发布或写入验收账本。",
+        "count": 287,
+        "pathSetDigest": "a19c1dcd4a5a191447a416567fcc4894b3290da24fce565d9a12d4621fc6734f"
+      },
+      {
+        "taskPackage": "RF-014-AG-05-PREP",
+        "reason": "新增无 mutation port 的只读 Shadow 比较器、失败关闭指标测试与 RF-014 治理链；源码纳入 v3 身份，但未启动真实流量、外部模型或运行时。",
+        "count": 300,
+        "pathSetDigest": "50580239a0b6579f0fb827bfe89e0c3d596e7afe5ce739fae7b2c103fc4d06c8"
+      }
+    ]
+  },
+  "policy": {
+    "routing": "exclusive-match",
+    "unknownPathsAllowed": false,
+    "stageOrCommit": false,
+    "runtimeMutation": false,
+    "publication": false,
+    "preserveExcludedPaths": true
+  },
+  "reviewContracts": {
+    "B00-governance-ci": {
+      "workingDirectory": "D:/Agent/banksystem",
+      "reviewCommands": ["python scripts/docs/validate_docs.py", "python scripts/architecture/validate_refactoring_temporal.py --enforce", "node scripts/architecture/validate_hengzhun_i10_tp00_inventory.cjs"],
+      "rollback": "仅回退治理、CI 和验证工具批次；不得借回退删除 X01/X02。",
+      "runtimeEvidence": "NOT_APPLICABLE"
+    },
+    "B01-flowise-supply-chain": {
+      "workingDirectory": "D:/Agent/banksystem/platform/hengzhun-regression-system",
+      "reviewCommands": ["node --test scripts/verification/flowise-audit-gate.test.cjs scripts/verification/flowise-runtime-policy.test.cjs", "npm ls --omit=dev"],
+      "rollback": "package.json、package-lock.json、审计例外和门禁测试作为一个原子批次回退；回退后重新核对安装态。",
+      "runtimeEvidence": "版本安装态和审计快照必须在发布候选机重取。"
+    },
+    "B02-agentflow-publication": {
+      "workingDirectory": "D:/Agent/banksystem/platform/hengzhun-regression-system",
+      "reviewCommands": ["node --test scripts/verification/agentflow-capability-preservation.test.cjs scripts/verification/generic-worker-routing.test.cjs scripts/verification/i10-final-standardization-contracts.test.cjs"],
+      "rollback": "builder、v6/v7 图、layout、chatbot config 和 publication manifest 同批回退，禁止拆分。",
+      "runtimeEvidence": "静态通过不建立 deployed 或公共 API 回读声明。"
+    },
+    "B03-harness-journey-contracts": {
+      "workingDirectory": "D:/Agent/banksystem/platform/hengzhun-regression-system",
+      "reviewCommands": ["npm run build", "node --test scripts/verification/journey-state-machine.test.cjs scripts/verification/mcp-interaction-contract.test.cjs scripts/verification/target-resolution-pinning.test.cjs"],
+      "rollback": "应用迁移前可整体回退源码和 037-039；迁移应用后必须使用前向补偿迁移，禁止删除已应用迁移。",
+      "runtimeEvidence": "需要隔离 SQLite 行为测试；不得写 Fineract/PostgreSQL。"
+    },
+    "B04-worker-execution-safety": {
+      "workingDirectory": "D:/Agent/banksystem/platform/hengzhun-regression-system",
+      "reviewCommands": ["node --test scripts/verification/worker-lease-scheduler.test.cjs scripts/verification/screenshot-quarantine.test.cjs scripts/verification/midscene-diagnostics.test.cjs", "node scripts/i10-worker-code-set-audit.cjs"],
+      "rollback": "Worker 源码、run-lease 和 WorkerCodeSet 身份清单作为一个原子批次回退。",
+      "runtimeEvidence": "需证明旧租约 Worker 无法覆盖新执行，且隔离截图不可下载。"
+    },
+    "B05-acceptance-evidence": {
+      "workingDirectory": "D:/Agent/banksystem/platform/hengzhun-regression-system",
+      "reviewCommands": ["node --test scripts/verification/i10-18-chain-acceptance.test.cjs scripts/verification/stage8-terminal-evidence.test.cjs scripts/verification/acceptance-milestones.test.cjs"],
+      "rollback": "只回退验收工具与算法，不改写或删除既有账本记录和历史证据。",
+      "runtimeEvidence": "LIVE_E2E 必须在新 ReleaseIdentity 冻结后另行授权执行。"
+    },
+    "B06-release-portability-quality": {
+      "workingDirectory": "D:/Agent/banksystem/platform/hengzhun-regression-system",
+      "reviewCommands": ["npm run typecheck", "npm run lint", "npm run check:tests", "node --test scripts/verification/release-toolchain-integrity.test.cjs scripts/verification/test-toolchain.test.cjs scripts/verification/secret-scan-streaming.test.cjs"],
+      "rollback": "发布身份、Stage9、生命周期、测试清单和质量门同批回退；不得回退或伪造已生成的外部验收记录。",
+      "runtimeEvidence": "打包前必须从显式源码清单重算 ReleaseIdentity，并证明工作树来源。"
+    },
+    "B07-agent-controller-poc": {
+      "workingDirectory": "D:/Agent/banksystem/platform/hengzhun-regression-system/experiments/agent-controller-ag00",
+      "reviewCommands": ["npm.cmd test", "npm.cmd audit --omit=dev"],
+      "rollback": "只回退隔离 PoC 和 RF-009 治理投影；不得修改产品依赖、运行态、发布态或正式证据。",
+      "runtimeEvidence": "仅允许 CONTRACT 与 synthetic INTEGRATION；不得建立 LIVE_E2E 或发布声明。"
+    },
+    "B08-agent-controller-contracts": {
+      "workingDirectory": "D:/Agent/banksystem/platform/hengzhun-regression-system",
+      "reviewCommands": ["runtime/node-v20.20.2-win-x64/node.exe --test scripts/verification/agent-controller-port.test.cjs"],
+      "rollback": "只回退未激活 ControllerPort、工具策略和聚焦测试；不得修改 Flowise/MCP/Harness/Worker 或正式证据。",
+      "runtimeEvidence": "仅允许 STATIC/CONTRACT；不得建立流量、发布或 LIVE_E2E 声明。"
+    },
+    "B09-agent-controller-kernel": {
+      "workingDirectory": "D:/Agent/banksystem/platform/hengzhun-regression-system",
+      "reviewCommands": ["runtime/node-v20.20.2-win-x64/node.exe --test controller/test/agent-controller-kernel.test.mjs", "runtime/node-v24.19.0-win-x64/npm.cmd --prefix controller audit --omit=dev --json"],
+      "rollback": "只回退未激活 kernel、controller 子包依赖和聚焦测试；不得触碰真实服务、发布或验收数据。",
+      "runtimeEvidence": "仅允许 CONTRACT/synthetic INTEGRATION；不得建立真实 MCP 或 LIVE_E2E 声明。"
+    },
+    "B10-agent-controller-state-security": {
+      "workingDirectory": "D:/Agent/banksystem/platform/hengzhun-regression-system",
+      "reviewCommands": ["runtime/node-v20.20.2-win-x64/node.exe --test controller/test/state-security.test.mjs controller/test/agent-controller-kernel.test.mjs"],
+      "rollback": "只回退未激活 state-security 和对应 kernel wiring；不得访问或删除正式运行数据。",
+      "runtimeEvidence": "仅允许 CONTRACT/synthetic INTEGRATION；持久后端与真实 trace 不在本批。"
+    },
+    "B11-controller-release-identity": {
+      "workingDirectory": "D:/Agent/banksystem/platform/hengzhun-regression-system",
+      "reviewCommands": ["runtime/node-v20.20.2-win-x64/node.exe --test controller/test/release-identity.test.cjs tests/i10-release-identity-worker-set.test.cjs scripts/verification/release-toolchain-integrity.test.cjs scripts/verification/i10-final-standardization-contracts.test.cjs"],
+      "rollback": "保留 v2/v3 历史边界，只回退身份计算与未激活 controller manifest；不得改写账本。",
+      "runtimeEvidence": "新 identity 是静态源码身份，不证明服务加载、发布或 LIVE_E2E。"
+    },
+    "B12-agent-controller-shadow": {
+      "workingDirectory": "D:/Agent/banksystem/platform/hengzhun-regression-system",
+      "reviewCommands": ["runtime/node-v20.20.2-win-x64/node.exe --test controller/test/shadow-comparator.test.mjs controller/test/release-identity.test.cjs"],
+      "rollback": "只回退未激活 Shadow 比较器及测试；不得启动真实流量或改动 Flowise 写入权。",
+      "runtimeEvidence": "仅允许 CONTRACT/synthetic INTEGRATION；真实 Shadow 指标必须另行授权取得。"
+    }
+  },
+  "batches": [
+    {
+      "id": "X02-user-review",
+      "disposition": "USER_REVIEW",
+      "purpose": "保留个人辅助工具；未经所有者确认不得纳入产品提交。",
+      "businessContext": "个人维护脚本可能帮助文档整理，但不是衡准产品运行时权威。",
+      "easyMistakes": ["把个人工具误当产品源码提交", "在盘点阶段删除未知文件"],
+      "patterns": ["^\\.pi/"]
+    },
+    {
+      "id": "X01-runtime-artifacts",
+      "disposition": "PRESERVE_EXCLUDE",
+      "purpose": "隔离并保留本地浏览器运行报告，不进入源码冻结候选。",
+      "businessContext": "运行报告只能证明对应执行时刻，不能替代当前源码验收。",
+      "easyMistakes": ["提交含页面数据的报告", "把旧报告当当前 LIVE_E2E 证据", "为清洁工作树而删除用户证据"],
+      "patterns": ["^platform/hengzhun-regression-system/midscene_run/"]
+    },
+    {
+      "id": "B00-governance-ci",
+      "disposition": "CHANGE_BATCH",
+      "purpose": "任务控制、CI、重构证据与 TP-00 校验工具。",
+      "businessContext": "发布前必须能回答每个变更由哪个任务拥有、如何验收、如何回滚。",
+      "easyMistakes": ["让辅助文档改写实现顺序权威", "CI 与测试清单脱节", "把历史证据写成当前通过"],
+      "patterns": ["^\\.github/", "^agent/", "^docs/architecture/refactoring/(?:batches/RF-(005|006|007|008|009|010|011|012|013|014)/|module-boundaries-v1\\.yaml$)", "^docs/evidence/", "^scripts/architecture/"]
+    },
+    {
+      "id": "B01-flowise-supply-chain",
+      "disposition": "CHANGE_BATCH",
+      "purpose": "Flowise 版本、锁文件、审计例外和运行策略门禁。",
+      "businessContext": "声明版本、锁定版本、安装版本和审计快照必须一致；例外是限时风险接受，不是安全证明。",
+      "easyMistakes": ["只改 package.json 不重建锁与安装态", "把审计例外当漏洞修复", "忽略 transitive advisory 漂移"],
+      "patterns": ["^platform/hengzhun-regression-system/flowise/(app/|stubs/|runtime-package(?:-lock)?\\.json$)", "^platform/hengzhun-regression-system/scripts/(check-flowise-audit|flowise-audit-exceptions|i10-acquire-flowise-runtime|i10-flowise-advisory-disposition|i10-flowise-runtime-policy|i10-build-flowise-runtime-fork)\\.", "^platform/hengzhun-regression-system/scripts/verification/(flowise-advisory-disposition|flowise-audit-gate|flowise-isolated-acquisition|flowise-runtime-policy|flowise-runtime-fork)\\.test\\.cjs$"]
+    },
+    {
+      "id": "B02-agentflow-publication",
+      "disposition": "CHANGE_BATCH",
+      "purpose": "Agentflow builder、生成图、布局、配置和发布清单的一致性。",
+      "businessContext": "生成物必须由同批 builder 可重现；deployed 标志不能由普通测试隐式改写。",
+      "easyMistakes": ["只提交生成 JSON 不提交 builder", "测试重写发布清单", "旧 manifest 指向旧源码哈希"],
+      "patterns": ["^platform/hengzhun-regression-system/flowise/i10/", "^platform/hengzhun-regression-system/scripts/(apply-i9-flowise-overlays|build-i10-agentflow-v[67])\\.cjs$", "^platform/hengzhun-regression-system/scripts/verification/(agentflow-capability-preservation|generic-worker-routing|i10-final-standardization-contracts|image-dual-model-evidence)\\.test\\.cjs$"]
+    },
+    {
+      "id": "B03-harness-journey-contracts",
+      "disposition": "CHANGE_BATCH",
+      "purpose": "Harness、MCP、迁移 037-039、Journey 绑定与目标解析合同。",
+      "businessContext": "任务、计划、候选、审批、run 和 schedule 必须按同一业务绑定闭环；银行自动化写操作不可按时间猜测对象。",
+      "easyMistakes": ["漏提交迁移", "按 case+createdAt 误绑定", "ONE_TIME grace 在跨层降级", "探测目标时引入 SSRF"],
+      "patterns": ["^platform/hengzhun-regression-system/contracts/", "^platform/hengzhun-regression-system/harness/", "^platform/hengzhun-regression-system/mcp/", "^platform/hengzhun-regression-system/scripts/verification/(context-envelope|harness-loopback-host|journey-state-machine|mcp-interaction-contract|rf001-contract-adapter|rf002-s2-state-contract|rf002-s3-mcp-convergence|rf004-s3-harness-credential-resolution|target-resolution-pinning|target-profile)\\.test\\.cjs$"]
+    },
+    {
+      "id": "B04-worker-execution-safety",
+      "disposition": "CHANGE_BATCH",
+      "purpose": "Worker 租约、心跳、截图隔离与执行源码身份闭包。",
+      "businessContext": "过期 Worker 不得覆盖新执行；未证明脱敏的截图不得作为可下载的 REDACTED 证据。",
+      "easyMistakes": ["没有 fencing 令牌", "租约期间无续租", "先落文件后校验所有权", "仅遮输入框却标记已脱敏"],
+      "patterns": ["^platform/hengzhun-regression-system/worker/", "^platform/hengzhun-regression-system/scripts/i10-worker-code-set", "^platform/hengzhun-regression-system/scripts/verification/(midscene-diagnostics|screenshot-quarantine|worker-lease-scheduler)\\.test\\.cjs$", "^platform/hengzhun-regression-system/tests/i10-release-identity-worker-set\\.test\\.cjs$"]
+    },
+    {
+      "id": "B05-acceptance-evidence",
+      "disposition": "CHANGE_BATCH",
+      "purpose": "18 链验收、账本、OCR、Stage8、里程碑与专项证据。",
+      "businessContext": "重试记录必须按 case+variant 取当前有效尝试；静态合同、历史证据与 LIVE_E2E 必须分层陈述。",
+      "easyMistakes": ["把 attempt-1/2 重复计数", "语义比较容忍额外动作", "错误响应后盲重放写操作", "用陈旧 ledger 宣称 currentPassed"],
+      "patterns": ["^platform/hengzhun-regression-system/scripts/i10-(18-chain-acceptance-live|acceptance-|browser-ocr-case-suite-live|case-draft-normalizer|l1-live-bootstrap|l2-generic-screenshot-live|specialty-evidence|stage8-|verification-branches-live)", "^platform/hengzhun-regression-system/scripts/verify-i10-model-probes\\.cjs$", "^platform/hengzhun-regression-system/scripts/verification/(acceptance-milestones|i10-18-chain-acceptance|i10-l1-live-bootstrap|model-probe-transport|specialty-evidence|stage8-terminal-evidence|target-profile-prerequisite|verification-policy)\\.test\\.cjs$", "^platform/hengzhun-regression-system/tests/i10/acceptance-"]
+    },
+    {
+      "id": "B06-release-portability-quality",
+      "disposition": "CHANGE_BATCH",
+      "purpose": "其余发布身份、导入导出、生命周期、质量门、测试注册和兼容性验证。",
+      "businessContext": "冻结、打包和发布必须基于可复现源码集合；测试入口应只读，所有测试必须登记。",
+      "easyMistakes": ["ReleaseIdentity 漏哈希实际执行源码", "Stage9 漏打未跟踪文件", "测试入口重写生成物", "硬编码临时目录", "密钥扫描静默跳过大文件"],
+      "patterns": ["^platform/hengzhun-regression-system/package(-lock)?\\.json$", "^platform/hengzhun-regression-system/config/i9\\.runtime\\.example\\.json$", "^platform/hengzhun-regression-system/scripts/(i10-flowise-export-import-isolated|i10-flowise-export-package|i10-flowise-runtime-probe|i10-provision-node-runtimes|i10-release-identity|i10-stage9-portable|i9-lifecycle|prepare-i9|prepare-i10|progress\\.selftest|run-compat-suite|verify-i10-secret-leaks|quality-gates|run-registered-tests|start-i9|status-i9|stop-i9)\\.(cjs|ps1)$", "^platform/hengzhun-regression-system/scripts/verification/(flowise-export-package|lifecycle-entrypoints|release-toolchain-integrity|secret-scan-streaming|test-toolchain|rf001-b3s5-shadow-live|rf001-b4s3-rollback-drill|rf001-b4s4-cutover|rf003-s1-version-baseline|rf003-s2-version-unify|rf004-s1-credential-baseline|rf005-s2-single-route)\\.test\\.cjs$", "^platform/hengzhun-regression-system/scripts/verification/test-manifest\\.json$"]
+    },
+    {
+      "id": "B07-agent-controller-poc",
+      "disposition": "CHANGE_BATCH",
+      "purpose": "AG-00 synthetic Agent 控制器隔离 PoC、精确依赖与安全合同测试。",
+      "businessContext": "PoC 只决定框架可行性，不获得产品写权、运行权、发布权或正式验收资格。",
+      "easyMistakes": ["把 PoC 依赖写入产品 package", "向规划器暴露宿主文件系统或变更工具", "用 synthetic PASS 冒充 LIVE_E2E", "让 checkpoint 覆盖 Harness 权威状态"],
+      "patterns": ["^platform/hengzhun-regression-system/experiments/agent-controller-ag00/"]
+    },
+    {
+      "id": "B08-agent-controller-contracts",
+      "disposition": "CHANGE_BATCH",
+      "purpose": "AG-01 非激活 ControllerPort、FlowiseAdapter 与 33 工具权威分类合同。",
+      "businessContext": "控制器替换前必须先固定框架无关入口和工具最小权限；策略不完整时不能把工具交给模型。",
+      "easyMistakes": ["按工具名后缀猜测副作用", "把条件写工具误分为只读", "未知工具默认放行", "让适配器偷偷改变 Flowise 语义"],
+      "patterns": ["^platform/hengzhun-regression-system/controller/(?:tool-policy-v1\\.json|src/(?:tool-policy|controller-port)\\.cjs)$", "^platform/hengzhun-regression-system/scripts/verification/agent-controller-port\\.test\\.cjs$"]
+    },
+    {
+      "id": "B09-agent-controller-kernel",
+      "disposition": "CHANGE_BATCH",
+      "purpose": "AG-02 未激活 LangGraph/Deep Agents 内核、精确子包依赖与 synthetic 集成测试。",
+      "businessContext": "规划智能只能提出候选；变更必须由确定性节点在批准、版本和对账门后调用。",
+      "easyMistakes": ["把变更工具暴露给模型", "resume 不重读 Harness", "checkpoint 成为第二主库", "synthetic PASS 冒充真实接流"],
+      "patterns": ["^platform/hengzhun-regression-system/controller/(?:package(?:-lock)?\\.json|src/agent-controller\\.mjs|test/agent-controller-kernel\\.test\\.mjs)$"]
+    },
+    {
+      "id": "B10-agent-controller-state-security",
+      "disposition": "CHANGE_BATCH",
+      "purpose": "AG-03 checkpoint schema、namespace/TTL、脱敏 trace 与内存 scratch 安全合同。",
+      "businessContext": "checkpoint 只能恢复控制位置，不能跨租户或携带秘密成为第二业务库。",
+      "easyMistakes": ["只用 threadId 不绑定 namespace", "TTL 过期仍可 resume", "trace 记录原始 payload", "scratch 映射宿主路径"],
+      "patterns": ["^platform/hengzhun-regression-system/controller/(?:src/state-security\\.mjs|test/state-security\\.test\\.mjs)$"]
+    },
+    {
+      "id": "B11-controller-release-identity",
+      "disposition": "CHANGE_BATCH",
+      "purpose": "AG-04 controller release manifest、prompt 与 ReleaseIdentity v3 合同测试。",
+      "businessContext": "控制器任何可控行为输入变化都必须产生新身份，旧验收不得跨控制器复用。",
+      "easyMistakes": ["漏 hash prompt/tool policy", "把 API key 写入 identity", "保持 v2 导致新控制器复用旧证据", "身份变化后继续旧 checkpoint"],
+      "patterns": ["^platform/hengzhun-regression-system/controller/(?:controller-release-manifest-v1\\.json|prompt-v1\\.txt|test/release-identity\\.test\\.cjs)$"]
+    },
+    {
+      "id": "B12-agent-controller-shadow",
+      "disposition": "CHANGE_BATCH",
+      "purpose": "AG-05 只读 Shadow 比较、指标聚合与失败关闭合同。",
+      "businessContext": "候选控制器只能旁路观察；Flowise 在正式切流前始终是唯一写入者。",
+      "easyMistakes": ["给 Shadow 注入 mutation port", "输出原始输入或参数", "把 synthetic 指标冒充真实流量", "重大风险分歧未归因就切流"],
+      "patterns": ["^platform/hengzhun-regression-system/controller/(?:src/shadow-comparator\\.mjs|test/shadow-comparator\\.test\\.mjs)$"]
+    }
+  ]
+}

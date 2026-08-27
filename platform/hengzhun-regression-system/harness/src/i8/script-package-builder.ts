@@ -42,7 +42,37 @@ function isControlledFuxingLoginCase(intentPlan: ControlledFuxingIntentPlan): bo
   const snapshot = intentPlan.targetProfileSnapshot as Record<string, unknown> | undefined;
   // The binding comes from the approved target-profile snapshot.  A controller
   // supplied plan field may repeat it, but cannot invent it from name or URL.
-  return isFuxingBankDemoAdapter(intentPlan.adapterBinding ?? snapshot?.adapterBinding);
+  if (!isFuxingBankDemoAdapter(intentPlan.adapterBinding ?? snapshot?.adapterBinding)) return false;
+  // An adapter identifies the application, not the business case.  Reusing an
+  // ACTIVE Fuxing target profile for accounts, recipients, documents, or
+  // messages must stay on the generic semantic-plan path.  The deterministic
+  // login/profile template is valid only for its exact cross-page identity
+  // comparison contract.
+  const semanticText = [
+    ...intentPlan.steps.flatMap(step => [step.action, step.expected]),
+    ...intentPlan.assertions
+  ].join('\n');
+  return /(?:个人资料|个人中心|profile)/i.test(semanticText)
+    && /(?:头像|avatar)/i.test(semanticText)
+    && /(?:姓名|名称|display\s*name|name)/i.test(semanticText)
+    && /(?:一致|相同|比较|对比|match|same|equal)/i.test(semanticText);
+}
+
+function isControlledFuxingTransferCase(intentPlan: ControlledFuxingIntentPlan & {
+  inputContractVersion?: string;
+  typedBusinessInputs?: { values?: Record<string, string> };
+}): boolean {
+  const snapshot = intentPlan.targetProfileSnapshot as Record<string, unknown> | undefined;
+  if (!isFuxingBankDemoAdapter(intentPlan.adapterBinding ?? snapshot?.adapterBinding)) return false;
+  if (intentPlan.inputContractVersion !== 'TypedBusinessInputsV1') return false;
+  const inputs = intentPlan.typedBusinessInputs?.values;
+  if (!inputs?.payeeRef || !inputs.amount || !inputs.currency || !inputs.purpose) return false;
+  const semanticText = [
+    ...intentPlan.steps.flatMap(step => [step.action, step.expected]),
+    ...intentPlan.assertions
+  ].join('\n');
+  return /(?:转账|汇款|transfer)/i.test(semanticText)
+    && /(?:首次确认|U盾|移动证书|单号|订单|网页验证|first\s*confirm|order)/i.test(semanticText);
 }
 
 /**
@@ -86,7 +116,8 @@ function explicitTransferFixtureValue(
 
 export function compileExecutableActionPlan(intentPlanInput: unknown, intentPlanHash: string): ExecutableActionPlan {
   const intentPlan = intentPlanSchema.parse(intentPlanInput);
-  if (intentPlan.executionProfile === 'GENERIC_WEB' && !isControlledFuxingLoginCase(intentPlan)) {
+  const controlledTransferCase = isControlledFuxingTransferCase(intentPlan);
+  if (intentPlan.executionProfile === 'GENERIC_WEB' && !isControlledFuxingLoginCase(intentPlan) && !controlledTransferCase) {
     const snapshot = intentPlan.targetProfileSnapshot as Record<string, unknown>;
     if (snapshot.status !== 'ACTIVE'
       || snapshot.targetProfileId !== intentPlan.targetProfileId
@@ -138,6 +169,13 @@ export function compileExecutableActionPlan(intentPlanInput: unknown, intentPlan
             expected: '登录成功并进入已认证页面',
             inputValueSource: 'NONE',
             operationHint: 'click'
+          },
+          {
+            ...loginStep,
+            action: '等待登录后导航完成',
+            expected: '浏览器已离开登录地址并进入目标站点允许的已认证页面',
+            inputValueSource: 'NONE',
+            operationHint: 'waitForURL'
           },
           ...original.filter((step, index) => index !== loginIndex && !/(?:入口URL|启动URL|launch\s*url)/i.test(step.action))
         ]
@@ -196,6 +234,7 @@ export function compileExecutableActionPlan(intentPlanInput: unknown, intentPlan
     const executablePlanId = `eap_${sha256(seed).slice(0, 40)}`;
     const actions: Array<Record<string, unknown> & { ordinal: number; operation: ExecutableActionPlan['actions'][number]['operation'] }> = coalescedSource.map((step, index) => {
       const text = `${step.action} ${step.expected}`;
+      const actionText = String(step.action || '').trim();
       const first = index === 0;
       let operation: ExecutableActionPlan['actions'][number]['operation'] = step.operationHint ?? (first ? 'goto' : 'click');
       // A bare "查询一份文档" and "确认下载入口" describe inspection, not a
@@ -203,27 +242,27 @@ export function compileExecutableActionPlan(intentPlanInput: unknown, intentPlan
       // direct download action.  This keeps generic plans from inventing UI
       // controls that a target site never exposed.
       const readOnlyInspection = !step.operationHint && !first && (
-        /^(?:查看|浏览|读取|列出|展示|显示|确认|验证|检查|查询)\s*/i.test(String(step.action || '').trim()) &&
-        !/(?:点击|进入|导航(?:至|到)?|前往|输入|填写|选择|下拉|筛选|过滤|上传)/i.test(text) &&
-        !/(?:^|[\s，,；;])(?:点击)?下载(?:文件|文档|回单|报表)?(?:$|[\s，,；;])/i.test(String(step.action || '').trim())
+        /^(?:查看|浏览|读取|列出|展示|显示|确认|验证|检查|校验|核对|查询)\s*/i.test(actionText) &&
+        !/(?:点击|进入|导航(?:至|到)?|前往|输入|填写|选择|下拉|筛选|过滤|上传)/i.test(actionText) &&
+        !/(?:^|[\s，,；;])(?:点击)?下载(?:文件|文档|回单|报表)?(?:$|[\s，,；;])/i.test(actionText)
       );
       if (readOnlyInspection) operation = 'expectVisible';
-      else if (!step.operationHint && !first && /(?:输入|填写|fill|type)/i.test(text)) operation = 'fill';
-      else if (!first && /(?:选择|下拉|select|筛选|过滤|filter)/i.test(text)) operation = 'select';
-      else if (!first && /(?:勾选|复选|check)/i.test(text)) operation = 'check';
-      else if (!first && /(?:上传|upload)/i.test(text)) operation = 'upload';
-      else if (!first && /(?:下载|download)/i.test(text)) operation = 'download';
+      else if (!step.operationHint && !first && /(?:输入|填写|fill|type)/i.test(actionText)) operation = 'fill';
+      else if (!step.operationHint && !first && /(?:选择|下拉|select|筛选|过滤|filter)/i.test(actionText)) operation = 'select';
+      else if (!step.operationHint && !first && /(?:勾选|复选|check)/i.test(actionText)) operation = 'check';
+      else if (!step.operationHint && !first && /(?:上传|upload)/i.test(actionText)) operation = 'upload';
+      else if (!step.operationHint && !first && /(?:下载|download)/i.test(actionText)) operation = 'download';
       // “查看列表/信息/明细” describes a read-only page fact, not a click.
       // Treating it as a click forces the vision locator to find a nonexistent
       // interactive control and can misidentify a similarly named top-nav item.
       // Explicit navigation and click wording still retain their side effect.
-      else if (!first && /(?:查看|浏览|读取|列出|展示.*(?:列表|信息|明细)|显示.*(?:列表|信息|明细))/i.test(text) &&
-        !/(?:点击|进入|导航(?:至|到)?|前往)/i.test(text)) operation = 'expectVisible';
-      else if (!first && /(?:进入|导航(?:至|到)?|打开.*(?:页|页面)|go\s*to|navigate)/i.test(text)) operation = 'click';
+      else if (!step.operationHint && !first && /(?:查看|浏览|读取|列出|展示.*(?:列表|信息|明细)|显示.*(?:列表|信息|明细))/i.test(actionText) &&
+        !/(?:点击|进入|导航(?:至|到)?|前往)/i.test(actionText)) operation = 'expectVisible';
+      else if (!step.operationHint && !first && /(?:进入|导航(?:至|到)?|打开.*(?:页|页面)|go\s*to|navigate)/i.test(actionText)) operation = 'click';
       // Verification keywords alone do not prove a runtime challenge.  A
       // policy must be explicitly bound to an action by the deterministic plan.
-      else if (!first && /(?:验证|确认|检查|显示|一致|verify|expect)/i.test(text)) operation = 'expectVisible';
-      else if (!first && /(?:等待.*(?:页面|跳转)|wait.*url)/i.test(text)) operation = 'waitForURL';
+      else if (!step.operationHint && !first && /(?:验证|确认|检查|显示|一致|verify|expect)/i.test(actionText)) operation = 'expectVisible';
+      else if (!step.operationHint && !first && /(?:等待.*(?:页面|跳转)|wait.*url)/i.test(actionText)) operation = 'waitForURL';
       const targetRef = `DYNAMIC_${String(index + 1).padStart(3, '0')}`;
       const fixtureRef = step.inputValueSource === 'CREDENTIAL_REF'
         ? (/password|密码/i.test(text) ? 'CREDENTIAL.PASSWORD' : 'CREDENTIAL.USERNAME')
@@ -314,7 +353,7 @@ export function compileExecutableActionPlan(intentPlanInput: unknown, intentPlan
   } catch {
     // A relative route is valid only when it matches the controlled portal route below.
   }
-  const transferProfile = intentPlan.executionProfile === 'TRANSFER_UKEY_ORDER_QUERY';
+  const transferProfile = intentPlan.executionProfile === 'TRANSFER_UKEY_ORDER_QUERY' || controlledTransferCase;
   // A controlled login case is compiled into the fixed allow-listed template
   // below.  The controller's semantic risk labels describe the user's prose,
   // not the executable operations: rejecting a MEDIUM label here stranded
@@ -456,7 +495,18 @@ export function buildDslDocument(planInput: unknown, recordsInput: unknown): { d
     }
   });
   const launchUrl = generic ? String(plan.targetProfileSnapshot?.launchUrl ?? '') : '';
-  const routes = generic ? { LAUNCH_URL: launchUrl, ALLOWED_NAVIGATION: launchUrl } : ROUTES;
+  const allowedNavigationOrigins = generic
+    ? Array.from(new Set(
+        (Array.isArray(plan.targetProfileSnapshot?.allowedNavigationOrigins)
+          ? plan.targetProfileSnapshot.allowedNavigationOrigins
+          : [new URL(launchUrl).origin])
+          .map(value => String(value).trim())
+          .filter(Boolean)
+      )).sort()
+    : [];
+  const routes = generic
+    ? { LAUNCH_URL: launchUrl, ALLOWED_NAVIGATION: canonicalJson(allowedNavigationOrigins) }
+    : ROUTES;
   return { dsl: dslDocumentSchema.parse({ schemaVersion: generic ? 'HENGZHUN_DSL_V2' : 'HENGZHUN_DSL_V1', executablePlanId: plan.executablePlanId, steps }), locators, fixtures: plan.fixtureValues, routes, verificationPolicies };
 }
 
@@ -472,7 +522,11 @@ export function generatedSource(dsl: DslDocument, locators: Record<string, Candi
   if (!legacy.includes(instantaneousAssertion)) throw new Error('CANDIDATE_TEMPLATE_EXPECT_VISIBLE_ANCHOR_MISSING');
   const afterStepAnchor = "await afterStep(step, page)";
   if (!legacy.includes(afterStepAnchor)) throw new Error('CANDIDATE_TEMPLATE_AFTER_STEP_ANCHOR_MISSING');
+  const loadStateOnlyWait = "else if (step.operation === 'waitForURL') await page.waitForLoadState('domcontentloaded', { timeout: PACKAGE.timeouts[step.timeoutPolicyRef] })";
+  const boundedUrlWait = "else if (step.operation === 'waitForURL') { const configured = PACKAGE.routes[step.routePatternRef]; let allowedOrigins = []; try { const parsed = JSON.parse(configured); allowedOrigins = Array.isArray(parsed) ? parsed : [] } catch { allowedOrigins = [new URL(configured, baseUrl).origin] } const launchRouteRef = PACKAGE.routes.LAUNCH_URL ? 'LAUNCH_URL' : 'PORTAL_LOGIN'; const launchUrl = routeUrl(baseUrl, launchRouteRef).toString(); await page.waitForURL((url) => allowedOrigins.includes(url.origin) && url.toString() !== launchUrl, { timeout: PACKAGE.timeouts[step.timeoutPolicyRef] }); await page.waitForLoadState('domcontentloaded', { timeout: PACKAGE.timeouts[step.timeoutPolicyRef] }) }";
+  if (!legacy.includes(loadStateOnlyWait)) throw new Error('CANDIDATE_TEMPLATE_WAIT_FOR_URL_ANCHOR_MISSING');
   return legacy.replace(instantaneousAssertion, boundedAssertion)
+    .replace(loadStateOnlyWait, boundedUrlWait)
     .replace(afterStepAnchor, "await afterStep(step, page, PACKAGE.verificationPolicies[step.sourceActionId])");
 }
 

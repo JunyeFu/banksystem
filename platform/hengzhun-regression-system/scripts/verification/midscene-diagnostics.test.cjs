@@ -10,11 +10,24 @@ const {
   observeTargetWithMidscene,
   executePlaywrightClick,
   genericActionTerms,
+  genericEvidenceMatchesTerms,
+  genericLocateInstruction,
+  identityEvidenceMatches,
+  requiresInteractiveLocator,
   withMidsceneLocateTimeout,
   I10_MIDSCENE_LOCATE_TIMEOUT_MS,
   I10_BROWSER_CLOSE_TIMEOUT_MS,
   closeWithinTimeout
 } = require('../../worker/src/i10-midscene-candidate-authoring.cjs');
+
+test('browser input operations require the model-selected interactive ancestor', () => {
+  for (const operation of ['click', 'fill', 'select', 'check', 'upload', 'download']) {
+    assert.equal(requiresInteractiveLocator({ operation }), true, operation);
+  }
+  for (const operation of ['expectVisible', 'goto', 'waitForURL', 'screenshot']) {
+    assert.equal(requiresInteractiveLocator({ operation }), false, operation);
+  }
+});
 
 test('MiMo authoring uses a valid bounded Midscene screenshot divisor', () => {
   assert.equal(I10_MIDSCENE_SCREENSHOT_SHRINK_FACTOR, 2);
@@ -79,6 +92,10 @@ test('generic read-only list inspection anchors the visible business region rath
   }), ['收款人']);
   assert.deepEqual(genericActionTerms({
     operation: 'expectVisible',
+    instruction: '查看收款人列表并核对姓名、账户掩码和状态'
+  }), ['收款人']);
+  assert.deepEqual(genericActionTerms({
+    operation: 'expectVisible',
     instruction: '验证账户掩码'
   }), ['账户']);
   assert.deepEqual(genericActionTerms({
@@ -87,16 +104,56 @@ test('generic read-only list inspection anchors the visible business region rath
   }), ['状态']);
   assert.deepEqual(genericActionTerms({
     operation: 'expectVisible',
+    instruction: '确认交易日期可读；确认交易金额可读；确认交易状态清晰可读'
+  }), ['交易日期']);
+  assert.deepEqual(genericActionTerms({
+    operation: 'select',
+    instruction: '按近期交易筛选'
+  }), ['近期交易']);
+  assert.deepEqual(genericActionTerms({
+    operation: 'expectVisible',
     instruction: '查询一份文档'
   }), ['文档']);
   assert.deepEqual(genericActionTerms({
     operation: 'expectVisible',
     instruction: '确认文档标题、日期和下载入口正确'
   }), ['文档']);
+  assert.equal(genericEvidenceMatchesTerms({
+    operation: 'expectVisible', instruction: '查询一份文档'
+  }, '七月电子对账单'), true);
+  assert.equal(genericEvidenceMatchesTerms({
+    operation: 'expectVisible', instruction: '查询账户对账单'
+  }, '七月电子对账单'), true);
+  assert.equal(genericEvidenceMatchesTerms({
+    operation: 'expectVisible', instruction: '核对收款人姓名、账户掩码和状态展示正确'
+  }, '张三 收款人姓名 账户掩码 收款人状态'), true);
+  assert.equal(genericEvidenceMatchesTerms({
+    operation: 'expectVisible', instruction: '查询一份文档'
+  }, '收款人管理'), false);
+  assert.deepEqual(genericActionTerms({
+    operation: 'expectVisible',
+    instruction: '确认标题日期下载入口正确'
+  }), ['标题']);
+  assert.deepEqual(genericActionTerms({
+    operation: 'expectVisible',
+    instruction: '确认文档下载入口正确'
+  }), ['下载']);
+  assert.deepEqual(genericActionTerms({
+    operation: 'click',
+    instruction: '点击文档下载入口'
+  }), ['点击文档下载入口']);
   assert.deepEqual(genericActionTerms({
     operation: 'click',
     instruction: '查看收款人列表'
   }), ['收款人列表']);
+  assert.deepEqual(genericActionTerms({
+    operation: 'download',
+    instruction: '核对文档标题、日期和下载入口'
+  }), ['下载']);
+  assert.match(genericLocateInstruction({
+    operation: 'download',
+    instruction: '核对文档标题、日期和下载入口'
+  }), /不要定位文档标题/);
   assert.deepEqual(genericActionTerms({
     operation: 'click',
     instruction: '导航至个人资料页面'
@@ -104,11 +161,45 @@ test('generic read-only list inspection anchors the visible business region rath
   assert.deepEqual(genericActionTerms({
     operation: 'click',
     instruction: '进入账户详情页'
-  }), ['账户详情']);
+  }), ['账户']);
+  assert.deepEqual(genericActionTerms({
+    operation: 'click',
+    instruction: '进入转账汇款'
+  }), ['转账']);
   assert.deepEqual(genericActionTerms({
     operation: 'expectVisible',
     instruction: '确认主页与个人资料页的姓名；确认头像一致'
   }), ['姓名']);
+  assert.match(genericLocateInstruction({
+    operation: 'expectVisible',
+    instruction: '核对主页与个人资料页的姓名和头像'
+  }), /个人资料内容卡中心/);
+  assert.match(genericLocateInstruction({
+    operation: 'expectVisible',
+    instruction: '核对主页与个人资料页的姓名和头像'
+  }), /不要定位顶部导航栏/);
+  assert.match(genericLocateInstruction({
+    operation: 'expectVisible',
+    instruction: '查看主页显示的姓名和头像'
+  }), /主页身份区只读观察/);
+  assert.match(genericLocateInstruction({
+    operation: 'expectVisible',
+    instruction: '查看主页显示的姓名和头像'
+  }), /不要定位页面中央欢迎卡/);
+  assert.equal(identityEvidenceMatches({
+    operation: 'expectVisible', instruction: '核对主页与个人资料页的姓名和头像'
+  }, { text: '客户姓名 张三', identityVisual: false }), true);
+  assert.equal(identityEvidenceMatches({
+    operation: 'expectVisible', instruction: '查看主页显示的姓名和头像'
+  }, { text: '欢迎登录复兴银行门户', identityVisual: false }), false);
+  assert.deepEqual(genericActionTerms({
+    operation: 'expectVisible',
+    instruction: '核对主页与个人资料页的姓名和头像'
+  }), ['姓名']);
+  assert.deepEqual(genericActionTerms({
+    operation: 'expectVisible',
+    instruction: '验证：显示近期交易，日期；验证金额；验证状态可读'
+  }), ['近期交易']);
 });
 
 test('Midscene locator calls have a bounded worker-safe timeout', async () => {
@@ -126,10 +217,22 @@ test('Midscene locator calls have a bounded worker-safe timeout', async () => {
 test('browser cleanup is bounded so a stuck Chromium close cannot retain a candidate lease', async () => {
   assert.equal(typeof closeWithinTimeout, 'function');
   assert.equal(I10_BROWSER_CLOSE_TIMEOUT_MS, 10_000);
-  const startedAt = Date.now();
-  await closeWithinTimeout(() => new Promise(() => {}), 20);
-  assert.ok(Date.now() - startedAt >= 15);
-  assert.ok(Date.now() - startedAt < 250);
+  const timerHandle = Symbol('fake-timer');
+  const scheduledDelays = [];
+  const clearedHandles = [];
+  const clock = {
+    setTimeout(resolve, delay) {
+      scheduledDelays.push(delay);
+      queueMicrotask(resolve);
+      return timerHandle;
+    },
+    clearTimeout(handle) {
+      clearedHandles.push(handle);
+    }
+  };
+  await closeWithinTimeout(() => new Promise(() => {}), 20, clock);
+  assert.deepEqual(scheduledDelays, [20]);
+  assert.deepEqual(clearedHandles, [timerHandle]);
 });
 
 test('portable visual configuration is mirrored to Midscene OpenAI transport keys', () => {
