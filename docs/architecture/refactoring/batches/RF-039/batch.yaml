@@ -1,0 +1,21 @@
+schemaVersion: 1
+id: RF-039
+title: Run-scoped ReleaseIdentity and correlation projection
+status: CLOSED
+owner: Codex
+authorizedBy: agent/plans/active/v54-implementation-batches.md
+scope:
+  includePaths: [platform/hengzhun-regression-system/harness, platform/hengzhun-regression-system/scripts, apps/quality-case-portal, contracts/openapi/quality-platform-api.yaml, docs/architecture/refactoring/batches/RF-039, agent/runs/rf039, agent/plans/active, agent/backlog.yaml]
+  excludePaths: [services, packages, postgresql, apps/customer-portal, apps/operations-console]
+budgets: {maxChangedFiles: 18, maxNewFiles: 12, maxChangedLines: 800, maxContractsChanged: 1, maxMigrationsAdded: 1, maxOpenModules: 2}
+baseline: {gitCommit: 552b3b8ac517bd5991bff446e72d9f4e87ea9543, dirtyTreeManifest: docs/architecture/refactoring/batches/RF-027/baseline.md, releaseIdentity: 19e031c7, capturedAt: "2026-09-03T19:00:00+08:00"}
+architecture: {businessCapability: cross-surface-run-identity, publicContract: contracts/openapi/quality-platform-api.yaml, dependencyManifest: docs/architecture/refactoring/module-boundaries-v1.yaml, allowedModules: [hengzhun.harness, frontend.quality-case-portal], forbiddenModules: [bank.payments, hengzhun.mcp, hengzhun.worker]}
+mustPreserve: [complete I10 journey execution binding, run-time identity not current-time inference, evidence-only correlation, no migration rewrite, no LIVE claim]
+verification:
+  requiredCommands:
+    - {name: migration-and-projection, command: "node --test scripts/verification/quality-read-model.test.cjs", expectedExitCode: 0, evidence: agent/runs/rf039/20260903-190000/integration-result.json, blocking: true}
+    - {name: lifecycle-identity, command: "node --test scripts/verification/agent-cold-rollback.test.cjs", expectedExitCode: 0, evidence: agent/runs/rf039/20260903-190000/integration-result.json, blocking: true}
+    - {name: portal-build, command: "npm --prefix apps/quality-case-portal run build", expectedExitCode: 0, evidence: docs/architecture/refactoring/batches/RF-039/evidence-index.md, blocking: true}
+    - {name: governance, command: "py -3 scripts/architecture/validate_refactoring.py --batch RF-039", expectedExitCode: 0, evidence: docs/architecture/refactoring/batches/RF-039/evidence-index.md, blocking: true}
+rollback: {triggerConditions: [release identity inferred for historical run, journey binding trigger bypassed, correlation synthesized, migration drift], recoveryPoint: RF-038 closed source state and pre-migration SQLite backup, maxRtoMinutes: 15, maxRpoMinutes: 0}
+exceptions: {allowedVagueNames: [], crossModule: []}

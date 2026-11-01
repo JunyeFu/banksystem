@@ -1,0 +1,9 @@
+id: RF-027-S2
+title: Root lifecycle and local configuration
+status: COMPLETED
+allowedPaths: [demo.ps1, .env.example, scripts/deploy, agent/plans/active/banksystem-tp-a02-reproducible-runtime-task-package.md, agent/plans/active/banksystem-open-source-task-packages-v1.yaml, agent/plans/active/banksystem-three-level-development-control-v1.md, agent/plans/active/banksystem-three-level-development-control-v1.yaml, docs/architecture/refactoring/batches/RF-027, agent/backlog.yaml, agent/plans/active/v54-implementation-batches.md]
+forbiddenPaths: [apps, services, platform/hengzhun-regression-system, contracts, postgresql, compose.channel.yaml]
+workSteps: [freeze command and exit-code contract, write public-seam lifecycle test and prove RED, implement prepare up status down reset, validate owned lifecycle and preserved data, complete Java and independent browser runtime prerequisites, synchronize evidence upward]
+verification: [RF-027 validator exits 0, lifecycle contract test exits 0, both Compose configs exit 0, docs validator exits 0, git diff check exits 0]
+rollback: stop only managed Agent processes and the two named Compose projects; remove S2 source changes without deleting named volumes local environment files or evidence
+evidence: docs/architecture/refactoring/batches/RF-027/evidence-index.md

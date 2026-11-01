@@ -1,0 +1,10 @@
+id: RF-067-S1
+title: Conversation history and restart continuity
+status: DONE
+businessGoal: Conversation history and restart continuity
+allowedPaths: ["platform/hengzhun-regression-system/harness/src","platform/hengzhun-regression-system/harness/migrations","platform/hengzhun-regression-system/mcp/src","platform/hengzhun-regression-system/contracts/mcp","platform/hengzhun-regression-system/scripts/verification","scripts/test/verify-agent-workbench.ps1","docs/architecture/refactoring/batches/RF-067"]
+forbiddenPaths: [postgresql, services/bank-channel-service, infra/keycloak, platform/hengzhun-regression-system/flowise]
+workSteps: [analyze, migrate-and-repository, register-mcp-contract, verify-dedup-pagination-restart]
+verification: ["powershell -NoProfile -ExecutionPolicy Bypass -File scripts/test/verify-agent-workbench.ps1 -Scope Contract","powershell -NoProfile -ExecutionPolicy Bypass -File scripts/test/verify-agent-workbench.ps1 -Scope Integration"]
+evidence: docs/architecture/refactoring/batches/RF-067/evidence-index.md
+

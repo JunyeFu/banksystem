@@ -22,7 +22,7 @@ import type {
   ScheduleDisableInput,
   I9KnowledgeSnapshotRegistrationInput
 } from './schemas';
-import { intentPlanSchema } from './schemas';
+import { intentPlanSchema, typedBusinessInputsV2Schema } from './schemas';
 import type { I8AuthoringSubmitInput, I8CasePrepareInput } from './i8/stage2-schemas';
 import {
   executableActionPlanSchema,
@@ -53,6 +53,50 @@ import {
 import { nextCronOccurrence, parseCron, validateTimeZone } from './cron';
 import { canonicalJson, nowIso, opaqueId, requestHash, sha256 } from './utils';
 import { I10Service } from './i10/service';
+import { feedbackRecordSchema, feedbackVerifySchema, matchReviewedLocators, matchReviewedAssertions, type ReviewedAssertion, type ReviewedLocator, type ReviewedFeedbackSource, type FeedbackRecordInput, type FeedbackVerifyInput } from './feedback';
+import { resolveTargetAdapterBinding } from './i8/target-adapter-registry';
+import type { JourneyPrepareInput } from './i10/schemas';
+import { bankValidationFixturesSchema, type BankValidationFixtures, type BankValidationFixture } from './i10/schemas';
+
+function bankExecutionFixtureValues(fixture: BankValidationFixture): Record<string,string> {
+  return {'TRANSFER.PAYER_ACCOUNT_ID':fixture.sourceAccountId,'TRANSFER.PAYEE_REF':fixture.beneficiaryRef,'TRANSFER.CURRENCY':fixture.currency};
+}
+
+function requireBankValidationFixtures(db:import('better-sqlite3').Database,namespace:string,definition:Record<string,unknown>):BankValidationFixtures {
+  if(!definition.bankValidationFixtures)
+    throw new HarnessError(409,'I10_BANK_VALIDATION_FIXTURES_REQUIRED','CONTRACT','资金作者化和稳定性验证需要独立的真实账户与凭据样本。',false,true);
+  const parsed=bankValidationFixturesSchema.safeParse(definition.bankValidationFixtures);
+  if(!parsed.success)throw new HarnessError(409,'I10_BANK_VALIDATION_FIXTURES_INVALID','CONTRACT','资金验证样本绑定不完整或不独立。',false,true);
+  const pool=parsed.data,samples=[pool.authoring,...pool.stability.map(item=>item.fixture)];
+  const values=(definition.businessInputs as {values?:Record<string,unknown>}|undefined)?.values;
+  if(pool.formalAccountIds.sourceAccountId!==values?.payerAccountId || values?.currency!=='CNY' ||
+    samples.some(item=>item.credentialRef===definition.credentialRef || item.beneficiaryRef===values?.payeeRef))
+    throw new HarnessError(409,'I10_BANK_VALIDATION_FORMAL_BINDING_INVALID','CONTRACT','验证样本不得复用正式账户、收款人或凭据。',false,true);
+  const credential=db.prepare(`SELECT r.credential_ref FROM i10_credential_refs r JOIN i10_credential_sessions s ON s.session_id=r.session_id
+    WHERE r.namespace=? AND s.namespace=? AND r.credential_ref=? AND s.credential_ref=r.credential_ref AND s.status='READY'`);
+  for(const sample of samples)if(!credential.get(namespace,namespace,sample.credentialRef))
+    throw new HarnessError(409,'I10_BANK_VALIDATION_CREDENTIAL_NOT_READY','SECURITY','资金验证样本凭据未在当前命名空间登记就绪。',false,true);
+  return pool;
+}
+
+function assertBankValidationPoolUnused(db:import('better-sqlite3').Database,pool:BankValidationFixtures):void {
+  const samples=[pool.authoring,...pool.stability.map(item=>item.fixture)];
+  const accounts=new Set(samples.flatMap(item=>[item.sourceAccountId,item.targetAccountId]));
+  const identities=new Set(samples.flatMap(item=>[item.fixtureId,item.subject,item.credentialRef,item.beneficiaryRef]));
+  const clients=new Set(samples.flatMap(item=>[item.sourceClientId,item.targetClientId]));
+  const used=db.prepare(`SELECT DISTINCT cv.definition_json FROM i8_candidate_build_jobs j
+    JOIN i8_executable_plans p ON p.executable_plan_id=j.executable_plan_id
+    JOIN case_versions cv ON cv.case_id=p.case_id AND cv.version=p.case_version WHERE j.attempt_count>0`).all() as Array<{definition_json:string}>;
+  for(const row of used) {
+    const value=JSON.parse(row.definition_json).bankValidationFixtures;
+    if(!value)continue;
+    const existing=bankValidationFixturesSchema.parse(value);
+    if([existing.authoring,...existing.stability.map(item=>item.fixture)].some(item=>
+      accounts.has(item.sourceAccountId)||accounts.has(item.targetAccountId)||clients.has(item.sourceClientId)||clients.has(item.targetClientId)||
+      identities.has(item.fixtureId)||identities.has(item.subject)||identities.has(item.credentialRef)||identities.has(item.beneficiaryRef)))
+      throw new HarnessError(409,'I10_BANK_VALIDATION_FIXTURES_CONSUMED','DOMAIN','资金验证样本已领取执行权；请重新准备独立客户与账户。',false,true);
+  }
+}
 
 interface RequestContext {
   requestId: string;
@@ -76,14 +120,15 @@ type VisualTargetRef = Parameters<typeof buildActionContextEnvelope>[0]['current
 type VisualActionType = Parameters<typeof buildActionContextEnvelope>[0]['currentAction']['actionType'];
 
 const I10_VISUAL_TARGETS = new Set<VisualTargetRef>([
-  'LOGIN_USERNAME', 'LOGIN_PASSWORD', 'LOGIN_SUBMIT', 'HEADER_DISPLAY_NAME', 'HEADER_AVATAR',
+  'LOGIN_SSO_SUBMIT', 'LOGIN_USERNAME', 'LOGIN_PASSWORD', 'LOGIN_SUBMIT', 'HEADER_DISPLAY_NAME', 'HEADER_AVATAR',
   'HEADER_PROFILE_LINK', 'PROFILE_DISPLAY_NAME', 'PROFILE_AVATAR', 'TRANSFER_ENTRY',
-  'TRANSFER_NEW', 'TRANSFER_RECIPIENT_NAME', 'TRANSFER_RECIPIENT_ACCOUNT', 'TRANSFER_AMOUNT',
+  'TRANSFER_NEW', 'TRANSFER_SOURCE_ACCOUNT', 'TRANSFER_BENEFICIARY', 'TRANSFER_AMOUNT',
   'TRANSFER_PURPOSE', 'TRANSFER_SUBMIT', 'TRANSFER_REVIEW', 'TRANSFER_FIRST_CONFIRM', 'UKEY_VERIFY',
-  'ORDER_NUMBER', 'ORDER_STATUS'
+  'TRANSFER_RESULT_ID', 'TRANSFER_SETTLED'
 ]);
 
 const I10_VISUAL_TARGET_DESCRIPTIONS: Readonly<Record<string, string>> = Object.freeze({
+  LOGIN_SSO_SUBMIT: '客户门户入口页中唯一的 Keycloak 授权码登录按钮，只定位该按钮，不读取凭据',
   LOGIN_USERNAME: '账号密码登录卡片中“用户名 / 手机号”标签下的文本输入框',
   LOGIN_PASSWORD: '账号密码登录卡片中“密码”标签下的密码输入框',
   LOGIN_SUBMIT: '账号密码登录卡片底部写有“账号密码登录”的主按钮',
@@ -96,16 +141,16 @@ const I10_VISUAL_TARGET_DESCRIPTIONS: Readonly<Record<string, string>> = Object.
   PROFILE_AVATAR: '个人资料主卡片左侧显示单个姓氏字符“张”的圆形大头像，只定位头像本身',
   TRANSFER_ENTRY: '受控门户导航中用于进入转账列表的业务入口',
   TRANSFER_NEW: '转账列表页面中写有“新增转账”的按钮',
-  TRANSFER_RECIPIENT_NAME: '转账表单中“收款户名”标签下的文本输入框',
-  TRANSFER_RECIPIENT_ACCOUNT: '转账表单中“收款账号”标签下的文本输入框',
+  TRANSFER_SOURCE_ACCOUNT: '转账表单中付款账户的下拉选择框，只定位选择控件',
+  TRANSFER_BENEFICIARY: '转账表单中收款人的下拉选择框，只定位选择控件',
   TRANSFER_AMOUNT: '转账表单中“转账金额”标签下的文本输入框',
   TRANSFER_PURPOSE: '转账表单中“转账用途”标签下的文本输入框',
   TRANSFER_SUBMIT: '转账表单底部用于提交填写信息并进入摘要页的按钮',
   TRANSFER_REVIEW: '转账摘要页中展示收款人、金额和用途的确认区域',
   TRANSFER_FIRST_CONFIRM: '转账信息填写完成后写有“确认转账信息”的第一次业务确认按钮',
   UKEY_VERIFY: '网页验证页中用于确认已持久化U盾验证的按钮',
-  ORDER_NUMBER: '单号查询页面中“转账单号”标签对应的单号值',
-  ORDER_STATUS: '单号查询页面中“受理状态”标签对应的状态值'
+  TRANSFER_RESULT_ID: '实际转账详情页中的转账参考号',
+  TRANSFER_SETTLED: '实际转账详情页中已经结算的状态，不是处理中或受理'
 });
 
 function visualActionType(operation: ExecutableActionPlan['actions'][number]['operation']): VisualActionType {
@@ -115,7 +160,7 @@ function visualActionType(operation: ExecutableActionPlan['actions'][number]['op
   return 'LOCATE';
 }
 
-function buildI10CandidateContexts(plan: ExecutableActionPlan, workerId: string, jobId: string, leaseExpiresAt: string) {
+function buildI10CandidateContexts(plan: ExecutableActionPlan, workerId: string, jobId: string, leaseExpiresAt: string, reviewedLocators = new Map<string, ReviewedLocator>(), reviewedAssertions = new Map<string, ReviewedAssertion>()) {
   const visualActions = plan.actions.filter(action => Boolean(action.semanticTargetRef));
   return visualActions.map((action, index) => {
     const targetRef = action.semanticTargetRef as VisualTargetRef;
@@ -145,6 +190,8 @@ function buildI10CandidateContexts(plan: ExecutableActionPlan, workerId: string,
               : 'SYNTHETIC_TEXT'
           : null,
         riskLevel: action.riskLevel,
+        ...(reviewedLocators.has(action.actionId) ? {reviewedLocator:reviewedLocators.get(action.actionId)} : {}),
+        ...(reviewedAssertions.has(action.actionId) ? {reviewedAssertion:reviewedAssertions.get(action.actionId)} : {}),
         executionMode: 'MIDSCENE_LOCATE_PLAYWRIGHT_EXECUTE'
       },
       previousActionSummary: previous ? {
@@ -166,12 +213,18 @@ function buildI10CandidateContexts(plan: ExecutableActionPlan, workerId: string,
 }
 
 export interface WorkerEvidenceInput {
-  artifactType: 'JSON' | 'TEXT' | 'SCREENSHOT' | 'LOG' | 'REPORT' | 'DIAGNOSTIC';
+  artifactType: 'JSON' | 'TEXT' | 'SCREENSHOT' | 'TRACE' | 'LOG' | 'REPORT' | 'DIAGNOSTIC';
   mediaType: string;
   redactionStatus: 'NOT_REQUIRED' | 'REDACTED' | 'QUARANTINED';
   extension: string;
   base64Content: string;
   metadata?: Record<string, unknown>;
+}
+
+export function requestsTransferAction(actions: string[]): boolean {
+  return actions.some(action =>
+    /(?:转账|汇款|付款|transfer|payment)/i.test(action)
+    && !/(?:不|未|不得|禁止)[^。；，,]{0,20}(?:转账|汇款|付款)/i.test(action));
 }
 
 export interface WorkerCompletionInput {
@@ -241,9 +294,9 @@ export class HarnessService {
   readonly artifacts: ArtifactStore;
   readonly i10: I10Service;
 
-  constructor(readonly database: HarnessDatabase, artifactRoot: string, readonly productRoot: string) {
+  constructor(readonly database: HarnessDatabase, artifactRoot: string, readonly productRoot: string, readonly releaseIdentityHash?: string) {
     this.artifacts = new ArtifactStore(database, artifactRoot);
-    this.i10 = new I10Service(database, productRoot, this.artifacts);
+    this.i10 = new I10Service(database, productRoot, this.artifacts, releaseIdentityHash);
   }
 
   private validatedPlan(db: import('better-sqlite3').Database, namespace: string, planId: string, caseId: string, expectedCaseVersion: number): {
@@ -347,14 +400,14 @@ export class HarnessService {
         run_id, namespace, case_id, case_version, plan_id, task_id, status,
         credential_alias, fixture_namespace, environment, fixture_scope,
         origin_schedule_id, schedule_execution_id, version, created_at,
-        journey_id, confirmed_decision_event_id, preparation_id, candidate_id
-      ) VALUES (?, ?, ?, ?, ?, ?, 'QUEUED', ?, ?, ?, ?, ?, ?, 1, ?, ?, ?, ?, ?)
+        journey_id, confirmed_decision_event_id, preparation_id, candidate_id, release_identity_hash
+      ) VALUES (?, ?, ?, ?, ?, ?, 'QUEUED', ?, ?, ?, ?, ?, ?, 1, ?, ?, ?, ?, ?, ?)
     `).run(
       runId, input.namespace, input.caseId, input.caseVersion, input.planId, taskId,
       input.credentialAlias ?? null, fixtureNamespace, input.environment, input.fixtureScope ?? fixtureNamespace,
       input.scheduleId ?? null, input.scheduleExecutionId ?? null, timestamp,
       input.journeyId ?? null, input.confirmedDecisionEventId ?? null,
-      input.preparationId ?? null, input.candidateId ?? null
+      input.preparationId ?? null, input.candidateId ?? null, this.releaseIdentityHash ?? null
     );
     return { runId, taskId };
   }
@@ -946,7 +999,7 @@ export class HarnessService {
       if (definition.adapterSelection === 'fuxing-bank-demo' && !isApprovedFuxingBinding) {
         throw new HarnessError(409, 'I10_TARGET_ADAPTER_CONFIRMATION_REQUIRED', 'AUTHORIZATION', '本次案例明确选择了受控适配器，但当前冻结目标档案尚未绑定该适配器。请先完成目标档案确认。', false, true);
       }
-      const transferRequested = actions.some(action => /(?:转账|汇款|付款|transfer|payment)/i.test(action));
+      const transferRequested = requestsTransferAction(actions);
       if (authoringContext.executionProfile === 'GENERIC_WEB' && isApprovedFuxingBinding && transferRequested) {
         authoringContext.executionProfile = 'TRANSFER_UKEY_ORDER_QUERY';
         authoringContext.adapterBinding = contextBinding as NonNullable<typeof authoringContext.adapterBinding>;
@@ -954,7 +1007,7 @@ export class HarnessService {
       if (authoringContext.executionProfile === 'TRANSFER_UKEY_ORDER_QUERY') {
         const inputs = definition.businessInputs as { values?: Record<string, unknown> } | undefined;
         const values = inputs?.values;
-        const missingTransferInputs = ['payeeRef', 'amount', 'currency', 'purpose']
+        const missingTransferInputs = ['payerAccountId', 'payeeRef', 'amount', 'currency', 'purpose']
           .filter(field => typeof values?.[field] !== 'string' || !String(values?.[field]).trim());
         if (missingTransferInputs.length > 0) {
           throw new HarnessError(
@@ -1019,7 +1072,7 @@ export class HarnessService {
           targetProfileSnapshot: authoringContext.targetProfileSnapshot
         } : { adapterBinding: authoringContext.adapterBinding }),
         ...(authoringContext.executionProfile === 'TRANSFER_UKEY_ORDER_QUERY' ? {
-          inputContractVersion: 'TypedBusinessInputsV1',
+          inputContractVersion: 'TypedBusinessInputsV2',
           typedBusinessInputs: definition.businessInputs
         } : {}),
         steps: actions.map((action, index) => {
@@ -1107,6 +1160,14 @@ export class HarnessService {
       if (preparation.status !== 'AWAITING_STAGE3' || !preparation.intent_plan_json || !preparation.intent_plan_hash) {
         throw new HarnessError(409, 'I8_INTENT_PLAN_NOT_READY', 'DOMAIN', '只有已确认的 IntentPlan 才能进入阶段3。', false, true);
       }
+      const intent=JSON.parse(String(preparation.intent_plan_json));
+      const financial=intent.executionProfile==='TRANSFER_UKEY_ORDER_QUERY' ||
+        (intent.adapterBinding?.adapterId==='fuxing-bank-demo' && intent.typedBusinessInputs?.values?.payerAccountId);
+      const caseDefinition=financial ? db.prepare('SELECT definition_json FROM case_versions WHERE case_id=? AND version=?')
+        .get(preparation.case_id,preparation.case_version) as {definition_json:string} : undefined;
+      const bankPool=financial ? requireBankValidationFixtures(db,input.namespace,JSON.parse(caseDefinition!.definition_json)) : undefined;
+      if(bankPool && input.stabilityPolicyVersion!=='I10_2X2_V1')
+        throw new HarnessError(409,'I10_BANK_VALIDATION_POLICY_REQUIRED','CONTRACT','资金验证样本只允许当前两个视口各两次策略。',false,true);
       const existing = db.prepare(`
         SELECT p.executable_plan_id, p.plan_json, p.plan_hash, p.status, p.version,
                j.job_id, j.status AS job_status, c.candidate_id, c.status AS candidate_status,
@@ -1119,6 +1180,8 @@ export class HarnessService {
         ORDER BY j.created_at DESC LIMIT 1
       `).get(input.namespace, input.preparationId) as Record<string, unknown> | undefined;
       if (existing) {
+        if(bankPool && input.retryFailed===true)
+          throw new HarnessError(409,'I10_BANK_VALIDATION_FRESH_POOL_REQUIRED','DOMAIN','资金候选失败后必须用新案例及新样本池，不能复用旧资金操作。',false,true);
         if (input.retryFailed === true && existing.stability_status === 'FAILED') {
           if (!input.revisionReason) {
             throw new HarnessError(409, 'I10_CANDIDATE_REVISION_REASON_REQUIRED', 'CONTRACT',
@@ -1227,6 +1290,7 @@ export class HarnessService {
           }
         };
       }
+      if(bankPool)assertBankValidationPoolUnused(db,bankPool);
       let plan;
       try {
         plan = compileExecutableActionPlan(JSON.parse(String(preparation.intent_plan_json)), String(preparation.intent_plan_hash));
@@ -1410,11 +1474,20 @@ export class HarnessService {
   async claimNextI8CandidateBuild(workerId: string): Promise<Record<string, unknown>> {
     return this.database.write(db => {
       const timestamp = nowIso();
-      db.prepare(`
-        UPDATE i8_candidate_build_jobs
-        SET status = 'QUEUED', lease_owner = NULL, lease_expires_at = NULL, version = version + 1, updated_at = ?
-        WHERE status = 'RUNNING' AND lease_expires_at IS NOT NULL AND lease_expires_at < ?
-      `).run(timestamp, timestamp);
+      const expired=db.prepare(`SELECT j.job_id,j.executable_plan_id,j.stability_policy_version,p.plan_json FROM i8_candidate_build_jobs j
+        JOIN i8_executable_plans p ON p.executable_plan_id=j.executable_plan_id
+        WHERE j.status='RUNNING' AND j.lease_expires_at IS NOT NULL AND j.lease_expires_at<=?`).all(timestamp) as Array<{job_id:string;executable_plan_id:string;stability_policy_version:string;plan_json:string}>;
+      for(const job of expired) {
+        if(JSON.parse(job.plan_json).fixtureProfile==='TRANSFER_UKEY_ORDER_QUERY') {
+          db.prepare(`UPDATE i8_candidate_build_jobs SET status='FAILED',error_code='I10_BANK_AUTHORING_RESULT_UNKNOWN',lease_owner=NULL,
+            lease_expires_at=NULL,version=version+1,completed_at=?,updated_at=? WHERE job_id=?`).run(timestamp,timestamp,job.job_id);
+          db.prepare("UPDATE i8_executable_plans SET status='FAILED',version=version+1,updated_at=? WHERE executable_plan_id=?").run(timestamp,job.executable_plan_id);
+        } else if(job.stability_policy_version==='I10_2X2_V1') {
+          db.prepare(`UPDATE i8_candidate_build_jobs SET status='FAILED',error_code='I10_AUTHORING_LEASE_EXPIRED',lease_owner=NULL,
+            lease_expires_at=NULL,version=version+1,completed_at=?,updated_at=? WHERE job_id=?`).run(timestamp,timestamp,job.job_id);
+          db.prepare("UPDATE i8_executable_plans SET status='FAILED',version=version+1,updated_at=? WHERE executable_plan_id=?").run(timestamp,job.executable_plan_id);
+        } else db.prepare(`UPDATE i8_candidate_build_jobs SET status='QUEUED',lease_owner=NULL,lease_expires_at=NULL,version=version+1,updated_at=? WHERE job_id=?`).run(timestamp,job.job_id);
+      }
       const row = db.prepare(`
         SELECT j.job_id, j.namespace, j.executable_plan_id, j.stability_policy_version,
                p.plan_json, p.plan_hash, p.case_id, p.preparation_id, cv.definition_json
@@ -1425,6 +1498,18 @@ export class HarnessService {
         ORDER BY j.created_at LIMIT 1
       `).get() as Record<string, unknown> | undefined;
       if (!row) return { status: 'EMPTY' };
+      const definition = JSON.parse(String(row.definition_json)) as Record<string, unknown>;
+      const plan = JSON.parse(String(row.plan_json)) as ExecutableActionPlan;
+      let bankPool:BankValidationFixtures|undefined;
+      if(plan.fixtureProfile==='TRANSFER_UKEY_ORDER_QUERY') {
+        try {bankPool=requireBankValidationFixtures(db,String(row.namespace),definition);assertBankValidationPoolUnused(db,bankPool);}
+        catch(error) {
+          if(!(error instanceof HarnessError))throw error;
+          db.prepare(`UPDATE i8_candidate_build_jobs SET status='FAILED',error_code=?,version=version+1,completed_at=?,updated_at=? WHERE job_id=?`).run(error.errorCode,timestamp,timestamp,row.job_id);
+          db.prepare("UPDATE i8_executable_plans SET status='FAILED',version=version+1,updated_at=? WHERE executable_plan_id=?").run(timestamp,row.executable_plan_id);
+          return {status:'BLOCKED',jobId:row.job_id,errorCode:error.errorCode};
+        }
+      }
       // A visual action can make three independent real-model attempts, each
       // bounded at 90 seconds.  The candidate lease must outlive that bounded
       // transport recovery window plus browser/Builder work; otherwise a
@@ -1440,10 +1525,22 @@ export class HarnessService {
       `).run(workerId, leaseExpiresAt, timestamp, row.job_id);
       db.prepare(`UPDATE i8_executable_plans SET status = 'AUTHORING', version = version + 1, updated_at = ? WHERE executable_plan_id = ?`)
         .run(timestamp, row.executable_plan_id);
-      const definition = JSON.parse(String(row.definition_json)) as Record<string, unknown>;
-      const plan = JSON.parse(String(row.plan_json)) as ExecutableActionPlan;
+      const feedbackSources = String(row.stability_policy_version) === 'I10_2X2_V1'
+        ? db.prepare(`SELECT f.*,ep.plan_json,c.dsl_json FROM reviewed_feedback f
+              JOIN runs r ON r.run_id=f.source_run_id AND r.namespace=f.namespace
+              JOIN i8_script_candidates c ON c.candidate_id=r.candidate_id AND c.namespace=f.namespace
+              JOIN i8_executable_plans ep ON ep.executable_plan_id=c.executable_plan_id AND ep.namespace=f.namespace
+              WHERE f.namespace=? AND f.status='VERIFIED' AND f.release_identity_hash=? ORDER BY f.created_at,f.feedback_id`)
+              .all(row.namespace,this.releaseIdentityHash ?? null) as Array<ReviewedFeedbackSource & {verification_journey_id:string}>
+        : [];
+      const reviewedLocators=matchReviewedLocators(plan,String(row.namespace),this.releaseIdentityHash,feedbackSources);
+      const reviewedAssertions=matchReviewedAssertions(plan,String(row.namespace),this.releaseIdentityHash,feedbackSources);
+      for(const feedbackId of new Set([...reviewedLocators.values(),...reviewedAssertions.values()].map(item=>item.feedbackId))) {
+        const source=feedbackSources.find(item=>item.feedback_id===feedbackId)!;
+        this.verifyJourneyEvidence(String(row.namespace),source.verification_journey_id);
+      }
       const authoringContexts = String(row.stability_policy_version) === 'I10_2X2_V1'
-        ? buildI10CandidateContexts(plan, workerId, String(row.job_id), leaseExpiresAt)
+        ? buildI10CandidateContexts(plan, workerId, String(row.job_id), leaseExpiresAt,reviewedLocators,reviewedAssertions)
         : [];
       const insertContext = db.prepare(`INSERT OR IGNORE INTO i10_authoring_contexts(context_id,job_id,action_id,ordinal,context_level,envelope_json,envelope_hash,created_at) VALUES (?,?,?,?,?,?,?,?)`);
       for (const item of authoringContexts) {
@@ -1459,7 +1556,9 @@ export class HarnessService {
         preparationId: row.preparation_id,
         stabilityPolicyVersion: row.stability_policy_version,
         ...(authoringContexts.length > 0 ? { authoringContexts } : {}),
-        ...(typeof definition.credentialRef === 'string' ? { credentialRef: definition.credentialRef } : {}),
+        ...(bankPool ? {credentialRef:bankPool.authoring.credentialRef,validationFixture:bankPool.authoring,
+          executionFixtureValues:bankExecutionFixtureValues(bankPool.authoring)} :
+          typeof definition.credentialRef==='string' ? {credentialRef:definition.credentialRef}:{}),
         ...(typeof definition.entryUrl === 'string' ? { entryUrl: definition.entryUrl } : {}),
         leaseExpiresAt
       };
@@ -1476,7 +1575,7 @@ export class HarnessService {
     `).get(jobId) as Record<string, unknown> | undefined);
     if (!job) throw new HarnessError(404, 'I8_CANDIDATE_JOB_NOT_FOUND', 'DOMAIN', '阶段3候选构建作业不存在。');
     if (job.status === 'COMPLETED') return this.getI8Candidate(String(job.namespace), this.database.read(db => String((db.prepare('SELECT preparation_id FROM i8_executable_plans WHERE executable_plan_id = ?').get(job.executable_plan_id) as { preparation_id: string }).preparation_id)));
-    if (job.status !== 'RUNNING' || job.lease_owner !== input.workerId) throw new HarnessError(409, 'I8_CANDIDATE_JOB_LEASE_INVALID', 'CONCURRENCY', '候选构建作业租约无效。', false, true);
+    if (job.status !== 'RUNNING' || job.lease_owner !== input.workerId || !job.lease_expires_at || String(job.lease_expires_at)<=nowIso()) throw new HarnessError(409, 'I8_CANDIDATE_JOB_LEASE_INVALID', 'CONCURRENCY', '候选构建作业租约无效。', false, true);
     if (job.plan_hash !== input.planHash) throw new HarnessError(409, 'I8_EXECUTABLE_PLAN_HASH_MISMATCH', 'CONCURRENCY', 'Worker 返回的计划 Hash 不匹配。', false, true);
     if (input.outcome === 'FAILED') {
       await this.database.write(db => {
@@ -1511,15 +1610,23 @@ export class HarnessService {
           || record.visualEvidence.role !== 'LOCATOR_PROPOSAL' || record.visualEvidence.promptHash !== expectedPromptHash
           || !record.visualEvidence.screenshotHash || !record.visualEvidence.proposalHash
           || !record.visualEvidence.playwrightLocatorHash || record.visualEvidence.locatorMatched !== true
+          || !record.locator || record.visualEvidence.playwrightLocatorHash !== sha256(canonicalJson(record.locator))
           || record.playwrightEvidence?.role !== 'EXECUTOR' || record.playwrightEvidence.locatorHash !== record.visualEvidence.playwrightLocatorHash
           || record.playwrightEvidence.operation !== action.operation) {
           throw new HarnessError(409, 'I10_LOCATE_EXECUTE_EVIDENCE_REQUIRED', 'EVIDENCE', 'I10候选必须同时具备Midscene定位建议和Playwright执行事实。', false, true, { actionId: action.actionId });
         }
+        if(record.assertionImplementation!==contextEnvelope.currentAction.reviewedAssertion?.implementation)
+          throw new HarnessError(409,'I10_ASSERTION_EXPERIENCE_EVIDENCE_REQUIRED','EVIDENCE','断言实现必须匹配已冻结经验并实际执行。',false,true);
       }
     }
     let candidate;
     try {
-      candidate = buildCandidatePackage(plan, input.verifiedActionRecords, String(job.created_at));
+      const reviewedAssertions=new Map<string,ReviewedAssertion>();
+      for(const item of i10Contexts) {
+        const review=JSON.parse(item.envelope_json).currentAction.reviewedAssertion;
+        if(review)reviewedAssertions.set(item.action_id,review);
+      }
+      candidate = buildCandidatePackage(plan, input.verifiedActionRecords, String(job.created_at),reviewedAssertions);
     } catch (error) {
       throw new HarnessError(409, error instanceof Error ? error.message : 'I8_CANDIDATE_BUILD_REJECTED', 'CONTRACT', 'Playwright 验证事实无法生成受控候选脚本。', false, true);
     }
@@ -1543,8 +1650,8 @@ export class HarnessService {
     }
     await this.database.write(db => {
       const timestamp = nowIso();
-      const current = db.prepare('SELECT status, lease_owner FROM i8_candidate_build_jobs WHERE job_id = ?').get(jobId) as { status: string; lease_owner: string | null };
-      if (current.status !== 'RUNNING' || current.lease_owner !== input.workerId) throw new HarnessError(409, 'I8_CANDIDATE_JOB_LEASE_INVALID', 'CONCURRENCY', '写入候选前作业租约已变化。', false, true);
+      const current = db.prepare('SELECT status, lease_owner,lease_expires_at FROM i8_candidate_build_jobs WHERE job_id = ?').get(jobId) as { status: string; lease_owner: string | null;lease_expires_at:string|null };
+      if (current.status !== 'RUNNING' || current.lease_owner !== input.workerId || !current.lease_expires_at || current.lease_expires_at<=timestamp) throw new HarnessError(409, 'I8_CANDIDATE_JOB_LEASE_INVALID', 'CONCURRENCY', '写入候选前作业租约已变化。', false, true);
       const insertRecord = db.prepare(`
         INSERT INTO i8_verified_action_records(record_id, namespace, executable_plan_id, action_id, ordinal, record_json, record_hash, created_at)
         VALUES (?, ?, ?, ?, ?, ?, ?, ?)
@@ -1573,9 +1680,9 @@ export class HarnessService {
           candidate_id, namespace, executable_plan_id, script_id, script_version, dsl_version, dsl_json, dsl_hash,
           generator_version, relative_directory, script_sha256, manifest_json, manifest_sha256, source_chain_hash,
           status, version, created_at, updated_at
-        ) VALUES (?, ?, ?, ?, ?, 'HENGZHUN_DSL_V1', ?, ?, ?, ?, ?, ?, ?, ?, 'GENERATED', 1, ?, ?)
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'GENERATED', 1, ?, ?)
       `).run(
-        candidate.candidateId, job.namespace, job.executable_plan_id, candidate.scriptId, candidate.scriptVersion,
+        candidate.candidateId, job.namespace, job.executable_plan_id, candidate.scriptId, candidate.scriptVersion, candidate.dsl.schemaVersion,
         canonicalJson(candidate.dsl), candidate.dslHash, 'hengzhun-script-package-builder-1.0.0', relativeDirectory,
         candidate.scriptHash, manifestJson, candidate.manifestHash, candidate.sourceChainHash, timestamp, timestamp
       );
@@ -1596,6 +1703,9 @@ export class HarnessService {
         ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'QUEUED', ?)
       `);
       const policyVersion = String(job.stability_policy_version ?? 'I8_2X3_V1');
+      const bankDefinition=plan.fixtureProfile==='TRANSFER_UKEY_ORDER_QUERY'
+        ? db.prepare('SELECT definition_json FROM case_versions WHERE case_id=? AND version=?').get(job.case_id,job.case_version) as {definition_json:string}:undefined;
+      const bankPool=bankDefinition ? requireBankValidationFixtures(db,String(job.namespace),JSON.parse(bankDefinition.definition_json)):undefined;
       const requiredRuns = policyVersion === 'I10_2X2_V1' ? 4 : 6;
       const sequencesPerViewport = requiredRuns / I8_STABILITY_VIEWPORTS.length;
       db.prepare(`INSERT INTO i10_stability_policy_bindings(object_type,object_id,policy_version,required_runs,created_at) VALUES ('CANDIDATE_BATCH',?,?,?,?)`)
@@ -1610,7 +1720,8 @@ export class HarnessService {
             viewport.width,
             viewport.height,
             sequence,
-            `fixture_${candidateSuffix}_${viewport.suffix}_${sequence}`,
+            bankPool ? bankPool.stability.find(item=>item.viewportId===viewport.viewportId && item.sequenceNo===sequence)!.fixture.fixtureId
+              : `fixture_${candidateSuffix}_${viewport.suffix}_${sequence}`,
             timestamp
           );
         }
@@ -1647,7 +1758,7 @@ export class HarnessService {
       }
       const row = db.prepare(`
         SELECT b.batch_id, b.namespace, b.candidate_id, c.relative_directory, c.script_sha256, c.manifest_sha256,
-               c.script_version, p.case_version, p.version AS executable_plan_version, cv.definition_json,
+               c.script_version, p.case_version, p.version AS executable_plan_version, p.plan_json, cv.definition_json,
                COALESCE(policy.policy_version, 'I8_2X3_V1') AS stability_policy_version,
                COALESCE(policy.required_runs, 6) AS required_runs
         FROM i8_stability_batches b
@@ -1672,6 +1783,11 @@ export class HarnessService {
       `).all(row.batch_id) as Array<Record<string, unknown>>;
       if (runs.length !== Number(row.required_runs)) throw new HarnessError(500, 'I8_STABILITY_RUN_SET_CORRUPT', 'EVIDENCE', '稳定性样本集合不完整。');
       const definition = JSON.parse(String(row.definition_json)) as Record<string, unknown>;
+      const bankPool=JSON.parse(String(row.plan_json)).fixtureProfile==='TRANSFER_UKEY_ORDER_QUERY'
+        ? requireBankValidationFixtures(db,String(row.namespace),definition):undefined;
+      if(bankPool && (String(row.stability_policy_version)!=='I10_2X2_V1' || runs.some(run=>
+        bankPool.stability.find(item=>item.viewportId===run.viewport_id && item.sequenceNo===run.sequence_no)?.fixture.fixtureId!==run.fixture_ref)))
+        throw new HarnessError(409,'I10_BANK_VALIDATION_RUN_BINDING_INVALID','EVIDENCE','稳定性样本必须绑定最初冻结的实际资金Fixture。',false,true);
       return {
         status: 'CLAIMED',
         batchId: row.batch_id,
@@ -1688,7 +1804,7 @@ export class HarnessService {
         leaseExpiresAt,
         stabilityPolicyVersion: row.stability_policy_version,
         requiredRuns: row.required_runs,
-        ...(String(row.stability_policy_version) === 'I10_2X2_V1' && typeof definition.credentialRef === 'string' ? { credentialRef: definition.credentialRef } : {}),
+        ...(bankPool ? {bankValidationFixtures:bankPool}:String(row.stability_policy_version) === 'I10_2X2_V1' && typeof definition.credentialRef === 'string' ? { credentialRef: definition.credentialRef } : {}),
         ...(String(row.stability_policy_version) === 'I10_2X2_V1' && typeof definition.entryUrl === 'string' ? { entryUrl: definition.entryUrl } : {}),
         runs: runs.map(run => ({
           validationRunId: run.validation_run_id,
@@ -1696,7 +1812,9 @@ export class HarnessService {
           viewportWidth: run.viewport_width,
           viewportHeight: run.viewport_height,
           sequenceNo: run.sequence_no,
-          fixtureRef: run.fixture_ref
+          fixtureRef: run.fixture_ref,
+          ...(bankPool ? (()=>{const fixture=bankPool.stability.find(item=>item.viewportId===run.viewport_id && item.sequenceNo===run.sequence_no)!.fixture;
+            return {credentialRef:fixture.credentialRef,validationFixture:fixture,executionFixtureValues:bankExecutionFixtureValues(fixture)};})():{})
         }))
       };
     });
@@ -1705,7 +1823,7 @@ export class HarnessService {
   async completeI8Stability(batchId: string, inputValue: I8StabilityCompletionInput): Promise<Record<string, unknown>> {
     const input = i8StabilityCompletionSchema.parse(inputValue);
     const snapshot = this.database.read(db => db.prepare(`
-      SELECT b.*, c.script_sha256, c.namespace, p.case_version, p.version AS executable_plan_version,
+      SELECT b.*, c.script_sha256, c.namespace, p.case_version, p.version AS executable_plan_version, p.plan_json,
              COALESCE(policy.policy_version, 'I8_2X3_V1') AS stability_policy_version,
              COALESCE(policy.required_runs, 6) AS required_runs
       FROM i8_stability_batches b
@@ -1720,9 +1838,16 @@ export class HarnessService {
     }
     if (snapshot.status !== 'RUNNING' || snapshot.lease_owner !== input.workerId) throw new HarnessError(409, 'I8_STABILITY_LEASE_INVALID', 'CONCURRENCY', '稳定性验证租约无效。', false, true);
     if (snapshot.candidate_id !== input.candidateId || snapshot.script_sha256 !== input.scriptHash) throw new HarnessError(409, 'I8_STABILITY_CANDIDATE_MISMATCH', 'CONCURRENCY', '稳定性结果与候选脚本不匹配。', false, true);
+    if(input.stoppedAfterFailure && (snapshot.stability_policy_version!=='I10_2X2_V1' || JSON.parse(String(snapshot.plan_json)).fixtureProfile!=='TRANSFER_UKEY_ORDER_QUERY'))
+      throw new HarnessError(409,'I10_BANK_FAILURE_PREFIX_NOT_ALLOWED','CONTRACT','只有当前资金样本可以提交首次失败停止回执。');
     const expectedRuns = this.database.read(db => db.prepare(`SELECT * FROM i8_stability_validation_runs WHERE batch_id = ?`).all(batchId) as Array<Record<string, unknown>>);
     const expectedById = new Map(expectedRuns.map(run => [String(run.validation_run_id), run]));
-    if (expectedById.size !== Number(snapshot.required_runs) || input.runs.length !== Number(snapshot.required_runs)) throw new HarnessError(500, 'I8_STABILITY_RUN_SET_CORRUPT', 'EVIDENCE', '稳定性样本集合不完整。');
+    if (expectedById.size !== Number(snapshot.required_runs) || (!input.stoppedAfterFailure && input.runs.length !== Number(snapshot.required_runs))) throw new HarnessError(500, 'I8_STABILITY_RUN_SET_CORRUPT', 'EVIDENCE', '稳定性样本集合不完整。');
+    if(input.executionFailure) {
+      const orderedRuns=[...expectedRuns].sort((a,b)=>String(a.viewport_id).localeCompare(String(b.viewport_id)) || Number(a.sequence_no)-Number(b.sequence_no));
+      if(orderedRuns[input.runs.length]?.validation_run_id!==input.executionFailure.validationRunId)
+        throw new HarnessError(409,'I10_BANK_FAILURE_PREFIX_NOT_ALLOWED','CONTRACT','证据未完整采集的失败必须属于已完成前缀的下一样本。');
+    }
     const stabilityRoot = path.resolve(this.productRoot, '.data', 'stability');
     for (const result of input.runs) {
       const expected = expectedById.get(result.validationRunId);
@@ -1732,18 +1857,22 @@ export class HarnessService {
       for (const artifact of result.evidence) {
         const resolved = path.resolve(this.productRoot, ...artifact.relativePath.split('/'));
         if (!resolved.startsWith(`${stabilityRoot}${path.sep}`) || !fs.existsSync(resolved)) throw new HarnessError(409, 'I8_STABILITY_EVIDENCE_MISSING', 'EVIDENCE', '稳定性证据文件缺失或越界。', false, true);
+        if(JSON.parse(String(snapshot.plan_json)).fixtureProfile==='TRANSFER_UKEY_ORDER_QUERY') {
+          const sampleRoot=path.resolve(stabilityRoot,String(snapshot.namespace),input.candidateId,result.validationRunId);
+          if(!resolved.startsWith(`${sampleRoot}${path.sep}`))throw new HarnessError(409,'I8_STABILITY_EVIDENCE_MISSING','EVIDENCE','资金样本不得复用其他样本的工件。',false,true);
+        }
         const bytes = fs.readFileSync(resolved);
         if (bytes.byteLength !== artifact.byteLength || sha256(bytes) !== artifact.sha256) throw new HarnessError(409, 'I8_STABILITY_EVIDENCE_HASH_MISMATCH', 'EVIDENCE', '稳定性证据Hash不匹配。', false, true);
       }
     }
-    const allPassed = input.runs.every(run => run.outcome === 'PASSED');
+    const allPassed = !input.executionFailure && input.runs.every(run => run.outcome === 'PASSED');
     const assertionHashes = new Set(input.runs.map(run => run.assertionSetHash));
     const evidenceHashes = new Set(input.runs.map(run => run.evidenceSetHash));
     const consistent = assertionHashes.size === 1 && evidenceHashes.size === 1;
     const passed = allPassed && consistent;
-    const errorCode = passed ? undefined : !allPassed
+    const errorCode = input.executionFailure?.errorCode ?? (passed ? undefined : !allPassed
       ? input.runs.find(run => run.outcome === 'FAILED')?.errorCode ?? 'STABILITY_SAMPLE_FAILED'
-      : assertionHashes.size !== 1 ? 'STABILITY_ASSERTION_SET_DRIFT' : 'STABILITY_EVIDENCE_SET_DRIFT';
+      : assertionHashes.size !== 1 ? 'STABILITY_ASSERTION_SET_DRIFT' : 'STABILITY_EVIDENCE_SET_DRIFT');
     return this.database.write(db => {
       const timestamp = nowIso();
       const current = db.prepare('SELECT status, lease_owner FROM i8_stability_batches WHERE batch_id = ?').get(batchId) as {status: string; lease_owner: string | null};
@@ -1752,6 +1881,12 @@ export class HarnessService {
       for (const run of input.runs) {
         updateRun.run(run.outcome, run.durationMs, run.assertionSetHash, run.evidenceSetHash, canonicalJson(run.evidence), run.errorCode ?? null, timestamp, run.validationRunId, batchId);
       }
+      if(input.executionFailure)
+        db.prepare(`UPDATE i8_stability_validation_runs SET status='FAILED',error_code=?,completed_at=?
+          WHERE validation_run_id=? AND batch_id=? AND status='RUNNING'`).run(input.executionFailure.errorCode,timestamp,input.executionFailure.validationRunId,batchId);
+      if(input.stoppedAfterFailure)
+        db.prepare(`UPDATE i8_stability_validation_runs SET status='FAILED',error_code='BANK_VALIDATION_NOT_EXECUTED_AFTER_FAILURE',completed_at=?
+          WHERE batch_id=? AND status='RUNNING'`).run(timestamp,batchId);
       let certificateId: string | undefined;
       if (passed) {
         certificateId = `certificate_${sha256(canonicalJson({ candidateId: input.candidateId, scriptHash: input.scriptHash, runtimeFingerprint: input.runtimeFingerprint })).slice(0, 40)}`;
@@ -1772,7 +1907,7 @@ export class HarnessService {
           .run(certificateId, snapshot.stability_policy_version, snapshot.required_runs, timestamp);
       }
       db.prepare(`UPDATE i8_stability_batches SET status = ?, lease_owner = NULL, lease_expires_at = NULL, runtime_fingerprint = ?, assertion_set_hash = ?, evidence_set_hash = ?, error_code = ?, version = version + 1, completed_at = ?, updated_at = ? WHERE batch_id = ?`)
-        .run(passed ? 'PASSED' : 'FAILED', input.runtimeFingerprint, assertionHashes.size === 1 ? [...assertionHashes][0] : null, evidenceHashes.size === 1 ? [...evidenceHashes][0] : null, errorCode ?? null, timestamp, timestamp, batchId);
+        .run(passed ? 'PASSED' : 'FAILED', input.runtimeFingerprint ?? null, assertionHashes.size === 1 ? [...assertionHashes][0] : null, evidenceHashes.size === 1 ? [...evidenceHashes][0] : null, errorCode ?? null, timestamp, timestamp, batchId);
       db.prepare(`UPDATE i8_script_candidates SET status = ?, version = version + 1, updated_at = ? WHERE candidate_id = ?`)
         .run(passed ? 'STABILITY_CERTIFIED' : 'VALIDATION_FAILED', timestamp, input.candidateId);
       this.audit(db, { requestId: `worker:${batchId}`, actorType: 'SYSTEM' }, {
@@ -1784,10 +1919,12 @@ export class HarnessService {
         candidateId: input.candidateId,
         status: passed ? 'STABILITY_CERTIFIED' : 'VALIDATION_FAILED',
         passedRuns: input.runs.filter(run => run.outcome === 'PASSED').length,
-        failedRuns: input.runs.filter(run => run.outcome === 'FAILED').length,
+        failedRuns: input.runs.filter(run => run.outcome === 'FAILED').length+(input.executionFailure?1:0),
+        ...(input.stoppedAfterFailure?{notExecutedRuns:Number(snapshot.required_runs)-input.runs.length-(input.executionFailure?1:0)}:{}),
+        ...(input.executionFailure?{incompleteEvidenceRuns:1}:{}),
         requiredRuns: Number(snapshot.required_runs),
         stabilityPolicyVersion: snapshot.stability_policy_version,
-        ...(certificateId ? { certificateId, nextAction: 'I8_STAGE5_DELIVERY_REQUIRED' } : { errorCode, nextAction: 'CANDIDATE_REPAIR_REQUIRED' })
+        ...(certificateId ? { certificateId, nextAction: 'I8_STAGE5_DELIVERY_REQUIRED' } : { errorCode, nextAction: JSON.parse(String(snapshot.plan_json)).fixtureProfile==='TRANSFER_UKEY_ORDER_QUERY'?'HUMAN_INTERVENTION_REQUIRED':'CANDIDATE_REPAIR_REQUIRED' })
       };
     });
   }
@@ -2501,7 +2638,7 @@ export class HarnessService {
         objectType: 'SCHEDULE',
         objectId: scheduleId,
         response: {
-          scheduleId, status: 'ACTIVE', scheduleType: input.scheduleType, timezone: input.timezone,
+          scheduleId, status: 'ACTIVE', version: 1, scheduleType: input.scheduleType, timezone: input.timezone,
           ...(input.scheduleType === 'RECURRING' ? { cronExpression: input.cronExpression } : { runAt: new Date(String(input.runAt)).toISOString() }),
           nextFireAt, caseId: row.case_id, caseVersion: row.case_version, planId: row.activated_plan_id,
            scriptId: row.script_id, scriptVersion: row.script_version, scriptHash: row.script_sha256,
@@ -2747,6 +2884,78 @@ export class HarnessService {
   async claimNextRun(workerId: string, leaseSeconds = 300): Promise<Record<string, unknown>> {
     return this.database.write(db => {
       const timestamp = nowIso();
+      // Losing a zero-retry scheduled lease leaves the business outcome unknown.
+      // Preserve the original execution for human reconciliation, never requeue it.
+      const stoppedRuns = db.prepare(`
+        SELECT t.task_id, t.namespace, t.run_id, r.case_id, r.case_version, r.plan_id,
+          r.origin_schedule_id, r.schedule_execution_id, s.schedule_type, s.script_id, s.script_version
+        FROM tasks t JOIN runs r ON r.task_id=t.task_id
+        JOIN schedules s ON s.schedule_id=r.origin_schedule_id
+        WHERE t.task_type='RUN_EXECUTE' AND t.status='RUNNING'
+          AND t.lease_expires_at IS NOT NULL AND t.lease_expires_at<=? AND s.max_retries=0
+      `).all(timestamp) as Array<{
+        task_id: string; namespace: string; run_id: string; case_id: string; case_version: number;
+        plan_id: string; origin_schedule_id: string; schedule_execution_id: string;
+        schedule_type: string; script_id: string; script_version: number;
+      }>;
+      for (const run of stoppedRuns) {
+        const reasonCode = 'SCHEDULE_RUN_LEASE_EXPIRED';
+        const summary = 'Worker 租约过期，业务结果未知；禁止自动重执行，请人工核对原运行及业务状态。';
+        const incidentId = opaqueId('incident');
+        const artifactRefs = db.prepare('SELECT artifact_id FROM artifacts WHERE run_id=?')
+          .all(run.run_id).map(row => String((row as { artifact_id: string }).artifact_id));
+        db.prepare(`UPDATE tasks SET status='FAILED', result_summary=?, error_code=?,
+          error_category='ENVIRONMENT', retryable=0, user_action_required=1,
+          lease_owner=NULL, lease_expires_at=NULL, version=version+1, updated_at=?, completed_at=?
+          WHERE task_id=?`).run(summary, reasonCode, timestamp, timestamp, run.task_id);
+        db.prepare("UPDATE runs SET status='BLOCKED', version=version+1, completed_at=? WHERE run_id=?")
+          .run(timestamp, run.run_id);
+        db.prepare(`UPDATE schedule_executions SET status='FAILED', reason_code=?, updated_at=?, completed_at=?
+          WHERE execution_id=?`).run(reasonCode, timestamp, timestamp, run.schedule_execution_id);
+        db.prepare(`INSERT INTO failure_incidents(incident_id,namespace,run_id,case_id,script_id,script_version,
+          classification,reason_code,summary,diagnostic_status,version,created_at,updated_at)
+          VALUES (?,?,?,?,?,?,'ENVIRONMENT',?,?,'CLASSIFIED',1,?,?)`)
+          .run(incidentId, run.namespace, run.run_id, run.case_id, run.script_id, run.script_version,
+            reasonCode, summary, timestamp, timestamp);
+        const envelopeJson = canonicalJson({
+          schemaVersion: 'i8-step-failure-envelope-v1', stage: 'FORMAL_RUN',
+          object: { runId: run.run_id, taskId: run.task_id, caseId: run.case_id, caseVersion: run.case_version,
+            scriptId: run.script_id, scriptVersion: run.script_version },
+          errorCode: reasonCode, classification: 'ENVIRONMENT',
+          inputSummary: { environment: 'local', originScheduleId: run.origin_schedule_id },
+          outputSummary: { outcome: 'BLOCKED', resultArtifactId: null, humanInterventionRequired: true },
+          artifactRefs, allowedRepairScope: 'REPORT_ONLY', contextLevel: 'CTX-L1',
+          attemptCount: 0, maxAttempts: 3, redactionProfileId: 'HENGZHUN_FAILURE_REDACTION_V1'
+        });
+        db.prepare(`INSERT INTO i8_failure_incidents(incident_id,namespace,classification,disposition,status,created_at,updated_at)
+          VALUES (?,?,'ENVIRONMENT','REPORT_ONLY','FAILURE_CLASSIFIED',?,?)`)
+          .run(incidentId, run.namespace, timestamp, timestamp);
+        db.prepare(`INSERT INTO i8_step_failure_envelopes(envelope_id,namespace,incident_id,stage,context_level,
+          envelope_json,envelope_hash,attempt_count,max_attempts,created_at,updated_at)
+          VALUES (?,?,?,'FORMAL_RUN','CTX-L1',?,?,0,3,?,?)`)
+          .run(opaqueId('failureenv'), run.namespace, incidentId, envelopeJson, sha256(envelopeJson), timestamp, timestamp);
+        if (run.schedule_type === 'ONE_TIME') {
+          db.prepare(`UPDATE schedules SET status='DISABLED', one_time_state='FAILED', paused_incident_id=?,
+            completed_at=?, version=version+1, updated_at=? WHERE schedule_id=?`)
+            .run(incidentId, timestamp, timestamp, run.origin_schedule_id);
+        } else {
+          db.prepare(`UPDATE schedules SET status='PAUSED_FAILURE', paused_incident_id=?,
+            version=version+1, updated_at=? WHERE schedule_id=? AND status='ACTIVE'`)
+            .run(incidentId, timestamp, run.origin_schedule_id);
+        }
+        db.prepare(`INSERT OR IGNORE INTO result_inbox_items(inbox_id,namespace,run_id,task_id,schedule_id,
+          schedule_type,case_id,case_version,plan_id,script_id,script_version,outcome,summary,
+          artifact_metadata_json,delivery_status,created_at)
+          VALUES (?,?,?,?,?,?,?,?,?,?,?,'BLOCKED',?,?,'UNREAD',?)`)
+          .run(opaqueId('inbox'), run.namespace, run.run_id, run.task_id, run.origin_schedule_id,
+            run.schedule_type, run.case_id, run.case_version, run.plan_id, run.script_id, run.script_version,
+            summary, canonicalJson({ available: false }), timestamp);
+        db.prepare(`INSERT INTO audit_events(event_id,namespace,run_id,task_id,actor_type,action,
+          object_type,object_id,outcome,correlation_id,details_json,created_at)
+          VALUES (?,?,?,?,'SYSTEM','run.lease_expired','RUN',?,'FAILED',?,?,?)`)
+          .run(opaqueId('evt'), run.namespace, run.run_id, run.task_id, run.run_id, opaqueId('lease'),
+            canonicalJson({ reasonCode, incidentId, automaticRetry: false }), timestamp);
+      }
       const expiredRuns = db.prepare(`
         SELECT DISTINCT run_id FROM tasks
         WHERE task_type = 'RUN_EXECUTE' AND status = 'RUNNING'
@@ -3515,6 +3724,8 @@ export class HarnessService {
         JOIN i8_executable_plans p ON p.executable_plan_id=c.executable_plan_id WHERE fi.namespace=? AND fi.incident_id=?`)
         .get(input.namespace, input.incidentId) as Record<string, unknown> | undefined;
       if (!incident) throw new HarnessError(404, 'I8_REPAIR_BASE_CANDIDATE_NOT_FOUND', 'DOMAIN', '事故没有可审计的 I8 基础候选。');
+      if(JSON.parse(String(incident.plan_json)).fixtureProfile==='TRANSFER_UKEY_ORDER_QUERY')
+        throw new HarnessError(409,'I10_BANK_VALIDATION_FRESH_POOL_REQUIRED','DOMAIN','资金候选不能在已使用的账户样本上自动修复或重新验证；请创建新案例与样本池。',false,true);
       if (incident.envelope_hash !== input.expectedEnvelopeHash) throw new HarnessError(409, 'I8_FAILURE_ENVELOPE_HASH_CONFLICT', 'CONCURRENCY', '失败封装已变化。', false, true, { currentEnvelopeHash: incident.envelope_hash });
       if (!['PATCH_ALLOWED', 'REAUTHOR_REQUIRED'].includes(String(incident.disposition))) throw new HarnessError(409, 'I8_REPAIR_DISPOSITION_NOT_PATCHABLE', 'DOMAIN', '该事故只能报告或重试，禁止脚本补丁。', false, true);
       const attemptNo = Number(incident.attempt_count) + 1;
@@ -3606,6 +3817,9 @@ export class HarnessService {
 
   async completeI8RepairStability(batchId: string, inputValue: I8StabilityCompletionInput): Promise<Record<string, unknown>> {
     const input = i8StabilityCompletionSchema.parse(inputValue);
+    if (input.stoppedAfterFailure) {
+      throw new HarnessError(409, 'I10_BANK_FAILURE_PREFIX_NOT_ALLOWED', 'CONTRACT', '首次资金失败停止回执不适用于修复稳定性批次。');
+    }
     return this.database.write(db => {
       const batch = db.prepare(`
         SELECT b.*, p.script_sha256, p.incident_id, p.attempt_no,
@@ -4123,6 +4337,363 @@ export class HarnessService {
         // MCP projection and is represented here by the verification gate)
         terminal: Boolean(gate) || ['SUCCEEDED', 'FAILED', 'WAITING_USER', 'CANCELLED'].includes(String(row.status)) || row.run_status === 'BLOCKED'
       };
+    });
+  }
+
+  async repeatValidatedJourney(input: JourneyPrepareInput, context: RequestContext): Promise<Record<string, unknown>> {
+    this.verifyJourneyEvidence(input.namespace,input.validatedJourneyId!);
+    return this.i10.prepareJourney(input,context);
+  }
+
+  async recordFeedback(input: FeedbackRecordInput): Promise<Record<string, unknown>> {
+    const parsed = feedbackRecordSchema.parse(input);
+    return this.database.write(db => {
+      const source = db.prepare(`SELECT fi.run_id,fi.classification,r.status,r.release_identity_hash,
+        c.dsl_version,c.dsl_json,c.candidate_id,c.script_sha256,c.manifest_sha256,r.task_id,ep.plan_json FROM failure_incidents fi
+        JOIN runs r ON r.run_id=fi.run_id AND r.namespace=fi.namespace AND r.case_id=fi.case_id
+        JOIN tasks t ON t.task_id=r.task_id AND t.run_id=r.run_id AND t.status='FAILED'
+        JOIN i8_script_candidates c ON c.candidate_id=r.candidate_id AND c.namespace=fi.namespace
+          AND c.script_id=fi.script_id AND c.script_version=fi.script_version
+        JOIN i8_executable_plans ep ON ep.executable_plan_id=c.executable_plan_id AND ep.namespace=fi.namespace
+        WHERE fi.namespace=? AND fi.incident_id=?`).get(parsed.namespace,parsed.incidentId) as {
+          run_id: string; classification: string; status: string; release_identity_hash: string;
+          dsl_version: string; dsl_json: string; plan_json: string;
+          candidate_id:string;script_sha256:string;manifest_sha256:string;task_id:string;
+        } | undefined;
+      if (!source || source.status !== 'FAILED' || source.classification !== (parsed.correction.type==='TARGET_MAPPING'?'LOCATOR':'ASSERTION'))
+        throw new HarnessError(409,parsed.correction.type==='TARGET_MAPPING'?'FEEDBACK_FAILED_LOCATOR_SOURCE_REQUIRED':'FEEDBACK_FAILED_ASSERTION_SOURCE_REQUIRED','EVIDENCE','反馈必须绑定相应类型的原失败事故。',false,true);
+      if (!this.releaseIdentityHash || source.release_identity_hash !== this.releaseIdentityHash)
+        throw new HarnessError(409,'FEEDBACK_SOURCE_IDENTITY_MISMATCH','EVIDENCE','反馈源身份与当前身份不一致。',false,true);
+      const plan = JSON.parse(source.plan_json);
+      const binding = resolveTargetAdapterBinding(plan.targetProfileSnapshot?.adapterBinding);
+      if (!binding || typeof plan.fixtureProfile !== 'string')
+        throw new HarnessError(409,'FEEDBACK_TARGET_BINDING_REQUIRED','CONTRACT','原计划缺少明确目标适配器及场景绑定。',false,true);
+      const dsl = JSON.parse(source.dsl_json);
+      const correctionInput=parsed.correction;
+      if (correctionInput.type==='TARGET_MAPPING' && !dsl.steps.some((step: { targetRef?: string }) => step.targetRef === correctionInput.targetRef))
+        throw new HarnessError(409,'FEEDBACK_TARGET_NOT_IN_SOURCE','CONTRACT','纠正目标不在原冻结脚本中。',false,true);
+      if(correctionInput.type==='ASSERTION_IMPLEMENTATION') {
+        const step=dsl.steps.find((item:{stepId:string})=>item.stepId===correctionInput.stepId);
+        const expectedOperation=correctionInput.implementation==='EXACT_TEXT'?'expectText':'expectEqual';
+        if(!step || step.operation!==expectedOperation)
+          throw new HarnessError(409,'FEEDBACK_ASSERTION_IMPLEMENTATION_MISMATCH','CONTRACT','纠正必须保持原断言操作和目标。',false,true);
+        const reports=(db.prepare('SELECT artifact_id FROM artifacts WHERE namespace=? AND run_id=? AND task_id=?')
+          .all(parsed.namespace,source.run_id,source.task_id) as Array<{artifact_id:string}>)
+          .map(item=>this.artifacts.verifyIntegrity(parsed.namespace,item.artifact_id))
+          .filter(item=>(item.metadata as Record<string,unknown>).evidenceKind==='REPORT');
+        if(reports.length!==1)throw new HarnessError(409,'FEEDBACK_ASSERTION_REPORT_REQUIRED','EVIDENCE','需唯一原正式失败报告。',false,true);
+        const bytes=this.artifacts.read(parsed.namespace,String(reports[0]!.artifactId)).content;
+        let report;try{report=JSON.parse(bytes.toString('utf8'));}finally{bytes.fill(0);}
+        const failed=Array.isArray(report.assertions)?report.assertions.filter((item:{passed:boolean})=>item.passed===false):[];
+        if(report.schemaVersion!=='i8-formal-run-report-v1'||report.runId!==source.run_id||report.taskId!==source.task_id||
+          report.passed!==false||report.candidateId!==source.candidate_id||report.scriptHash!==source.script_sha256||
+          report.manifestHash!==source.manifest_sha256||failed.length!==1||failed[0].stepId!==step.stepId||failed[0].operation!==expectedOperation)
+          throw new HarnessError(409,'FEEDBACK_ASSERTION_REPORT_MISMATCH','EVIDENCE','纠正未绑定原报告中的唯一失败断言。',false,true);
+      }
+      const correction = canonicalJson(parsed.correction);
+      const existing = db.prepare('SELECT feedback_id,incident_id,correction_json,status FROM reviewed_feedback WHERE namespace=? AND confirmation_ref=?')
+        .get(parsed.namespace,parsed.confirmationRef) as {feedback_id:string;incident_id:string;correction_json:string;status:string}|undefined;
+      if (existing) {
+        if (existing.incident_id !== parsed.incidentId || existing.correction_json !== correction)
+          throw new HarnessError(409,'FEEDBACK_CONFIRMATION_CONFLICT','CONCURRENCY','同一确认引用不能覆盖原反馈。',false,true);
+        return {feedbackId:existing.feedback_id,status:existing.status,deduplicated:true};
+      }
+      const feedbackId = opaqueId('feedback');
+      db.prepare(`INSERT INTO reviewed_feedback(feedback_id,namespace,incident_id,source_run_id,release_identity_hash,
+        confirmation_ref,adapter_binding_json,dsl_version,fixture_profile,correction_json,status,created_at)
+        VALUES (?,?,?,?,?,?,?,?,?,?,'PENDING_VERIFICATION',?)`).run(feedbackId,parsed.namespace,parsed.incidentId,
+          source.run_id,this.releaseIdentityHash,parsed.confirmationRef,canonicalJson(binding),source.dsl_version,
+          plan.fixtureProfile,correction,nowIso());
+      return {feedbackId,status:'PENDING_VERIFICATION',deduplicated:false};
+    });
+  }
+
+  async verifyFeedback(input: FeedbackVerifyInput): Promise<Record<string, unknown>> {
+    const parsed = feedbackVerifySchema.parse(input);
+    return this.database.write(db => {
+      const feedback = db.prepare('SELECT * FROM reviewed_feedback WHERE namespace=? AND feedback_id=?')
+        .get(parsed.namespace,parsed.feedbackId) as Record<string,unknown>|undefined;
+      if (!feedback) throw new HarnessError(404,'FEEDBACK_NOT_FOUND','DOMAIN','反馈不存在。');
+      if (feedback.release_identity_hash !== this.releaseIdentityHash)
+        throw new HarnessError(409,'FEEDBACK_SOURCE_IDENTITY_MISMATCH','EVIDENCE','反馈源身份已过期。',false,true);
+      if (feedback.verification_journey_id && feedback.verification_journey_id !== parsed.verificationJourneyId)
+        throw new HarnessError(409,'FEEDBACK_VERIFICATION_CONFLICT','CONCURRENCY','核验引用不可覆盖。',false,true);
+      const proof = this.verifyJourneyEvidence(parsed.namespace,parsed.verificationJourneyId);
+      if (proof.runId === feedback.source_run_id)
+        throw new HarnessError(409,'FEEDBACK_INDEPENDENT_RUN_REQUIRED','EVIDENCE','不能用原运行证明纠正。',false,true);
+      const repair = db.prepare(`SELECT p.*,base.dsl_json AS original_dsl,base.dsl_version AS original_dsl_version,
+        ep.plan_json AS original_plan FROM i8_script_patch_proposals p
+        JOIN runs original ON original.run_id=? AND original.namespace=p.namespace
+          AND original.status='FAILED' AND original.release_identity_hash=?
+        JOIN i8_script_candidates base ON base.candidate_id=original.candidate_id AND base.candidate_id=p.base_candidate_id
+        JOIN i8_executable_plans ep ON ep.executable_plan_id=base.executable_plan_id
+        JOIN runs verified ON verified.run_id=? AND verified.namespace=p.namespace
+          AND verified.candidate_id=p.repair_candidate_id AND verified.case_id=original.case_id
+          AND verified.case_version=original.case_version
+        JOIN tasks t ON t.task_id=verified.task_id
+          AND json_extract(t.payload_json,'$.scriptId')=p.script_id
+          AND json_extract(t.payload_json,'$.scriptVersion')=p.script_version
+          AND json_extract(t.payload_json,'$.scriptHash')=p.script_sha256
+        JOIN i8_repair_stability_certificates cert ON cert.proposal_id=p.proposal_id
+          AND cert.status='PASSED' AND cert.script_sha256=p.script_sha256
+        JOIN i8_repair_stability_batches batch ON batch.batch_id=cert.batch_id AND batch.status='PASSED'
+        JOIN i8_repair_decisions decision ON decision.proposal_id=p.proposal_id AND decision.choice='ACTIVATE'
+          AND decision.activated_plan_id=verified.plan_id
+        WHERE p.namespace=? AND p.incident_id=? AND p.status='ACTIVATED'`)
+        .get(feedback.source_run_id,this.releaseIdentityHash,proof.runId,parsed.namespace,feedback.incident_id) as Record<string,unknown>|undefined;
+      if (!repair) throw new HarnessError(409,'FEEDBACK_VERIFIED_REPAIR_REQUIRED','EVIDENCE','需原候选的已激活、持证修复及独立运行。',false,true);
+      const patch = scriptPatchProposalSchema.parse(JSON.parse(String(repair.patch_json)));
+      const correction = JSON.parse(String(feedback.correction_json));
+      if (patch.operations.length !== 1 || canonicalJson(patch.operations[0]) !== canonicalJson(correction) ||
+        canonicalJson(JSON.parse(String(repair.dsl_json))) !== canonicalJson(JSON.parse(String(repair.original_dsl))))
+        throw new HarnessError(409,'FEEDBACK_CORRECTION_OR_GOAL_CHANGED','CONTRACT','纠正不一致或业务/断言被修改。',false,true);
+      const plan = JSON.parse(String(repair.original_plan));
+      if (canonicalJson(resolveTargetAdapterBinding(plan.targetProfileSnapshot?.adapterBinding)) !== feedback.adapter_binding_json ||
+        plan.fixtureProfile !== feedback.fixture_profile || repair.original_dsl_version !== feedback.dsl_version)
+        throw new HarnessError(409,'FEEDBACK_TARGET_BINDING_MISMATCH','CONTRACT','目标或合同不匹配。',false,true);
+      const directory = path.resolve(this.productRoot,String(repair.relative_directory));
+      const relative = path.relative(this.productRoot,directory);
+      if (!relative || relative.startsWith('..') || path.isAbsolute(relative))
+        throw new HarnessError(409,'FEEDBACK_REPAIR_ARTIFACT_INVALID','EVIDENCE','修复目录越界。',false,true);
+      const scriptPath=path.join(directory,'script.cjs'),manifestPath=path.join(directory,'manifest.json');
+      if (!fs.existsSync(scriptPath) || !fs.existsSync(manifestPath) ||
+        sha256(fs.readFileSync(scriptPath)) !== repair.script_sha256 || sha256(fs.readFileSync(manifestPath)) !== repair.manifest_sha256)
+        throw new HarnessError(409,'FEEDBACK_REPAIR_ARTIFACT_INVALID','EVIDENCE','修复制品字节不匹配。',false,true);
+      if(correction.type==='ASSERTION_IMPLEMENTATION') {
+        const manifest=JSON.parse(fs.readFileSync(manifestPath,'utf8'));
+        const embedded=fs.readFileSync(scriptPath,'utf8').match(/^const PACKAGE = Object\.freeze\((.*)\)$/m);
+        const sourcePackage=embedded?JSON.parse(embedded[1]!):null;
+        if(manifest.assertionImplementations?.[correction.stepId]!==correction.implementation||
+          sourcePackage?.assertionImplementations?.[correction.stepId]!==correction.implementation||
+          canonicalJson(sourcePackage.dsl)!==canonicalJson(JSON.parse(String(repair.original_dsl)))||
+          canonicalJson(sourcePackage.fixtures)!==canonicalJson(plan.fixtureValues))
+          throw new HarnessError(409,'FEEDBACK_ASSERTION_EXECUTION_REQUIRED','EVIDENCE','修复制品必须实际绑定原断言目标及精确实现。',false,true);
+      }
+      db.prepare("UPDATE reviewed_feedback SET status='VERIFIED',verification_journey_id=? WHERE feedback_id=? AND status='PENDING_VERIFICATION'")
+        .run(parsed.verificationJourneyId,parsed.feedbackId);
+      return {feedbackId:parsed.feedbackId,status:'VERIFIED',verificationJourneyId:parsed.verificationJourneyId,
+        verificationRunId:proof.runId,deduplicated:feedback.status==='VERIFIED'};
+    });
+  }
+
+  getFeedback(namespace: string, feedbackId: string): Record<string, unknown> {
+    return this.database.read(db => {
+      const row=db.prepare('SELECT * FROM reviewed_feedback WHERE namespace=? AND feedback_id=?').get(namespace,feedbackId) as Record<string,unknown>|undefined;
+      if(!row)throw new HarnessError(404,'FEEDBACK_NOT_FOUND','DOMAIN','反馈不存在。');
+      const consumptionRows = db.prepare(`SELECT x.job_id,x.action_id,x.envelope_json,v.record_json,c.candidate_id,c.manifest_json,c.dsl_json
+        FROM i10_authoring_contexts x
+        JOIN i8_candidate_build_jobs j ON j.job_id=x.job_id AND j.namespace=? AND j.status='COMPLETED'
+        JOIN i8_verified_action_records v ON v.executable_plan_id=j.executable_plan_id AND v.action_id=x.action_id AND v.namespace=j.namespace
+        JOIN i8_script_candidates c ON c.executable_plan_id=j.executable_plan_id AND c.namespace=j.namespace
+        WHERE json_extract(x.envelope_json,'$.currentAction.reviewedLocator.feedbackId')=?
+          OR json_extract(x.envelope_json,'$.currentAction.reviewedAssertion.feedbackId')=? ORDER BY x.created_at,x.action_id`)
+        .all(namespace,feedbackId,feedbackId) as Array<{job_id:string;action_id:string;envelope_json:string;record_json:string;candidate_id:string;manifest_json:string;dsl_json:string}>;
+      const consumptions = consumptionRows.filter(item => {
+        const action=JSON.parse(item.envelope_json).currentAction;
+        const record=JSON.parse(item.record_json);
+        const executed=record.outcome==='VERIFIED_PASSED' && record.visualEvidence?.invocation==='REAL'
+          && record.visualEvidence?.locatorMatched===true && record.playwrightEvidence?.role==='EXECUTOR'
+          && Object.values(record.verification).every(value=>value===true);
+        if(!executed)return false;
+        if(action.reviewedLocator?.feedbackId===feedbackId)
+          return canonicalJson(action.reviewedLocator.locator)===canonicalJson(record.locator);
+        const hint=action.reviewedAssertion,manifest=JSON.parse(item.manifest_json);
+        const application=manifest.reviewedAssertionApplications?.[item.action_id];
+        const step=JSON.parse(item.dsl_json).steps.find((value:{sourceActionId:string})=>value.sourceActionId===item.action_id);
+        return hint?.feedbackId===feedbackId && record.assertionImplementation===hint.implementation
+          && application?.feedbackId===feedbackId && application.implementation===hint.implementation
+          && application.stepId===step?.stepId && manifest.assertionImplementations?.[step?.stepId]===hint.implementation;
+      }).map(item=>({jobId:item.job_id,actionId:item.action_id,candidateId:item.candidate_id}));
+      return {feedbackId:row.feedback_id,incidentId:row.incident_id,sourceRunId:row.source_run_id,
+        releaseIdentityHash:row.release_identity_hash,status:row.status,adapterBinding:JSON.parse(String(row.adapter_binding_json)),
+        dslVersion:row.dsl_version,fixtureProfile:row.fixture_profile,correction:JSON.parse(String(row.correction_json)),
+        verificationJourneyId:row.verification_journey_id,createdAt:row.created_at,consumptions};
+    });
+  }
+
+  verifyJourneyEvidence(namespace: string, journeyId: string): Record<string, unknown> {
+    const authority = this.database.read(db => {
+      const journey = db.prepare(`SELECT stage,status,references_json FROM i10_interaction_journeys WHERE namespace=? AND journey_id=?`)
+        .get(namespace, journeyId) as { stage: string; status: string; references_json: string } | undefined;
+      if (!journey) throw new HarnessError(404, 'I10_JOURNEY_NOT_FOUND', 'DOMAIN', '交互旅程不存在。');
+      const references = JSON.parse(journey.references_json) as Record<string, unknown>;
+      const runId = typeof references.runId === 'string' ? references.runId : '';
+      const taskId = typeof references.taskId === 'string' ? references.taskId : '';
+      if (journey.stage !== 'COMPLETED' || journey.status !== 'COMPLETED' || !runId || !taskId) {
+        throw new HarnessError(409, 'I10_EVIDENCE_JOURNEY_NOT_TERMINAL', 'EVIDENCE', '旅程尚未形成可验证的终态证据。', false, true);
+      }
+      const execution = db.prepare(`
+        SELECT r.run_id,r.task_id,r.status AS run_status,r.release_identity_hash,t.status AS task_status
+        FROM runs r JOIN tasks t ON t.task_id=r.task_id
+        WHERE r.namespace=? AND r.run_id=? AND r.task_id=? AND r.journey_id=? AND t.run_id=r.run_id
+      `).get(namespace, runId, taskId, journeyId) as Record<string, unknown> | undefined;
+      if (!execution || execution.run_status !== 'PASSED' || execution.task_status !== 'SUCCEEDED') {
+        throw new HarnessError(409, 'I10_EVIDENCE_EXECUTION_NOT_PASSED', 'EVIDENCE', '运行或任务尚未通过。', false, true);
+      }
+      if (!this.releaseIdentityHash || execution.release_identity_hash !== this.releaseIdentityHash) {
+        throw new HarnessError(409, 'I10_EVIDENCE_RELEASE_IDENTITY_MISMATCH', 'EVIDENCE', '运行证据与当前 ReleaseIdentity 不一致。', false, false);
+      }
+      const event = db.prepare(`
+        SELECT details_json FROM audit_events
+        WHERE namespace=? AND run_id=? AND task_id=? AND action='run.complete' AND outcome='SUCCEEDED'
+        ORDER BY sequence DESC LIMIT 1
+      `).get(namespace, runId, taskId) as { details_json: string } | undefined;
+      const details = event ? JSON.parse(event.details_json) as Record<string, unknown> : {};
+      const artifactIds = Array.isArray(details.artifactIds)
+        ? details.artifactIds.filter((value): value is string => typeof value === 'string') : [];
+      if (artifactIds.length === 0) {
+        throw new HarnessError(409, 'I10_EVIDENCE_ARTIFACT_SET_MISSING', 'EVIDENCE', '运行没有登记完整制品集合。', false, false);
+      }
+      return { runId, taskId, artifactIds };
+    });
+    const artifacts = authority.artifactIds.map(artifactId => {
+      const verified = this.artifacts.verifyIntegrity(namespace, artifactId);
+      if (verified.runId !== authority.runId || verified.taskId !== authority.taskId) {
+        throw new HarnessError(409, 'I10_EVIDENCE_ARTIFACT_BINDING_MISMATCH', 'EVIDENCE', '制品与运行任务绑定不一致。', false, false);
+      }
+      const metadata = verified.metadata as Record<string, unknown>;
+      const evidenceKind = typeof metadata.evidenceKind === 'string' ? metadata.evidenceKind : '';
+      if (!evidenceKind) throw new HarnessError(409, 'I10_EVIDENCE_KIND_MISSING', 'EVIDENCE', '制品缺少证据类型。', false, false);
+      return {
+        artifactId, evidenceKind, artifactType: verified.type, sha256: verified.sha256,
+        size: verified.byteSize, redactionStatus: verified.redactionStatus,
+        sha256Verified: true, sizeVerified: true,
+      };
+    });
+    const requiredKinds = ['DOM', 'SCREENSHOT', 'TRACE', 'NETWORK', 'LEDGER'];
+    const observedKinds = new Set(artifacts.map(item => item.evidenceKind));
+    if (requiredKinds.some(kind => !observedKinds.has(kind))) {
+      throw new HarnessError(409, 'I10_EVIDENCE_KIND_MISSING', 'EVIDENCE', '运行证据类型不完整。', false, false);
+    }
+    return {
+      schemaVersion: 'hengzhun-cli-evidence-verification/v1', verdict: 'VERIFIED',
+      journeyId, runId: authority.runId, taskId: authority.taskId,
+      releaseIdentityHash: this.releaseIdentityHash, journeyTerminal: true,
+      runStatus: 'PASSED', taskStatus: 'SUCCEEDED', requiredKinds, artifacts,
+    };
+  }
+
+  verifyReleaseCaseEvidence(caseId: string, namespace: string, journeyId: string, expectedFailure?: unknown): Record<string, unknown> {
+    if(caseId==='A06'||caseId==='P05'){
+      const proof=this.verifyJourneyEvidence(namespace,journeyId);
+      const refs=this.database.read(db=>JSON.parse((db.prepare('SELECT references_json FROM i10_interaction_journeys WHERE namespace=? AND journey_id=?')
+        .get(namespace,journeyId) as {references_json:string}).references_json));
+      if(typeof refs.validatedJourneyId!=='string'||refs.validatedJourneyId===journeyId)
+        throw new HarnessError(409,'RELEASE_REPEAT_SOURCE_REQUIRED','EVIDENCE','重复执行必须引用独立的已验证来源旅程。');
+      const source=this.verifyJourneyEvidence(namespace,refs.validatedJourneyId);
+      const binding=this.database.read(db=>{
+        const row=db.prepare(`SELECT repeated.candidate_id,repeated.plan_id,
+            json_extract(repeated_task.payload_json,'$.scriptId') AS executed_script_id,
+            json_extract(repeated_task.payload_json,'$.scriptVersion') AS executed_script_version,
+            json_extract(repeated_task.payload_json,'$.scriptHash') AS executed_script_hash
+          FROM runs repeated JOIN runs original ON original.namespace=repeated.namespace
+          JOIN tasks repeated_task ON repeated_task.task_id=repeated.task_id
+          JOIN tasks original_task ON original_task.task_id=original.task_id
+          WHERE repeated.namespace=? AND repeated.run_id=? AND original.run_id=?
+            AND repeated.run_id<>original.run_id AND repeated.task_id<>original.task_id
+            AND repeated.case_id=original.case_id AND repeated.case_version=original.case_version
+            AND repeated.plan_id=original.plan_id AND repeated.candidate_id=original.candidate_id
+            AND repeated.created_at>=original.completed_at
+            AND json_extract(repeated_task.payload_json,'$.scriptId')=json_extract(original_task.payload_json,'$.scriptId')
+            AND json_extract(repeated_task.payload_json,'$.scriptVersion')=json_extract(original_task.payload_json,'$.scriptVersion')
+            AND json_extract(repeated_task.payload_json,'$.scriptHash')=json_extract(original_task.payload_json,'$.scriptHash')`)
+          .get(namespace,proof.runId,source.runId) as {candidate_id:string;plan_id:string;executed_script_id:string;executed_script_version:number;executed_script_hash:string}|undefined;
+        if(!row||refs.sourceRunId!==source.runId||refs.candidateId!==row.candidate_id||refs.planId!==row.plan_id)return undefined;
+        const script=db.prepare(`SELECT script_id,script_version,script_sha256 FROM i8_script_candidates WHERE namespace=? AND candidate_id=?
+          UNION ALL SELECT script_id,script_version,script_sha256 FROM i8_script_patch_proposals WHERE namespace=? AND repair_candidate_id=?`)
+          .get(namespace,row.candidate_id,namespace,row.candidate_id) as {script_id:string;script_version:number;script_sha256:string}|undefined;
+        if(!script||script.script_sha256!==refs.scriptHash||script.script_sha256!==row.executed_script_hash||
+            script.script_id!==row.executed_script_id||script.script_version!==row.executed_script_version)return undefined;
+        return {...row,...script};
+      });
+      if(!binding)throw new HarnessError(409,'RELEASE_REPEAT_FROZEN_BINDING_INVALID','EVIDENCE','两次运行未绑定同一个冻结候选、案例和脚本。');
+      const timing=caseId==='P05'?this.database.read(db=>db.prepare('SELECT created_at,started_at,completed_at FROM runs WHERE namespace=? AND run_id=? AND task_id=?')
+        .get(namespace,proof.runId,proof.taskId) as {created_at:string;started_at:string|null;completed_at:string|null}|undefined):undefined;
+      const created=Date.parse(timing?.created_at??''),started=Date.parse(timing?.started_at??''),completed=Date.parse(timing?.completed_at??'');
+      if(caseId==='P05'&&(!Number.isFinite(created)||!Number.isFinite(started)||!Number.isFinite(completed)||created>started||started>completed))
+        throw new HarnessError(409,'RELEASE_QUEUE_TIMING_MISSING','EVIDENCE','容量运行缺少有序的实际账本时间。');
+      return {...proof,...(caseId==='P05'?{timing:{createdAt:timing!.created_at,startedAt:timing!.started_at,completedAt:timing!.completed_at,
+          queueMs:started-created,executionMs:completed-started}}:{}),sourceJourneyId:refs.validatedJourneyId,sourceRunId:source.runId,sourceTaskId:source.taskId,
+        candidateId:binding.candidate_id,planId:binding.plan_id,scriptId:binding.script_id,
+        scriptVersion:binding.script_version,scriptHash:binding.script_sha256,sameFrozenScript:true};
+    }
+    if(caseId==='A02'){
+      const proof=this.verifyJourneyEvidence(namespace,journeyId);
+      const binding=this.database.read(db=>db.prepare(`SELECT cv.definition_json FROM runs r
+        JOIN case_versions cv ON cv.case_id=r.case_id AND cv.version=r.case_version
+        WHERE r.namespace=? AND r.run_id=? AND r.task_id=? AND r.journey_id=?`)
+        .get(namespace,proof.runId,proof.taskId,journeyId) as {definition_json:string}|undefined);
+      const definition=binding?JSON.parse(binding.definition_json):{};
+      const parsed=typedBusinessInputsV2Schema.safeParse(definition.businessInputs);
+      const pool=bankValidationFixturesSchema.safeParse(definition.bankValidationFixtures);
+      if(!parsed.success||!parsed.data.values.payerAccountId||!pool.success||
+        pool.data.formalAccountIds.sourceAccountId!==parsed.data.values.payerAccountId)
+        throw new HarnessError(409,'RELEASE_FINANCIAL_BINDING_REQUIRED','EVIDENCE','资金场景缺少实际执行案例版本的冻结业务输入。');
+      return {...proof,businessInputs:parsed.data,formalAccountIds:pool.data.formalAccountIds};
+    }
+    if (caseId !== 'A04' && caseId !== 'A07') return this.verifyJourneyEvidence(namespace,journeyId);
+    return this.database.read(db=>{
+      const journey=db.prepare('SELECT stage,status,request_intent,input_envelope_json,missing_fields_json,references_json FROM i10_interaction_journeys WHERE namespace=? AND journey_id=?')
+        .get(namespace,journeyId) as {stage:string;status:string;request_intent:string;input_envelope_json:string;missing_fields_json:string;references_json:string}|undefined;
+      if(!journey)throw new HarnessError(404,'I10_JOURNEY_NOT_FOUND','EVIDENCE','旅程不存在。');
+      const runs=db.prepare('SELECT run_id,task_id,status,release_identity_hash FROM runs WHERE namespace=? AND journey_id=?')
+        .all(namespace,journeyId) as Array<{run_id:string;task_id:string;status:string;release_identity_hash:string}>;
+      if(caseId==='A04') {
+        const input=JSON.parse(journey.input_envelope_json);
+        const missing=JSON.parse(journey.missing_fields_json) as string[];
+        const refs=JSON.parse(journey.references_json);
+        const values=input.draftJson?.businessInputs?.values??{};
+        const blockedFields=['payeeRef','amount'].filter(field=>missing.includes(`businessInputs.${field}`)&&!values[field]);
+        if(journey.stage!=='NEEDS_INPUT'||journey.status!=='NEEDS_INPUT'||journey.request_intent!=='CASE_AUTHORING'||
+          !this.releaseIdentityHash||input.releaseIdentityHash!==this.releaseIdentityHash||blockedFields.length===0||
+          refs.preparationId||refs.runId||refs.taskId||runs.length!==0)
+          throw new HarnessError(409,'RELEASE_MISSING_INPUT_NOT_BLOCKED','EVIDENCE','缺失输入未在执行前被阻止。');
+        return {verdict:'VERIFIED',releaseIdentityHash:this.releaseIdentityHash,runStatus:'NEEDS_INPUT',journeyId,blockedFields,executionCount:0};
+      }
+      if(runs.length!==1||runs[0]!.status!=='FAILED'||runs[0]!.release_identity_hash!==this.releaseIdentityHash||
+        journey.status!=='FAILED'||!['FAILED_ACTIONABLE','FAILED_CLOSED'].includes(journey.stage))
+        throw new HarnessError(409,'RELEASE_CONTROLLED_FAILURE_NOT_PROVEN','EVIDENCE','未取得当前身份的受控失败运行。');
+      const run=runs[0]!;
+      const incident=db.prepare("SELECT reason_code FROM failure_incidents WHERE namespace=? AND run_id=? AND classification='ASSERTION'")
+        .get(namespace,run.run_id) as {reason_code:string}|undefined;
+      const task=db.prepare('SELECT status,error_code FROM tasks WHERE namespace=? AND task_id=?').get(namespace,run.task_id) as {status:string;error_code:string}|undefined;
+      if(incident?.reason_code!=='I8_FORMAL_ASSERTION_FAILED'||task?.status!=='FAILED'||task.error_code!==incident.reason_code)
+        throw new HarnessError(409,'RELEASE_ASSERTION_FAILURE_REQUIRED','EVIDENCE','失败不是指定的正式断言失败。');
+      const expected=expectedFailure as {operation?:string;expectedText?:string;caseMarker?:string}|undefined;
+      const input=JSON.parse(journey.input_envelope_json);
+      if(expected?.operation!=='expectText'||!expected.expectedText||!expected.caseMarker||
+        input.releaseIdentityHash!==this.releaseIdentityHash||!String(input.naturalLanguage).includes(expected.caseMarker))
+        throw new HarnessError(409,'RELEASE_EXPECTED_ASSERTION_REQUIRED','EVIDENCE','未绑定清单指定的失败断言。');
+      const candidate=db.prepare(`SELECT c.candidate_id,c.dsl_json,c.dsl_hash,c.script_sha256,c.manifest_sha256,p.plan_json
+        FROM runs r JOIN i8_script_candidates c ON c.candidate_id=r.candidate_id AND c.namespace=r.namespace
+        JOIN i8_executable_plans p ON p.executable_plan_id=c.executable_plan_id AND p.namespace=c.namespace
+        WHERE r.namespace=? AND r.run_id=?`).get(namespace,run.run_id) as
+        {candidate_id:string;dsl_json:string;dsl_hash:string;script_sha256:string;manifest_sha256:string;plan_json:string}|undefined;
+      if(!candidate||sha256(candidate.dsl_json)!==candidate.dsl_hash)
+        throw new HarnessError(409,'RELEASE_EXPECTED_ASSERTION_REQUIRED','EVIDENCE','未找到冻结的失败脚本。');
+      const plan=JSON.parse(candidate.plan_json),dsl=JSON.parse(candidate.dsl_json);
+      const assertionSteps=(dsl.steps as Array<{stepId:string;operation:string;expectedTextRef?:string}>).filter(step=>
+        step.operation===expected.operation&&step.expectedTextRef&&plan.fixtureValues?.[step.expectedTextRef]===expected.expectedText);
+      if(assertionSteps.length!==1)throw new HarnessError(409,'RELEASE_EXPECTED_ASSERTION_REQUIRED','EVIDENCE','指定断言未唯一绑定冻结脚本。');
+      const artifacts=(db.prepare('SELECT artifact_id FROM artifacts WHERE namespace=? AND run_id=? AND task_id=?')
+        .all(namespace,run.run_id,run.task_id) as Array<{artifact_id:string}>).map(row=>this.artifacts.verifyIntegrity(namespace,row.artifact_id));
+      const kinds=new Set(artifacts.map(a=>(a.metadata as Record<string,unknown>).evidenceKind));
+      if(['DOM','SCREENSHOT','TRACE','NETWORK','LEDGER'].some(kind=>!kinds.has(kind)))
+        throw new HarnessError(409,'RELEASE_FAILURE_EVIDENCE_INCOMPLETE','EVIDENCE','受控失败的证据类型不完整。');
+      const reports=artifacts.filter(a=>(a.metadata as Record<string,unknown>).evidenceKind==='REPORT');
+      if(reports.length!==1)throw new HarnessError(409,'RELEASE_FAILURE_REPORT_REQUIRED','EVIDENCE','缺少唯一正式失败报告。');
+      const bytes=this.artifacts.read(namespace,String(reports[0]!.artifactId)).content;
+      let report;try{report=JSON.parse(bytes.toString('utf8'));}finally{bytes.fill(0);}
+      const failed=Array.isArray(report.assertions)?report.assertions.filter((a:{passed:boolean})=>a.passed===false):[];
+      if(report.schemaVersion!=='i8-formal-run-report-v1'||report.runId!==run.run_id||report.taskId!==run.task_id||report.passed!==false||
+        report.candidateId!==candidate.candidate_id||report.scriptHash!==candidate.script_sha256||report.manifestHash!==candidate.manifest_sha256||
+        report.failureReason!=='CANDIDATE_EXPECT_TEXT_FAILED'||failed.length!==1||
+        failed[0].stepId!==assertionSteps[0]!.stepId||failed[0].operation!==expected.operation)
+        throw new HarnessError(409,'RELEASE_EXPECTED_ASSERTION_MISMATCH','EVIDENCE','正式报告的失败步骤与指定断言不符。');
+      return {verdict:'VERIFIED',releaseIdentityHash:this.releaseIdentityHash,runStatus:'FAILED',taskStatus:'FAILED',
+        runId:run.run_id,taskId:run.task_id,journeyId,expectedAssertionStepId:assertionSteps[0]!.stepId,
+        artifacts:artifacts.map(a=>({artifactId:a.artifactId,evidenceKind:(a.metadata as Record<string,unknown>).evidenceKind,
+          sha256:a.sha256,size:a.byteSize,sha256Verified:a.sha256Verified,sizeVerified:a.sizeVerified}))};
     });
   }
 

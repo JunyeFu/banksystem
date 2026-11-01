@@ -1,0 +1,32 @@
+{
+  "schemaVersion": "rf056-release-identity-source-snapshot/v1",
+  "capturedAt": "2026-09-28",
+  "sourceCommit": "552b3b8ac517bd5991bff446e72d9f4e87ea9543",
+  "sourceDirty": true,
+  "identityAlgorithm": "scripts/i10-release-identity-v4.cjs currentReleaseIdentityV4",
+  "profile": "NORMAL_CLI",
+  "releaseStatus": "SOURCE_FROZEN_UNBOUND",
+  "identityHash": "92a4da266f09ab158362f81670dd1473b463917a522127200f4776f8e1477b4e",
+  "releaseCodeSetHash": "36a9f1958078ced33387b98f2abd33e5a5c6b38c8636782e3abf82280f4b3c20",
+  "modelConfigIdentity": {
+    "bindingStatus": "UNBOUND_INACTIVE",
+    "modelNameSource": "CONTROL_MODEL_NAME",
+    "profile": "CONTROL_GENERIC",
+    "providerProtocol": "OPENAI_COMPATIBLE",
+    "streaming": false,
+    "temperature": 0,
+    "toolMode": "NONE"
+  },
+  "groupHashes": {
+    "agentCli": "5539e10b0f1d45a458ff611c776d14fb194630dca466c0fba17ee0472eec1d6c",
+    "controller": "7554c5932924230f15d753bb42d0c3b7999163d7ccc7f2fd87a77a3588faff01",
+    "mcp": "490c9e7233f03458933f162665b1209dd7961610dc6d2e690e50d3add4fcec6a",
+    "lifecycle": "410549878bfa5451ff1a8e1101404ea99fc75b508f03980b6d2908dc93da008d",
+    "harness": "84b1b0afcb4666dfc92431c795cac9019ea336846623123db6cb0d3bb2dfd097",
+    "worker": "2b9b7ca67ca5ffc85e14e80edfb8143ab124ddcdab6df8a86773c44774b1b8aa",
+    "bankProduct": "ad3d5098ca80bc13df329b4020e390ee207d9859cc9d6be75baba72152e24e79"
+  },
+  "groupFileCounts": {"agentCli":17,"controller":19,"mcp":4,"lifecycle":12,"harness":58,"worker":21,"bankProduct":298},
+  "agentLiveExecuted": false,
+  "formalModelBoundFreeze": false
+}

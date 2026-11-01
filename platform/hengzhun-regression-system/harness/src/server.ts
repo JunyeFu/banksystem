@@ -33,6 +33,11 @@ import { i8ResultInboxAckSchema, i8ResultInboxListSchema, i8ScheduleCreateSchema
 import { i8FailureGetSchema, i8RepairDecisionSchema, i8RepairProposeSchema } from './i8/stage7-schemas';
 import { authorizeRequest, loadSecurityConfig, remoteAddressForAudit, SecurityConfig, SecurityResult } from './security';
 import { HarnessService } from './service';
+import { feedbackRecordSchema,feedbackVerifySchema,feedbackGetSchema } from './feedback';
+import { QualityReadModel } from './quality-read-model';
+import { ReleaseVerification } from './release-verification';
+import { WorkbenchRepository } from './workbench-repository';
+import { workbenchOperations } from './workbench-contract';
 import { credentialFingerprint, nowIso, opaqueId } from './utils';
 import {
   credentialCaptureSchema,
@@ -99,7 +104,7 @@ const workerCompletionSchema = z.object({
     pageFingerprint: z.string().trim().max(160).nullable()
   }).strict().optional(),
   evidence: z.array(z.object({
-    artifactType: z.enum(['JSON', 'TEXT', 'SCREENSHOT', 'LOG', 'REPORT', 'DIAGNOSTIC']),
+    artifactType: z.enum(['JSON', 'TEXT', 'SCREENSHOT', 'TRACE', 'LOG', 'REPORT', 'DIAGNOSTIC']),
     mediaType: z.string().trim().min(1).max(128),
     redactionStatus: z.enum(['NOT_REQUIRED', 'REDACTED', 'QUARANTINED']),
     extension: z.string().trim().min(1).max(10).regex(/^[A-Za-z0-9]+$/),
@@ -175,6 +180,9 @@ export interface HarnessApplicationOptions {
   security?: SecurityConfig;
   workerToken?: string;
   schedulerIntervalMs?: number;
+  qualityPortalRoot?: string;
+  releaseIdentityHash?: string;
+  workbenchNamespace?: string;
 }
 
 export interface HarnessApplication {
@@ -259,6 +267,24 @@ function omitNullValues(value: Record<string, unknown>): Record<string, unknown>
   return Object.fromEntries(Object.entries(value).filter(([, item]) => item !== null && item !== undefined));
 }
 
+function qualityMediaType(filePath: string): string {
+  const extension = path.extname(filePath).toLowerCase();
+  return ({ '.html': 'text/html; charset=utf-8', '.js': 'text/javascript; charset=utf-8', '.css': 'text/css; charset=utf-8',
+    '.svg': 'image/svg+xml', '.png': 'image/png', '.ico': 'image/x-icon', '.json': 'application/json; charset=utf-8' } as Record<string, string>)[extension]
+    ?? 'application/octet-stream';
+}
+
+function sendQualityFile(response: http.ServerResponse, filePath: string, requestId: string, headOnly: boolean): void {
+  const content = fs.readFileSync(filePath);
+  response.writeHead(200, {
+    'content-type': qualityMediaType(filePath), 'content-length': content.byteLength,
+    'cache-control': path.extname(filePath).toLowerCase() === '.html' ? 'no-store' : 'public, max-age=31536000, immutable',
+    'content-security-policy': "default-src 'self'; img-src 'self' data:; style-src 'self' 'unsafe-inline'; script-src 'self'; connect-src 'self'; frame-ancestors 'none'",
+    'x-content-type-options': 'nosniff', 'x-frame-options': 'DENY', 'referrer-policy': 'no-referrer', 'x-request-id': requestId
+  });
+  response.end(headOnly ? undefined : content);
+}
+
 async function readRaw(request: http.IncomingMessage, maximumBytes = MAX_WORKER_REQUEST_BYTES): Promise<Buffer> {
   const chunks: Buffer[] = [];
   let total = 0;
@@ -333,12 +359,29 @@ export function projectWorkerCodeSetReadiness(productRoot: string, workerHealth?
 }
 
 export async function createHarnessApplication(options: HarnessApplicationOptions): Promise<HarnessApplication> {
+  const workbenchNamespace = namespaceSchema.parse(options.workbenchNamespace ?? process.env.HENGZHUN_NAMESPACE ?? 'hengzhun-local');
   const database = await HarnessDatabase.open({
     databasePath: options.databasePath ?? path.join(options.productRoot, '.data', 'sqlite', 'regression_platform.sqlite'),
     migrationsDirectory: options.migrationsDirectory ?? path.join(options.productRoot, 'harness', 'migrations'),
     backupDirectory: options.backupDirectory ?? path.join(options.productRoot, '.data', 'sqlite', 'backups')
   });
-  const service = new HarnessService(database, options.artifactRoot ?? path.join(options.productRoot, '.data', 'artifacts'), options.productRoot);
+  const releaseIdentityHash = options.releaseIdentityHash ?? process.env.HENGZHUN_RELEASE_IDENTITY_HASH;
+  if (releaseIdentityHash !== undefined && !/^[a-f0-9]{64}$/.test(releaseIdentityHash)) {
+    await database.close();
+    throw new Error('HENGZHUN_RELEASE_IDENTITY_HASH must be a lowercase SHA-256 value');
+  }
+  const service = new HarnessService(database, options.artifactRoot ?? path.join(options.productRoot, '.data', 'artifacts'), options.productRoot, releaseIdentityHash);
+  const currentReleaseIdentity = () => {
+    const lifecycle=require(path.join(options.productRoot,'scripts/i10-agent-lifecycle.cjs'));
+    const identity=require(path.join(options.productRoot,'scripts/i10-release-identity-v4.cjs'));
+    return identity.currentReleaseIdentityV4({productRoot:options.productRoot,
+      modelConfigIdentity:lifecycle.modelIdentityFromEnvironment(lifecycle.environmentWithRuntimeFile({root:options.productRoot}))}).identityHash;
+  };
+  const quality = new QualityReadModel(database, releaseIdentityHash, currentReleaseIdentity);
+  const workbench = new WorkbenchRepository(database);
+  const releases = new ReleaseVerification(database,path.resolve(options.productRoot,'../..'),releaseIdentityHash,
+    currentReleaseIdentity,(caseId,namespace,journeyId,expected)=>service.verifyReleaseCaseEvidence(caseId,namespace,journeyId,expected));
+  const qualityPortalRoot = options.qualityPortalRoot ?? path.resolve(options.productRoot, '..', '..', 'apps', 'quality-case-portal', 'dist');
   const security = options.security ?? loadSecurityConfig();
   const workerToken = options.workerToken ?? process.env.HENGZHUN_WORKER_TOKEN;
   const schedulerIntervalMs = options.schedulerIntervalMs ?? 15_000;
@@ -415,6 +458,21 @@ export async function createHarnessApplication(options: HarnessApplicationOption
     let fingerprint: string | undefined;
     try {
       const url = new URL(request.url ?? '/', 'http://hengzhun.local');
+      if ((request.method === 'GET' || request.method === 'HEAD') && url.pathname === '/quality') {
+        response.writeHead(308, { location: '/quality/', 'cache-control': 'no-store', 'x-request-id': requestId });
+        return response.end();
+      }
+      if ((request.method === 'GET' || request.method === 'HEAD') && url.pathname.startsWith('/quality/')) {
+        if (!fs.existsSync(path.join(qualityPortalRoot, 'index.html'))) {
+          throw new HarnessError(503, 'QUALITY_PORTAL_NOT_BUILT', 'ENVIRONMENT', 'Quality Portal 尚未构建。');
+        }
+        const relative = decodeURIComponent(url.pathname.slice('/quality/'.length));
+        const candidate = path.resolve(qualityPortalRoot, relative);
+        const confined = candidate === qualityPortalRoot || candidate.startsWith(`${qualityPortalRoot}${path.sep}`);
+        if (!confined) throw new HarnessError(404, 'QUALITY_ASSET_NOT_FOUND', 'CONTRACT', 'Quality Portal 资源不存在。');
+        const filePath = fs.existsSync(candidate) && fs.statSync(candidate).isFile() ? candidate : path.join(qualityPortalRoot, 'index.html');
+        return sendQualityFile(response, filePath, requestId, request.method === 'HEAD');
+      }
       if (request.method === 'GET' && url.pathname === '/health') {
         const migrations = database.migrationStatus();
         const workerHealthPath = path.join(options.productRoot, '.data', 'runtime', 'worker-health.json');
@@ -453,6 +511,26 @@ export async function createHarnessApplication(options: HarnessApplicationOption
           worker,
           scheduler: schedulerReadiness
         }, 'L0', requestId);
+      }
+
+      if (url.pathname.startsWith('/api/quality/v1/')) {
+        if (request.method !== 'GET') {
+          throw new HarnessError(405, 'QUALITY_READ_ONLY', 'AUTHORIZATION', '质量投影仅支持只读查询。');
+        }
+        if (url.pathname === '/api/quality/v1/overview') return sendJson(response, 200, quality.overview(), 'L1', requestId);
+        if (url.pathname === '/api/quality/v1/cases') return sendJson(response, 200, quality.cases({
+          limit:url.searchParams.has('limit') ? Number(url.searchParams.get('limit')) : undefined,
+          cursor:url.searchParams.get('cursor'),q:url.searchParams.get('q') ?? '',status:url.searchParams.get('status') ?? ''
+        }), 'L1', requestId);
+        const qualityCaseMatch = url.pathname.match(/^\/api\/quality\/v1\/cases\/([^/]+)$/);
+        if (qualityCaseMatch) return sendJson(response, 200, quality.caseDetail(decodeURIComponent(qualityCaseMatch[1] as string)), 'L1', requestId);
+        if (url.pathname === '/api/quality/v1/baselines') return sendJson(response, 200, quality.baselines(), 'L1', requestId);
+        if (url.pathname === '/api/quality/v1/runs') return sendJson(response, 200, quality.runs(), 'L3', requestId);
+        if (url.pathname === '/api/quality/v1/schedules') return sendJson(response, 200, quality.schedules(), 'L1', requestId);
+        if (url.pathname === '/api/quality/v1/incidents') return sendJson(response, 200, quality.incidents(), 'L1', requestId);
+        if (url.pathname === '/api/quality/v1/knowledge') return sendJson(response, 200, quality.knowledge(), 'L1', requestId);
+        if (url.pathname === '/api/quality/v1/releases') return sendJson(response, 200, quality.releases(), 'L1', requestId);
+        throw new HarnessError(404, 'QUALITY_ROUTE_NOT_FOUND', 'CONTRACT', '质量投影路径不存在。');
       }
 
       const i8DownloadMatch = url.pathname.match(/^\/v1\/i8\/downloads\/(download_[0-9a-f-]{36})$/);
@@ -702,6 +780,23 @@ export async function createHarnessApplication(options: HarnessApplicationOption
         credentialFingerprint: fingerprint,
         actorType: url.pathname.startsWith('/v1/i8/') ? 'SYSTEM' as const : 'COZE' as const
       };
+      if (request.method === 'POST' && url.pathname.startsWith('/v1/workbench/')) {
+        const operation = (Object.keys(workbenchOperations) as (keyof typeof workbenchOperations)[])
+          .find(name => workbenchOperations[name].route === url.pathname);
+        if (!operation) throw new HarnessError(404, 'AGENT_METADATA_ROUTE_NOT_FOUND', 'CONTRACT', '会话元数据路由不存在。');
+        const { namespace, ...input } = z.object({ namespace: namespaceSchema }).passthrough().parse(await readJson(request));
+        if (namespace !== workbenchNamespace) throw new HarnessError(403, 'AGENT_NAMESPACE_FORBIDDEN', 'AUTHORIZATION', '该命名空间不属于当前会话服务。');
+        return sendJson(response, 200, await workbench.execute(operation, namespace, input), 'L3', requestId);
+      }
+      if (request.method === 'POST' && url.pathname === '/v1/releases/reports:register') {
+        const input=z.object({reportPath:z.string().max(240)}).strict().parse(await readJson(request));
+        return sendJson(response,200,await releases.register(input.reportPath),'L1',requestId);
+      }
+      if (request.method === 'POST' && url.pathname === '/v1/releases:verify') {
+        const input=z.union([z.object({}).strict(),z.object({caseId:z.string().regex(/^(?:A0[1-7]|P05)$/),journeyId:z.string().regex(/^journey_[0-9a-f-]{36}$/)}).strict()]).parse(await readJson(request));
+        if('caseId' in input)return sendJson(response,200,releases.verifyCaseEvidence(input.caseId,input.journeyId),'L1',requestId);
+        return sendJson(response,200,await releases.verify(),'L2',requestId);
+      }
       if (request.method === 'POST' && url.pathname === '/v1/i10/attachments:import') {
         if (request.headers['content-type'] !== 'application/octet-stream') {
           throw new HarnessError(415, 'I10_ATTACHMENT_MEDIA_TYPE_INVALID', 'CONTRACT', '附件导入只接受 application/octet-stream。');
@@ -764,6 +859,16 @@ export async function createHarnessApplication(options: HarnessApplicationOption
         const input = imageIngestDecisionSubmitSchema.parse(await readJson(request));
         return sendJson(response, 200, await service.i10.decideImageIngest(input,context), 'L1', requestId);
       }
+      if (request.method === 'POST' && url.pathname === '/v1/feedback:record') {
+        return sendJson(response,200,await service.recordFeedback(feedbackRecordSchema.parse(await readJson(request))),'L0',requestId);
+      }
+      if (request.method === 'POST' && url.pathname === '/v1/feedback:verify') {
+        return sendJson(response,200,await service.verifyFeedback(feedbackVerifySchema.parse(await readJson(request))),'L0',requestId);
+      }
+      if (request.method === 'POST' && url.pathname === '/v1/feedback:get') {
+        const input=feedbackGetSchema.parse(await readJson(request));
+        return sendJson(response,200,service.getFeedback(input.namespace,input.feedbackId),'L1',requestId);
+      }
       if (request.method === 'POST' && url.pathname === '/v1/i10/verification:get') {
         const input = verificationGetSchema.parse(await readJson(request));
         return sendJson(response, 200, input.challengeId
@@ -776,7 +881,9 @@ export async function createHarnessApplication(options: HarnessApplicationOption
       }
       if (request.method === 'POST' && url.pathname === '/v1/i10/journeys:prepare') {
         const input = journeyPrepareSchema.parse(await readJson(request));
-        return sendJson(response, 200, await service.i10.prepareJourney(input,context), 'L1', requestId);
+        const result = input.validatedJourneyId
+          ? await service.repeatValidatedJourney(input,context) : await service.i10.prepareJourney(input,context);
+        return sendJson(response, 200, result, 'L1', requestId);
       }
       if (request.method === 'POST' && url.pathname === '/v1/i10/journeys:get') {
         const input = journeyGetSchema.parse(await readJson(request));
@@ -852,6 +959,11 @@ export async function createHarnessApplication(options: HarnessApplicationOption
       if (request.method === 'POST' && url.pathname === '/v1/i8/results:inbox-list') {
         const input = i8ResultInboxListSchema.parse(await readJson(request));
         return sendJson(response, 200, await service.listI8ResultInbox(input), 'L2', requestId);
+      }
+      if (request.method === 'POST' && url.pathname === '/v1/i10/journeys:evidence-verify') {
+        const input = journeyGetSchema.parse(await readJson(request));
+        if (!input.journeyId) throw new HarnessError(400, 'I10_JOURNEY_ID_REQUIRED', 'CONTRACT', '证据验证必须指定 journeyId。');
+        return sendJson(response, 200, service.verifyJourneyEvidence(input.namespace,input.journeyId), 'L1', requestId);
       }
       if (request.method === 'POST' && url.pathname === '/v1/i8/results:inbox-ack') {
         const input = i8ResultInboxAckSchema.parse(await readJson(request));

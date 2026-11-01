@@ -1,0 +1,10 @@
+id: RF-063-S1
+title: 贷款与转账业务语义
+status: PROPOSED
+businessGoal: 两种方式、4.35年率、480期和特殊字符键
+allowedPaths: [services/bank-channel-service, apps/customer-portal]
+forbiddenPaths: [postgresql, infra/keycloak, platform/hengzhun-regression-system/flowise]
+workSteps: [root cause counterexample, minimal fix, regression, independent review]
+verification: ['Java21 mvnw.cmd test; customer-portal npm.cmd run build']
+evidence: docs/architecture/refactoring/batches/RF-063/evidence-index.md
+

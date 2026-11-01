@@ -1,0 +1,20 @@
+schemaVersion: 1
+id: RF-032
+title: Customer confirmation API and shared client
+status: CLOSED
+owner: Codex
+authorizedBy: agent/plans/active/v54-implementation-batches.md
+scope:
+  includePaths: [packages/bank-api-client, contracts/openapi/customer-api.yaml, services/bank-channel-service/src/main/java/local/bank/channel/payments/TransferController.java, services/bank-channel-service/src/test/java/local/bank/channel/payments, docs/architecture/refactoring/module-boundaries-v1.yaml, docs/architecture/refactoring/batches/RF-032, agent/plans/active/banksystem-tp-a03-bank-golden-path-task-package.md, agent/plans/active/banksystem-open-source-task-packages-v1.yaml, agent/plans/active/banksystem-three-level-development-control-v1.md, agent/plans/active/banksystem-three-level-development-control-v1.yaml, agent/backlog.yaml, agent/plans/active/v54-implementation-batches.md]
+  excludePaths: [platform/hengzhun-regression-system, postgresql, services/bank-channel-service/src/main/resources/db/changelog]
+budgets: {maxChangedFiles: 20, maxNewFiles: 13, maxChangedLines: 1500, maxContractsChanged: 1, maxMigrationsAdded: 0, maxOpenModules: 2}
+baseline: {gitCommit: 552b3b8ac517bd5991bff446e72d9f4e87ea9543, dirtyTreeManifest: docs/architecture/refactoring/batches/RF-027/baseline.md, releaseIdentity: 19e031c7, capturedAt: "2026-09-03T16:15:00+08:00"}
+architecture: {businessCapability: customer-confirmed-transfer-contract, publicContract: contracts/openapi/customer-api.yaml, dependencyManifest: docs/architecture/refactoring/module-boundaries-v1.yaml, allowedModules: [bank.payments, frontend.bank-api-client], forbiddenModules: [frontend.customer-portal, frontend.operations-console, frontend.quality-case-portal, hengzhun.controller, hengzhun.harness, hengzhun.mcp, hengzhun.worker]}
+mustPreserve: [existing confirmed visual design is unchanged, customer confirmation explicitly triggers the owned transfer once, API client sends idempotency and correlation separately, Fineract remains the business truth]
+verification:
+  requiredCommands:
+    - {name: channel-tests, command: "services/bank-channel-service/mvnw.cmd test", expectedExitCode: 0, evidence: docs/architecture/refactoring/batches/RF-032/evidence-index.md, blocking: true}
+    - {name: api-client-tests, command: "npm --prefix packages/bank-api-client test", expectedExitCode: 0, evidence: docs/architecture/refactoring/batches/RF-032/evidence-index.md, blocking: true}
+    - {name: governance, command: "py -3 scripts/architecture/validate_refactoring.py --batch RF-032", expectedExitCode: 0, evidence: docs/architecture/refactoring/batches/RF-032/evidence-index.md, blocking: true}
+rollback: {triggerConditions: [confirmation can process another subject transfer, portal omits correlation header, golden path writes a business database directly, confirmed visual hierarchy changes], recoveryPoint: RF-031 closed source state, maxRtoMinutes: 15, maxRpoMinutes: 0}
+exceptions: {allowedVagueNames: [], crossModule: []}

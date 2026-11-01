@@ -1,0 +1,10 @@
+id: RF-066-S2
+title: Local model configuration and task binding
+status: DONE
+businessGoal: Local model configuration and task binding
+allowedPaths: ["platform/hengzhun-regression-system/controller/src","platform/hengzhun-regression-system/controller/test","platform/hengzhun-regression-system/agent-cli","platform/hengzhun-regression-system/scripts/verification","platform/hengzhun-regression-system/scripts/i10-agent-lifecycle.cjs","platform/hengzhun-regression-system/scripts/i10-worker-code-set-v1.json","platform/hengzhun-regression-system/worker/src/i10-midscene-candidate-authoring.cjs","platform/hengzhun-regression-system/worker/src/i10-vision-readiness.cjs","contracts/openapi/agent-workbench-api.yaml","scripts/test/verify-agent-workbench.ps1","scripts/demo","docs/architecture/refactoring/batches/RF-066"]
+forbiddenPaths: [postgresql, services/bank-channel-service, infra/keycloak, platform/hengzhun-regression-system/flowise]
+workSteps: [analyze, freeze-additive-contract, compose-production-service, bind-model-and-continuation, verify-isolated]
+verification: ["powershell -NoProfile -ExecutionPolicy Bypass -File scripts/test/verify-agent-workbench.ps1 -Scope Contract","powershell -NoProfile -ExecutionPolicy Bypass -File scripts/test/verify-agent-workbench.ps1 -Scope Integration"]
+evidence: docs/architecture/refactoring/batches/RF-066/evidence-index.md
+

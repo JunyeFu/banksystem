@@ -14,12 +14,14 @@ $keycloakContainer = 'mifos-channel-keycloak-1'
 $keycloakRunning = docker inspect -f '{{.State.Running}}' $keycloakContainer 2>$null
 if ($LASTEXITCODE -ne 0 -or $keycloakRunning -ne 'true') { throw 'I10_BANK_KEYCLOAK_NOT_RUNNING' }
 
-$random = New-Object byte[] 32
-$rng = [System.Security.Cryptography.RandomNumberGenerator]::Create()
-try { $rng.GetBytes($random) } finally { $rng.Dispose() }
-$password = [Convert]::ToBase64String($random).TrimEnd('=').Replace('+','-').Replace('/','_')
-[Array]::Clear($random, 0, $random.Length)
-$username = 'hz-i10-' + ([Guid]::NewGuid().ToString('N').Substring(0, 12))
+$authoritativeCredentialRef = (& $node (Join-Path $PSScriptRoot 'i10-resolve-live-credential.cjs')).Trim()
+if ($LASTEXITCODE -ne 0 -or $authoritativeCredentialRef -notmatch '^credential_[0-9a-f-]{36}$') { throw 'I10_LIVE_CREDENTIAL_NOT_FOUND' }
+$existingCredentialJson = (& $node (Join-Path $PSScriptRoot 'i10-read-current-user-credential.cjs') $authoritativeCredentialRef | Out-String).Trim()
+if ($LASTEXITCODE -ne 0) { throw 'I10_CREDENTIAL_READ_FAILED' }
+$existingCredential = $existingCredentialJson | ConvertFrom-Json
+$username = [string]$existingCredential.username
+$password = [string]$existingCredential.password
+if ([string]::IsNullOrWhiteSpace($username) -or [string]::IsNullOrWhiteSpace($password)) { throw 'I10_CREDENTIAL_READ_FAILED' }
 $passwordTransport = [Convert]::ToBase64String([Text.Encoding]::UTF8.GetBytes($password))
 
 $containerCommand = @'
@@ -28,7 +30,8 @@ PASSWORD_B64=$(cat | tr -cd 'A-Za-z0-9+/=')
 PASSWORD=$(printf %s "$PASSWORD_B64" | base64 -d)
 KCADM=/opt/keycloak/bin/kcadm.sh
 $KCADM config credentials --server http://127.0.0.1:8080 --realm master --user "$KC_BOOTSTRAP_ADMIN_USERNAME" --password "$KC_BOOTSTRAP_ADMIN_PASSWORD" >/dev/null 2>&1
-USER_ID=$($KCADM create users -r bank-customer -s username="$HZ_USERNAME" -s enabled=true -s firstName=Hengzhun -s lastName=RegressionCustomer -s email="$HZ_USERNAME@example.invalid" -s emailVerified=true -s 'requiredActions=[]' -i 2>/dev/null)
+USER_ID=$($KCADM get users -r bank-customer -q username="$HZ_USERNAME" --fields id --format csv --noquotes 2>/dev/null | tail -n 1)
+if test -z "$USER_ID"; then USER_ID=$($KCADM create users -r bank-customer -s username="$HZ_USERNAME" -s enabled=true -s firstName=Hengzhun -s lastName=RegressionCustomer -s email="$HZ_USERNAME@example.invalid" -s emailVerified=true -s 'requiredActions=[]' -i 2>/dev/null); fi
 test -n "$USER_ID"
 $KCADM set-password -r bank-customer --userid "$USER_ID" --new-password "$PASSWORD" >/dev/null 2>&1
 $KCADM add-roles -r bank-customer --uid "$USER_ID" --rolename CUSTOMER >/dev/null 2>&1 || true
@@ -39,6 +42,7 @@ CLIENT_SECRET=$($KCADM get clients/$CLIENT_UUID/client-secret -r bank-internal -
 test -n "$CLIENT_SECRET"
 printf '%s|%s' "$USER_ID" "$CLIENT_SECRET"
 '@
+$containerCommand = $containerCommand.Replace("`r`n", "`n")
 $configuration = [string]::Join('', @($passwordTransport | docker exec -e "HZ_USERNAME=$username" -i $keycloakContainer sh -lc $containerCommand))
 if ($LASTEXITCODE -ne 0 -or $configuration.IndexOf('|') -lt 1) { throw 'I10_BANK_ACCOUNT_PROVISION_FAILED' }
 $separator = $configuration.IndexOf('|')
@@ -68,7 +72,7 @@ try {
     throw 'I10_BANK_SCENARIO_FIXTURE_FAILED'
   }
   if ($scenarioFixture.status -ne 'READY') { throw ('I10_BANK_SCENARIO_FIXTURE_FAILED_' + ([string]$scenarioFixture.failureStage -replace '[^A-Za-z0-9_]', '') + '_' + ([string]$scenarioFixture.failureHint -replace '[^A-Za-z0-9_]', '')) }
-  $enrollmentPayload = [ordered]@{ namespace='hengzhun-local'; username=$username; password=$password; label='复兴银行本机受控验收客户' } | ConvertTo-Json -Compress
+  $enrollmentPayload = [ordered]@{ namespace='hengzhun-local'; username=$username; password=$password; label='复兴银行本机受控验收客户'; credentialRef=$authoritativeCredentialRef } | ConvertTo-Json -Compress
   try { $null = $enrollmentPayload | ConvertFrom-Json } catch { throw 'I10_CREDENTIAL_ENROLL_PAYLOAD_INVALID' }
   $enrollmentProcessInfo = [Diagnostics.ProcessStartInfo]::new()
   $enrollmentProcessInfo.FileName = $node

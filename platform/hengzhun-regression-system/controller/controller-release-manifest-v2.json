@@ -30,6 +30,7 @@
     "controller/src/agent-controller-v2.mjs",
     "controller/src/controller-port.cjs",
     "controller/src/controller-runtime.mjs",
+    "controller/src/journey-author.mjs",
     "controller/src/risk-policy.cjs",
     "controller/src/runtime-adapters.mjs",
     "controller/src/session-checkpointer.mjs",

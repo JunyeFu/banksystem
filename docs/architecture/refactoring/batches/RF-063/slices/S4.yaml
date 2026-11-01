@@ -1,0 +1,10 @@
+id: RF-063-S4
+title: Agent输入及质量事实
+status: IMPLEMENTING
+businessGoal: 金额来自明确用户输入、发布结果真实投影
+allowedPaths: [platform/hengzhun-regression-system/controller, platform/hengzhun-regression-system/harness, platform/hengzhun-regression-system/agent-cli/src/production-service.mjs, platform/hengzhun-regression-system/agent-cli/test, platform/hengzhun-regression-system/scripts/verification, apps/quality-case-portal, contracts/openapi/quality-platform-api.yaml]
+forbiddenPaths: [postgresql, infra/keycloak, platform/hengzhun-regression-system/flowise]
+workSteps: [root cause counterexample, minimal fix, regression, independent review]
+verification: ['product npm.cmd run build; bundled Node quality-read-model.test.cjs; bundled Node journey-author-validate.test.mjs; quality npm.cmd run build']
+evidence: docs/architecture/refactoring/batches/RF-063/evidence-index.md
+

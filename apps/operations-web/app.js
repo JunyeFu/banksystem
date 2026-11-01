@@ -1,1 +1,0 @@
-const status=document.getElementById('status');document.querySelector('[data-action="refresh"]').addEventListener('click',()=>{document.getElementById('review-count').textContent='API';status.textContent='已请求刷新；实际队列由 Operations API 返回。'});document.getElementById('review-count').textContent='0';

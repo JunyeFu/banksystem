@@ -54,27 +54,28 @@ export const acceptanceSummarySchema = z.object({
 // prose.  They are frozen with the CaseDraft, can be displayed back to the
 // user for confirmation, and are the only I10 source for transfer/query
 // fixtures.  Credentials remain referenced elsewhere by credentialRef.
-export const typedBusinessInputsV1Schema = z.object({
-  schemaVersion: z.literal('hengzhun-i10-typed-business-inputs-v1'),
+export const typedBusinessInputsV2Schema = z.object({
+  schemaVersion: z.literal('hengzhun-i10-typed-business-inputs-v2'),
   values: z.object({
     dateRange: boundedText(80).optional(),
     filter: boundedText(500).optional(),
-    payeeRef: z.string().trim().regex(/^payee_[A-Za-z0-9._:-]{4,120}$/).optional(),
+    payerAccountId: z.string().trim().regex(/^[1-9][0-9]{0,18}$/).optional(),
+    payeeRef: z.uuid().optional(),
     amount: z.string().trim().regex(/^(?:0|[1-9][0-9]{0,11})(?:\.[0-9]{1,2})?$/).optional(),
     currency: z.string().trim().regex(/^[A-Z]{3}$/).optional(),
     purpose: boundedText(200).optional()
   }).strict(),
   source: z.enum(['USER_CONFIRMED', 'IMPORT_CONFIRMED', 'OCR_CONFIRMED'])
 }).strict().superRefine((value, context) => {
-  const transferFields = ['payeeRef', 'amount', 'currency', 'purpose'] as const;
+  const transferFields = ['payerAccountId', 'payeeRef', 'amount', 'currency', 'purpose'] as const;
   const present = transferFields.filter(field => Boolean(value.values[field]));
   if (present.length > 0 && present.length !== transferFields.length) {
     context.addIssue({
       code: 'custom', path: ['values'],
-      message: '转账业务输入必须同时包含payeeRef、amount、currency和purpose。'
+      message: '转账业务输入必须同时包含payerAccountId、payeeRef、amount、currency和purpose。'
     });
   }
-  if (value.values.amount && Number(value.values.amount) <= 0) {
+  if (value.values.amount && !/[1-9]/.test(value.values.amount)) {
     context.addIssue({ code: 'custom', path: ['values', 'amount'], message: '转账金额必须大于0。' });
   }
 });
@@ -90,8 +91,8 @@ export const intentPlanSchema = z.object({
   targetProfileHash: z.string().regex(/^[0-9a-f]{64}$/).optional(),
   targetProfileSnapshot: z.record(z.string(), z.unknown()).optional(),
   adapterBinding: targetAdapterBindingSchema.optional(),
-  inputContractVersion: z.enum(['LEGACY', 'TypedBusinessInputsV1']).default('LEGACY'),
-  typedBusinessInputs: typedBusinessInputsV1Schema.optional(),
+  inputContractVersion: z.enum(['LEGACY', 'TypedBusinessInputsV2']).default('LEGACY'),
+  typedBusinessInputs: typedBusinessInputsV2Schema.optional(),
   steps: z.array(z.object({
     intentStepId: boundedText(80),
     action: boundedText(500),
@@ -110,13 +111,11 @@ export const intentPlanSchema = z.object({
     context.addIssue({ code: 'custom', path: ['adapterBinding'], message: '受控适配器计划必须冻结显式适配器绑定。' });
   }
   if (value.executionProfile === 'TRANSFER_UKEY_ORDER_QUERY') {
-    // I10 service paths always set TypedBusinessInputsV1.  Retain LEGACY for
-    // immutable I9 replay evidence, where the Builder deliberately keeps its
-    // old frozen-plan compatibility path.  This schema must not retroactively
-    // invalidate historical certificates.
-    if (value.inputContractVersion === 'TypedBusinessInputsV1') {
+    if (value.inputContractVersion !== 'TypedBusinessInputsV2') {
+      context.addIssue({code:'custom',path:['inputContractVersion'],message:'I10_TYPED_BUSINESS_INPUT_REQUIRED'});
+    } else {
       const inputs = value.typedBusinessInputs?.values;
-      for (const field of ['payeeRef', 'amount', 'currency', 'purpose'] as const) {
+      for (const field of ['payerAccountId', 'payeeRef', 'amount', 'currency', 'purpose'] as const) {
         if (!inputs?.[field]) context.addIssue({ code: 'custom', path: ['typedBusinessInputs', 'values', field], message: `转账计划缺少${field}。` });
       }
     }

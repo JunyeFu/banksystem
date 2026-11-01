@@ -1,0 +1,36 @@
+schemaVersion: 1
+portfolioId: BANKSYSTEM-OSS-V1
+title: Open-source bank demo and CLI Agent delivery portfolio
+baseline: agent/plans/active/banksystem-open-source-product-baseline-v1.md
+threeLevelControl: agent/plans/active/banksystem-three-level-development-control-v1.yaml
+visualConfirmationPackage: agent/plans/active/banksystem-vq08-open-source-onboarding-interview-demo-task-package.md
+capturedAt: "2026-08-30T10:36:19+08:00"
+sourceCommit: 552b3b8ac517bd5991bff446e72d9f4e87ea9543
+evidenceClass: DOC_GOVERNANCE_ONLY
+executionPolicy:
+  orderAuthority: agent/plans/active/v54-implementation-batches.md
+  statusAuthority: agent/backlog.yaml
+  requireDedicatedRfBatch: true
+  maxActiveImplementationPackages: 1
+  liveFirstDeterministicFailure: STOP
+  runtimeFallback: NONE
+  visualApprovalBeforeUiReady: true
+packages:
+  - {order: 1, id: BANKSYSTEM-OSS-A01-AUTHORITY-REBASELINE-001, title: Authority baseline and done predicate, status: REVIEW, dependsOn: [], rfBatch: RF-026}
+  - {order: 2, id: BANKSYSTEM-OSS-A02-REPRODUCIBLE-RUNTIME-001, title: Fresh-clone reproducible runtime, status: REVIEW, dependsOn: [BANKSYSTEM-OSS-A01-AUTHORITY-REBASELINE-001], rfBatch: RF-027}
+  - {order: 2, id: BANKSYSTEM-OSS-A02-AGENT-BROWSER-RUNTIME-001, title: Independent Agent browser runtime, status: COMPLETED, dependsOn: [BANKSYSTEM-OSS-A01-AUTHORITY-REBASELINE-001], rfBatch: RF-029}
+  - {order: 3, id: BANKSYSTEM-OSS-A03-BANK-GOLDEN-PATH-001, title: Bank transfer golden path, status: REVIEW, dependsOn: [BANKSYSTEM-OSS-A02-REPRODUCIBLE-RUNTIME-001], rfBatch: RF-036}
+  - {order: 4, id: BANKSYSTEM-OSS-A04-QUALITY-READ-MODEL-001, title: Read-only Quality Portal, status: REVIEW, dependsOn: [BANKSYSTEM-OSS-A03-BANK-GOLDEN-PATH-001], rfBatch: RF-039}
+  - {order: 5, id: BANKSYSTEM-OSS-A05-CLI-PRODUCT-INTEGRATION-001, title: CLI Agent product integration, status: REVIEW, dependsOn: [BANKSYSTEM-OSS-A04-QUALITY-READ-MODEL-001], rfBatch: RF-046}
+  - {order: 6, id: BANKSYSTEM-OSS-A06-LIVE-FULL18-001, title: LIVE L1 and Full18 release evidence, status: BLOCKED, dependsOn: [BANKSYSTEM-RF047-S1-001], rfBatch: RF-047}
+  - {order: 7, id: BANKSYSTEM-OSS-A07-FULL-REPO-CI-001, title: Full-repository CI and quality gate, status: BLOCKED, dependsOn: [BANKSYSTEM-OSS-A06-LIVE-FULL18-001], rfBatch: PENDING}
+  - {order: 8, id: BANKSYSTEM-OSS-A08-OPEN-SOURCE-RELEASE-001, title: Open-source release and interview demo, status: BLOCKED, dependsOn: [BANKSYSTEM-OSS-A07-FULL-REPO-CI-001], rfBatch: PENDING}
+completionPredicate:
+  platform: WINDOWS_11_DOCKER_DESKTOP
+  bankGoldenPath: PASS
+  cliDoctor: READY
+  sameIdentityLiveE2e: 18/18
+  qualityPortalReadOnly: true
+  coldStartReplay: PASS
+  fullRepositoryCi: PASS
+  flowiseRuntimeDependency: false

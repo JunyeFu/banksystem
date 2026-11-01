@@ -1,0 +1,9 @@
+id: RF-056-S3
+title: Fineract capability ports
+status: COMPLETED
+allowedPaths: [AGENTS.md, services/AGENTS.md, services/bank-channel-service/src/main, services/bank-channel-service/src/test, scripts/architecture/validate_refactoring.py, docs/architecture/refactoring/batches/RF-054/batch.yaml, docs/architecture/refactoring/batches/RF-056, docs/architecture/refactoring/module-boundaries-v1.yaml, agent/backlog.yaml, agent/plans/active/v54-implementation-batches.md]
+forbiddenPaths: [infra/keycloak, postgresql, platform/hengzhun-regression-system]
+workSteps: [extract Customer Account Transfer Loan and Core Operations ports, route all calls through shared HTTP transport, migrate callers and tests, delete old monolithic adapter]
+verification: [port contract tests pass, transfer idempotency and unknown outcome remain unchanged, Java suite passes]
+rollback: restore S2 source and previous adapter without changing core records
+evidence: docs/architecture/refactoring/batches/RF-056/evidence-index.md

@@ -1,0 +1,54 @@
+{
+  "scope": "RF065_CURRENT_NGINX_PRODUCT_IMAGES_ONLY",
+  "authorizedBy": "agent/plans/active/v54-implementation-batches.md",
+  "sourceDigest": "eb901ad8d224961aa9a0f4b31b3147fa88ccff619d48f3c178ac947499deaaab",
+  "reviewedImages": {
+    "gateway": "sha256:970364228b1e4f932abc22d321932816782cca8a20b85a77552a7cfe9acfb3b5",
+    "customer-portal": "sha256:9911c05d67330d252e32e409d38234242aa0891f616462eaa7f918611356040c",
+    "operations-console": "sha256:46a17d9054cfb207dab2de2fddb9153da857e76ab7bb7d567f93d6a28aa53a2e",
+    "quality-case-portal": "sha256:ea697cd545afe72f33cc09ed02d86d991c2f69e70981022310537da173c71fa7"
+  },
+  "baseLayers": [
+    "sha256:74d97c428c51a828f9051a7a40a53ff1fc99e54fc30323ce36760701b0b7f711",
+    "sha256:cfdd095735fdd5446c20bc2ed8519335912cbfea5190f03796c6625be4b4dbc2",
+    "sha256:ad50fc9f4d5b778261c949d9ffaa83a193d841bd9ea3dc7871191523f53d0f60",
+    "sha256:16b7c6f49eb2521c0f616e9e66952eb33f34775e1a9545e69441e98286fa422e",
+    "sha256:be8ef9e29ff8a08a6eac69287fc514047b7ca85d58146a892ddd90167a2fd313",
+    "sha256:cb09ecf501197401f91f8f412df01b82dc9bc01dbe4517014e3acb37bf1579b4",
+    "sha256:3c892ead291ba3249de1788eab3106b0a22a1d5825c576a521461ef892f8330c",
+    "sha256:46c425251b664c2839df5a5d8e2de90f2b86487148a95e365a6101753a3a0407"
+  ],
+  "officialNginxReview": {
+    "status": "REVIEWED",
+    "source": "https://nginx.org/en/security_advisories.html",
+    "checkedVersion": "1.30.6",
+    "queriedAt": "2026-10-17",
+    "unreviewedPublisherAdvisories": [],
+    "basis": "Current fixed image and actual package version 1.30.6-r1; official 2026-10-14 CHANGES-1.30 fixes the five formerly unreviewed publisher advisories. Three fresh native scans/BOMs bind the new exact images. This does not approve the old 1.30.5 images or establish licensing/runtime/release acceptance.",
+    "fixedPublisherAdvisories": [
+      "CVE-2026-15176",
+      "CVE-2026-93479",
+      "CVE-2026-95101",
+      "CVE-2026-97629",
+      "CVE-2026-97205"
+    ]
+  },
+  "dispositions": [
+    {
+      "name": "zlib",
+      "version": "1.3.2-r0",
+      "ecosystem": "Alpine:v3.24",
+      "advisories": [
+        "ALPINE-CVE-2026-85091"
+      ],
+      "status": "NOT_AFFECTED",
+      "reason": "CVE-2026-85091 requires stalled nonblocking gzwrite followed by gzprintf/gzvprintf using the gz writer state. Exact NGINX 1.30.6 is dynamically linked to libz but contains no imports of these gz writer names; its official gzip filter source uses deflateInit2/deflate/deflateEnd. Fixed configs load no additional native modules and expose no gz writer API. No waiver for different packages, code or configurations.",
+      "evidence": [
+        "docs/architecture/refactoring/batches/RF-065/dependency-remediation.md",
+        "docs/architecture/refactoring/batches/RF-065/evidence-index.md"
+      ],
+      "limits": "Only exact source/config digest, these immutable product images and their shared base layers. No alternative configuration/entrypoint, root shell or host compromise. New finding or drift blocks."
+    }
+  ],
+  "licenseDistributionGateCompleted": false
+}

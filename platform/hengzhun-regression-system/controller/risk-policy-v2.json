@@ -11,6 +11,8 @@
     "image_ingest_submit": "LOW",
     "image_ingest_decision_submit": "MEDIUM",
     "verification_decision_submit": "HIGH",
+    "feedback_record": "HIGH",
+    "feedback_verify": "HIGH",
     "journey_prepare": "LOW",
     "journey_input_submit": "MEDIUM",
     "journey_decision_submit": "HIGH",

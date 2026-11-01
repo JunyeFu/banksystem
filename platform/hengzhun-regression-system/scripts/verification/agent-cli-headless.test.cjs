@@ -13,7 +13,7 @@ test('hz-agent headless contract passes its Node 24 isolated matrix', () => {
   delete childEnv.NODE_TEST_CONTEXT
   const result = spawnSync(node24, ['--test', target], { cwd: productRoot, encoding: 'utf8', env: childEnv })
   assert.equal(result.status, 0, `CLI matrix failed.\nSTDOUT:\n${result.stdout}\nSTDERR:\n${result.stderr}`)
-  assert.match(result.stdout, /tests 13/)
-  assert.match(result.stdout, /pass 13/)
+  assert.match(result.stdout, /tests 26/)
+  assert.match(result.stdout, /pass 26/)
   assert.match(result.stdout, /fail 0/)
 })

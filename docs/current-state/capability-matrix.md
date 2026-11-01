@@ -12,6 +12,34 @@ owner: project-owner
 
 # Current capability matrix
 
+## 公开源码同步（2026-11-01）
+
+RF-068 S5 已在 2026-10-26 冻结身份 `8ff4a6bcf75ed230719dbae4f6c01aa77b351b2e699b8f1bea68c5a02bc62157` 下完成真实 BYOK 只读验收：10阶段、10检查、7工件验证，历史/刷新/网页重启不重派，银行账户与流水前后相同。详见[最终回执](../architecture/refactoring/batches/RF-068/S5-json-root-cause-20261026.md)。此结果不提升 RF-057 正式28项、RF-065供应链/远端CI或整体发布状态，整体仍为 NO_GO。首页截图只展示该次实机结果，不表示当前源码身份已经重新验收。以下旧时间点结论仅保留为历史，不覆盖本节。
+
+## 规范化实施增量（2026-10-09）
+
+发布单入口、证据真实性、A04缺输入及A07指定断言失败证明、A05原Run恢复、A06冻结脚本新Run复用已补源码及合同/隔离验证。A03/A04/A05/A06真实驱动已接入，但未在这些修改后的身份上执行BYOK；不能记为LIVE完成。A02资金Fixture隔离/真实转账适配、A07运营认证及阶段边界、P05、RF064余项、全仓CI和候选验收仍未闭合。当前正式门为RF057的14银行+7Agent+7性能，不是历史Full18；整体NO_GO。下面较早“当前”条目只保留其当时结论，不覆盖此增量；银行此前14项结果也不是修改后源码的验收。
+
+实施证据见[RF057证据索引](../architecture/refactoring/batches/RF-057/evidence-index.md)与[剩余驱动修复](../architecture/refactoring/batches/RF-057/a02-a06-runtime-gap-repair.md)；唯一工程状态仍是backlog。
+
+## RF063当前复审（2026-10-02）
+
+更新后的银行黄金转账完成（Fineract交易65）；RF057业务集9项通过、B13核心总账对账失败后停止。只读诊断确认演示储蓄产品accountingRule1且核心journal总数0。当前Agent为STALE_SOURCE；压力性能及新身份LIVE未完成，整体NO_GO。
+
+`demo.ps1 verify`已补明确NO_GO/退出5的失败语义，完整当前清单证据接入仍未完成；不能把该入口存在称为发布验证完成。Quality已实现SQLite身份/失败投影，但正式发布裁决生产者仍缺失。详情及剩余任务见[RF063独立复审](../architecture/refactoring/batches/RF-063/root-cause-and-review.md)。以下日期更早的结论仅作历史。
+
+## 当前组合产品（2026-09-21）
+
+| 能力 | 当前证据 | 结论 |
+|---|---|---|
+| Windows 演示启动 | `demo.ps1 up` 完整退出码 0；`status` 为 READY；核心、渠道和 CLI 三服务就绪 | 本机运行门通过；不等于新克隆或冷启动验收 |
+| CLI Agent 依赖自检 | `hz-agent doctor` 返回 READY，六项检查均 READY | 本机就绪；不等于执行过新的 LIVE Journey |
+| 银行黄金业务 | 已有历史业务证据；本次 P0 未运行 `run-golden-path` | 需要独立业务验收，不因启动就绪自动通过 |
+| A06 L1 与 Full18 | 当前身份 `445ed03a…d6e2bcf` 尚无本次 TEXT_ONLY / TEXT_WITH_IMAGE 完成证据 | BLOCKED；不能引用旧 Flowise 18/18 作为当前 CLI 结果 |
+| `demo.ps1 verify` | 当前入口返回 `DEMO_COMMAND_NOT_IMPLEMENTED` | 未实现 |
+
+以下为银行历史实现及 I8/I9/I10 阶段证据；各行的 VERIFIED 仅限行内标注的身份、环境与阶段，不代表上述当前 CLI 发布门。
+
 > This matrix describes banking-core implementation and accepted evidence, not automatic readiness of every newly created identity. A Keycloak user becomes a usable banking customer only after an explicit `customer_identity` link to a Fineract client exists. Historical synthetic-user E2E evidence does not prove that an independently created demo user is linked. It is not a completion claim for the v5.4 regression platform. The combined external-demo target and migration boundary are defined in [`../architecture/v5.4-external-demo-baseline.md`](../architecture/v5.4-external-demo-baseline.md).
 
 | Capability | Implemented | Runtime evidence | Status |

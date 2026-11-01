@@ -1,0 +1,20 @@
+schemaVersion: 1
+id: RF-034
+title: Operations correlation lookup evidence
+status: CLOSED
+owner: Codex
+authorizedBy: agent/plans/active/v54-implementation-batches.md
+scope:
+  includePaths: [apps/operations-console, docs/architecture/refactoring/batches/RF-034, agent/plans/active/banksystem-tp-a03-bank-golden-path-task-package.md, agent/plans/active/banksystem-open-source-task-packages-v1.yaml, agent/plans/active/banksystem-three-level-development-control-v1.md, agent/plans/active/banksystem-three-level-development-control-v1.yaml, agent/backlog.yaml, agent/plans/active/v54-implementation-batches.md]
+  excludePaths: [platform/hengzhun-regression-system, postgresql, services, contracts, packages, apps/customer-portal]
+budgets: {maxChangedFiles: 16, maxNewFiles: 12, maxChangedLines: 800, maxContractsChanged: 0, maxMigrationsAdded: 0, maxOpenModules: 1}
+baseline: {gitCommit: 552b3b8ac517bd5991bff446e72d9f4e87ea9543, dirtyTreeManifest: docs/architecture/refactoring/batches/RF-027/baseline.md, releaseIdentity: 19e031c7, capturedAt: "2026-09-03T16:55:00+08:00"}
+architecture: {businessCapability: operations-transfer-correlation-lookup, publicContract: contracts/openapi/operations-api.yaml, dependencyManifest: docs/architecture/refactoring/module-boundaries-v1.yaml, allowedModules: [frontend.operations-console], forbiddenModules: [bank.payments, frontend.customer-portal, frontend.quality-case-portal, hengzhun.controller, hengzhun.harness, hengzhun.mcp, hengzhun.worker]}
+mustPreserve: [VQ-04 dark-sidebar visual hierarchy, exact correlation query returns one row, detail is read-only, amount status correlation and core reference match the customer transfer, no full account number token or event payload is exposed]
+verification:
+  requiredCommands:
+    - {name: operations-build, command: "npm --prefix apps/operations-console run build", expectedExitCode: 0, evidence: docs/architecture/refactoring/batches/RF-034/evidence-index.md, blocking: true}
+    - {name: operations-browser, command: "browser operations correlation lookup", expectedExitCode: 0, evidence: docs/architecture/refactoring/batches/RF-034/evidence-index.md, blocking: true}
+    - {name: governance, command: "py -3 scripts/architecture/validate_refactoring.py --batch RF-034", expectedExitCode: 0, evidence: docs/architecture/refactoring/batches/RF-034/evidence-index.md, blocking: true}
+rollback: {triggerConditions: [correlation query returns multiple rows, detail differs from customer transfer, page exposes sensitive payload, lookup mutates transfer state], recoveryPoint: RF-033 closed source state, maxRtoMinutes: 10, maxRpoMinutes: 0}
+exceptions: {allowedVagueNames: [], crossModule: []}

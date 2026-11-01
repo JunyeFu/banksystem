@@ -70,7 +70,7 @@ export interface ReconciliationBatch {
   completedAt: string | null;
 }
 
-export type EodRunStatus = 'RUNNING' | 'COMPLETED' | 'FAILED';
+export type EodRunStatus = 'RUNNING' | 'INTERRUPTED' | 'COMPLETED' | 'FAILED';
 
 export interface EodRunResult {
   runId: string;

@@ -1,0 +1,38 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="770" height="680" viewBox="0 0 770 680"><defs><marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M 0 0 L 10 5 L 0 10 z" fill="#66758a"/></marker></defs><rect width="100%" height="100%" fill="white"/><style>text{font-family:'Microsoft YaHei','Noto Sans CJK SC',sans-serif;fill:#26364c} .label{font-size:12px} .edge{font-size:10px;paint-order:stroke;stroke:white;stroke-width:4px;stroke-linejoin:round}</style><text x="40" y="43" font-size="20" font-weight="700">实际 Agent：真实模型 + 工作流控制 + 浏览器观察</text>
+<path d="M180,120 H200 V120 H220" fill="none" stroke="#66758a" stroke-width="1.5"  marker-end="url(#arrow)"/><text class="edge" x="203" y="114">意图</text>
+<path d="M360,120 H380 V120 H400" fill="none" stroke="#66758a" stroke-width="1.5"  marker-end="url(#arrow)"/><text class="edge" x="383" y="114">抽取</text>
+<path d="M540,120 H560 V120 H580" fill="none" stroke="#66758a" stroke-width="1.5"  marker-end="url(#arrow)"/><text class="edge" x="563" y="114">候选</text>
+<path d="M650,150 V180 H650 V210" fill="none" stroke="#66758a" stroke-width="1.5"  marker-end="url(#arrow)"/><text class="edge" x="653" y="174">工具协议</text>
+<path d="M650,270 V300 H650 V330" fill="none" stroke="#66758a" stroke-width="1.5"  marker-end="url(#arrow)"/><text class="edge" x="653" y="294">任务</text>
+<path d="M580,360 H560 V360 H540" fill="none" stroke="#66758a" stroke-width="1.5"  marker-end="url(#arrow)"/><text class="edge" x="563" y="354">authoring</text>
+<path d="M400,360 H380 V360 H360" fill="none" stroke="#66758a" stroke-width="1.5"  marker-end="url(#arrow)"/><text class="edge" x="383" y="354">受控动作</text>
+<path d="M220,360 H200 V360 H180" fill="none" stroke="#66758a" stroke-width="1.5"  marker-end="url(#arrow)"/><text class="edge" x="203" y="354">真实操作</text>
+<path d="M290,390 V480 H290 V570" fill="none" stroke="#66758a" stroke-width="1.5"  marker-end="url(#arrow)"/><text class="edge" x="293" y="474">核验结果</text>
+<path d="M360,600 H380 V600 H400" fill="none" stroke="#66758a" stroke-width="1.5"  marker-end="url(#arrow)"/><text class="edge" x="383" y="594">投影</text>
+<path d="M220,600 H200 V600 H180" fill="none" stroke="#66758a" stroke-width="1.5"  marker-end="url(#arrow)"/><text class="edge" x="203" y="594">确定失败</text>
+<circle cx="110" cy="98" r="7" fill="#eaf0fb" stroke="#5274a7"/><path d="M110,105 v18 m-16,-12 h32 m-16,12 l-12,12 m12,-12 l12,12" fill="none" stroke="#5274a7"/>
+<text class="label" text-anchor="middle" x="110" y="148"><tspan x="110" dy="0">用户自然语言</tspan><tspan x="110" dy="16">目标 / 明确业务值</tspan></text>
+<rect x="220" y="90" width="140" height="60" rx="8" fill="#eaf0fb" stroke="#5274a7"/>
+<text class="label" text-anchor="middle" x="290" y="116"><tspan x="290" dy="0">BYOK 候选规划</tspan><tspan x="290" dy="16">输入 goal + system</tspan></text>
+<rect x="400" y="90" width="140" height="60" rx="8" fill="#fde9e8" stroke="#b94f48"/>
+<text class="label" text-anchor="middle" x="470" y="116"><tspan x="470" dy="0">模型 businessInputs</tspan><tspan x="470" dy="16">标用户确认 M13</tspan></text>
+<rect x="580" y="90" width="140" height="60" rx="8" fill="#e7f4ec" stroke="#39815d"/>
+<text class="label" text-anchor="middle" x="650" y="116"><tspan x="650" dy="0">CLI 自动协议驱动</tspan><tspan x="650" dy="16">无需逐次人工审批</tspan></text>
+<rect x="580" y="210" width="140" height="60" rx="8" fill="#e7f4ec" stroke="#39815d"/>
+<text class="label" text-anchor="middle" x="650" y="236"><tspan x="650" dy="0">MCP → Harness</tspan><tspan x="650" dy="16">版本 / 权限 / 状态</tspan></text>
+<rect x="580" y="330" width="140" height="60" rx="8" fill="#e7f4ec" stroke="#39815d"/>
+<text class="label" text-anchor="middle" x="650" y="356"><tspan x="650" dy="0">Worker 领取任务</tspan><tspan x="650" dy="16">显式银行 adapter</tspan></text>
+<rect x="400" y="330" width="140" height="60" rx="8" fill="#e7f4ec" stroke="#39815d"/>
+<text class="label" text-anchor="middle" x="470" y="356"><tspan x="470" dy="0">Midscene 当前观察</tspan><tspan x="470" dy="16">候选动作 / 定位</tspan></text>
+<rect x="220" y="330" width="140" height="60" rx="8" fill="#e7f4ec" stroke="#39815d"/>
+<text class="label" text-anchor="middle" x="290" y="356"><tspan x="290" dy="0">Playwright 浏览器</tspan><tspan x="290" dy="16">动作 / 断言 / 网络</tspan></text>
+<rect x="40" y="330" width="140" height="60" rx="8" fill="#e7f4ec" stroke="#39815d"/>
+<text class="label" text-anchor="middle" x="110" y="356"><tspan x="110" dy="0">真实银行页面</tspan><tspan x="110" dy="16">Gateway → Fineract</tspan></text>
+<rect x="220" y="570" width="140" height="60" rx="0" fill="#e7f4ec" stroke="#39815d"/>
+<ellipse cx="290" cy="576" rx="70" ry="6" fill="#e7f4ec" stroke="#39815d"/>
+<text class="label" text-anchor="middle" x="290" y="596"><tspan x="290" dy="0">Harness SQLite</tspan><tspan x="290" dy="16">Run / Incident / 证据</tspan></text>
+<rect x="400" y="570" width="140" height="60" rx="8" fill="#fde9e8" stroke="#b94f48"/>
+<text class="label" text-anchor="middle" x="470" y="596"><tspan x="470" dy="0">Quality 只读投影</tspan><tspan x="470" dy="16">发布为空 M14</tspan></text>
+<rect x="40" y="570" width="140" height="60" rx="8" fill="#e7f4ec" stroke="#39815d"/>
+<text class="label" text-anchor="middle" x="110" y="596"><tspan x="110" dy="0">失败停止</tspan><tspan x="110" dy="16">不要求自动修复</tspan></text>
+</svg>

@@ -11,14 +11,24 @@
     "playwright": "1.59.1",
     "playwright-core": "1.59.1",
     "@playwright/test": "1.59.1",
-    "@midscene/web": "1.10.5",
-    "@midscene/cli": "1.10.5"
+    "@midscene/web": "1.10.5"
   },
   "chromium": {
     "version": "147.0.7727.15",
     "revision": "1217",
     "browserDirectory": "browsers/chromium-1217",
     "executable": "browsers/chromium-1217/chrome-win64/chrome.exe"
+  },
+  "mediaFfmpeg": {
+    "version": "9.0.2",
+    "downloadUrl": "https://www.gyan.dev/ffmpeg/builds/packages/ffmpeg-9.0.2-essentials_build.zip",
+    "archiveSha256": "60f467265b1e312373dbcd92200c2618a74850f98d3d078e94296bb3fa2047ba",
+    "archiveDirectory": "ffmpeg-9.0.2-essentials_build",
+    "directory": "media/ffmpeg-9.0.2",
+    "executable": "media/ffmpeg-9.0.2/bin/ffmpeg.exe",
+    "executableSha256": "3256173f3f8bffd7df12227c68adf68025edb1832273a9530688a7bb1ed8edec",
+    "license": "GPL-3.0-or-later",
+    "sourceUrl": "https://github.com/FFmpeg/FFmpeg/tree/n9.0.2"
   },
   "ffmpeg": {
     "revision": "1011",

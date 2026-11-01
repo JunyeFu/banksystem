@@ -1,0 +1,9 @@
+id: RF-052-S1
+title: Audit chain and event delivery closure implementation
+status: COMPLETED
+allowedPaths: [services/bank-channel-service, contracts/asyncapi/bank-events.yaml, docs/architecture/refactoring/batches/RF-052, agent/backlog.yaml, agent/plans/active/v54-implementation-batches.md]
+forbiddenPaths: [platform/hengzhun-regression-system, postgresql, infra]
+workSteps: [serialize audit append, hash complete records, atomically claim outbox events, preserve dead-letter state, deduplicate consumer event IDs]
+verification: [Java tests pass, Liquibase v14 applies, retained audit chain verifies, golden transfer passes, services remain running]
+rollback: preserve event data and rebuild the prior Bank Channel image if an observed regression requires rollback
+evidence: docs/architecture/refactoring/batches/RF-052/evidence-index.md

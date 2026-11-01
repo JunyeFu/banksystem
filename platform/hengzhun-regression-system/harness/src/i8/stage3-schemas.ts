@@ -20,12 +20,19 @@ export const dslOperationSchema = z.enum([
   'waitForURL',
   'waitForResponse',
   'expectVisible',
+  'expectNoErrors',
   'expectText',
   'expectEqual',
   'screenshot'
 ]);
 
 export const locatorKindSchema = z.enum(['ROLE', 'LABEL', 'TEST_ID', 'PLACEHOLDER', 'TEXT', 'CSS']);
+
+const pageObservationSchema = z.object({
+  schemaVersion: z.literal('bank-account-fields/v1'),
+  fields: z.array(z.enum(['IDENTIFIER','CURRENCY','BALANCE','STATUS'])).min(1).max(4),
+  currency: z.literal('CNY').optional()
+}).strict();
 
 export const pageSignatureSchema = z.object({
   routePatternRef: safeRef,
@@ -39,6 +46,7 @@ export const executableActionSchema = z.object({
   operation: dslOperationSchema,
   instruction: boundedText(1000).optional(),
   expected: boundedText(1000).optional(),
+  pageObservation: pageObservationSchema.optional(),
   inputValue: z.string().max(2000).optional(),
   inputValueSource: z.enum(['USER_TEXT', 'CREDENTIAL_REF', 'RUNTIME_USER_INPUT', 'NONE']).optional(),
   pageSignature: pageSignatureSchema,
@@ -125,6 +133,7 @@ export const verifiedActionRecordSchema = z.object({
   verification: z.object({ dom: z.boolean(), url: z.boolean(), request: z.boolean(), business: z.boolean() }).strict(),
   contextLevel: z.enum(['CTX-L1', 'CTX-L2', 'CTX-L3']).optional(),
   contextEnvelopeHash: sha256Schema.optional(),
+  assertionImplementation: z.enum(['EXACT_TEXT','EXACT_EQUAL']).optional(),
   visualEvidence: z.object({
     invocation: z.literal('REAL'),
     provider: z.literal('MIDSCENE'),
@@ -171,7 +180,8 @@ export const dslStepSchema = z.discriminatedUnion('operation', [
   dslBase.extend({ operation: z.literal('humanVerification'), verificationType: safeRef }).strict(),
   dslBase.extend({ operation: z.literal('waitForURL'), routePatternRef: safeRef, timeoutPolicyRef: safeRef }).strict(),
   dslBase.extend({ operation: z.literal('waitForResponse'), responsePatternRef: safeRef, timeoutPolicyRef: safeRef }).strict(),
-  dslTarget.extend({ operation: z.literal('expectVisible') }).strict(),
+  dslTarget.extend({ operation: z.literal('expectVisible'), pageObservation: pageObservationSchema.optional() }).strict(),
+  dslBase.extend({ operation: z.literal('expectNoErrors') }).strict(),
   dslTarget.extend({ operation: z.literal('expectText'), expectedTextRef: safeRef }).strict(),
   dslTarget.extend({ operation: z.literal('expectEqual'), comparisonTargetRef: safeRef }).strict(),
   dslBase.extend({ operation: z.literal('screenshot'), evidenceNameRef: safeRef }).strict()

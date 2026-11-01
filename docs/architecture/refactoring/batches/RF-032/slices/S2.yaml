@@ -1,0 +1,9 @@
+id: RF-032-S2
+title: Shared client correlation and confirmation wiring
+status: COMPLETED
+allowedPaths: [packages/bank-api-client, contracts/openapi/customer-api.yaml, docs/architecture/refactoring/batches/RF-032, agent/plans/active, agent/backlog.yaml]
+forbiddenPaths: [platform, postgresql]
+workSteps: [send explicit correlation ID, expose subject-scoped confirmation call, regenerate Customer API types]
+verification: [API client tests pass, generated types match OpenAPI, request headers and confirm route are exact]
+rollback: revert RF-032 S2 paths only
+evidence: docs/architecture/refactoring/batches/RF-032/evidence-index.md

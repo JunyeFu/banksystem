@@ -34,7 +34,13 @@
       "directAccessGrantsEnabled": false,
       "redirectUris": ["http://127.0.0.1:18443/*", "http://127.0.0.1:18083/*"],
       "webOrigins": ["http://127.0.0.1:18443", "http://127.0.0.1:18083"],
-      "attributes": {"pkce.code.challenge.method": "S256"}
+      "attributes": {"pkce.code.challenge.method": "S256"},
+      "protocolMappers": [{
+        "name": "bank-channel-audience",
+        "protocol": "openid-connect",
+        "protocolMapper": "oidc-audience-mapper",
+        "config": {"included.custom.audience": "bank-channel-service", "access.token.claim": "true", "id.token.claim": "false"}
+      }]
     },
     {
       "clientId": "bank-channel-service",
@@ -44,7 +50,28 @@
       "protocol": "openid-connect",
       "standardFlowEnabled": false,
       "directAccessGrantsEnabled": false,
-      "serviceAccountsEnabled": true
+      "serviceAccountsEnabled": true,
+      "protocolMappers": [{
+        "name": "bank-channel-audience",
+        "protocol": "openid-connect",
+        "protocolMapper": "oidc-audience-mapper",
+        "config": {"included.custom.audience": "bank-channel-service", "access.token.claim": "true", "id.token.claim": "false"}
+      }]
+    },
+    {
+      "clientId": "bank-golden-path",
+      "name": "Synthetic Banking Golden Path",
+      "enabled": true,
+      "publicClient": false,
+      "protocol": "openid-connect",
+      "standardFlowEnabled": false,
+      "directAccessGrantsEnabled": true,
+      "protocolMappers": [{
+        "name": "bank-channel-audience",
+        "protocol": "openid-connect",
+        "protocolMapper": "oidc-audience-mapper",
+        "config": {"included.custom.audience": "bank-channel-service", "access.token.claim": "true", "id.token.claim": "false"}
+      }]
     }
   ]
 }

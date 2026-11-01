@@ -1,0 +1,19 @@
+schemaVersion: 1
+id: RF-045
+title: CLI browser execution through MCP Harness and Worker
+status: CLOSED
+owner: Codex
+authorizedBy: agent/plans/active/v54-implementation-batches.md
+scope:
+  includePaths: [platform/hengzhun-regression-system/agent-cli, platform/hengzhun-regression-system/controller, platform/hengzhun-regression-system/scripts/verification, docs/architecture/refactoring/batches/RF-045, agent/runs/rf045, agent/plans/active, agent/backlog.yaml]
+  excludePaths: [services, packages, postgresql, apps, contracts, platform/hengzhun-regression-system/harness, platform/hengzhun-regression-system/mcp]
+budgets: {maxChangedFiles: 22, maxNewFiles: 14, maxChangedLines: 900, maxContractsChanged: 1, maxMigrationsAdded: 0, maxOpenModules: 2}
+baseline: {gitCommit: 552b3b8ac517bd5991bff446e72d9f4e87ea9543, dirtyTreeManifest: docs/architecture/refactoring/batches/RF-027/baseline.md, releaseIdentity: STALE_AFTER_RF044, capturedAt: "2026-09-03T23:30:00+08:00"}
+architecture: {businessCapability: cli-browser-execution, publicContract: platform/hengzhun-regression-system/agent-cli/src/contracts.mjs, dependencyManifest: docs/architecture/refactoring/module-boundaries-v1.yaml, allowedModules: [hengzhun.agent-cli, hengzhun.controller], forbiddenModules: [bank.payments, hengzhun.harness, hengzhun.mcp]}
+mustPreserve: [Harness is the only execution state writer, MCP-only controller path, Worker owns browser, exact Journey execution binding, first deterministic failure stops, no LIVE claim]
+verification:
+  requiredCommands:
+    - {name: cli-execution, command: "node --test agent-cli/test/journey-execute.test.mjs", expectedExitCode: 0, evidence: agent/runs/rf045/20260903-233000/integration-result.json, blocking: true}
+    - {name: governance, command: "py -3 scripts/architecture/validate_refactoring.py --batch RF-045", expectedExitCode: 0, evidence: docs/architecture/refactoring/batches/RF-045/evidence-index.md, blocking: true}
+rollback: {triggerConditions: [CLI bypasses MCP, ID discontinuity, execution starts before explicit command, deterministic failure continues], recoveryPoint: RF-044 closed source state, maxRtoMinutes: 10, maxRpoMinutes: 0}
+exceptions: {allowedVagueNames: [], crossModule: []}

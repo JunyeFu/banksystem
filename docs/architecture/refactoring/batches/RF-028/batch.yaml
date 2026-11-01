@@ -1,0 +1,20 @@
+schemaVersion: 1
+id: RF-028
+title: Three-level development control and serial visual acceptance
+status: CLOSED
+owner: project-owner
+authorizedBy: agent/plans/active/v54-implementation-batches.md
+scope:
+  includePaths: [agent/plans/active/banksystem-three-level-development-control-v1.yaml, agent/plans/active/banksystem-three-level-development-control-v1.md, agent/plans/active/banksystem-vq01-product-combination-task-package.md, agent/plans/active/banksystem-vq02-customer-login-account-overview-task-package.md, agent/plans/active/banksystem-vq03-customer-transfer-result-task-package.md, agent/plans/active/banksystem-vq04-operations-transaction-lookup-task-package.md, agent/plans/active/banksystem-vq05-cli-author-approve-task-package.md, agent/plans/active/banksystem-vq06-cli-execution-evidence-task-package.md, agent/plans/active/banksystem-vq07-read-only-quality-portal-task-package.md, agent/plans/active/banksystem-vq08-open-source-onboarding-interview-demo-task-package.md, agent/plans/active/banksystem-open-source-product-baseline-v1.md, agent/plans/active/banksystem-open-source-task-packages-v1.yaml, docs/design/visual-acceptance/banksystem-v1, docs/architecture/refactoring/batches/RF-028, agent/backlog.yaml, agent/plans/active/v54-implementation-batches.md]
+  excludePaths: [apps, services, infra, postgresql, contracts, platform, demo.ps1]
+budgets: {maxChangedFiles: 24, maxNewFiles: 20, maxChangedLines: 1000, maxContractsChanged: 0, maxMigrationsAdded: 0, maxOpenModules: 1}
+baseline: {gitCommit: 552b3b8ac517bd5991bff446e72d9f4e87ea9543, dirtyTreeManifest: docs/architecture/refactoring/batches/RF-028/baseline.md, releaseIdentity: NOT_RUNNING, capturedAt: "2026-08-30T12:20:00+08:00"}
+architecture: {businessCapability: product-development-control, publicContract: agent/plans/active/banksystem-three-level-development-control-v1.yaml, dependencyManifest: docs/architecture/refactoring/module-boundaries-v1.yaml, allowedModules: [governance.refactoring], forbiddenModules: [bank.payments, frontend.customer-portal, frontend.operations-console, frontend.quality-case-portal, hengzhun.controller, hengzhun.harness, hengzhun.mcp, hengzhun.worker]}
+mustPreserve: [v54 remains sole order source, backlog remains sole status source, image is not executable contract, no product runtime mutation, no ReleaseIdentity claim]
+verification:
+  requiredCommands:
+    - {name: hierarchy-yaml, command: "py -3 -c \"import pathlib,yaml; yaml.safe_load(pathlib.Path('agent/plans/active/banksystem-three-level-development-control-v1.yaml').read_text(encoding='utf-8')); print('THREE_LEVEL_YAML=PASS')\"", expectedExitCode: 0, evidence: docs/architecture/refactoring/batches/RF-028/evidence-index.md, blocking: true}
+    - {name: refactoring-governance, command: "py -3 scripts/architecture/validate_refactoring.py --batch RF-028", expectedExitCode: 0, evidence: docs/architecture/refactoring/batches/RF-028/evidence-index.md, blocking: true}
+    - {name: docs-governance, command: "python scripts/docs/validate_docs.py", expectedExitCode: 0, evidence: docs/architecture/refactoring/batches/RF-028/evidence-index.md, blocking: true}
+rollback: {triggerConditions: [second order source created, second status source created, visual preview treated as implementation evidence, governance validation failure], recoveryPoint: RF-026 closed product baseline, maxRtoMinutes: 15, maxRpoMinutes: 0}
+exceptions: {allowedVagueNames: [], crossModule: []}

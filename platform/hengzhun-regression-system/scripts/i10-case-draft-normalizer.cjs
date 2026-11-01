@@ -228,17 +228,18 @@ function explicitTransferFixtures(sourceText) {
 function normalizeTypedBusinessInputs(value) {
   const source = parseObject(value)
   const values = parseObject(source.values)
-  const payeeRef = cleanText(values.payeeRef, 160)
-  const amount = cleanText(values.amount, 32)
-  const currency = cleanText(values.currency, 8).toUpperCase()
-  const purpose = cleanText(values.purpose, 200)
+  const payerAccountId = typeof values.payerAccountId === 'string' ? values.payerAccountId.replace(INVISIBLE_EDGE, '') : ''
+  const payeeRef = typeof values.payeeRef === 'string' ? values.payeeRef.replace(INVISIBLE_EDGE, '') : ''
+  const amount = typeof values.amount === 'string' ? values.amount.replace(INVISIBLE_EDGE, '') : ''
+  const currency = typeof values.currency === 'string' ? values.currency.replace(INVISIBLE_EDGE, '').toUpperCase() : ''
+  const purpose = typeof values.purpose === 'string' ? values.purpose.replace(INVISIBLE_EDGE, '') : ''
   const sourceType = ['USER_CONFIRMED', 'IMPORT_CONFIRMED', 'OCR_CONFIRMED'].includes(source.source)
     ? source.source
     : ''
-  if (!payeeRef && !amount && !currency && !purpose && !sourceType) return undefined
+  if (!payerAccountId && !payeeRef && !amount && !currency && !purpose && !sourceType) return undefined
   return {
-    schemaVersion: 'hengzhun-i10-typed-business-inputs-v1',
-    values: { payeeRef, amount, currency, purpose },
+    schemaVersion: cleanText(source.schemaVersion, 80),
+    values: { payerAccountId, payeeRef, amount, currency, purpose },
     source: sourceType || 'USER_CONFIRMED'
   }
 }
@@ -283,13 +284,15 @@ function appendHighRiskBusinessGaps(actions, actionStepsV2, missingFields, sourc
   // state its amount and purpose/reference, or stop for clarification.
   if (!isTransferCase(actions, sourceText)) return
   const values = businessInputs?.values || {}
-  // The following four values are a single execution contract.  Require the
+  // The following five values are a single execution contract.  Require the
   // whole object so a partial retry cannot silently reuse prose from a prior
   // version of the draft.
-  if (!/^payee_[A-Za-z0-9._:-]{4,120}$/.test(values.payeeRef || '')) missingFields.push('businessInput.payeeRef')
-  if (!/^(?:0|[1-9][0-9]{0,11})(?:\.[0-9]{1,2})?$/.test(values.amount || '') || Number(values.amount) <= 0) missingFields.push('businessInput.amount')
+  if (businessInputs && businessInputs.schemaVersion !== 'hengzhun-i10-typed-business-inputs-v2') missingFields.push('businessInput.schemaVersion')
+  if (!/^[1-9][0-9]{0,18}$/.test(values.payerAccountId || '')) missingFields.push('businessInput.payerAccountId')
+  if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(values.payeeRef || '')) missingFields.push('businessInput.payeeRef')
+  if (!/^(?:0|[1-9][0-9]{0,11})(?:\.[0-9]{1,2})?$/.test(values.amount || '') || !/[1-9]/.test(values.amount)) missingFields.push('businessInput.amount')
   if (!/^[A-Z]{3}$/.test(values.currency || '')) missingFields.push('businessInput.currency')
-  if (!cleanText(values.purpose, 200)) missingFields.push('businessInput.purpose')
+  if (!values.purpose || values.purpose.length > 200) missingFields.push('businessInput.purpose')
   // "创建一笔演示转账" is a business goal, not an executable page action.
   // Require at least one explicit navigation/click/entry instruction before
   // authoring so Midscene never tries to locate the whole business phrase.

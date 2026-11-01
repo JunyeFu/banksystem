@@ -1,0 +1,37 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="770" height="680" viewBox="0 0 770 680"><defs><marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M 0 0 L 10 5 L 0 10 z" fill="#66758a"/></marker></defs><rect width="100%" height="100%" fill="white"/><style>text{font-family:'Microsoft YaHei','Noto Sans CJK SC',sans-serif;fill:#26364c} .label{font-size:12px} .edge{font-size:10px;paint-order:stroke;stroke:white;stroke-width:4px;stroke-linejoin:round}</style><text x="40" y="43" font-size="20" font-weight="700">实际实现：责任泄漏，而非所有跨模块依赖都错误</text>
+<path d="M180,120 H200 V120 H220" fill="none" stroke="#66758a" stroke-width="1.5"  marker-end="url(#arrow)"/><text class="edge" x="203" y="114">多责任</text>
+<path d="M110,150 V180 H110 V210" fill="none" stroke="#66758a" stroke-width="1.5"  marker-end="url(#arrow)"/><text class="edge" x="113" y="174">WHERE</text>
+<path d="M180,240 H200 V240 H220" fill="none" stroke="#66758a" stroke-width="1.5"  marker-end="url(#arrow)"/><text class="edge" x="203" y="234">SQL</text>
+<path d="M180,120 H290 V240 H400" fill="none" stroke="#66758a" stroke-width="1.5"  marker-end="url(#arrow)"/><text class="edge" x="293" y="174">确认处理</text>
+<path d="M540,240 H560 V120 H580" fill="none" stroke="#66758a" stroke-width="1.5"  marker-end="url(#arrow)"/><text class="edge" x="563" y="174">事务外写</text>
+<path d="M180,480 H200 V480 H220" fill="none" stroke="#66758a" stroke-width="1.5"  marker-end="url(#arrow)"/><text class="edge" x="203" y="474">对账</text>
+<path d="M290,450 V360 H290 V270" fill="none" stroke="#66758a" stroke-width="1.5"  marker-end="url(#arrow)"/><text class="edge" x="293" y="354">投影</text>
+<path d="M540,480 H560 V480 H580" fill="none" stroke="#66758a" stroke-width="1.5"  marker-end="url(#arrow)"/><text class="edge" x="563" y="474">工具协议</text>
+<path d="M650,510 V540 H650 V570" fill="none" stroke="#66758a" stroke-width="1.5"  marker-end="url(#arrow)"/><text class="edge" x="653" y="534">只读投影</text>
+<path d="M110,570 V360 H110 V150" fill="none" stroke="#66758a" stroke-width="1.5" stroke-dasharray="5 4" marker-end="url(#arrow)"/><text class="edge" x="113" y="354">无法检出字符串 SQL</text>
+<rect x="40" y="90" width="140" height="60" rx="8" fill="#fde9e8" stroke="#b94f48"/>
+<text class="label" text-anchor="middle" x="110" y="116"><tspan x="110" dy="0">TransferController</tspan><tspan x="110" dy="16">HTTP + 编排 + WHERE</tspan></text>
+<rect x="220" y="90" width="140" height="60" rx="8" fill="#eaf0fb" stroke="#5274a7"/>
+<text class="label" text-anchor="middle" x="290" y="116"><tspan x="290" dy="0">身份 / 收款人 / 核心</tspan><tspan x="290" dy="16">审计 / 状态 / 处理器</tspan></text>
+<rect x="40" y="210" width="140" height="60" rx="8" fill="#fde9e8" stroke="#b94f48"/>
+<text class="label" text-anchor="middle" x="110" y="236"><tspan x="110" dy="0">TransferRepository</tspan><tspan x="110" dy="16">接收 SQL 片段</tspan></text>
+<rect x="400" y="210" width="140" height="60" rx="8" fill="#e7f4ec" stroke="#39815d"/>
+<text class="label" text-anchor="middle" x="470" y="236"><tspan x="470" dy="0">TransferProcessor</tspan><tspan x="470" dy="16">三阶段事务已实现</tspan></text>
+<rect x="580" y="90" width="140" height="60" rx="8" fill="#fde9e8" stroke="#b94f48"/>
+<text class="label" text-anchor="middle" x="650" y="116"><tspan x="650" dy="0">Fineract 五端口</tspan><tspan x="650" dy="16">类型 + 贷款语义缺口</tspan></text>
+<rect x="220" y="210" width="140" height="60" rx="0" fill="#eaf0fb" stroke="#5274a7"/>
+<ellipse cx="290" cy="216" rx="70" ry="6" fill="#eaf0fb" stroke="#5274a7"/>
+<text class="label" text-anchor="middle" x="290" y="236"><tspan x="290" dy="0">PostgreSQL</tspan><tspan x="290" dy="16">业务状态 / 投影</tspan></text>
+<rect x="40" y="450" width="140" height="60" rx="8" fill="#e7f4ec" stroke="#39815d"/>
+<text class="label" text-anchor="middle" x="110" y="476"><tspan x="110" dy="0">EOD 应用协调</tspan><tspan x="110" dy="16">依赖多领域合理</tspan></text>
+<rect x="220" y="450" width="140" height="60" rx="8" fill="#fde9e8" stroke="#b94f48"/>
+<text class="label" text-anchor="middle" x="290" y="476"><tspan x="290" dy="0">名为核心总账对账</tspan><tspan x="290" dy="16">核心转账+本地投影</tspan></text>
+<rect x="400" y="450" width="140" height="60" rx="8" fill="#eaf0fb" stroke="#5274a7"/>
+<text class="label" text-anchor="middle" x="470" y="476"><tspan x="470" dy="0">CLI 自动执行</tspan><tspan x="470" dy="16">历史协议仍较长</tspan></text>
+<rect x="580" y="450" width="140" height="60" rx="8" fill="#e7f4ec" stroke="#39815d"/>
+<text class="label" text-anchor="middle" x="650" y="476"><tspan x="650" dy="0">MCP / Harness</tspan><tspan x="650" dy="16">SQLite 状态</tspan></text>
+<rect x="580" y="570" width="140" height="60" rx="8" fill="#fde9e8" stroke="#b94f48"/>
+<text class="label" text-anchor="middle" x="650" y="596"><tspan x="650" dy="0">Quality Releases</tspan><tspan x="650" dy="16">空数组 / 固定待定</tspan></text>
+<rect x="40" y="570" width="140" height="60" rx="8" fill="#fff4d9" stroke="#b88722"/>
+<text class="label" text-anchor="middle" x="110" y="596"><tspan x="110" dy="0">ArchUnit 当前规则</tspan><tspan x="110" dy="16">只检查 SQL 类依赖</tspan></text>
+</svg>

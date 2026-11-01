@@ -9,7 +9,7 @@ const { spawnSync } = require('node:child_process')
 
 const root = path.resolve(__dirname, '../..')
 const runtimeEnv = path.join(root, '.data/runtime.env')
-const ffmpeg = path.join(root, 'runtime/node_modules/@ffmpeg-installer/win32-x64/ffmpeg.exe')
+const ffmpeg = path.join(root, 'runtime', require('../../config/demo-runtime-freeze.json').mediaFfmpeg.executable)
 const fixture = path.join(root, 'worker/fixtures/i10-ocr-chinese-bank.png')
 
 for (const line of fs.readFileSync(runtimeEnv, 'utf8').split(/\r?\n/)) {

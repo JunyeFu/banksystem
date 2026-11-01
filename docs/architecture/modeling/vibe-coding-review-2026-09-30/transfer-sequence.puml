@@ -1,0 +1,40 @@
+@startuml
+!theme plain
+title 实际转账主链：事务边界与结果未知
+autonumber
+actor 客户 as User
+boundary "Gateway / TransferController" as API
+control TransferProcessor as Processor
+database "Channel PostgreSQL" as DB
+participant "FineractTransferPort / Fineract" as Core
+User -> API: 付款账户、收款人、金额、幂等键、关联号
+group 当前受理事务（存在 M09）
+  API -> DB: 身份/收款人读取
+  API -> Core: 付款账户归属读取
+  note right of API: 此处网络读取仍在渠道事务内
+  API -> DB: 幂等记录、CREATED、历史、Outbox、审计
+end
+API --> User: 202 + transferId
+User -> API: confirm
+API -> Processor: process(transferId)
+group 短事务一
+  Processor -> DB: 行锁、风险与提交权
+  DB --> Processor: 已提交 PENDING_CLEARING
+end
+Processor -> Core: 事务外 accountTransfer
+note over Processor,Core: 核心提交后响应可能丢失；本地不能凭异常判断未记账
+alt 成功或结果不确定
+  Processor -> Core: 按关联事实权威回读
+  alt 核验找到匹配交易
+    group 短事务二
+      Processor -> DB: SETTLED、核心引用、回执、投影、通知、Outbox、审计
+    end
+  else 回读失败/未知
+    Processor -> DB: CORE_RESULT_UNKNOWN
+    note over Processor,DB: 后续只核验，不盲目二次扣款
+  end
+else 确定性核心拒绝且回读为空
+  Processor -> DB: FAILED
+end
+API --> User: 当前业务状态与关联号
+@enduml

@@ -123,7 +123,6 @@ function decisionPaths(root = productRoot, releaseIdentityHash) {
     eligibilityFile: path.join(evidenceRoot, 'release-eligibility', `${current}.json`),
     decisionFile: path.join(evidenceRoot, 'release-decisions', `${current}.json`),
     acceptanceRef: '.data/evidence/agent-v4/acceptance/ledger.json',
-    coldRollbackRef: `.data/evidence/flowise-cold-rollback-v1/${current}.json`,
     eligibilityRef: `.data/evidence/agent-v4/release-eligibility/${current}.json`,
   })
 }
@@ -141,7 +140,7 @@ function validateHumanDecision(value, expectedReleaseIdentity) {
       !['GO', 'NO_GO'].includes(value.decision) || value.actor !== 'project-owner' ||
       !/^decision_[a-f0-9]{32}$/.test(String(value.decisionId || '')) || !HASH.test(String(value.eligibilityHash || '')) ||
       !Number.isFinite(Date.parse(value.decidedAt)) || JSON.stringify(value.evidenceRefs) !== JSON.stringify([
-        paths.acceptanceRef, paths.coldRollbackRef, paths.eligibilityRef,
+        paths.acceptanceRef, paths.eligibilityRef,
       ])) fail('AGENT_RELEASE_HUMAN_DECISION_INVALID')
   return Object.freeze({ ...value, evidenceRefs: Object.freeze([...value.evidenceRefs]) })
 }
@@ -180,25 +179,6 @@ async function evaluateReleaseEligibility({ root = productRoot, environment = pr
     return notReady(identity, ledger, error.code || 'AGENT_RELEASE_GATE_FAILED', gates, true)
   }
 
-  let coldRollback
-  try {
-    coldRollback = await (deps.readColdRollback || ((value) => lifecycle.readColdRollbackEvidence(root, value)))(current)
-    if (coldRollback) lifecycle.validateColdRollbackEvidence(coldRollback, current)
-  } catch (error) {
-    return Object.freeze({
-      schemaVersion: ELIGIBILITY_SCHEMA, state: 'NOT_READY', releaseIdentityHash: current,
-      currentPassed: 18, required: 18, machineGatesReady: true, nextGate: 'COLD_ROLLBACK',
-      failureCode: error.code || 'AGENT_RELEASE_COLD_ROLLBACK_EVIDENCE_INVALID',
-      gates: Object.freeze({ ...gates, coldRollback: 'FAILED', humanDecision: 'PENDING' }), executionPerformed: true,
-    })
-  }
-  if (!coldRollback) return Object.freeze({
-    schemaVersion: ELIGIBILITY_SCHEMA, state: 'NOT_READY', releaseIdentityHash: current,
-    currentPassed: 18, required: 18, machineGatesReady: true, nextGate: 'COLD_ROLLBACK',
-    failureCode: 'AGENT_RELEASE_COLD_ROLLBACK_REQUIRED', gates: Object.freeze({ ...gates, coldRollback: 'PENDING', humanDecision: 'PENDING' }),
-    executionPerformed: true,
-  })
-  gates.coldRollback = 'PASSED'
   try {
     const finalReadback = (deps.finalPublicReadback || deps.publicReadback || l1.publicVersionReadback)({ root, environment })
     if (identityHash(finalReadback, 'AGENT_RELEASE_FINAL_READBACK_INVALID') !== current || finalReadback.runtime !== 'CONTROLLER_V2_BOUND') {
@@ -247,7 +227,7 @@ async function recordHumanDecision({
   if (!existingEligibility) write(paths.eligibilityFile, eligibilityRecord)
   const basis = {
     schemaVersion: HUMAN_DECISION_SCHEMA, releaseIdentityHash: expected, decision: normalizedDecision, actor: 'project-owner',
-    eligibilityHash, evidenceRefs: [paths.acceptanceRef, paths.coldRollbackRef, paths.eligibilityRef], decidedAt: now().toISOString(),
+    eligibilityHash, evidenceRefs: [paths.acceptanceRef, paths.eligibilityRef], decidedAt: now().toISOString(),
   }
   const record = validateHumanDecision({ ...basis, decisionId: `decision_${releaseV4.canonicalHash(basis).slice(0, 32)}` }, expected)
   write(paths.decisionFile, record)

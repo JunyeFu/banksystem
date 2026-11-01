@@ -1,28 +1,29 @@
 import { useEffect, useRef, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { Alert, Button, Checkbox, Input, Modal } from 'antd';
-import { LockOutlined, UserOutlined } from '@ant-design/icons';
+import { Alert, Button, Modal } from 'antd';
 import { productBrand } from '@localbank/bank-ui-kit';
 import { PageContainer } from '@/components/PageContainer';
-import { buildAuthRequest, exchangeCodeForToken, exchangePasswordForToken } from '@/auth/oidc';
+import { buildAuthRequest, exchangeCodeForToken } from '@/auth/oidc';
 import { setAccessToken } from '@/auth/tokenStore';
-
-type LoginMode = 'password' | 'sso';
 
 export function Login(): JSX.Element {
   const navigate = useNavigate();
   const location = useLocation();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string>();
-  const [loginMode, setLoginMode] = useState<LoginMode>('password');
-  const [username, setUsername] = useState('');
-  const [password, setPassword] = useState('');
   const [registrationNoticeOpen, setRegistrationNoticeOpen] = useState(false);
   const exchangedRef = useRef(false);
+  const restoringRef = useRef(false);
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const code = params.get('code');
+    if (params.get('error') === 'login_required' || params.get('error') === 'interaction_required') {
+      sessionStorage.removeItem('pkce_verifier');
+      sessionStorage.removeItem('oidc_state');
+      history.replaceState({}, '', '/portal/login');
+      return;
+    }
     if (!code || exchangedRef.current) return;
     exchangedRef.current = true;
     const storedState = sessionStorage.getItem('oidc_state');
@@ -38,35 +39,23 @@ export function Login(): JSX.Element {
     }).catch((reason: unknown) => setError(reason instanceof Error ? reason.message : '统一身份认证失败。')).finally(() => setLoading(false));
   }, [navigate]);
 
+  useEffect(() => {
+    const restore = (location.state as { restoreSession?: boolean } | null)?.restoreSession;
+    if (!restore || restoringRef.current) return;
+    restoringRef.current = true;
+    void startAuthorization('none');
+  }, [location.state]);
+
   const getReturnTo = (): string => {
-    const returnTo = (location.state as { returnTo?: unknown } | null)?.returnTo;
+    const returnTo = (location.state as { returnTo?: unknown } | null)?.returnTo ?? sessionStorage.getItem('oidc_return_to');
     return typeof returnTo === 'string' && returnTo.startsWith('/') && !returnTo.startsWith('//') ? returnTo : '/dashboard';
   };
 
-  const handlePasswordLogin = async (): Promise<void> => {
-    if (!username.trim() || !password) {
-      setError('请输入用户名或手机号及密码。');
-      return;
-    }
-    setError(undefined);
-    setLoading(true);
-    try {
-      const token = await exchangePasswordForToken(username.trim(), password);
-      setAccessToken(token);
-      navigate(getReturnTo());
-    } catch (reason) {
-      setError(reason instanceof Error ? reason.message : '账号密码登录失败。');
-    } finally {
-      setPassword('');
-      setLoading(false);
-    }
-  };
-
-  const handleUnifiedIdentityLogin = async (): Promise<void> => {
+  const startAuthorization = async (prompt?: 'none'): Promise<void> => {
     setError(undefined); setLoading(true);
     try {
       sessionStorage.setItem('oidc_return_to', getReturnTo());
-      const request = await buildAuthRequest();
+      const request = await buildAuthRequest(prompt);
       sessionStorage.setItem('pkce_verifier', request.verifier); sessionStorage.setItem('oidc_state', request.state);
       window.location.assign(request.authorizationUrl);
     } catch (reason) { setError(reason instanceof Error ? reason.message : '无法发起统一身份认证。'); setLoading(false); }
@@ -77,21 +66,13 @@ export function Login(): JSX.Element {
       <header className="login-header"><div className="login-brand"><span className="customer-brand__mark"><i /></span><strong>{productBrand.bank.customerPortalName}</strong></div><div><a href="#help">帮助中心</a>　│　<a href="#support">客服支持</a>　│　简体中文⌄</div></header>
       <main className="login-main">
         <section className="bank-card login-card">
-          <h1 data-testid="login-title">{loginMode === 'password' ? '账号密码登录' : '统一身份认证登录'}</h1><p>欢迎使用{productBrand.bank.customerPortalName}</p>
-          <div className="login-tabs">
-            <button type="button" data-testid="login-password-tab" className={loginMode === 'password' ? 'active' : ''} onClick={() => { setLoginMode('password'); setError(undefined); }}>账号密码登录</button>
-            <button type="button" data-testid="login-sso-tab" className={loginMode === 'sso' ? 'active' : ''} onClick={() => { setLoginMode('sso'); setError(undefined); setPassword(''); }}>统一身份认证登录</button>
-          </div>
-          {loginMode === 'password' ? <>
-            <label htmlFor="login-username">用户名 / 手机号</label><Input id="login-username" data-testid="login-username" size="large" value={username} onChange={(event) => setUsername(event.target.value)} autoComplete="username" placeholder="请输入用户名或手机号" prefix={<UserOutlined aria-hidden="true" />} />
-            <label htmlFor="login-password">密码</label><Input.Password id="login-password" data-testid="login-password" size="large" value={password} onChange={(event) => setPassword(event.target.value)} autoComplete="current-password" placeholder="请输入密码" prefix={<LockOutlined aria-hidden="true" />} onPressEnter={() => void handlePasswordLogin()} />
-          </> : <div className="login-sso-panel">
+          <h1 data-testid="login-title">统一身份认证登录</h1><p>欢迎使用{productBrand.bank.customerPortalName}</p>
+          <div className="login-sso-panel">
             <p>客户可通过复兴银行统一身份认证登录，完成认证后将返回门户。</p>
-            <Button type="primary" size="large" block loading={loading} onClick={() => void handleUnifiedIdentityLogin()} data-testid="login-sso-submit">统一身份认证登录</Button>
-          </div>}
+            <Button type="primary" size="large" block loading={loading} onClick={() => void startAuthorization()} data-testid="login-sso-submit">统一身份认证登录</Button>
+          </div>
           {error ? <Alert type="error" showIcon message="登录失败" description={error} closable onClose={() => setError(undefined)} data-testid="login-error" /> : null}
-          {loginMode === 'password' ? <><div className="login-options"><Checkbox disabled>记住我</Checkbox><span className="login-option-links"><Button type="link" onClick={() => setRegistrationNoticeOpen(true)} data-testid="login-register">注册账号</Button><a href="#help">忘记密码？</a></span></div>
-          <Button type="primary" size="large" block loading={loading} onClick={() => void handlePasswordLogin()} data-testid="login-submit">账号密码登录</Button></> : null}
+          <div className="login-options"><Button type="link" onClick={() => setRegistrationNoticeOpen(true)} data-testid="login-register">注册账号</Button></div>
           {loading ? <p className="login-progress">正在验证安全登录信息，请稍候…</p> : null}
           <div className="login-divider"><span>安全登录方式</span></div>
           <div className="login-methods"><span><b>盾</b>动态令牌</span><span><b>证</b>移动证书</span></div>

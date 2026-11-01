@@ -13,7 +13,7 @@ test('CLI Controller v2 offline integration passes with real CurrentUser DPAPI',
   delete childEnv.NODE_TEST_CONTEXT
   const result = spawnSync(node24, ['--test', target], { cwd: productRoot, encoding: 'utf8', env: childEnv })
   assert.equal(result.status, 0, `Offline integration matrix failed.\nSTDOUT:\n${result.stdout}\nSTDERR:\n${result.stderr}`)
-  assert.match(result.stdout, /tests 15/)
-  assert.match(result.stdout, /pass 15/)
+  assert.match(result.stdout, /tests 17/)
+  assert.match(result.stdout, /pass 17/)
   assert.match(result.stdout, /fail 0/)
 })

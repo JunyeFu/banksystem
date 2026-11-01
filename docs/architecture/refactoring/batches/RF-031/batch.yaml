@@ -1,0 +1,21 @@
+schemaVersion: 1
+id: RF-031
+title: Fineract transfer idempotency and correlated ledger proof
+status: CLOSED
+owner: Codex
+authorizedBy: agent/plans/active/v54-implementation-batches.md
+scope:
+  includePaths: [services/bank-channel-service/src/main/java/local/bank/channel/FineractAdapter.java, services/bank-channel-service/src/main/java/local/bank/channel/payments/TransferController.java, services/bank-channel-service/src/main/java/local/bank/channel/payments/TransferProcessor.java, services/bank-channel-service/src/main/resources/db/changelog, services/bank-channel-service/src/test/java/local/bank/channel, contracts/openapi/customer-api.yaml, contracts/openapi/operations-api.yaml, docs/architecture/refactoring/batches/RF-031, agent/plans/active/banksystem-tp-a03-bank-golden-path-task-package.md, agent/plans/active/banksystem-open-source-task-packages-v1.yaml, agent/plans/active/banksystem-three-level-development-control-v1.md, agent/plans/active/banksystem-three-level-development-control-v1.yaml, agent/backlog.yaml, agent/plans/active/v54-implementation-batches.md]
+  excludePaths: [apps, platform/hengzhun-regression-system, postgresql, demo.ps1]
+budgets: {maxChangedFiles: 21, maxNewFiles: 15, maxChangedLines: 1700, maxContractsChanged: 2, maxMigrationsAdded: 1, maxOpenModules: 1}
+baseline: {gitCommit: 552b3b8ac517bd5991bff446e72d9f4e87ea9543, dirtyTreeManifest: docs/architecture/refactoring/batches/RF-027/baseline.md, releaseIdentity: 19e031c7, capturedAt: "2026-09-03T16:00:00+08:00"}
+architecture: {businessCapability: correlated-idempotent-bank-transfer, publicContract: contracts/openapi/customer-api.yaml, dependencyManifest: docs/architecture/refactoring/module-boundaries-v1.yaml, allowedModules: [bank.payments], forbiddenModules: [bank.test-support, hengzhun.controller, hengzhun.harness, hengzhun.mcp]}
+mustPreserve: [Fineract is the sole balance and transaction truth, every request carries an idempotency key and business correlation ID, duplicate submission never posts twice, Channel ledger entries are balanced and use the business correlation ID, core reference comes only from Fineract, deterministic failures stop integration verification]
+verification:
+  requiredCommands:
+    - {name: channel-tests, command: "services/bank-channel-service/mvnw.cmd test", expectedExitCode: 0, evidence: docs/architecture/refactoring/batches/RF-031/evidence-index.md, blocking: true}
+    - {name: contracts, command: "py -3 -c import-yaml-and-assert-transfer-headers", expectedExitCode: 0, evidence: docs/architecture/refactoring/batches/RF-031/evidence-index.md, blocking: true}
+    - {name: refactoring-governance, command: "py -3 scripts/architecture/validate_refactoring.py --batch RF-031", expectedExitCode: 0, evidence: docs/architecture/refactoring/batches/RF-031/evidence-index.md, blocking: true}
+    - {name: docs-governance, command: "python scripts/docs/validate_docs.py", expectedExitCode: 0, evidence: docs/architecture/refactoring/batches/RF-031/evidence-index.md, blocking: true}
+rollback: {triggerConditions: [duplicate request changes Fineract balance twice, correlation differs between transfer and ledger, core failure is reported as settled], recoveryPoint: RF-030 closed source state, maxRtoMinutes: 15, maxRpoMinutes: 0}
+exceptions: {allowedVagueNames: [], crossModule: []}

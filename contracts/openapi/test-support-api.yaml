@@ -1,16 +1,94 @@
 openapi: 3.1.1
 info:
   title: Bank Test Support API
-  version: 0.2.0
+  version: 0.3.2
   description: |
     Test Support API for fixture management, page facts, assertions, and business date control.
-    Only available under local/test profiles. Protected by TEST_SUPPORT authority.
+    Only available on the dedicated demo Test Support listener. Protected by TEST_SUPPORT authority.
     MUST NOT: be enabled in production, return secrets, write to Fineract DB, or bypass state machines.
 servers:
   - url: /internal/test-support/v1
 security:
   - bearerAuth: []
 paths:
+  /transfer-fixtures:prepare:
+    post:
+      operationId: prepareIsolatedTransferFixture
+      summary: Prepare a synthetic CNY account pair for one test subject
+      description: |
+        Only the dedicated TEST_SUPPORT listener may expose this endpoint.
+        Requires the seeded accounting-enabled savings product. Uses Fineract APIs for all money.
+        fixtureId and subject jointly scope stable external IDs. A subject already bound elsewhere is rejected.
+        New source and target accounts receive 1000.00 and 2000.00 CNY respectively, once.
+        Replay only accepts unused accounts with their single initial funding deposit; it never resets balances.
+        Unknown core outcomes stop preparation. Explicit replay reads existing state, never retries a deposit.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [fixtureId, subject]
+              properties:
+                fixtureId: {type: string, format: uuid}
+                subject: {type: string, format: uuid}
+            example: {fixtureId: '11111111-1111-4111-8111-111111111111', subject: '22222222-2222-4222-8222-222222222222'}
+      responses:
+        '200':
+          description: Core-backed unused account pair and persistent customer/beneficiary bindings
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [status, fixtureId, subject, sourceClientId, targetClientId, sourceAccountId, targetAccountId, beneficiaryRef, sourceBalance, targetBalance, currency]
+                properties:
+                  status: {type: string, enum: [READY]}
+                  fixtureId: {type: string, format: uuid}
+                  subject: {type: string, format: uuid}
+                  sourceClientId: {type: integer, format: int64}
+                  targetClientId: {type: integer, format: int64}
+                  sourceAccountId: {type: integer, format: int64}
+                  targetAccountId: {type: integer, format: int64}
+                  beneficiaryRef: {type: string, format: uuid}
+                  sourceBalance: {type: string, pattern: '^\d+\.\d{2}$', example: '1000.00'}
+                  targetBalance: {type: string, pattern: '^\d+\.\d{2}$', example: '2000.00'}
+                  currency: {type: string, enum: [CNY]}
+              example: {status: READY, fixtureId: '11111111-1111-4111-8111-111111111111', subject: '22222222-2222-4222-8222-222222222222', sourceClientId: 101, targetClientId: 102, sourceAccountId: 201, targetAccountId: 202, beneficiaryRef: '33333333-3333-4333-8333-333333333333', sourceBalance: '1000.00', targetBalance: '2000.00', currency: CNY}
+        '400': {$ref: '#/components/responses/Problem'}
+        '401': {$ref: '#/components/responses/Problem'}
+        '403': {$ref: '#/components/responses/Problem'}
+        '409': {$ref: '#/components/responses/Problem'}
+        '502': {$ref: '#/components/responses/Problem'}
+  /transfer-fixtures/{fixtureId}:
+    get:
+      operationId: validateIsolatedTransferFixture
+      summary: Read back an existing unused synthetic account pair
+      description: |
+        TEST_SUPPORT-only read operation. Resolves both clients and accounts by their joint fixture/subject external IDs.
+        Requires the existing subject and beneficiary destination mappings, active CNY cash-accounting accounts,
+        exact 1000.00/2000.00 balances, one unreversed initial funding deposit per account and no core transfers.
+        Does not create, bind, fund, reset, repair or advance the business date. Missing data is 404; changed or used data is 409.
+      parameters:
+        - name: fixtureId
+          in: path
+          required: true
+          schema: {type: string, format: uuid}
+        - name: subject
+          in: query
+          required: true
+          schema: {type: string, format: uuid}
+        - name: beneficiaryRef
+          in: query
+          required: true
+          schema: {type: string, format: uuid}
+      responses:
+        '200': {$ref: '#/paths/~1transfer-fixtures:prepare/post/responses/200'}
+        '400': {$ref: '#/components/responses/Problem'}
+        '401': {$ref: '#/components/responses/Problem'}
+        '403': {$ref: '#/components/responses/Problem'}
+        '404': {$ref: '#/components/responses/Problem'}
+        '409': {$ref: '#/components/responses/Problem'}
+        '502': {$ref: '#/components/responses/Problem'}
   /fixtures:seed:
     post:
       operationId: seedFixtures
@@ -19,17 +97,67 @@ paths:
         - {$ref: '#/components/parameters/RegressionNamespace'}
         - {$ref: '#/components/parameters/RegressionRunId'}
       responses:
-        '200': { description: Fixtures seeded }
+        '200':
+          description: Fixtures created once or reused by stable external ID
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/FixtureSeedResult'}
+        '500':
+          description: Fixture contract or Fineract command failed
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/TestSupportFailure'}
         '403': { $ref: '#/components/responses/Problem' }
+  /identities:link:
+    post:
+      operationId: linkFixtureIdentity
+      summary: Persistently link an authenticated Keycloak subject to a logical customer fixture
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: {$ref: '#/components/schemas/IdentityLinkRequest'}
+      responses:
+        '200':
+          description: Identity linked
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/IdentityLinkResult'}
+        '400':
+          description: Subject or logical reference rejected
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/TestSupportFailure'}
+        '404': {description: Stable logical fixture mapping not found}
+  /identities/{subject}:
+    parameters:
+      - name: subject
+        in: path
+        required: true
+        schema: {type: string, pattern: '^[A-Za-z0-9._:-]{8,128}$'}
+    delete:
+      operationId: unlinkFixtureIdentity
+      summary: Remove a non-fixture Keycloak subject mapping after a local test run
+      responses:
+        '200':
+          description: Subject mapping removed or already absent
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/IdentityUnlinkResult'}
+        '400':
+          description: Fixture or malformed subject rejected
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/TestSupportFailure'}
   /fixtures:reset:
     post:
       operationId: resetFixtures
-      summary: Reset all test data to baseline
+      summary: Remove fixture-owned Channel identity mappings while retaining business history
       parameters:
         - {$ref: '#/components/parameters/RegressionNamespace'}
         - {$ref: '#/components/parameters/RegressionRunId'}
       responses:
-        '200': { description: Fixtures reset }
+        '200': { description: Fixture mappings removed; Fineract and Channel business history retained }
   /fixtures/{logicalRef}:
     parameters:
       - name: logicalRef
@@ -73,20 +201,20 @@ paths:
       responses:
         '200': { description: Payment assertion data }
         '404': { $ref: '#/components/responses/Problem' }
-  /assertions/ledger/{correlationId}:
+  /assertions/accounting-projection/{correlationId}:
     parameters:
       - name: correlationId
         in: path
         required: true
         schema: { type: string }
     get:
-      operationId: assertLedger
-      summary: Get ledger assertion data (debit/credit balance, journal entries)
+      operationId: assertAccountingProjection
+      summary: Get channel accounting projection and authoritative core journal assertion data
       parameters:
         - {$ref: '#/components/parameters/RegressionNamespace'}
         - {$ref: '#/components/parameters/RegressionRunId'}
       responses:
-        '200': { description: Ledger assertion data }
+        '200': { description: Accounting projection assertion data }
   /assertions/reconciliation/{correlationId}:
     parameters:
       - name: correlationId
@@ -112,6 +240,55 @@ paths:
         '200': { description: Business date advanced }
         '409': { $ref: '#/components/responses/Problem' }
 components:
+  schemas:
+    FixtureEntityResult:
+      type: object
+      required: [action]
+      properties:
+        action: {type: string, enum: [CREATED, REUSED]}
+        subject: {type: string}
+        fineractClientId: {type: integer, format: int64}
+        fineractProductId: {type: integer, format: int64}
+        accountId: {type: integer, format: int64}
+        currency: {type: string}
+    FixtureSeedResult:
+      type: object
+      required: [status, product.demo.primarySavings, product.demo.basicLoan, customer.alice, customer.bob, account.alice.primarySavings, account.bob.primarySavings]
+      properties:
+        status: {type: string, const: SEEDED}
+        product.demo.primarySavings: {$ref: '#/components/schemas/FixtureEntityResult'}
+        product.demo.basicLoan: {$ref: '#/components/schemas/FixtureEntityResult'}
+        customer.alice: {$ref: '#/components/schemas/FixtureEntityResult'}
+        customer.bob: {$ref: '#/components/schemas/FixtureEntityResult'}
+        account.alice.primarySavings: {$ref: '#/components/schemas/FixtureEntityResult'}
+        account.bob.primarySavings: {$ref: '#/components/schemas/FixtureEntityResult'}
+    IdentityLinkRequest:
+      type: object
+      additionalProperties: false
+      required: [subject, logicalRef]
+      properties:
+        subject: {type: string, pattern: '^[A-Za-z0-9._:-]{8,128}$'}
+        logicalRef: {type: string, enum: [customer.alice, customer.bob]}
+    IdentityLinkResult:
+      type: object
+      required: [status, logicalRef]
+      properties:
+        status: {type: string, const: LINKED}
+        logicalRef: {type: string, enum: [customer.alice, customer.bob]}
+    IdentityUnlinkResult:
+      type: object
+      required: [status, deleted]
+      properties:
+        status: {type: string, const: UNLINKED}
+        deleted: {type: integer, minimum: 0, maximum: 1}
+    TestSupportFailure:
+      type: object
+      required: [status, reason]
+      properties:
+        status: {type: string, enum: [FAILED, REJECTED]}
+        reason: {type: string}
+        failureClass: {type: string}
+        failureStage: {type: string}
   parameters:
     RegressionNamespace:
       name: X-Regression-Namespace

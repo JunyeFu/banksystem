@@ -1,0 +1,10 @@
+id: RF-065-S1
+title: 全仓静态与运行时准备
+status: ACCEPTED
+businessGoal: 客户/运营/质量门户、银行服务和Agent改动均触发所属检查；新克隆能实际执行锁定工具，不依赖开发者缓存。
+allowedPaths: [.github/workflows, scripts/test, scripts/deploy, packages/bank-ui-kit/src/index.test.ts, services/bank-channel-service/src/test/java/local/bank/channel/architecture/BankModuleArchitectureTest.java, platform/hengzhun-regression-system/package.json, platform/hengzhun-regression-system/scripts/verification/test-manifest.json, apps/customer-portal, apps/operations-console, apps/quality-case-portal, platform/hengzhun-regression-system/scripts/run-registered-tests.cjs, platform/hengzhun-regression-system/scripts/verification/test-toolchain.test.cjs, scripts/architecture/validate_refactoring.py, scripts/docs/validate_docs.py, docs/current-state/lifecycle-workbench.md]
+forbiddenPaths: [postgresql, infra/keycloak, platform/hengzhun-regression-system/flowise]
+workSteps: [baseline, counterexample, implement, verify]
+verification: ['工作流语法/命令合同、隔离运行时准备、现有各产品实际测试/构建；治理与docs。']
+evidence: docs/architecture/refactoring/batches/RF-065/evidence-index.md
+

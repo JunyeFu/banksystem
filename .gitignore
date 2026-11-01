@@ -40,3 +40,7 @@ output/playwright/
 **/storage-state*.json
 **/__pycache__/
 *.pyc
+
+# Local diagnostics and scratch are not public product source.
+/tmp/
+**/midscene_run/

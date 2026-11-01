@@ -9,7 +9,7 @@ const { spawnSync } = require('node:child_process')
 const test = require('node:test')
 
 const root = path.resolve(__dirname, '../..')
-const ffmpeg = path.join(root, 'runtime/node_modules/@ffmpeg-installer/win32-x64/ffmpeg.exe')
+const ffmpeg = path.join(root, 'runtime', require('../../config/demo-runtime-freeze.json').mediaFfmpeg.executable)
 const fixture = path.join(root, 'worker/fixtures/i10-ocr-chinese-bank.png')
 const { executeVideoIngest } = require(path.join(root, 'worker/src/i10-video-ingest-runner.cjs'))
 const { HarnessDatabase } = require(path.join(root, 'dist/harness/src/database.js'))

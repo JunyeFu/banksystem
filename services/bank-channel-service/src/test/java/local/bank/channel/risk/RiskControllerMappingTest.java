@@ -1,4 +1,5 @@
 package local.bank.channel.risk;
+import local.bank.channel.operations.RiskController;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
@@ -16,7 +17,7 @@ class RiskControllerMappingTest {
 
   @Test
   void mapsReviewDecisionToActiveAlertAndUnderReviewCase() {
-    var row = new RiskController.DecisionRow(DECISION_ID, TRANSFER_ID, "customer-a", "REVIEW",
+    var row = new RiskRepository.DecisionRow(DECISION_ID, TRANSFER_ID, "customer-a", "REVIEW",
         "Amount requires manual review", "maker-a", null, 1, CREATED, UPDATED);
 
     Map<String, Object> alert = RiskController.toAlert(row);
@@ -33,7 +34,7 @@ class RiskControllerMappingTest {
 
   @Test
   void mapsCheckedAllowDecisionToResolvedAndApproved() {
-    var row = new RiskController.DecisionRow(DECISION_ID, TRANSFER_ID, "customer-a", "ALLOW",
+    var row = new RiskRepository.DecisionRow(DECISION_ID, TRANSFER_ID, "customer-a", "ALLOW",
         "Approved after review", "maker-a", "checker-b", 2, CREATED, UPDATED);
 
     Map<String, Object> alert = RiskController.toAlert(row);

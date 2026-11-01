@@ -1,0 +1,9 @@
+id: RF-031-S3
+title: Balance conservation and correlation proof
+status: COMPLETED
+allowedPaths: [services/bank-channel-service/src/main/java/local/bank/channel/payments/TransferProcessor.java, services/bank-channel-service/src/test/java/local/bank/channel, docs/architecture/refactoring/batches/RF-031, agent/plans/active, agent/backlog.yaml]
+forbiddenPaths: [apps, platform, postgresql, demo.ps1]
+workSteps: [write one debit and one credit projection, use transfer correlation ID rather than idempotency key, compare Fineract balances before and after, verify same core reference in both read paths]
+verification: [processor unit tests exit 0, debit equals credit, source delta and target delta equal amount, correlation continuity passes]
+rollback: revert only RF-031 processor test and governance paths
+evidence: docs/architecture/refactoring/batches/RF-031/evidence-index.md

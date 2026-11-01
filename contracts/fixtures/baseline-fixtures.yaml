@@ -1,6 +1,20 @@
 fixtures:
+  product.demo.primarySavings:
+    type: SAVINGS_PRODUCT
+    name: BankSystem GL Demo Savings v1
+    shortName: BSG1
+    currency: CNY
+
+  product.demo.basicLoan:
+    type: LOAN_PRODUCT
+    name: Hengzhun Demo Loan
+    shortName: HZDL
+    currency: CNY
+
   customer.alice:
     type: CUSTOMER
+    externalId: banksystem-demo-customer-alice
+    fixtureSubject: fixture-alice
     customerNumber: TEST-C0001
     displayName: 测试客户甲
     kycStatus: APPROVED
@@ -9,6 +23,8 @@ fixtures:
 
   customer.bob:
     type: CUSTOMER
+    externalId: banksystem-demo-customer-bob
+    fixtureSubject: fixture-bob
     customerNumber: TEST-C0002
     displayName: 测试客户乙
     kycStatus: APPROVED
@@ -17,15 +33,17 @@ fixtures:
 
   account.alice.primarySavings:
     type: SAVINGS_ACCOUNT
+    externalId: banksystem-gl-v1-account-alice-primary-savings
     currency: CNY
     initialBalance: "100000.00"
-    fineractProductId: 1
+    savingsProductRef: product.demo.primarySavings
 
   account.bob.primarySavings:
     type: SAVINGS_ACCOUNT
+    externalId: banksystem-gl-v1-account-bob-primary-savings
     currency: CNY
     initialBalance: "50000.00"
-    fineractProductId: 1
+    savingsProductRef: product.demo.primarySavings
 
   transfer.internal.small:
     type: TRANSFER

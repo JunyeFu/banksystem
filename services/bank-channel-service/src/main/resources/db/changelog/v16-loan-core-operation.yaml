@@ -1,0 +1,25 @@
+databaseChangeLog:
+  - changeSet:
+      id: v16-loan-core-operation
+      author: Codex
+      changes:
+        - sql:
+            sql: |
+              CREATE TABLE loan_core_operation (
+                operation_id uuid PRIMARY KEY,
+                application_id uuid NOT NULL REFERENCES loan_application(application_id),
+                idempotency_key varchar(128) NOT NULL,
+                command varchar(16) NOT NULL CHECK (command IN ('repayment','close')),
+                amount numeric(19,2),
+                posting_date date NOT NULL,
+                correlation_id varchar(128) NOT NULL,
+                status varchar(16) NOT NULL CHECK (status IN ('CLAIMED','UNKNOWN','REJECTED','COMPLETED')),
+                response jsonb,
+                created_at timestamptz NOT NULL DEFAULT now(),
+                updated_at timestamptz NOT NULL DEFAULT now(),
+                UNIQUE(application_id,idempotency_key),
+                CHECK ((command='repayment' AND amount>0) OR (command='close' AND amount IS NULL))
+              );
+              ALTER TABLE outbox_event ALTER COLUMN transfer_id DROP NOT NULL;
+              ALTER TABLE outbox_event ADD CONSTRAINT ck_outbox_transfer_identity
+                CHECK (aggregate_type<>'Transfer' OR (transfer_id IS NOT NULL AND transfer_id=aggregate_id));

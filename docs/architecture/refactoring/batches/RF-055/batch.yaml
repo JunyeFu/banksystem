@@ -1,0 +1,22 @@
+schemaVersion: 1
+id: RF-055
+title: Test support and fixed demo identity closure
+status: OBSERVING
+owner: Codex
+authorizedBy: agent/plans/active/v54-implementation-batches.md
+scope:
+  includePaths: [contracts/fixtures/baseline-fixtures.yaml, contracts/openapi/test-support-api.yaml, services/bank-channel-service, compose.channel.yaml, infra/gateway, infra/keycloak, demo.ps1, scripts/demo, scripts/deploy, docs/architecture/refactoring/module-boundaries-v1.yaml, docs/architecture/refactoring/batches/RF-055, agent/backlog.yaml, agent/plans/active/v54-implementation-batches.md]
+  excludePaths: [platform/hengzhun-regression-system, postgresql, apps, packages]
+budgets: {maxChangedFiles: 32, maxNewFiles: 18, maxChangedLines: 2400, maxContractsChanged: 1, maxMigrationsAdded: 0, maxOpenModules: 2}
+baseline: {gitCommit: 552b3b8ac517bd5991bff446e72d9f4e87ea9543, dirtyTreeManifest: docs/architecture/refactoring/batches/RF-055/baseline.md, releaseIdentity: UNFROZEN_RF055, capturedAt: "2026-09-23T07:26:44+08:00"}
+architecture: {businessCapability: repeatable-demo-fixtures, publicContract: contracts/openapi/test-support-api.yaml, dependencyManifest: docs/architecture/refactoring/module-boundaries-v1.yaml, allowedModules: [bank.test-support, bank.identity], forbiddenModules: [hengzhun.agent-cli, hengzhun.controller, hengzhun.harness, hengzhun.mcp, hengzhun.worker]}
+mustPreserve: [Fineract remains the sole banking truth source, fixture setup uses public APIs instead of core database writes, reset preserves settled business and audit history, missing declared Keycloak project clients are restored idempotently, production Bank Channel exposes no Test Support routes, secrets are not printed or committed, all retained product services remain running]
+verification:
+  requiredCommands:
+    - {name: governance, command: "py -3 scripts/architecture/validate_refactoring.py --batch RF-055", expectedExitCode: 0, evidence: docs/architecture/refactoring/batches/RF-055/evidence-index.md, blocking: true}
+    - {name: java-tests, command: "docker run --rm --user 1000:1000 -e HOME=/tmp -v ${PWD}:/workspace -v ${USERPROFILE}/.m2:/tmp/m2 -w /workspace/services/bank-channel-service --entrypoint mvn maven:3.9.9-eclipse-temurin-21 -q -Dmaven.repo.local=/tmp/m2 test", expectedExitCode: 0, evidence: docs/architecture/refactoring/batches/RF-055/evidence-index.md, blocking: true}
+    - {name: fixture-two-cycle, command: "powershell -File scripts/demo/verify-fixture-lifecycle.ps1", expectedExitCode: 0, evidence: docs/architecture/refactoring/batches/RF-055/evidence-index.md, blocking: true}
+    - {name: fixed-identity-login, command: "powershell -File scripts/demo/verify-fixed-demo-identities.ps1", expectedExitCode: 0, evidence: docs/architecture/refactoring/batches/RF-055/evidence-index.md, blocking: true}
+    - {name: formal-route-isolation, command: "powershell -File scripts/demo/verify-test-support-isolation.ps1", expectedExitCode: 0, evidence: docs/architecture/refactoring/batches/RF-055/evidence-index.md, blocking: true}
+rollback: {triggerConditions: [duplicate Fineract fixture entities, demo identity cannot authenticate, production listener exposes Test Support, default Compose starts Mock Clearing], recoveryPoint: RF-054 REVIEW implementation and retained Docker volumes, maxRtoMinutes: 30, maxRpoMinutes: 0}
+exceptions: {allowedVagueNames: [], crossModule: ["bank.test-support -> bank.identity: fixture lifecycle persists fixed subject-to-client mapping"]}

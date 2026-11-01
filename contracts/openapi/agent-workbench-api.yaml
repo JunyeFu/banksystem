@@ -1,0 +1,1980 @@
+openapi: 3.1.0
+info:
+  title: Hengzhun Local Agent Workbench
+  version: 1.1.0
+  description: Same-origin loopback browser transport to the existing CLI Controller. Harness SQLite owns state; Quality APIs remain
+    read-only. Only safe execution summaries are exposed, never private reasoning or raw checkpoints.
+  license:
+    name: Mozilla Public License 2.0
+    identifier: MPL-2.0
+servers:
+  - url: /api/agent/v1
+paths:
+  /bootstrap:
+    get:
+      operationId: getAgentBootstrap
+      summary: getAgentBootstrap
+      security: []
+      responses:
+        "200":
+          description: getAgentBootstrap
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  csrfToken:
+                    type: string
+                    pattern: ^[a-f0-9]{64}$
+                  status:
+                    type: string
+                    enum:
+                      - READY
+                      - NOT_READY
+                  releaseIdentityHash:
+                    anyOf:
+                      - type: string
+                        pattern: ^[a-f0-9]{64}$
+                      - type: "null"
+                  environment:
+                    type: string
+                    const: LOCAL
+                  blockingReasons:
+                    maxItems: 20
+                    type: array
+                    items:
+                      type: string
+                      pattern: ^[A-Z][A-Z0-9_]{2,100}$
+                required:
+                  - csrfToken
+                  - status
+                  - releaseIdentityHash
+                  - environment
+                  - blockingReasons
+                additionalProperties: false
+        "400":
+          $ref: "#/components/responses/Problem"
+        "403":
+          $ref: "#/components/responses/Problem"
+        "404":
+          $ref: "#/components/responses/Problem"
+        "409":
+          $ref: "#/components/responses/Problem"
+        "413":
+          $ref: "#/components/responses/Problem"
+        "415":
+          $ref: "#/components/responses/Problem"
+        "500":
+          $ref: "#/components/responses/Problem"
+        "503":
+          $ref: "#/components/responses/Problem"
+  /conversations:
+    get:
+      operationId: listAgentConversations
+      summary: listAgentConversations
+      security: []
+      parameters:
+        - name: q
+          in: query
+          required: false
+          schema:
+            type: string
+            maxLength: 200
+        - name: cursor
+          in: query
+          required: false
+          schema:
+            type: string
+            maxLength: 160
+        - name: limit
+          in: query
+          required: false
+          schema:
+            default: 30
+            type: integer
+            minimum: 1
+            maximum: 100
+      responses:
+        "200":
+          description: listAgentConversations
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  conversations:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        id:
+                          type: string
+                          format: uuid
+                          pattern: ^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$
+                        title:
+                          type: string
+                          minLength: 1
+                          maxLength: 120
+                        status:
+                          type: string
+                          enum:
+                            - IDLE
+                            - RUNNING
+                            - NEEDS_INPUT
+                            - COMPLETED
+                            - FAILED
+                            - STOP_REQUESTED
+                            - INTERRUPTED
+                        createdAt:
+                          type: string
+                          format: date-time
+                          pattern: ^(?:(?:\d\d[2468][048]|\d\d[13579][26]|\d\d0[48]|[02468][048]00|[13579][26]00)-02-29|\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\d|30)|(?:02)-(?:0[1-9]|1\d|2[0-8])))T(?:(?:[01]\d|2[0-3]):[0-5]\d(?::[0-5]\d(?:\.\d+)?)?(?:Z))$
+                        updatedAt:
+                          type: string
+                          format: date-time
+                          pattern: ^(?:(?:\d\d[2468][048]|\d\d[13579][26]|\d\d0[48]|[02468][048]00|[13579][26]00)-02-29|\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\d|30)|(?:02)-(?:0[1-9]|1\d|2[0-8])))T(?:(?:[01]\d|2[0-3]):[0-5]\d(?::[0-5]\d(?:\.\d+)?)?(?:Z))$
+                        lastTurnId:
+                          anyOf:
+                            - type: string
+                              format: uuid
+                              pattern: ^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$
+                            - type: "null"
+                      required:
+                        - id
+                        - title
+                        - status
+                        - createdAt
+                        - updatedAt
+                        - lastTurnId
+                      additionalProperties: false
+                  nextCursor:
+                    anyOf:
+                      - type: string
+                      - type: "null"
+                required:
+                  - conversations
+                  - nextCursor
+                additionalProperties: false
+        "400":
+          $ref: "#/components/responses/Problem"
+        "403":
+          $ref: "#/components/responses/Problem"
+        "404":
+          $ref: "#/components/responses/Problem"
+        "409":
+          $ref: "#/components/responses/Problem"
+        "413":
+          $ref: "#/components/responses/Problem"
+        "415":
+          $ref: "#/components/responses/Problem"
+        "500":
+          $ref: "#/components/responses/Problem"
+        "503":
+          $ref: "#/components/responses/Problem"
+    post:
+      operationId: createAgentConversation
+      summary: createAgentConversation
+      security:
+        - LocalCsrf: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                title:
+                  type: string
+                  minLength: 1
+                  maxLength: 120
+              required:
+                - title
+              additionalProperties: false
+      responses:
+        "201":
+          description: createAgentConversation
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  id:
+                    type: string
+                    format: uuid
+                    pattern: ^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$
+                  title:
+                    type: string
+                    minLength: 1
+                    maxLength: 120
+                  status:
+                    type: string
+                    enum:
+                      - IDLE
+                      - RUNNING
+                      - NEEDS_INPUT
+                      - COMPLETED
+                      - FAILED
+                      - STOP_REQUESTED
+                      - INTERRUPTED
+                  createdAt:
+                    type: string
+                    format: date-time
+                    pattern: ^(?:(?:\d\d[2468][048]|\d\d[13579][26]|\d\d0[48]|[02468][048]00|[13579][26]00)-02-29|\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\d|30)|(?:02)-(?:0[1-9]|1\d|2[0-8])))T(?:(?:[01]\d|2[0-3]):[0-5]\d(?::[0-5]\d(?:\.\d+)?)?(?:Z))$
+                  updatedAt:
+                    type: string
+                    format: date-time
+                    pattern: ^(?:(?:\d\d[2468][048]|\d\d[13579][26]|\d\d0[48]|[02468][048]00|[13579][26]00)-02-29|\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\d|30)|(?:02)-(?:0[1-9]|1\d|2[0-8])))T(?:(?:[01]\d|2[0-3]):[0-5]\d(?::[0-5]\d(?:\.\d+)?)?(?:Z))$
+                  lastTurnId:
+                    anyOf:
+                      - type: string
+                        format: uuid
+                        pattern: ^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$
+                      - type: "null"
+                required:
+                  - id
+                  - title
+                  - status
+                  - createdAt
+                  - updatedAt
+                  - lastTurnId
+                additionalProperties: false
+        "400":
+          $ref: "#/components/responses/Problem"
+        "403":
+          $ref: "#/components/responses/Problem"
+        "404":
+          $ref: "#/components/responses/Problem"
+        "409":
+          $ref: "#/components/responses/Problem"
+        "413":
+          $ref: "#/components/responses/Problem"
+        "415":
+          $ref: "#/components/responses/Problem"
+        "500":
+          $ref: "#/components/responses/Problem"
+        "503":
+          $ref: "#/components/responses/Problem"
+  /conversations/{conversationId}:
+    get:
+      operationId: getAgentConversation
+      summary: getAgentConversation
+      description: Newest message page, displayed oldest-first; before/nextMessageCursor loads older messages. Include only turns linked from this
+        page. Bound pages to the existing Harness/MCP byte budget, without truncating message text.
+      security: []
+      parameters:
+        - name: conversationId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+            pattern: ^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$
+        - name: before
+          in: query
+          required: false
+          schema:
+            type: string
+            format: uuid
+            pattern: ^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$
+        - name: limit
+          in: query
+          required: false
+          schema:
+            default: 20
+            type: integer
+            minimum: 1
+            maximum: 30
+      responses:
+        "200":
+          description: Newest message page, displayed oldest-first; before/nextMessageCursor loads older messages. Include only turns linked from this
+            page. Bound pages to the existing Harness/MCP byte budget, without truncating message text.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  conversation:
+                    type: object
+                    properties:
+                      id:
+                        type: string
+                        format: uuid
+                        pattern: ^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$
+                      title:
+                        type: string
+                        minLength: 1
+                        maxLength: 120
+                      status:
+                        type: string
+                        enum:
+                          - IDLE
+                          - RUNNING
+                          - NEEDS_INPUT
+                          - COMPLETED
+                          - FAILED
+                          - STOP_REQUESTED
+                          - INTERRUPTED
+                      createdAt:
+                        type: string
+                        format: date-time
+                        pattern: ^(?:(?:\d\d[2468][048]|\d\d[13579][26]|\d\d0[48]|[02468][048]00|[13579][26]00)-02-29|\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\d|30)|(?:02)-(?:0[1-9]|1\d|2[0-8])))T(?:(?:[01]\d|2[0-3]):[0-5]\d(?::[0-5]\d(?:\.\d+)?)?(?:Z))$
+                      updatedAt:
+                        type: string
+                        format: date-time
+                        pattern: ^(?:(?:\d\d[2468][048]|\d\d[13579][26]|\d\d0[48]|[02468][048]00|[13579][26]00)-02-29|\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\d|30)|(?:02)-(?:0[1-9]|1\d|2[0-8])))T(?:(?:[01]\d|2[0-3]):[0-5]\d(?::[0-5]\d(?:\.\d+)?)?(?:Z))$
+                      lastTurnId:
+                        anyOf:
+                          - type: string
+                            format: uuid
+                            pattern: ^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$
+                          - type: "null"
+                    required:
+                      - id
+                      - title
+                      - status
+                      - createdAt
+                      - updatedAt
+                      - lastTurnId
+                    additionalProperties: false
+                  messages:
+                    maxItems: 30
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        id:
+                          type: string
+                          format: uuid
+                          pattern: ^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$
+                        role:
+                          type: string
+                          enum:
+                            - user
+                            - assistant
+                        text:
+                          type: string
+                          minLength: 1
+                          maxLength: 16000
+                        createdAt:
+                          type: string
+                          format: date-time
+                          pattern: ^(?:(?:\d\d[2468][048]|\d\d[13579][26]|\d\d0[48]|[02468][048]00|[13579][26]00)-02-29|\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\d|30)|(?:02)-(?:0[1-9]|1\d|2[0-8])))T(?:(?:[01]\d|2[0-3]):[0-5]\d(?::[0-5]\d(?:\.\d+)?)?(?:Z))$
+                        turnId:
+                          anyOf:
+                            - type: string
+                              format: uuid
+                              pattern: ^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$
+                            - type: "null"
+                      required:
+                        - id
+                        - role
+                        - text
+                        - createdAt
+                        - turnId
+                      additionalProperties: false
+                  turns:
+                    maxItems: 30
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        id:
+                          type: string
+                          format: uuid
+                          pattern: ^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$
+                        conversationId:
+                          type: string
+                          format: uuid
+                          pattern: ^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$
+                        version:
+                          type: integer
+                          minimum: 1
+                          maximum: 9007199254740991
+                        status:
+                          type: string
+                          enum:
+                            - RUNNING
+                            - NEEDS_INPUT
+                            - COMPLETED
+                            - FAILED
+                            - STOP_REQUESTED
+                            - INTERRUPTED
+                        inputMessageId:
+                          type: string
+                          format: uuid
+                          pattern: ^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$
+                        modelBinding:
+                          type: object
+                          properties:
+                            profileId:
+                              type: string
+                              format: uuid
+                              pattern: ^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$
+                            profileVersion:
+                              type: integer
+                              minimum: 1
+                              maximum: 9007199254740991
+                            model:
+                              type: string
+                              minLength: 1
+                              maxLength: 160
+                            baseUrlHash:
+                              type: string
+                              pattern: ^[a-f0-9]{64}$
+                            releaseIdentityHash:
+                              type: string
+                              pattern: ^[a-f0-9]{64}$
+                          required:
+                            - profileId
+                            - profileVersion
+                            - model
+                            - baseUrlHash
+                            - releaseIdentityHash
+                          additionalProperties: false
+                        createdAt:
+                          type: string
+                          format: date-time
+                          pattern: ^(?:(?:\d\d[2468][048]|\d\d[13579][26]|\d\d0[48]|[02468][048]00|[13579][26]00)-02-29|\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\d|30)|(?:02)-(?:0[1-9]|1\d|2[0-8])))T(?:(?:[01]\d|2[0-3]):[0-5]\d(?::[0-5]\d(?:\.\d+)?)?(?:Z))$
+                        updatedAt:
+                          type: string
+                          format: date-time
+                          pattern: ^(?:(?:\d\d[2468][048]|\d\d[13579][26]|\d\d0[48]|[02468][048]00|[13579][26]00)-02-29|\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\d|30)|(?:02)-(?:0[1-9]|1\d|2[0-8])))T(?:(?:[01]\d|2[0-3]):[0-5]\d(?::[0-5]\d(?:\.\d+)?)?(?:Z))$
+                        checkpointSessionId:
+                          type: string
+                          pattern: ^session-[a-f0-9]{32}$
+                        journeyId:
+                          type: string
+                          minLength: 1
+                          maxLength: 160
+                        runId:
+                          type: string
+                          minLength: 1
+                          maxLength: 160
+                        taskId:
+                          type: string
+                          minLength: 1
+                          maxLength: 160
+                        events:
+                          maxItems: 100
+                          type: array
+                          items:
+                            type: object
+                            properties:
+                              sequence:
+                                type: integer
+                                minimum: 1
+                                maximum: 9007199254740991
+                              type:
+                                type: string
+                                enum:
+                                  - ACCEPTED
+                                  - PLANNING
+                                  - TOOL_STARTED
+                                  - TOOL_FINISHED
+                                  - NEEDS_INPUT
+                                  - COMPLETED
+                                  - FAILED
+                                  - STOP_REQUESTED
+                                  - INTERRUPTED
+                              summary:
+                                type: string
+                                minLength: 1
+                                maxLength: 500
+                              createdAt:
+                                type: string
+                                format: date-time
+                                pattern: ^(?:(?:\d\d[2468][048]|\d\d[13579][26]|\d\d0[48]|[02468][048]00|[13579][26]00)-02-29|\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\d|30)|(?:02)-(?:0[1-9]|1\d|2[0-8])))T(?:(?:[01]\d|2[0-3]):[0-5]\d(?::[0-5]\d(?:\.\d+)?)?(?:Z))$
+                              toolName:
+                                type: string
+                                pattern: ^[a-z][a-z0-9_]{1,80}$
+                            required:
+                              - sequence
+                              - type
+                              - summary
+                              - createdAt
+                            additionalProperties: false
+                        hasMoreEvents:
+                          type: boolean
+                        answer:
+                          type: string
+                          minLength: 1
+                          maxLength: 16000
+                        failureCode:
+                          type: string
+                          pattern: ^[A-Z][A-Z0-9_]{2,100}$
+                        humanInterventionRequired:
+                          type: boolean
+                        continuationOfTurnId:
+                          type: string
+                          format: uuid
+                          pattern: ^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$
+                        result:
+                          type: object
+                          properties:
+                            kind:
+                              type: string
+                              enum:
+                                - REPLY
+                                - TEST
+                            verdict:
+                              type: string
+                              enum:
+                                - NOT_RUN
+                                - PASSED
+                                - FAILED
+                                - UNKNOWN
+                          required:
+                            - kind
+                            - verdict
+                          additionalProperties: false
+                      required:
+                        - id
+                        - conversationId
+                        - version
+                        - status
+                        - inputMessageId
+                        - modelBinding
+                        - createdAt
+                        - updatedAt
+                        - events
+                        - hasMoreEvents
+                        - humanInterventionRequired
+                        - result
+                      additionalProperties: false
+                  nextMessageCursor:
+                    anyOf:
+                      - type: string
+                        format: uuid
+                        pattern: ^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$
+                      - type: "null"
+                required:
+                  - conversation
+                  - messages
+                  - turns
+                  - nextMessageCursor
+                additionalProperties: false
+        "400":
+          $ref: "#/components/responses/Problem"
+        "403":
+          $ref: "#/components/responses/Problem"
+        "404":
+          $ref: "#/components/responses/Problem"
+        "409":
+          $ref: "#/components/responses/Problem"
+        "413":
+          $ref: "#/components/responses/Problem"
+        "415":
+          $ref: "#/components/responses/Problem"
+        "500":
+          $ref: "#/components/responses/Problem"
+        "503":
+          $ref: "#/components/responses/Problem"
+  /conversations/{conversationId}/messages:
+    post:
+      operationId: submitAgentMessage
+      summary: submitAgentMessage
+      description: Atomically persist the submission ID before execution; repeat IDs return the original turn, never replay the bank task. A
+        different payload with the same ID returns 409.
+      security:
+        - LocalCsrf: []
+      parameters:
+        - name: conversationId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+            pattern: ^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                submissionId:
+                  type: string
+                  format: uuid
+                  pattern: ^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$
+                input:
+                  type: string
+                  minLength: 1
+                  maxLength: 16000
+                modelProfileId:
+                  type: string
+                  format: uuid
+                  pattern: ^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$
+                modelProfileVersion:
+                  type: integer
+                  minimum: 1
+                  maximum: 9007199254740991
+                attachmentRefs:
+                  default: []
+                  maxItems: 5
+                  type: array
+                  items:
+                    type: string
+                    pattern: ^att_[a-zA-Z0-9_-]{8,160}$
+                attachmentMetadata:
+                  maxItems: 1
+                  type: array
+                  items:
+                    type: object
+                    properties:
+                      attachmentRef:
+                        type: string
+                        pattern: ^att_[a-zA-Z0-9_-]{8,160}$
+                      originalFilename:
+                        type: string
+                        minLength: 1
+                        maxLength: 260
+                    required:
+                      - attachmentRef
+                      - originalFilename
+                    additionalProperties: false
+              required:
+                - submissionId
+                - input
+                - modelProfileId
+                - modelProfileVersion
+              additionalProperties: false
+      responses:
+        "202":
+          description: Atomically persist the submission ID before execution; repeat IDs return the original turn, never replay the bank task. A
+            different payload with the same ID returns 409.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  id:
+                    type: string
+                    format: uuid
+                    pattern: ^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$
+                  conversationId:
+                    type: string
+                    format: uuid
+                    pattern: ^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$
+                  version:
+                    type: integer
+                    minimum: 1
+                    maximum: 9007199254740991
+                  status:
+                    type: string
+                    enum:
+                      - RUNNING
+                      - NEEDS_INPUT
+                      - COMPLETED
+                      - FAILED
+                      - STOP_REQUESTED
+                      - INTERRUPTED
+                  inputMessageId:
+                    type: string
+                    format: uuid
+                    pattern: ^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$
+                  modelBinding:
+                    type: object
+                    properties:
+                      profileId:
+                        type: string
+                        format: uuid
+                        pattern: ^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$
+                      profileVersion:
+                        type: integer
+                        minimum: 1
+                        maximum: 9007199254740991
+                      model:
+                        type: string
+                        minLength: 1
+                        maxLength: 160
+                      baseUrlHash:
+                        type: string
+                        pattern: ^[a-f0-9]{64}$
+                      releaseIdentityHash:
+                        type: string
+                        pattern: ^[a-f0-9]{64}$
+                    required:
+                      - profileId
+                      - profileVersion
+                      - model
+                      - baseUrlHash
+                      - releaseIdentityHash
+                    additionalProperties: false
+                  createdAt:
+                    type: string
+                    format: date-time
+                    pattern: ^(?:(?:\d\d[2468][048]|\d\d[13579][26]|\d\d0[48]|[02468][048]00|[13579][26]00)-02-29|\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\d|30)|(?:02)-(?:0[1-9]|1\d|2[0-8])))T(?:(?:[01]\d|2[0-3]):[0-5]\d(?::[0-5]\d(?:\.\d+)?)?(?:Z))$
+                  updatedAt:
+                    type: string
+                    format: date-time
+                    pattern: ^(?:(?:\d\d[2468][048]|\d\d[13579][26]|\d\d0[48]|[02468][048]00|[13579][26]00)-02-29|\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\d|30)|(?:02)-(?:0[1-9]|1\d|2[0-8])))T(?:(?:[01]\d|2[0-3]):[0-5]\d(?::[0-5]\d(?:\.\d+)?)?(?:Z))$
+                  checkpointSessionId:
+                    type: string
+                    pattern: ^session-[a-f0-9]{32}$
+                  journeyId:
+                    type: string
+                    minLength: 1
+                    maxLength: 160
+                  runId:
+                    type: string
+                    minLength: 1
+                    maxLength: 160
+                  taskId:
+                    type: string
+                    minLength: 1
+                    maxLength: 160
+                  events:
+                    maxItems: 100
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        sequence:
+                          type: integer
+                          minimum: 1
+                          maximum: 9007199254740991
+                        type:
+                          type: string
+                          enum:
+                            - ACCEPTED
+                            - PLANNING
+                            - TOOL_STARTED
+                            - TOOL_FINISHED
+                            - NEEDS_INPUT
+                            - COMPLETED
+                            - FAILED
+                            - STOP_REQUESTED
+                            - INTERRUPTED
+                        summary:
+                          type: string
+                          minLength: 1
+                          maxLength: 500
+                        createdAt:
+                          type: string
+                          format: date-time
+                          pattern: ^(?:(?:\d\d[2468][048]|\d\d[13579][26]|\d\d0[48]|[02468][048]00|[13579][26]00)-02-29|\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\d|30)|(?:02)-(?:0[1-9]|1\d|2[0-8])))T(?:(?:[01]\d|2[0-3]):[0-5]\d(?::[0-5]\d(?:\.\d+)?)?(?:Z))$
+                        toolName:
+                          type: string
+                          pattern: ^[a-z][a-z0-9_]{1,80}$
+                      required:
+                        - sequence
+                        - type
+                        - summary
+                        - createdAt
+                      additionalProperties: false
+                  hasMoreEvents:
+                    type: boolean
+                  answer:
+                    type: string
+                    minLength: 1
+                    maxLength: 16000
+                  failureCode:
+                    type: string
+                    pattern: ^[A-Z][A-Z0-9_]{2,100}$
+                  humanInterventionRequired:
+                    type: boolean
+                  continuationOfTurnId:
+                    type: string
+                    format: uuid
+                    pattern: ^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$
+                  result:
+                    type: object
+                    properties:
+                      kind:
+                        type: string
+                        enum:
+                          - REPLY
+                          - TEST
+                      verdict:
+                        type: string
+                        enum:
+                          - NOT_RUN
+                          - PASSED
+                          - FAILED
+                          - UNKNOWN
+                    required:
+                      - kind
+                      - verdict
+                    additionalProperties: false
+                required:
+                  - id
+                  - conversationId
+                  - version
+                  - status
+                  - inputMessageId
+                  - modelBinding
+                  - createdAt
+                  - updatedAt
+                  - events
+                  - hasMoreEvents
+                  - humanInterventionRequired
+                  - result
+                additionalProperties: false
+        "400":
+          $ref: "#/components/responses/Problem"
+        "403":
+          $ref: "#/components/responses/Problem"
+        "404":
+          $ref: "#/components/responses/Problem"
+        "409":
+          $ref: "#/components/responses/Problem"
+        "413":
+          $ref: "#/components/responses/Problem"
+        "415":
+          $ref: "#/components/responses/Problem"
+        "500":
+          $ref: "#/components/responses/Problem"
+        "503":
+          $ref: "#/components/responses/Problem"
+  /turns/{turnId}:
+    get:
+      operationId: getAgentTurn
+      summary: getAgentTurn
+      description: Read events after an immutable sequence, bounded by count and the existing Harness/MCP byte budget. hasMoreEvents indicates
+        remaining events. Reads never resume or replay execution.
+      security: []
+      parameters:
+        - name: turnId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+            pattern: ^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$
+        - name: after
+          in: query
+          required: false
+          schema:
+            default: 0
+            type: integer
+            minimum: 0
+            maximum: 9007199254740991
+        - name: limit
+          in: query
+          required: false
+          schema:
+            default: 50
+            type: integer
+            minimum: 1
+            maximum: 100
+      responses:
+        "200":
+          description: Read events after an immutable sequence, bounded by count and the existing Harness/MCP byte budget. hasMoreEvents indicates
+            remaining events. Reads never resume or replay execution.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  id:
+                    type: string
+                    format: uuid
+                    pattern: ^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$
+                  conversationId:
+                    type: string
+                    format: uuid
+                    pattern: ^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$
+                  version:
+                    type: integer
+                    minimum: 1
+                    maximum: 9007199254740991
+                  status:
+                    type: string
+                    enum:
+                      - RUNNING
+                      - NEEDS_INPUT
+                      - COMPLETED
+                      - FAILED
+                      - STOP_REQUESTED
+                      - INTERRUPTED
+                  inputMessageId:
+                    type: string
+                    format: uuid
+                    pattern: ^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$
+                  modelBinding:
+                    type: object
+                    properties:
+                      profileId:
+                        type: string
+                        format: uuid
+                        pattern: ^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$
+                      profileVersion:
+                        type: integer
+                        minimum: 1
+                        maximum: 9007199254740991
+                      model:
+                        type: string
+                        minLength: 1
+                        maxLength: 160
+                      baseUrlHash:
+                        type: string
+                        pattern: ^[a-f0-9]{64}$
+                      releaseIdentityHash:
+                        type: string
+                        pattern: ^[a-f0-9]{64}$
+                    required:
+                      - profileId
+                      - profileVersion
+                      - model
+                      - baseUrlHash
+                      - releaseIdentityHash
+                    additionalProperties: false
+                  createdAt:
+                    type: string
+                    format: date-time
+                    pattern: ^(?:(?:\d\d[2468][048]|\d\d[13579][26]|\d\d0[48]|[02468][048]00|[13579][26]00)-02-29|\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\d|30)|(?:02)-(?:0[1-9]|1\d|2[0-8])))T(?:(?:[01]\d|2[0-3]):[0-5]\d(?::[0-5]\d(?:\.\d+)?)?(?:Z))$
+                  updatedAt:
+                    type: string
+                    format: date-time
+                    pattern: ^(?:(?:\d\d[2468][048]|\d\d[13579][26]|\d\d0[48]|[02468][048]00|[13579][26]00)-02-29|\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\d|30)|(?:02)-(?:0[1-9]|1\d|2[0-8])))T(?:(?:[01]\d|2[0-3]):[0-5]\d(?::[0-5]\d(?:\.\d+)?)?(?:Z))$
+                  checkpointSessionId:
+                    type: string
+                    pattern: ^session-[a-f0-9]{32}$
+                  journeyId:
+                    type: string
+                    minLength: 1
+                    maxLength: 160
+                  runId:
+                    type: string
+                    minLength: 1
+                    maxLength: 160
+                  taskId:
+                    type: string
+                    minLength: 1
+                    maxLength: 160
+                  events:
+                    maxItems: 100
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        sequence:
+                          type: integer
+                          minimum: 1
+                          maximum: 9007199254740991
+                        type:
+                          type: string
+                          enum:
+                            - ACCEPTED
+                            - PLANNING
+                            - TOOL_STARTED
+                            - TOOL_FINISHED
+                            - NEEDS_INPUT
+                            - COMPLETED
+                            - FAILED
+                            - STOP_REQUESTED
+                            - INTERRUPTED
+                        summary:
+                          type: string
+                          minLength: 1
+                          maxLength: 500
+                        createdAt:
+                          type: string
+                          format: date-time
+                          pattern: ^(?:(?:\d\d[2468][048]|\d\d[13579][26]|\d\d0[48]|[02468][048]00|[13579][26]00)-02-29|\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\d|30)|(?:02)-(?:0[1-9]|1\d|2[0-8])))T(?:(?:[01]\d|2[0-3]):[0-5]\d(?::[0-5]\d(?:\.\d+)?)?(?:Z))$
+                        toolName:
+                          type: string
+                          pattern: ^[a-z][a-z0-9_]{1,80}$
+                      required:
+                        - sequence
+                        - type
+                        - summary
+                        - createdAt
+                      additionalProperties: false
+                  hasMoreEvents:
+                    type: boolean
+                  answer:
+                    type: string
+                    minLength: 1
+                    maxLength: 16000
+                  failureCode:
+                    type: string
+                    pattern: ^[A-Z][A-Z0-9_]{2,100}$
+                  humanInterventionRequired:
+                    type: boolean
+                  continuationOfTurnId:
+                    type: string
+                    format: uuid
+                    pattern: ^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$
+                  result:
+                    type: object
+                    properties:
+                      kind:
+                        type: string
+                        enum:
+                          - REPLY
+                          - TEST
+                      verdict:
+                        type: string
+                        enum:
+                          - NOT_RUN
+                          - PASSED
+                          - FAILED
+                          - UNKNOWN
+                    required:
+                      - kind
+                      - verdict
+                    additionalProperties: false
+                required:
+                  - id
+                  - conversationId
+                  - version
+                  - status
+                  - inputMessageId
+                  - modelBinding
+                  - createdAt
+                  - updatedAt
+                  - events
+                  - hasMoreEvents
+                  - humanInterventionRequired
+                  - result
+                additionalProperties: false
+        "400":
+          $ref: "#/components/responses/Problem"
+        "403":
+          $ref: "#/components/responses/Problem"
+        "404":
+          $ref: "#/components/responses/Problem"
+        "409":
+          $ref: "#/components/responses/Problem"
+        "413":
+          $ref: "#/components/responses/Problem"
+        "415":
+          $ref: "#/components/responses/Problem"
+        "500":
+          $ref: "#/components/responses/Problem"
+        "503":
+          $ref: "#/components/responses/Problem"
+  /turns/{turnId}/cancel:
+    post:
+      operationId: cancelAgentTurn
+      summary: cancelAgentTurn
+      description: Request Controller stop. STOP_REQUESTED is not a rollback or proof that a dispatched Worker stopped. Unknown bank results
+        require authority readback and human intervention.
+      security:
+        - LocalCsrf: []
+      parameters:
+        - name: turnId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+            pattern: ^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties: {}
+              additionalProperties: false
+      responses:
+        "202":
+          description: Request Controller stop. STOP_REQUESTED is not a rollback or proof that a dispatched Worker stopped. Unknown bank results
+            require authority readback and human intervention.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  id:
+                    type: string
+                    format: uuid
+                    pattern: ^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$
+                  conversationId:
+                    type: string
+                    format: uuid
+                    pattern: ^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$
+                  version:
+                    type: integer
+                    minimum: 1
+                    maximum: 9007199254740991
+                  status:
+                    type: string
+                    enum:
+                      - RUNNING
+                      - NEEDS_INPUT
+                      - COMPLETED
+                      - FAILED
+                      - STOP_REQUESTED
+                      - INTERRUPTED
+                  inputMessageId:
+                    type: string
+                    format: uuid
+                    pattern: ^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$
+                  modelBinding:
+                    type: object
+                    properties:
+                      profileId:
+                        type: string
+                        format: uuid
+                        pattern: ^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$
+                      profileVersion:
+                        type: integer
+                        minimum: 1
+                        maximum: 9007199254740991
+                      model:
+                        type: string
+                        minLength: 1
+                        maxLength: 160
+                      baseUrlHash:
+                        type: string
+                        pattern: ^[a-f0-9]{64}$
+                      releaseIdentityHash:
+                        type: string
+                        pattern: ^[a-f0-9]{64}$
+                    required:
+                      - profileId
+                      - profileVersion
+                      - model
+                      - baseUrlHash
+                      - releaseIdentityHash
+                    additionalProperties: false
+                  createdAt:
+                    type: string
+                    format: date-time
+                    pattern: ^(?:(?:\d\d[2468][048]|\d\d[13579][26]|\d\d0[48]|[02468][048]00|[13579][26]00)-02-29|\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\d|30)|(?:02)-(?:0[1-9]|1\d|2[0-8])))T(?:(?:[01]\d|2[0-3]):[0-5]\d(?::[0-5]\d(?:\.\d+)?)?(?:Z))$
+                  updatedAt:
+                    type: string
+                    format: date-time
+                    pattern: ^(?:(?:\d\d[2468][048]|\d\d[13579][26]|\d\d0[48]|[02468][048]00|[13579][26]00)-02-29|\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\d|30)|(?:02)-(?:0[1-9]|1\d|2[0-8])))T(?:(?:[01]\d|2[0-3]):[0-5]\d(?::[0-5]\d(?:\.\d+)?)?(?:Z))$
+                  checkpointSessionId:
+                    type: string
+                    pattern: ^session-[a-f0-9]{32}$
+                  journeyId:
+                    type: string
+                    minLength: 1
+                    maxLength: 160
+                  runId:
+                    type: string
+                    minLength: 1
+                    maxLength: 160
+                  taskId:
+                    type: string
+                    minLength: 1
+                    maxLength: 160
+                  events:
+                    maxItems: 100
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        sequence:
+                          type: integer
+                          minimum: 1
+                          maximum: 9007199254740991
+                        type:
+                          type: string
+                          enum:
+                            - ACCEPTED
+                            - PLANNING
+                            - TOOL_STARTED
+                            - TOOL_FINISHED
+                            - NEEDS_INPUT
+                            - COMPLETED
+                            - FAILED
+                            - STOP_REQUESTED
+                            - INTERRUPTED
+                        summary:
+                          type: string
+                          minLength: 1
+                          maxLength: 500
+                        createdAt:
+                          type: string
+                          format: date-time
+                          pattern: ^(?:(?:\d\d[2468][048]|\d\d[13579][26]|\d\d0[48]|[02468][048]00|[13579][26]00)-02-29|\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\d|30)|(?:02)-(?:0[1-9]|1\d|2[0-8])))T(?:(?:[01]\d|2[0-3]):[0-5]\d(?::[0-5]\d(?:\.\d+)?)?(?:Z))$
+                        toolName:
+                          type: string
+                          pattern: ^[a-z][a-z0-9_]{1,80}$
+                      required:
+                        - sequence
+                        - type
+                        - summary
+                        - createdAt
+                      additionalProperties: false
+                  hasMoreEvents:
+                    type: boolean
+                  answer:
+                    type: string
+                    minLength: 1
+                    maxLength: 16000
+                  failureCode:
+                    type: string
+                    pattern: ^[A-Z][A-Z0-9_]{2,100}$
+                  humanInterventionRequired:
+                    type: boolean
+                  continuationOfTurnId:
+                    type: string
+                    format: uuid
+                    pattern: ^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$
+                  result:
+                    type: object
+                    properties:
+                      kind:
+                        type: string
+                        enum:
+                          - REPLY
+                          - TEST
+                      verdict:
+                        type: string
+                        enum:
+                          - NOT_RUN
+                          - PASSED
+                          - FAILED
+                          - UNKNOWN
+                    required:
+                      - kind
+                      - verdict
+                    additionalProperties: false
+                required:
+                  - id
+                  - conversationId
+                  - version
+                  - status
+                  - inputMessageId
+                  - modelBinding
+                  - createdAt
+                  - updatedAt
+                  - events
+                  - hasMoreEvents
+                  - humanInterventionRequired
+                  - result
+                additionalProperties: false
+        "400":
+          $ref: "#/components/responses/Problem"
+        "403":
+          $ref: "#/components/responses/Problem"
+        "404":
+          $ref: "#/components/responses/Problem"
+        "409":
+          $ref: "#/components/responses/Problem"
+        "413":
+          $ref: "#/components/responses/Problem"
+        "415":
+          $ref: "#/components/responses/Problem"
+        "500":
+          $ref: "#/components/responses/Problem"
+        "503":
+          $ref: "#/components/responses/Problem"
+  /models:
+    get:
+      operationId: listAgentModels
+      summary: listAgentModels
+      security: []
+      responses:
+        "200":
+          description: listAgentModels
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  models:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        id:
+                          type: string
+                          format: uuid
+                          pattern: ^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$
+                        version:
+                          type: integer
+                          minimum: 1
+                          maximum: 9007199254740991
+                        displayName:
+                          type: string
+                          minLength: 1
+                          maxLength: 80
+                        model:
+                          type: string
+                          minLength: 1
+                          maxLength: 160
+                        baseUrl:
+                          type: string
+                          maxLength: 2048
+                          format: uri
+                        keyConfigured:
+                          type: boolean
+                        isDefault:
+                          type: boolean
+                      required:
+                        - id
+                        - version
+                        - displayName
+                        - model
+                        - baseUrl
+                        - keyConfigured
+                        - isDefault
+                      additionalProperties: false
+                required:
+                  - models
+                additionalProperties: false
+        "400":
+          $ref: "#/components/responses/Problem"
+        "403":
+          $ref: "#/components/responses/Problem"
+        "404":
+          $ref: "#/components/responses/Problem"
+        "409":
+          $ref: "#/components/responses/Problem"
+        "413":
+          $ref: "#/components/responses/Problem"
+        "415":
+          $ref: "#/components/responses/Problem"
+        "500":
+          $ref: "#/components/responses/Problem"
+        "503":
+          $ref: "#/components/responses/Problem"
+    post:
+      operationId: createAgentModel
+      summary: createAgentModel
+      security:
+        - LocalCsrf: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                displayName:
+                  type: string
+                  minLength: 1
+                  maxLength: 80
+                model:
+                  type: string
+                  minLength: 1
+                  maxLength: 160
+                baseUrl:
+                  type: string
+                  maxLength: 2048
+                  format: uri
+                apiKey:
+                  type: string
+                  maxLength: 4096
+                  writeOnly: true
+              required:
+                - displayName
+                - model
+                - baseUrl
+              additionalProperties: false
+      responses:
+        "201":
+          description: createAgentModel
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  id:
+                    type: string
+                    format: uuid
+                    pattern: ^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$
+                  version:
+                    type: integer
+                    minimum: 1
+                    maximum: 9007199254740991
+                  displayName:
+                    type: string
+                    minLength: 1
+                    maxLength: 80
+                  model:
+                    type: string
+                    minLength: 1
+                    maxLength: 160
+                  baseUrl:
+                    type: string
+                    maxLength: 2048
+                    format: uri
+                  keyConfigured:
+                    type: boolean
+                  isDefault:
+                    type: boolean
+                required:
+                  - id
+                  - version
+                  - displayName
+                  - model
+                  - baseUrl
+                  - keyConfigured
+                  - isDefault
+                additionalProperties: false
+        "400":
+          $ref: "#/components/responses/Problem"
+        "403":
+          $ref: "#/components/responses/Problem"
+        "404":
+          $ref: "#/components/responses/Problem"
+        "409":
+          $ref: "#/components/responses/Problem"
+        "413":
+          $ref: "#/components/responses/Problem"
+        "415":
+          $ref: "#/components/responses/Problem"
+        "500":
+          $ref: "#/components/responses/Problem"
+        "503":
+          $ref: "#/components/responses/Problem"
+  /models/{modelId}:
+    put:
+      operationId: updateAgentModel
+      summary: updateAgentModel
+      security:
+        - LocalCsrf: []
+      parameters:
+        - name: modelId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+            pattern: ^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                displayName:
+                  type: string
+                  minLength: 1
+                  maxLength: 80
+                model:
+                  type: string
+                  minLength: 1
+                  maxLength: 160
+                baseUrl:
+                  type: string
+                  maxLength: 2048
+                  format: uri
+                apiKey:
+                  type: string
+                  maxLength: 4096
+                  writeOnly: true
+                version:
+                  type: integer
+                  minimum: 1
+                  maximum: 9007199254740991
+              required:
+                - displayName
+                - model
+                - baseUrl
+                - version
+              additionalProperties: false
+      responses:
+        "200":
+          description: updateAgentModel
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  id:
+                    type: string
+                    format: uuid
+                    pattern: ^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$
+                  version:
+                    type: integer
+                    minimum: 1
+                    maximum: 9007199254740991
+                  displayName:
+                    type: string
+                    minLength: 1
+                    maxLength: 80
+                  model:
+                    type: string
+                    minLength: 1
+                    maxLength: 160
+                  baseUrl:
+                    type: string
+                    maxLength: 2048
+                    format: uri
+                  keyConfigured:
+                    type: boolean
+                  isDefault:
+                    type: boolean
+                required:
+                  - id
+                  - version
+                  - displayName
+                  - model
+                  - baseUrl
+                  - keyConfigured
+                  - isDefault
+                additionalProperties: false
+        "400":
+          $ref: "#/components/responses/Problem"
+        "403":
+          $ref: "#/components/responses/Problem"
+        "404":
+          $ref: "#/components/responses/Problem"
+        "409":
+          $ref: "#/components/responses/Problem"
+        "413":
+          $ref: "#/components/responses/Problem"
+        "415":
+          $ref: "#/components/responses/Problem"
+        "500":
+          $ref: "#/components/responses/Problem"
+        "503":
+          $ref: "#/components/responses/Problem"
+  /models/check:
+    post:
+      operationId: checkAgentModel
+      summary: checkAgentModel
+      description: Probe exactly the selected endpoint. No fallback or hidden retry. Never echo provider errors or API keys.
+      security:
+        - LocalCsrf: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                model:
+                  type: string
+                  minLength: 1
+                  maxLength: 160
+                baseUrl:
+                  type: string
+                  maxLength: 2048
+                  format: uri
+                apiKey:
+                  type: string
+                  maxLength: 4096
+                  writeOnly: true
+                profileId:
+                  type: string
+                  format: uuid
+                  pattern: ^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$
+                profileVersion:
+                  type: integer
+                  minimum: 1
+                  maximum: 9007199254740991
+              required:
+                - model
+                - baseUrl
+              additionalProperties: false
+      responses:
+        "200":
+          description: Probe exactly the selected endpoint. No fallback or hidden retry. Never echo provider errors or API keys.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    enum:
+                      - READY
+                      - FAILED
+                  code:
+                    type: string
+                    pattern: ^[A-Z][A-Z0-9_]{2,100}$
+                required:
+                  - status
+                  - code
+                additionalProperties: false
+        "400":
+          $ref: "#/components/responses/Problem"
+        "403":
+          $ref: "#/components/responses/Problem"
+        "404":
+          $ref: "#/components/responses/Problem"
+        "409":
+          $ref: "#/components/responses/Problem"
+        "413":
+          $ref: "#/components/responses/Problem"
+        "415":
+          $ref: "#/components/responses/Problem"
+        "500":
+          $ref: "#/components/responses/Problem"
+        "503":
+          $ref: "#/components/responses/Problem"
+  /models/{modelId}/default:
+    put:
+      operationId: setDefaultAgentModel
+      summary: setDefaultAgentModel
+      description: Default selection affects subsequent tasks only. Running turns retain their model/version/ReleaseIdentity snapshot.
+      security:
+        - LocalCsrf: []
+      parameters:
+        - name: modelId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+            pattern: ^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                version:
+                  type: integer
+                  minimum: 1
+                  maximum: 9007199254740991
+              required:
+                - version
+              additionalProperties: false
+      responses:
+        "200":
+          description: Default selection affects subsequent tasks only. Running turns retain their model/version/ReleaseIdentity snapshot.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  id:
+                    type: string
+                    format: uuid
+                    pattern: ^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$
+                  version:
+                    type: integer
+                    minimum: 1
+                    maximum: 9007199254740991
+                  displayName:
+                    type: string
+                    minLength: 1
+                    maxLength: 80
+                  model:
+                    type: string
+                    minLength: 1
+                    maxLength: 160
+                  baseUrl:
+                    type: string
+                    maxLength: 2048
+                    format: uri
+                  keyConfigured:
+                    type: boolean
+                  isDefault:
+                    type: boolean
+                required:
+                  - id
+                  - version
+                  - displayName
+                  - model
+                  - baseUrl
+                  - keyConfigured
+                  - isDefault
+                additionalProperties: false
+        "400":
+          $ref: "#/components/responses/Problem"
+        "403":
+          $ref: "#/components/responses/Problem"
+        "404":
+          $ref: "#/components/responses/Problem"
+        "409":
+          $ref: "#/components/responses/Problem"
+        "413":
+          $ref: "#/components/responses/Problem"
+        "415":
+          $ref: "#/components/responses/Problem"
+        "500":
+          $ref: "#/components/responses/Problem"
+        "503":
+          $ref: "#/components/responses/Problem"
+  /attachments:
+    post:
+      operationId: importAgentAttachment
+      summary: importAgentAttachment
+      description: Single PNG/JPEG binary import. X-Hengzhun-Filename contains a base64url UTF-8 filename, never a server path.
+      security:
+        - LocalCsrf: []
+      parameters:
+        - name: X-Hengzhun-Filename
+          in: header
+          required: true
+          schema:
+            type: string
+            maxLength: 1040
+      requestBody:
+        required: true
+        content:
+          image/png:
+            schema:
+              type: string
+              format: binary
+          image/jpeg:
+            schema:
+              type: string
+              format: binary
+      responses:
+        "201":
+          description: Single PNG/JPEG binary import. X-Hengzhun-Filename contains a base64url UTF-8 filename, never a server path.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  attachmentRef:
+                    type: string
+                    pattern: ^att_[a-zA-Z0-9_-]{8,160}$
+                  sha256:
+                    type: string
+                    pattern: ^[a-f0-9]{64}$
+                  size:
+                    type: integer
+                    minimum: 0
+                    maximum: 9007199254740991
+                  originalFilename:
+                    type: string
+                    minLength: 1
+                    maxLength: 260
+                  mediaType:
+                    type: string
+                    enum:
+                      - image/png
+                      - image/jpeg
+                required:
+                  - attachmentRef
+                  - sha256
+                  - size
+                  - originalFilename
+                  - mediaType
+                additionalProperties: false
+        "400":
+          $ref: "#/components/responses/Problem"
+        "403":
+          $ref: "#/components/responses/Problem"
+        "404":
+          $ref: "#/components/responses/Problem"
+        "409":
+          $ref: "#/components/responses/Problem"
+        "413":
+          $ref: "#/components/responses/Problem"
+        "415":
+          $ref: "#/components/responses/Problem"
+        "500":
+          $ref: "#/components/responses/Problem"
+        "503":
+          $ref: "#/components/responses/Problem"
+  /turns/{turnId}/evidence:
+    get:
+      operationId: getAgentTurnEvidence
+      summary: getAgentTurnEvidence
+      security: []
+      parameters:
+        - name: turnId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+            pattern: ^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$
+      responses:
+        "200":
+          description: getAgentTurnEvidence
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  schemaVersion:
+                    type: string
+                    const: hengzhun-cli-evidence-view/v1
+                  journeyId:
+                    type: string
+                  version:
+                    type: integer
+                    minimum: 0
+                    maximum: 9007199254740991
+                  status:
+                    type: string
+                  terminal:
+                    type: boolean
+                  references:
+                    type: object
+                    properties:
+                      caseId:
+                        type: string
+                        minLength: 8
+                        maxLength: 160
+                      preparationId:
+                        type: string
+                        minLength: 8
+                        maxLength: 160
+                      candidateId:
+                        type: string
+                        minLength: 8
+                        maxLength: 160
+                      certificateId:
+                        type: string
+                        minLength: 8
+                        maxLength: 160
+                      scriptId:
+                        type: string
+                        minLength: 8
+                        maxLength: 160
+                      scriptHash:
+                        type: string
+                        minLength: 8
+                        maxLength: 160
+                      planId:
+                        type: string
+                        minLength: 8
+                        maxLength: 160
+                      confirmedDecisionEventId:
+                        type: string
+                        minLength: 8
+                        maxLength: 160
+                      taskId:
+                        type: string
+                        minLength: 8
+                        maxLength: 160
+                      runId:
+                        type: string
+                        minLength: 8
+                        maxLength: 160
+                      scheduleId:
+                        type: string
+                        minLength: 8
+                        maxLength: 160
+                      inboxId:
+                        type: string
+                        minLength: 8
+                        maxLength: 160
+                      resultArtifactId:
+                        type: string
+                        minLength: 8
+                        maxLength: 160
+                    additionalProperties: false
+                  artifactCards:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        artifactId:
+                          type: string
+                          pattern: ^art_[0-9a-f-]{36}$
+                        displayName:
+                          type: string
+                          maxLength: 240
+                        mediaType:
+                          type: string
+                          maxLength: 160
+                        sha256:
+                          type: string
+                          pattern: ^[a-f0-9]{64}$
+                        size:
+                          type: integer
+                          minimum: 0
+                          maximum: 9007199254740991
+                        downloadGrantRequired:
+                          type: boolean
+                      required:
+                        - artifactId
+                        - displayName
+                        - downloadGrantRequired
+                      additionalProperties: false
+                required:
+                  - schemaVersion
+                  - journeyId
+                  - version
+                  - status
+                  - terminal
+                  - references
+                  - artifactCards
+                additionalProperties: false
+        "400":
+          $ref: "#/components/responses/Problem"
+        "403":
+          $ref: "#/components/responses/Problem"
+        "404":
+          $ref: "#/components/responses/Problem"
+        "409":
+          $ref: "#/components/responses/Problem"
+        "413":
+          $ref: "#/components/responses/Problem"
+        "415":
+          $ref: "#/components/responses/Problem"
+        "500":
+          $ref: "#/components/responses/Problem"
+        "503":
+          $ref: "#/components/responses/Problem"
+  /turns/{turnId}/artifacts/{artifactId}:
+    get:
+      operationId: downloadAgentArtifact
+      summary: downloadAgentArtifact
+      description: Download only an artifact in the turn Journey evidence. Internal one-time grant and service tokens never reach the browser.
+      security: []
+      parameters:
+        - name: turnId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+            pattern: ^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$
+        - name: artifactId
+          in: path
+          required: true
+          schema:
+            type: string
+            pattern: ^art_[0-9a-f-]{36}$
+      responses:
+        "200":
+          description: Download only an artifact in the turn Journey evidence. Internal one-time grant and service tokens never reach the browser.
+          content:
+            application/octet-stream:
+              schema:
+                type: string
+                format: binary
+        "400":
+          $ref: "#/components/responses/Problem"
+        "403":
+          $ref: "#/components/responses/Problem"
+        "404":
+          $ref: "#/components/responses/Problem"
+        "409":
+          $ref: "#/components/responses/Problem"
+        "413":
+          $ref: "#/components/responses/Problem"
+        "415":
+          $ref: "#/components/responses/Problem"
+        "500":
+          $ref: "#/components/responses/Problem"
+        "503":
+          $ref: "#/components/responses/Problem"
+components:
+  securitySchemes:
+    LocalCsrf:
+      type: apiKey
+      in: header
+      name: X-Hengzhun-CSRF
+      description: Process-local token from same-origin bootstrap. Mutations also require an exact Origin and Host. Not a Harness service token.
+  schemas:
+    Problem:
+      type: object
+      properties:
+        type:
+          type: string
+          const: about:blank
+        title:
+          type: string
+        status:
+          type: integer
+          minimum: -9007199254740991
+          maximum: 9007199254740991
+        code:
+          type: string
+      required:
+        - type
+        - title
+        - status
+        - code
+      additionalProperties: false
+  responses:
+    Problem:
+      description: Explicit failure; no raw dependency error or credential details.
+      content:
+        application/problem+json:
+          schema:
+            $ref: "#/components/schemas/Problem"

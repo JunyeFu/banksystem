@@ -1,0 +1,10 @@
+id: RF-063-S3
+title: 模块依赖与查询归属
+status: PROPOSED
+businessGoal: Controller无查询语法、风险支付运营依赖环消除
+allowedPaths: [services/bank-channel-service, docs/architecture/refactoring/module-boundaries-v1.yaml]
+forbiddenPaths: [postgresql, infra/keycloak, platform/hengzhun-regression-system/flowise]
+workSteps: [root cause counterexample, minimal fix, regression, independent review]
+verification: ['Java21 mvnw.cmd test; static module dependency analysis']
+evidence: docs/architecture/refactoring/batches/RF-063/evidence-index.md
+

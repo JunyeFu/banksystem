@@ -1,0 +1,10 @@
+id: RF-066-S1
+title: Controller transport and contracts
+status: DONE
+businessGoal: Controller transport and contracts
+allowedPaths: ["contracts/openapi/agent-workbench-api.yaml","platform/hengzhun-regression-system/agent-cli","platform/hengzhun-regression-system/scripts/verification","scripts/test/verify-agent-workbench.ps1","docs/architecture/refactoring/batches/RF-066"]
+forbiddenPaths: [postgresql, services/bank-channel-service, infra/keycloak, platform/hengzhun-regression-system/flowise]
+workSteps: [analyze, contract, implement, verify]
+verification: ["powershell -NoProfile -ExecutionPolicy Bypass -File scripts/test/verify-agent-workbench.ps1 -Scope Contract"]
+evidence: docs/architecture/refactoring/batches/RF-066/evidence-index.md
+

@@ -5,8 +5,8 @@ document_type: plan
 domain: architecture
 status: ACTIVE
 authority: normative
-version: 1.0
-effective_date: 2026-08-26
+version: 1.1
+effective_date: 2026-08-30
 owner: project-owner
 ---
 
@@ -14,7 +14,7 @@ owner: project-owner
 
 ## 1. 基线结论
 
-I10 的目标交互面改为 Windows 单操作员使用的本地 CLI Agent `hz-agent`。Flowise 不再位于正常执行路径，只作为冻结、默认关闭且需单独授权的冷回滚资产。本文是后续 TP01～TP10 的产品与架构基线，不是实现完成、运行成功或发布证据。
+I10 的目标交互面是 Windows 单操作员使用的本地 CLI Agent `hz-agent`。Flowise 不属于交付产品，不启动、不依赖、不回退；既有 Flowise 文件只作为不可改写的历史证据。本文是 CLI 产品与架构基线，不是运行成功或发布证据。
 
 捕获时事实：Git `9d79b7c1e6cfedd995093cc7a378dc8e9218fa98`、共享脏树；ReleaseIdentity `fbe97820dbb5d8132a3f678d886524a5f75215b212bb5181cfda8960fca69630`；当前身份正式账本 `0/18`，历史 228 条均不可提升；受管运行态不可用，公共 API 回读缓存过期，`releaseAligned=false`。
 
@@ -25,7 +25,7 @@ I10 的目标交互面改为 Windows 单操作员使用的本地 CLI Agent `hz-a
 - 无 `--yes`、全局自动批准或模型自降风险；headless 遇批准点输出事件并以退出码 20 停止。
 - 会话默认自动保存，以 Windows CurrentUser DPAPI 加密；安全元数据可明文，原始输入、工具参数、凭据和宿主绝对路径不得明文持久化。
 - Harness 继续拥有 Journey、SQLite、凭据、幂等、版本与写后回读；Worker 继续拥有浏览器执行；MCP 是独立、薄、无业务状态推断的端口。
-- 正常 START 不依赖或启动 Flowise；发现意外 Flowise 进程时写路径失败关闭。冷回滚须独立授权、演练和身份冻结。
+- 产品生命周期不发现、启动、停止或调用 Flowise。CLI、MCP、Harness 和 Worker 构成唯一执行链。
 
 ## 3. 目标架构
 
@@ -54,7 +54,7 @@ Windows Terminal / JSONL
 - CLI/TUI：`@earendil-works/pi-tui@0.84.3`，MIT，Node `>=22.19`；产品固定 Node `24.19.0`。
 - Controller：LangGraph；OpenAI 适配固定 `@langchain/openai@1.5.0` 并与现有 core 锁兼容。
 - MCP：`@modelcontextprotocol/sdk@1.30.0`、`zod@4.4.3`，不得从 Flowise 安装目录解析 SDK。
-- 公共附件引用统一为 `attachmentRef`；`flowiseFileRef` 只能存在于冷回滚兼容边界。
+- 公共附件引用统一为 `attachmentRef`；`flowiseFileRef` 不得进入交付合同。
 
 ## 5. MCP v2 合同
 
@@ -89,13 +89,13 @@ hz-agent doctor | service | version
 
 ## 8. ReleaseIdentity v4 与上线谓词
 
-v4 纳入 CLI/TUI/controller/MCP 源码与锁、session schema、risk policy、prompt、Node24、lifecycle 和合同 hash；不纳入 secrets、用户数据和原始会话内容。任何受控输入漂移必须生成新身份，旧证据自动 stale。
+v4 纳入 CLI/TUI/controller/MCP 源码与锁、session schema、risk policy、prompt、Node24、lifecycle、正式测试清单和合同 hash；不纳入 secrets、用户数据和原始会话内容。任何受控输入漂移必须生成新身份，旧证据自动 stale。
 
-上线按以下门禁推进：离线合同与集成全绿；同一身份先跑 L1 `TEXT_ONLY`，再跑 `TEXT_WITH_IMAGE`，首次确定性失败立即停止；随后同一身份完成 18/18、供应链门、DPAPI restore、冷回滚演练和公共 API 回读。L1 只证明薄链，不等于完整上线。
+上线按以下门禁推进：离线合同与集成全绿；同一身份先跑 L1 `TEXT_ONLY`，再跑 `TEXT_WITH_IMAGE`，首次确定性失败立即停止；随后同一身份完成 18/18、供应链门、DPAPI restore、冷启动复验和 Quality Portal 回读。L1 只证明薄链，不等于完整上线。
 
-## 9. 迁移与回滚
+## 9. 迁移与恢复
 
-TP01～TP08 完成离线实现和治理后才允许 TP09。正常路径切换后 Flowise 归档为只读冷资产，禁止 shadow retry 或双写。冷回滚只能恢复已冻结的 Flowise 资产和匹配身份，不能借用 CLI 身份的证据。
+TP01～TP08 的离线实现保持为 CLI 基础。产品运行恢复只允许重启同一版本的 CLI、MCP、Harness、Worker 与银行服务；Flowise 资产只保留历史证据，不构成恢复路径，也不能借用 CLI 身份的证据。
 
 ## 10. 易错点
 

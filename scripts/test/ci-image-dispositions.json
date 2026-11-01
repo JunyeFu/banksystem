@@ -1,0 +1,697 @@
+{
+  "scope": "RF065_CHANNEL_DEFAULT_PRODUCT_REACHABILITY_ONLY",
+  "authorizedBy": "agent/plans/active/v54-implementation-batches.md",
+  "reviewedImageId": "sha256:0741461b457a4a3c95e30b93d1bf24d6030f0e9a0eb5b811fb794b9ab842e8af",
+  "baseLayers": [
+    "sha256:d81fb2a7c6ee3be05fdefaa7fd223be219c1ab172083ec1b994c3ecda33ac0a8",
+    "sha256:085e15efe013d39b097dc302f957be20dc69bc81212d06bfc835d0c07675a02f",
+    "sha256:04a097194e6c3cfe44e2607dd528a3b6f3d5aba0c2c3e5813a14bde87b36e48b",
+    "sha256:926f1e29b141668d794dba08ad3661eaec5046d06ed38da5f093d555a30de00c",
+    "sha256:3b84ab99a73e5ea3c508e329cfdafd2a93e24de9336b49ee427a5d8605d9472f",
+    "sha256:f9bfac653e87bf63866ba3d32babac4294d67787fa2f40a8276ff3ef79f4911c"
+  ],
+  "jarPayloadDigest": "11ec237f804bf1fb5139a1336351209854435c6dc4cfe2cb07782fdedd4af10c",
+  "sourceDigest": "1d68147a8e6d9e069e8d5a604c3939a312ae379bf4ce7298d1d47d77c535b065",
+  "sourceDigestAlgorithm": "sha256 of ordered relative source paths and CRLF-normalized SHA256, including main Java/resources, pom, Dockerfile and compose.channel.yaml.",
+  "dispositions": [
+    {
+      "name": "org.springframework:spring-webmvc",
+      "version": "6.2.19",
+      "ecosystem": "Maven",
+      "advisories": [
+        "GHSA-j9f9-w8pj-32f8",
+        "GHSA-pc63-qcmh-9cmg"
+      ],
+      "status": "NOT_AFFECTED",
+      "reason": "All 27 request controllers are RestController/JSON or explicit bytes. No SseEmitter, FragmentsRendering, XsltView, ViewResolver, ModelAndView or view-returning catch-all route. The exact reviewed image's 157 application classes matched the tested compilation. Both required vulnerable features are absent, not merely unauthenticated.",
+      "evidence": [
+        "docs/architecture/refactoring/batches/RF-065/dependency-remediation.md",
+        "docs/architecture/refactoring/batches/RF-065/evidence-index.md"
+      ],
+      "limits": "Only the reviewed Java payload, frozen source/resources, base-layer digests, amd64 Java PID1 UID10001 and declared Channel/Test Support topology (including DNS boundary). No arbitrary docker exec/host compromise/alternative entrypoint. New advisory or any binding drift blocks."
+    },
+    {
+      "name": "util-linux",
+      "version": "1:2.39.3-9ubuntu6.6",
+      "ecosystem": "Ubuntu:24.04",
+      "advisories": [
+        "UBUNTU-CVE-2026-76642",
+        "UBUNTU-CVE-2026-78408",
+        "UBUNTU-CVE-2026-78409",
+        "UBUNTU-CVE-2026-78410"
+      ],
+      "status": "NOT_AFFECTED",
+      "reason": "Vulnerable mount/nsenter and privileged fstab/post-mount hooks are not application operations. Product topology has no privileged/cap_add/host namespace or root command service; fstab is unconfigured. UUID generation is Java UUID, not invoking the affected mount tools. No general exemption for libraries merely sharing this source package.",
+      "evidence": [
+        "docs/architecture/refactoring/batches/RF-065/dependency-remediation.md",
+        "docs/architecture/refactoring/batches/RF-065/evidence-index.md"
+      ],
+      "limits": "Only the reviewed Java payload, frozen source/resources, base-layer digests, amd64 Java PID1 UID10001 and declared Channel/Test Support topology (including DNS boundary). No arbitrary docker exec/host compromise/alternative entrypoint. New advisory or any binding drift blocks."
+    },
+    {
+      "name": "coreutils",
+      "version": "9.4-3ubuntu6.3",
+      "ecosystem": "Ubuntu:24.04",
+      "advisories": [
+        "UBUNTU-CVE-2016-2781"
+      ],
+      "status": "NOT_AFFECTED",
+      "reason": "The exact finding requires chroot --userspec and an interactive controlling terminal. Product executes java -jar, not chroot, and exposes no shell/process launcher. Neither Channel nor Test Support uses that command.",
+      "evidence": [
+        "docs/architecture/refactoring/batches/RF-065/dependency-remediation.md",
+        "docs/architecture/refactoring/batches/RF-065/evidence-index.md"
+      ],
+      "limits": "Only the reviewed Java payload, frozen source/resources, base-layer digests, amd64 Java PID1 UID10001 and declared Channel/Test Support topology (including DNS boundary). No arbitrary docker exec/host compromise/alternative entrypoint. New advisory or any binding drift blocks."
+    },
+    {
+      "name": "dash",
+      "version": "0.5.12-6ubuntu5",
+      "ecosystem": "Ubuntu:24.04",
+      "advisories": [
+        "UBUNTU-CVE-2026-102473",
+        "UBUNTU-CVE-2026-102474"
+      ],
+      "status": "NOT_AFFECTED",
+      "reason": "The Channel healthcheck invokes dash with the fixed literal curl -f http://localhost:8080/actuator/health || exit 1. No glob, printf/echo escape or positional user input is interpreted. The two vulnerable builtins/matcher inputs are absent from this command. Application does not spawn shells.",
+      "evidence": [
+        "docs/architecture/refactoring/batches/RF-065/dependency-remediation.md",
+        "docs/architecture/refactoring/batches/RF-065/evidence-index.md"
+      ],
+      "limits": "Only the reviewed Java payload, frozen source/resources, base-layer digests, amd64 Java PID1 UID10001 and declared Channel/Test Support topology (including DNS boundary). No arbitrary docker exec/host compromise/alternative entrypoint. New advisory or any binding drift blocks."
+    },
+    {
+      "name": "gnupg2",
+      "version": "2.4.4-2ubuntu17.6",
+      "ecosystem": "Ubuntu:24.04",
+      "advisories": [
+        "UBUNTU-CVE-2022-3219",
+        "UBUNTU-CVE-2026-105712"
+      ],
+      "status": "NOT_AFFECTED",
+      "reason": "Both findings require processing supplied OpenPGP keys/signatures or extracting gpgtar archives. Service neither starts gpg nor processes OpenPGP or tar; document upload stores bytes without unpacking. Healthcheck invokes literal curl, not any gnupg utility.",
+      "evidence": [
+        "docs/architecture/refactoring/batches/RF-065/dependency-remediation.md",
+        "docs/architecture/refactoring/batches/RF-065/evidence-index.md"
+      ],
+      "limits": "Only the reviewed Java payload, frozen source/resources, base-layer digests, amd64 Java PID1 UID10001 and declared Channel/Test Support topology (including DNS boundary). No arbitrary docker exec/host compromise/alternative entrypoint. New advisory or any binding drift blocks."
+    },
+    {
+      "name": "acl",
+      "version": "2.3.2-1build1.1",
+      "ecosystem": "Ubuntu:24.04",
+      "advisories": [
+        "UBUNTU-CVE-2026-54369",
+        "UBUNTU-CVE-2026-54370"
+      ],
+      "status": "NOT_AFFECTED",
+      "reason": "Both findings need privileged native libacl/getfacl/setfacl/chacl over attacker-controlled filesystem paths. Java document handlers store bytes in PostgreSQL, no system process/JNI loader or ACL manipulation is exposed. Neither healthcheck nor application invokes the affected ACL API.",
+      "evidence": [
+        "docs/architecture/refactoring/batches/RF-065/dependency-remediation.md",
+        "docs/architecture/refactoring/batches/RF-065/evidence-index.md"
+      ],
+      "limits": "Only the reviewed Java payload, frozen source/resources, base-layer digests, amd64 Java PID1 UID10001 and declared Channel/Test Support topology (including DNS boundary). No arbitrary docker exec/host compromise/alternative entrypoint. New advisory or any binding drift blocks."
+    },
+    {
+      "name": "util-linux",
+      "version": "2.39.3-9ubuntu6.6",
+      "ecosystem": "Ubuntu:24.04",
+      "advisories": [
+        "UBUNTU-CVE-2026-76642",
+        "UBUNTU-CVE-2026-78408",
+        "UBUNTU-CVE-2026-78409",
+        "UBUNTU-CVE-2026-78410"
+      ],
+      "status": "NOT_AFFECTED",
+      "reason": "Vulnerable mount/nsenter and privileged fstab/post-mount hooks are not application operations. Product topology has no privileged/cap_add/host namespace or root command service; fstab is unconfigured. UUID generation is Java UUID, not invoking the affected mount tools. No general exemption for libraries merely sharing this source package.",
+      "evidence": [
+        "docs/architecture/refactoring/batches/RF-065/dependency-remediation.md",
+        "docs/architecture/refactoring/batches/RF-065/evidence-index.md"
+      ],
+      "limits": "Only the reviewed Java payload, frozen source/resources, base-layer digests, amd64 Java PID1 UID10001 and declared Channel/Test Support topology (including DNS boundary). No arbitrary docker exec/host compromise/alternative entrypoint. New advisory or any binding drift blocks."
+    },
+    {
+      "name": "glibc",
+      "version": "2.39-0ubuntu8.9",
+      "ecosystem": "Ubuntu:24.04",
+      "advisories": [
+        "UBUNTU-CVE-2016-20013",
+        "UBUNTU-CVE-2026-18374",
+        "UBUNTU-CVE-2026-8674",
+        "UBUNTU-CVE-2026-86805",
+        "UBUNTU-CVE-2026-89092",
+        "UBUNTU-CVE-2026-95818",
+        "UBUNTU-CVE-2026-97399"
+      ],
+      "status": "NOT_AFFECTED",
+      "reason": "CVE-2016-20013: authentication uses Keycloak JWT/PKCE, not glibc sha256crypt/sha512crypt passwords. CVE-2026-18374: user input is not supplied to an fopen mode/ccs extension; uploads store byte arrays in PostgreSQL. CVE-2026-8674: declared Channel dns_search=[.] (inherited by Test Support/isolated CI) disables host/VPN search domains; controlled Docker probe confirms DnsSearch=[.] and no long search entry. CVE-2026-89092: nscd is not installed/started by product. CVE-2026-86805/-95818: java and fixed curl healthcheck are non-setuid, and app does not invoke any setuid/setgid process or user-controlled loader path. CVE-2026-97399 is Power8-specific; this image is amd64. This is API-specific analysis, not a claim that glibc is unused.",
+      "evidence": [
+        "docs/architecture/refactoring/batches/RF-065/dependency-remediation.md",
+        "docs/architecture/refactoring/batches/RF-065/evidence-index.md"
+      ],
+      "limits": "Only the reviewed Java payload, frozen source/resources, base-layer digests, amd64 Java PID1 UID10001 and declared Channel/Test Support topology (including DNS boundary). No arbitrary docker exec/host compromise/alternative entrypoint. New advisory or any binding drift blocks."
+    },
+    {
+      "name": "expat",
+      "version": "2.6.1-2ubuntu0.6",
+      "ecosystem": "Ubuntu:24.04",
+      "advisories": [
+        "UBUNTU-CVE-2025-66382",
+        "UBUNTU-CVE-2026-102633",
+        "UBUNTU-CVE-2026-77214",
+        "UBUNTU-CVE-2026-93990"
+      ],
+      "status": "NOT_AFFECTED",
+      "reason": "The four findings affect native libexpat XML processing (32-bit reallocation, malformed XML, or XML_ParseBuffer misuse). This service uses JSON and stores upload bytes; it has no native XML/JNI parser, image/font processing, or command launcher. Its explicit PDF constructors emit ASCII objects/Courier references and do not read fonts. Java/JAXB parsers, if present in dependencies, are not native Expat. The previously unknown CVE-2026-77214 was resolved against upstream PR1393: caller-supplied buffer length exceeds XML_ParseBuffer capacity; no such caller exists in this product.",
+      "evidence": [
+        "docs/architecture/refactoring/batches/RF-065/dependency-remediation.md",
+        "docs/architecture/refactoring/batches/RF-065/evidence-index.md"
+      ],
+      "limits": "Only the reviewed Java payload, frozen source/resources, base-layer digests, amd64 Java PID1 UID10001 and declared Channel/Test Support topology (including DNS boundary). No arbitrary docker exec/host compromise/alternative entrypoint. New advisory or any binding drift blocks."
+    },
+    {
+      "name": "freetype",
+      "version": "2.13.2+dfsg-1ubuntu0.1",
+      "ecosystem": "Ubuntu:24.04",
+      "advisories": [
+        "UBUNTU-CVE-2026-95512",
+        "USN-8881-1"
+      ],
+      "status": "NOT_AFFECTED",
+      "reason": "CID font loader requires rendering supplied font content. No Java AWT/ImageIO/font loader or JNI call is present. Statement/receipt PDF code manually emits ASCII PDF objects with a standard Courier reference, not font parsing/rendering. Uploaded document bytes are stored, not interpreted.",
+      "evidence": [
+        "docs/architecture/refactoring/batches/RF-065/dependency-remediation.md",
+        "docs/architecture/refactoring/batches/RF-065/evidence-index.md"
+      ],
+      "limits": "Only the reviewed Java payload, frozen source/resources, base-layer digests, amd64 Java PID1 UID10001 and declared Channel/Test Support topology (including DNS boundary). No arbitrary docker exec/host compromise/alternative entrypoint. New advisory or any binding drift blocks."
+    },
+    {
+      "name": "lz4",
+      "version": "1.9.4-1build1.1",
+      "ecosystem": "Ubuntu:24.04",
+      "advisories": [
+        "UBUNTU-CVE-2025-62813"
+      ],
+      "status": "NOT_AFFECTED",
+      "reason": "The finding needs native LZ4F_createCDict_advanced on supplied LZ4 frames. No application/JNI/process path invokes native LZ4; upload stores bytes, and the fixed healthcheck does not decompress LZ4 frames.",
+      "evidence": [
+        "docs/architecture/refactoring/batches/RF-065/dependency-remediation.md",
+        "docs/architecture/refactoring/batches/RF-065/evidence-index.md"
+      ],
+      "limits": "Only the reviewed Java payload, frozen source/resources, base-layer digests, amd64 Java PID1 UID10001 and declared Channel/Test Support topology (including DNS boundary). No arbitrary docker exec/host compromise/alternative entrypoint. New advisory or any binding drift blocks."
+    },
+    {
+      "name": "pam",
+      "version": "1.5.3-5ubuntu5.7",
+      "ecosystem": "Ubuntu:24.04",
+      "advisories": [
+        "UBUNTU-CVE-2024-10041"
+      ],
+      "status": "NOT_AFFECTED",
+      "reason": "Authentication is external Keycloak JWT/PKCE, not local PAM or /etc/shadow/stdin passwords. Neither application nor fixed curl healthcheck performs system login or PAM calls.",
+      "evidence": [
+        "docs/architecture/refactoring/batches/RF-065/dependency-remediation.md",
+        "docs/architecture/refactoring/batches/RF-065/evidence-index.md"
+      ],
+      "limits": "Only the reviewed Java payload, frozen source/resources, base-layer digests, amd64 Java PID1 UID10001 and declared Channel/Test Support topology (including DNS boundary). No arbitrary docker exec/host compromise/alternative entrypoint. New advisory or any binding drift blocks."
+    },
+    {
+      "name": "pcre2",
+      "version": "10.42-4ubuntu2.1",
+      "ecosystem": "Ubuntu:24.04",
+      "advisories": [
+        "UBUNTU-CVE-2026-103111",
+        "UBUNTU-CVE-2026-86145",
+        "UBUNTU-CVE-2026-89156",
+        "UBUNTU-CVE-2026-89157",
+        "UBUNTU-CVE-2026-89158",
+        "UBUNTU-CVE-2026-89160",
+        "UBUNTU-CVE-2026-89161"
+      ],
+      "status": "NOT_AFFECTED",
+      "reason": "The eight findings require native PCRE2 compile/match/JIT/serialization APIs and specific supplied patterns/subjects or 32-bit arithmetic. Java regex is java.util.regex; there is no JNI/process bridge to PCRE2, and the literal curl healthcheck accepts no regex input. Architecture is amd64. Presence of libpcre2 for dormant system utilities is retained in the report, not claimed absent.",
+      "evidence": [
+        "docs/architecture/refactoring/batches/RF-065/dependency-remediation.md",
+        "docs/architecture/refactoring/batches/RF-065/evidence-index.md"
+      ],
+      "limits": "Only the reviewed Java payload, frozen source/resources, base-layer digests, amd64 Java PID1 UID10001 and declared Channel/Test Support topology (including DNS boundary). No arbitrary docker exec/host compromise/alternative entrypoint. New advisory or any binding drift blocks."
+    },
+    {
+      "name": "libpng1.6",
+      "version": "1.6.43-5ubuntu0.6",
+      "ecosystem": "Ubuntu:24.04",
+      "advisories": [
+        "UBUNTU-CVE-2026-46675",
+        "USN-8899-1"
+      ],
+      "status": "NOT_AFFECTED",
+      "reason": "png_read_end after incomplete compressed PNG chunks requires native PNG parsing. Bank service stores upload bytes and does not invoke native image/Java ImageIO processing; screenshots/image interpretation belong to the separate Worker, not this image.",
+      "evidence": [
+        "docs/architecture/refactoring/batches/RF-065/dependency-remediation.md",
+        "docs/architecture/refactoring/batches/RF-065/evidence-index.md"
+      ],
+      "limits": "Only the reviewed Java payload, frozen source/resources, base-layer digests, amd64 Java PID1 UID10001 and declared Channel/Test Support topology (including DNS boundary). No arbitrary docker exec/host compromise/alternative entrypoint. New advisory or any binding drift blocks."
+    },
+    {
+      "name": "cyrus-sasl2",
+      "version": "2.1.28+dfsg1-5ubuntu3.1",
+      "ecosystem": "Ubuntu:24.04",
+      "advisories": [
+        "UBUNTU-CVE-2026-107161"
+      ],
+      "status": "NOT_AFFECTED",
+      "reason": "The finding requires native Cyrus DIGEST-MD5 quoting of a malicious server challenge. Application uses Java HTTP/JSSE, JWT and Java JMS, not native Cyrus/OpenLDAP DIGEST-MD5. Fixed healthcheck is unauthenticated localhost HTTP without a SASL or LDAP challenge.",
+      "evidence": [
+        "docs/architecture/refactoring/batches/RF-065/dependency-remediation.md",
+        "docs/architecture/refactoring/batches/RF-065/evidence-index.md"
+      ],
+      "limits": "Only the reviewed Java payload, frozen source/resources, base-layer digests, amd64 Java PID1 UID10001 and declared Channel/Test Support topology (including DNS boundary). No arbitrary docker exec/host compromise/alternative entrypoint. New advisory or any binding drift blocks."
+    },
+    {
+      "name": "systemd",
+      "version": "255.4-1ubuntu8.17",
+      "ecosystem": "Ubuntu:24.04",
+      "advisories": [
+        "UBUNTU-CVE-2026-40228"
+      ],
+      "status": "NOT_AFFECTED",
+      "reason": "The exact finding requires systemd-journald with ForwardToWall=yes and logger -p emerg. PID1 is the Java process, there is no journald/daemon startup in the product topology, and neither application nor healthcheck invokes logger.",
+      "evidence": [
+        "docs/architecture/refactoring/batches/RF-065/dependency-remediation.md",
+        "docs/architecture/refactoring/batches/RF-065/evidence-index.md"
+      ],
+      "limits": "Only the reviewed Java payload, frozen source/resources, base-layer digests, amd64 Java PID1 UID10001 and declared Channel/Test Support topology (including DNS boundary). No arbitrary docker exec/host compromise/alternative entrypoint. New advisory or any binding drift blocks."
+    },
+    {
+      "name": "shadow",
+      "version": "1:4.13+dfsg1-4ubuntu3.2",
+      "ecosystem": "Ubuntu:24.04",
+      "advisories": [
+        "UBUNTU-CVE-2024-56433"
+      ],
+      "status": "NOT_AFFECTED",
+      "reason": "The finding requires subuid/NFS/network-user mapping and newuidmap or remote-login access. Product has no NFS mount, login daemon, user-creation API or user-namespace launcher; fixed service UID10001 and Docker-managed namespace do not expose that operation.",
+      "evidence": [
+        "docs/architecture/refactoring/batches/RF-065/dependency-remediation.md",
+        "docs/architecture/refactoring/batches/RF-065/evidence-index.md"
+      ],
+      "limits": "Only the reviewed Java payload, frozen source/resources, base-layer digests, amd64 Java PID1 UID10001 and declared Channel/Test Support topology (including DNS boundary). No arbitrary docker exec/host compromise/alternative entrypoint. New advisory or any binding drift blocks."
+    },
+    {
+      "name": "perl",
+      "version": "5.38.2-3.2ubuntu0.6",
+      "ecosystem": "Ubuntu:24.04",
+      "advisories": [
+        "UBUNTU-CVE-2026-82560"
+      ],
+      "status": "NOT_AFFECTED",
+      "reason": "The Java process and Channel healthcheck do not invoke Perl or expose Perl script execution. No application class/source creates OS processes. Scanner findings remain in the native image and are not reclassified as fixed upstream.",
+      "evidence": [
+        "docs/architecture/refactoring/batches/RF-065/dependency-remediation.md",
+        "docs/architecture/refactoring/batches/RF-065/evidence-index.md"
+      ],
+      "limits": "Only the reviewed Java payload, frozen source/resources, base-layer digests, amd64 Java PID1 UID10001 and declared Channel/Test Support topology (including DNS boundary). No arbitrary docker exec/host compromise/alternative entrypoint. New advisory or any binding drift blocks."
+    },
+    {
+      "name": "tar",
+      "version": "1.35+dfsg-3ubuntu0.4",
+      "ecosystem": "Ubuntu:24.04",
+      "advisories": [
+        "UBUNTU-CVE-2026-18477",
+        "UBUNTU-CVE-2026-18508"
+      ],
+      "status": "NOT_AFFECTED",
+      "reason": "Both findings require GNU tar extraction or incremental restore. The Java service does neither, never spawns tar, and stores document upload bytes without unpacking. No bank endpoint supplies a tar archive to an OS process.",
+      "evidence": [
+        "docs/architecture/refactoring/batches/RF-065/dependency-remediation.md",
+        "docs/architecture/refactoring/batches/RF-065/evidence-index.md"
+      ],
+      "limits": "Only the reviewed Java payload, frozen source/resources, base-layer digests, amd64 Java PID1 UID10001 and declared Channel/Test Support topology (including DNS boundary). No arbitrary docker exec/host compromise/alternative entrypoint. New advisory or any binding drift blocks."
+    },
+    {
+      "name": "wget",
+      "version": "1.21.4-1ubuntu4.5",
+      "ecosystem": "Ubuntu:24.04",
+      "advisories": [
+        "UBUNTU-CVE-2021-31879",
+        "UBUNTU-CVE-2024-10524",
+        "UBUNTU-CVE-2026-16599"
+      ],
+      "status": "NOT_AFFECTED",
+      "reason": "Channel uses fixed curl to localhost, not wget. No bank API launches wget with URLs, credentials, redirects or FTP OPIE challenges. This decision is confined to this image, not frontend image healthchecks.",
+      "evidence": [
+        "docs/architecture/refactoring/batches/RF-065/dependency-remediation.md",
+        "docs/architecture/refactoring/batches/RF-065/evidence-index.md"
+      ],
+      "limits": "Only the reviewed Java payload, frozen source/resources, base-layer digests, amd64 Java PID1 UID10001 and declared Channel/Test Support topology (including DNS boundary). No arbitrary docker exec/host compromise/alternative entrypoint. New advisory or any binding drift blocks."
+    },
+    {
+      "name": "zlib",
+      "version": "1:1.3.dfsg-3.1ubuntu2.2",
+      "ecosystem": "Ubuntu:24.04",
+      "advisories": [
+        "UBUNTU-CVE-2026-85091"
+      ],
+      "status": "NOT_AFFECTED",
+      "reason": "The exact finding is gz_vacate during stalled non-blocking gzwrite followed by gzprintf/gzvprintf. This is not general gzip/inflate. Service does not expose those native gz writer APIs or launch gzip commands; Java byte-array/PDF construction and literal HTTP healthcheck cannot supply that stalled writer state.",
+      "evidence": [
+        "docs/architecture/refactoring/batches/RF-065/dependency-remediation.md",
+        "docs/architecture/refactoring/batches/RF-065/evidence-index.md"
+      ],
+      "limits": "Only the reviewed Java payload, frozen source/resources, base-layer digests, amd64 Java PID1 UID10001 and declared Channel/Test Support topology (including DNS boundary). No arbitrary docker exec/host compromise/alternative entrypoint. New advisory or any binding drift blocks."
+    },
+    {
+      "name": "gnutls28",
+      "version": "3.8.3-1.1ubuntu3.6",
+      "ecosystem": "Ubuntu:24.04",
+      "advisories": [
+        "UBUNTU-CVE-2026-67693",
+        "UBUNTU-CVE-2026-88647",
+        "UBUNTU-CVE-2026-95184",
+        "UBUNTU-CVE-2026-95209",
+        "UBUNTU-CVE-2026-95210"
+      ],
+      "status": "NOT_AFFECTED",
+      "reason": "These five findings require GnuTLS X.509 certificate verification. Exact JRE ELF dependency inspection has no GnuTLS dependency; current Java HTTP clients and application code have no GnuTLS JNI/process entry point. Curl does indirectly link GnuTLS via LDAP, so the library is not claimed absent. Its only product health command is the fixed plaintext HTTP localhost:8080/actuator/health request, not LDAP/TLS/certificate processing. Vendor dispute/deferred status is not treated as a fix; native severities and failure remain.",
+      "evidence": [
+        "docs/architecture/refactoring/batches/RF-065/dependency-remediation.md",
+        "docs/architecture/refactoring/batches/RF-065/evidence-index.md"
+      ],
+      "limits": "Only the reviewed Java payload, frozen source/resources, base-layer digests, amd64 Java PID1 UID10001 and declared Channel/Test Support topology (including DNS boundary). No arbitrary docker exec/host compromise/alternative entrypoint. New advisory or any binding drift blocks."
+    }
+  ],
+  "remaining": "This scoped review does not accept another image, new findings, absent originals or binary-redistribution obligations. Native findings and severity remain unchanged.",
+  "licenseReviews": [
+    {
+      "name": "base-files",
+      "version": "13ubuntu10.5",
+      "file": "doc/base-files/copyright",
+      "imagePath": "/usr/share/doc/base-files/copyright",
+      "sha256": "fd7e4aae7e7b05f217bcf2d02322825c360e66c52c4c2f1b28d784d6297a1c23",
+      "licenses": [
+        {
+          "license": {
+            "id": "GPL-2.0-or-later"
+          }
+        }
+      ],
+      "basis": "The original explicitly grants GPL version 2 or later for package code; verbatim FSF license texts and Artistic notices retain their own terms.",
+      "obligation": "Retain complete copyright/permission/disclaimer and referenced common-license texts. Copyleft binary redistribution requires corresponding source and other applicable terms; that separate distribution gate is not completed by this metadata association."
+    },
+    {
+      "name": "gcc-14",
+      "version": "14.2.0-4ubuntu2~24.04.1",
+      "file": "canonical-copyrights/gcc-14-copyright",
+      "imagePath": "/usr/share/doc/gcc-14-base/copyright",
+      "sha256": "20390f8a6f3b1e4d7cb45dd8652dabb259bbef688cbad839bcdb0b9ba7252f79",
+      "licenses": [
+        {
+          "expression": "GPL-3.0-or-later WITH GCC-exception-3.1"
+        }
+      ],
+      "basis": "The installed payload is libgcc_s/libstdc++, specifically listed in this original's GPLv3-or-later/GCC Runtime Library Exception 3.1 section.",
+      "obligation": "Retain complete copyright/permission/disclaimer and referenced common-license texts. Copyleft binary redistribution requires corresponding source and other applicable terms; that separate distribution gate is not completed by this metadata association."
+    },
+    {
+      "name": "gcc-14-base",
+      "version": "14.2.0-4ubuntu2~24.04.1",
+      "file": "canonical-copyrights/gcc-14-copyright",
+      "imagePath": "/usr/share/doc/gcc-14-base/copyright",
+      "sha256": "20390f8a6f3b1e4d7cb45dd8652dabb259bbef688cbad839bcdb0b9ba7252f79",
+      "licenses": [
+        {
+          "license": {
+            "id": "GPL-3.0-or-later"
+          }
+        }
+      ],
+      "basis": "GCC base package copyright catalogue; the runtime exception applies to the named runtime libraries, not every source/tool file.",
+      "obligation": "Retain complete copyright/permission/disclaimer and referenced common-license texts. Copyleft binary redistribution requires corresponding source and other applicable terms; that separate distribution gate is not completed by this metadata association."
+    },
+    {
+      "name": "libc-bin",
+      "version": "2.39-0ubuntu8.9",
+      "file": "doc/libc6/copyright",
+      "imagePath": "/usr/share/doc/libc6/copyright",
+      "sha256": "d3c95b56fa33e28b57860580f0baf4e4f4de2a268a2b80f1d031a5191bade265",
+      "licenses": [
+        {
+          "license": {
+            "name": "GNU C Library per-file catalogue: LGPL-2.1-or-later, GPL-2.0 and BSD/ISC/MIT notices"
+          }
+        }
+      ],
+      "basis": "Original lists different per-file grants for libc, utilities and incorporated code. This is a catalogue declaration, not a blanket LGPL-only binary conclusion.",
+      "obligation": "Retain complete copyright/permission/disclaimer and referenced common-license texts. Copyleft binary redistribution requires corresponding source and other applicable terms; that separate distribution gate is not completed by this metadata association."
+    },
+    {
+      "name": "libc6",
+      "version": "2.39-0ubuntu8.9",
+      "file": "doc/libc6/copyright",
+      "imagePath": "/usr/share/doc/libc6/copyright",
+      "sha256": "d3c95b56fa33e28b57860580f0baf4e4f4de2a268a2b80f1d031a5191bade265",
+      "licenses": [
+        {
+          "license": {
+            "name": "GNU C Library per-file catalogue: primarily LGPL-2.1-or-later, with BSD/ISC/MIT and other listed notices"
+          }
+        }
+      ],
+      "basis": "Original explicitly identifies primary LGPL2.1+ plus incorporated per-file notices; all clauses are retained.",
+      "obligation": "Retain complete copyright/permission/disclaimer and referenced common-license texts. Copyleft binary redistribution requires corresponding source and other applicable terms; that separate distribution gate is not completed by this metadata association."
+    },
+    {
+      "name": "libcrypt1",
+      "version": "1:4.4.36-4build1",
+      "file": "doc/libcrypt1/copyright",
+      "imagePath": "/usr/share/doc/libcrypt1/copyright",
+      "sha256": "5a5e7ca0e9f3f9679977e3a3e9ede45ad92885a3297ea78e766979f9866c5a16",
+      "licenses": [
+        {
+          "license": {
+            "name": "libxcrypt LGPL-2.1-or-later and listed BSD/public-domain per-file notices"
+          }
+        }
+      ],
+      "basis": "Original identifies overall LGPL2.1+ and separately inventories other algorithms/files.",
+      "obligation": "Retain complete copyright/permission/disclaimer and referenced common-license texts. Copyleft binary redistribution requires corresponding source and other applicable terms; that separate distribution gate is not completed by this metadata association."
+    },
+    {
+      "name": "libgcc-s1",
+      "version": "14.2.0-4ubuntu2~24.04.1",
+      "file": "canonical-copyrights/gcc-14-copyright",
+      "imagePath": "/usr/share/doc/gcc-14-base/copyright",
+      "sha256": "20390f8a6f3b1e4d7cb45dd8652dabb259bbef688cbad839bcdb0b9ba7252f79",
+      "licenses": [
+        {
+          "expression": "GPL-3.0-or-later WITH GCC-exception-3.1"
+        }
+      ],
+      "basis": "libgcc is expressly included in the original runtime-library exception list.",
+      "obligation": "Retain complete copyright/permission/disclaimer and referenced common-license texts. Copyleft binary redistribution requires corresponding source and other applicable terms; that separate distribution gate is not completed by this metadata association."
+    },
+    {
+      "name": "libgcrypt20",
+      "version": "1.10.3-2ubuntu0.2",
+      "file": "doc/libgcrypt20/copyright",
+      "imagePath": "/usr/share/doc/libgcrypt20/copyright",
+      "sha256": "40162167dff80843a4b24aa8d0a4ffc50be5338d004ebe38f86ae3397ba9de3e",
+      "licenses": [
+        {
+          "license": {
+            "id": "LGPL-2.1-or-later"
+          }
+        }
+      ],
+      "basis": "Original Library license is LGPLv2.1+; GPLv2+ manual/tool terms and third-party notices remain in the preserved catalogue.",
+      "obligation": "Retain complete copyright/permission/disclaimer and referenced common-license texts. Copyleft binary redistribution requires corresponding source and other applicable terms; that separate distribution gate is not completed by this metadata association."
+    },
+    {
+      "name": "libgssapi-krb5-2",
+      "version": "1.20.1-6ubuntu2.10",
+      "file": "doc/libkrb5-3/copyright",
+      "imagePath": "/usr/share/doc/libkrb5-3/copyright",
+      "sha256": "936728f4181718f42951b881c1e8f1386bf6b2723c4fbc533c374d6f42c71816",
+      "licenses": [
+        {
+          "license": {
+            "name": "MIT Kerberos BSD-2-Clause and incorporated per-file licence catalogue"
+          }
+        }
+      ],
+      "basis": "Original leading grant has two redistribution conditions; numerous incorporated notices remain in the complete original, not replaced by that leading grant alone.",
+      "obligation": "Retain complete copyright/permission/disclaimer and referenced common-license texts. Copyleft binary redistribution requires corresponding source and other applicable terms; that separate distribution gate is not completed by this metadata association."
+    },
+    {
+      "name": "libk5crypto3",
+      "version": "1.20.1-6ubuntu2.10",
+      "file": "doc/libkrb5-3/copyright",
+      "imagePath": "/usr/share/doc/libkrb5-3/copyright",
+      "sha256": "936728f4181718f42951b881c1e8f1386bf6b2723c4fbc533c374d6f42c71816",
+      "licenses": [
+        {
+          "license": {
+            "name": "MIT Kerberos BSD-2-Clause and incorporated per-file licence catalogue"
+          }
+        }
+      ],
+      "basis": "Same installed source package copyright catalogue; keep all incorporated notices.",
+      "obligation": "Retain complete copyright/permission/disclaimer and referenced common-license texts. Copyleft binary redistribution requires corresponding source and other applicable terms; that separate distribution gate is not completed by this metadata association."
+    },
+    {
+      "name": "libkrb5-3",
+      "version": "1.20.1-6ubuntu2.10",
+      "file": "doc/libkrb5-3/copyright",
+      "imagePath": "/usr/share/doc/libkrb5-3/copyright",
+      "sha256": "936728f4181718f42951b881c1e8f1386bf6b2723c4fbc533c374d6f42c71816",
+      "licenses": [
+        {
+          "license": {
+            "name": "MIT Kerberos BSD-2-Clause and incorporated per-file licence catalogue"
+          }
+        }
+      ],
+      "basis": "Original leading grant has two redistribution conditions and full incorporated notices.",
+      "obligation": "Retain complete copyright/permission/disclaimer and referenced common-license texts. Copyleft binary redistribution requires corresponding source and other applicable terms; that separate distribution gate is not completed by this metadata association."
+    },
+    {
+      "name": "libkrb5support0",
+      "version": "1.20.1-6ubuntu2.10",
+      "file": "doc/libkrb5-3/copyright",
+      "imagePath": "/usr/share/doc/libkrb5-3/copyright",
+      "sha256": "936728f4181718f42951b881c1e8f1386bf6b2723c4fbc533c374d6f42c71816",
+      "licenses": [
+        {
+          "license": {
+            "name": "MIT Kerberos BSD-2-Clause and incorporated per-file licence catalogue"
+          }
+        }
+      ],
+      "basis": "Same installed source package copyright catalogue; keep all incorporated notices.",
+      "obligation": "Retain complete copyright/permission/disclaimer and referenced common-license texts. Copyleft binary redistribution requires corresponding source and other applicable terms; that separate distribution gate is not completed by this metadata association."
+    },
+    {
+      "name": "libksba8",
+      "version": "1.6.6-1build1",
+      "file": "doc/libksba8/copyright",
+      "imagePath": "/usr/share/doc/libksba8/copyright",
+      "sha256": "14daf4e5fc2862caf01db3321ac4a6405bde6d8d8013760dff760bee32bb9b1a",
+      "licenses": [
+        {
+          "expression": "LGPL-3.0-or-later OR GPL-2.0-or-later"
+        }
+      ],
+      "basis": "Original library/header section explicitly grants either LGPLv3+ or GPLv2+.",
+      "obligation": "Retain complete copyright/permission/disclaimer and referenced common-license texts. Copyleft binary redistribution requires corresponding source and other applicable terms; that separate distribution gate is not completed by this metadata association."
+    },
+    {
+      "name": "librtmp1",
+      "version": "2.4+20151223.gitfa8646d.1-2build7",
+      "file": "doc/librtmp1/copyright",
+      "imagePath": "/usr/share/doc/librtmp1/copyright",
+      "sha256": "4302abcc1ea1b6cbe8d19c79b892acf78878030220210707c19006828866207c",
+      "licenses": [
+        {
+          "license": {
+            "id": "LGPL-2.1-or-later"
+          }
+        }
+      ],
+      "basis": "Original separately grants LGPL2.1+ for librtmp; GPL2+ applies to the programs, not this library-only payload.",
+      "obligation": "Retain complete copyright/permission/disclaimer and referenced common-license texts. Copyleft binary redistribution requires corresponding source and other applicable terms; that separate distribution gate is not completed by this metadata association."
+    },
+    {
+      "name": "libstdc++6",
+      "version": "14.2.0-4ubuntu2~24.04.1",
+      "file": "canonical-copyrights/gcc-14-copyright",
+      "imagePath": "/usr/share/doc/gcc-14-base/copyright",
+      "sha256": "20390f8a6f3b1e4d7cb45dd8652dabb259bbef688cbad839bcdb0b9ba7252f79",
+      "licenses": [
+        {
+          "expression": "GPL-3.0-or-later WITH GCC-exception-3.1"
+        }
+      ],
+      "basis": "libstdc++-v3 is expressly included in the original runtime-library exception list.",
+      "obligation": "Retain complete copyright/permission/disclaimer and referenced common-license texts. Copyleft binary redistribution requires corresponding source and other applicable terms; that separate distribution gate is not completed by this metadata association."
+    },
+    {
+      "name": "libtasn1-6",
+      "version": "4.19.0-3ubuntu0.24.04.2",
+      "file": "doc/libtasn1-6/copyright",
+      "imagePath": "/usr/share/doc/libtasn1-6/copyright",
+      "sha256": "572ad60ad184d8f52c6dc66d83a61a68f137db560b3452ce00588c9ecf128a65",
+      "licenses": [
+        {
+          "license": {
+            "id": "LGPL-2.1-or-later"
+          }
+        }
+      ],
+      "basis": "Original distinguishes LGPL2.1+ library from GPL3+ command-line/build/test files.",
+      "obligation": "Retain complete copyright/permission/disclaimer and referenced common-license texts. Copyleft binary redistribution requires corresponding source and other applicable terms; that separate distribution gate is not completed by this metadata association."
+    },
+    {
+      "name": "locales",
+      "version": "2.39-0ubuntu8.9",
+      "file": "doc/libc6/copyright",
+      "imagePath": "/usr/share/doc/libc6/copyright",
+      "sha256": "d3c95b56fa33e28b57860580f0baf4e4f4de2a268a2b80f1d031a5191bade265",
+      "licenses": [
+        {
+          "license": {
+            "name": "GNU C Library locale/data per-file copyright catalogue"
+          }
+        }
+      ],
+      "basis": "Locale/data terms are governed by the installed libc copyright's individual notices. Do not apply a single root MPL or generic library GPL grant to data.",
+      "obligation": "Retain complete copyright/permission/disclaimer and referenced common-license texts. Copyleft binary redistribution requires corresponding source and other applicable terms; that separate distribution gate is not completed by this metadata association."
+    },
+    {
+      "name": "openssl",
+      "version": "3.0.13",
+      "file": "canonical-copyrights/openssl-copyright",
+      "imagePath": "/usr/share/doc/libssl3t64/copyright",
+      "sha256": "6a7da622fe0637a334d2a8fc470852d2ffb77d9a2b2f930f854e32a41ad6ef35",
+      "licenses": [
+        {
+          "license": {
+            "id": "Apache-2.0"
+          }
+        }
+      ],
+      "basis": "Exact installed OpenSSL CLI release; Files:* is Apache-2.0. Debian packaging/source-only exceptions in the same original are preserved, not claimed compiled into the CLI.",
+      "obligation": "Retain complete copyright/permission/disclaimer and referenced common-license texts. Copyleft binary redistribution requires corresponding source and other applicable terms; that separate distribution gate is not completed by this metadata association."
+    },
+    {
+      "name": "ubuntu-keyring",
+      "version": "2023.11.28.1",
+      "file": "doc/ubuntu-keyring/copyright",
+      "imagePath": "/usr/share/doc/ubuntu-keyring/copyright",
+      "sha256": "191cdb1291b2fc3b9fdcd8648b16ab7f9e4f15b74dc5b30959a9fdcfb4782b6c",
+      "licenses": [
+        {
+          "license": {
+            "name": "Uncopyrighted archive keys; GPL-2.0-or-later Ubuntu support files"
+          }
+        }
+      ],
+      "basis": "Original expressly states keys are not copyrighted and other support files are GPL2+.",
+      "obligation": "Retain complete copyright/permission/disclaimer and referenced common-license texts. Copyleft binary redistribution requires corresponding source and other applicable terms; that separate distribution gate is not completed by this metadata association."
+    },
+    {
+      "name": "wget",
+      "version": "1.21.4-1ubuntu4.5",
+      "file": "doc/wget/copyright",
+      "imagePath": "/usr/share/doc/wget/copyright",
+      "sha256": "c58cb5a2d94f35f0e9b0f1a038d48b73477aa12782ff17328c21d8a86f5f99d5",
+      "licenses": [
+        {
+          "license": {
+            "name": "GPL-3.0 with Wget's original OpenSSL linking permission"
+          }
+        }
+      ],
+      "basis": "Original provides GPL3 and an express OpenSSL link permission. Preserve its exact wording rather than substituting another project's exception.",
+      "obligation": "Retain complete copyright/permission/disclaimer and referenced common-license texts. Copyleft binary redistribution requires corresponding source and other applicable terms; that separate distribution gate is not completed by this metadata association."
+    }
+  ]
+}

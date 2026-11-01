@@ -1,0 +1,9 @@
+id: RF-028-S2
+title: Serial visual question acceptance
+status: COMPLETED
+allowedPaths: [agent/plans/active/banksystem-three-level-development-control-v1.yaml, agent/plans/active/banksystem-vq01-product-combination-task-package.md, agent/plans/active/banksystem-vq02-customer-login-account-overview-task-package.md, agent/plans/active/banksystem-vq03-customer-transfer-result-task-package.md, agent/plans/active/banksystem-vq04-operations-transaction-lookup-task-package.md, agent/plans/active/banksystem-vq05-cli-author-approve-task-package.md, agent/plans/active/banksystem-vq06-cli-execution-evidence-task-package.md, agent/plans/active/banksystem-vq07-read-only-quality-portal-task-package.md, agent/plans/active/banksystem-vq08-open-source-onboarding-interview-demo-task-package.md, agent/plans/active/banksystem-open-source-task-packages-v1.yaml, docs/design/visual-acceptance/banksystem-v1, docs/architecture/refactoring/batches/RF-028, agent/backlog.yaml, agent/plans/active/v54-implementation-batches.md]
+forbiddenPaths: [apps, services, infra, postgresql, contracts, platform, demo.ps1]
+workSteps: [generate current preview, record prompt and hash, present functions and non-functions, obtain textual owner decision, advance exactly one question]
+verification: [one current question only, image path and sha256 recorded, owner text recorded before next question, no product implementation claim]
+rollback: retain prior confirmed decisions and replace only the current unconfirmed preview
+evidence: docs/architecture/refactoring/batches/RF-028/evidence-index.md

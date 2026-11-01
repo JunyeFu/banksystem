@@ -5,6 +5,6 @@
 - Implement OpenAPI and JSON Schema contracts without silently changing request, response, error, or authorization semantics.
 - All writes enforce authorization, validation, idempotency where required, correlation, audit, and deterministic state transitions.
 - Money uses `BigDecimal`; database changes use Liquibase.
-- Never write directly to Fineract-owned databases. Use `FineractAdapter` and Fineract REST APIs.
+- Never write directly to Fineract-owned databases. Use the Bank Channel Fineract capability ports and Fineract REST APIs.
 - Test hooks remain isolated to `local`/`test` profiles and `ROLE_TEST_SUPPORT`.
 - Run relevant unit and integration tests. For the bank channel service use `mvnw.cmd test` with Java 21.

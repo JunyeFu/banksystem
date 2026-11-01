@@ -1,0 +1,20 @@
+schemaVersion: 1
+id: RF-054
+title: Loan application state-machine closure
+status: OBSERVING
+owner: Codex
+authorizedBy: agent/plans/active/v54-implementation-batches.md
+scope:
+  includePaths: [services/bank-channel-service, contracts/openapi/customer-api.yaml, contracts/openapi/operations-api.yaml, packages/bank-api-client, apps/customer-portal, apps/operations-console, scripts/test/loan-scoring-maker-checker-e2e.ps1, tests/e2e/frontend-customer-experience, docs/architecture/refactoring/batches/RF-054, agent/backlog.yaml, agent/plans/active/v54-implementation-batches.md]
+  excludePaths: [platform/hengzhun-regression-system, postgresql]
+budgets: {maxChangedFiles: 30, maxNewFiles: 16, maxChangedLines: 2200, maxContractsChanged: 2, maxMigrationsAdded: 1, maxOpenModules: 2}
+baseline: {gitCommit: 552b3b8ac517bd5991bff446e72d9f4e87ea9543, dirtyTreeManifest: docs/architecture/refactoring/batches/RF-054/baseline.md, releaseIdentity: UNFROZEN_RF054, capturedAt: "2026-09-23T01:00:00+08:00"}
+architecture: {businessCapability: loan-origination, publicContract: contracts/openapi/customer-api.yaml, dependencyManifest: docs/architecture/refactoring/module-boundaries-v1.yaml, allowedModules: [bank.customer-profile, bank.documents], forbiddenModules: [hengzhun.agent-cli, hengzhun.controller, hengzhun.harness, hengzhun.mcp, hengzhun.worker]}
+mustPreserve: [Fineract remains the banking truth source, Harness state is untouched, maker and checker are distinct, managed services remain running]
+verification:
+  requiredCommands:
+    - {name: java-tests, command: "mvn test as non-root Java 21 container", expectedExitCode: 0, evidence: docs/architecture/refactoring/batches/RF-054/evidence-index.md, blocking: true}
+    - {name: loan-live-chain, command: "powershell -File scripts/test/loan-scoring-maker-checker-e2e.ps1", expectedExitCode: 0, evidence: docs/architecture/refactoring/batches/RF-054/evidence-index.md, blocking: true}
+    - {name: browser-contract, command: "playwright test --grep loan application creates a draft", expectedExitCode: 0, evidence: docs/architecture/refactoring/batches/RF-054/evidence-index.md, blocking: true}
+rollback: {triggerConditions: [invalid loan transition, maker self-approval, duplicate core submit, customer and operations state divergence], recoveryPoint: RF-053 REVIEW implementation, maxRtoMinutes: 30, maxRpoMinutes: 0}
+exceptions: {allowedVagueNames: [], crossModule: ["bank.customerprofile -> Fineract: approved applications submit through FineractAdapter", "bank.documents -> bank.customerprofile: application ownership and DRAFT state are checked by LoanWorkflowService"]}

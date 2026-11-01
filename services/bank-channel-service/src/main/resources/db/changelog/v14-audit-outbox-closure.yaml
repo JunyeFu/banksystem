@@ -1,0 +1,25 @@
+databaseChangeLog:
+  - changeSet:
+      id: v14-audit-hash-version
+      author: RF-052
+      changes:
+        - sql:
+            sql: |
+              ALTER TABLE security_audit_event
+                ADD COLUMN hash_version integer NOT NULL DEFAULT 1;
+              ALTER TABLE security_audit_event
+                ALTER COLUMN hash_version SET DEFAULT 2;
+  - changeSet:
+      id: v14-outbox-claim-and-dead-letter-state
+      author: RF-052
+      changes:
+        - addColumn:
+            tableName: outbox_event
+            columns:
+              - column: { name: claimed_at, type: timestamptz }
+              - column: { name: claim_owner, type: uuid }
+        - sql:
+            sql: |
+              UPDATE outbox_event o
+                 SET status = 'DEAD_LETTERED', published_at = NULL, updated_at = now()
+               WHERE EXISTS (SELECT 1 FROM dead_letter_event d WHERE d.event_id = o.id);

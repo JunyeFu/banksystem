@@ -65,7 +65,7 @@ test('authoring isolates every Midscene visual action instead of retaining scree
   const fs = require('node:fs');
   const path = require('node:path');
   const source = fs.readFileSync(path.resolve(__dirname, '../../worker/src/i10-midscene-candidate-authoring.cjs'), 'utf8');
-  assert.match(source, /const agent = createMidsceneAgent\(page\)/);
+  assert.match(source, /const agent = createMidsceneAgent\(page, agentOptions\)/);
   assert.match(source, /await agent\.destroy\(\)\.catch/);
   assert.doesNotMatch(source, /agent \|\|= createMidsceneAgent/);
 });
@@ -236,11 +236,15 @@ test('browser cleanup is bounded so a stuck Chromium close cannot retain a candi
 });
 
 test('portable visual configuration is mirrored to Midscene OpenAI transport keys', () => {
-  const fs = require('node:fs');
-  const path = require('node:path');
-  const source = fs.readFileSync(path.resolve(__dirname, '../../worker/src/i10-midscene-candidate-authoring.cjs'), 'utf8');
-  assert.match(source, /process\.env\.OPENAI_BASE_URL = visualBaseUrl/);
-  assert.match(source, /process\.env\.OPENAI_API_KEY = visualApiKey/);
+  const { configureVisionModel } = require('../../worker/src/i10-vision-readiness.cjs');
+  const keys = ['MIDSCENE_MODEL_NAME','MIDSCENE_MODEL_BASE_URL','MIDSCENE_MODEL_API_KEY','MIDSCENE_MODEL_FAMILY','OPENAI_BASE_URL','OPENAI_API_KEY','MIDSCENE_MODEL_TIMEOUT','MIDSCENE_MODEL_RETRY_COUNT'];
+  const before = Object.fromEntries(keys.map(key => [key, process.env[key]]));
+  try {
+    configureVisionModel({ VISION_MODEL_NAME: 'mimo-v2.6-flash', VISION_BASE_URL: 'https://visual.invalid/v1', VISION_API_KEY: 'synthetic-secret', VISION_MODEL_FAMILY: 'xiaomi-mimo' });
+    assert.equal(process.env.OPENAI_BASE_URL, 'https://visual.invalid/v1');
+    assert.equal(process.env.OPENAI_API_KEY, 'synthetic-secret');
+    assert.equal(process.env.MIDSCENE_MODEL_RETRY_COUNT, '0');
+  } finally { for (const [key, value] of Object.entries(before)) { if (value === undefined) delete process.env[key]; else process.env[key] = value; } }
 });
 
 test('Midscene diagnostics classify parse errors without retaining raw content', () => {
@@ -260,4 +264,38 @@ test('Midscene diagnostics distinguish timeout, context and transport failures',
   assert.equal(classifyMidsceneError(new Error('request timed out')).errorCode, 'I10_MIDSCENE_MODEL_TIMEOUT');
   assert.equal(classifyMidsceneError(Object.assign(new Error('request too long'), { status: 413 })).errorCode, 'I10_MIDSCENE_CONTEXT_LIMIT_EXCEEDED');
   assert.equal(classifyMidsceneError(Object.assign(new Error('connection reset'), { code: 'ECONNRESET' })).errorCode, 'I10_MIDSCENE_TRANSPORT_FAILED');
+});
+
+test('SDK-wrapped provider errors retain the model/HTTP cause and never leak the response', () => {
+  for (const [message, code, status] of [
+    ['failed to locate element: AI call error: Last error: 400 Unsupported model mimo-v2.5', 'I10_MIDSCENE_MODEL_UNSUPPORTED', 400],
+    ['failed to locate element: AI call error: Last error: 401 Unauthorized private-token', 'I10_MIDSCENE_HTTP_401', 401],
+    ['failed to locate element: AI call error: Last error: 503 Service unavailable', 'I10_MIDSCENE_HTTP_503', 503],
+  ]) {
+    const result = classifyMidsceneError(new Error(message));
+    assert.equal(result.errorCode, code); assert.equal(result.httpStatus, status);
+    assert.equal(result.stage, 'MODEL_TRANSPORT');
+    assert.equal(JSON.stringify(result).includes('private-token'), false);
+  }
+  const nested = { message: 'failed to locate element', dump: { taskInfo: { formatResponse: { errors: ['Last error: 400 Unsupported model mimo-v2.5'] } } } };
+  assert.equal(classifyMidsceneError(nested).errorCode, 'I10_MIDSCENE_MODEL_UNSUPPORTED');
+  assert.equal(classifyMidsceneError(new Error('failed to locate element: no matching button')).errorCode, 'I10_MIDSCENE_TARGET_NOT_FOUND');
+  assert.equal(classifyMidsceneError(new Error('failed to locate element: AI call error: request timed out')).errorCode, 'I10_MIDSCENE_MODEL_TIMEOUT');
+  assert.equal(require('../../worker/src/i10-midscene-candidate-authoring.cjs').I10_MIDSCENE_MAX_LOCATE_ATTEMPTS, 1);
+});
+
+test('actual SDK readiness rejects an unsupported model after one HTTP call with a safe receipt', async () => {
+  const http = require('node:http'), path = require('node:path'), { promisify } = require('node:util'), { execFile } = require('node:child_process');
+  let calls = 0;
+  const server = http.createServer((req, res) => { calls++; req.resume(); res.writeHead(400, { 'content-type': 'application/json' }); res.end(JSON.stringify({ error: { code: '400', message: 'Unsupported model synthetic-missing' } })); });
+  await new Promise(resolve => server.listen(0, '127.0.0.1', resolve));
+  try {
+    const env = { ...process.env, VISION_MODEL_NAME: 'synthetic-missing', VISION_MODEL_FAMILY: 'xiaomi-mimo', VISION_BASE_URL: `http://127.0.0.1:${server.address().port}/v1`, VISION_API_KEY: 'synthetic-secret' };
+    await assert.rejects(promisify(execFile)(process.execPath, [path.resolve(__dirname, '../../worker/src/i10-vision-readiness.cjs')], { env, timeout: 20000, windowsHide: true }), error => {
+      assert.equal(error.code, 3);
+      assert.deepEqual(JSON.parse(error.stdout), { status: 'NOT_READY', code: 'I10_MIDSCENE_MODEL_UNSUPPORTED' });
+      assert.equal(error.stdout.includes('synthetic-secret'), false); return true;
+    });
+    assert.equal(calls, 1);
+  } finally { server.closeAllConnections(); await new Promise(resolve => server.close(resolve)); }
 });

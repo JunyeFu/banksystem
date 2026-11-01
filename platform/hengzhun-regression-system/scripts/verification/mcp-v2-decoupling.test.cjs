@@ -20,16 +20,18 @@ function toolBlock(name) {
 test('MCP resolves its exact SDK from the product root without Flowise fallback', () => {
   const pkg = JSON.parse(fs.readFileSync(path.join(root, 'package.json'), 'utf8'))
   const sdk = require.resolve('@modelcontextprotocol/sdk/server/mcp.js', { paths: [root] })
-  assert.equal(pkg.dependencies['@modelcontextprotocol/sdk'], '1.30.0')
+  const installed = JSON.parse(fs.readFileSync(path.resolve(path.dirname(sdk), '../../../package.json'), 'utf8'))
+  assert.match(pkg.dependencies['@modelcontextprotocol/sdk'], /^\d+\.\d+\.\d+$/)
+  assert.equal(installed.version, pkg.dependencies['@modelcontextprotocol/sdk'])
   assert.match(sdk, /hengzhun-regression-system[\\/]node_modules[\\/]@modelcontextprotocol[\\/]sdk/)
   assert.doesNotMatch(source, /FLOWISE_APP_PATH|runtimeRequire|flowiseAppPath/)
 })
 
-test('35-tool v2 surface has pure candidate, preview and inbox reads', () => {
+test('39-tool v2 surface has pure candidate, preview, inbox and evidence reads', () => {
   const contract = JSON.parse(fs.readFileSync(path.join(root, 'contracts/mcp/hengzhun-i8.json'), 'utf8'))
   const runtime = [...source.matchAll(/server\.registerTool\('([^']+)'/g)].map(match => match[1])
-  assert.equal(contract.tools.length, 35)
-  assert.equal(new Set(runtime).size, 35)
+  assert.equal(contract.tools.length, 39)
+  assert.equal(new Set(runtime).size, 39)
   assert.deepEqual([...runtime].sort(), contract.tools.map(tool => tool.name).sort())
   assert.doesNotMatch(toolBlock('candidate_get'), /candidates:compile|authoring:get|retryFailed/)
   assert.match(toolBlock('candidate_compile'), /candidates:compile/)

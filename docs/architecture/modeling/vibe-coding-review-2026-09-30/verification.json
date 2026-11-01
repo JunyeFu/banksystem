@@ -1,0 +1,41 @@
+{
+  "scope": "Model review only; no bank, BYOK, Docker, DB, credential or LIVE access",
+  "reviewValidation": {
+    "date": "2026-09-30",
+    "documentation": "DOC_VALIDATION=PASS metadata=674 links=192 stale_checks=5313 order_files=685 refactoring=True",
+    "drawio": "DRAWIO_XML=PASS pages=8; unique cell IDs and all edge endpoints/geometry checked",
+    "rendering": "8 SVG and 8 PNG rendered locally; 88 nodes and 78 edges",
+    "visualInspection": ["ideal/actual comparison", "loan semantic gap", "actual Agent pipeline"],
+    "findings": {"directlyObserved": 9, "designDeviation": 5, "failureWindowRequiringInjection": 3},
+    "note": "Point-in-time review checks; counterexamples.mjs regenerates only the static-counterexample record"
+  },
+  "counterexamples": [
+    {
+      "id": "M04",
+      "level": "STATIC_COUNTEREXAMPLE",
+      "observation": "length-valid key containing quote creates invalid JSON; no HTTP or DB call"
+    },
+    {
+      "id": "M01-M03",
+      "level": "SOURCE_ASSERTION",
+      "observation": "method absent in command, amortization fixed, per-period rate first, limit24 present; Java parser not executed"
+    },
+    {
+      "id": "M05",
+      "level": "SOURCE_ASSERTION",
+      "observation": "unannotated public entry self-invokes transactional overload; no transaction failure injection performed"
+    },
+    {
+      "id": "M14",
+      "level": "SOURCE_ASSERTION",
+      "observation": "release projection empty and overview fixed PENDING; no SQLite data read"
+    }
+  ],
+  "notPerformed": [
+    "bank LIVE reproduction",
+    "loan core mutation",
+    "EOD fault injection",
+    "Full18",
+    "release verification"
+  ]
+}

@@ -156,6 +156,23 @@ test('journey freezes an explicit registered adapter selection in the CaseDraft'
     supportingImages:[],draftJson:draft,interactionContractVersion:'v4'
   },{requestId:'request-explicit-adapter-001',actorType:'COZE'})
   assert.equal(result.caseDraft.adapterSelection,'fuxing-bank-demo')
+  assert.equal(result.stage,'NEEDS_INPUT')
+  assert.equal(result.caseDraft.confirmationStatus,'DRAFT')
+  assert.ok(result.missingFields.includes('businessInputs.amount'))
+  assert.ok(!result.allowedActions.includes('APPROVE_CASE'))
+})
+
+test('journey freezes a structured explicit adapter selection without inferring it from target text', async t => {
+  const f = await fixture()
+  t.after(async() => { await f.database.close(); fs.rmSync(f.root,{recursive:true,force:true}) })
+  const draft = validDraft(f.credentialRef)
+  const result = await f.service.prepareJourney({
+    namespace:f.namespace,idempotencyKey:'journey-structured-adapter-001',sessionRef:'session-structured-adapter-001',
+    requestIntent:'CASE_AUTHORING',inputType:'NATURAL_LANGUAGE',naturalLanguage:'验证账户余额。',
+    entryUrl:draft.entryUrl,targetSystem:draft.targetSystem,credentialRef:f.credentialRef,
+    adapterSelection:'fuxing-bank-demo',supportingImages:[],draftJson:draft,interactionContractVersion:'v6'
+  },{requestId:'request-structured-adapter-001',actorType:'CLI'})
+  assert.equal(result.caseDraft.adapterSelection,'fuxing-bank-demo')
 })
 
 test('INITIAL_CASE_INPUT derives adapter selection from explicit language and ignores a forged draft field', async t => {
@@ -797,9 +814,11 @@ test('schedule creation binds one confirmed Journey event and projection ignores
     namespace:f.namespace,idempotencyKey:'bound-schedule-create-a',preparationId:binding.prepared.preparationId,
     journeyId:confirmed.journeyId,confirmedDecisionEventId:confirmed.references.confirmedDecisionEventId,
     scheduleType:'RECURRING',cronExpression:execution.cronExpression,timezone:execution.timezone,
-    misfirePolicy:'SKIP',misfireGraceSeconds:300,maxRetries:1,confirmationRef:'bound-schedule-confirm-a'
+    misfirePolicy:'SKIP',misfireGraceSeconds:300,maxRetries:0,confirmationRef:'bound-schedule-confirm-a'
   },{requestId:'request-bound-schedule-create-a',actorType:'COZE'})
   const scheduleId = created.response.scheduleId
+  assert.equal(created.response.version,1)
+  assert.equal(created.response.maxRetries,0)
   const db = f.database.connection
   const persisted = db.prepare(`SELECT journey_id,confirmed_decision_event_id,preparation_id,candidate_id
     FROM schedules WHERE schedule_id=?`).get(scheduleId)
@@ -844,7 +863,7 @@ test('ONE_TIME RUN_ONCE_WITHIN_GRACE persists the exact semantics while mapping 
     namespace:f.namespace,idempotencyKey:'bound-schedule-grace',preparationId:binding.prepared.preparationId,
     journeyId:confirmed.journeyId,confirmedDecisionEventId:confirmed.references.confirmedDecisionEventId,
     scheduleType:'ONE_TIME',runAt,timezone:execution.timezone,
-    misfirePolicy:'RUN_ONCE_WITHIN_GRACE',misfireGraceSeconds:300,maxRetries:1,
+    misfirePolicy:'RUN_ONCE_WITHIN_GRACE',misfireGraceSeconds:300,maxRetries:0,
     confirmationRef:'bound-schedule-grace-confirm'
   },{requestId:'request-bound-schedule-grace',actorType:'COZE'})
   assert.equal(created.response.misfirePolicy,'RUN_ONCE_WITHIN_GRACE')
@@ -853,6 +872,59 @@ test('ONE_TIME RUN_ONCE_WITHIN_GRACE persists the exact semantics while mapping 
   assert.equal(persisted.misfire_policy,'RUN_ONCE')
   assert.equal(persisted.misfire_semantics,'RUN_ONCE_WITHIN_GRACE')
   assert.equal(persisted.deadline_at,new Date(new Date(runAt).getTime()+300_000).toISOString())
+})
+
+test('stability validation failure projects its exact error instead of polling the Journey forever',async t => {
+  const f = await fixture()
+  t.after(async()=>{await f.database.close();fs.rmSync(f.root,{recursive:true,force:true})})
+  const draft = validDraft(f.credentialRef)
+  const journey = await f.service.prepareJourney({
+    namespace:f.namespace,idempotencyKey:'journey-stability-failed-001',sessionRef:'session-stability-failed-001',
+    requestIntent:'CASE_AUTHORING',inputType:'NATURAL_LANGUAGE',naturalLanguage:'验证登录后账户概览',
+    entryUrl:draft.entryUrl,targetSystem:draft.targetSystem,credentialRef:f.credentialRef,
+    supportingImages:[],draftJson:draft,interactionContractVersion:'v4'
+  },{requestId:'request-stability-failed-001',actorType:'COZE'})
+  await f.service.decideJourney({
+    namespace:f.namespace,idempotencyKey:'journey-stability-failed-approve-001',
+    journeyId:journey.journeyId,expectedVersion:journey.version,decision:'APPROVE_CASE',
+    proposalId:journey.proposal.proposalId,payloadHash:journey.proposal.payloadHash,
+    confirmationRef:'stability-failed-approve-001',payload:{}
+  },{requestId:'request-stability-failed-002',actorType:'COZE'})
+  const prepared = await f.service.prepareNaturalLanguage({
+    namespace:f.namespace,idempotencyKey:'case-stability-failed-001',actorRef:'cli-controller',
+    journeyId:journey.journeyId,caseDescription:'验证登录后账户概览',draft
+  },{requestId:'request-stability-failed-003',actorType:'COZE'})
+  const now = new Date().toISOString()
+  const db = f.database.connection
+  db.prepare(`INSERT INTO i8_executable_plans(
+      executable_plan_id,namespace,preparation_id,case_id,case_version,intent_plan_hash,
+      plan_json,plan_hash,status,version,created_at,updated_at
+    ) VALUES ('eap_stability_failed',?,?,?,1,?,'{}',?,'CANDIDATE_GENERATED',1,?,?)`)
+    .run(f.namespace,prepared.preparationId,prepared.caseId,'6'.repeat(64),'7'.repeat(64),now,now)
+  db.prepare(`INSERT INTO i8_candidate_build_jobs(
+      job_id,namespace,executable_plan_id,status,attempt_count,error_code,version,created_at,updated_at,completed_at,stability_policy_version
+    ) VALUES ('buildjob_stability_failed',?,'eap_stability_failed','COMPLETED',1,NULL,3,?,?,?,'I10_2X2_V1')`)
+    .run(f.namespace,now,now,now)
+  db.prepare(`INSERT INTO i8_script_candidates(
+      candidate_id,namespace,executable_plan_id,script_id,script_version,dsl_version,dsl_json,dsl_hash,
+      generator_version,relative_directory,script_sha256,manifest_json,manifest_sha256,source_chain_hash,
+      status,version,created_at,updated_at
+    ) VALUES ('candidate_stability_failed',?,'eap_stability_failed','script_stability_failed',1,
+      'HENGZHUN_DSL_V1','{}',?,'test','.data/candidates/stability-failed',?,'{}',?,?,
+      'VALIDATION_FAILED',3,?,?)`)
+    .run(f.namespace,'8'.repeat(64),'9'.repeat(64),'a'.repeat(64),'b'.repeat(64),now,now)
+  db.prepare(`INSERT INTO i8_stability_batches(
+      batch_id,namespace,candidate_id,status,error_code,version,created_at,updated_at,completed_at
+    ) VALUES ('stability_failed',?,'candidate_stability_failed','FAILED','STABILITY_BROWSER_TIMEOUT',3,?,?,?)`)
+    .run(f.namespace,now,now,now)
+
+  const projected = await f.service.getJourney({namespace:f.namespace,journeyId:journey.journeyId,waitSeconds:0})
+  assert.equal(projected.stage,'FAILED_ACTIONABLE')
+  assert.equal(projected.status,'FAILED')
+  assert.equal(projected.nextAction.type,'RETRY_AUTHORING')
+  assert.equal(projected.error.errorCode,'STABILITY_BROWSER_TIMEOUT')
+  assert.equal(projected.error.category,'STABILITY')
+  assert.equal(projected.references.stabilityBatchId,'stability_failed')
 })
 
 test('historical execution Journey without an immutable decision link fails closed instead of guessing by time',async t => {

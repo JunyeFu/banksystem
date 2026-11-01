@@ -1,0 +1,19 @@
+schemaVersion: 1
+id: RF-052
+title: Audit chain and event delivery closure
+status: OBSERVING
+owner: Codex
+authorizedBy: agent/plans/active/v54-implementation-batches.md
+scope:
+  includePaths: [services/bank-channel-service, contracts/asyncapi/bank-events.yaml, docs/architecture/refactoring/batches/RF-052, agent/backlog.yaml, agent/plans/active/v54-implementation-batches.md]
+  excludePaths: [platform/hengzhun-regression-system, postgresql, infra]
+budgets: {maxChangedFiles: 20, maxNewFiles: 14, maxChangedLines: 1800, maxContractsChanged: 1, maxMigrationsAdded: 1, maxOpenModules: 2}
+baseline: {gitCommit: 552b3b8ac517bd5991bff446e72d9f4e87ea9543, dirtyTreeManifest: docs/architecture/refactoring/batches/RF-052/baseline.md, releaseIdentity: UNFROZEN_RF052, capturedAt: "2026-09-22T23:00:00+08:00"}
+architecture: {businessCapability: audit-event-delivery, publicContract: contracts/asyncapi/bank-events.yaml, dependencyManifest: docs/architecture/refactoring/module-boundaries-v1.yaml, allowedModules: [bank.audit, bank.payments], forbiddenModules: [hengzhun.agent-cli, hengzhun.controller, hengzhun.harness, hengzhun.mcp, hengzhun.worker]}
+mustPreserve: [legacy audit hashes remain verifiable, event delivery is at least once with consumer deduplication, dead letters are not reported as published, managed services remain running]
+verification:
+  requiredCommands:
+    - {name: java-tests, command: "docker run --rm --user 1000:1000 -e HOME=/tmp -v ${PWD}:/workspace -v ${USERPROFILE}/.m2:/tmp/m2 -w /workspace/services/bank-channel-service --entrypoint mvn maven:3.9.9-eclipse-temurin-21 -q \"-Dmaven.repo.local=/tmp/m2\" test", expectedExitCode: 0, evidence: docs/architecture/refactoring/batches/RF-052/evidence-index.md, blocking: true}
+    - {name: docs, command: "py -3 scripts/docs/validate_docs.py", expectedExitCode: 0, evidence: docs/architecture/refactoring/batches/RF-052/evidence-index.md, blocking: true}
+rollback: {triggerConditions: [audit chain verification failure, duplicate publisher delivery, dead letter reported as published], recoveryPoint: RF-051 REVIEW implementation, maxRtoMinutes: 30, maxRpoMinutes: 0}
+exceptions: {allowedVagueNames: [], crossModule: ["bank.payments -> bank.audit: transfer lifecycle records immutable audit facts"]}

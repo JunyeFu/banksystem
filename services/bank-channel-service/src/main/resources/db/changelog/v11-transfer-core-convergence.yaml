@@ -1,0 +1,34 @@
+databaseChangeLog:
+  - changeSet:
+      id: v11-1-rename-ledger-projection
+      author: Codex
+      preConditions:
+        - onFail: MARK_RAN
+        - tableExists:
+            tableName: ledger_entry
+        - not:
+            - tableExists:
+                tableName: transfer_accounting_projection
+      changes:
+        - renameTable:
+            oldTableName: ledger_entry
+            newTableName: transfer_accounting_projection
+        - addUniqueConstraint:
+            tableName: transfer_accounting_projection
+            columnNames: transfer_id, account_id
+            constraintName: uq_transfer_accounting_projection_account
+
+  - changeSet:
+      id: v11-2-core-result-convergence
+      author: Codex
+      changes:
+        - addColumn:
+            tableName: transfer_order
+            columns:
+              - column:
+                  name: core_submission_started_at
+                  type: timestamptz
+              - column:
+                  name: core_verified_at
+                  type: timestamptz
+      comment: Persist the irreversible submission boundary and authoritative Fineract readback time.

@@ -1,0 +1,21 @@
+databaseChangeLog:
+  - changeSet:
+      id: v9-customer-identity-many-to-one
+      author: RF-030
+      comment: Permit stable fixture and authenticated Keycloak subjects to map to one Fineract client.
+      preConditions:
+        - onFail: HALT
+        - tableExists:
+            tableName: customer_identity
+        - uniqueConstraintExists:
+            tableName: customer_identity
+            constraintName: customer_identity_fineract_client_id_key
+      changes:
+        - dropUniqueConstraint:
+            tableName: customer_identity
+            constraintName: customer_identity_fineract_client_id_key
+      rollback:
+        - addUniqueConstraint:
+            tableName: customer_identity
+            columnNames: fineract_client_id
+            constraintName: customer_identity_fineract_client_id_key

@@ -3,8 +3,7 @@ import { readFileSync } from 'node:fs'
 import { createRequire } from 'node:module'
 
 import { Command, END, MemorySaver, START, StateGraph, Annotation, interrupt } from '@langchain/langgraph'
-import { createDeepAgent, registerHarnessProfile } from 'deepagents'
-import { tool } from 'langchain'
+import { createAgent, tool } from 'langchain'
 import { z } from 'zod'
 import { createControllerSecurity } from './state-security.mjs'
 
@@ -12,11 +11,6 @@ const require = createRequire(import.meta.url)
 const { assertResumeInput, assertStartInput } = require('./controller-port.cjs')
 const { loadToolPolicy } = require('./tool-policy.cjs')
 const CONTROLLER_SYSTEM_PROMPT = readFileSync(new URL('../prompt-v1.txt', import.meta.url), 'utf8').trim()
-
-const FORBIDDEN_DEEP_AGENT_TOOLS = Object.freeze([
-  'ls', 'read_file', 'write_file', 'edit_file', 'glob', 'grep', 'execute', 'task', 'write_todos',
-])
-const registeredProfiles = new Set()
 
 const State = Annotation.Root({
   threadId: Annotation(),
@@ -77,7 +71,7 @@ function exactDecisionFailure(state, now) {
   return undefined
 }
 
-export function createBoundedDeepAgentPlanner({
+export function createBoundedPlanner({
   model,
   modelProfileKey,
   invokeReadTool,
@@ -86,14 +80,6 @@ export function createBoundedDeepAgentPlanner({
   if (!model || typeof modelProfileKey !== 'string' || typeof invokeReadTool !== 'function') {
     throw new Error('AGENT_CONTROLLER_PLANNER_CONFIG_INVALID')
   }
-  if (!registeredProfiles.has(modelProfileKey)) {
-    registerHarnessProfile(modelProfileKey, {
-      excludedTools: [...FORBIDDEN_DEEP_AGENT_TOOLS],
-      generalPurposeSubagent: { enabled: false },
-    })
-    registeredProfiles.add(modelProfileKey)
-  }
-
   const readNames = [...toolPolicy.plannerTools]
   const mutationNames = [...toolPolicy.mutatingTools]
   const planSchema = z.object({
@@ -113,10 +99,9 @@ export function createBoundedDeepAgentPlanner({
       arguments: z.record(z.string(), z.unknown()).default({}),
     }),
   })
-  const agent = createDeepAgent({
+  const agent = createAgent({
     model,
     tools: [governedRead],
-    subagents: [],
     responseFormat: planSchema,
     systemPrompt: CONTROLLER_SYSTEM_PROMPT,
   })
@@ -376,5 +361,3 @@ export function createAgentController({
     safeTraces: () => effectiveSecurity.traces(),
   })
 }
-
-export { FORBIDDEN_DEEP_AGENT_TOOLS }

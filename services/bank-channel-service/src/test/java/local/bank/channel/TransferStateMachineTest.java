@@ -31,6 +31,9 @@ class TransferStateMachineTest {
   @Test
   void pendingClearingCanTransitionToSettled() {
     assertTrue(isAllowed("PENDING_CLEARING", "SETTLED"));
+    assertTrue(isAllowed("PENDING_CLEARING", "CORE_RESULT_UNKNOWN"));
+    assertTrue(isAllowed("CORE_RESULT_UNKNOWN", "SETTLED"));
+    assertTrue(isAllowed("CORE_RESULT_UNKNOWN", "FAILED"));
   }
 
   @Test
@@ -44,8 +47,12 @@ class TransferStateMachineTest {
   }
 
   @Test
-  void settledCannotTransitionToReturned() {
+  void returnRequiresPendingThenConfirmed() {
     assertFalse(isAllowed("SETTLED", "RETURNED"));
+    assertTrue(isAllowed("SETTLED", "RETURN_PENDING"));
+    assertTrue(isAllowed("RETURN_PENDING", "RETURN_RESULT_UNKNOWN"));
+    assertTrue(isAllowed("RETURN_PENDING", "RETURNED"));
+    assertTrue(isAllowed("RETURN_RESULT_UNKNOWN", "RETURNED"));
   }
 
   @Test
@@ -80,12 +87,12 @@ class TransferStateMachineTest {
     when(jdbc.update(anyString(), any(Object[].class))).thenReturn(1);
     UUID transferId = UUID.randomUUID();
 
-    new TransferStateMachine(jdbc).transitionState(
+    new TransferStateMachine(new local.bank.channel.payments.statemachine.TransferStateRepository(jdbc)).transitionState(
         transferId, Status.CREATED, Status.VALIDATING, "SYSTEM", "test");
 
     verify(jdbc).update(
         startsWith("INSERT INTO outbox_event(id,transfer_id,aggregate_type,aggregate_id"),
-        eq(transferId), eq(transferId), eq("Transfer"), eq(transferId),
+        any(UUID.class), eq(transferId), eq("Transfer"), eq(transferId),
         eq("transfer.status.changed"), eq(1), anyString(), eq("{}"), eq("PENDING"));
   }
 

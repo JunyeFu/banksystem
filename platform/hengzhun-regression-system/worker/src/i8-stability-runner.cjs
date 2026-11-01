@@ -3,25 +3,14 @@
 const crypto = require('node:crypto');
 const fs = require('node:fs');
 const path = require('node:path');
-const { assertTargetUrlResolution, chromiumHostResolverRules } = require('./i10-worker-utils.cjs');
+const { assertTargetUrlResolution, chromiumHostResolverRules, targetRuntimeAllowedOrigins } = require('./i10-worker-utils.cjs');
 const { executeCandidatePackage } = require('./i8-candidate-runner.cjs');
-const { resolveCredential } = require('./i10-worker-utils.cjs');
+const { resolveCredential, bankValidationFixtureValues, assertBankValidationLease } = require('./i10-worker-utils.cjs');
 const { policyForAction } = require('./i10-verification-policy.cjs');
 const { runVerificationPolicy, verificationModes } = require('./i10-verification-execution.cjs');
 
 function stabilityAllowedOrigins(targetProfile, baseUrl) {
-  const origins = new Set(targetProfile
-    ? [
-        ...(Array.isArray(targetProfile.allowedNavigationOrigins) ? targetProfile.allowedNavigationOrigins : []),
-        ...(Array.isArray(targetProfile.allowedInteractionOrigins) ? targetProfile.allowedInteractionOrigins : []),
-        ...(Array.isArray(targetProfile.credentialOrigins) ? targetProfile.credentialOrigins : [])
-      ]
-    : [new URL(baseUrl).origin, 'http://127.0.0.1:18443', 'http://127.0.0.1:19000']);
-  const adapter = targetProfile?.adapterBinding;
-  if (adapter?.adapterId === 'fuxing-bank-demo' && adapter?.adapterVersion === '1.0.0') {
-    origins.add('http://127.0.0.1:19000');
-  }
-  return [...origins];
+  return [...targetRuntimeAllowedOrigins(targetProfile, baseUrl)];
 }
 
 const VIEWPORTS = Object.freeze([
@@ -72,6 +61,17 @@ function assertClaim(claim) {
     fixtures.add(run.fixtureRef);
   }
   if (expected.size !== 0) fail('STABILITY_RUN_SET_INCOMPLETE', '稳定性样本集合不完整。', 'CONTRACT');
+  if(claim.bankValidationFixtures) {
+    const {bankValidationFixturesSchema}=require('../../dist/harness/src/i10/schemas.js');
+    const parsed=bankValidationFixturesSchema.safeParse(claim.bankValidationFixtures);
+    if(!parsed.success||claim.stabilityPolicyVersion!=='I10_2X2_V1')fail('I10_BANK_VALIDATION_BINDING_INVALID','资金稳定性样本池不完整或不独立。','CONTRACT');
+    for(const run of claim.runs) {
+      const fixture=parsed.data.stability.find(item=>item.viewportId===run.viewportId&&item.sequenceNo===run.sequenceNo)?.fixture;
+      if(!fixture||run.fixtureRef!==fixture.fixtureId||run.credentialRef!==fixture.credentialRef||!run.validationFixture||
+        Object.keys(fixture).some(key=>run.validationFixture[key]!==fixture[key]))
+        fail('I10_BANK_VALIDATION_BINDING_INVALID','资金稳定性Claim与冻结样本不符。','CONTRACT');
+    }
+  } else if(claim.runs.some(run=>run.validationFixture))fail('I10_BANK_VALIDATION_BINDING_REQUIRED','资金样本不能降级为共用登录的历史验证。','CONTRACT');
 }
 
 function runtimeFingerprint(productRoot, executablePath) {
@@ -117,6 +117,7 @@ function evidenceDescriptor(productRoot, target, artifactType, mediaType) {
 }
 
 async function executeRun(browser, claim, run, options, credential, fingerprint) {
+  if(claim.bankValidationFixtures)assertBankValidationLease(claim);
   const started = Date.now();
   const context = await browser.newContext({
     locale: 'zh-CN',
@@ -132,7 +133,12 @@ async function executeRun(browser, claim, run, options, credential, fingerprint)
   }
   const base = new URL(options.baseUrl);
   const allowedOrigins = new Set(options.allowedOrigins || [base.origin, 'http://127.0.0.1:18443', 'http://127.0.0.1:19000']);
+  let bankLeaseRejected=false;
   await context.route('**/*', async route => {
+    if(run.validationFixture && !(Date.parse(claim.leaseExpiresAt)>Date.now()) && !['GET','HEAD'].includes(route.request().method())) {
+      bankLeaseRejected=true;
+      return route.abort('blockedbyclient');
+    }
     const url = new URL(route.request().url());
     if (['data:', 'blob:'].includes(url.protocol) || allowedOrigins.has(url.origin)) return route.continue();
     return route.abort('blockedbyclient');
@@ -153,6 +159,7 @@ async function executeRun(browser, claim, run, options, credential, fingerprint)
       baseUrl: options.baseUrl,
       page,
       fixtures: {
+        ...(run.validationFixture ? bankValidationFixtureValues(run.validationFixture):{}),
         'LOGIN_PROFILE.USERNAME': credential.username,
         'LOGIN_PROFILE.PASSWORD': credential.password,
         'CREDENTIAL.USERNAME': credential.username,
@@ -161,7 +168,9 @@ async function executeRun(browser, claim, run, options, credential, fingerprint)
       capture: async (_name, currentPage) => {
         screenshot = await currentPage.screenshot({
           fullPage: true,
-          mask: options.genericTarget ? [
+          mask: [
+            ...(run.validationFixture ? [currentPage.locator('input[type="password"], input[name="username"]')]:[]),
+            ...(options.genericTarget ? [
             currentPage.locator('input[type="password"]'),
             currentPage.locator('input[autocomplete*="username"],input[autocomplete*="email"],input[autocomplete*="tel"]')
           ] : [
@@ -172,6 +181,7 @@ async function executeRun(browser, claim, run, options, credential, fingerprint)
             currentPage.getByTestId('profile-customer-id'),
             currentPage.getByTestId('profile-email'),
             currentPage.getByTestId('profile-phone')
+          ])
           ],
           maskColor: '#202020'
         });
@@ -198,7 +208,8 @@ async function executeRun(browser, claim, run, options, credential, fingerprint)
     });
     facts = result.facts;
     outcome = result.outcome === 'PASSED' ? 'PASSED' : 'FAILED';
-    if (outcome !== 'PASSED') errorCode = 'STABILITY_CANDIDATE_FAILED';
+    if(bankLeaseRejected) {outcome='FAILED';errorCode='I10_BANK_VALIDATION_LEASE_EXPIRED';}
+    if (outcome !== 'PASSED' && !bankLeaseRejected) errorCode = 'STABILITY_CANDIDATE_FAILED';
     if (options.forceFailureValidationRunId === run.validationRunId) {
       outcome = 'FAILED';
       errorCode = 'I10_ACCEPTANCE_STABILITY_SAMPLE_FAILED';
@@ -208,12 +219,16 @@ async function executeRun(browser, claim, run, options, credential, fingerprint)
     screenshot = await page.screenshot({
       fullPage: true,
       mask: [
+        ...(run.validationFixture?[page.locator('input[type="password"], input[name="username"]')]:[]),
         page.getByTestId('login-username'), page.getByTestId('login-password'),
         page.getByTestId('customer-profile-name'), page.getByTestId('customer-profile-avatar'),
         page.getByTestId('profile-display-name'), page.getByTestId('profile-avatar')
       ],
       maskColor: '#202020'
-    }).catch(() => SCREENSHOT_UNAVAILABLE_PNG);
+    }).catch(() => {
+      if(run.validationFixture)fail('I10_BANK_VALIDATION_SCREENSHOT_UNAVAILABLE','资金失败现场截图不可用，不能用占位图替代。','EVIDENCE');
+      return SCREENSHOT_UNAVAILABLE_PNG;
+    });
   } finally {
     await context.close();
   }
@@ -249,6 +264,7 @@ async function executeRun(browser, claim, run, options, credential, fingerprint)
   const screenshotPath = path.join(directory, 'screenshot.png');
   const logPath = path.join(directory, 'steps.log');
   writeAtomic(reportPath, Buffer.from(JSON.stringify(report, null, 2), 'utf8'));
+  if(run.validationFixture&&!screenshot)fail('I10_BANK_VALIDATION_SCREENSHOT_UNAVAILABLE','资金验证没有真实现场截图。','EVIDENCE');
   writeAtomic(screenshotPath, screenshot || SCREENSHOT_UNAVAILABLE_PNG);
   writeAtomic(logPath, Buffer.from(log, 'utf8'));
   return {
@@ -271,7 +287,33 @@ async function executeRun(browser, claim, run, options, credential, fingerprint)
   };
 }
 
+async function resolveStabilityExecution(claim,run,options) {
+  if(!claim.bankValidationFixtures)return {credential:options.credential||resolveCredential(claim.credentialAlias,options.environment||process.env)};
+  assertBankValidationLease(claim);
+  const expected=claim.bankValidationFixtures.stability.find(item=>item.fixture.fixtureId===run.fixtureRef)?.fixture;
+  if(!expected || !run.validationFixture || run.credentialRef!==expected.credentialRef ||
+    Object.keys(expected).some(key=>run.validationFixture[key]!==expected[key]))
+    fail('I10_BANK_VALIDATION_BINDING_INVALID','稳定性样本与冻结银行绑定不符。','CONTRACT');
+  if(typeof options.resolveCredential!=='function')fail('I10_BANK_VALIDATION_CREDENTIAL_RESOLVER_REQUIRED','资金样本必须逐个解析其已登记凭据。','SECURITY');
+  const credential=await options.resolveCredential(run.credentialRef);
+  if(!credential?.username||!credential?.password)fail('STABILITY_CREDENTIAL_UNAVAILABLE','资金样本凭据不可用。','SECURITY');
+  return {credential,fixtureValues:bankValidationFixtureValues(run.validationFixture)};
+}
+
+function bankStabilityFailureReceipt(claim,error,runs=[],fingerprint,workerId=claim.leaseOwner) {
+  if(!claim.bankValidationFixtures || !claim.runs?.[runs.length])throw error;
+  const errorCode=/^[A-Z][A-Z0-9_]{0,159}$/.test(error?.code||'')?error.code:'I10_BANK_STABILITY_EXECUTION_FAILED';
+  return {workerId,candidateId:claim.candidateId,scriptHash:claim.scriptHash,
+    ...(fingerprint?{runtimeFingerprint:fingerprint}:{}),runs,stoppedAfterFailure:true,
+    executionFailure:{validationRunId:claim.runs[runs.length].validationRunId,errorCode}};
+}
+
 async function executeStabilityBatch(claim, options = {}) {
+  try {return await executeStabilityBatchInternal(claim,options);}
+  catch(error) {return bankStabilityFailureReceipt(claim,error,[],undefined,options.workerId||claim.leaseOwner);}
+}
+
+async function executeStabilityBatchInternal(claim, options) {
   assertClaim(claim);
   const productRoot = path.resolve(options.productRoot || path.resolve(__dirname, '..', '..'));
   const runtimeProductRoot = path.resolve(options.runtimeProductRoot || path.resolve(__dirname, '..', '..'));
@@ -296,8 +338,8 @@ async function executeStabilityBatch(claim, options = {}) {
       await assertTargetUrlResolution(origin, targetProfile);
     }
   }
-  const credential = options.credential || resolveCredential(claim.credentialAlias, options.environment || process.env);
-  if (!credential?.username || !credential?.password) fail('STABILITY_CREDENTIAL_UNAVAILABLE', '稳定性运行凭据不可用。', 'SECURITY');
+  const credential = claim.bankValidationFixtures ? undefined : options.credential || resolveCredential(claim.credentialAlias, options.environment || process.env);
+  if (!claim.bankValidationFixtures&&(!credential?.username || !credential?.password)) fail('STABILITY_CREDENTIAL_UNAVAILABLE', '稳定性运行凭据不可用。', 'SECURITY');
   const fingerprint = runtimeFingerprint(runtimeProductRoot, executablePath);
   const browser = await loadChromium().launch({
     executablePath,
@@ -311,6 +353,8 @@ async function executeStabilityBatch(claim, options = {}) {
   }
   try {
     for (const run of claim.runs) {
+      try {
+      const execution=claim.bankValidationFixtures ? await resolveStabilityExecution(claim,run,options):{credential};
       results.push(await executeRun(browser, claim, run, {
         ...options,
         productRoot,
@@ -320,7 +364,11 @@ async function executeStabilityBatch(claim, options = {}) {
         allowedOrigins: genericTarget ? stabilityAllowedOrigins(targetProfile, baseUrl) : options.allowedOrigins,
         ignoreHTTPSErrors: targetProfile?.tlsPolicy === 'ALLOW_SELF_SIGNED',
         candidateManifest
-      }, credential, fingerprint));
+      }, execution.credential, fingerprint));
+      if(claim.bankValidationFixtures&&results.at(-1).outcome==='FAILED')break;
+      } catch(error) {
+        return bankStabilityFailureReceipt(claim,error,results,fingerprint,options.workerId||claim.leaseOwner);
+      }
     }
   } finally {
     await browser.close();
@@ -330,8 +378,9 @@ async function executeStabilityBatch(claim, options = {}) {
     candidateId: claim.candidateId,
     scriptHash: claim.scriptHash,
     runtimeFingerprint: fingerprint,
-    runs: results
+    runs: results,
+    ...(claim.bankValidationFixtures&&results.at(-1)?.outcome==='FAILED'?{stoppedAfterFailure:true}:{})
   };
 }
 
-module.exports = { VIEWPORTS, assertClaim, evidenceDescriptor, executeStabilityBatch, ordinalForStep, runtimeFingerprint, safeEvidenceDirectory, stabilityAllowedOrigins };
+module.exports = { VIEWPORTS, assertClaim, evidenceDescriptor, executeStabilityBatch, bankStabilityFailureReceipt, resolveStabilityExecution, ordinalForStep, runtimeFingerprint, safeEvidenceDirectory, stabilityAllowedOrigins };

@@ -1,0 +1,20 @@
+schemaVersion: 1
+id: RF-050
+title: Transfer rule closure
+status: OBSERVING
+owner: Codex
+authorizedBy: agent/plans/active/v54-implementation-batches.md
+scope:
+  includePaths: [services/bank-channel-service, contracts/openapi/customer-api.yaml, contracts/openapi/operations-api.yaml, contracts/asyncapi/bank-events.yaml, packages/bank-domain-types, packages/bank-ui-kit, packages/bank-api-client, apps/customer-portal, apps/operations-console, scripts/test, docs/architecture/refactoring/batches/RF-050, docs/architecture/refactoring/module-boundaries-v1.yaml, agent/backlog.yaml, agent/plans/active/v54-implementation-batches.md]
+  excludePaths: [platform/hengzhun-regression-system, postgresql, infra]
+budgets: {maxChangedFiles: 35, maxNewFiles: 14, maxChangedLines: 3000, maxContractsChanged: 3, maxMigrationsAdded: 1, maxOpenModules: 2}
+baseline: {gitCommit: 552b3b8ac517bd5991bff446e72d9f4e87ea9543, dirtyTreeManifest: docs/architecture/refactoring/batches/RF-050/baseline.md, releaseIdentity: UNFROZEN_RF050, capturedAt: "2026-09-22T21:44:47+08:00"}
+architecture: {businessCapability: transfer-rule-closure, publicContract: contracts/openapi/operations-api.yaml, dependencyManifest: docs/architecture/refactoring/module-boundaries-v1.yaml, allowedModules: [bank.payments, bank.risk], forbiddenModules: [hengzhun.agent-cli, hengzhun.controller, hengzhun.harness, hengzhun.mcp, hengzhun.worker]}
+mustPreserve: [Fineract is the only accounting truth source, remote core calls stay outside local transactions, replay never issues a second core debit, managed services remain running]
+verification:
+  requiredCommands:
+    - {name: java-tests, command: "docker run --rm -v ${PWD}:/workspace -w /workspace/services/bank-channel-service maven:3.9.9-eclipse-temurin-21 mvn -q test", expectedExitCode: 0, evidence: docs/architecture/refactoring/batches/RF-050/evidence-index.md, blocking: true}
+    - {name: golden-path, command: "pwsh -NoProfile -File scripts/demo/run-golden-path.ps1", expectedExitCode: 0, evidence: docs/architecture/refactoring/batches/RF-050/evidence-index.md, blocking: true}
+    - {name: docs, command: "py -3 scripts/docs/validate_docs.py", expectedExitCode: 0, evidence: docs/architecture/refactoring/batches/RF-050/evidence-index.md, blocking: true}
+rollback: {triggerConditions: [migration failure, duplicate core submission, risk bypass, reversal checker takeover], recoveryPoint: RF-049 REVIEW implementation, maxRtoMinutes: 30, maxRpoMinutes: 0}
+exceptions: {allowedVagueNames: [], crossModule: ["bank.payments -> bank.risk: deterministic risk decision before core submission"]}

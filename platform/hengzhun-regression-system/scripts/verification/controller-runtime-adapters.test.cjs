@@ -14,6 +14,6 @@ test('Controller runtime adapters pass the offline fault-injection matrix', () =
     cwd: productRoot, encoding: 'utf8', env: childEnv,
   })
   assert.equal(result.status, 0, `Adapter matrix failed.\nSTDOUT:\n${result.stdout}\nSTDERR:\n${result.stderr}`)
-  assert.match(result.stdout, /# pass 19/)
+  assert.match(result.stdout, /# pass 20/)
   assert.match(result.stdout, /# fail 0/)
 })

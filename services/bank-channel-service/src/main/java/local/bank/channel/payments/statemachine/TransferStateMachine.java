@@ -5,7 +5,6 @@ import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 import org.springframework.http.HttpStatus;
-import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Component;
 import org.springframework.web.server.ResponseStatusException;
 
@@ -14,7 +13,8 @@ import org.springframework.web.server.ResponseStatusException;
  *
  * <p>12 态:
  * CREATED, VALIDATING, RISK_REVIEW, PENDING_APPROVAL, PENDING_CORE_POSTING, PENDING_CLEARING,
- * SETTLED, FAILED, TIMED_OUT, RETURNED, REVERSAL_PENDING, REVERSED
+ * CORE_RESULT_UNKNOWN, SETTLED, FAILED, TIMED_OUT, RETURN_PENDING, RETURN_RESULT_UNKNOWN,
+ * RETURNED, REVERSAL_PENDING, REVERSED
  *
  * <p>转换矩阵严格依据 v4 §10,任何非法 from->to 抛 409。
  */
@@ -22,8 +22,8 @@ import org.springframework.web.server.ResponseStatusException;
 public class TransferStateMachine {
 
   public enum Status {
-    CREATED, VALIDATING, RISK_REVIEW, PENDING_APPROVAL, PENDING_CORE_POSTING, PENDING_CLEARING,
-    SETTLED, FAILED, TIMED_OUT, RETURNED, REVERSAL_PENDING, REVERSED;
+    CREATED, VALIDATING, RISK_REVIEW, PENDING_APPROVAL, PENDING_CORE_POSTING, PENDING_CLEARING, CORE_RESULT_UNKNOWN,
+    SETTLED, FAILED, TIMED_OUT, RETURN_PENDING, RETURN_RESULT_UNKNOWN, RETURNED, REVERSAL_PENDING, REVERSED;
 
     public static Status of(String raw) {
       if (raw == null) throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR,
@@ -43,8 +43,11 @@ public class TransferStateMachine {
     ALLOWED.put(Status.RISK_REVIEW, Set.of(Status.PENDING_APPROVAL, Status.PENDING_CORE_POSTING, Status.FAILED));
     ALLOWED.put(Status.PENDING_APPROVAL, Set.of(Status.PENDING_CORE_POSTING, Status.FAILED));
     ALLOWED.put(Status.PENDING_CORE_POSTING, Set.of(Status.PENDING_CLEARING, Status.FAILED));
-    ALLOWED.put(Status.PENDING_CLEARING, Set.of(Status.SETTLED, Status.FAILED));
-    ALLOWED.put(Status.SETTLED, Set.of(Status.REVERSAL_PENDING));
+    ALLOWED.put(Status.PENDING_CLEARING, Set.of(Status.CORE_RESULT_UNKNOWN, Status.SETTLED, Status.FAILED));
+    ALLOWED.put(Status.CORE_RESULT_UNKNOWN, Set.of(Status.SETTLED, Status.FAILED));
+    ALLOWED.put(Status.SETTLED, Set.of(Status.REVERSAL_PENDING, Status.RETURN_PENDING));
+    ALLOWED.put(Status.RETURN_PENDING, Set.of(Status.RETURN_RESULT_UNKNOWN, Status.RETURNED));
+    ALLOWED.put(Status.RETURN_RESULT_UNKNOWN, Set.of(Status.RETURNED));
     ALLOWED.put(Status.REVERSAL_PENDING, Set.of(Status.REVERSED, Status.SETTLED));
     ALLOWED.put(Status.FAILED, Set.of());
     ALLOWED.put(Status.TIMED_OUT, Set.of());
@@ -52,9 +55,9 @@ public class TransferStateMachine {
     ALLOWED.put(Status.REVERSED, Set.of());
   }
 
-  private final JdbcTemplate jdbc;
+  private final TransferStateRepository repository;
 
-  public TransferStateMachine(JdbcTemplate jdbc) { this.jdbc = jdbc; }
+  public TransferStateMachine(TransferStateRepository repository) { this.repository = repository; }
 
   public void checkTransition(Status from, Status to) {
     if (from == to)
@@ -72,11 +75,8 @@ public class TransferStateMachine {
     if (reasonCode != null && reasonCode.length() > 64)
       reasonCode = reasonCode.substring(0, 64);
     if (metadataJson == null) metadataJson = "{}";
-    jdbc.update(
-        "INSERT INTO transfer_state_history(transfer_id,from_status,to_status,reason_code,actor_type,actor_id,metadata) "
-            + "VALUES (?,?,?,?,?,?,?::jsonb)",
-        transferId, from == null ? null : from.name(), to.name(),
-        reasonCode, actorType, actorId, metadataJson);
+    repository.history(transferId, from == null ? null : from.name(), to.name(),
+        actorType, actorId, reasonCode, metadataJson);
   }
 
   public void transitionState(UUID transferId, Status from, Status to,
@@ -88,36 +88,18 @@ public class TransferStateMachine {
     String metadataJson = auditMetadata == null ? "{}"
         : serializeMetadata(auditMetadata);
 
-    int updated;
-    if (from == null) {
-      updated = jdbc.update(
-          "UPDATE transfer_order SET status=?, version=version+1, updated_at=now() "
-              + "WHERE transfer_id=? AND status IS NULL",
-          to.name(), transferId);
-    } else {
-      updated = jdbc.update(
-          "UPDATE transfer_order SET status=?, version=version+1, updated_at=now() "
-              + "WHERE transfer_id=? AND status=?",
-          to.name(), transferId, from.name());
-    }
+    int updated = repository.changeStatus(transferId, from == null ? null : from.name(), to.name());
     if (updated == 0)
       throw new ResponseStatusException(HttpStatus.CONFLICT,
           "Concurrent state change detected for transfer " + transferId
               + " (expected " + from + " -> " + to + ")");
 
-    jdbc.update(
-        "INSERT INTO transfer_state_history(transfer_id,from_status,to_status,reason_code,actor_type,actor_id,metadata) "
-            + "VALUES (?,?,?,?,?,?,?::jsonb)",
-        transferId, from == null ? null : from.name(), to.name(),
-        reason, actorType, actorId, metadataJson);
+    repository.history(transferId, from == null ? null : from.name(), to.name(),
+        actorType, actorId, reason, metadataJson);
 
     String payload = "{\"transferId\":\"" + transferId + "\",\"status\":\"" + to.name() + "\""
         + (reason != null ? ",\"reason\":\"" + sanitize(reason) + "\"" : "") + "}";
-    jdbc.update(
-        "INSERT INTO outbox_event(id,transfer_id,aggregate_type,aggregate_id,event_type,event_version,payload,headers,status) " +
-        "VALUES (?,?,?,?,?,?,?::jsonb,?::jsonb,?)",
-        UUID.randomUUID(), transferId, "Transfer", transferId, "transfer.status.changed", 1,
-        payload, "{}", "PENDING");
+    repository.outbox(transferId, "transfer.status.changed", payload);
   }
 
   public void transitionState(UUID transferId, Status from, Status to,

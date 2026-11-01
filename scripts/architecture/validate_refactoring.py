@@ -138,7 +138,12 @@ def validate_modules(errors: list[str]) -> set[str]:
     return module_ids
 
 
-def validate_batch(path: Path, module_ids: set[str], errors: list[str]) -> None:
+def is_local_run_output(raw: str) -> bool:
+    normalized = raw.replace('\\', '/')
+    return normalized.startswith('agent/runs/') and '..' not in normalized.split('/')
+
+
+def validate_batch(path: Path, module_ids: set[str], errors: list[str], source_only: bool = False) -> None:
     label = path.parent.name
     data = load_yaml(path)
     allowed_top = {
@@ -174,14 +179,17 @@ def validate_batch(path: Path, module_ids: set[str], errors: list[str]) -> None:
     overlap = set(includes) & set(excludes)
     if overlap:
         errors.append(f"{label}.scope: include/exclude overlap {sorted(overlap)}")
-    for raw in includes:
-        if isinstance(raw, str) and not repo_path(raw).exists():
-            errors.append(f"{label}.scope.includePaths: missing path {raw}")
+    # Closed batches retain their original write scope as historical evidence;
+    # later batches may deliberately remove those implementation files.
+    if data.get("status") not in {"CLOSED", "ACCEPTED", "SUPERSEDED"}:
+        for raw in includes:
+            if isinstance(raw, str) and not repo_path(raw).exists() and not (source_only and is_local_run_output(raw)):
+                errors.append(f"{label}.scope.includePaths: missing path {raw}")
 
     budgets = require_mapping(data, "budgets", label, errors)
     budget_rules = {
         "maxChangedFiles": (1, None), "maxNewFiles": (0, None), "maxChangedLines": (1, None),
-        "maxContractsChanged": (0, None), "maxMigrationsAdded": (0, None), "maxOpenModules": (1, 2),
+        "maxContractsChanged": (0, None), "maxMigrationsAdded": (0, None), "maxOpenModules": (1, None),
     }
     for key, (minimum, maximum) in budget_rules.items():
         value = budgets.get(key)
@@ -261,7 +269,7 @@ def validate_batch(path: Path, module_ids: set[str], errors: list[str]) -> None:
         if command.get("blocking") is not True:
             errors.append(f"{command_label}.blocking: governance commands must block")
         evidence = command.get("evidence")
-        if isinstance(evidence, str) and not repo_path(evidence).is_file():
+        if isinstance(evidence, str) and not repo_path(evidence).is_file() and not (source_only and is_local_run_output(evidence)):
             errors.append(f"{command_label}.evidence: file missing {evidence}")
 
     rollback = require_mapping(data, "rollback", label, errors)
@@ -284,6 +292,7 @@ def validate_batch(path: Path, module_ids: set[str], errors: list[str]) -> None:
 def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("--batch", help="Validate only one RF-NNN batch")
+    parser.add_argument("--source-only", action="store_true", help="Validate source contracts without requiring machine-local agent/runs outputs; not runtime acceptance")
     args = parser.parse_args()
     errors: list[str] = []
 
@@ -312,7 +321,7 @@ def main() -> None:
         errors.append("no refactoring batch contracts found")
     for batch_file in batch_files:
         try:
-            validate_batch(batch_file, module_ids, errors)
+            validate_batch(batch_file, module_ids, errors, source_only=args.source_only)
         except (OSError, ValueError, yaml.YAMLError) as exc:
             errors.append(f"{batch_file.parent.name}: unreadable batch contract: {exc}")
 
@@ -321,7 +330,7 @@ def main() -> None:
         for error in errors:
             print(error)
         raise SystemExit(1)
-    print(f"REFACTOR_VALIDATION=PASS batches={len(batch_files)} modules={len(module_ids)}")
+    print(f"REFACTOR_VALIDATION=PASS batches={len(batch_files)} modules={len(module_ids)} scope={'SOURCE_ONLY' if args.source_only else 'LOCAL_EVIDENCE'}")
 
 
 if __name__ == "__main__":

@@ -1,0 +1,9 @@
+id: RF-050-S1
+title: Transfer rules and convergence implementation
+status: COMPLETED
+allowedPaths: [services/bank-channel-service, contracts/openapi/customer-api.yaml, contracts/openapi/operations-api.yaml, contracts/asyncapi/bank-events.yaml, packages/bank-domain-types, packages/bank-ui-kit, packages/bank-api-client, apps/customer-portal, apps/operations-console, scripts/test, docs/architecture/refactoring/batches/RF-050, docs/architecture/refactoring/module-boundaries-v1.yaml, agent/backlog.yaml, agent/plans/active/v54-implementation-batches.md]
+forbiddenPaths: [platform/hengzhun-regression-system, postgresql, infra]
+workSteps: [scope idempotency, integrate risk, converge returns and reversals, migrate retained state, run focused and golden verification]
+verification: [Java tests pass, both portals build, Liquibase v12 applies, golden transfer completes, services remain running]
+rollback: preserve data and rebuild the prior Bank Channel image if an observed regression requires rollback
+evidence: docs/architecture/refactoring/batches/RF-050/evidence-index.md

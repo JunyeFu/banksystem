@@ -1,0 +1,10 @@
+id: RF-057-S3
+title: Bounded performance
+status: IMPLEMENTING
+businessGoal: Measure real-system capacity without losing or duplicating money
+allowedPaths: [scripts/test, tests, scripts/demo, docs/architecture/refactoring/batches/RF-057, agent/backlog.yaml, agent/plans/active/v54-implementation-batches.md, docs/current-state/capability-matrix.md, platform/hengzhun-regression-system/scripts, platform/hengzhun-regression-system/harness/src/release-case-evidence.ts, platform/hengzhun-regression-system/harness/src/service.ts, platform/hengzhun-regression-system/harness/src/release-verification.ts, platform/hengzhun-regression-system/harness/src/server.ts]
+forbiddenPaths: [services/bank-channel-service/src/main, postgresql, platform/hengzhun-regression-system/flowise]
+workSteps: ["Contract-test latency/statistics and stop behavior", "run read ramp", "run small-value payment/idempotency and document contention", "run Agent queue load", "run 30-minute soak", "check funds and reconciliation after every write stage"]
+verification: ["powershell -NoProfile -ExecutionPolicy Bypass -File scripts/test/rf057-bank.ps1 -Profile Performance", no missing required case or synthetic runtime success]
+rollback: stop owned test driver and retain banking history and services
+evidence: docs/architecture/refactoring/batches/RF-057/evidence-index.md

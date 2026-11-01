@@ -1,0 +1,9 @@
+import js from '@eslint/js';
+import { defineConfig } from 'eslint/config';
+import tseslint from 'typescript-eslint';
+
+export default defineConfig({
+  files: ['src/**/*.{ts,tsx}', 'vite.config.ts'],
+  extends: [js.configs.recommended, tseslint.configs.recommended],
+  rules: { 'no-irregular-whitespace': ['error', { skipJSXText: true, skipTemplates: true }] },
+});

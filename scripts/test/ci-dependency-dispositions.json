@@ -1,0 +1,72 @@
+{
+  "scope": "RF065_DECLARED_NPM_SOURCE_REVIEW_ONLY",
+  "sourceDigest": "SHA256 of UTF-8 bytes with CRLF normalized to LF, so Git Windows and Linux checkouts verify the same reviewed text.",
+  "authorizedBy": "agent/plans/active/v54-implementation-batches.md",
+  "zipPatch": {
+    "name": "extract-zip",
+    "version": "2.0.1",
+    "lockfile": "platform/hengzhun-regression-system/runtime/package-lock.json",
+    "advisories": ["GHSA-7pqw-9j4j-h8q3", "GHSA-jmr9-qjv8-65gv"],
+    "disposition": "LOCAL_PATCH_REVIEWED",
+    "files": {
+      "platform/hengzhun-regression-system/vendor/extract-zip/index.js": "f0854384f0fce906e7cc8d79a1b0156a1f6475c60cc6f4dfe687aa9b0ed33e6c",
+      "platform/hengzhun-regression-system/vendor/extract-zip/package.json": "a149149d32c5d9081ee1abbc8c34bf4d66f5dc94f321b01d4cda7b20b7f24af1",
+      "platform/hengzhun-regression-system/vendor/extract-zip/LICENSE": "77b2de947c65f3062fb347118ca198ca50898ead84a8509d8153fa65741f029b"
+    },
+    "limits": "Controlled browser archives in a privately owned extraction directory. Not a claim of atomic containment against another local process concurrently replacing parents. Any patch drift, new advisory or other package blocks the gate. Remove this disposition only after a verified upstream fixed release and consumer regression."
+  },
+  "thirdPartyLicenses": [
+    {
+      "name": "duck", "version": "0.1.12", "license": "BSD-2-Clause",
+      "source": "https://registry.npmjs.org/duck/-/duck-0.1.12.tgz",
+      "evidence": "scripts/test/third-party-licenses/duck-0.1.12.LICENSE",
+      "sha256": "6663bbd049205d38a496ccacb412a151980b444627d38de218b3b809aef330f1",
+      "basis": "The release metadata says only BSD; the exact release LICENSE has two redistribution conditions, not three.",
+      "obligation": "Retain the copyright, two conditions and disclaimer in source and binary redistributions."
+    },
+    {
+      "name": "union", "version": "0.5.0", "license": "MIT",
+      "source": "https://registry.npmjs.org/union/-/union-0.5.0.tgz",
+      "evidence": "scripts/test/third-party-licenses/union-0.5.0.LICENSE",
+      "sha256": "ce5a6467d5e685e6c6ce90ea94dd5764ce16aa5b0332803c1f0411e6cc682d36",
+      "obligation": "Preserve the original copyright and permission notice in redistributed copies."
+    },
+    {
+      "name": "xmlhttprequest-ssl", "version": "2.1.2", "license": "MIT",
+      "source": "https://registry.npmjs.org/xmlhttprequest-ssl/-/xmlhttprequest-ssl-2.1.2.tgz",
+      "evidence": "scripts/test/third-party-licenses/xmlhttprequest-ssl-2.1.2.LICENSE",
+      "sha256": "a5f35901ee8b2039a7431144c23dd10bd47c1d07bcee0cd3a536421d86412214",
+      "obligation": "Preserve the original copyright and permission notice in redistributed copies."
+    },
+    {
+      "name": "buffers", "version": "0.1.1", "license": "MIT",
+      "source": "https://deb.debian.org/debian/pool/main/n/node-buffers/node-buffers_0.1.1-5.debian.tar.xz",
+      "evidence": "scripts/test/third-party-licenses/buffers-0.1.1.DEBIAN-COPYRIGHT",
+      "sha256": "7ed63688e5bc3c442bcebf756f04a4be5337a51ec8d4b51804349977a9667f0a",
+      "basis": "Debian's copyright record cites the upstream author's licensing commit 1b745ee35d33eb166e15ef1866073a07c6d7de87. Official Debian upstream archive index.js is byte-identical to the npm 0.1.1 package (SHA256 97801e296ba5f3c32242f647e1daac5917e300367fed7935ab1e62f40adb1b8a). npm contains no LICENSE; upstream GitHub is currently unavailable. This is distributor-preserved evidence, not a newly fetched author permission.",
+      "obligation": "Preserve this copyright and Expat permission record; do not claim that npm shipped a license file."
+    }
+  ],
+  "distribution": {
+    "ffmpeg": "Download from the frozen upstream archive during preparation; preserve LICENSE/README. Do not redistribute the linked Windows executable in the source candidate: full corresponding source for all linked libraries has not been assembled.",
+    "remaining": "Declared npm metadata review is not the Java/image SBOM, actual bundled notices or final candidate redistribution review. Those remain separate blocking gates."
+  },
+  "sourceDelivery": {
+    "scope": "ARCHIVED_PRODUCT_SOURCE_AND_MAVEN_BOOTSTRAP_MATERIALS_ONLY",
+    "files": {
+      "LICENSE": "3f3d9e0024b1921b067d6f7f88deb4a60cbe7a78e76c64e3f1d7fc3b779b9d04",
+      "THIRD-PARTY-NOTICES.md": "256edc28e72ee705fab96293ac9efe44564c7df499b4d5de4da5e0b8222b0ab2",
+      "scripts/test/third-party-licenses/maven-wrapper-3.3.2.LICENSE": "cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30",
+      "scripts/test/third-party-licenses/maven-wrapper-3.3.2.NOTICE": "245e5af76a2d3eebcba645d21eefa3a74102d1192dc4392cf4877afd403426e3"
+    },
+    "mavenWrapper": {
+      "path": "services/bank-channel-service/.mvn/wrapper/maven-wrapper.jar",
+      "version": "3.3.2",
+      "sha256": "3d8f20ce6103913be8b52aef6d994e0c54705fb527324ceb9b835b338739c7a8",
+      "license": "Apache-2.0",
+      "source": "https://repo.maven.apache.org/maven2/org/apache/maven/wrapper/maven-wrapper/3.3.2/maven-wrapper-3.3.2.jar",
+      "originals": {"META-INF/LICENSE": "scripts/test/third-party-licenses/maven-wrapper-3.3.2.LICENSE", "META-INF/NOTICE": "scripts/test/third-party-licenses/maven-wrapper-3.3.2.NOTICE"}
+    },
+    "limits": "Source and bootstrap license materials only. Full upstream report-data and runtime-binary redistribution obligations are not declared complete. No image/node/browser/FFmpeg binary redistribution in this source profile."
+  }
+}

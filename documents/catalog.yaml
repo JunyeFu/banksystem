@@ -3,6 +3,19 @@ authority: documents/catalog.yaml
 implementationOrderAuthority: agent/plans/active/v54-implementation-batches.md
 generatedOutputRoot: deliverables
 generatedOutputsIndexedByRag: false
+normalizationSourceSet:
+  version: '2026-10-08'
+  status: DRAFT_LOCAL
+  sourceRoot: docs/design/product-normalization
+  sources:
+    PROJECT_INITIATION: docs/design/product-normalization/research-and-charter.md
+    REQUIREMENTS_SPECIFICATION: docs/design/product-normalization/requirements.md
+    SYSTEM_DESIGN: docs/design/product-normalization/system-design.md
+    TEST_PLAN_AND_REPORT: docs/design/product-normalization/verification.md
+    RELEASE_AND_DEPLOYMENT: docs/design/product-normalization/delivery.md
+    ACCEPTANCE_REPORT: docs/design/product-normalization/acceptance-and-handover.md
+    HANDOVER_PACKAGE: docs/design/product-normalization/acceptance-and-handover.md
+  note: Reviewed Markdown sources; rendered DOCX/PDF and final acceptance are not yet complete.
 documentTypes:
   - id: PROJECT_INITIATION
     name: 立项报告

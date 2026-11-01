@@ -1,0 +1,9 @@
+id: RF-055-S2
+title: Fixed demo identity provisioning
+status: COMPLETED
+allowedPaths: [contracts/fixtures/baseline-fixtures.yaml, infra/keycloak, demo.ps1, scripts/demo, scripts/deploy, services/bank-channel-service, docs/architecture/refactoring/batches/RF-055, agent/backlog.yaml, agent/plans/active/v54-implementation-batches.md]
+forbiddenPaths: [platform/hengzhun-regression-system, postgresql, apps, packages]
+workSteps: [define fixed synthetic customer and operator, prepare local ignored credentials, provision users roles and customer mapping idempotently during up, restore missing project OIDC clients, verify both protected portals after restart]
+verification: [prepare and up reuse identities, fixed customer token reads customer API, fixed operator token reads operations API, restart preserves both mappings]
+rollback: restore per-run provisioning entrypoint without deleting retained identities
+evidence: docs/architecture/refactoring/batches/RF-055/evidence-index.md

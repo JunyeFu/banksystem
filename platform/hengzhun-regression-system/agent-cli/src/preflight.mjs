@@ -50,6 +50,7 @@ export async function preflightAttachment(filePath) {
     bytes,
     size: bytes.length,
     sha256: createHash('sha256').update(bytes).digest('hex'),
+    originalFilename: name,
     nameBase64Url: Buffer.from(name, 'utf8').toString('base64url'),
   })
 }

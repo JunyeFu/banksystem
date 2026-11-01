@@ -9,7 +9,7 @@
     "harnessDatabase": ".data/sqlite/regression_platform.sqlite",
     "flowiseAttachmentRoot": ".data/flowise-attachments",
     "chromiumExecutable": "runtime/browsers/chromium-1217/chrome-win64/chrome.exe",
-    "ffmpegExecutable": "runtime/node_modules/@ffmpeg-installer/win32-x64/ffmpeg.exe"
+    "ffmpegExecutable": "runtime/media/ffmpeg-9.0.2/bin/ffmpeg.exe"
   },
   "runtimeVariables": {
     "controller": ["CONTROL_API_KEY", "CONTROL_BASE_URL", "CONTROL_MODEL_NAME"],

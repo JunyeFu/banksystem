@@ -1,0 +1,19 @@
+schemaVersion: 1
+id: RF-044
+title: Explicit exact Journey approval
+status: CLOSED
+owner: Codex
+authorizedBy: agent/plans/active/v54-implementation-batches.md
+scope:
+  includePaths: [platform/hengzhun-regression-system/agent-cli, platform/hengzhun-regression-system/controller, platform/hengzhun-regression-system/scripts/verification, docs/architecture/refactoring/batches/RF-044, agent/runs/rf044, agent/plans/active, agent/backlog.yaml]
+  excludePaths: [services, packages, postgresql, apps, contracts, platform/hengzhun-regression-system/harness, platform/hengzhun-regression-system/mcp, platform/hengzhun-regression-system/worker]
+budgets: {maxChangedFiles: 18, maxNewFiles: 13, maxChangedLines: 700, maxContractsChanged: 1, maxMigrationsAdded: 0, maxOpenModules: 2}
+baseline: {gitCommit: 552b3b8ac517bd5991bff446e72d9f4e87ea9543, dirtyTreeManifest: docs/architecture/refactoring/batches/RF-027/baseline.md, releaseIdentity: STALE_AFTER_RF043, capturedAt: "2026-09-03T23:00:00+08:00"}
+architecture: {businessCapability: journey-exact-approval, publicContract: platform/hengzhun-regression-system/agent-cli/src/contracts.mjs, dependencyManifest: docs/architecture/refactoring/module-boundaries-v1.yaml, allowedModules: [hengzhun.agent-cli, hengzhun.controller], forbiddenModules: [bank.payments, hengzhun.harness, hengzhun.mcp, hengzhun.worker]}
+mustPreserve: [Harness proposal is authoritative, exact pre-read, HIGH risk, one decision write, no auto approval, no execution, no LIVE claim]
+verification:
+  requiredCommands:
+    - {name: exact-approval, command: "node scripts/verification/journey-exact-approval.test.cjs", expectedExitCode: 0, evidence: agent/runs/rf044/20260903-230000/integration-result.json, blocking: true}
+    - {name: governance, command: "py -3 scripts/architecture/validate_refactoring.py --batch RF-044", expectedExitCode: 0, evidence: docs/architecture/refactoring/batches/RF-044/evidence-index.md, blocking: true}
+rollback: {triggerConditions: [tuple drift reaches mutation, more than one decision write, approval triggers execution, reject approves], recoveryPoint: RF-043 closed source state, maxRtoMinutes: 10, maxRpoMinutes: 0}
+exceptions: {allowedVagueNames: [], crossModule: []}

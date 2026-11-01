@@ -2,33 +2,32 @@ package local.bank.channel.notifications;
 
 import java.util.Map;
 import java.util.LinkedHashMap;
-import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
 public class NotificationController {
-  private final JdbcTemplate jdbc;
-  public NotificationController(JdbcTemplate jdbc){this.jdbc=jdbc;}
+  private final NotificationRepository repository;
+  public NotificationController(NotificationRepository repository){this.repository=repository;}
   @GetMapping("/api/customer/v1/notifications")
   public Map<String,Object> list(@AuthenticationPrincipal Jwt jwt){
-    var rows=jdbc.query("SELECT notification_id,notification_type,payload,read_at,created_at FROM notification WHERE subject=? ORDER BY created_at DESC",(rs,n)->{
+    var rows=repository.list(jwt.getSubject()).stream().map(notification -> {
       var item=new LinkedHashMap<String,Object>();
-      String type=rs.getString(2);
-      item.put("messageId",rs.getString(1));
+      String type=notification.type();
+      item.put("messageId",notification.id());
       item.put("subject",title(type));
-      item.put("body",safeBody(type,rs.getString(3)));
-      item.put("read",rs.getObject(4)!=null);
-      item.put("createdDate",rs.getObject(5).toString());
+      item.put("body",safeBody(type,notification.payload()));
+      item.put("read",notification.read());
+      item.put("createdDate",notification.createdAt());
       return item;
-    },jwt.getSubject());
+    }).toList();
     return Map.of("items",rows);
   }
 
   @PostMapping("/api/customer/v1/notifications/{notificationId}/read")
   public Map<String,Object> markRead(@AuthenticationPrincipal Jwt jwt,@PathVariable String notificationId){
-    int changed=jdbc.update("UPDATE notification SET read_at=COALESCE(read_at,now()),updated_at=now() WHERE notification_id=?::uuid AND subject=?",notificationId,jwt.getSubject());
+    int changed=repository.markRead(jwt.getSubject(),notificationId);
     if(changed==0)throw new org.springframework.web.server.ResponseStatusException(org.springframework.http.HttpStatus.NOT_FOUND,"Notification is not linked");
     return Map.of("messageId",notificationId,"read",true);
   }

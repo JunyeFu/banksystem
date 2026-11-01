@@ -1,0 +1,9 @@
+id: RF-030-S2
+title: Persistent fixture identity mapping
+status: COMPLETED
+allowedPaths: [services/bank-channel-service/src/main/java/local/bank/channel/TestSupportController.java, services/bank-channel-service/src/main/resources/db/changelog, services/bank-channel-service/src/test/java/local/bank/channel, contracts/openapi/test-support-api.yaml, docs/architecture/refactoring/batches/RF-030, agent/plans/active/banksystem-tp-a03-bank-golden-path-task-package.md, agent/plans/active/banksystem-open-source-task-packages-v1.yaml, agent/plans/active/banksystem-three-level-development-control-v1.md, agent/plans/active/banksystem-three-level-development-control-v1.yaml, agent/backlog.yaml, agent/plans/active/v54-implementation-batches.md]
+forbiddenPaths: [apps, platform, postgresql, demo.ps1, compose.channel.yaml]
+workSteps: [store stable logical fixture subjects, upsert authenticated Keycloak subject mapping, resolve fixtures from persistent mapping, verify restart-safe database semantics]
+verification: [bank channel tests exit 0, test support contract parses, RF-030 validator exits 0, docs validator exits 0]
+rollback: revert only RF-030 source contract test and governance paths without deleting runtime data
+evidence: docs/architecture/refactoring/batches/RF-030/evidence-index.md

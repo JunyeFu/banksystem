@@ -1,0 +1,70 @@
+title = "Controlled product source secret scan"
+
+[extend]
+useDefault = true
+
+[[rules]]
+id = "generic-api-key"
+
+  [[rules.allowlists]]
+  description = "RF028 records the two reviewed SHA256 source digests, not API credentials."
+  condition = "AND"
+  paths = ['''(?:^|/)docs/architecture/refactoring/batches/RF-028/evidence-index\.md$''']
+  regexTarget = "match"
+  regexes = ['''^api\.ts=f5ea7b921af68f7ee2e77485a9b8e944e58247a4f749acd495314da44b8faa11''', '''^quality-platform-api\.yaml=4bc4378267b9cc5956b605c2325e58a29924f1a932141ef244d0e7d2fa818008''']
+
+  [[rules.allowlists]]
+  description = "RF057 prose lists missing/duplicate/consumed fixture rejection tests."
+  condition = "AND"
+  paths = ['''(?:^|/)docs/architecture/refactoring/batches/RF-057/tasks/S2\.md$''']
+  regexTarget = "match"
+  regexes = ['''^credential binding, missing/duplicate/consumed''']
+
+  [[rules.allowlists]]
+  description = "The imported SDK example assigns the public RegionCnNorth1 enum."
+  condition = "AND"
+  paths = ['''(?:^|/)knowledge-sources/imported/hiagent-2\.5\.1/2\.5\.1帮助文档/API & SDK/HiAgent平台API调用示例\.md$''', '''(?:^|/)docs/reference/hiagent-2\.5\.1-help/readable/HiAgent平台API调用示例\.txt$''']
+  regexTarget = "match"
+  regexes = ['''^client\.ServiceInfo\.Credentials\.Region\s*=\s*RegionCnNorth1''']
+
+  [[rules.allowlists]]
+  description = "Historical bootstrap assertion names I9_MCP_VARIABLE_DRIFT; it contains no token value."
+  condition = "AND"
+  paths = ['''(?:^|/)platform/hengzhun-regression-system/scripts/i9-platform-bootstrap\.cjs$''']
+  regexTarget = "match"
+  regexes = ["^runtimeConfig\\.credentialVariables\\.mcpToken,\\s*'I9_MCP_VARIABLE_DRIFT'"]
+
+  [[rules.allowlists]]
+  description = "The Harness selects the public qwen3.5-compatible tokenizer ID."
+  condition = "AND"
+  paths = ['''(?:^|/)platform/hengzhun-regression-system/harness/src/service\.ts$''']
+  regexTarget = "match"
+  regexes = ["^tokenizerId:\\s*'qwen3\\.5-compatible'"]
+
+  [[rules.allowlists]]
+  description = "Synthetic image-delivery idempotency ID, not an authentication key."
+  condition = "AND"
+  paths = ['''(?:^|/)platform/hengzhun-regression-system/scripts/verification/image-parallel-delivery\.test\.cjs$''']
+  regexTarget = "match"
+  regexes = ["^idempotencyKey:\\s*'delivery-decision-001'"]
+
+  [[rules.allowlists]]
+  description = "Synthetic verification-cancel idempotency ID."
+  condition = "AND"
+  paths = ['''(?:^|/)platform/hengzhun-regression-system/scripts/verification/runtime-verification\.test\.cjs$''']
+  regexTarget = "match"
+  regexes = ["^idempotencyKey:\\s*'verification-cancel-001'"]
+
+  [[rules.allowlists]]
+  description = "Eight specific synthetic Journey request IDs from the reviewed state-machine tests."
+  condition = "AND"
+  paths = ['''(?:^|/)platform/hengzhun-regression-system/scripts/verification/journey-state-machine\.test\.cjs$''']
+  regexTarget = "match"
+  regexes = ["^idempotencyKey:\\s*'journey-(mismatched-attachment-001|decision-001|proposal-001|proposal-bad-001|proposal-corrupt-001|proposal-corrupt-bad-001|fresh-001|fresh-002)'"]
+
+  [[rules.allowlists]]
+  description = "TransferContractTest compares a fixed synthetic request ID with a correlation ID."
+  condition = "AND"
+  paths = ['''(?:^|/)services/bank-channel-service/src/test/java/local/bank/channel/payments/TransferContractTest\.java$''']
+  regexTarget = "match"
+  regexes = ['''^idempotency-key-0001",\s*"bank-golden-correlation-001"''']

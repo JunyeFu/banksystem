@@ -1,0 +1,20 @@
+schemaVersion: 1
+id: RF-033
+title: Customer portal confirmed transfer journey
+status: CLOSED
+owner: Codex
+authorizedBy: agent/plans/active/v54-implementation-batches.md
+scope:
+  includePaths: [apps/customer-portal, docs/architecture/refactoring/batches/RF-033, agent/plans/active/banksystem-tp-a03-bank-golden-path-task-package.md, agent/plans/active/banksystem-open-source-task-packages-v1.yaml, agent/plans/active/banksystem-three-level-development-control-v1.md, agent/plans/active/banksystem-three-level-development-control-v1.yaml, agent/backlog.yaml, agent/plans/active/v54-implementation-batches.md]
+  excludePaths: [platform/hengzhun-regression-system, postgresql, services, contracts, packages]
+budgets: {maxChangedFiles: 16, maxNewFiles: 12, maxChangedLines: 900, maxContractsChanged: 0, maxMigrationsAdded: 0, maxOpenModules: 1}
+baseline: {gitCommit: 552b3b8ac517bd5991bff446e72d9f4e87ea9543, dirtyTreeManifest: docs/architecture/refactoring/batches/RF-027/baseline.md, releaseIdentity: 19e031c7, capturedAt: "2026-09-03T16:24:00+08:00"}
+architecture: {businessCapability: customer-confirmed-transfer-journey, publicContract: contracts/openapi/customer-api.yaml, dependencyManifest: docs/architecture/refactoring/module-boundaries-v1.yaml, allowedModules: [frontend.customer-portal], forbiddenModules: [bank.payments, frontend.operations-console, frontend.quality-case-portal, hengzhun.controller, hengzhun.harness, hengzhun.mcp, hengzhun.worker]}
+mustPreserve: [accepted VQ-03 visual hierarchy, Gateway remains the only browser API origin, create sends independent idempotency and correlation identifiers, verification explicitly confirms before success is shown, settled result exposes correlation and core reference, no PIN OTP or native U-key interaction]
+verification:
+  requiredCommands:
+    - {name: customer-build, command: "npm --prefix apps/customer-portal run build", expectedExitCode: 0, evidence: docs/architecture/refactoring/batches/RF-033/evidence-index.md, blocking: true}
+    - {name: customer-browser, command: "browser customer create-confirm-result journey", expectedExitCode: 0, evidence: docs/architecture/refactoring/batches/RF-033/evidence-index.md, blocking: true}
+    - {name: governance, command: "py -3 scripts/architecture/validate_refactoring.py --batch RF-033", expectedExitCode: 0, evidence: docs/architecture/refactoring/batches/RF-033/evidence-index.md, blocking: true}
+rollback: {triggerConditions: [verification navigates without confirming, settled success is shown before the confirm response, correlation is absent from create or result, accepted page hierarchy is replaced], recoveryPoint: RF-032 closed source state, maxRtoMinutes: 10, maxRpoMinutes: 0}
+exceptions: {allowedVagueNames: [], crossModule: []}

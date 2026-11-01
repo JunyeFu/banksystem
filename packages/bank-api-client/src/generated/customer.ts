@@ -64,7 +64,8 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        get?: never;
+        /** List the authenticated customer's local-to-core loan applications */
+        get: operations["listLoanApplications"];
         put?: never;
         /** Create loan application draft */
         post: operations["createLoanApplication"];
@@ -288,6 +289,44 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/loans/applications/{applicationId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                applicationId: components["parameters"]["ApplicationId"];
+            };
+            cookie?: never;
+        };
+        /** Get one authenticated customer's loan application */
+        get: operations["getLoanApplication"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/transfers/{transferId}/confirm": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                transferId: string;
+            };
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Confirm and post an authenticated customer's transfer */
+        post: operations["confirmCustomerTransfer"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/loans/applications/{applicationId}/submit": {
         parameters: {
             query?: never;
@@ -307,7 +346,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/loans/applications/{applicationId}/core-submit": {
+    "/loans/applications/{applicationId}/documents": {
         parameters: {
             query?: never;
             header?: never;
@@ -316,30 +355,11 @@ export interface paths {
             };
             cookie?: never;
         };
-        get?: never;
+        /** List controlled documents bound to the application */
+        get: operations["listLoanApplicationDocuments"];
         put?: never;
-        /** Submit loan application to Fineract */
-        post: operations["submitLoanToCore"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/loans/applications/{applicationId}/core/{command}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                applicationId: components["parameters"]["ApplicationId"];
-                command: "approve" | "disburse" | "reject" | "withdrawByApplicant" | "undoapproval" | "undodisbursal";
-            };
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /** Execute core loan command */
-        post: operations["commandCoreLoan"];
+        /** Register a controlled document for a draft application */
+        post: operations["addLoanApplicationDocument"];
         delete?: never;
         options?: never;
         head?: never;
@@ -394,7 +414,7 @@ export interface components {
          */
         Money: string;
         /** @enum {string} */
-        TransferStatus: "CREATED" | "VALIDATING" | "RISK_REVIEW" | "PENDING_APPROVAL" | "PENDING_CORE_POSTING" | "PENDING_CLEARING" | "SETTLED" | "FAILED" | "TIMED_OUT" | "RETURNED" | "REVERSAL_PENDING" | "REVERSED";
+        TransferStatus: "CREATED" | "VALIDATING" | "RISK_REVIEW" | "PENDING_APPROVAL" | "PENDING_CORE_POSTING" | "PENDING_CLEARING" | "CORE_RESULT_UNKNOWN" | "SETTLED" | "FAILED" | "TIMED_OUT" | "RETURN_PENDING" | "RETURN_RESULT_UNKNOWN" | "RETURNED" | "REVERSAL_PENDING" | "REVERSED";
         Beneficiary: {
             /** Format: uuid */
             beneficiaryId: string;
@@ -549,19 +569,56 @@ export interface components {
             amount: components["schemas"]["Money"];
             termMonths: number;
             purpose: string;
+            repaymentMethod: string;
+            note?: string;
         };
         LoanApplication: {
             /** Format: uuid */
             applicationId: string;
-            status: string;
-            version?: number;
+            amount: components["schemas"]["Money"];
+            currency: string;
+            termMonths: number;
+            purpose: string;
+            repaymentMethod: string;
+            note?: string;
+            /** @enum {string} */
+            status: "DRAFT" | "SUBMITTED" | "SCORED" | "APPROVED" | "CORE_SUBMITTED" | "DISBURSED" | "CLOSED" | "REJECTED";
+            quotedAnnualInterestRate: string;
+            approvedAnnualInterestRate?: string;
+            approvedAmount?: components["schemas"]["Money"];
+            /** Format: int64 */
+            coreLoanId?: number;
+            version: number;
+            /** Format: date-time */
+            createdAt: string;
+            /** Format: date-time */
+            updatedAt: string;
         };
-        CoreLoanReference: {
+        LoanApplicationDetail: components["schemas"]["LoanApplication"] & {
+            documents: components["schemas"]["LoanDocument"][];
+        };
+        LoanApplicationPage: {
+            items: components["schemas"]["LoanApplication"][];
+        };
+        VersionRequest: {
+            version: number;
+        };
+        LoanDocumentRequest: {
+            documentType: string;
+        };
+        LoanDocument: {
+            /** Format: uuid */
+            documentId: string;
             /** Format: uuid */
             applicationId: string;
-            /** Format: int64 */
-            coreLoanId: number;
-            status: string;
+            documentType: string;
+            /** @enum {string} */
+            status: "RECEIVED";
+            /** Format: date-time */
+            createdAt?: string;
+        };
+        LoanDocumentPage: {
+            items: components["schemas"]["LoanDocument"][];
         };
         RepaymentRequest: {
             transactionAmount: components["schemas"]["Money"];
@@ -608,6 +665,7 @@ export interface components {
         AccountId: string;
         ApplicationId: string;
         IdempotencyKey: string;
+        CorrelationId: string;
     };
     requestBodies: never;
     headers: never;
@@ -690,6 +748,27 @@ export interface operations {
             };
             401: components["responses"]["Unauthorized"];
             404: components["responses"]["NotFound"];
+        };
+    };
+    listLoanApplications: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Loan application list */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LoanApplicationPage"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
         };
     };
     createLoanApplication: {
@@ -1015,6 +1094,7 @@ export interface operations {
             query?: never;
             header: {
                 "Idempotency-Key": components["parameters"]["IdempotencyKey"];
+                "X-Correlation-Id": components["parameters"]["CorrelationId"];
             };
             path?: never;
             cookie?: never;
@@ -1081,6 +1161,53 @@ export interface operations {
                 };
             };
             401: components["responses"]["Unauthorized"];
+        };
+    };
+    getLoanApplication: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                applicationId: components["parameters"]["ApplicationId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Loan application detail */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LoanApplicationDetail"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            404: components["responses"]["NotFound"];
+        };
+    };
+    confirmCustomerTransfer: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                transferId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Current subject-scoped transfer after idempotent processing */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Transfer"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
             404: components["responses"]["NotFound"];
         };
     };
@@ -1093,7 +1220,11 @@ export interface operations {
             };
             cookie?: never;
         };
-        requestBody?: never;
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["VersionRequest"];
+            };
+        };
         responses: {
             /** @description Submitted channel application */
             200: {
@@ -1107,12 +1238,10 @@ export interface operations {
             401: components["responses"]["Unauthorized"];
         };
     };
-    submitLoanToCore: {
+    listLoanApplicationDocuments: {
         parameters: {
             query?: never;
-            header: {
-                "Idempotency-Key": components["parameters"]["IdempotencyKey"];
-            };
+            header?: never;
             path: {
                 applicationId: components["parameters"]["ApplicationId"];
             };
@@ -1120,13 +1249,40 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
-            /** @description Core loan reference */
+            /** @description Bound document list */
             200: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["CoreLoanReference"];
+                    "application/json": components["schemas"]["LoanDocumentPage"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+        };
+    };
+    addLoanApplicationDocument: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                applicationId: components["parameters"]["ApplicationId"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["LoanDocumentRequest"];
+            };
+        };
+        responses: {
+            /** @description Bound document */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LoanDocument"];
                 };
             };
             401: components["responses"]["Unauthorized"];
@@ -1137,36 +1293,6 @@ export interface operations {
                 };
                 content?: never;
             };
-        };
-    };
-    commandCoreLoan: {
-        parameters: {
-            query?: never;
-            header: {
-                "Idempotency-Key": components["parameters"]["IdempotencyKey"];
-            };
-            path: {
-                applicationId: components["parameters"]["ApplicationId"];
-                command: "approve" | "disburse" | "reject" | "withdrawByApplicant" | "undoapproval" | "undodisbursal";
-            };
-            cookie?: never;
-        };
-        requestBody?: {
-            content: {
-                "application/json": {
-                    [key: string]: unknown;
-                };
-            };
-        };
-        responses: {
-            /** @description Core command result */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-            401: components["responses"]["Unauthorized"];
         };
     };
     repayCoreLoan: {

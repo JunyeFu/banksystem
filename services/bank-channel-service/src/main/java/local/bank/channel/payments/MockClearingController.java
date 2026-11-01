@@ -5,7 +5,9 @@ import java.util.UUID;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.context.annotation.Profile;
 
+@Profile("mock-clearing")
 @RestController
 public class MockClearingController {
   private final MockClearingService service;

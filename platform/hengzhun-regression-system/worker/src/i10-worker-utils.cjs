@@ -127,8 +127,41 @@ function chromiumHostResolverRules(targetProfile) {
   return `--host-resolver-rules=${entries.join(',')}`;
 }
 
+function targetRuntimeAllowedOrigins(targetProfile, baseUrl) {
+  const origins = new Set(targetProfile
+    ? [
+        ...(Array.isArray(targetProfile.allowedNavigationOrigins) ? targetProfile.allowedNavigationOrigins : []),
+        ...(Array.isArray(targetProfile.allowedInteractionOrigins) ? targetProfile.allowedInteractionOrigins : []),
+        ...(Array.isArray(targetProfile.credentialOrigins) ? targetProfile.credentialOrigins : [])
+      ]
+    : [new URL(baseUrl).origin, 'http://127.0.0.1:18443', 'http://127.0.0.1:19000']);
+  return origins;
+}
+
+function assertBankValidationLease(claim) {
+  if (!(Date.parse(claim.leaseExpiresAt) > Date.now()))
+    throw Object.assign(new Error('资金验证租约已过期，不能继续执行。'),{code:'I10_BANK_VALIDATION_LEASE_EXPIRED',category:'CONCURRENCY'});
+}
+
+function bankValidationFixtureValues(fixture) {
+  const {bankValidationFixtureSchema}=require('../../dist/harness/src/i10/schemas.js');
+  const parsed=bankValidationFixtureSchema.safeParse(fixture);
+  if(!parsed.success)throw Object.assign(new Error('资金样本绑定无效。'),{code:'I10_BANK_VALIDATION_BINDING_INVALID',category:'CONTRACT'});
+  return {'TRANSFER.PAYER_ACCOUNT_ID':parsed.data.sourceAccountId,'TRANSFER.PAYEE_REF':parsed.data.beneficiaryRef,'TRANSFER.CURRENCY':parsed.data.currency};
+}
+
+function authoringExecutionFixtureValues(claim) {
+  if(claim.plan.fixtureProfile!=='TRANSFER_UKEY_ORDER_QUERY')return claim.plan.fixtureValues;
+  if(!claim.validationFixture)throw Object.assign(new Error('缺少作者化资金样本。'),{code:'I10_BANK_VALIDATION_BINDING_REQUIRED',category:'CONTRACT'});
+  if(claim.credentialRef!==claim.validationFixture.credentialRef || claim.plan.fixtureValues['TRANSFER.CURRENCY']!==claim.validationFixture.currency)
+    throw Object.assign(new Error('作者化凭据或币种与资金样本不符。'),{code:'I10_BANK_VALIDATION_BINDING_INVALID',category:'CONTRACT'});
+  assertBankValidationLease(claim);
+  return {...claim.plan.fixtureValues,...bankValidationFixtureValues(claim.validationFixture)};
+}
+
 module.exports = {
+  assertBankValidationLease,bankValidationFixtureValues,authoringExecutionFixtureValues,
   artifact, quarantinedScreenshotArtifact, throwIfLeaseAborted, bindLeaseAbortToBrowser,
   assertTargetUrlResolution, chromiumHostResolverRules, credentialEnvironmentName, resolveCredential,
-  resolveExecutionCredential, sha256
+  resolveExecutionCredential, sha256, targetRuntimeAllowedOrigins
 };

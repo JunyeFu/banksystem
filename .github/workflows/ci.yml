@@ -1,67 +1,364 @@
-name: Hengzhun quality gates
-
+name: Bank and Agent product checks
 on:
-  push:
-    paths:
-      - platform/hengzhun-regression-system/**
-      - .github/workflows/ci.yml
-  pull_request:
-    paths:
-      - platform/hengzhun-regression-system/**
-      - .github/workflows/ci.yml
-  workflow_dispatch:
-
+  push: {}
+  pull_request: {}
+  workflow_dispatch: {}
 permissions:
   contents: read
-
+defaults:
+  run:
+    shell: pwsh
 jobs:
-  quality:
+  source-engineering:
+    runs-on: windows-latest
+    timeout-minutes: 20
+    defaults:
+      run:
+        working-directory: banksystem-rf065/source-snapshot
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          path: banksystem-rf065/source-snapshot
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20.20.2
+      - name: Prepare fixed Python scan dependency
+        run: |
+          python -m pip install PyYAML==6.0.3
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+      - name: Prepare fixed verified security tools
+        run: |
+          ./scripts/deploy/prepare-ci-security-tools.ps1 -OutputPath "$env:GITHUB_WORKSPACE/banksystem-rf065/engineering/tools"
+      - name: Verify source and dependency scan failure contracts
+        run: |
+          python -m unittest discover -s scripts/test -p test_ci_scan.py
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          python -m unittest discover -s scripts/test -p test_ci_dependencies.py
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          python -m unittest discover -s scripts/test -p test_ci_dependency_scan.py
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          python -m unittest discover -s scripts/test -p test_ci_artifacts.py
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          $tools = Get-Content "$env:GITHUB_WORKSPACE/banksystem-rf065/engineering/tools/toolset.json" -Raw | ConvertFrom-Json
+          python scripts/test/check_ci_gitleaks.py --gitleaks $tools.gitleaks.path --output "$env:GITHUB_WORKSPACE/banksystem-rf065/engineering/policy-contract"
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+      - name: Scan current controlled source without local state or history
+        run: |
+          $root = "$env:GITHUB_WORKSPACE/banksystem-rf065/engineering"
+          $tools = Get-Content "$root/tools/toolset.json" -Raw | ConvertFrom-Json
+          python scripts/deploy/prepare-ci-scan.py --repository $PWD --output "$root/source" --gitleaks $tools.gitleaks.path
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+      - name: Generate declared product SBOM and scan all nine locks
+        run: |
+          $root = "$env:GITHUB_WORKSPACE/banksystem-rf065/engineering"
+          $tools = Get-Content "$root/tools/toolset.json" -Raw | ConvertFrom-Json
+          python scripts/deploy/prepare-ci-dependencies.py --source "$root/source/scan-source" --output "$root/dependencies"
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          python scripts/deploy/scan-ci-dependencies.py --directory "$root/dependencies" --syft $tools.syft.path --osv-scanner $tools.'osv-scanner'.path
+          $nativeScanCode = $LASTEXITCODE
+          if ($nativeScanCode -notin @(0, 1)) { exit $nativeScanCode }
+          # Exit 1 stays in the raw report; only the next precise patch review may accept it.
+          npm ci --ignore-scripts --prefix platform/hengzhun-regression-system
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          npm ci --install-links --ignore-scripts --prefix platform/hengzhun-regression-system/runtime
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          python scripts/deploy/verify-ci-dependency-review.py --directory "$root/dependencies" --source "$root/source/scan-source" --agent-root "$PWD/platform/hengzhun-regression-system" --node (Get-Command node.exe).Source
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+      - name: Package and verify source-only candidate materials
+        run: |
+          $root = "$env:GITHUB_WORKSPACE/banksystem-rf065/engineering"
+          python scripts/deploy/verify-ci-artifacts.py --source-only --repository $PWD --source-scan "$root/source" --dependencies "$root/dependencies" --tools "$root/tools/toolset.json" --output "$root/candidate-source"
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          python scripts/deploy/verify-ci-artifacts.py --verify "$root/candidate-source" --repository $PWD
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: source-engineering-evidence
+          path: |
+            banksystem-rf065/engineering/source/secrets.json
+            banksystem-rf065/engineering/dependencies/dependency-coverage.json
+            banksystem-rf065/engineering/dependencies/source.cdx.json
+            banksystem-rf065/engineering/dependencies/dependencies.json
+            banksystem-rf065/engineering/dependencies/dependency-result.json
+            banksystem-rf065/engineering/dependencies/vulnerability-inventory.json
+            banksystem-rf065/engineering/dependencies/license-unresolved.json
+            banksystem-rf065/engineering/dependencies/dependency-review.json
+            banksystem-rf065/engineering/dependencies/license-review.json
+            banksystem-rf065/engineering/dependencies/source.reviewed.cdx.json
+            banksystem-rf065/engineering/dependencies/zip-patch-regression.txt
+            banksystem-rf065/engineering/candidate-source/candidate-manifest.json
+            banksystem-rf065/engineering/candidate-source/checksums.sha256
+            banksystem-rf065/engineering/candidate-source/controlled-source.zip
+            banksystem-rf065/engineering/candidate-source/reports/secrets.json
+            banksystem-rf065/engineering/candidate-source/reports/dependency-coverage.json
+            banksystem-rf065/engineering/candidate-source/reports/dependencies.json
+            banksystem-rf065/engineering/candidate-source/reports/dependency-result.json
+            banksystem-rf065/engineering/candidate-source/reports/vulnerability-inventory.json
+            banksystem-rf065/engineering/candidate-source/reports/source.cdx.json
+            banksystem-rf065/engineering/candidate-source/reports/dependency-review.json
+            banksystem-rf065/engineering/candidate-source/reports/license-review.json
+            banksystem-rf065/engineering/candidate-source/reports/source.reviewed.cdx.json
+            banksystem-rf065/engineering/candidate-source/reports/zip-patch-regression.txt
+            banksystem-rf065/engineering/candidate-source/reports/source-license-review.json
+          if-no-files-found: warn
+  bank-browser-integration:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    defaults:
+      run:
+        shell: bash
+        working-directory: banksystem-rf065/source-snapshot
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          path: banksystem-rf065/source-snapshot
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20.20.2
+      - name: Prepare owned bank and locked browser
+        run: |
+          set -euo pipefail
+          python -m pip install PyYAML==6.0.3
+          python scripts/test/test_ci_bank_topology.py
+          node --test scripts/test/ci-bank-browser.test.cjs
+          python scripts/deploy/prepare-ci-bank.py --source "$PWD" --output "$GITHUB_WORKSPACE/banksystem-rf065/bank"
+          npm ci --install-links --ignore-scripts --prefix platform/hengzhun-regression-system/runtime
+          export PLAYWRIGHT_BROWSERS_PATH="$PWD/platform/hengzhun-regression-system/runtime/browsers"
+          node platform/hengzhun-regression-system/runtime/node_modules/playwright/cli.js install --with-deps chromium
+      - name: Build and start owned empty core
+        run: |
+          set -euo pipefail
+          compose="$GITHUB_WORKSPACE/banksystem-rf065/bank/compose.json"
+          docker compose -f "$compose" build
+          docker compose -f "$compose" up -d --wait postgresql activemq fineract-server
+      - name: Bind new core credentials and start bank
+        shell: pwsh
+        run: |
+          $bank = Join-Path $env:GITHUB_WORKSPACE 'banksystem-rf065/bank'
+          ./scripts/deploy/ensure-fineract-credentials.ps1 -EnvironmentPath "$bank/synthetic.env" -BaseUrl http://127.0.0.1:21100/fineract-provider
+          docker compose -f "$bank/compose.json" up -d --wait
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+      - name: Real banking golden path
+        shell: pwsh
+        run: |
+          $bank = Join-Path $env:GITHUB_WORKSPACE 'banksystem-rf065/bank'
+          foreach ($name in @('KEYCLOAK_ADMIN_USERNAME', 'KEYCLOAK_ADMIN_PASSWORD', 'FINERACT_USERNAME', 'FINERACT_PASSWORD', 'FINERACT_TENANT')) {
+            [Environment]::SetEnvironmentVariable($name, $null, 'Process')
+          }
+          $output = ./scripts/demo/run-golden-path.ps1 -EnvironmentPath "$bank/synthetic.env" -GatewayBaseUrl http://127.0.0.1:21443 -KeycloakBaseUrl http://127.0.0.1:21900 -FineractBaseUrl http://127.0.0.1:21100/fineract-provider
+          $resultCode = [int]$LASTEXITCODE
+          $report = $output | ConvertFrom-Json | Select-Object status, errorCode, stage, httpStatus, journeyId, correlationId, sourceAccountId, targetAccountId, amount, currency, fineractTransactionId
+          $report | ConvertTo-Json | Set-Content "$bank/golden-result.json"
+          if ($resultCode -ne 0) { exit $resultCode }
+          if ($report.status -ne 'COMPLETED') { throw 'CI_GOLDEN_RESULT_NOT_COMPLETED' }
+      - name: Real customer and operations browser journey
+        run: |
+          set -euo pipefail
+          export PLAYWRIGHT_BROWSERS_PATH="$PWD/platform/hengzhun-regression-system/runtime/browsers"
+          node scripts/test/ci-bank-browser.cjs "$GITHUB_WORKSPACE/banksystem-rf065/bank" "$PWD" "$PLAYWRIGHT_BROWSERS_PATH/chromium-1217/chrome-linux64/chrome"
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: bank-browser-evidence
+          path: |
+            banksystem-rf065/bank/golden-result.json
+            banksystem-rf065/bank/browser-result.json
+            banksystem-rf065/bank/browser-failure.json
+            banksystem-rf065/bank/customer-transfer.png
+            banksystem-rf065/bank/operations-transfer.png
+          if-no-files-found: warn
+  governance:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install YAML validator
+        run: python -m pip install PyYAML==6.0.3
+      - name: Validate governance and workflow contract
+        run: |
+          python scripts/architecture/validate_refactoring.py --batch RF-064
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          python scripts/architecture/validate_refactoring.py --batch RF-065
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          python scripts/docs/validate_docs.py --source-only
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          python -m unittest discover -s scripts/test -p test_ci_workflow.py
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          python -m unittest discover -s scripts/test -p test_refactoring_source_scope.py
+  bank-java:
+    runs-on: windows-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+          cache: maven
+          cache-dependency-path: services/bank-channel-service/pom.xml
+      - name: Java unit and embedded PostgreSQL integration tests
+        working-directory: services/bank-channel-service
+        run: .\mvnw.cmd --batch-mode --settings ..\..\scripts\test\ci-maven-settings.xml test
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: bank-java-reports
+          path: services/bank-channel-service/target/surefire-reports/**
+          if-no-files-found: error
+  shared-frontend:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20.20.2
+          cache: npm
+          cache-dependency-path: |
+            packages/bank-api-client/package-lock.json
+            packages/bank-ui-kit/package-lock.json
+      - name: Install shared locked dependencies
+        run: |
+          foreach ($packageDirectory in @('packages/bank-api-client', 'packages/bank-ui-kit')) {
+            npm ci --prefix $packageDirectory
+            if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          }
+      - name: Generate and verify public client types
+        run: |
+          npm run generate --prefix packages/bank-api-client
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          git diff --exit-code -- packages/bank-api-client/src/generated
+      - name: Test public API client
+        run: npm test --prefix packages/bank-api-client
+      - name: Test shared UI
+        run: npm test --prefix packages/bank-ui-kit
+  frontend-build:
+    runs-on: windows-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        app: [customer-portal, operations-console, quality-case-portal]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20.20.2
+          cache: npm
+          cache-dependency-path: |
+            apps/${{ matrix.app }}/package-lock.json
+            packages/bank-api-client/package-lock.json
+            packages/bank-ui-kit/package-lock.json
+      - name: Install app and shared locked dependencies
+        run: |
+          foreach ($packageDirectory in @('packages/bank-api-client', 'packages/bank-ui-kit', 'apps/${{ matrix.app }}')) {
+            npm ci --prefix $packageDirectory
+            if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          }
+      - name: Check customer lint types and authentication units
+        if: matrix.app == 'customer-portal'
+        run: |
+          npm run lint --prefix apps/customer-portal
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          npm run typecheck --prefix apps/customer-portal
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          npm test --prefix apps/customer-portal
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+      - name: Check operations lint types and document units
+        if: matrix.app == 'operations-console'
+        run: |
+          npm run lint --prefix apps/operations-console
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          npm run typecheck --prefix apps/operations-console
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          npm test --prefix apps/operations-console
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+      - name: Check quality lint types and read-only units
+        if: matrix.app == 'quality-case-portal'
+        run: |
+          npm run lint --prefix apps/quality-case-portal
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          npm run typecheck --prefix apps/quality-case-portal
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          npm test --prefix apps/quality-case-portal
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+      - name: Type-check and build frontend
+        run: npm run build --prefix apps/${{ matrix.app }}
+      - name: Verify generated quality API contract
+        run: git diff --exit-code -- apps/quality-case-portal/src/generated
+  agent:
     runs-on: windows-latest
     timeout-minutes: 45
     defaults:
       run:
-        shell: pwsh
         working-directory: platform/hengzhun-regression-system
-
     steps:
-      - name: Check out source
-        uses: actions/checkout@v4
-
-      - name: Use governed Node.js
-        uses: actions/setup-node@v4
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20.20.2
+      - name: Prepare fixed Node 20 executable
+        run: |
+          $nodeDirectory = 'runtime/node-v20.20.2-win-x64'
+          New-Item -ItemType Directory -Force -Path $nodeDirectory | Out-Null
+          Copy-Item -LiteralPath (Get-Command node.exe).Source -Destination "$nodeDirectory/node.exe"
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24.19.0
+      - name: Prepare fixed Node 24 executable
+        run: |
+          $nodeDirectory = 'runtime/node-v24.19.0-win-x64'
+          New-Item -ItemType Directory -Force -Path $nodeDirectory | Out-Null
+          Copy-Item -LiteralPath (Get-Command node.exe).Source -Destination "$nodeDirectory/node.exe"
+      - name: Install locked CLI dependencies under Node 24
+        run: npm ci --prefix agent-cli
+      - uses: actions/setup-node@v4
         with:
           node-version: 20.20.2
           cache: npm
           cache-dependency-path: |
             platform/hengzhun-regression-system/package-lock.json
-            platform/hengzhun-regression-system/flowise/app/package-lock.json
-
-      - name: Install locked root dependencies
-        run: npm ci
-
-      - name: Install locked Flowise dependencies for MCP integration tests
-        run: npm ci --prefix flowise/app --ignore-scripts
-
-      - name: Generate TypeScript output
-        run: npm run generate:dist
-
-      - name: Check test discovery manifest
+            platform/hengzhun-regression-system/controller/package-lock.json
+            platform/hengzhun-regression-system/agent-cli/package-lock.json
+            platform/hengzhun-regression-system/runtime/package-lock.json
+      - name: Install locked Harness Controller and browser dependencies under Node 20
+        run: |
+          npm ci
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          foreach ($packageDirectory in @('controller', 'runtime')) {
+            if ($packageDirectory -eq 'runtime') {
+              npm ci --install-links --ignore-scripts --prefix $packageDirectory
+            } else {
+              npm ci --install-links --prefix $packageDirectory
+            }
+            if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          }
+      - name: Install locked Chromium into the governed path
+        run: |
+          $env:PLAYWRIGHT_BROWSERS_PATH = Join-Path $PWD 'runtime/browsers'
+          .\runtime\node-v20.20.2-win-x64\node.exe runtime/node_modules/playwright/cli.js install chromium
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          $freeze = Get-Content config/demo-runtime-freeze.json -Raw | ConvertFrom-Json
+          if (-not (Test-Path -LiteralPath (Join-Path 'runtime' $freeze.chromium.executable))) { throw 'Frozen Chromium executable is missing' }
+          & (Join-Path $env:GITHUB_WORKSPACE 'scripts/deploy/prepare-agent-media.ps1') -AgentRoot $PWD
+      - name: Build TypeScript
+        run: npm run build
+      - name: Verify registered test discovery
         run: npm run check:tests
-
-      - name: Type-check source
+      - name: Type-check Agent source
         run: npm run typecheck
-
-      - name: Lint JavaScript syntax
+      - name: Check JavaScript syntax
         run: npm run lint
-
       - name: Run complete CI-registered suite
         run: npm run test:registered
-
       - name: Enforce coverage thresholds
         run: npm run test:coverage
-
-      - name: Audit root production dependencies
-        run: npm run audit:critical
-
-      - name: Gate Flowise known production audit findings
-        run: npm run audit:flowise:critical

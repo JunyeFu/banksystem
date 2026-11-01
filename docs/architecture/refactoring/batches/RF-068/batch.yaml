@@ -1,0 +1,20 @@
+schemaVersion: 1
+id: RF-068
+title: Approved Figma Agent browser frontend and acceptance
+status: CLOSED
+owner: Codex
+authorizedBy: agent/plans/active/v54-implementation-batches.md
+scope:
+  includePaths: ["docs/architecture/refactoring/batches/RF-068","agent/backlog.yaml","agent/plans/active/v54-implementation-batches.md","apps/quality-case-portal","scripts/test","scripts/demo","platform/hengzhun-regression-system/scripts/verification"]
+  excludePaths: [postgresql, services/bank-channel-service, infra/keycloak, platform/hengzhun-regression-system/flowise]
+budgets: {maxChangedFiles: 48, maxNewFiles: 34, maxChangedLines: 6500, maxContractsChanged: 0, maxMigrationsAdded: 0, maxOpenModules: 2}
+baseline: {gitCommit: 552b3b8ac517bd5991bff446e72d9f4e87ea9543, dirtyTreeManifest: docs/architecture/refactoring/batches/RF-068/baseline.md, releaseIdentity: UNFROZEN_RF068, capturedAt: '2026-10-19T15:45:04+08:00'}
+architecture: {businessCapability: browser-conversation-and-model-settings, publicContract: contracts/openapi/agent-workbench-api.yaml, dependencyManifest: docs/architecture/refactoring/module-boundaries-v1.yaml, allowedModules: ["frontend.quality-case-portal"], forbiddenModules: [hengzhun.flowise]}
+mustPreserve: [original services and volumes, dirty workspace, Harness SQLite authority, Quality GET-only projection, no secret response, no runtime mock or fallback, run-bound model identity]
+verification:
+  requiredCommands:
+    - {name: governance, command: 'python scripts/architecture/validate_refactoring.py --batch RF-068', expectedExitCode: 0, evidence: docs/architecture/refactoring/batches/RF-068/evidence-index.md, blocking: true}
+    - {name: docs, command: 'python scripts/docs/validate_docs.py', expectedExitCode: 0, evidence: docs/architecture/refactoring/batches/RF-068/evidence-index.md, blocking: true}
+rollback: {triggerConditions: [secret exposure, duplicate execution, existing runtime disruption], recoveryPoint: revert only owned batch edits from baseline; retain original services volumes and historical evidence, maxRtoMinutes: 15, maxRpoMinutes: 0}
+exceptions: {allowedVagueNames: [], crossModule: []}
+

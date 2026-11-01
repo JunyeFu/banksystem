@@ -1,4 +1,7 @@
 import { canonicalJson, sha256 } from '../utils';
+import bankAuthentication from '../../../contracts/adapters/fuxing-bank-demo-auth-v2.json';
+import operationsAuthentication from '../../../contracts/adapters/fuxing-bank-operations-auth-v1.json';
+export const FUXING_BANK_AUTHENTICATION = bankAuthentication;
 
 /**
  * A target adapter is intentionally opt-in.  It must never be inferred from a
@@ -10,13 +13,7 @@ export type TargetAdapterBinding = {
   manifestHash: string;
 };
 
-const fuxingManifest = {
-  adapterId: 'fuxing-bank-demo',
-  adapterVersion: '1.0.0',
-  executionEngine: 'TARGET_ADAPTER',
-  supportedCapabilities: ['AUTHENTICATION', 'NAVIGATION', 'ASSERTION', 'EVIDENCE_CAPTURE'],
-  explicitOnly: true
-} as const;
+const fuxingManifest = bankAuthentication;
 
 export const FUXING_BANK_DEMO_ADAPTER: TargetAdapterBinding = Object.freeze({
   adapterId: fuxingManifest.adapterId,
@@ -24,9 +21,15 @@ export const FUXING_BANK_DEMO_ADAPTER: TargetAdapterBinding = Object.freeze({
   manifestHash: sha256(canonicalJson(fuxingManifest))
 });
 
+export const FUXING_BANK_OPERATIONS_ADAPTER: TargetAdapterBinding = Object.freeze({
+  adapterId: operationsAuthentication.adapterId, adapterVersion: operationsAuthentication.adapterVersion,
+  manifestHash: sha256(canonicalJson(operationsAuthentication))
+});
+
 export function resolveTargetAdapterBinding(value: unknown): TargetAdapterBinding | undefined {
   if (!value || typeof value !== 'object' || Array.isArray(value)) return undefined;
   const candidate = value as Partial<TargetAdapterBinding>;
+  if(candidate.adapterId===FUXING_BANK_OPERATIONS_ADAPTER.adapterId&&candidate.adapterVersion===FUXING_BANK_OPERATIONS_ADAPTER.adapterVersion&&candidate.manifestHash===FUXING_BANK_OPERATIONS_ADAPTER.manifestHash)return FUXING_BANK_OPERATIONS_ADAPTER;
   if (candidate.adapterId === FUXING_BANK_DEMO_ADAPTER.adapterId &&
       candidate.adapterVersion === FUXING_BANK_DEMO_ADAPTER.adapterVersion &&
       candidate.manifestHash === FUXING_BANK_DEMO_ADAPTER.manifestHash) {
@@ -36,5 +39,12 @@ export function resolveTargetAdapterBinding(value: unknown): TargetAdapterBindin
 }
 
 export function isFuxingBankDemoAdapter(value: unknown): boolean {
-  return Boolean(resolveTargetAdapterBinding(value));
+  return resolveTargetAdapterBinding(value)?.adapterId===FUXING_BANK_DEMO_ADAPTER.adapterId;
+}
+
+export function authenticationForTargetAdapter(value: unknown) {
+  const binding=resolveTargetAdapterBinding(value);
+  if(binding?.adapterId===FUXING_BANK_OPERATIONS_ADAPTER.adapterId)return operationsAuthentication;
+  if(binding?.adapterId===FUXING_BANK_DEMO_ADAPTER.adapterId)return bankAuthentication;
+  return undefined;
 }

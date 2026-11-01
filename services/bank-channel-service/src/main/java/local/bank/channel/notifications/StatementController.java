@@ -1,6 +1,9 @@
 package local.bank.channel.notifications;
 
 import java.nio.charset.StandardCharsets;
+import java.math.BigDecimal;
+import java.util.Comparator;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import org.springframework.http.*;
@@ -8,25 +11,45 @@ import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.server.ResponseStatusException;
-import local.bank.channel.identity.CustomerController;
-import local.bank.channel.FineractAdapter;
+import local.bank.channel.identity.CustomerIdentityQuery;
+import local.bank.channel.identity.CustomerTransactionMapper;
+import local.bank.channel.FineractAccountPort;
 
 @RestController
 public class StatementController {
-  private final FineractAdapter fineract; private final CustomerController customer;
-  public StatementController(FineractAdapter fineract,CustomerController customer){this.fineract=fineract;this.customer=customer;}
+  private final FineractAccountPort fineract; private final CustomerIdentityQuery identity;
+  public StatementController(FineractAccountPort fineract,CustomerIdentityQuery identity){this.fineract=fineract;this.identity=identity;}
   @GetMapping("/api/customer/v1/statements")
   public ResponseEntity<byte[]> statement(@AuthenticationPrincipal Jwt jwt,@RequestParam String accountId,@RequestParam(required=false) String fromDate,@RequestParam(required=false) String toDate,@RequestParam(defaultValue="csv") String format){
     long id;try{id=Long.parseLong(accountId);}catch(Exception e){throw new ResponseStatusException(HttpStatus.BAD_REQUEST,"Invalid accountId");}
-    var accounts=fineract.clientAccounts(customer.linkedClientForStatement(jwt.getSubject()));
-    if(accounts.stream().noneMatch(a->String.valueOf(a.getOrDefault("id",a.get("accountId"))).equals(accountId)))throw new ResponseStatusException(HttpStatus.NOT_FOUND,"Account is not linked");
-    List<Map<String,Object>> rows=fineract.savingsTransactions(id,fromDate,toDate);var summary=balanceSummary(rows);String csv="# openingBalance="+summary.opening+",credits="+summary.credits+",debits="+summary.debits+",closingBalance="+summary.closing+",balanceCheck="+summary.balanced+"\n"+"date,type,amount,runningBalance,reversed\n"+rows.stream().map(this::csvRow).reduce("",String::concat);
+    var accounts=fineract.clientAccounts(identity.linkedClient(jwt.getSubject()));
+    if(accounts.stream().noneMatch(a->a.id()==id))throw new ResponseStatusException(HttpStatus.NOT_FOUND,"Account is not linked");
+    FineractAccountPort.SavingsAccount account=fineract.accountDetails(id);
+    List<Map<String,Object>> rows=fineract.savingsTransactions(id,fromDate,toDate,account.currency()).stream()
+        .map(raw->{Map<String,Object> mapped=new LinkedHashMap<>(CustomerTransactionMapper.map(raw));mapped.put("reversed",raw.reversed());return mapped;})
+        .sorted(Comparator.<Map<String,Object>,String>comparing(row->String.valueOf(row.get("transactionDate")))
+            .thenComparing(row->String.valueOf(row.get("transactionId"))))
+        .toList();
+    var summary=balanceSummary(rows,account);
+    String csv="# openingBalance="+summary.opening+",credits="+summary.credits+",debits="+summary.debits+",closingBalance="+summary.closing+",balanceCheck="+summary.balanced+"\n"+"date,type,amount,runningBalance,reversed\n"+rows.stream().map(this::csvRow).reduce("",String::concat);
     if(format.equalsIgnoreCase("pdf")){return ResponseEntity.ok().contentType(MediaType.APPLICATION_PDF).header("X-Statement-Balance-Check",String.valueOf(summary.balanced)).body(buildPdf(csv));}
     return ResponseEntity.ok().contentType(MediaType.parseMediaType("text/csv")).header("X-Statement-Balance-Check",String.valueOf(summary.balanced)).body(csv.getBytes(StandardCharsets.UTF_8));
   }
-  private BalanceSummary balanceSummary(List<Map<String,Object>> rows){java.math.BigDecimal credits=java.math.BigDecimal.ZERO,debits=java.math.BigDecimal.ZERO,closing=java.math.BigDecimal.ZERO;for(var row:rows){var amount=new java.math.BigDecimal(String.valueOf(row.getOrDefault("amount","0")));var type=(Map<?,?>)row.get("transactionType");String value=type==null?"":String.valueOf(type.get("value"));if(value.toLowerCase().contains("deposit")||value.toLowerCase().contains("credit"))credits=credits.add(amount);else debits=debits.add(amount);if(closing.signum()==0&&row.get("runningBalance")!=null)closing=new java.math.BigDecimal(String.valueOf(row.get("runningBalance")));}java.math.BigDecimal opening=closing.subtract(credits).add(debits);return new BalanceSummary(opening,credits,debits,closing,opening.add(credits).subtract(debits).compareTo(closing)==0);}
-  private record BalanceSummary(java.math.BigDecimal opening,java.math.BigDecimal credits,java.math.BigDecimal debits,java.math.BigDecimal closing,boolean balanced){}
-  private String csvRow(Map<String,Object> row){var type=(Map<?,?>)row.get("transactionType");return String.join(",",String.valueOf(row.get("date")),String.valueOf(type==null?"":type.get("value")),String.valueOf(row.get("amount")),String.valueOf(row.get("runningBalance")),String.valueOf(row.get("reversed")))+"\n";}
+  private BalanceSummary balanceSummary(List<Map<String,Object>> rows,FineractAccountPort.SavingsAccount account){
+    BigDecimal credits=BigDecimal.ZERO,debits=BigDecimal.ZERO;
+    for(var row:rows){
+      BigDecimal amount=CustomerTransactionMapper.money(row.get("amount"),"statement amount");
+      if("CREDIT".equals(row.get("transactionType")))credits=credits.add(amount);
+      else debits=debits.add(amount);
+    }
+    BigDecimal closing=rows.isEmpty()||rows.get(rows.size()-1).get("runningBalance")==null
+        ?account.balance()
+        :CustomerTransactionMapper.money(rows.get(rows.size()-1).get("runningBalance"),"statement closing balance");
+    BigDecimal opening=closing.subtract(credits).add(debits);
+    return new BalanceSummary(opening,credits,debits,closing,opening.add(credits).subtract(debits).compareTo(closing)==0);
+  }
+  private record BalanceSummary(BigDecimal opening,BigDecimal credits,BigDecimal debits,BigDecimal closing,boolean balanced){}
+  private String csvRow(Map<String,Object> row){return String.join(",",String.valueOf(row.get("transactionDate")),String.valueOf(row.get("transactionType")),String.valueOf(row.get("amount")),String.valueOf(row.getOrDefault("runningBalance","")),String.valueOf(row.get("reversed")))+"\n";}
   private byte[] buildPdf(String text){
     String safe=text.replace("\\","\\\\").replace("(","\\(").replace(")","\\)").replace("\n", ") Tj T* (");
     String stream="BT /F1 8 Tf 40 760 Td ("+safe+") Tj ET";

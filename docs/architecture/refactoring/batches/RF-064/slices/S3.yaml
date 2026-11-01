@@ -1,0 +1,10 @@
+id: RF-064-S3
+title: 核验反馈与经验应用
+status: IMPLEMENTING
+businessGoal: 核验反馈与经验应用
+allowedPaths: [platform/hengzhun-regression-system/controller, platform/hengzhun-regression-system/harness, platform/hengzhun-regression-system/worker, platform/hengzhun-regression-system/agent-cli, platform/hengzhun-regression-system/scripts/verification, platform/hengzhun-regression-system/mcp, platform/hengzhun-regression-system/contracts/mcp, platform/hengzhun-regression-system/scripts/i10-worker-code-set.cjs, platform/hengzhun-regression-system/scripts/i10-worker-code-set-v1.json, platform/hengzhun-regression-system/tests/i10-release-identity-worker-set.test.cjs]
+forbiddenPaths: [postgresql, infra/keycloak, platform/hengzhun-regression-system/flowise]
+workSteps: [baseline, counterexample, implement, verify]
+verification: ['产品npm.cmd run build；经验匹配/持久化/隔离反例；真实BYOK保留任务复验']
+evidence: docs/architecture/refactoring/batches/RF-064/evidence-index.md
+

@@ -85,6 +85,43 @@ function insertOneTimeSchedule(f, suffix, runAt, graceSeconds, options = {}) {
   return { scheduleId, deadlineAt }
 }
 
+for (const scheduleType of ['RECURRING', 'ONE_TIME']) {
+test(`zero-retry scheduled ${scheduleType} lease expiry blocks the original task without hidden re-execution`, async t => {
+  const f = await fixture()
+  t.after(async () => { await f.database.close(); fs.rmSync(f.root, { recursive: true, force: true }) })
+  const db = f.database.connection
+  const { scheduleId } = insertOneTimeSchedule(f, 'zero-lease', f.now, 300)
+  db.prepare('UPDATE schedules SET max_retries=0,schedule_type=? WHERE schedule_id=?').run(scheduleType, scheduleId)
+  const executionId = 'execution_zero_lease'
+  db.prepare("INSERT INTO schedule_executions(execution_id,schedule_id,namespace,scheduled_for,status,created_at,updated_at) VALUES (?,?,?,?,'PENDING',?,?)")
+    .run(executionId, scheduleId, f.namespace, f.now, f.now, f.now)
+  const ids = insertQueuedRun(f, 'zero-lease', { scheduleId, executionId })
+  db.prepare('UPDATE schedule_executions SET run_id=?,task_id=? WHERE execution_id=?').run(ids.runId, ids.taskId, executionId)
+  const claim = await f.service.claimNextRun('worker-zero-lease')
+  assert.equal(claim.status, 'CLAIMED')
+  db.prepare("UPDATE tasks SET lease_expires_at='2000-01-01T00:00:00.000Z' WHERE task_id=?").run(ids.taskId)
+  assert.equal((await f.service.claimNextRun('worker-after-expiry')).status, 'EMPTY')
+  assert.equal(db.prepare('SELECT status FROM tasks WHERE task_id=?').get(ids.taskId).status, 'FAILED')
+  assert.equal(db.prepare('SELECT status FROM runs WHERE run_id=?').get(ids.runId).status, 'BLOCKED')
+  const schedule = f.service.getI8Schedule(f.namespace, scheduleId)
+  assert.equal(schedule.status, scheduleType === 'ONE_TIME' ? 'DISABLED' : 'PAUSED_FAILURE')
+  if (scheduleType === 'ONE_TIME') assert.equal(db.prepare('SELECT one_time_state FROM schedules WHERE schedule_id=?').get(scheduleId).one_time_state, 'FAILED')
+  assert.ok(schedule.pausedIncidentId)
+  const failure = f.service.getI8Failure(f.namespace, schedule.pausedIncidentId)
+  assert.equal(failure.reasonCode, 'SCHEDULE_RUN_LEASE_EXPIRED')
+  assert.equal(failure.runId, ids.runId)
+  assert.equal(failure.disposition, 'REPORT_ONLY')
+  assert.deepEqual(failure.failureEnvelope.payload.artifactRefs, [])
+  assert.equal(db.prepare('SELECT status,retry_count FROM schedule_executions WHERE execution_id=?').get(executionId).status, 'FAILED')
+  assert.equal(db.prepare('SELECT retry_count FROM schedule_executions WHERE execution_id=?').get(executionId).retry_count, 0)
+  assert.equal(db.prepare('SELECT COUNT(*) count FROM runs WHERE origin_schedule_id=?').get(scheduleId).count, 1)
+  assert.equal((await f.service.claimNextRun('worker-after-expiry')).status, 'EMPTY')
+  assert.equal(db.prepare('SELECT COUNT(*) count FROM failure_incidents WHERE run_id=?').get(ids.runId).count, 1)
+  assert.equal(db.prepare('SELECT outcome FROM result_inbox_items WHERE run_id=?').get(ids.runId).outcome, 'BLOCKED')
+  await assert.rejects(() => f.service.completeRun(ids.taskId, { workerId: 'worker-zero-lease', leaseVersion: claim.leaseVersion, ...oneDiagnostic() }), error => error.errorCode === 'WORKER_LEASE_CONFLICT')
+})
+}
+
 test('expired and reclaimed RUN_EXECUTE lease cannot publish artifacts or mutate visible completion state', async t => {
   const f = await fixture()
   t.after(async () => { await f.database.close(); fs.rmSync(f.root, { recursive: true, force: true }) })

@@ -2,6 +2,7 @@
 'use strict'
 
 const childProcess = require('node:child_process')
+const crypto = require('node:crypto')
 const fs = require('node:fs')
 const path = require('node:path')
 
@@ -10,6 +11,43 @@ const releaseV4 = require('./i10-release-identity-v4.cjs')
 
 const productRoot = path.resolve(__dirname, '..')
 const VARIANTS = Object.freeze(['TEXT_ONLY', 'TEXT_WITH_IMAGE'])
+const REQUIRED_KINDS = Object.freeze(['DOM', 'SCREENSHOT', 'TRACE', 'NETWORK', 'LEDGER'])
+
+function captureInputContract(environment) {
+  const files = VARIANTS.map(variant => {
+    const args = inputContract(environment, variant)
+    const digest = file => crypto.createHash('sha256').update(fs.readFileSync(file)).digest('hex')
+    return { variant, textHash: digest(args[2]), ...(variant === 'TEXT_WITH_IMAGE' ? { imageHash: digest(args[4]) } : {}) }
+  })
+  const expected = { journeyTerminal: true, runStatus: 'PASSED', taskStatus: 'SUCCEEDED', requiredKinds: REQUIRED_KINDS }
+  return { files, expected, sha256: crypto.createHash('sha256').update(JSON.stringify({ files, expected })).digest('hex') }
+}
+
+function assertInputContract(actual, expected) {
+  if (!actual || JSON.stringify(actual) !== JSON.stringify(expected)) throw new AgentL1Error('AGENT_L1_INPUT_CONTRACT_MISMATCH')
+}
+
+function assertVerifiedEvidence(value, journeyId, identity) {
+  if (value?.schemaVersion !== 'hengzhun-cli-evidence-verification/v1' || value.verdict !== 'VERIFIED' ||
+      value.journeyId !== journeyId || !journeyId || value.journeyTerminal !== true ||
+      value.runStatus !== 'PASSED' || value.taskStatus !== 'SUCCEEDED' || !value.runId || !value.taskId) {
+    throw new AgentL1Error('AGENT_L1_TERMINAL_EVIDENCE_REQUIRED')
+  }
+  assertIdentity(value, identity, 'AGENT_L1_EVIDENCE_IDENTITY_MISMATCH')
+  if (!Array.isArray(value.artifacts) || !REQUIRED_KINDS.every(kind => value.artifacts.some(item => item.evidenceKind === kind)) ||
+      !value.artifacts.every(item => item.sha256Verified === true && item.sizeVerified === true &&
+        /^[a-f0-9]{64}$/.test(item.sha256) && Number.isSafeInteger(item.size) && item.size >= 0 && item.artifactId)) {
+    throw new AgentL1Error('AGENT_L1_ARTIFACT_VERIFICATION_FAILED')
+  }
+  return value
+}
+
+function verifyJourneyEvidence({ root, environment, journeyId }) {
+  const result = invokeHeadless({ root, environment, args: ['evidence', 'verify', journeyId, '--jsonl'] })
+  const event = result.events.at(-1)
+  if (result.exitCode !== 0 || event?.type !== 'COMMAND_RESULT') throw new AgentL1Error('AGENT_L1_EVIDENCE_VERIFY_FAILED')
+  return event.result
+}
 
 class AgentL1Error extends Error {
   constructor(code, details) { super(code); this.code = code; this.details = details }
@@ -29,8 +67,14 @@ function boundIdentity({ root = productRoot, environment = process.env } = {}) {
 }
 
 function parseJsonLines(value) {
-  const lines = String(value || '').split(/\r?\n/).filter(Boolean)
+  const lines = String(value || '').split(/\r?\n/).map((line) => line.replace(/^\uFEFF/, '').trim()).filter(Boolean)
   try { return lines.map((line) => JSON.parse(line)) } catch { throw new AgentL1Error('AGENT_L1_PUBLIC_READBACK_INVALID') }
+}
+
+function parseDiagnosticLines(value) {
+  return String(value || '').split(/\r?\n/).map((line) => line.replace(/^\uFEFF/, '').trim()).filter(Boolean).map((line) => {
+    try { return JSON.parse(line) } catch { return null }
+  }).filter(Boolean)
 }
 
 function publicVersionReadback({ root = productRoot, environment = process.env } = {}) {
@@ -39,7 +83,9 @@ function publicVersionReadback({ root = productRoot, environment = process.env }
     cwd: root, env: environment, encoding: 'utf8', windowsHide: true,
   })
   if (result.status !== 0) throw new AgentL1Error('AGENT_L1_PUBLIC_READBACK_FAILED')
-  const event = parseJsonLines(result.stdout).findLast((item) => item?.type === 'COMMAND_RESULT')
+  const event = String(result.stdout || '').split(/\r?\n/).map((line) => line.replace(/^\uFEFF/, '').trim()).filter(Boolean).map((line) => {
+    try { return JSON.parse(line) } catch { return null }
+  }).filter(Boolean).findLast((item) => item?.type === 'COMMAND_RESULT')
   if (event?.result?.runtime !== 'CONTROLLER_V2_BOUND') throw new AgentL1Error('AGENT_L1_PUBLIC_READBACK_UNBOUND')
   return event.result
 }
@@ -68,6 +114,17 @@ function readCheckpoint(root = productRoot) {
   } catch { throw new AgentL1Error('AGENT_L1_CHECKPOINT_INVALID') }
 }
 
+function archiveStaleCheckpoint(root = productRoot, state) {
+  const { stateFile, evidenceRoot } = checkpointPaths(root)
+  const archiveRoot = path.join(evidenceRoot, 'stale-checkpoints')
+  const digest = crypto.createHash('sha256').update(JSON.stringify(state)).digest('hex').slice(0, 16)
+  const target = path.join(archiveRoot, `${state.releaseIdentityHash}-${digest}.json`)
+  fs.mkdirSync(archiveRoot, { recursive: true })
+  if (fs.existsSync(target)) throw new AgentL1Error('AGENT_L1_STALE_CHECKPOINT_CONFLICT')
+  fs.renameSync(stateFile, target)
+  return target
+}
+
 function inputContract(environment, variant) {
   const inputName = variant === 'TEXT_ONLY' ? 'HENGZHUN_AGENT_L1_TEXT_INPUT_FILE' : 'HENGZHUN_AGENT_L1_IMAGE_INPUT_FILE'
   const inputFile = String(environment[inputName] || '').trim()
@@ -87,11 +144,15 @@ function invokeHeadless({ root = productRoot, environment = process.env, args })
   const result = childProcess.spawnSync(path.resolve(root, spec.interactive.executable), [path.resolve(root, spec.interactive.entrypoint), ...args], {
     cwd: root, env: environment, encoding: 'utf8', windowsHide: true, maxBuffer: 2 * 1024 * 1024,
   })
-  return { exitCode: result.status, events: parseJsonLines(result.stdout) }
+  return {
+    exitCode: result.status,
+    events: parseJsonLines(result.stdout),
+    diagnostics: parseDiagnosticLines(result.stderr),
+  }
 }
 
-function classifyHeadless({ exitCode, events }, variant, releaseIdentityHash) {
-  const terminal = events.at(-1)
+function classifyHeadless({ exitCode, events, diagnostics = [] }, variant, releaseIdentityHash) {
+  const terminal = events.at(-1) || diagnostics.at(-1)
   if (exitCode === 20 && terminal?.type === 'APPROVAL_REQUIRED') return Object.freeze({
     status: 'AWAITING_APPROVAL', variant, releaseIdentityHash,
     pending: Object.freeze({
@@ -101,7 +162,7 @@ function classifyHeadless({ exitCode, events }, variant, releaseIdentityHash) {
     }),
   })
   if (exitCode === 0 && terminal?.type === 'RESPONSE' && terminal.status === 'COMPLETED') return Object.freeze({
-    status: 'PASSED', variant, releaseIdentityHash, sessionId: terminal.sessionId, journeyId: terminal.journeyId,
+    status: 'AWAITING_EVIDENCE', variant, releaseIdentityHash, sessionId: terminal.sessionId, journeyId: terminal.journeyId,
   })
   if (exitCode === 21 && terminal?.type === 'COMMAND_RESULT') return Object.freeze({ status: 'REJECTED', variant, releaseIdentityHash })
   throw new AgentL1Error('AGENT_L1_VARIANT_EXECUTION_FAILED', { variant, exitCode: Number.isInteger(exitCode) ? exitCode : null, terminalType: terminal?.type || null, messageCode: terminal?.messageCode || null })
@@ -120,12 +181,14 @@ function persistTerminalEvidence(root, checkpoint) {
   const target = path.join(evidenceRoot, `${checkpoint.releaseIdentityHash}.json`)
   const evidence = {
     schemaVersion: 'hengzhun-agent-l1-evidence/v1', status: 'PASSED', profile: 'NORMAL_CLI',
-    releaseIdentityHash: checkpoint.releaseIdentityHash, results: checkpoint.results,
+    releaseIdentityHash: checkpoint.releaseIdentityHash, inputContract: checkpoint.inputContract, results: checkpoint.results,
     full18Claim: false, completedAt: new Date().toISOString(),
   }
   if (fs.existsSync(target)) {
     const existing = JSON.parse(fs.readFileSync(target, 'utf8'))
-    if (existing.status === 'PASSED' && existing.releaseIdentityHash === evidence.releaseIdentityHash) return { target, evidence: existing }
+    if (existing.status === 'PASSED' && existing.releaseIdentityHash === evidence.releaseIdentityHash &&
+        JSON.stringify(existing.inputContract) === JSON.stringify(evidence.inputContract) &&
+        JSON.stringify(existing.results) === JSON.stringify(evidence.results)) return { target, evidence: existing }
     throw new AgentL1Error('AGENT_L1_EVIDENCE_CONFLICT')
   }
   fs.writeFileSync(target, `${JSON.stringify(evidence, null, 2)}\n`, { encoding: 'utf8', flag: 'wx' })
@@ -147,7 +210,7 @@ async function withManagedRuntime({ root, environment, authorizationValue, deps 
     return value
   } catch (error) { primaryError = error; throw error }
   finally {
-    if (started) {
+    if (started && environment.HENGZHUN_KEEP_MANAGED_SERVICES !== '1') {
       try { await stop({ root, environment, authorizationValue, ...(deps.lifecycleDeps ? { deps: deps.lifecycleDeps } : {}) }) }
       catch (stopError) { if (!primaryError) throw stopError }
     }
@@ -155,26 +218,52 @@ async function withManagedRuntime({ root, environment, authorizationValue, deps 
 }
 
 async function runCheckpointedL1({ root = productRoot, environment = process.env, authorizationValue, command = 'run', sessionId, proposalId, contentHash, deps = {} } = {}) {
-  await preflightL1({ root, environment, authorizationValue, deps })
+  const preflight = await preflightL1({ root, environment, authorizationValue, deps })
   const readState = deps.readCheckpoint || readCheckpoint
   const writeState = deps.writeCheckpoint || ((value) => writeJsonAtomic(checkpointPaths(root).stateFile, value))
   const invoke = deps.invoke || invokeHeadless
+  const verify = deps.verifyEvidence || verifyJourneyEvidence
+  const captureInputs = () => (deps.captureInputContract || captureInputContract)(environment)
   let state = readState(root)
+  if (state && state.releaseIdentityHash !== preflight.releaseIdentityHash) {
+    if (command !== 'run') throw new AgentL1Error('AGENT_L1_CHECKPOINT_IDENTITY_MISMATCH')
+    const archive = deps.archiveStaleCheckpoint || archiveStaleCheckpoint
+    archive(root, state)
+    state = null
+  }
   if (command === 'run') {
-    if (state && state.status !== 'PASSED') throw new AgentL1Error('AGENT_L1_CHECKPOINT_REQUIRES_DECISION', { status: state.status })
-    if (state?.status === 'PASSED') return Object.freeze({ status: 'ALREADY_PASSED', releaseIdentityHash: state.releaseIdentityHash, results: state.results, full18Claim: false })
+    if (state && !['PASSED', 'REJECTED'].includes(state.status)) throw new AgentL1Error('AGENT_L1_CHECKPOINT_REQUIRES_DECISION', { status: state.status })
+    if (state?.status === 'PASSED') {
+      assertInputContract(state.inputContract, captureInputs())
+      if (JSON.stringify(state.results.map(item => `${item.variant}:${item.status}`)) !== JSON.stringify(VARIANTS.map(variant => `${variant}:PASSED`))) {
+        throw new AgentL1Error('AGENT_L1_CHECKPOINT_RESULTS_INVALID')
+      }
+      return withManagedRuntime({ root, environment, authorizationValue, deps }, async expected => {
+        for (const item of state.results) {
+          assertVerifiedEvidence(item.verification, item.journeyId, expected)
+          const current = assertVerifiedEvidence(await verify({ root, environment, journeyId: item.journeyId }), item.journeyId, expected)
+          if (JSON.stringify(current) !== JSON.stringify(item.verification)) throw new AgentL1Error('AGENT_L1_CACHED_EVIDENCE_MISMATCH')
+        }
+        assertInputContract(state.inputContract, captureInputs())
+        return Object.freeze({ status: 'ALREADY_PASSED', releaseIdentityHash: expected, results: state.results, full18Claim: false })
+      })
+    }
+    if (state?.status === 'REJECTED') state = null
     const identity = (deps.authorizedIdentity || lifecycle.authorizedIdentity)({ root, environment, authorizationValue })
     state = safeCheckpoint(identity.identityHash, VARIANTS[0])
+    state.inputContract = captureInputs()
   } else {
     if (!state || state.status !== 'AWAITING_APPROVAL' || !state.pending) throw new AgentL1Error('AGENT_L1_NO_PENDING_APPROVAL')
     if (state.pending.sessionId !== sessionId || state.pending.proposalId !== proposalId || state.pending.contentHash !== contentHash) {
       throw new AgentL1Error('AGENT_L1_APPROVAL_IDENTITY_MISMATCH')
     }
     if (!['approve', 'reject'].includes(command)) throw new AgentL1Error('AGENT_L1_COMMAND_INVALID')
+    assertInputContract(state.inputContract, captureInputs())
   }
   return withManagedRuntime({ root, environment, authorizationValue, deps }, async (expected) => {
     assertIdentity(state, expected, 'AGENT_L1_CHECKPOINT_IDENTITY_MISMATCH')
     try {
+      assertInputContract(state.inputContract, captureInputs())
       let step = command === 'run'
         ? classifyHeadless(await invoke({ root, environment, args: inputContract(environment, state.currentVariant) }), state.currentVariant, expected)
         : classifyHeadless(await invoke({ root, environment, args: ['resume', sessionId, command === 'approve' ? '--approve' : '--reject', '--proposal', proposalId] }), state.currentVariant, expected)
@@ -183,8 +272,11 @@ async function runCheckpointedL1({ root = productRoot, environment = process.env
         writeState(state)
         return Object.freeze({ status: 'REJECTED', releaseIdentityHash: expected, variant: state.currentVariant })
       }
-      while (step.status === 'PASSED') {
-        state = { ...state, results: [...state.results, { variant: state.currentVariant, status: 'PASSED', sessionId: step.sessionId, journeyId: step.journeyId }], pending: null, updatedAt: new Date().toISOString() }
+      while (step.status === 'AWAITING_EVIDENCE') {
+        const verification = assertVerifiedEvidence(await verify({ root, environment, journeyId: step.journeyId }), step.journeyId, expected)
+        assertInputContract(state.inputContract, captureInputs())
+        assertIdentity(await (deps.currentIdentity || boundIdentity)({ root, environment }), expected)
+        state = { ...state, results: [...state.results, { variant: state.currentVariant, status: 'PASSED', sessionId: step.sessionId, journeyId: step.journeyId, verification }], pending: null, updatedAt: new Date().toISOString() }
         if (state.currentVariant === VARIANTS.at(-1)) {
           state = { ...state, status: 'PASSED' }
           writeState(state)
@@ -239,7 +331,8 @@ async function executeOrderedL1({ root = productRoot, environment = process.env,
       if (result?.status !== 'PASSED' || result.variant !== variant || result.releaseIdentityHash !== expected) {
         throw new AgentL1Error('AGENT_L1_VARIANT_FAILED', { variant, status: result?.status || 'INVALID' })
       }
-      results.push(Object.freeze({ variant, status: 'PASSED', evidenceRef: result.evidenceRef || null }))
+      const verification = assertVerifiedEvidence(await (deps.verifyEvidence || verifyJourneyEvidence)({ root, environment, journeyId: result.journeyId }), result.journeyId, expected)
+      results.push(Object.freeze({ variant, status: 'PASSED', journeyId: result.journeyId, verification }))
       assertIdentity(await currentIdentity({ root, environment }), expected)
     }
     return Object.freeze({ schemaVersion: 'hengzhun-agent-l1-result/v1', status: 'PASSED', releaseIdentityHash: expected, results, full18Claim: false })
@@ -247,7 +340,7 @@ async function executeOrderedL1({ root = productRoot, environment = process.env,
     primaryError = error
     throw error
   } finally {
-    if (started) {
+    if (started && environment.HENGZHUN_KEEP_MANAGED_SERVICES !== '1') {
       try { await stop({ root, environment, authorizationValue, ...(deps.lifecycleDeps ? { deps: deps.lifecycleDeps } : {}) }) }
       catch (stopError) { if (!primaryError) throw stopError }
     }
@@ -274,6 +367,7 @@ if (require.main === module) {
 }
 
 module.exports = {
+  archiveStaleCheckpoint, captureInputContract, assertInputContract, assertVerifiedEvidence, verifyJourneyEvidence,
   AgentL1Error, VARIANTS, assertIdentity, boundIdentity, checkpointPaths, classifyHeadless,
   executeOrderedL1, inputContract, parseJsonLines, preflightL1, publicVersionReadback,
   readCheckpoint, runCheckpointedL1, safeCheckpoint, withManagedRuntime,

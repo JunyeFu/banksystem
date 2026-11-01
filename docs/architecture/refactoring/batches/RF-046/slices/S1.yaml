@@ -1,0 +1,11 @@
+id: RF-046-S1
+title: Complete browser evidence capture and CLI verification
+status: CLOSED
+allowedPaths: [platform/hengzhun-regression-system/agent-cli, platform/hengzhun-regression-system/controller, platform/hengzhun-regression-system/harness/src, platform/hengzhun-regression-system/mcp/src, platform/hengzhun-regression-system/worker/src/i8-formal-runner.cjs, platform/hengzhun-regression-system/worker/src/i10-midscene-candidate-authoring.cjs, platform/hengzhun-regression-system/contracts/mcp/hengzhun-i8.json, platform/hengzhun-regression-system/scripts/verification, docs/architecture/refactoring/module-boundaries-v1.yaml, docs/architecture/refactoring/batches/RF-046, agent/runs/rf046, agent/plans/active, agent/backlog.yaml]
+forbiddenPaths: [services, packages, postgresql, apps, contracts, platform/hengzhun-regression-system/flowise, platform/hengzhun-regression-system/.data]
+businessGoal: A test engineer verifies one terminal Journey's DOM screenshot trace network and ledger evidence from the CLI without direct storage access.
+repairScope: {source: platform/hengzhun-regression-system/worker/src/i10-midscene-candidate-authoring.cjs, observedFailure: I10_MIDSCENE_LOCATOR_MISMATCH, boundary: Normalize the observed read-only page-region qualifier without changing mutation locators, verification: generic-worker-routing.test.cjs}
+workSteps: [capture redacted bounded browser evidence, register every artifact in Harness, verify stored bytes against SQLite metadata, expose one bounded read-only MCP projection, return one strict CLI verdict]
+verification: [five required evidence kinds, exact Journey Run Task binding, every artifact hash and size verified, release identity equality, tamper and missing-kind fail closed, no path URL secret or credential projection]
+rollback: restore only RF-046 source and control files; never edit terminal runtime evidence
+evidence: docs/architecture/refactoring/batches/RF-046/evidence-index.md

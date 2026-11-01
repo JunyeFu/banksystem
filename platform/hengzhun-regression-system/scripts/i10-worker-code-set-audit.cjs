@@ -7,7 +7,7 @@ const path = require('node:path')
 
 const productRoot = path.resolve(__dirname, '..')
 const DEFAULT_ENTRY = 'worker/src/index.cjs'
-const FOLLOW_ROOTS = Object.freeze(['worker/src/', 'dist/harness/src/'])
+const FOLLOW_ROOTS = Object.freeze(['worker/src/', 'dist/harness/src/', 'contracts/adapters/', 'dist/contracts/adapters/'])
 
 const posix = value => String(value).replaceAll('\\', '/')
 const sha256 = value => crypto.createHash('sha256').update(value).digest('hex')

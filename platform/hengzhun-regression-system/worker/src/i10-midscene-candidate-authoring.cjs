@@ -8,11 +8,12 @@ const path = require('node:path');
 const productRoot = path.resolve(__dirname, '..', '..');
 const runtimeRequire = createRequire(path.join(productRoot, 'runtime', 'node_modules', '_hengzhun_loader.cjs'));
 const { policyForAction, resolveVerificationAfterAction } = require('./i10-verification-policy.cjs');
-const { assertTargetUrlResolution, chromiumHostResolverRules } = require('./i10-worker-utils.cjs');
-const { FUXING_BANK_DEMO_ROUTES: FUXING_ROUTES, FUXING_BANK_DEMO_TARGETS: controlled, FUXING_BANK_DEMO_ROUTE_PATTERNS: FUXING_ROUTE_PATTERNS } = require('./adapters/fuxing-bank-demo/index.cjs');
+const { assertTargetUrlResolution, chromiumHostResolverRules, targetRuntimeAllowedOrigins, authoringExecutionFixtureValues, assertBankValidationLease } = require('./i10-worker-utils.cjs');
+const { FUXING_BANK_DEMO_ROUTES: FUXING_ROUTES, FUXING_BANK_DEMO_TARGETS: controlled, FUXING_BANK_DEMO_ROUTE_PATTERNS: FUXING_ROUTE_PATTERNS, selectTransferParty, assertTransferSelection } = require('./adapters/fuxing-bank-demo/index.cjs');
 const { buildMidscenePrompt, normalizeMidscenePromptEnvelope } = require('../../dist/harness/src/context-envelope.js');
+const { ACCOUNT_FIELD_LABELS, assertBankAccountFields, assertNoPageErrors } = require('../../dist/harness/src/i8/page-observation.js');
 const manifest = JSON.parse(fs.readFileSync(path.join(productRoot, 'config', 'demo-runtime-freeze.json'), 'utf8'));
-const I10_MIDSCENE_MAX_LOCATE_ATTEMPTS = 3;
+const I10_MIDSCENE_MAX_LOCATE_ATTEMPTS = 1;
 // A visual provider call is remote I/O.  Without a bounded await a single
 // stalled request holds the worker loop indefinitely, leaving its Harness
 // lease expired while the job still reports RUNNING.  Keep this shorter than
@@ -44,9 +45,9 @@ function loadBrowserAutomationRuntime() {
   return browserAutomationRuntime;
 }
 
-function createMidsceneAgent(page) {
+function createMidsceneAgent(page, options = {}) {
   const { PlaywrightAgent } = loadBrowserAutomationRuntime();
-  return new PlaywrightAgent(page, { screenshotShrinkFactor: I10_MIDSCENE_SCREENSHOT_SHRINK_FACTOR });
+  return new PlaywrightAgent(page, { screenshotShrinkFactor: I10_MIDSCENE_SCREENSHOT_SHRINK_FACTOR, ...options });
 }
 
 // Contexts are persisted before candidate compilation. Earlier package
@@ -57,12 +58,47 @@ function normalizeVisualEnvelope(envelope) {
   return normalizeMidscenePromptEnvelope(envelope);
 }
 
+function normalizedActionInstruction(action) {
+  const instruction = String(action?.instruction || '').replace(/\s+/g, ' ').trim();
+  if (action?.operation !== 'expectVisible') return instruction;
+  return instruction
+    .replace(/^.*完成(?:登录|认证)\s*[；;]/u, '')
+    .replace(/^(?:在|于)[^，,；;]{1,80}?(?:中|内|里)\s*(?=(?:只读|仅)?(?:核对|检查|确认|验证|查看|读取))/u, '')
+    .replace(/^(?:只读|仅)(?=(?:核对|检查|确认|验证|查看|读取))/u, '')
+    .replace(/^在[^；;]{0,80}?(?:页面|页)\s*(?:查看|确认|验证|检查|核对|查询)\s*/u, '');
+}
+
+function explicitQuotedVisibleTerm(value) {
+  const matches = [...String(value || '').matchAll(/[“"‘']([^”"’']{1,80})[”"’']/gu)];
+  return matches.at(-1)?.[1]?.trim() || '';
+}
+
 function stableJson(value) {
   if (Array.isArray(value)) return `[${value.map(stableJson).join(',')}]`;
   if (value && typeof value === 'object') return `{${Object.keys(value).sort().map(key => `${JSON.stringify(key)}:${stableJson(value[key])}`).join(',')}}`;
   return JSON.stringify(value);
 }
 function sha256(value) { return crypto.createHash('sha256').update(value).digest('hex'); }
+
+async function executeAuthoringAssertion(page,action,target,comparison,fixtureValues,implementation) {
+  const required=action.operation==='expectText'?'EXACT_TEXT':'EXACT_EQUAL';
+  if(implementation && implementation!==required)throw Object.assign(new Error('I10_ASSERTION_EXPERIENCE_MISMATCH'),{code:'I10_ASSERTION_EXPERIENCE_MISMATCH'});
+  if(!implementation) {
+    const left=(await target.innerText()).trim(),right=comparison?(await comparison.innerText()).trim():fixtureValues[action.fixtureRefs[0]];
+    if(left!==right)throw Object.assign(new Error('I10_EXACT_ASSERTION_FAILED'),{code:action.operation==='expectText'?'I10_EXPECT_TEXT_FAILED':'I10_EXPECT_EQUAL_FAILED'});
+    return;
+  }
+  let left,right;
+  try {
+    await target.waitFor({state:'visible',timeout:30000});left=await target.elementHandle();
+    if(comparison){await comparison.waitFor({state:'visible',timeout:30000});right=await comparison.elementHandle();}
+    const observed=await page.waitForFunction(({left,right,expected})=>right?left.innerText.trim()===right.innerText.trim():left.innerText.trim()===expected,
+      {left,right,expected:fixtureValues[action.fixtureRefs[0]]},{timeout:30000});await observed.dispose();
+  } catch(error) {
+    if(error.name!=='TimeoutError')throw error;
+    throw Object.assign(new Error('I10_EXACT_ASSERTION_FAILED'),{code:action.operation==='expectText'?'I10_EXPECT_TEXT_FAILED':'I10_EXPECT_EQUAL_FAILED'});
+  } finally {if(left)await left.dispose();if(right)await right.dispose();}
+}
 
 async function closeWithinTimeout(closeOperation, timeoutMs = I10_BROWSER_CLOSE_TIMEOUT_MS, clock = globalThis) {
   let timer;
@@ -79,11 +115,19 @@ async function closeWithinTimeout(closeOperation, timeoutMs = I10_BROWSER_CLOSE_
 function classifyMidsceneError(error) {
   const name = String(error?.name || 'Error').slice(0, 80);
   const sourceCode = String(error?.code || '').slice(0, 120);
-  const status = Number.isInteger(error?.status) ? error.status : Number.isInteger(error?.statusCode) ? error.statusCode : null;
-  const message = String(error?.message || '');
+  const nested = error?.dump?.taskInfo?.formatResponse?.errors;
+  const message = [String(error?.message || ''), ...(Array.isArray(nested) ? nested.filter(item => typeof item === 'string') : [])].join('\n');
+  const wrappedStatus = /\b(?:Last error:\s*|HTTP\s+)([45]\d{2})\b/i.exec(message);
+  const status = Number.isInteger(error?.status) ? error.status : Number.isInteger(error?.statusCode) ? error.statusCode : wrappedStatus ? Number(wrappedStatus[1]) : null;
   let errorCode = 'I10_MIDSCENE_TRANSPORT_FAILED';
   let stage = 'MODEL_TRANSPORT';
-  if (name === 'AIResponseParseError' || /parse|json|schema|empty content/i.test(message)) {
+  if (status && /unsupported model|model[_ ]not[_ ]found|model.*does not exist/i.test(message)) {
+    errorCode = 'I10_MIDSCENE_MODEL_UNSUPPORTED';
+  } else if (status && status !== 413) {
+    errorCode = `I10_MIDSCENE_HTTP_${status}`;
+  } else if (/AI call error:/i.test(message) && /timeout|timed out|abort/i.test(message)) {
+    errorCode = 'I10_MIDSCENE_MODEL_TIMEOUT';
+  } else if (name === 'AIResponseParseError' || /parse|json|schema|empty content/i.test(message)) {
     errorCode = 'I10_MIDSCENE_RESPONSE_SCHEMA_INVALID';
     stage = 'RESPONSE_PARSE';
   } else if (/context|token|too long|maximum.*length|413/i.test(message) || status === 413) {
@@ -129,6 +173,7 @@ function locator(page, target) {
   const item = controlled[target];
   if (!item) throw Object.assign(new Error('I10_TARGET_NOT_ALLOWLISTED'), { code: 'I10_TARGET_NOT_ALLOWLISTED' });
   if (item.kind === 'TEST_ID') return page.getByTestId(item.value);
+  if (item.kind === 'CSS') return page.locator(item.value);
   const [role, name] = item.value.split('|');
   return page.getByRole(role, { name, exact: true });
 }
@@ -220,6 +265,11 @@ function resolvePortalBaseUrl(claim) {
   return new URL('/', entry);
 }
 
+function boundedVisualHitOffsets(options = {}) {
+  if (options.regionMatch !== true || Number(options.expectedTermCount || 0) < 1) return [[0, 0]];
+  return [[0, 0], [24, 0], [-24, 0], [0, 24], [0, -24]];
+}
+
 async function deriveDynamicLocator(page, location, options = {}) {
   // aiLocate reports coordinates in the image sent to the visual model.  Never
   // let those coordinates drive a browser action directly: map them back into
@@ -231,7 +281,11 @@ async function deriveDynamicLocator(page, location, options = {}) {
   const expectedTerms = Array.isArray(options.expectedTerms)
     ? options.expectedTerms.map(value => String(value || '').replace(/\s+/g, '').toLowerCase()).filter(Boolean).slice(0, 3)
     : [];
-  const result = await page.evaluate(({ x, y, expectedTerms, regionMatch, interactionMatch }) => {
+  const hitOffsets = boundedVisualHitOffsets({
+    regionMatch: options.regionMatch === true,
+    expectedTermCount: expectedTerms.length
+  });
+  const result = await page.evaluate(({ x, y, expectedTerms, regionMatch, interactionMatch, hitOffsets }) => {
     let node = document.elementFromPoint(x, y);
     if (!(node instanceof Element)) return null;
     // Visual models often point at the icon or text node painted inside a
@@ -271,19 +325,27 @@ async function deriveDynamicLocator(page, location, options = {}) {
       if (!(node instanceof HTMLElement)) return null;
     }
     // A visual assertion normally refers to a whole card/region, while the
-    // model centre may fall on one of its values.  Inspect only the element
-    // at Midscene's returned position and its own ancestors; never search
-    // the page for a matching term.  This keeps Midscene as the locator
-    // authority and lets Playwright obtain a stable DOM-backed region.
+    // model centre may fall on one of its values or just outside a card edge.
+    // Inspect the hit point plus a fixed 24px cross and only each hit's own
+    // ancestors; never search the page for a matching term. This preserves
+    // Midscene as the locator authority while tolerating image resampling at
+    // a visible region boundary.
     if (regionMatch && expectedTerms.length) {
       const normalize = value => String(value || '').replace(/\s+/g, '').toLowerCase();
-      for (let current = node; current instanceof HTMLElement && current !== document.body; current = current.parentElement) {
-        const text = normalize([current.getAttribute('aria-label'), current.textContent].filter(Boolean).join(' '));
-        if (expectedTerms.every(term => text.includes(term))) {
-          node = current;
-          break;
+      let matchedRegion = null;
+      for (const [dx, dy] of hitOffsets) {
+        let sampled = document.elementFromPoint(x + dx, y + dy);
+        if (sampled instanceof Element && !(sampled instanceof HTMLElement)) sampled = sampled.parentElement;
+        for (let current = sampled; current instanceof HTMLElement && current !== document.body; current = current.parentElement) {
+          const text = normalize([current.getAttribute('aria-label'), current.textContent].filter(Boolean).join(' '));
+          if (expectedTerms.every(term => text.includes(term))) {
+            matchedRegion = current;
+            break;
+          }
         }
+        if (matchedRegion) break;
       }
+      if (matchedRegion) node = matchedRegion;
     }
     const testId = node.getAttribute('data-testid');
     if (testId) return { kind: 'TEST_ID', value: testId };
@@ -319,7 +381,8 @@ async function deriveDynamicLocator(page, location, options = {}) {
     y,
     expectedTerms,
     regionMatch: options.regionMatch === true,
-    interactionMatch: options.interactionMatch === true
+    interactionMatch: options.interactionMatch === true,
+    hitOffsets
   });
   if (!result) throw Object.assign(new Error('I10_DYNAMIC_LOCATOR_DERIVATION_FAILED'), { code: 'I10_DYNAMIC_LOCATOR_DERIVATION_FAILED' });
   return result;
@@ -362,7 +425,7 @@ function genericLocateInstruction(action) {
   // one visible *region* that carries those facts; Playwright then verifies
   // the region it receives. This is not a DOM-selector fallback: missing
   // visual evidence remains a failed authoring attempt.
-  const instruction = String(action.instruction || '').replace(/\s+/g, ' ').trim().slice(0, 240);
+  const instruction = normalizedActionInstruction(action).slice(0, 240);
   // Keep the visual prompt and the later Playwright term check on the same
   // durable business noun. Controller prose may call a list/table an account
   // "card", even when the rendered application correctly labels the region
@@ -383,7 +446,11 @@ function genericLocateInstruction(action) {
         !/(?:提交|删除|转账|汇款|保存|确认|激活|创建|新增)/u.test(instruction)) {
       return `\n当前动作需要进入具体记录的明细或详情：请定位能直接打开具体记录的卡片、行内按钮或明确的详情链接。不要定位只进入列表页的顶层导航链接；不要返回周围容器。`;
     }
-    return `\n当前动作需要点击控件：请在当前截图中定位“${instruction}”对应的可点击按钮或链接本体中心。不要返回周围卡片、标题或说明文字。`;
+    const navigationAlternatives = genericActionTerms(action);
+    const targetDescription = navigationAlternatives.length > 1
+      ? navigationAlternatives.map(value => `“${value}”`).join('或')
+      : `“${instruction}”`;
+    return `\n当前动作需要点击控件：请在当前截图中定位${targetDescription}对应的可点击按钮或链接本体中心。不要返回周围卡片、标题或说明文字。`;
   }
   if (action?.operation === 'select' || action?.operation === 'check' || action?.operation === 'upload') {
     return `\n当前动作需要操作表单控件：请在当前截图中定位“${instruction}”对应的控件本体中心，不要返回标签或容器。`;
@@ -399,20 +466,51 @@ function genericLocateInstruction(action) {
   // “确认账户卡片、余额和账户状态正常显示” describes an assertion set, not
   // a single target. The card title is the one visual target, while the
   // generated Playwright assertion keeps the full fact set in scope.
-  const anchor = visualInstruction
+  const generatedAnchor = visualInstruction
     .replace(/^(?:确认|验证|检查|查看|确保|查询)\s*[:：]?\s*/, '')
     .replace(/^(?:显示|展示)\s*/, '')
     .replace(/(?:是否)?(?:正常)?(?:显示|一致|存在|正确).*$/, '')
     .split(/[、，,；;]/)[0]
+    .replace(/(?:列表|清单)(?:中|内|里)$/u, '')
+    .replace(/区域$/u, '')
     .trim()
     .slice(0, 80);
+  const anchor = genericActionTerms(action)[0] || explicitQuotedVisibleTerm(visualInstruction) || generatedAnchor;
   return visualInstruction
-    ? `\n当前动作是只读视觉定位：请在当前截图中优先定位与“${anchor || visualInstruction}”一致的标题或信息卡片；该卡片承载“${visualInstruction}”所述事实。不要判断业务规则是否成立；只返回该信息区块的中心位置，不要定位导航或输入框。`
+    ? `\n当前动作是只读视觉定位：请在当前截图中优先定位与“${anchor || visualInstruction}”一致的可见文字本身或与其语义一致的直接信息区域中心。其余业务描述只定义断言上下文，不要求与该锚点出现在同一卡片或逐字呈现。不要判断业务规则是否成立；只返回该可见目标的中心位置，不要定位导航或输入框。`
     : '';
 }
 
+function composeMidscenePrompt({ action, basePrompt, genericInstruction, adapterInstruction, observationHints }) {
+  const parts = action?.operation === 'expectVisible' && genericInstruction
+    ? [genericInstruction, basePrompt, adapterInstruction, observationHints]
+    : [basePrompt, genericInstruction, adapterInstruction, observationHints];
+  return parts.map(value => String(value || '').trim()).filter(Boolean).join('\n');
+}
+
+function isSingleSignOnEntryAction(action) {
+  return action?.operation === 'click' && /^(?:点击|打开|进入)?\s*[“"]?统一身份认证(?:登录)?(?:入口|按钮)?[”"]?(?:按钮)?[。.!！]?$/u.test(normalizedActionInstruction(action));
+}
+
+function isAuthenticationSubmitAction(action) {
+  return action?.operation === 'click' && /^提交身份认证表单[。.!！]?$/u.test(normalizedActionInstruction(action));
+}
+
 function genericActionTerms(action) {
-  const instruction = String(action?.instruction || '').replace(/\s+/g, ' ').trim();
+  if (action?.pageObservation) return [ACCOUNT_FIELD_LABELS[action.pageObservation.fields[0]]];
+  const terms = genericActionTermsForInstruction(action);
+  if (action?.operation !== 'expectVisible') return terms;
+  // All observation branches share the same final anchor normalization. A
+  // container/currency qualifier describes where to check, not literal label
+  // text; full business assertions still own currency and value validation.
+  return terms.map(term => term
+    .replace(/^.+?(?:列表|清单|表格)(?:中|内|里)(?:的)?(.+)$/u, '$1')
+    .replace(/^(?:人民币|CNY)(?:账户)?(?:的)?(?=(?:可用)?余额)/u, '')
+    .replace(/[。.!！?？]+$/u, '').trim()).filter(Boolean);
+}
+
+function genericActionTermsForInstruction(action) {
+  const instruction = normalizedActionInstruction(action);
   if (!instruction) return [];
   if (action.operation === 'fill') {
     if (/密码|password/i.test(instruction)) return ['密码'];
@@ -426,15 +524,28 @@ function genericActionTerms(action) {
     if (selection.length >= 2) return [selection];
   }
   if (action.operation === 'click') {
+    if (instruction.includes('统一身份认证')) return isSingleSignOnEntryAction(action) ? ['统一身份认证登录'] : [];
+    if (isAuthenticationSubmitAction(action)) return ['登录'];
     if (/登录|login|sign[ _-]?in/i.test(instruction)) return ['登录'];
-    const page = instruction.match(/(?:打开|进入|导航(?:至|到)?|前往)\s*(.+?(?:页|页面|中心|工作台|汇款)?)(?:$|[，,；;])/i)?.[1]?.trim();
+    const quotedControl = /(?:点击|click|导航(?:至|到)?|进入|打开|前往)\s*[“"‘']/iu.test(instruction)
+      ? explicitQuotedVisibleTerm(instruction)
+      : '';
+    if (quotedControl) return [quotedControl];
+    const navigationAction = instruction
+      .replace(/^(?:在)?(?:页面)?导航菜单中(?=(?:打开|进入|前往|导航))/u, '')
+      .replace(/^(?:(?:从|在)(?:门户|页面))?导航(?:菜单)?(?:中)?(?=(?:打开|进入|前往))/u, '');
+    const page = navigationAction.match(/(?:打开|进入|导航(?:至|到)?|前往)\s*(.+?(?:页|页面|中心|工作台|汇款)?)(?:$|[，,；;])/i)?.[1]?.trim();
     if (page && page.length >= 2) {
       // Controller drafts commonly describe a navigation destination as
       // “个人资料页面”, while the rendered navigation label is simply
       // “个人资料”.  Normalize only this navigation presentation suffix:
       // mutation labels keep their literal text and remain fail-closed.
       const navigationLabel = page
+        .replace(/[。.!！?？]+$/u, '')
         .replace(/(?:页面|页)$/u, '')
+        .replace(/功能$/u, '')
+        .replace(/^[“"'‘「『]\s*/u, '')
+        .replace(/\s*[”"'’」』]$/u, '')
         // “进入账户明细” commonly targets an account card whose accessible
         // name contains the durable noun “账户”, while the destination URL
         // and later assertions prove that the click reached the detail view.
@@ -443,10 +554,81 @@ function genericActionTerms(action) {
         .replace(/(?:明细|详情)$/u, '')
         .trim();
       if (/^(?:转账汇款|汇款转账)$/u.test(navigationLabel)) return ['转账'];
-      return [navigationLabel || page];
+      const alternatives = navigationLabel.split(/(?:或者|或)/u)
+        .map(value => value.trim())
+        .filter(value => value.length >= 2);
+      if (alternatives.length > 1) return alternatives.slice(0, 3);
+      return [navigationLabel.replace(/(?:列表|清单)$/u, '') || page];
     }
   }
   if (action.operation === 'download') return ['下载'];
+  if (action.operation === 'expectVisible') {
+    // In "the X field of each record in this list", the list and record are
+    // structural qualifiers. The rendered column label is the durable visual
+    // fact that both Midscene and Playwright can verify.
+    const listRecordField = instruction.match(
+      /(?:列表|清单|表格|页面)中(?:各|每个|所有)?[^，,；;。.!！?？]{1,24}?的([^，,；;。.!！?？]{2,20}?)(?:信息|字段|数值|文本)(?:[。.!！?？]|$)/u
+    )?.[1]?.replace(/^[“"‘']|[”"’']$/gu, '').trim();
+    if (listRecordField && listRecordField.length >= 2) return [listRecordField];
+    // A direct field inspection names its record only as context. Strip that
+    // qualifier and the presentation suffix so the visual anchor is the field
+    // label painted on the page.
+    const directVisibleFact = instruction.match(
+      /^(?:查看|确认|验证|核验|检查|核对)\s*(?:该[^，,；;。.!！?？]{0,24}?的)?([^、及和与，,；;。.!！?？]{2,40}?)(?:信息|字段|数值|文本)(?:[。.!！?？]|$)/u
+    )?.[1]?.replace(/^[“"‘']|[”"’']$/gu, '').trim();
+    if (directVisibleFact && directVisibleFact.length >= 2) return [directVisibleFact];
+    // A possessive conjunction such as "人民币账户及其可用余额信息" names
+    // the account only as context and the trailing field as the concrete
+    // visible fact. Keep this narrow to explicit presentation nouns so an
+    // arbitrary conjunction cannot silently change the asserted target.
+    const possessiveConjunctionFact = instruction.match(
+      /(?:及|和|与)其\s*([^，,；;。.!！?？]{2,40}?)(?:信息|字段|数值|文本)(?:[。.!！?？]|$)/u
+    )?.[1]?.replace(/^[“"‘']|[”"’']$/gu, '').trim();
+    if (possessiveConjunctionFact && possessiveConjunctionFact.length >= 2) return [possessiveConjunctionFact];
+    const possessiveBalanceFact = instruction.match(
+      /(?:及|和|与)(?:其\s*|对应(?:的)?\s*)(可用余额|余额)(?:[。.!！?？]|$)/u
+    )?.[1];
+    if (possessiveBalanceFact) return [possessiveBalanceFact];
+    // In a compound read-only sentence, the final explicit check names the
+    // visible fact to anchor (for example “..., and check whether its available
+    // balance is visible”). The preceding lookup clause supplies context, not
+    // literal page copy. Midscene and Playwright must use this same fact.
+    const checkedVisibleFact = instruction.match(
+      /[，,；;]\s*(?:并|且|以及)?(?:检查|确认|验证|核对|查看)\s*(?:其|该[^，,；;]{0,24}?的)?(.{2,40}?)(?:是否)?(?:可见|显示|展示|存在)(?:[。.!！?？]|$)/u
+    )?.[1]
+      ?.replace(/(?:字段|数值|文本)$/u, '')
+      .replace(/^[“"‘']|[”"’']$/gu, '')
+      .trim();
+    if (checkedVisibleFact && checkedVisibleFact.length >= 2) return [checkedVisibleFact];
+    const trailingVerifiedFact = instruction.match(
+      /[，,；;]\s*(?:并|且|以及)?(?:检查|确认|验证|核对|查看)\s*其([^，,；;。.!！?？]{2,40})(?=[，,；;。.!！?？]|$)/u
+    )?.[1]
+      ?.replace(/(?:字段|数值|文本)$/u, '')
+      .replace(/(?:正确|正常)$/u, '')
+      .replace(/^[“"‘']|[”"’']$/gu, '')
+      .trim();
+    if (trailingVerifiedFact && trailingVerifiedFact.length >= 2) return [trailingVerifiedFact];
+    // A standalone currency assertion can anchor the literal ISO code painted
+    // by the page. Compound assertions must first select their later visible
+    // fact, rather than allowing an earlier qualifier to take precedence.
+    const currencyCode = !/[，,；;]/u.test(instruction)
+      ? instruction.match(
+        /币种(?:为|是)?[^（(，,；;。]{0,24}[（(]\s*([A-Z]{3})(?:\s*[/／][^）)]*)?[）)]/iu
+      )?.[1]?.toUpperCase()
+      : '';
+    if (currencyCode) return [currencyCode];
+    const chineseCurrencyCode = !/[，,；;]/u.test(instruction) &&
+      /(?:币种|货币)(?:为|是)?\s*[“"'‘「『]?\s*人民币(?:\s*[”"'’」』])?/u.test(instruction)
+      ? 'CNY'
+      : '';
+    if (chineseCurrencyCode) return [chineseCurrencyCode];
+    // Quoted text is a strong visual hint only when a later explicit check
+    // does not name the fact being verified. In compound prose such as
+    // “币种为‘人民币’的账户，并检查其可用余额是否显示”, the quoted value is
+    // a lookup qualifier while the trailing check names the visible target.
+    const quotedFact = explicitQuotedVisibleTerm(instruction);
+    if (quotedFact) return [quotedFact];
+  }
   const compact = instruction
     .replace(/^(?:确认|验证|检查|校验|核对|查看|确保|查询|打开|进入|导航(?:至|到)?)\s*[:：]?\s*/, '')
     .replace(/^(?:显示|展示)\s*/, '')
@@ -480,6 +662,10 @@ function genericActionTerms(action) {
         // generated phrase to be painted on screen.
         const anchor = value
           .replace(/^(?:一|某|任意)?份/u, '')
+          .replace(/^.*页面中(?:的)?(.+?)(?:列表|清单)区域$/u, '$1')
+          .replace(/^.*(?:中|内|里)的/u, '')
+          .replace(/^.*的(?=(?:可用余额|余额|账户状态|币种)$)/u, '')
+          .replace(/(?:列表|清单)(?:中|内|里)$/u, '')
           .replace(/(?:页面)?(?:显示)?(?:列表|清单|详情)$/u, '')
           .replace(/页面$/u, '')
           // A generated read-only intent may call a table/card collection
@@ -497,6 +683,7 @@ function genericActionTerms(action) {
           .replace(/^(?:文档|文件|报告)?下载入口$/u, '下载')
           .replace(/(?:文档|文件|报告)标题$/u, match => match.replace(/标题$/u, ''))
           .replace(/(?:账户|账号)掩码/gu, '账户')
+          .replace(/区域$/u, '')
           .replace(/(?:正确|正常)(?:展示|显示)?$/u, '')
           .replace(/(?:清晰)?可读$/u, '')
           .replace(/(?:展示|显示)$/u, '')
@@ -559,6 +746,12 @@ function identityEvidenceMatches(action, evidence) {
 
 function genericEvidenceMatchesTerms(action, evidenceText, terms = genericActionTerms(action)) {
   const normalized = String(evidenceText || '').replace(/\s+/g, '').toLowerCase();
+  // The approved SSO entry intent names a control's purpose, not literal page copy.
+  // Keep this equivalence exact so registration, help and combined business actions cannot pass.
+  if (action?.operation === 'click' && normalizedActionInstruction(action).includes('统一身份认证')) {
+    return isSingleSignOnEntryAction(action) && normalized === '统一身份认证登录';
+  }
+  if (isAuthenticationSubmitAction(action)) return normalized === '登录';
   // Generic applications often label the row/card affordance simply “查看”
   // even when the controller describes the read-only navigation as “进入账户
   // 明细页面”. Accept that presentation equivalence only for a click whose
@@ -576,7 +769,11 @@ function genericEvidenceMatchesTerms(action, evidenceText, terms = genericAction
   if (action?.operation === 'expectVisible' && /查询.*(?:文档|文件|对账单)|(?:文档|文件|对账单).*查询/iu.test(String(action?.instruction || ''))) {
     return /文档|文件|对账单|statement/iu.test(normalized);
   }
-  return terms.every(term => normalized.includes(String(term).replace(/\s+/g, '').toLowerCase()));
+  const disjunctiveNavigation = action?.operation === 'click' && terms.length > 1 &&
+    /(?:打开|进入|导航(?:至|到)?|前往).*(?:或者|或)/u.test(String(action?.instruction || ''));
+  return (disjunctiveNavigation ? terms.some.bind(terms) : terms.every.bind(terms))(
+    term => normalized.includes(String(term).replace(/\s+/g, '').toLowerCase())
+  );
 }
 
 async function genericLocatorMatchesAction(page, locatorProposal, action) {
@@ -617,7 +814,7 @@ async function genericLocatorMatchesAction(page, locatorProposal, action) {
   // A visual proposal for a click must resolve to an interactive control. A
   // surrounding label/card can contain the same wording yet only focus an
   // input, leaving the browser on the login page. This validates Midscene's
-  // observation and then retries it; it is not a DOM-selector fallback.
+  // observation before execution; a mismatch stops without a selector fallback.
   if (action.operation === 'click' && !evidence.clickable) return false;
   const detailEvidenceMatch = readOnlyDetailLocatorEvidence(action, evidence, terms);
   if (detailEvidenceMatch !== null) return detailEvidenceMatch;
@@ -681,8 +878,8 @@ async function withMidsceneLocateTimeout(operation) {
   }
 }
 
-async function observeTargetWithMidscene(page, prompt) {
-  const agent = createMidsceneAgent(page);
+async function observeTargetWithMidscene(page, prompt, agentOptions) {
+  const agent = createMidsceneAgent(page, agentOptions);
   try {
     // This is evidence only.  The worker deliberately does not expose any
     // Midscene action API here; all page mutation remains below in Playwright.
@@ -737,44 +934,22 @@ async function resolveCredentialValueForLocatedInput(page, locatorProposal, cred
   return credential.username;
 }
 
+const {BANK_AUTH,authenticationForBinding,assertAuthenticationRealm,assertCredentialOrigin}=require('./adapters/fuxing-bank-demo/authentication.cjs');
+
 async function executeI10MidsceneCandidate(claim, credential, options={}) {
-  const visualModel = process.env.VISION_MODEL_NAME || process.env.MIDSCENE_MODEL_NAME;
-  const visualBaseUrl = process.env.VISION_BASE_URL || process.env.MIDSCENE_MODEL_BASE_URL;
-  const visualApiKey = process.env.VISION_API_KEY || process.env.MIDSCENE_MODEL_API_KEY;
-  const visualFamily = process.env.VISION_MODEL_FAMILY || process.env.MIDSCENE_MODEL_FAMILY;
-  if (!visualModel || !visualBaseUrl || !visualApiKey || !visualFamily) throw Object.assign(new Error('I10_VISION_CONFIGURATION_MISSING'), { code: 'I10_VISION_CONFIGURATION_MISSING' });
-  if (/mimo/i.test(visualModel) && visualFamily !== 'xiaomi-mimo') {
-    throw Object.assign(new Error('I10_VISION_MODEL_FAMILY_MISMATCH'), {
-      code: 'I10_VISION_MODEL_FAMILY_MISMATCH',
-      details: { expectedFamily: 'xiaomi-mimo', configuredFamily: visualFamily }
-    });
-  }
-  process.env.MIDSCENE_MODEL_NAME = visualModel;
-  process.env.MIDSCENE_MODEL_BASE_URL = visualBaseUrl;
-  process.env.MIDSCENE_MODEL_API_KEY = visualApiKey;
-  process.env.MIDSCENE_MODEL_FAMILY = visualFamily;
-  // @midscene/web resolves the OpenAI-compatible transport through the
-  // upstream OPENAI_* keys.  The I10 VISION_* / MIDSCENE_* variables are our
-  // portable public configuration surface, but setting only those aliases
-  // leaves Midscene without a real transport while the standalone probe (that
-  // calls VISION_BASE_URL directly) succeeds.  Mirror the already validated
-  // process-local values immediately before creating the agent; never log
-  // either value.
-  process.env.OPENAI_BASE_URL = visualBaseUrl;
-  process.env.OPENAI_API_KEY = visualApiKey;
-  // Keep the SDK transport timeout aligned with the outer diagnostic timeout.
-  // Promise.race alone does not cancel an in-flight SDK fetch, which can leave
-  // the single Worker occupied after a typed timeout has been reported.
-  process.env.MIDSCENE_MODEL_TIMEOUT = String(I10_MIDSCENE_LOCATE_TIMEOUT_MS);
-  process.env.MIDSCENE_MODEL_RETRY_COUNT = '0';
+  const executionFixtureValues=authoringExecutionFixtureValues(claim);
+  const { model: visualModel, family: visualFamily } = require('./i10-vision-readiness.cjs').configureVisionModel();
   if (!credential?.username || !credential?.password) throw Object.assign(new Error('I10_CREDENTIAL_RESOLUTION_FAILED'), { code: 'I10_CREDENTIAL_RESOLUTION_FAILED' });
   const portal = resolvePortalBaseUrl(claim);
   const generic = claim?.plan?.fixtureProfile === 'GENERIC_WEB';
+  const authentication=generic?authenticationForBinding(claim.plan.targetProfileSnapshot?.adapterBinding):BANK_AUTH;
+  if (claim.plan.actions.some(action => action.pageObservation) && authentication?.adapterId !== BANK_AUTH.adapterId) throw Object.assign(new Error('BANK_OBSERVATION_BINDING_REQUIRED'), {code:'BANK_OBSERVATION_BINDING_REQUIRED'});
   const allowedNavigationOrigins = new Set(generic
     ? (claim.plan.targetProfileSnapshot?.allowedNavigationOrigins || [])
     : [portal.origin]);
+  const allowedRuntimeOrigins = targetRuntimeAllowedOrigins(claim.plan.targetProfileSnapshot, portal.href);
   if (generic) {
-    for (const origin of allowedNavigationOrigins) {
+    for (const origin of allowedRuntimeOrigins) {
       await assertTargetUrlResolution(origin, claim.plan.targetProfileSnapshot);
     }
   }
@@ -794,7 +969,17 @@ async function executeI10MidsceneCandidate(claim, credential, options={}) {
     executablePath: path.join(productRoot, 'runtime', manifest.chromium.executable),
     ...(generic ? { args: [chromiumHostResolverRules(claim.plan.targetProfileSnapshot)] } : {})
   });
-  const context = await browser.newContext({ locale: 'zh-CN', timezoneId: 'Asia/Shanghai', viewport: { width: 1440, height: 900 } });
+  const context = await browser.newContext({
+    locale: 'zh-CN', timezoneId: 'Asia/Shanghai', viewport: { width: 1440, height: 900 },
+    ignoreHTTPSErrors: claim.plan.targetProfileSnapshot?.tlsPolicy === 'ALLOW_SELF_SIGNED'
+  });
+  if (generic) {
+    await context.route('**/*', async route => {
+      const url = new URL(route.request().url());
+      if (['data:', 'blob:'].includes(url.protocol) || allowedRuntimeOrigins.has(url.origin)) return route.continue();
+      return route.abort('blockedbyclient');
+    });
+  }
   const page = await context.newPage();
   const records = [];
   const contexts = new Map((claim.authoringContexts || []).map(item => [item.actionId, item]));
@@ -806,6 +991,7 @@ async function executeI10MidsceneCandidate(claim, credential, options={}) {
   let genericNavigationBaseline = null;
   try {
     for (const action of claim.plan.actions) {
+      if(claim.validationFixture)assertBankValidationLease(claim);
       let visual = { invoked: false };
       let contextItem;
         let visualEvidence;
@@ -861,7 +1047,9 @@ async function executeI10MidsceneCandidate(claim, credential, options={}) {
         const genericInstruction = generic ? genericLocateInstruction(action) : '';
         const adapterInstruction = !generic && action.semanticTargetRef === 'HEADER_PROFILE_LINK'
           ? '\n视觉定位提示：请在当前截图的门户顶部主导航栏中定位可见的“个人资料”链接文字本身；它不是右上角用户菜单项，不要定位头像、客户姓名或其他导航项。'
-          : '';
+          : !generic && action.semanticTargetRef === 'HEADER_DISPLAY_NAME'
+            ? '\n视觉定位提示：请定位右上角用户菜单中的客户姓名文字本身（例如“李明”），不要定位紧邻的圆形头像、头像首字母、下拉箭头或整个用户菜单容器。'
+            : '';
         const observationHints = [
           controlHint.length > 0
             ? `当前页面可交互控件名称摘要（仅用于视觉消歧；不得将其当作DOM定位器或跳过截图观察）：${JSON.stringify(controlHint)}`
@@ -870,17 +1058,19 @@ async function executeI10MidsceneCandidate(claim, credential, options={}) {
             ? `当前页面可见标题摘要（仅用于帮助在截图中区分正文与导航；必须仍以截图观察后返回坐标）：${JSON.stringify(landmarkHint)}`
             : ''
         ].filter(Boolean).join('\n');
-        const prompt = observationHints
-          ? `${basePrompt}${genericInstruction}${adapterInstruction}\n${observationHints}`
-          : `${basePrompt}${genericInstruction}${adapterInstruction}`;
+        const prompt = composeMidscenePrompt({
+          action,
+          basePrompt,
+          genericInstruction,
+          adapterInstruction,
+          observationHints
+        });
         const box = expected ? await expected.boundingBox() : null;
         let location;
         let genericLocatorProposal;
-        let locateAttempt = 0;
-        for (locateAttempt = 1; locateAttempt <= I10_MIDSCENE_MAX_LOCATE_ATTEMPTS; locateAttempt += 1) {
-          const attemptPrompt = locateAttempt === 1
-            ? prompt
-            : `${prompt}\n上一次视觉候选未通过受控目标一致性校验。请重新独立观察整张当前截图，只返回同一 currentAction 所描述目标，不得复用上一次位置。`;
+        const locateAttempt = 1;
+        {
+          const attemptPrompt = prompt;
           try {
             const observation = await observeTargetWithMidscene(page, attemptPrompt);
             location = observation.location;
@@ -912,8 +1102,7 @@ async function executeI10MidsceneCandidate(claim, credential, options={}) {
               routePath: (() => { try { return new URL(page.url()).pathname; } catch { return undefined; } })(),
               ...classified
             });
-            if (locateAttempt === I10_MIDSCENE_MAX_LOCATE_ATTEMPTS) {
-              throw Object.assign(new Error(classified.errorCode), {
+            throw Object.assign(new Error(classified.errorCode), {
                 code: classified.errorCode,
                 details: {
                   stage: classified.stage,
@@ -925,21 +1114,20 @@ async function executeI10MidsceneCandidate(claim, credential, options={}) {
                   attempts: I10_MIDSCENE_MAX_LOCATE_ATTEMPTS
                 }
               });
-            }
-            await new Promise(resolve => setTimeout(resolve, locateAttempt * 1_000));
-            continue;
           }
           if (generic) {
+            let matched = false;
             try {
               genericLocatorProposal = await deriveDynamicLocator(page, location, {
                 expectedTerms: genericActionTerms(action),
                 regionMatch: action.operation === 'expectVisible',
                 interactionMatch: requiresInteractiveLocator(action)
               });
-              if (await genericLocatorMatchesAction(page, genericLocatorProposal, action)) break;
+              matched = await genericLocatorMatchesAction(page, genericLocatorProposal, action);
             } catch (error) {
-              // Derivation failure is handled by the same bounded retry loop.
+              if (error.code !== 'I10_MIDSCENE_LOCATION_INVALID') throw error;
             }
+            if (!matched) {
             writeMidsceneDiagnostic(claim, {
               targetRef: action.semanticTargetRef,
               actionId: action.actionId,
@@ -961,16 +1149,12 @@ async function executeI10MidsceneCandidate(claim, credential, options={}) {
               stage: 'TARGET_VALIDATION',
               receivedModelContent: true
             });
-            if (locateAttempt === I10_MIDSCENE_MAX_LOCATE_ATTEMPTS) {
               throw Object.assign(new Error('I10_MIDSCENE_LOCATOR_MISMATCH'), {
                 code: 'I10_MIDSCENE_LOCATOR_MISMATCH',
                 details: { targetRef: action.semanticTargetRef, locateAttempts: I10_MIDSCENE_MAX_LOCATE_ATTEMPTS }
               });
             }
-            await new Promise(resolve => setTimeout(resolve, locateAttempt * 1_000));
-            continue;
           }
-          if (locatorMatchesExpected(location, box, I10_MIDSCENE_SCREENSHOT_SHRINK_FACTOR, action.semanticTargetRef)) break;
         }
         if (!generic && !locatorMatchesExpected(location, box, I10_MIDSCENE_SCREENSHOT_SHRINK_FACTOR, action.semanticTargetRef)) {
           const mappedCenter = mapModelCenterToViewport(location, I10_MIDSCENE_SCREENSHOT_SHRINK_FACTOR);
@@ -1014,19 +1198,31 @@ async function executeI10MidsceneCandidate(claim, credential, options={}) {
           playwrightLocatorHash: sha256(stableJson(verifiedLocator))
         };
       }
+      if(claim.validationFixture)assertBankValidationLease(claim);
       if (action.operation === 'goto') await page.goto(generic ? portal.href : new URL(FUXING_ROUTES.LOGIN, portal).href, { waitUntil: 'domcontentloaded', timeout: 30_000 });
-      else if (action.operation === 'fill' && action.semanticTargetRef === 'LOGIN_USERNAME') await locator(page, action.semanticTargetRef).fill(credential.username);
-      else if (action.operation === 'fill' && action.semanticTargetRef === 'LOGIN_PASSWORD') await locator(page, action.semanticTargetRef).fill(credential.password);
+      else if (action.operation === 'fill' && action.semanticTargetRef === 'LOGIN_USERNAME') {
+        assertCredentialOrigin({credentialOrigins:[BANK_AUTH.identityOrigin]},page.url());
+        await locator(page, action.semanticTargetRef).fill(credential.username);
+      }
+      else if (action.operation === 'fill' && action.semanticTargetRef === 'LOGIN_PASSWORD') {
+        assertCredentialOrigin({credentialOrigins:[BANK_AUTH.identityOrigin]},page.url());
+        await locator(page, action.semanticTargetRef).fill(credential.password);
+      }
       else if (action.operation === 'fill') {
+        if(action.inputValueSource==='CREDENTIAL_REF') {
+          assertCredentialOrigin(claim.plan.targetProfileSnapshot,page.url());
+          if(authentication)assertAuthenticationRealm(authentication,page.url());
+        }
         const fixtureRef = action.fixtureRefs?.[0];
         const credentialValue = action.inputValueSource === 'CREDENTIAL_REF'
           ? await resolveCredentialValueForLocatedInput(page, verifiedLocator, credential, action)
           : undefined;
-        const value = credentialValue || (fixtureRef ? claim.plan.fixtureValues?.[fixtureRef] : undefined);
+        const value = credentialValue || (fixtureRef ? executionFixtureValues?.[fixtureRef] : undefined);
         if (typeof value !== 'string' || !value) throw Object.assign(new Error('I10_BUSINESS_FIXTURE_MISSING'), { code: 'I10_BUSINESS_FIXTURE_MISSING' });
         await (generic ? dynamicLocator(page, verifiedLocator) : locator(page, action.semanticTargetRef)).fill(value);
       }
       else if (action.operation === 'click') {
+        if(!generic && ['TRANSFER_SUBMIT','TRANSFER_FIRST_CONFIRM'].includes(action.semanticTargetRef)) await assertTransferSelection(page,executionFixtureValues);
         const clickable = generic ? dynamicLocator(page, verifiedLocator) : locator(page, action.semanticTargetRef);
         const beforeClickUrl = generic ? page.url() : null;
         await clickable.click();
@@ -1044,17 +1240,26 @@ async function executeI10MidsceneCandidate(claim, credential, options={}) {
           }
         }
       }
-      else if (action.operation === 'select') await dynamicLocator(page, verifiedLocator).selectOption(action.inputValue || claim.plan.fixtureValues?.[action.optionRef]);
+      else if (action.operation === 'select') {
+        if(!generic && ['TRANSFER_SOURCE_ACCOUNT','TRANSFER_BENEFICIARY'].includes(action.semanticTargetRef)) await selectTransferParty(page,action.semanticTargetRef,executionFixtureValues?.[action.optionRef]);
+        else await dynamicLocator(page, verifiedLocator).selectOption(action.inputValue || executionFixtureValues?.[action.optionRef]);
+      }
       else if (action.operation === 'check') await dynamicLocator(page, verifiedLocator).check();
-      else if (action.operation === 'upload') await dynamicLocator(page, verifiedLocator).setInputFiles(claim.plan.fixtureValues?.[action.fixtureRefs?.[0]]);
+      else if (action.operation === 'upload') await dynamicLocator(page, verifiedLocator).setInputFiles(executionFixtureValues?.[action.fixtureRefs?.[0]]);
       else if (action.operation === 'download') { const pending = page.waitForEvent('download'); await dynamicLocator(page, verifiedLocator).click(); await pending; }
       else if (action.operation === 'humanVerification') {
         if (typeof options.onVerificationChallenge !== 'function') throw Object.assign(new Error('I10_HUMAN_IN_LOOP_REQUIRED'), { code: 'I10_HUMAN_IN_LOOP_REQUIRED' });
-        const decision = await options.onVerificationChallenge({ verificationType: 'USER_ASSISTED', userPreparation: action.instruction, namespace: claim.namespace, taskRef: claim.jobId, actionOrdinal: action.ordinal });
+        const decision = await options.onVerificationChallenge({ verificationType: 'MANUAL_APPROVAL', userPreparation: action.instruction, namespace: claim.namespace, taskRef: claim.jobId, actionOrdinal: action.ordinal });
         if (decision?.status !== 'VERIFICATION_CONFIRMED') throw Object.assign(new Error('I10_VERIFICATION_NOT_CONFIRMED'), { code: 'I10_VERIFICATION_NOT_CONFIRMED' });
       }
       else if (action.operation === 'waitForURL') {
-        if (generic) {
+        if (action.routePatternRef==='IDENTITY_PROVIDER'||action.routePatternRef==='PORTAL_AUTHENTICATED') {
+          if(!authentication)throw Object.assign(new Error('Explicit authentication binding is required'),{code:'I10_AUTHENTICATION_BINDING_REQUIRED'});
+          const origin=action.routePatternRef==='IDENTITY_PROVIDER'?authentication.identityOrigin:portal.origin;
+          const routePath=action.routePatternRef==='IDENTITY_PROVIDER'?authentication.issuerPath:authentication.authenticatedPath;
+          await page.waitForURL(url=>url.origin===origin&&url.pathname.startsWith(routePath),{timeout:30000});
+          genericNavigationBaseline=null;
+        } else if (generic) {
           // A generic plan deliberately has no inferred post-login route.
           // The frozen TargetProfile decides which origins are reachable; the
           // candidate's later assertions decide whether the intended page was
@@ -1066,11 +1271,15 @@ async function executeI10MidsceneCandidate(claim, credential, options={}) {
           const expectedPath = FUXING_ROUTE_PATTERNS[action.routePatternRef] || FUXING_ROUTES.PROTECTED;
           await page.waitForURL(url => url.pathname.startsWith(expectedPath), { timeout: 30_000 });
         }
-      } else if (action.operation === 'expectVisible') await (generic ? dynamicLocator(page, verifiedLocator) : locator(page, action.semanticTargetRef)).waitFor({ state: 'visible', timeout: 30_000 });
-      else if (action.operation === 'expectEqual') {
-        const left = (await locator(page, action.semanticTargetRef).innerText()).trim();
-        const right = (await locator(page, action.comparisonTargetRef).innerText()).trim();
-        if (left !== right) throw Object.assign(new Error('I10_EXPECT_EQUAL_FAILED'), { code: 'I10_EXPECT_EQUAL_FAILED' });
+      } else if (action.operation === 'expectVisible') {
+        await (generic ? dynamicLocator(page, verifiedLocator) : locator(page, action.semanticTargetRef)).waitFor({ state: 'visible', timeout: 30_000 });
+        if (action.pageObservation) await assertBankAccountFields(page, action.pageObservation);
+      }
+      else if (action.operation === 'expectNoErrors') await assertNoPageErrors(page);
+      else if (action.operation === 'expectText'||action.operation === 'expectEqual') {
+        await executeAuthoringAssertion(page,action,generic?dynamicLocator(page,verifiedLocator):locator(page,action.semanticTargetRef),
+          action.operation==='expectEqual'?locator(page,action.comparisonTargetRef):null,executionFixtureValues,
+          contexts.get(action.actionId)?.envelope.currentAction.reviewedAssertion?.implementation);
       } else if (action.operation === 'screenshot') {
         // The formal execution layer owns redacted screenshots. Authoring records
         // deterministic facts only, so credentials and profile data cannot leak here.
@@ -1095,7 +1304,7 @@ async function executeI10MidsceneCandidate(claim, credential, options={}) {
           assertSuccessEvidence: async targetRef => locator(page, targetRef).waitFor({ state: 'visible', timeout: 15_000 }),
           onExternalChallenge: async () => {
             if (typeof options.onVerificationChallenge !== 'function') throw Object.assign(new Error('I10_VISIBLE_BROWSER_HANDOFF_UNAVAILABLE'), { code: 'I10_VISIBLE_BROWSER_HANDOFF_UNAVAILABLE' });
-            return options.onVerificationChallenge({ verificationType: 'USER_ASSISTED', userPreparation: '请在可见浏览器会话中完成页面验证。', namespace: claim.namespace, taskRef: claim.jobId, actionOrdinal: action.ordinal });
+            return options.onVerificationChallenge({ verificationType: 'UKEY', userPreparation: '请在可见浏览器会话中完成页面验证。', namespace: claim.namespace, taskRef: claim.jobId, actionOrdinal: action.ordinal });
           },
           allowExternalFallback: requiresVisibleHandoff
         });
@@ -1123,6 +1332,8 @@ async function executeI10MidsceneCandidate(claim, credential, options={}) {
         pageSignatureHash: sha256(stableJson(action.pageSignature)),
         factsHash: sha256(stableJson({ actionId: action.actionId, route: current.pathname, visual, verification })),
         verification,
+        ...(contexts.get(action.actionId)?.envelope.currentAction.reviewedAssertion ?
+          {assertionImplementation:contexts.get(action.actionId).envelope.currentAction.reviewedAssertion.implementation}:{}),
         ...(verifiedLocator ? {
           playwrightEvidence: {
             role: 'EXECUTOR', locatorHash: sha256(stableJson(verifiedLocator)),
@@ -1161,6 +1372,7 @@ async function executeI10MidsceneCandidate(claim, credential, options={}) {
 }
 
 module.exports = {
+  executeAuthoringAssertion,
   executeI10MidsceneCandidate,
   locatorMatchesExpected,
   mapModelCenterToViewport,
@@ -1170,17 +1382,20 @@ module.exports = {
   observeUkeyVerificationControl,
   executePlaywrightClick,
   deriveDynamicLocator,
+  boundedVisualHitOffsets,
   accessibleControlHint,
   genericActionTerms,
   genericEvidenceMatchesTerms,
   readOnlyDetailLocatorEvidence,
   genericLocateInstruction,
+  composeMidscenePrompt,
   requiresVisualLocator,
   genericLocatorMatchesAction,
   identityEvidenceMatches,
   requiresInteractiveLocator,
   withMidsceneLocateTimeout,
   I10_MIDSCENE_LOCATE_TIMEOUT_MS,
+  I10_MIDSCENE_MAX_LOCATE_ATTEMPTS,
   I10_MIDSCENE_SCREENSHOT_SHRINK_FACTOR,
   I10_BROWSER_CLOSE_TIMEOUT_MS,
   closeWithinTimeout

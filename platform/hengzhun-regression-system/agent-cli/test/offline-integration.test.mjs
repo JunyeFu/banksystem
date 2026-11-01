@@ -16,6 +16,13 @@ const OPERATION = `operation-${'6'.repeat(32)}`
 const JOURNEY = 'journey-offline-integration'
 const CREDENTIAL_SESSION = 'credsession_12345678-1234-1234-1234-123456789abc'
 const productRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', '..')
+const BOOTSTRAP_GOAL = `目标系统：复兴银行客户门户。入口：http://127.0.0.1:18082/portal/login 。使用 credential_6c48d62e-ee54-4953-8370-e9a08e35758d 登录并核对姓名。`
+const BOOTSTRAP_MODEL_CANDIDATE = {
+  title: '客户姓名核对', objective: '登录后核对客户姓名。', summary: '只读登录并核对姓名。',
+  preconditions: ['安全凭据已登记'],
+  steps: [{ action: '使用已登记安全凭据登录', expected: '客户主页成功显示' }],
+  assertions: ['客户姓名非空'], confidence: 0.95,
+}
 
 function textResult(value) { return { content: [{ type: 'text', text: JSON.stringify(value) }] } }
 
@@ -28,27 +35,36 @@ async function fixture(t) {
   return { root, operationRoot, store, operationStore }
 }
 
-function runtimeOptions(store, state, { gate = async () => undefined, mutations = [], bootstrap = false, modelPlan, sessionIdFactory, operationStore, captureLauncher, now } = {}) {
+function runtimeOptions(store, state, { gate = async () => undefined, mutations = [], reads = [], bootstrap = false, modelPlan, sessionIdFactory, operationStore, captureLauncher, now } = {}) {
   return {
     sessionStore: store,
     releaseIdentityHash: RELEASE,
     modelConfig: { apiKey: 'offline-test-key', baseURL: 'http://model.invalid/v1', model: 'offline-model' },
-    modelFactory: () => ({ withConfig: () => ({ async invoke() { return { content: JSON.stringify(modelPlan || {
+    modelFactory: () => ({ withConfig: () => ({ async invoke() { return { content: JSON.stringify(modelPlan || (bootstrap ? BOOTSTRAP_MODEL_CANDIDATE : {
       type: 'PROPOSE', summary: 'Submit bounded input.', toolName: 'journey_input_submit',
       arguments: {
             journeyId: JOURNEY, expectedVersion: state.version, inputKind: 'INITIAL_CASE_INPUT',
         normalizedInput: { note: 'sensitive-offline-input' }, submissionRef: 'submission-offline', sessionRef: 'session-offline',
       },
-    }) } } }) }),
+    })) } } }) }),
     mcpClient: { async callTool(request) {
       if (request.name === 'journey_prepare') {
         mutations.push(structuredClone(request))
         state.journeyId = JOURNEY
         state.version = 1
-        state.status = 'AWAITING_INPUT'
-        return textResult({ journeyId: JOURNEY, version: 1, status: state.status })
+        state.status = bootstrap ? 'AWAITING_USER' : 'AWAITING_INPUT'
+        if (bootstrap) {
+          Object.assign(state, {
+            stage: 'READY_FOR_CASE_APPROVAL',
+            proposalId: 'proposal_case_12345678',
+            proposalPayloadHash: 'a'.repeat(64),
+            proposalSummary: 'Approve the exact synthetic case.',
+            caseDraft: request.arguments.draftJson,
+          })
+        }
+        return textResult(structuredClone(state))
       }
-      if (request.name === 'journey_get') return textResult(structuredClone(state))
+      if (request.name === 'journey_get') { reads.push(structuredClone(request)); return textResult(structuredClone(state)) }
       if (request.name === 'journey_input_submit') {
         mutations.push(structuredClone(request))
         state.version = 5
@@ -75,6 +91,36 @@ function runtimeOptions(store, state, { gate = async () => undefined, mutations 
     ...(now ? { now } : {}),
   }
 }
+
+test('session start survives a CLI process restart and resumes from Harness authority', async (t) => {
+  const { root, store } = await fixture(t)
+  const state = { journeyId: JOURNEY, version: 1, status: 'NEEDS_INPUT', terminal: false }
+  const mutations = []
+  const reads = []
+  const initial = createProductionService(runtimeOptions(store, state, { mutations, reads }))
+  const started = await initial.sessionStart({})
+  assert.equal(started.sessionId, SESSION)
+  assert.equal(started.journeyId, JOURNEY)
+  assert.equal(started.status, 'AWAITING_INPUT')
+  assert.equal(mutations.filter((call) => call.name === 'journey_prepare').length, 1)
+  assert.deepEqual(mutations[0].arguments, {
+    sessionRef: SESSION, interactionContractVersion: 'v6', requestIntent: 'HELP', inputType: 'NONE', supportingImages: [],
+  })
+
+  state.status = 'NEEDS_INPUT'
+  const restoredStore = await new EncryptedSessionStore({ root }).initialize()
+  const restarted = createProductionService(runtimeOptions(restoredStore, state, { mutations, reads }))
+  const status = await restarted.sessionStatus({ sessionId: SESSION })
+  const resumed = await restarted.sessionResume({ sessionId: SESSION })
+  assert.equal(status.status, 'NEEDS_INPUT')
+  assert.equal(status.resumable, true)
+  assert.equal(resumed.resumed, true)
+  assert.equal(resumed.journeyId, JOURNEY)
+  assert.deepEqual(reads.map((call) => call.arguments), [
+    { sessionRef: SESSION, waitSeconds: 0 }, { sessionRef: SESSION, waitSeconds: 0 },
+  ])
+  assert.equal(mutations.length, 1)
+})
 
 test('real CurrentUser DPAPI restores an exact pending approval into one offline mutation', async (t) => {
   const { root, store } = await fixture(t)
@@ -264,7 +310,7 @@ test('a fresh natural-language run bootstraps one authoritative Journey before C
   const state = { journeyId: null, version: 0, status: 'NOT_CREATED' }
   const mutations = []
   const service = createProductionService(runtimeOptions(store, state, { mutations, bootstrap: true }))
-  const bootstrap = await service.start({ input: 'create a new bounded case', attachmentRefs: [] })
+  const bootstrap = await service.start({ input: BOOTSTRAP_GOAL, attachmentRefs: [] })
   assert.equal(bootstrap.status, 'AWAITING_USER')
   assert.match(bootstrap.journeyId, /^journey-bootstrap-/)
   assert.equal(mutations.length, 0)
@@ -272,13 +318,28 @@ test('a fresh natural-language run bootstraps one authoritative Journey before C
   const next = await service.resume({ sessionId: SESSION, proposalId: bootstrap.approval.proposalId, approved: true })
   assert.equal(next.status, 'AWAITING_USER')
   assert.equal(next.journeyId, JOURNEY)
+  assert.equal(next.approval.proposalId, 'proposal_case_12345678')
   assert.deepEqual(mutations.map((call) => call.name), ['journey_prepare'])
+  assert.equal(mutations[0].arguments.entryUrl, 'http://127.0.0.1:18082/portal/login')
+  assert.equal(mutations[0].arguments.targetSystem, '复兴银行客户门户')
+  assert.equal(mutations[0].arguments.credentialRef, 'credential_6c48d62e-ee54-4953-8370-e9a08e35758d')
+  assert.deepEqual(mutations[0].arguments.supportingImages, [])
+  assert.equal(mutations[0].arguments.draftJson.title, BOOTSTRAP_MODEL_CANDIDATE.title)
   const rebound = await store.load(SESSION, { expectedReleaseIdentityHash: RELEASE, expectedJourneyId: JOURNEY })
   assert.equal(rebound.events.some((event) => event.type === 'JOURNEY_BOOTSTRAP_RESOLVED'), true)
+  assert.equal(rebound.events.at(-1).proposalId, 'proposal_case_12345678')
+})
 
-  const completed = await service.resume({ sessionId: SESSION, proposalId: next.approval.proposalId, approved: true })
-  assert.equal(completed.status, 'COMPLETED')
-  assert.deepEqual(mutations.map((call) => call.name), ['journey_prepare', 'journey_input_submit'])
+test('bootstrap projects a safe MCP business failure instead of UNEXPECTED_FAILURE', async (t) => {
+  const { store } = await fixture(t)
+  const options = runtimeOptions(store, { journeyId: null, version: 0, status: 'NOT_CREATED' }, { bootstrap: true })
+  options.mcpClient = { async callTool() {
+    return { isError: true, content: [{ type: 'text', text: JSON.stringify({ errorCode: 'I10_JOURNEY_SUPPORTING_IMAGES_INVALID' }) }] }
+  } }
+  const service = createProductionService(options)
+  const pending = await service.start({ input: BOOTSTRAP_GOAL, attachmentRefs: [] })
+  await assert.rejects(service.resume({ sessionId: pending.sessionId, proposalId: pending.approval.proposalId, approved: true }),
+    error => error.code === 'I10_JOURNEY_SUPPORTING_IMAGES_INVALID')
 })
 
 test('public version readback binds configured model identity without opening MCP or session state', async () => {
@@ -361,5 +422,6 @@ test('evidence command is a pure Journey read with bounded authority and no down
   assert.equal(result.references.credentialRef, undefined)
   assert.equal(result.artifactCards[0].artifactId, 'art_12345678')
   assert.equal(result.artifactCards[0].downloadGrantRequired, true)
+  assert.equal(result.artifactCards[0].size, 321)
   assert.doesNotMatch(JSON.stringify(result), /href|captureUrl|credential_must_not_project|token=secret/)
 })

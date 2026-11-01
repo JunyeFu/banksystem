@@ -1,10 +1,15 @@
 asyncapi: 3.1.0
 info:
   title: Bank Channel Events
-  version: 0.2.0
+  version: 0.3.0
   description: Durable channel events; consumers must be inbox-idempotent.
 defaultContentType: application/json
 channels:
+  loanOperationCompleted:
+    address: bank.loan.operation.completed
+    messages:
+      loanOperationCompleted:
+        $ref: '#/components/messages/LoanOperationCompleted'
   transferStatusChanged:
     address: bank.transfer.status.changed
     messages:
@@ -31,6 +36,11 @@ channels:
       eodCompleted:
         $ref: '#/components/messages/EodCompleted'
 operations:
+  publishLoanOperationCompleted:
+    action: send
+    channel: { $ref: '#/channels/loanOperationCompleted' }
+    messages:
+      - $ref: '#/channels/loanOperationCompleted/messages/loanOperationCompleted'
   publishTransferStatusChanged:
     action: send
     channel: { $ref: '#/channels/transferStatusChanged' }
@@ -58,6 +68,9 @@ operations:
       - $ref: '#/channels/eodCompleted/messages/eodCompleted'
 components:
   messages:
+    LoanOperationCompleted:
+      name: LoanOperationCompleted
+      payload: { $ref: '#/components/schemas/LoanOperationCompleted' }
     TransferStatusChanged:
       name: TransferStatusChanged
       payload: { $ref: '#/components/schemas/TransferStatusChanged' }
@@ -74,6 +87,20 @@ components:
       name: EodCompleted
       payload: { $ref: '#/components/schemas/EodCompleted' }
   schemas:
+    LoanOperationCompleted:
+      type: object
+      additionalProperties: false
+      required: [eventId, eventType, occurredAt, applicationId, operationId, coreLoanId, command, status, correlationId]
+      properties:
+        eventId: { type: string, format: uuid }
+        eventType: { const: loan.operation.completed }
+        occurredAt: { type: string, format: date-time }
+        applicationId: { type: string, format: uuid }
+        operationId: { type: string, format: uuid }
+        coreLoanId: { type: integer }
+        command: { type: string, enum: [repayment, close] }
+        status: { const: COMPLETED }
+        correlationId: { type: string }
     TransferStatusChanged:
       type: object
       required: [eventId, eventType, occurredAt, transferId, status]
@@ -82,7 +109,7 @@ components:
         eventType: { const: transfer.status.changed }
         occurredAt: { type: string, format: date-time }
         transferId: { type: string, minLength: 1, maxLength: 64 }
-        status: { type: string, enum: [CREATED, VALIDATING, RISK_REVIEW, PENDING_APPROVAL, PENDING_CORE_POSTING, PENDING_CLEARING, SETTLED, FAILED, TIMED_OUT, RETURNED, REVERSAL_PENDING, REVERSED] }
+        status: { type: string, enum: [CREATED, VALIDATING, RISK_REVIEW, PENDING_APPROVAL, PENDING_CORE_POSTING, PENDING_CLEARING, CORE_RESULT_UNKNOWN, SETTLED, FAILED, TIMED_OUT, RETURN_PENDING, RETURN_RESULT_UNKNOWN, RETURNED, REVERSAL_PENDING, REVERSED] }
         coreReference: { type: [string, 'null'] }
         correlationId: { type: [string, 'null'] }
     TransferReversed:

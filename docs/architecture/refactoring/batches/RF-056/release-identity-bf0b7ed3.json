@@ -1,0 +1,23 @@
+{
+  "schemaVersion": "rf056-release-identity-bound-snapshot/v1",
+  "capturedAt": "2026-09-28",
+  "sourceCommit": "552b3b8ac517bd5991bff446e72d9f4e87ea9543",
+  "sourceDirty": true,
+  "identityAlgorithm": "scripts/i10-release-identity-v4.cjs currentReleaseIdentityV4 with lifecycle modelIdentityFromEnvironment",
+  "profile": "NORMAL_CLI",
+  "releaseStatus": "FROZEN",
+  "identityHash": "bf0b7ed3858e0dbb3c4fa3a504c27c3c938b174acf56f69ade79886ad43a60be",
+  "releaseCodeSetHash": "36a9f1958078ced33387b98f2abd33e5a5c6b38c8636782e3abf82280f4b3c20",
+  "modelBindingStatus": "BOUND",
+  "apiKeyConfigured": true,
+  "modelConfigurationChanged": false,
+  "runtimeBinding": {
+    "status": "STALE",
+    "identityHash": "46b5ebda65c1ed03e8ef800bbb5584aa05e2111d3b5adf37990d6e5d406e585b",
+    "runtimeStatus": "NOT_RUNNING"
+  },
+  "acceptance": {"currentPassed": 0, "required": 18, "full18": false, "historicalStale": 4, "checkpoints": 0},
+  "agentLiveExecuted": false,
+  "liveAuthorizationGranted": false,
+  "configurationDisclosure": "Model identity calculated by the existing lifecycle helper; model name, endpoint and credentials omitted from this public snapshot."
+}

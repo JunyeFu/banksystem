@@ -68,9 +68,31 @@ export const i8StabilityCompletionSchema = z.object({
   workerId: safeRef,
   candidateId: safeRef,
   scriptHash: sha256Schema,
-  runtimeFingerprint: sha256Schema,
-  runs: z.array(stabilityRunResultSchema).min(4).max(6)
+  runtimeFingerprint: sha256Schema.optional(),
+  runs: z.array(stabilityRunResultSchema).max(6),
+  stoppedAfterFailure:z.literal(true).optional(),
+  executionFailure:z.object({validationRunId:safeRef,errorCode:z.string().regex(/^[A-Z][A-Z0-9_]{0,159}$/)}).strict().optional()
 }).strict().superRefine((value, context) => {
+  if(!value.runtimeFingerprint && (!value.executionFailure || value.runs.length>0))
+    context.addIssue({code:'custom',path:['runtimeFingerprint'],message:'已执行样本必须回传实际运行时身份。'});
+  if(value.executionFailure) {
+    if(!value.stoppedAfterFailure || value.runs.length>3 || value.runs.some(run=>run.outcome!=='PASSED'))
+      context.addIssue({code:'custom',path:['runs'],message:'证据未完整采集的失败只接受此前通过的有序前缀。'});
+    value.runs.forEach((run,index)=>{
+      if(run.viewportId!==(index<2?'DESKTOP_1440X900':'NARROW_390X844') || run.sequenceNo!==index%2+1)
+        context.addIssue({code:'custom',path:['runs',index],message:'失败之前的结果必须是当前I10清单的有序前缀。'});
+    });
+    return;
+  }
+  if(value.stoppedAfterFailure) {
+    if(value.runs.length>4 || value.runs.at(-1)?.outcome!=='FAILED' || value.runs.slice(0,-1).some(run=>run.outcome!=='PASSED'))
+      context.addIssue({code:'custom',path:['runs'],message:'提前停止必须以首次失败结束，之前样本均已通过。'});
+    value.runs.forEach((run,index)=>{
+      if(run.viewportId!==(index<2?'DESKTOP_1440X900':'NARROW_390X844') || run.sequenceNo!==index%2+1)
+        context.addIssue({code:'custom',path:['runs',index],message:'提前停止只接受当前I10清单的有序前缀。'});
+    });
+    return;
+  }
   if (![4, 6].includes(value.runs.length)) {
     context.addIssue({ code: 'custom', path: ['runs'], message: '只接受I10四次或I8历史六次验证结果。' });
     return;

@@ -1,0 +1,50 @@
+databaseChangeLog:
+  - changeSet:
+      id: v12-1-idempotency-subject-operation-scope
+      author: RF-050
+      changes:
+        - addColumn:
+            tableName: idempotency_record
+            columns:
+              - column: { name: subject, type: varchar(128) }
+              - column: { name: operation, type: varchar(64) }
+        - sql:
+            splitStatements: false
+            sql: |
+              UPDATE idempotency_record
+                 SET subject = COALESCE(subject, 'LEGACY'),
+                     operation = COALESCE(operation, 'LEGACY');
+              ALTER TABLE idempotency_record
+                ALTER COLUMN subject SET NOT NULL,
+                ALTER COLUMN operation SET NOT NULL;
+              ALTER TABLE idempotency_record DROP CONSTRAINT IF EXISTS uq_idempotency_legacy_key;
+              ALTER TABLE idempotency_record
+                ADD CONSTRAINT uq_idempotency_subject_operation_key
+                UNIQUE (subject, operation, idempotency_key);
+
+  - changeSet:
+      id: v12-2-idempotency-scope-width
+      author: RF-050
+      changes:
+        - sql:
+            splitStatements: false
+            sql: |
+              ALTER TABLE transfer_order DROP CONSTRAINT IF EXISTS fk_transfer_order_idempotency;
+              ALTER TABLE transfer_order DROP CONSTRAINT IF EXISTS fk_transfer_idempotency;
+              ALTER TABLE idempotency_record ALTER COLUMN scope_key TYPE varchar(512);
+              ALTER TABLE transfer_order ALTER COLUMN idempotency_key TYPE varchar(512);
+              ALTER TABLE transfer_order
+                ADD CONSTRAINT fk_transfer_order_idempotency
+                FOREIGN KEY (idempotency_key) REFERENCES idempotency_record(scope_key);
+
+  - changeSet:
+      id: v12-3-reversal-core-convergence
+      author: RF-050
+      changes:
+        - addColumn:
+            tableName: transfer_reversal
+            columns:
+              - column: { name: core_submission_started_at, type: timestamptz }
+              - column: { name: core_verified_at, type: timestamptz }
+              - column: { name: idempotency_key, type: varchar(128) }
+              - column: { name: failure_detail, type: varchar(240) }

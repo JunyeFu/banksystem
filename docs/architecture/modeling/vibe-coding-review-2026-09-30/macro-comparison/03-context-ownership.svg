@@ -1,0 +1,58 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="855" viewBox="0 0 1600 855"><defs><marker id="target" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M1 1 L9 5 L1 9" fill="none" stroke="#207267" stroke-width="1.5"/></marker><marker id="implemented" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M1 1 L9 5 L1 9" fill="none" stroke="#416a9f" stroke-width="1.5"/></marker><marker id="partial" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M1 1 L9 5 L1 9" fill="none" stroke="#b47b16" stroke-width="1.5"/></marker><marker id="gap" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M1 1 L9 5 L1 9" fill="none" stroke="#b54d56" stroke-width="1.5"/></marker><marker id="neutral" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M1 1 L9 5 L1 9" fill="none" stroke="#8793a6" stroke-width="1.5"/></marker></defs><style>text{font-family:'Microsoft YaHei','Noto Sans CJK SC',sans-serif;fill:#23364e}.edge{font-size:11px;paint-order:stroke;stroke:#fff;stroke-width:4px;stroke-linejoin:round}</style><rect width="100%" height="100%" fill="white"/><rect width="100%" height="94" fill="#14334d"/><text x="30" y="40" style="fill:#fff" font-size="26" font-weight="700">业务上下文与数据所有权｜两个产品不能互当真相源</text><text x="30" y="72" style="fill:#d9e7f1" font-size="14">Context &amp; Data Ownership · 比较业务边界与权威数据，不把文件夹误认为独立微服务</text>
+<rect x="20" y="110" width="760" height="635" rx="9" fill="#fafbfd" stroke="#8793a6" stroke-width="1"/>
+<path d="M20,146 H780" stroke="#8793a6"/>
+<text text-anchor="start" x="32" y="134" font-size="16" font-weight="700"><tspan x="32" dy="0">TARGET｜已接受的权威边界</tspan></text>
+<rect x="820" y="110" width="760" height="635" rx="9" fill="#fafbfd" stroke="#8793a6" stroke-width="1"/>
+<path d="M820,146 H1580" stroke="#8793a6"/>
+<text text-anchor="start" x="832" y="134" font-size="16" font-weight="700"><tspan x="832" dy="0">AS-IS｜边界已有，部分语义未闭合</tspan></text>
+<path d="M175,230 L265,290" fill="none" stroke="#8793a6" stroke-width="1.5"  marker-end="url(#neutral)"/><text class="edge" x="225" y="254">身份映射</text>
+<path d="M355,290 L445,230" fill="none" stroke="#8793a6" stroke-width="1.5"  marker-end="url(#neutral)"/><text class="edge" x="405" y="254">核心 API</text>
+<path d="M355,350 L445,410" fill="none" stroke="#8793a6" stroke-width="1.5"  marker-end="url(#neutral)"/><text class="edge" x="405" y="374">业务状态</text>
+<path d="M200,560 L240,560" fill="none" stroke="#8793a6" stroke-width="1.5"  marker-end="url(#neutral)"/><text class="edge" x="225" y="554">唯一状态写入</text>
+<path d="M380,560 L420,560" fill="none" stroke="#8793a6" stroke-width="1.5"  marker-end="url(#neutral)"/><text class="edge" x="405" y="554">只读投影</text>
+<path d="M152.5,530 L287.5,350" fill="none" stroke="#8793a6" stroke-width="1.5"  marker-end="url(#neutral)"/><text class="edge" x="225" y="434">经浏览器测试</text>
+<path d="M975,230 L1065,290" fill="none" stroke="#8793a6" stroke-width="1.5"  marker-end="url(#neutral)"/><text class="edge" x="1025" y="254">身份映射</text>
+<path d="M1155,290 L1245,230" fill="none" stroke="#8793a6" stroke-width="1.5"  marker-end="url(#neutral)"/><text class="edge" x="1205" y="254">核心 API</text>
+<path d="M1155,350 L1245,410" fill="none" stroke="#8793a6" stroke-width="1.5"  marker-end="url(#neutral)"/><text class="edge" x="1205" y="374">业务状态</text>
+<path d="M1000,560 L1040,560" fill="none" stroke="#8793a6" stroke-width="1.5"  marker-end="url(#neutral)"/><text class="edge" x="1025" y="554">唯一状态写入</text>
+<path d="M1180,560 L1220,560" fill="none" stroke="#8793a6" stroke-width="1.5"  marker-end="url(#neutral)"/><text class="edge" x="1205" y="554">只读投影</text>
+<path d="M952.5,530 L1087.5,350" fill="none" stroke="#8793a6" stroke-width="1.5"  marker-end="url(#neutral)"/><text class="edge" x="1025" y="434">经浏览器测试</text>
+<rect x="60" y="170" width="140" height="60" rx="4" fill="#e9f0fa" stroke="#416a9f" stroke-width="1.4"/>
+<text text-anchor="middle" x="130" y="197" font-size="13" font-weight="400"><tspan x="130" dy="0">身份上下文</tspan><tspan x="130" dy="16">Keycloak 身份 / 角色</tspan></text>
+<rect x="420" y="170" width="140" height="60" rx="4" fill="#e9f0fa" stroke="#416a9f" stroke-width="1.4"/>
+<ellipse cx="490" cy="177" rx="70" ry="7" fill="#e9f0fa" stroke="#416a9f"/>
+<text text-anchor="middle" x="490" y="197" font-size="13" font-weight="400"><tspan x="490" dy="0">核心银行上下文</tspan><tspan x="490" dy="16">客户 / 账户 / 贷款</tspan></text>
+<rect x="240" y="290" width="140" height="60" rx="4" fill="#e6f2ef" stroke="#207267" stroke-width="1.4"/>
+<text text-anchor="middle" x="310" y="317" font-size="13" font-weight="400"><tspan x="310" dy="0">渠道业务上下文</tspan><tspan x="310" dy="16">订单 / 申请 / 复核</tspan></text>
+<rect x="420" y="410" width="140" height="60" rx="4" fill="#e6f2ef" stroke="#207267" stroke-width="1.4"/>
+<ellipse cx="490" cy="417" rx="70" ry="7" fill="#e6f2ef" stroke="#207267"/>
+<text text-anchor="middle" x="490" y="437" font-size="13" font-weight="400"><tspan x="490" dy="0">渠道状态与投影</tspan><tspan x="490" dy="16">不等于核心总账</tspan></text>
+<rect x="60" y="530" width="140" height="60" rx="4" fill="#e9f0fa" stroke="#416a9f" stroke-width="1.4"/>
+<text text-anchor="middle" x="130" y="557" font-size="13" font-weight="400"><tspan x="130" dy="0">自动化测试上下文</tspan><tspan x="130" dy="16">Journey / Case / Run</tspan></text>
+<rect x="240" y="530" width="140" height="60" rx="4" fill="#e9f0fa" stroke="#416a9f" stroke-width="1.4"/>
+<ellipse cx="310" cy="537" rx="70" ry="7" fill="#e9f0fa" stroke="#416a9f"/>
+<text text-anchor="middle" x="310" y="557" font-size="13" font-weight="400"><tspan x="310" dy="0">Harness 状态权威</tspan><tspan x="310" dy="16">SQLite / Evidence</tspan></text>
+<rect x="420" y="530" width="140" height="60" rx="4" fill="#e6f2ef" stroke="#207267" stroke-width="1.4"/>
+<text text-anchor="middle" x="490" y="557" font-size="13" font-weight="400"><tspan x="490" dy="0">Quality 只读视图</tspan><tspan x="490" dy="16">不拥有执行状态</tspan></text>
+<text text-anchor="start" x="72" y="684" font-size="16" font-weight="400"><tspan x="72" dy="0">核心事实 → 业务结果 → 测试核验</tspan><tspan x="72" dy="16">申请≠贷款；受理≠入账</tspan><tspan x="72" dy="16">渠道投影≠核心 GL</tspan></text>
+<rect x="860" y="170" width="140" height="60" rx="4" fill="#e9f0fa" stroke="#416a9f" stroke-width="1.4"/>
+<text text-anchor="middle" x="930" y="197" font-size="13" font-weight="400"><tspan x="930" dy="0">身份上下文</tspan><tspan x="930" dy="16">Keycloak 身份 / 角色</tspan></text>
+<rect x="1220" y="170" width="140" height="60" rx="4" fill="#e9f0fa" stroke="#416a9f" stroke-width="1.4"/>
+<ellipse cx="1290" cy="177" rx="70" ry="7" fill="#e9f0fa" stroke="#416a9f"/>
+<text text-anchor="middle" x="1290" y="197" font-size="13" font-weight="400"><tspan x="1290" dy="0">核心银行上下文</tspan><tspan x="1290" dy="16">客户 / 账户 / 贷款</tspan></text>
+<rect x="1040" y="290" width="140" height="60" rx="4" fill="#fff1d5" stroke="#b47b16" stroke-width="1.4"/>
+<text text-anchor="middle" x="1110" y="317" font-size="13" font-weight="400"><tspan x="1110" dy="0">渠道业务上下文</tspan><tspan x="1110" dy="16">订单 / 申请 / 复核</tspan></text>
+<rect x="1220" y="410" width="140" height="60" rx="4" fill="#fff1d5" stroke="#b47b16" stroke-width="1.4"/>
+<ellipse cx="1290" cy="417" rx="70" ry="7" fill="#fff1d5" stroke="#b47b16"/>
+<text text-anchor="middle" x="1290" y="437" font-size="13" font-weight="400"><tspan x="1290" dy="0">渠道状态与投影</tspan><tspan x="1290" dy="16">不等于核心总账</tspan></text>
+<rect x="860" y="530" width="140" height="60" rx="4" fill="#e9f0fa" stroke="#416a9f" stroke-width="1.4"/>
+<text text-anchor="middle" x="930" y="557" font-size="13" font-weight="400"><tspan x="930" dy="0">自动化测试上下文</tspan><tspan x="930" dy="16">Journey / Case / Run</tspan></text>
+<rect x="1040" y="530" width="140" height="60" rx="4" fill="#e9f0fa" stroke="#416a9f" stroke-width="1.4"/>
+<ellipse cx="1110" cy="537" rx="70" ry="7" fill="#e9f0fa" stroke="#416a9f"/>
+<text text-anchor="middle" x="1110" y="557" font-size="13" font-weight="400"><tspan x="1110" dy="0">Harness 状态权威</tspan><tspan x="1110" dy="16">SQLite / Evidence</tspan></text>
+<rect x="1220" y="530" width="140" height="60" rx="4" fill="#fff1d5" stroke="#b47b16" stroke-width="1.4"/>
+<text text-anchor="middle" x="1290" y="557" font-size="13" font-weight="400"><tspan x="1290" dy="0">Quality 只读视图</tspan><tspan x="1290" dy="16">不拥有执行状态</tspan></text>
+<text text-anchor="start" x="872" y="684" font-size="16" font-weight="400"><tspan x="872" dy="0">当前缺口</tspan><tspan x="872" dy="16">贷款条件 / 单位失真</tspan><tspan x="872" dy="16">GL 对账来源不足</tspan><tspan x="872" dy="16">质量发布投影未实现</tspan></text>
+<text text-anchor="start" x="37" y="803" font-size="16" font-weight="400"><tspan x="37" dy="0">实体归属与部署边界是不同维度；这里只显示宏观所有权，不声称完整 DDD 战略设计已经实现。</tspan></text>
+<text text-anchor="start" x="37" y="837" font-size="16" font-weight="400"><tspan x="37" dy="0">测试平台不直接写核心数据库；Quality 不增加写控制面；Flowise 仅为历史材料。</tspan></text>
+</svg>

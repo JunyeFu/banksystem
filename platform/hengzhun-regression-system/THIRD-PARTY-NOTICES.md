@@ -1,7 +1,7 @@
-# Third-party license inventory
+# Historical I10 portable-package license inventory
 
-This inventory is generated from the locked dependency metadata bundled with this release.
-Components marked NOASSERTION require review before external redistribution.
+This preserved inventory belongs to the historical I10 portable package, including legacy Flowise research. It is not the current CLI product SBOM or a claim that these components are bundled in the current release.
+For current source materials, use the repository-root THIRD-PARTY-NOTICES.md and the candidate reports/source.reviewed.cdx.json and source-license-review.json. Historical NOASSERTION entries remain historical review items, not current runtime dependencies or permissions.
 
 - @ai-sdk/provider-utils@1.0.22: Apache-2.0
 - @ai-sdk/provider-utils@2.2.8: Apache-2.0

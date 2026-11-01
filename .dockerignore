@@ -1,0 +1,12 @@
+**
+!apps/customer-portal/**
+!apps/operations-console/**
+!apps/quality-case-portal/**
+!packages/bank-api-client/**
+!packages/bank-domain-types/**
+!packages/bank-ui-kit/**
+!contracts/openapi/quality-platform-api.yaml
+!infra/frontend/Dockerfile
+**/node_modules/
+**/dist/
+**/.data/

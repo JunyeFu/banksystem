@@ -1,0 +1,10 @@
+id: RF-063-S2
+title: 资金及日终失败语义
+status: IMPLEMENTING
+businessGoal: 短事务、未知只回读、真实总账、日期冲突、故障窗口
+allowedPaths: [services/bank-channel-service, contracts/openapi, contracts/asyncapi, contracts/fixtures, packages/bank-api-client]
+forbiddenPaths: [postgresql, infra/keycloak, platform/hengzhun-regression-system/flowise]
+workSteps: [root cause counterexample, minimal fix, regression, independent review]
+verification: ['Java21 mvnw.cmd test; embedded PostgreSQL failure/concurrency tests']
+evidence: docs/architecture/refactoring/batches/RF-063/evidence-index.md
+

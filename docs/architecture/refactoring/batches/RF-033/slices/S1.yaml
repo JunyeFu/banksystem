@@ -1,0 +1,9 @@
+id: RF-033-S1
+title: Customer create confirm and result wiring
+status: COMPLETED
+allowedPaths: [apps/customer-portal, docs/architecture/refactoring/batches/RF-033, agent/plans/active, agent/backlog.yaml]
+forbiddenPaths: [platform, postgresql, services, contracts, packages]
+workSteps: [generate one correlation ID per form instance, call explicit confirmation from the verification control, show errors without navigating, expose correlation and core reference on the result]
+verification: [Customer Portal build passes, browser settles one synthetic transfer, final screenshot matches accepted visual hierarchy]
+rollback: revert RF-033 S1 paths only
+evidence: docs/architecture/refactoring/batches/RF-033/evidence-index.md

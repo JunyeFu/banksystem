@@ -11,7 +11,7 @@ const {
 } = require('./i10-onnx-ocr.cjs');
 
 const productRoot = path.resolve(__dirname, '..', '..');
-const ffmpegPath = path.join(productRoot, 'runtime', 'node_modules', '@ffmpeg-installer', 'win32-x64', 'ffmpeg.exe');
+const ffmpegPath = path.join(productRoot, 'runtime', require('../../config/demo-runtime-freeze.json').mediaFfmpeg.executable);
 const timelineVersion = 'OCR_FRAME_DIFF_V1';
 
 function sha256(value) { return crypto.createHash('sha256').update(value).digest('hex'); }
@@ -43,6 +43,7 @@ function inspectVideo(filePath) {
   const result = spawnSync(ffmpegPath, ['-hide_banner', '-i', filePath, '-f', 'null', '-'], {
     encoding: 'utf8', windowsHide: true, maxBuffer: 8 * 1024 * 1024
   });
+  if (result.error || result.status !== 0) throw Object.assign(new Error('I10_VIDEO_DECODE_FAILED'), { code: 'I10_VIDEO_DECODE_FAILED' });
   const output = String(result.stderr || '');
   const video = output.match(/Video:\s*([^,]+).*?(\d{2,5})x(\d{2,5})/i);
   const duration = output.match(/Duration:\s*(\d{2}):(\d{2}):(\d{2}(?:\.\d+)?)/i);

@@ -68,10 +68,19 @@ describe('generated-contract API clients', () => {
     const fetchMock = vi.fn().mockResolvedValue(response({ transferId: crypto.randomUUID(), status: 'CREATED', amount: '1.00', currency: 'CNY', correlationId: 'corr' }, 202));
     vi.stubGlobal('fetch', fetchMock);
     const client = new CustomerApiClient({ baseUrl: '/api/customer/v1', getAccessToken: () => null });
-    await client.createTransfer({ sourceAccountId: '1', beneficiaryId: crypto.randomUUID(), amount: '1.00', currency: 'CNY' }, '1234567890abcdef');
+    await client.createTransfer({ sourceAccountId: '1', beneficiaryId: crypto.randomUUID(), amount: '1.00', currency: 'CNY' }, '1234567890abcdef', 'customer-correlation-001');
     const init = fetchMock.mock.calls[0]?.[1] as RequestInit;
     expect(new Headers(init.headers).get('Idempotency-Key')).toBe('1234567890abcdef');
+    expect(new Headers(init.headers).get('X-Correlation-Id')).toBe('customer-correlation-001');
     expect(String(init.body)).toContain('beneficiaryId');
+  });
+
+  it('uses the subject-scoped customer confirmation route', async () => {
+    const fetchMock = vi.fn().mockResolvedValue(response({})); vi.stubGlobal('fetch', fetchMock);
+    const client = new CustomerApiClient({ baseUrl: '/api/customer/v1', getAccessToken: () => null });
+    await client.confirmTransfer('transfer-1');
+    expect(fetchMock.mock.calls[0]?.[0]).toBe('/api/customer/v1/transfers/transfer-1/confirm');
+    expect((fetchMock.mock.calls[0]?.[1] as RequestInit).method).toBe('POST');
   });
 
   it('uses the operations detail route', async () => {
@@ -79,6 +88,43 @@ describe('generated-contract API clients', () => {
     const client = new OperationsApiClient({ baseUrl: '/api/operations/v1', getAccessToken: () => null });
     await client.getTransfer('transfer-1');
     expect(fetchMock.mock.calls[0]?.[0]).toBe('/api/operations/v1/transfers/transfer-1');
+  });
+
+  it('uses versioned customer loan application and document routes', async () => {
+    const fetchMock = vi.fn().mockImplementation(() => Promise.resolve(response({ items: [] })));
+    vi.stubGlobal('fetch', fetchMock);
+    const client = new CustomerApiClient({ baseUrl: '/api/customer/v1', getAccessToken: () => null });
+    await client.listLoanApplications();
+    await client.getLoanApplication('application/1');
+    await client.submitLoanApplication('application/1', 2);
+    await client.addLoanDocument('application/1', 'INCOME_PROOF');
+    expect(fetchMock.mock.calls.map((call) => call[0])).toEqual([
+      '/api/customer/v1/loans/applications',
+      '/api/customer/v1/loans/applications/application%2F1',
+      '/api/customer/v1/loans/applications/application%2F1/submit',
+      '/api/customer/v1/loans/applications/application%2F1/documents',
+    ]);
+    expect((fetchMock.mock.calls[2]?.[1] as RequestInit).body).toBe('{"version":2}');
+    expect((fetchMock.mock.calls[3]?.[1] as RequestInit).body).toBe('{"documentType":"INCOME_PROOF"}');
+  });
+
+  it('uses operations loan workflow routes and core idempotency key', async () => {
+    const fetchMock = vi.fn().mockImplementation(() => Promise.resolve(response({ items: [] })));
+    vi.stubGlobal('fetch', fetchMock);
+    const client = new OperationsApiClient({ baseUrl: '/api/operations/v1', getAccessToken: () => null });
+    await client.listLoanApplications();
+    await client.scoreLoanApplication('application/1', 2);
+    await client.requestLoanApproval('application/1', 3, 'reviewed');
+    await client.approveLoanApplication('approval/1', { version: 1, approvedAmount: '100.00', annualInterestRate: '4.3500', reason: 'approved' });
+    await client.submitLoanApplicationToCore('application/1', 'loan-core-key-0001');
+    expect(fetchMock.mock.calls.map((call) => call[0])).toEqual([
+      '/api/operations/v1/loans/applications',
+      '/api/operations/v1/loans/applications/application%2F1/score',
+      '/api/operations/v1/loans/applications/application%2F1/approval',
+      '/api/operations/v1/loans/approvals/approval%2F1/approve',
+      '/api/operations/v1/loans/applications/application%2F1/core-submit',
+    ]);
+    expect(new Headers((fetchMock.mock.calls[4]?.[1] as RequestInit).headers).get('Idempotency-Key')).toBe('loan-core-key-0001');
   });
 
   it('uses generated operations dashboard and risk routes', async () => {
@@ -133,7 +179,7 @@ describe('generated-contract API clients', () => {
     vi.stubGlobal('fetch', fetchMock);
     const client = new OperationsApiClient({ baseUrl: '/api/operations/v1', getAccessToken: () => null });
     await client.listDocuments({ category: 'POLICY', status: 'PUBLISHED', query: '制度' });
-    await client.updateDocumentStatus('document/1', 'ARCHIVED');
+    await client.updateDocumentStatus('document/1', { status: 'ARCHIVED', version: 2 });
     await client.listAuditEvents({ actorId: 'auditor', outcome: 'SUCCESS', correlationId: 'CORR-1' });
     await client.verifyAuditHashChain();
     await client.getSystemHealth();
@@ -141,6 +187,7 @@ describe('generated-contract API clients', () => {
     expect(fetchMock.mock.calls[0]?.[0]).toContain('/documents?category=POLICY&status=PUBLISHED&query=');
     expect(fetchMock.mock.calls[1]?.[0]).toContain('/documents/document%2F1/status');
     expect((fetchMock.mock.calls[1]?.[1] as RequestInit).method).toBe('PATCH');
+    expect((fetchMock.mock.calls[1]?.[1] as RequestInit).body).toBe('{"status":"ARCHIVED","version":2}');
     expect(fetchMock.mock.calls[2]?.[0]).toContain('/audit/events?actorId=auditor&outcome=SUCCESS&correlationId=CORR-1');
     expect(fetchMock.mock.calls[3]?.[0]).toBe('/api/operations/v1/audit/verify');
     expect(fetchMock.mock.calls[4]?.[0]).toBe('/api/operations/v1/system-health');

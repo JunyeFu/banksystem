@@ -11,11 +11,11 @@
     "properties": [
       {
         "name": "hengzhun:lockSha256:agent-cli/package-lock.json",
-        "value": "610a9542ca7a053c80f70a6db40253845557e8985d51bc822cd66d2ddeb8a8de"
+        "value": "f8890df0549003e3676e1baa9d57d6b3e6726be70a1520b168399e265f318eb5"
       },
       {
         "name": "hengzhun:lockSha256:controller/package-lock.json",
-        "value": "1fd0fe0329b85f329aa6c57270a833a5b03a79dd54514d4bf869c0bef73af799"
+        "value": "affee1be1b9edfecf07efef6e2cc575352edb80d17a169fe642841ad8eda3732"
       }
     ]
   },
@@ -139,50 +139,11 @@
     },
     {
       "type": "library",
-      "bom-ref": "pkg:npm/%40modelcontextprotocol%2Fsdk@1.30.0",
+      "bom-ref": "pkg:npm/%40modelcontextprotocol%2Fsdk@1.31.0",
       "name": "@modelcontextprotocol/sdk",
-      "version": "1.30.0",
+      "version": "1.31.0",
       "scope": "required",
-      "purl": "pkg:npm/%40modelcontextprotocol%2Fsdk@1.30.0",
-      "licenses": [
-        {
-          "expression": "MIT"
-        }
-      ]
-    },
-    {
-      "type": "library",
-      "bom-ref": "pkg:npm/%40nodelib%2Ffs.scandir@2.1.5",
-      "name": "@nodelib/fs.scandir",
-      "version": "2.1.5",
-      "scope": "required",
-      "purl": "pkg:npm/%40nodelib%2Ffs.scandir@2.1.5",
-      "licenses": [
-        {
-          "expression": "MIT"
-        }
-      ]
-    },
-    {
-      "type": "library",
-      "bom-ref": "pkg:npm/%40nodelib%2Ffs.stat@2.0.5",
-      "name": "@nodelib/fs.stat",
-      "version": "2.0.5",
-      "scope": "required",
-      "purl": "pkg:npm/%40nodelib%2Ffs.stat@2.0.5",
-      "licenses": [
-        {
-          "expression": "MIT"
-        }
-      ]
-    },
-    {
-      "type": "library",
-      "bom-ref": "pkg:npm/%40nodelib%2Ffs.walk@1.2.8",
-      "name": "@nodelib/fs.walk",
-      "version": "1.2.8",
-      "scope": "required",
-      "purl": "pkg:npm/%40nodelib%2Ffs.walk@1.2.8",
+      "purl": "pkg:npm/%40modelcontextprotocol%2Fsdk@1.31.0",
       "licenses": [
         {
           "expression": "MIT"
@@ -287,19 +248,6 @@
       "version": "2.3.0",
       "scope": "required",
       "purl": "pkg:npm/body-parser@2.3.0",
-      "licenses": [
-        {
-          "expression": "MIT"
-        }
-      ]
-    },
-    {
-      "type": "library",
-      "bom-ref": "pkg:npm/braces@3.0.3",
-      "name": "braces",
-      "version": "3.0.3",
-      "scope": "required",
-      "purl": "pkg:npm/braces@3.0.3",
       "licenses": [
         {
           "expression": "MIT"
@@ -443,19 +391,6 @@
       "version": "4.4.3",
       "scope": "required",
       "purl": "pkg:npm/debug@4.4.3",
-      "licenses": [
-        {
-          "expression": "MIT"
-        }
-      ]
-    },
-    {
-      "type": "library",
-      "bom-ref": "pkg:npm/deepagents@1.12.2",
-      "name": "deepagents",
-      "version": "1.12.2",
-      "scope": "required",
-      "purl": "pkg:npm/deepagents@1.12.2",
       "licenses": [
         {
           "expression": "MIT"
@@ -672,53 +607,14 @@
     },
     {
       "type": "library",
-      "bom-ref": "pkg:npm/fast-glob@3.3.3",
-      "name": "fast-glob",
-      "version": "3.3.3",
-      "scope": "required",
-      "purl": "pkg:npm/fast-glob@3.3.3",
-      "licenses": [
-        {
-          "expression": "MIT"
-        }
-      ]
-    },
-    {
-      "type": "library",
-      "bom-ref": "pkg:npm/fast-uri@3.1.6",
+      "bom-ref": "pkg:npm/fast-uri@3.1.8",
       "name": "fast-uri",
-      "version": "3.1.6",
+      "version": "3.1.8",
       "scope": "required",
-      "purl": "pkg:npm/fast-uri@3.1.6",
+      "purl": "pkg:npm/fast-uri@3.1.8",
       "licenses": [
         {
           "expression": "BSD-3-Clause"
-        }
-      ]
-    },
-    {
-      "type": "library",
-      "bom-ref": "pkg:npm/fastq@1.20.1",
-      "name": "fastq",
-      "version": "1.20.1",
-      "scope": "required",
-      "purl": "pkg:npm/fastq@1.20.1",
-      "licenses": [
-        {
-          "expression": "ISC"
-        }
-      ]
-    },
-    {
-      "type": "library",
-      "bom-ref": "pkg:npm/fill-range@7.1.1",
-      "name": "fill-range",
-      "version": "7.1.1",
-      "scope": "required",
-      "purl": "pkg:npm/fill-range@7.1.1",
-      "licenses": [
-        {
-          "expression": "MIT"
         }
       ]
     },
@@ -815,19 +711,6 @@
     },
     {
       "type": "library",
-      "bom-ref": "pkg:npm/glob-parent@5.1.2",
-      "name": "glob-parent",
-      "version": "5.1.2",
-      "scope": "required",
-      "purl": "pkg:npm/glob-parent@5.1.2",
-      "licenses": [
-        {
-          "expression": "ISC"
-        }
-      ]
-    },
-    {
-      "type": "library",
       "bom-ref": "pkg:npm/gopd@1.2.0",
       "name": "gopd",
       "version": "1.2.0",
@@ -867,11 +750,11 @@
     },
     {
       "type": "library",
-      "bom-ref": "pkg:npm/hono@4.13.5",
+      "bom-ref": "pkg:npm/hono@4.13.13",
       "name": "hono",
-      "version": "4.13.5",
+      "version": "4.13.13",
       "scope": "required",
-      "purl": "pkg:npm/hono@4.13.5",
+      "purl": "pkg:npm/hono@4.13.13",
       "licenses": [
         {
           "expression": "MIT"
@@ -919,11 +802,11 @@
     },
     {
       "type": "library",
-      "bom-ref": "pkg:npm/ip-address@10.5.0",
+      "bom-ref": "pkg:npm/ip-address@10.7.4",
       "name": "ip-address",
-      "version": "10.5.0",
+      "version": "10.7.4",
       "scope": "required",
-      "purl": "pkg:npm/ip-address@10.5.0",
+      "purl": "pkg:npm/ip-address@10.7.4",
       "licenses": [
         {
           "expression": "MIT"
@@ -945,50 +828,11 @@
     },
     {
       "type": "library",
-      "bom-ref": "pkg:npm/is-extglob@2.1.1",
-      "name": "is-extglob",
-      "version": "2.1.1",
-      "scope": "required",
-      "purl": "pkg:npm/is-extglob@2.1.1",
-      "licenses": [
-        {
-          "expression": "MIT"
-        }
-      ]
-    },
-    {
-      "type": "library",
-      "bom-ref": "pkg:npm/is-glob@4.0.3",
-      "name": "is-glob",
-      "version": "4.0.3",
-      "scope": "required",
-      "purl": "pkg:npm/is-glob@4.0.3",
-      "licenses": [
-        {
-          "expression": "MIT"
-        }
-      ]
-    },
-    {
-      "type": "library",
       "bom-ref": "pkg:npm/is-network-error@1.3.2",
       "name": "is-network-error",
       "version": "1.3.2",
       "scope": "required",
       "purl": "pkg:npm/is-network-error@1.3.2",
-      "licenses": [
-        {
-          "expression": "MIT"
-        }
-      ]
-    },
-    {
-      "type": "library",
-      "bom-ref": "pkg:npm/is-number@7.0.0",
-      "name": "is-number",
-      "version": "7.0.0",
-      "scope": "required",
-      "purl": "pkg:npm/is-number@7.0.0",
       "licenses": [
         {
           "expression": "MIT"
@@ -1145,32 +989,6 @@
       "version": "2.0.0",
       "scope": "required",
       "purl": "pkg:npm/merge-descriptors@2.0.0",
-      "licenses": [
-        {
-          "expression": "MIT"
-        }
-      ]
-    },
-    {
-      "type": "library",
-      "bom-ref": "pkg:npm/merge2@1.4.1",
-      "name": "merge2",
-      "version": "1.4.1",
-      "scope": "required",
-      "purl": "pkg:npm/merge2@1.4.1",
-      "licenses": [
-        {
-          "expression": "MIT"
-        }
-      ]
-    },
-    {
-      "type": "library",
-      "bom-ref": "pkg:npm/micromatch@4.0.8",
-      "name": "micromatch",
-      "version": "4.0.8",
-      "scope": "required",
-      "purl": "pkg:npm/micromatch@4.0.8",
       "licenses": [
         {
           "expression": "MIT"
@@ -1439,19 +1257,6 @@
     },
     {
       "type": "library",
-      "bom-ref": "pkg:npm/picomatch@2.3.2",
-      "name": "picomatch",
-      "version": "2.3.2",
-      "scope": "required",
-      "purl": "pkg:npm/picomatch@2.3.2",
-      "licenses": [
-        {
-          "expression": "MIT"
-        }
-      ]
-    },
-    {
-      "type": "library",
       "bom-ref": "pkg:npm/pkce-challenge@5.0.1",
       "name": "pkce-challenge",
       "version": "5.0.1",
@@ -1465,11 +1270,11 @@
     },
     {
       "type": "library",
-      "bom-ref": "pkg:npm/proxy-addr@2.0.7",
+      "bom-ref": "pkg:npm/proxy-addr@2.0.8",
       "name": "proxy-addr",
-      "version": "2.0.7",
+      "version": "2.0.8",
       "scope": "required",
-      "purl": "pkg:npm/proxy-addr@2.0.7",
+      "purl": "pkg:npm/proxy-addr@2.0.8",
       "licenses": [
         {
           "expression": "MIT"
@@ -1478,27 +1283,14 @@
     },
     {
       "type": "library",
-      "bom-ref": "pkg:npm/qs@6.15.3",
+      "bom-ref": "pkg:npm/qs@6.16.0",
       "name": "qs",
-      "version": "6.15.3",
+      "version": "6.16.0",
       "scope": "required",
-      "purl": "pkg:npm/qs@6.15.3",
+      "purl": "pkg:npm/qs@6.16.0",
       "licenses": [
         {
           "expression": "BSD-3-Clause"
-        }
-      ]
-    },
-    {
-      "type": "library",
-      "bom-ref": "pkg:npm/queue-microtask@1.2.3",
-      "name": "queue-microtask",
-      "version": "1.2.3",
-      "scope": "required",
-      "purl": "pkg:npm/queue-microtask@1.2.3",
-      "licenses": [
-        {
-          "expression": "MIT"
         }
       ]
     },
@@ -1543,37 +1335,11 @@
     },
     {
       "type": "library",
-      "bom-ref": "pkg:npm/reusify@1.1.0",
-      "name": "reusify",
-      "version": "1.1.0",
-      "scope": "required",
-      "purl": "pkg:npm/reusify@1.1.0",
-      "licenses": [
-        {
-          "expression": "MIT"
-        }
-      ]
-    },
-    {
-      "type": "library",
       "bom-ref": "pkg:npm/router@2.2.0",
       "name": "router",
       "version": "2.2.0",
       "scope": "required",
       "purl": "pkg:npm/router@2.2.0",
-      "licenses": [
-        {
-          "expression": "MIT"
-        }
-      ]
-    },
-    {
-      "type": "library",
-      "bom-ref": "pkg:npm/run-parallel@1.2.0",
-      "name": "run-parallel",
-      "version": "1.2.0",
-      "scope": "required",
-      "purl": "pkg:npm/run-parallel@1.2.0",
       "licenses": [
         {
           "expression": "MIT"
@@ -1725,19 +1491,6 @@
     },
     {
       "type": "library",
-      "bom-ref": "pkg:npm/to-regex-range@5.0.1",
-      "name": "to-regex-range",
-      "version": "5.0.1",
-      "scope": "required",
-      "purl": "pkg:npm/to-regex-range@5.0.1",
-      "licenses": [
-        {
-          "expression": "MIT"
-        }
-      ]
-    },
-    {
-      "type": "library",
       "bom-ref": "pkg:npm/toidentifier@1.0.1",
       "name": "toidentifier",
       "version": "1.0.1",
@@ -1808,19 +1561,6 @@
       "version": "1.0.2",
       "scope": "required",
       "purl": "pkg:npm/wrappy@1.0.2",
-      "licenses": [
-        {
-          "expression": "ISC"
-        }
-      ]
-    },
-    {
-      "type": "library",
-      "bom-ref": "pkg:npm/yaml@2.9.0",
-      "name": "yaml",
-      "version": "2.9.0",
-      "scope": "required",
-      "purl": "pkg:npm/yaml@2.9.0",
       "licenses": [
         {
           "expression": "ISC"

@@ -1,0 +1,24 @@
+schemaVersion: 1
+id: RF-027
+title: Fresh-clone reproducible runtime
+status: ACCEPTED
+owner: project-owner
+authorizedBy: agent/plans/active/v54-implementation-batches.md
+scope:
+  includePaths: [demo.ps1, postgresql/docker-compose.isolated.yml, postgresql/01-init-unix.sh, compose.channel.yaml, services/bank-channel-service/src/main/resources/application.yml, infra/frontend/Dockerfile, .dockerignore, .gitattributes, infra/versions.lock.yaml, .env.example, contracts/openapi/quality-platform-api.yaml, apps/quality-case-portal/src/api.ts, apps/quality-case-portal/src/App.tsx, apps/quality-case-portal/src/pages.tsx, apps/quality-case-portal/src/types.ts, apps/quality-case-portal/src/generated/quality-api.ts, scripts/deploy, README.md, agent/plans/active/banksystem-tp-a02-reproducible-runtime-task-package.md, agent/plans/active/banksystem-open-source-task-packages-v1.yaml, agent/plans/active/banksystem-three-level-development-control-v1.md, agent/plans/active/banksystem-three-level-development-control-v1.yaml, docs/architecture/refactoring/batches/RF-027, agent/backlog.yaml, agent/plans/active/v54-implementation-batches.md]
+  excludePaths: [platform/hengzhun-regression-system/.data, platform/hengzhun-regression-system/flowise, platform/hengzhun-regression-system/controller, platform/hengzhun-regression-system/harness, platform/hengzhun-regression-system/mcp, platform/hengzhun-regression-system/worker]
+budgets: {maxChangedFiles: 35, maxNewFiles: 22, maxChangedLines: 2500, maxContractsChanged: 2, maxMigrationsAdded: 0, maxOpenModules: 2}
+baseline: {gitCommit: 552b3b8ac517bd5991bff446e72d9f4e87ea9543, dirtyTreeManifest: docs/architecture/refactoring/batches/RF-027/baseline.md, releaseIdentity: NOT_RUNNING, capturedAt: "2026-08-30T10:55:00+08:00"}
+architecture: {businessCapability: reproducible-local-runtime, publicContract: agent/plans/active/banksystem-tp-a02-reproducible-runtime-task-package.md, dependencyManifest: docs/architecture/refactoring/module-boundaries-v1.yaml, allowedModules: [governance.refactoring, frontend.quality-case-portal], forbiddenModules: [bank.payments, hengzhun.controller, hengzhun.harness, hengzhun.mcp, hengzhun.worker]}
+mustPreserve: [named volumes retain state on down, Fineract is not seeded through database files, no Flowise lifecycle dependency, no runtime fallback]
+verification:
+  requiredCommands:
+    - {name: refactoring-governance, command: "py -3 scripts/architecture/validate_refactoring.py --batch RF-027", expectedExitCode: 0, evidence: docs/architecture/refactoring/batches/RF-027/evidence-index.md, blocking: true}
+    - {name: core-compose, command: "docker compose --env-file .env.example -f postgresql/docker-compose.isolated.yml config --quiet", expectedExitCode: 0, evidence: docs/architecture/refactoring/batches/RF-027/evidence-index.md, blocking: true}
+    - {name: channel-compose, command: "docker compose --env-file .env.example -f compose.channel.yaml config --quiet", expectedExitCode: 0, evidence: docs/architecture/refactoring/batches/RF-027/evidence-index.md, blocking: true}
+    - {name: root-lifecycle-contract, command: "pwsh -NoProfile -ExecutionPolicy Bypass -File scripts/deploy/verify-demo-lifecycle.ps1", expectedExitCode: 0, evidence: docs/architecture/refactoring/batches/RF-027/evidence-index.md, blocking: true}
+    - {name: empty-volume-cold-start, command: "pwsh -NoProfile -ExecutionPolicy Bypass -File scripts/deploy/verify-demo-cold-start.ps1 -Execute", expectedExitCode: 0, evidence: docs/architecture/refactoring/batches/RF-027/evidence-index.md, blocking: true}
+    - {name: independent-clean-clone, command: "pwsh -NoProfile -ExecutionPolicy Bypass -File scripts/deploy/verify-demo-clean-clone.ps1 -Execute", expectedExitCode: 0, evidence: docs/architecture/refactoring/batches/RF-027/evidence-index.md, blocking: true}
+    - {name: docs-governance, command: "python scripts/docs/validate_docs.py", expectedExitCode: 0, evidence: docs/architecture/refactoring/batches/RF-027/evidence-index.md, blocking: true}
+rollback: {triggerConditions: [compose contract invalid, frontend image cannot build, lifecycle owns unknown process, persistent data path changes unexpectedly], recoveryPoint: RF-026 closed state, maxRtoMinutes: 20, maxRpoMinutes: 0}
+exceptions: {allowedVagueNames: [], crossModule: []}

@@ -6,6 +6,10 @@
 
 ## 控制规则
 
+2026-10-26 RF068-S5继续模型JSON根因取证：先保留脱敏格式、finish_reason和用量，再按证据修复并冻结复测；精确路径及边界见既有S5任务包。失败后继续定位/修复/复测，不停止原银行服务或改数据，不另立批次。
+
+2026-10-26 RF068-S5收口：H8ff4a6bc…bc62157完整只读LIVE报告606619fe为PASSED，重启/历史不重派、证据与银行快照通过；RF068本批关闭。此前失败记录不改写，RF057正式28项与整体GO保持原状态，不因本批通过自动进入资金测试或发布。
+
 - 获准进入重构的批次必须遵守 [`docs/architecture/refactoring-control-process-v1.md`](../../../docs/architecture/refactoring-control-process-v1.md) 的基线、合同、验证、切流和回滚门禁；该规范只控制“如何执行”，不拥有项目顺序权威。
 
 - 只有本文件可以定义项目级批次、先后关系、并行关系、入口条件和退出条件。
@@ -16,7 +20,247 @@
 
 ## 当前交付目标
 
-实习交付物继续聚焦自动化回归测试闭环。I0—I7 已交付的 Coze 演示保留为历史基线；后续目标入口改为私有化 Flowise Agentflow V2，平台外调用只经过 MCP。复兴银行继续作为稳定、可演示的本机被测系统和个人作品集；当前个人电脑阶段不把 Flowise 成功写成 HiAgent 成功，也不要求整个银行前端、全部 S0—S7 或全部业务闭环完成。
+2026-10-26本轮集中结果：D01–D07共7项新修复完成（银行字段/复合行/空表/错误不存在性/正式断言保留、PID复用、验收预算），旧7项不重复计数；另增强模型合同安全诊断。专项115、作者化15、CLI50、Contract19＋12、Integration41＋runtime2与治理/docs通过。5次新身份实机复测后，当前H4e6df193…fef2e1的报告7dabe00e在草案阶段明确为JSON_SYNTAX错误，未创建Journey/Run/Task；S5仍BLOCKED。曾实际走通认证、账户导航和四字段业务检查，但不能代替完整S5。一次独立真实模型协议探测可产生合法JSON，不覆盖失败，具体失败格式未保留故不臆测。下一门是最小脱敏格式/结束原因取证后处理模型交付，再验完整S5；不静默修复JSON或更换模型。银行及当前Agent保持运行，正式28项/GO未提升。[本轮回执](../../../docs/architecture/refactoring/batches/RF-068/S5-semantic-repair-20261026.md)。下方为历史。
+
+2026-10-26 S5新一轮连续修复授权：在上一轮7项之外，针对字段绑定、复合事实、空表、错误不存在性、正式脚本断言保留5项代码缺口完成实现/回归/新身份实机复测后集中汇报。仍沿RF067-S1编译合同、RF066-S2 Worker消费、RF068-S5验收；不启新路线、不改原银行服务/数据。失败后保留证据并继续定位修复，不增加运行时隐藏重试。细化见RF068 tasks/S5.md。
+
+2026-10-24连续修复本轮集中结果：完成C01–C06及C08共7项独立错误的红→绿修复（编译/Worker108、Contract19＋11、Integration41＋1、CLI50及治理/docs通过）；C07仅部分修复，不计完成。经历6次源码收口后的新身份真实复测；最终H3301077e…dcbb33报告5c3e2b09仍因“账户标识”与真实字段“账号”的语义匹配未闭合而失败，S5保持BLOCKED。认证/身份表单提交及账户导航实际走通，另有错误存在性观察尚被编成正向文字可见断言的源码缺口。下一硬门是显式业务字段/断言语义收口后再验S5，不再按自由文本整句补标签；沿既有授权，不新建路线。原银行及自有Agent服务保持运行，正式28项/GO未提升。[完整回执](../../../docs/architecture/refactoring/batches/RF-068/S5-continuous-repair-20261024.md)。下方为各轮历史。
+
+2026-10-24最新授权更新：S5改为失败后保留该次失败证据、定位修复并回归，再冻结新身份从起点复测；不再首错后结束整轮工作。至少完成5个独立、已证实缺陷的修复与验证后统一汇报。不在产品内增加隐藏重试或自动改码，不改原银行服务/数据。当前增量归RF067-S1的意图编译与RF066-S2的Worker消费，精确范围和反例见RF068 tasks/S5.md。
+
+2026-10-24本轮完成Worker登录语义误拒最小修复及正反例/实际隔离DOM/源码复审（Worker61、Contract19＋11、Integration41＋1、CLI76）。冻结H7a722b08…525239并仅重载自有Agent后，S5报告0d72ea26首次失败为I10_MIDSCENE_TARGET_NOT_FOUND：本次模型draft的“Keycloak身份认证”未被Harness登录展开识别，首步仅goto，随后在登录页找账户导航；这是新的编译语义缺口，未再触发原SSO按钮误拒。已首错停止、未继续修复重跑，原银行和Agent服务运行，S5仍BLOCKED。后续应修Harness认证前置展开及观察/约束动作编译合同，再冻结重验。详见[本轮修复](../../../docs/architecture/refactoring/batches/RF-068/S5-login-match-repair-20261024.md)和[新根因](../../../docs/architecture/refactoring/batches/RF-068/S5-live-root-cause-20261024-03.md)，正式28项/GO未提升。
+
+2026-10-24本轮授权：修复RF068-S5上轮已定位的Worker认证入口语义误拒，沿RF066-S2最小源码变更补齐正反例/实际隔离DOM及回归复审；所有源码收口后冻结新身份，仅重载自有Agent，再从S5完整起点执行真实只读验收，首次确定性LIVE失败立即停止并记录根因。原银行服务/数据不动，旧报告保持FAILED；细化和白名单见RF068 tasks/S5.md。
+
+2026-10-24最新S5实机：H618b078b…93c129已按原入口冻结/备份/启动，原银行持续健康；首轮完整LIVE报告ae132adb在候选第二动作以I10_MIDSCENE_LOCATOR_MISMATCH停止。已确认视觉选对SSO按钮，但Worker把“点击统一身份认证入口”与按钮文字“统一身份认证登录”做整句字面匹配而误拒。一次定位、具体码传播生效，尚无正式Run，未自动修复重跑。S5仍BLOCKED；先前启动工具拒绝为历史事件，未通过修改全局策略规避。根因及后续最小方向见[本次记录](../../../docs/architecture/refactoring/batches/RF-068/S5-live-root-cause-20261024-02.md)。Agent与银行服务保持运行，正式28项/整体GO未提升。
+
+2026-10-24用户授权的策略简化已回接S5治理补充：在已授权目标内自主补齐任务链/必要路径、沿用任务级授权，取消机械逐细节同步、每次局部全仓盘点/全模态测试与固定2模块上限。仍要求实际批次预算、身份一致、进程归属、持久状态及资金保护。清单见[项目策略排查](../../../docs/architecture/project-policy-inventory-20261024.md)。工具层blocked by policy没有可见具体命中规则；本机default.rules无deny，未修改全局权限或绕过拒绝。该清理不代表S5已运行或GO。
+
+2026-10-24本轮收口：V1–V3源码、测试与复审已完成（Contract19＋11、Integration41＋1、Worker59、CLI76、Browser5、前端45/双构建），RF066-S2源码门DONE。V4候选H为618b078b…93c129，尚未完成运行冻结绑定：原托管启动命令被工具自动审批以blocked by policy拒绝，未执行、未绕过、未进入新身份LIVE。S5保持BLOCKED；银行服务仍healthy，数据未操作。工具允许原受控启动入口执行后，才能绑定/启动自有Agent并从LiveReadOnly起点验收。
+
+2026-10-24 RF068-S5：首次LIVE报告778e3726确认视觉端点拒绝旧mimo-v2.5且SDK/Worker误分类、MCP丢失原因。用户已授权核实视觉模型、修复分类/首错停止/错误传播并重新冻结验收；细化V1–V4见RF068 tasks/S5.md，源码归RF066-S2及RF067-S1，统一验收归S5。端点目录无旧模型，mimo-v2.6-flash真实SDK合成定位已通过；项目本地绑定覆盖旧继承环境值。所属回归/构建/复审收口后才能冻结新H并受控重载自有Agent，再从S5完整起点执行，首次确定性LIVE失败停止。原银行服务/数据不动，S5暂BLOCKED。详见[执行回执](../../../docs/architecture/refactoring/batches/RF-068/S5-repair-execution-20261023.md)。历史证据保留，正式28项及整体GO未提升。
+
+2026-10-22 RF068-S4模型交互闭合：下方手动选择仅影响下一新任务，/agent/models接入版本化配置、当前端点检查、显式默认设置；密钥不回读，409及保存/默认部分失败透明，当前RUNNING/NEEDS_INPUT绑定保持。前端41/41、Contract18/18、隔离Integration35/35、Models1/1及Foundation2/2、History1/1、Conversation1/1通过，Figma桌面/窄屏截图和源码另轮复审闭合。原服务保持，无真实模型/银行动作、冻结或GO。下一依赖出口为RF068-S5实机验收，本包不提前执行；唯一状态查backlog，详细证据见RF068索引。
+
+2026-10-22 RF068-S3真实对话前端闭合：单意图提交/原id核对、原任务补输入、真实事件分页、停止未知语义、PNG/JPEG与受控证据下载接入。前端38/38、Contract18/18、隔离Integration35/35、Conversation1/1、History1/1及Foundation2/2通过；截图复审补阅读锚点、当前任务定位与历史事件展开。实际银行动作/真实模型调用0，原服务未由本包切换，无冻结/GO。下一依赖出口为RF068-S4模型选择与配置，未提前实施；唯一状态查backlog，验收分级及限制见RF068证据索引。
+
+2026-10-21 RF068-S2历史会话闭合：真实新建、搜索/列表分页、正文前插分页、URL选中、刷新/前进后退、namespace与旧身份只读接入。前端32/32、Contract18/18、隔离Integration35/35、Browser/History1/1及Foundation2/2通过；37会话/24消息回读、turn15→15、runs0→0、派发0，新建双击/跨屏仅1次登记POST。原服务保持、未部署18790、无真实BYOK/冻结/GO。下一依赖出口为RF068-S3真实对话，状态只查backlog，证据在RF068索引。
+
+2026-10-21 RF068-S1基础入口闭合：/agent/独立构建、生成类型/路径、真实只读bootstrap、Figma统一样式及桌面/窄屏交互。前端25/25、Contract18/18、隔离Browser/Foundation2/2与双构建通过；RF066所属静态路径/品牌资源接缝已修正。原15银行容器保持运行，原环境未切换、未调用BYOK、未冻结身份；不等于完整对话前端或LIVE/GO。下一个依赖出口为RF068-S2历史会话，唯一状态查backlog，证据见RF068索引。
+
+2026-10-21 RF066-S2源码接线与验收复审闭合：共享生产Controller、DPAPI版本密钥、原请求重发/同Journey续接、实际工具事件及单图/证据代理；OpenAPI1.1和RF067元数据1.1（11项，执行面仍39项）。根目录与Controller私有SDK均精确恢复到已锁定1.31.0，逐入口解析回归防止再次遮蔽。Contract18/18、隔离Integration35/35及既有CLI回归通过。原15银行容器保持运行、原库未迁移、18790仅保留登记；不等于生产切换、前端、BYOK或GO。沿下表进入RF068-S1；本轮仅解锁，不提前实施。唯一状态继续查backlog，细节见RF066/RF067证据索引。
+
+2026-10-21 RF067-S1按授权完成源码、隔离测试与复审：增量044、会话/消息/模型版本/事件Repository、同进程/mcp/workbench十项元数据合同落地；原/mcp39工具不变。新增19项及精确SDK1.31.0隔离副本37项通过，原机SDK1.30.0安装漂移保留，未动在用依赖/原库/服务。S1源码与隔离门完成，本批仅SHADOW_VERIFIED；RF066-S2进入READY，其生产入口须处理依赖漂移并接通真实Controller，不能将本包当UI、LIVE或GO。实际状态只查backlog，细节见RF067证据索引。
+
+### 2026-10-19 前端接入细化：唯一执行链
+
+本次仅补齐任务体系，不实现前端、不运行模型或改动服务。沿用RF066/RF067/RF068，不新建并行路线图。RF066-S1的已完成证据保留；原RF068-S1全部界面和原S2全部验收从未实施，现细分为五个业务切片，原S2职责调整记入RF068 decision-log。状态只查backlog，下表只定义依赖与出口。
+
+| 顺位 | 宏观批次／中观切片／小观任务包 | 入口 | 可独立验收的出口 | 工作量估计 |
+| --- | --- | --- | --- | --- |
+| 基线 | RF066-S1 [合同包](../../../docs/architecture/refactoring/batches/RF-066/tasks/S1.md) | 已有源分析 | 已有1.0合同、HTTP边界与行为刻画，不等于生产接通 | 已有证据 |
+| 1 | RF067-S1 [会话持久化包](../../../docs/architecture/refactoring/batches/RF-067/tasks/S1.md) | RF066-S1 | Harness/MCP持久化、分页、去重；重启不重放 | 1–3天 |
+| 2 | RF066-S2 [生产接线包](../../../docs/architecture/refactoring/batches/RF-066/tasks/S2.md) | RF067-S1 | 共享Controller、密钥库、任务绑定、真实事件、本地服务及附件/证据接口 | 1–3天 |
+| 3 | RF068-S1 [入口与生成客户端包](../../../docs/architecture/refactoring/batches/RF-068/tasks/S1.md) | RF066-S2 | 独立Agent构建、Figma样式、类型化客户端，Quality不变 | 1–2天 |
+| 4 | RF068-S2 [历史会话包](../../../docs/architecture/refactoring/batches/RF-068/tasks/S2.md) | RF068-S1 | 新建、搜索、分页、切换、刷新与重开历史 | 1–2天 |
+| 5 | RF068-S3 [真实对话包](../../../docs/architecture/refactoring/batches/RF-068/tasks/S3.md) | RF068-S2 | 发送、补输入、真实事件、停止、结果与证据 | 1–3天 |
+| 6 | RF068-S4 [模型交互包](../../../docs/architecture/refactoring/batches/RF-068/tasks/S4.md) | RF068-S3 | 下方选模型、配置、检查连接、版本冲突；当前任务绑定不变 | 1–2天 |
+| 7 | RF068-S5 [实机验收包](../../../docs/architecture/refactoring/batches/RF-068/tasks/S5.md) | RF068-S4 | 原服务保留、独立复审、实机只读BYOK、桌面/移动端截图 | 1–2天 |
+
+工作量为有效开发时间估计，不保证日历日期；不降低门禁换日期。后台先闭合，前端不以运行时Mock绕过前置包。最终只读LIVE仍核对当前身份授权，不自动冻结或沿用旧身份。RF065、正式28项、远端CI与整体GO保持原门，不被界面验收替代。此前“RF068-S1→S2”的概括以本节细化为准，其余批次顺序不变。
+
+2026-10-19 Figma连接恢复，已取得已确认v2主屏2:60和模型配置11:1017的完整设计上下文及截图，解除外部读取阻塞。从RF066-S1继续既定唯一顺序；先合同与现有生产服务行为刻画，再持久化、模型接线、前端及运行验收。不用Figma示例数据冒充实际历史，不改变原服务/卷/业务日期，不提前声称界面或LIVE已完成。
+
+同日RF066-S1源码门闭合：12个版本化HTTP操作、由边界schema生成的OpenAPI与无执行状态的router落地；复审按现有输出预算补消息/事件分页后，14项新合同和30项既有生产服务回归通过，注册入口/治理/docs通过。缺输入/同Journey检查点派生/中断不等于回滚的语义已刻画。S1完成，RF067持久化READY；RF066-S2与RF068仍依赖未完成。未启动Agent网页服务、未接真模型、不声称界面或正式门通过。
+
+2026-10-19 用户确认 Figma v2，要求源码分析/细化后接入真实对话、历史、模型选择与配置，保持服务运行。按每批最多两模块拆分唯一顺序：RF-066-S1 Controller HTTP/API合同 → RF-067-S1 Harness SQLite会话元数据/MCP → RF-066-S2 本地模型配置/逐任务绑定与Controller接线 → RF-068-S1 Figma前端 → RF-068-S2 保留服务的只读验收。后台跨批回接仅消费已冻结合同，不重复实现；RF067依赖RF066的S1合同而非等待RF066整批验收，避免批次互等。源与构建变化必须先于下一次最终身份冻结，旧发布证据不复用。RF065安全/许可门和RF057正式28项状态不变，所有状态只登记backlog。Quality继续只读，不增加第二个决策器或执行账本。用户随后明确选择等待Figma连接恢复，不采用本地预览替代；本轮只完成源码分析与任务控制，不修改产品源码、模型、资金或服务状态。细化在RF066/RF067/RF068各批次目录。
+
+2026-10-17 S3-8-ADM按用户确认落地：Mifos原生管理页为admin-tools可选管理员工具、不默认启动。核心Compose仅加profile，默认就绪/受控重启/盘点/README同步；91合同、真实Compose config默认核心3/显式4及两PS解析通过。默认14服务/12镜像，smoke10，可选工具及Mock Clearing另列，旧15/13与全部安全证据保留。新秘密扫描/12镜像候选回读及原15容器保留以本批admin-profile-01独立回执为准；无up/down/reset/restart，不动其他postgresql/卷/日期，不把范围调整当安全放行。Keycloak功能版本仍待独立授权；不进入冻结/正式28，S3 IMPLEMENTING/A07 IN_PROGRESS/NO_GO。
+
+2026-10-17 S3-3许可交付当前增量：根THIRD-PARTY-NOTICES、Wrapper3.3.2原件与机器回执落地；唯一启动JAR与同版官方字节相同，嵌入/外置LICENSE/NOTICE一致，MPL/BSD/Apache分别保留，旧I10清单只改历史标识。两个入口已排除*.env，原文件/索引不读不改；真实2455源扫描0发现、89合同及九锁/ZIP精确处置通过。完整15服务/13镜像、45工件候选生产/回读正确阻断码5；只核源码与启动器材料，不把声明BOM或包外镜像许可当完整分发通过。非GitHub报告数据、实际二进制分发材料、7类镜像风险、完整CI与正式28仍待；不进入冻结或模型/资金验收，原服务/卷/日期保持。
+
+2026-10-17 同一S3-3最终复审补充：所有13镜像角色均绑定当前注册ID，已审门户也不能串位、干净管理页不能冒充观测组件；四个角色绑定review及candidate-final-02为修后证据，最终源码合同86/86。下述84项为前一轮结果，不改变风险/许可/正式门仍未闭合的结论。
+
+2026-10-17 当前增量：S3-3现已实现全默认镜像汇总入口并真实生成/回读15服务/13镜像证据，覆盖完整但工程门BLOCKED/正确退出5。7类镜像风险和分发许可仍待，不将未修Keycloak/四观测基线纳入说成新候选修复。修复NGINX实际COPY输入漏绑，新旧122受控构建输入相同后才恢复固定镜像当前绑定；四review均1已审/0阻断。Fineract重新在线扫描仍3条，新review通过，原生1保留；不是业务/LIVE验收。84源码合同、治理/docs及2453源码真实秘密扫描通过；source-only CI接线保持，全镜像CI实际接线/验收、许可交付、冻结/正式28与远端CI仍待。原15服务/13镜像、卷及日期保持，S3 IMPLEMENTING/A07 IN_PROGRESS/NO_GO；不提交推送或运行正式门。
+
+2026-10-17 前序增量：S3-3源码材料段已实现并真实生产/回读通过；九锁仅两条已批准ZIP公告，原生FAILED/1保留；4项ZIP回归及925组件许可元数据通过。历史HiAgent手册只从交付ZIP精确排除89份，原文件/完整扫描不动；源码包2364成员约33MB，不产生正式身份或GO。
+
+2026-10-17 前序增量：Channel实际复扫52项（旧48中1项不再报告、5个新GnuTLS证书项），111源码输入审计只改Gateway镜像引用才恢复当前源绑定；新52精确已审/原生1保留，许可原件0未解决但分发义务未完成。同时修复镜像ID未核对与47项部分报告误REVIEWED两个缺陷，真实同RootFS元数据反例和缺五项报告均失败；46镜像合同/四组69通过，共享判定器重审NGINX四镜像仍各1已审/0缺项。NGINX同支补丁/管理页03原生0及厂商门/静态组件证据保持，不代替银行/Agent。candidate-inventory06仍MQ57/PG116/web0，缺Keycloak/四观测候选；默认15服务/13镜像不变。Keycloak功能授权与原生管理页定位仍待，原服务/卷/日期保持。
+
+2026-10-17 S3-8当前实际进展：三原镜像重扫Keycloak136/MQ391/PG基础层280，已绑定实际制品；MQ标签6.1.2实为6.2.0，PGDG未覆盖旧PG内核，已加厂商18.6最低补丁门。MQ6.2.10候选02精确补Jackson2.22.3，64→57公告。旧gosu60条Go公告59精确处置后，继续补实际存在的Moby解析依赖0.4.1；固定gosu1.19源码/Go1.26.9重建，本地补丁版本明确，两主程序源文件及PG18.6内核/entrypoint字节保留。新PG-gosu-02原生175→116、Moby公告消除，未审OS不获豁免；34/34合同通过。两次OSV直接引用失败日志保留，官方归档模式实扫、candidate-inventory-03绑定新ID/层/BOM，仍NO_GO。未启动新PG数据库/银行/交易；MQ分支inactive、默认XML变化/Jetty条件及两镜像剩余公告待闭合。Keycloak26.8.1功能版本候选授权询问仍待答，未构建/迁移。原15服务继续运行、原卷/日期不动；S3 IMPLEMENTING/A07 IN_PROGRESS，候选交付/冻结/28/远端CI仍未进入。
+
+2026-10-17 用户“授权批准”承接S3-8基础镜像专项询问：纳入Keycloak、ActiveMQ、PostgreSQL基础层的来源/可达性审查及最小补丁，仅新镜像和自有隔离验收，不更换原服务、不操作原卷/日期。顺序为精确制品与逐项清单→同版本依赖/基础层最小修补→重扫/隔离复验；Keycloak/Fineract功能版本或数据库迁移仍另行确认。沿用RF065/S3现有scripts/deploy、scripts/test白名单，postgresql/infra/keycloak原运行定义写禁令不解除。先补S3-8命令级细化再实施；原生失败与未审条目不豁免，实际可达或证据不足继续阻断。S3 IMPLEMENTING、A07 IN_PROGRESS、整体NO_GO；不提前冻结、28项LIVE、提交推送或公开发布。
+
+2026-10-13 RF065-S3-7按专项授权落地：固定原镜像资源git.properties声明Apache be6c4ac…，上游提交/归档已核，但不冒充签名或可复现的上游正式发行。仅scripts/deploy与scripts/test内精确准备/审查工具、清单及派生Dockerfile；30个依赖JAR替换，4558非替换应用文件（含业务模块、类、迁移）新镜像逐字节一致，Zulu仍Java21。原生扫描52→3，3条精确已审、原生退出1/原报告保留，19合同测试及治理/docs通过。新隔离rf065cibf0db033a534三空卷启动8服务健康；首次Gateway固定镜像未载入运行库失败已留存，按同digest基础导入后独立启动回执通过，原容器/卷/日期未动。同期Keycloak136、ActiveMQ387、PostgreSQL基础层280不同公告补扫均退出1，未完成逐项审查，停止黄金链及后续候选/冻结/28/远端CI；已请求补入S3-8专项（先来源/条件，只新镜像和隔离验收；功能/数据库迁移另确认）。整体NO_GO、S3 IMPLEMENTING、A07 IN_PROGRESS；不提交推送或模型/资金动作。
+
+2026-10-13 用户授权现有RF065-S3增加Fineract第三方镜像专项修复，原账务状态不动。先核精确来源及52条公告的实际消费路径，再限定依赖补丁/新镜像/隔离验收；如果来源仍不可绑定，只能明确派生制品与未证实边界，不能冒充上游正式版本。业务模块/迁移字节保持；需要Fineract版本迁移另行确认。当前只细化S3-7读取公开构建元数据/上游记录，不解除postgresql原运行定义/数据目录写入禁令，不停止或更换原账务容器、卷、日期；后续实现路径在本小任务源码确认后再精确开放。
+
+2026-10-13 当前停止点：自有Channel/Noble及三门户/NGINX的精确镜像安全处置已实跑，但实际Fineract固定develop镜像1.15.0-SNAPSHOT扫描496包/18受影响记录/52公告，来源标签/已查模块无精确提交，证据不足继续阻断。定义在当前S3禁止修改的postgresql目录，不在既有权限下更换账务核心；已请求补入专项修复范围，原容器/卷/日期不动。候选/冻结/28/远端CI待此门，不因候选分支权限绕过核心或许可分发未完成项。
+
+2026-10-13 S3继续按真实镜像门：客户门户68包/95公告、扫描器遗漏NGINX官方版本级公告，停止其他镜像候选验收。官方稳定版1.30.5及Docker官方多平台digest 0985e772fb9f729e6fa0980da05fca5d9c468e870eed43071545afa9d2e27d94已回读。只开放既有infra/frontend/Dockerfile与compose.channel.yaml中的两处共用NGINX基础引用（门户/Gateway），不改路由、前端源码、模型、数据库或端口；不直接豁免95条。保留旧失败/镜像，只独立重建三门户及扫描新的共用基础，源输入结束后再固化最终身份。
+
+2026-10-13 S3新Noble实际扫描仍有48公告，不以基础替换称安全。glibc DNS公告的触发条件是过长search/domain配置；只开放compose.channel.yaml中Channel（Test Support继承）的dns_search=[.]，禁止继承宿主/VPN搜索域。这一个部署边界变化不改服务名、端口、业务/API/数据库；隔离CI生成器原样继承，需验证解析/合成拓扑及DNS配置。其他本地工具/原生库按具体API是否被调用逐项审查，证据不足继续阻断。原服务不替换，旧85/200和原生退出码保留。
+
+2026-10-13 S3实际许可来源失败进一步限定修法：Ubuntu26.04基础层/usr/bin/pebble的精确版本v1.32.3-0.20260908071357-f1688182910f在官方Go代理及GitHub提交回读均404，镜像内无许可原件。官方仅能证明项目通常GPL-3.0，不能补出该发行物对应源码。基于本轮核实许可证/候选修复的既有自主权限，仅将Channel的Java21 JRE基础切为官方21-jre-noble固定digest 000fd431958bc81a24abe1e8e5f0f0fd3ae365a594bd50aadb20696805f9408c（Ubuntu24.04 LTS）；这是对实际来源阻塞的最小构建修法，不为告警清零迁移框架，不降低Java、不删除未知系统包。此前“同OS”局部参数由此失败证据替代；新镜像须重新实际扫描/许可/可达性审查，不能沿用旧镜像处置或GO。仅构建独立tag，不替换原服务。
+
+2026-10-13 用户明确授权S3镜像逐项证据处置：保留原生告警及扫描退出码，只对确证当前产品不受影响的精确组件/公告生成NOT_AFFECTED回执；实际可达、证据不足、新公告或源码/镜像漂移仍阻断。不建立全局忽略，不扩大到其他镜像或未来版本。先绑定实际镜像、源码/启动路径及触发条件，再关联镜像内许可原件与分发义务；未处理项不解锁候选/冻结/28项。
+
+2026-10-13 用户补充授权远端动作：本地前置门通过后，可将经过秘密扫描的候选产品源码提交并推送到JunyeFu/banksystem的新候选分支并执行CI；不得合并main或公开Release。只在隔离候选Git工作区按明确源码清单暂存，不动原脏树及既有mariadb/.env索引项；原Git历史不改写，此扫描仅证明当前候选源码。当前镜像门失败后的修补/复验仍优先，不因取得远端权限绕过它。
+
+2026-10-13 S3镜像门首次失败：四镜像构建成功、Bank Channel实际308包扫描37个包/372不同公告。停止后续候选/冻结/28项验收；唯一当前入口仍S3，先核对21个Maven组件及基础层来源。只允许pom/Dockerfile的已命中版本修补，Java21、业务源码/API/数据库不变；不机械按公告数删除系统包或切换OS。Maven Central与官方Spring3.5.16已回读，3.4.5旧基线更新到受支持3.5分支并对仍滞后的Tomcat/Jackson/ActiveMQ/CommonsLang/Log4j采取精确修复版本。Temurin21新官方digest只替换原Java21-jre同类型基础镜像。若仍无上游修复或可核验处置，保持NO_GO，不扩展ZIP处置名单。
+
+2026-10-13 本次用户授权收尾五项：沿原RF065-S3先复审ZIP补丁、核实许可证，再镜像/候选；源码与构建输入稳定后进入RF057当前身份正式28项，最后核对该候选的远端CI并重新判定GO。ZIP仅允许两个已知公告、精确产品锁、补丁字节和真实反例验证共同成立的LOCAL_PATCH_REVIEWED处置；原扫描FAILED/退出1原样保存，新漏洞、补丁漂移、扫描错误仍阻断，不能全局ignore或为清零扩大重构。许可证按确切组件与分发范围核实，第三方不改MPL。原运行服务/卷不停止、不reset、不推进保留环境业务日期；远端当前源码尚未提交的事实不得用旧提交CI替代，不自动提交/推送或公开Release。此入口授权自主细化与执行，不取消身份、账务及首次非预期确定性失败门。
+
+2026-10-12 23:01最新入口：RF065-S3的F2/F3剩余源码修复与本地复验已收尾（756/756、原覆盖门通过），F1既有成果保留。唯一下一入口仍在S3：处理已验证本地ZIP补丁与上游扫描仍报两条HIGH的处置门、22项许可缺项，然后才恢复原S3的镜像/候选验证；未解除扫描失败阻断，不越过它冻结身份或进入正式28项。当前A07 IN_PROGRESS、S3 IMPLEMENTING、整体NO_GO，原服务/卷保持。
+
+2026-10-12 RF065-S3-F2可修复项与FFmpeg真实消费者遗漏已落盘并复审：七个产品输入、SDK两侧1.31.0/CSV7.0.2；runtime直接补回FFmpeg，保留版本不变、CLI仍移除；完整752/752与原覆盖门通过。F2 19→2仍未关闭；全产品13处/40公告/1Critical、许可22项及二进制扫描待。关闭修改模块，仅governance.refactoring；下一入口为原S3-F3剩余runtime/FFmpeg二进制来源分析及最小修复，F2两项上游无修复的残留单列继续处理，候选仍阻断。A07 IN_PROGRESS、整体NO_GO，不冻结身份或执行模型。
+
+2026-10-12按“下一步”进入已有RF065-S3-F2：先完成两锁19处来源/触发条件分析，按S3任务精确四输入修复SDK、CSV和旧覆盖/传递依赖；独立源码/SQLite完成注册回归和真实扫描。已查上游braces与sprintf-js暂无修复版本，保留真实失败、不提前关闭F2或解锁候选；原服务保持运行。A07 IN_PROGRESS、整体NO_GO。
+
+2026-10-12 RF065-S3-F1源码修复和本地复审完成：五前端依赖锁漏洞50→0，57/57现有用例、类型生成不变、三门户lint/typecheck/build与Storybook构建通过；新构建真实PKCE登录/刷新/导航和独立空SQLite质量投影通过。关闭frontend修改模块。九锁整体仍30处/66公告/1Critical、许可22项待核；下一入口为现有S3-F2的Harness/Controller消费者分析与最小修复，随后F3剩余runtime，镜像/候选未解锁。移动端既有最小宽度限制单列；不把本地检查当正式28项或GO。
+
+2026-10-12按“完成任务1的源码分析和修复”进入RF065-S3-2-F1：依据现有消费者逐包修复共享API/UI和三门户的测试、构建与路由依赖；精确路径、版本依据和命令门见既有S3任务包。逐模块关闭后再开放下一模块，保留原脏树与服务，真实九锁扫描及前端回归完成前不标通过。A07 IN_PROGRESS、整体NO_GO。
+
+2026-10-12 RF065-S3-F3a源修复/局部复验完成：四个遗漏依赖/冻结输入已纳入既有v4身份，未使用Midscene CLI及准备/冻结要求同步移除，锁655→295、保留版本不变。身份19/19、隔离Worker27/27、实际新runtime导入/冻结Chromium、Gitleaks2421/0通过；空cache网络下载两轮TLS失败单列，兼容验证来自测试专属cache副本，不称冷下载通过。在线九锁仍失败80处/82公告（3Critical），BOM919/22许可缺项。关闭当前agent-cli修改模块，继续S3剩余依赖按代码消费者/触发条件分析和最小修复；镜像/候选未解锁。A07 IN_PROGRESS、整体NO_GO，不冻结/登记新身份、不调用模型或操作原服务/卷。
+
+2026-10-12获准修复并复测RF065-S3已确认源码根因：先把浏览器runtime声明/锁、冻结配置及Harness根锁纳入既有ReleaseIdentity，再同步移除没有执行消费者的Midscene CLI。沿用RF065-S3任务，精确开放demo入口、runtime/冻结/身份清单及已有CLI身份回归文件；不改变Web/Playwright、Chromium、模型或银行调用。不写新测试套件，补充已有身份合同后在独立依赖目录复验作者化/正式执行边界及真实九锁扫描。已知剩余漏洞仍保持失败，不解锁镜像/候选或LIVE；原服务/卷和旧失败保留。
+
+2026-10-12 RF065-S3工程扫描推进：当前受控源码秘密扫描2413文件/0未解决发现；九份产品锁真实OSV在线扫描退出1，93处受影响包版本记录、52个不同包版本、126条不同公告。声明SBOM已生成，27个library缺许可元数据；八种第三方许可仍需精确版本核对。实际失败报告/用途清单与局部修复参数已落盘，CI新增source-engineering失败接线，4项依赖结果合同/13项workflow及治理/docs通过。停止后续镜像/候选验收，保留失败，不改产品依赖或业务状态；下一入口为S3已观察依赖修复路径细化与最小分组回归。S3 IMPLEMENTING、A07 IN_PROGRESS、整体NO_GO；不冻结身份或调用模型。
+
+2026-10-10 RF065-S3已细化并进入IMPLEMENTING：关闭S2银行实现模块，仅开放governance.refactoring及已白名单的工程辅助脚本。按源码秘密扫描/许可→SBOM与真实漏洞→候选摘要顺序实施；只处理当前受控源码/自有镜像，不读原凭据或运行库，失败传播，远端与正式28项仍待，不冻结身份。
+
+2026-10-10 RF065-S2本地验收完成并ACCEPTED：Windows与Ubuntu24.04.5隔离空库100.00 CNY黄金链和真实PKCE页面1.00 CNY均通过，余额/运营回读/投影平衡及桌面截图核验完成；workflow12/12、拓扑4/4、双平台解析3/3及治理/文档通过，Java21全套119/119。公开CI已接线但远端未运行，本地等价验证使用Desktop引擎，不宣称远端绿色或产品Linux部署完成。下一片RF065-S3扫描/SBOM/候选制品，须按现有任务细化后实施。正式28项仍未完成、A07 IN_PROGRESS、整体NO_GO；原服务/卷及两组测试服务保持，不冻结身份或调用模型。
+
+2026-10-09 RF065-S2账户目录来源修复全套118/118已通过。复审进一步移除场景流水读取错误转审计补款的回退，新增异常时不deposit反例，Java21全套验证中；其通过后第四轮空库验收。S2/正式28项仍未完成，不操作原环境或把单元通过提升为GO。
+
+2026-10-09 RF065-S2第二轮空库密码修复已运行通过，十服务健康；黄金链在贷款产品计息参数缺失处停止，未提交转账。补Actual/Actual与关闭重算的请求合同后Java21全套117/117，第三轮新空库从起点构建/启动中。真实浏览器驱动已落盘未执行，S2仍IMPLEMENTING、整体NO_GO；原服务/卷不变。
+
+2026-10-09 RF065-S2已细化并IMPLEMENTING：隔离银行生成器及2项边界测试、两门户issuer构建绑定与各10项单元/lint/typecheck/build通过；端口登记后独立rf065ci拓扑配置校验通过，镜像构建运行中。真实空库、黄金链与浏览器尚未通过；不读取或操作原环境。S3/正式28项仍待。
+
+2026-10-09 RF065-S1本地门收尾：隔离Java21/Maven空依赖目录116/116，治理源码模式与默认本地证据模式均通过，workflow11/11、范围反例4/4；连同隔离Agent752/752及覆盖、共享/三门户检查和build，S1标ACCEPTED。远端CI未执行，S2空库银行/浏览器及S3扫描/SBOM仍待，A07仍IN_PROGRESS、整体NO_GO；原服务/卷/业务日期未操作。
+
+2026-10-09 S1-C2隔离Agent最终752/752、无失败/跳过/取消（391029.4382ms），覆盖129项/128通过/1既有口径跳过，58.31/75.12/61.04达到原50/70/60，串联退出0。S1-C3已进入隔离类型生成/门户build；其他岗位、S2银行/浏览器、S3扫描及正式28项仍待，不将此结论提升为GO。
+
+2026-10-09隔离五组前端依赖准备及共享17/4、客户9/运营9/质量16只读源码检查通过，快照边界反例使workflow合同11/11。主回归23460仍未终结；类型生成与build待其终态后执行，保持源身份检查期间源码稳定。S1/A07保持未完成，不将局部通过代替整体。
+
+2026-10-09 S1-C2隔离发现两组历史Flowise安装依赖，停止首轮并保留失败；清单现为104总注册/100当前CI/2 OCR/2历史，正反例6/6通过。修正全量隔离检查已重启，终态前不关闭S1或解锁S2；不安装Flowise，不用条件skip。
+
+2026-10-09 RF065 S1-C2已建立2399文件当前源码隔离快照并启动实际检查，build/typecheck通过；完整注册回归与覆盖门未终结，不关闭S1。Agent CI补完整Git历史，以满足已注册真实旧提交回滚断言，合同10/10。原服务、卷和运行状态保持；下一门依该进程终态决定，不重启或拼接旧760项回执冒充隔离通过。
+
+2026-10-09 RF065 S1-C1最终四组空cache锁文件安装、SQLite ABI、Controller/CLI导入及冻结Chromium真实启动核验通过（脚本退出0）。失败工具来源和网络下载回执保留。下一项细化S1-C2当前源码快照完整隔离构建/回归，随后S2空库银行/业务浏览器；S1/A07及整体正式28项仍未完成，不冻结或调用模型。
+
+2026-10-09 RF065 S1-C1隔离安装首轮确认系统npm.cmd绕过PATH使用Node24.15.0及npm12阻止原生安装；已停止并保留失败目录。改为冻结Node20/24直接调用各自发行包npm CLI；三门户重新在明确Node20下lint/typecheck/9+9+16/build通过，替换此前不准确运行时描述。新隔离目录真实安装与ABI/Chromium验证按实际终态记录，未完成时不解锁S2或标A07完成。
+
+2026-10-09 RF065 S1-B3质量门户lint/typecheck/16项只读API单元/build通过，CI三门户专属命令齐备；工作流合同9/9、24块语法通过。生成类型的HEAD差异保留，未提交不宣称远端绿色。下一项细化隔离新克隆运行时准备；S1/A07、整体真实28项、容量及候选交付仍未完成。
+
+2026-10-09 RF065 S1-B2运营门户专属lint/typecheck/9项单元/build通过，工作流合同8/8；源码未改变生产页面，未运行真实登录/交易。下一项为质量门户只读合同与专属质量门，然后隔离新克隆准备；S1/A07保持未完成，未冻结或调用模型。
+
+2026-10-09 RF064当前完整102个CI文件760/760通过，Java21当前全套含架构正反例116/116。RF065 S1-A3明确Node24覆盖工具、保留Node20正式引擎与原阈值，129项/128通过/1既有覆盖口径跳过，58.31/75.12/61.04过门。S1-B1客户门户lint/typecheck/9项认证与lint策略单元/build已通过；随后细化并执行运营、质量专属质量门，再隔离新克隆运行时准备。S1/A07及整体28项/容量/候选仍未完成，不提前冻结身份或进入LIVE。
+
+2026-10-09 RF064七项回归来源已确认并修正，完整复验仍独立保留。允许不影响运行中回归的RF065 S1-A工作流/准备命令源码同步实施；不将CI配置或定向通过作为S3完成，不进入统一冻结/整体正式验收直到全量门通过。S1剩余前端专属lint/unit及隔离新克隆准备须单列证据。
+
+2026-10-09 A07全产品CI归RF-065实施：S1全仓触发/锁定运行时与合同、Java、三前端、Agent检查→S2隔离空库银行黄金链/浏览器集成→S3许可证/秘密/漏洞/SBOM及候选构建摘要。先收齐RF064 S3完整回归并修复，再执行RF065 S1；S2不能使用原演示卷，S3不能将静态绿色提升为LIVE。状态仍在原A07 backlog条目，RF065不建第二状态源；身份相关修改全部结束后才统一冻结并核对真实28项授权。
+
+2026-10-09 RF064 S3-5跨层复审修正过期作业与不可变上下文冲突及晚到提交：当前I10过期失败，显式恢复新作业/上下文，资金结果未知禁止重做；原上下文和失败保留。源码反例通过后执行完整CI注册回归，不把离线结果当全产品CI或LIVE。源码复审与回归收尾后进入A07全产品CI/容量，统一冻结及正式28项；S3仍IMPLEMENTING。
+
+2026-10-09 RF064 S3-4b2已实现断言经验匹配、冻结上下文、Worker实际断言、候选脚本/manifest和完成后消费投影；修复Worker漏执行expectText及后续定位修复丢失已核验断言实现。原目标/业务输入/失败保留，不自动激活候选。下一源码入口为S3跨层源码复审，之后A07全产品CI与RF064 S4容量驱动，统一冻结后进入正式28项及经验效果LIVE。S3保持IMPLEMENTING，当前NO_GO；本机合同/合成DOM不替代真实BYOK与银行效果。
+
+2026-10-09 RF064 S3-4b1断言反馈公开登记与独立核验已实现：原正式报告唯一失败步骤绑定，修复脚本实际实现/DSL/业务值匹配，保持原失败。MCP合同10.4.0仍39项，定位消费者明确跳过断言记录。下一源码入口S3-4b2断言经验匹配/候选应用/消费证据及S3源码复审；之后全产品CI/容量补充、统一冻结及正式28项。S3不标完成，不用登记/测试专用证书冒充真实改进效果。
+
+2026-10-09 RF064 S3-4a修复断言实现枚举空操作：EXACT_TEXT/EXACT_EQUAL增加不改原目标的明确限时精确DOM等待，已默认具备的可见性纠正及重复纠正拒绝；修复manifest DSL版本。下一源码入口S3-4b将真实断言实现能力接入人工反馈登记/独立核验/匹配消费，再全产品CI/容量补充、统一冻结及正式28项验收。S3继续IMPLEMENTING；合成浏览器/合同不是银行或BYOK效果。
+
+2026-10-09 RF064 S3-3b定位经验已接入既有作者化上下文，限定已核验/当前身份及完整动作语义；原计划/预期不变，消费仅从已完成候选的验证事实投影。修正DSL V2被候选数据库/写入硬编码成V1的根因，迁移043带数据升级与保护回归通过；23项完整集成/上下文通过。下一源码入口S3断言实现类反馈与消费复审，再全产品CI/容量补充、统一冻结及当前28项真实验收。S3不标DONE，真实BYOK效果未测。
+
+2026-10-09 RF064 S3-3a公开反馈CLI/MCP/认证Harness入口已贯通真实临时SQLite，保持原失败与不可变纠正/核验引用。当前39项工具与10.3.0合同同步，回归发现的风险策略和Worker精确代码集合漏项已修复。下一源码入口S3-3b匹配作者化经验消费与隔离反例；之后全仓CI/容量补充、统一冻结和当前28项真实验收。公开入口不是自主学习完成，S3不标DONE。
+
+2026-10-09 RF064 S3-2已实现定位反馈的独立成功核验晋级内部合同，保持原失败和业务预期，不能凭自报PASSED晋级。下一源码入口S3-3公开反馈CLI/MCP与匹配作者化消费者；后续全仓CI/容量补充、统一身份冻结及正式验收顺序不变。S3不标完成，离线晋级反例不等于真实模型自主改进。
+
+2026-10-09 RF064 S3-1源码门：明确细化反馈存储→独立复验晋级→匹配作者化消费，S3进入IMPLEMENTING。人工定位纠正只在Harness登记为PENDING_VERIFICATION，源失败、目标适配器与合同绑定不可改；内部持久化反例已通过。下一入口S3-2独立成功证据核验及S3-3公开MCP/CLI与消费者；之后全产品CI/容量补充、统一冻结及正式验收。不得将待核验反馈宣传为经验应用或自动进化。
+
+2026-10-09 RF064 S2-3：verification CLI状态/准备/完成/取消及Worker严格报告合同已实现；34项CLI、20项验证策略（含隔离Chromium合成验证码）和14项Journey完整回归通过。真实CLI/MCP/Harness临时SQLite从HTTP挑战登记到原任务恢复，不生成第二运行。S2当前身份LIVE仍待最终冻结；不等待LIVE才编写S3源码，下一源码入口为受验证经验反馈，然后全仓CI/容量补充，最终统一冻结与正式验收。机构验证码未接入，不恢复日常提案审批。
+
+### 2026-10-08 规范确认转正式实施（最新优先）
+
+用户明确前述逐步对话是项目规范确认，要求全过程资料与主体完整实现；沿用自主细化执行授权，不再将其作为课程完成。正式资料源稿在docs/design/product-normalization，由documents/catalog.yaml登记；外部站点仅同步实际进展。
+
+本轮入口：RF-064 S1建立需求/文书与追踪→继续RF-063 S4/S5发布真实性闭环→RF-057 S2/S3驱动源码门→RF-064 S2调度/验证码接管与S3受验证反馈经验→A07全仓CI及RF-064 S4容量驱动离线门→统一构建冻结→RF-057正式28项及补充容量→RF-063独立复审、RF-064 S4隔离复现/UAT、A08本地候选交接。新增源码均在最终冻结前完成，避免旧身份复用。RF-064控制链位于docs/architecture/refactoring/batches/RF-064。
+
+正常转账以核心最终成功、双方余额及交易关联为终点；页面异常与资金结果分别报告。经验改进仅复用核验反馈并验证候选，不自改预期或资金参数。初始容量标准来自用户授权自定，不宣称机构或行业标准。未执行的人工UAT、未知验证码类型与机构环境明确列待核验。原服务/卷保持，无自动提交推送或公开发布。
+
+A07 的 CI 源码实施不依赖 RF057 正式验收完成，backlog 已移除该循环依赖；具体入口仍按上段顺序，不能因状态为 PROPOSED 就跳过驱动和源码门。A08 候选交付仍依赖 CI 与 RF057 真实验收。
+
+### 2026-10-08 两周候选版实施授权（当前优先）
+
+用户已要求实施产品收尾与AI应用/全栈面试准备方案。以下入口覆盖旧段落的当前排期，不改写其历史证据：
+
+1. RF-063 S1/S2/S3：核对M01—M17的源码、镜像、运行及复审范围，重点关闭贷款操作、EOD恢复、资金屏障与真实总账的源码/合同门；完成最终Java21回归后才推进S4。
+2. RF-063 S4/S5：接通报告生产者、认证登记、Harness发布验证、SQLite与Quality投影；汇总脚本和demo verify只调用同一验证器。先完成源码及合同门，不以尚未执行的RF-057验收作为源码阶段的循环前置条件。
+3. RF-057 S2/S3：补齐A02—A07与P05驱动及合同测试；A07全仓CI实现先完成离线检查。全部影响身份的改动构建完成后，再冻结最终ReleaseIdentity；LIVE仍按最终身份的既有授权入口核对。
+   S2剩余运行修复细化见 `docs/architecture/refactoring/batches/RF-057/a02-a06-runtime-gap-repair.md`：A05续接原Run、A06冻结脚本新Run复用已通过源码/合同门但未LIVE；10月9日真实资金隔离准备入口0.3.1完成十进制字符串与Windows PowerShell5.1入口修复，Java21全套106项及新核心账户10/11、12/13重复准备/Gateway回读通过，原账户3/4和日期记录集合保持不变，仅定向替换Test Support，失败证据保留。新版业务输入合同已冻结真实收款人UUID及明确付款账户，删除当前转账文字推断，CLI44项及平台174项回归通过，修复账户截断/金额数字转换。Harness已实现五组资金样本/凭据绑定门、跨案例及命名空间禁止复用、资金租约过期结果未知且不重排，保留验证Fixture不可变约束；相关187项/CLI44项回归通过，未实际执行资金样本。下一步接Worker逐样本消费、实际银行所有权/余额回读及CLI准备入口，修当前转账适配后再做A02；A07在验证/正式运行之间使用明确阶段边界，P05复用只读冻结脚本的独立新Run入口。不得用旧受控结果页、Fixture名称或原Run回读替代相应场景，隔离准备通过不等于A02 Agent通过。
+4. RF-057 S1→S2→S3→S4：同身份执行14项银行、7项真实BYOK Agent、7项性能并由Harness裁决。A07受控失败仅按明确场景验收；首次非预期确定性失败立即停止后续验收。修复改变身份时从新清单起点重测。
+5. RF-063 S5回填独立复审及运行结论，随后A07/A08完成门回填隔离复现、候选包和开源交付材料；不自动提交、推送或创建公开Release。未执行的远端CI与人工演练仍记待完成。
+
+RF-063源码门关闭可进入RF-057，但RF-063总体可用性不得在28项及复审之前记DONE。A07/A08当前完成依赖RF-057，不依赖历史Full18。面试站独立维护研究、PRD、图像、八项成稿及Markdown导出；不运行或控制产品。原服务/卷/Docker AI保留，不reset/down或推进保留环境业务日期。
+
+2026-10-09 S2最新增量覆盖上文的Worker待接线描述：逐样本凭据/资金输入消费、首次资金失败停止及无完整工件异常闭环已落地，Node20相关168项/Node24 CLI70项通过，包含真实Chromium隔离合同。启动/凭据/截图失败即时回传安全错误，保留已完成前缀；余下未执行，失败不编造耗时/工件/身份，不签证书并要求人工介入。扩大CLI回归暴露的Worker依赖清单漏项、退休适配器断言和测试清单排序均已修复，身份门及不可变触发器保留。下一步仍在S2：实际银行所有权/未使用余额回读与CLI准备，再迁当前转账适配、完成A02/A07/P05；未运行真实资金Agent，不解锁正式28项，不冻结身份。
+
+S2步骤3s现已关闭银行回读基础：Test Support0.3.2只读GET验证已准备样本的实际归属/映射/收款人及未使用余额/流水，Java21全套111项通过。仅替换Test Support后，真实新账户14/15、16/17重复GET及Gateway回读通过；原3/4和业务日期集合不变，其他14个银行容器ID及原卷保留。当前入口转为CLI五组样本准备/登记/注入，消费这份真实回读而非信任本地声明；随后当前结果页适配、A02/A07/P05。银行基础通过不等于Agent LIVE，最终身份与28项仍未完成。
+
+S2步骤3t/3u已接通CLI本地资金样本文件到journey author及正式run的作者化/MCP准备入口，复用既有严格合同和正式账户/凭据/收款人分离校验；样本池不进入目标、附件或模型上下文。已观测并修复目标中credential引用外发，保留原目标/hash及业务字段。步骤3v固定五组生产者及共用本地凭据登记合同12/12通过，已实现消费0.3.2 GET而非信任本地声明，未实际调用银行或模型。下一项是五身份创建/清理及A02消费者接线，再迁实际转账页/结果核验和实机准备；S2及28项继续未完成，不冻结身份。
+
+步骤3w覆盖上段的待接线状态：五身份创建/持久清理范围及A02生产者→本地池→public run已接线；异常逐项清理及资金失败只读回查/人工介入已实现。Node合同13/13、PowerShell生命周期合同3/3通过，无银行/模型调用。当前入口转为实际转账页/SETTLED适配及A02发布业务证据门，再真实五用户准备、A02/A07/P05；28项仍未完成，原服务/卷保持。
+
+步骤3x现已关闭A02发布业务证据源码门：实际执行的不可变版本绑定正式付款/收款账户和业务输入，全部已登记A02观察均核验，而非只接受最新PASSED。发布验证器/客户端本地合同28/28及TypeScript编译通过，不是正式28场景。当前入口是转账页/SETTLED实际适配→真实五用户准备→A02/A07/P05与后续正式门；不冻结身份、不声称LIVE或GO。
+
+步骤3y已消除旧U盾策略的三次自动控件执行：仅一次观察/执行，结果未知不再点击，保留明确可见会话的人工接管。13项合同通过，包含真实隔离Chromium的单次DOM点击；不是银行或BYOK验收。下一项仍是显式账户/收款人/币种与当前结果页/SETTLED完整迁移，然后真实准备与正式门。
+
+步骤3z-front已提供实际页面事实出口：转账表单暴露选中付款账户/收款人/实际币种，结果页暴露实际交易ID与未翻译状态值；没有硬编码SETTLED或改画面/API。Customer Portal构建及14项相关合同通过，未替换运行镜像。当前继续Harness/Worker精确消费、选择动作与动态结果路由迁移，尚不代表A02实机通过。
+
+步骤3z-result已接当前UUID交易详情页与实际SETTLED目标，编译器/Worker主动链删除旧单号查询路由和目标，不以受理成功通过。49项编译/档案/正式运行及隔离浏览器合同通过，TypeScript编译通过；非银行或BYOK验收。下一项是显式付款账户/收款人/币种选择与提交前核对，之后实机准备与身份门；仍未替换运行镜像。
+
+步骤3z-selection-ui关闭Harness/Worker并只打开客户门户：下拉选项暴露真实账户/收款人ID，币种只读目标来自实际账户；提交币种按确认快照账户解析，不再混用可变选择或默认CNY，账户/收款人不可用时不调用转账API。门户构建及17项合同通过，实际提交函数回归验证请求绑定与失败零额外调用。尚未替换运行镜像；下一项接Agent显式选择和提交前断言，再真实准备与验收，不标A02完成。
+
+步骤3z-selection-runtime已闭合显式选择源码链：作者化与冻结脚本均按各自绑定ID点击实际下拉选项，两次提交前核对页面真实账户/收款人/币种。扩展领取测试发现并修复Harness视觉白名单的旧查询页耦合，最终76项合同及TypeScript通过；包含真实隔离Chromium按钮零额外点击及真实SQLite样本领取，不是银行/BYOK。下一入口是当前前端定向部署→实际五用户/十账户准备→身份门与真实A02/A07/P05；仍不冻结或声称GO。
+
+步骤3z-deploy已真实定向替换客户门户：现行源码镜像按不可变ID启动，健康及实际提供的8项静态目标通过，其他银行容器ID及卷清单不变；报告7e27871d2fa94ab9b053ce9d57005f78留存。不是已登录DOM或A02。只读预检确认当前计算身份无LIVE授权且受管运行时未运行，不执行模型/资金测试。后续先完成A07/P05及其余影响身份源码，再最终冻结/授权、受管启动、真实五用户准备与整套验收，不沿用旧身份。
+
+A07文档受控状态变化编排已接入：真实草稿作者化/冻结→仅一次版本化发布→原脚本正式断言失败→指定失败证明/Quality/资金不变核验，保留本次合成文档历史。16项相关合同通过，非银行/BYOK。已确认运营认证仍缺明确绑定：通用档案仅入口域，运营登录跳Keycloak；禁止借用客户/portal路径或放宽全部域。下一步先补运营认证绑定，再P05与最终身份/真实验收；S2和28项不标完成。
+
+A07运营认证核心已实现独立fuxing-bank-operations@1.0.0绑定：精确18083/ops/login入口、19000/bank-internal凭据域与realm，编译/Worker不借客户路径；错误realm输入前拒绝。56项合同、TypeScript及治理通过，非实际登录/BYOK。为已观测缺口仅新增第4合同槽及精确白名单。下一步关闭Harness/Worker，分阶段传播CLI/Controller、MCP适配器选择并接A07明确--adapter；随后P05和最终真实验收，仍不标完成。
+
+A07公开选择传播已完成源码/隔离合同：CLI/Controller明确选择→MCP保留→实际临时Harness回读到准确运营ID、入口与目标；A07明确传--adapter。按两模块上限串行关闭/打开，财务样本池仍仅客户适配器。36+19+16共71项相关测试通过，不是银行或BYOK；仍未实际运营登录/A07。下一入口P05并发冻结执行驱动，然后剩余全产品源码、最终身份与真实验收；S2和28项仍未完成。
+
+2026-10-08：原生命周期工作台已迁至 `D:\Agent\project-navigation\bank-interview`，改为外部项目导航与AI应用/全栈面试资料站；准备排期独立维护，不参与本项目实施顺序、构建、运行或验收控制。历史交付见 `docs/current-state/lifecycle-workbench.md`。
+
+2026-10-02 用户授权：先执行 RF-063 当前业务缺陷修复，再恢复 RF-057 后续真实验收；RF-063 的 S1→S2→S3→S4→S5 串行，控制链见 `docs/architecture/refactoring/batches/RF-063`。允许自主细化、执行及复审，无需逐包再批准；缺失或失败验收不得记完成。
+
+当前交付目标是完整、可复现的开源银行演示系统与可真实执行的 Windows CLI 自动化测试 Agent。I0—I9 的 Coze、Flowise 与 HiAgent 资料保留为历史证据，但不进入构建、启动、运行、恢复、CI 或发布门。银行正式链为 Portal → Gateway → Bank Channel → Fineract API；自动化正式链为 `hz-agent` → Controller → independent MCP → Harness → Worker → Playwright/Midscene；Quality Portal 只读取 Harness 投影。
+
+当前下一段（2026-09-28 用户授权）：RF-057 真实产品验收与性能测试，按 S1 真实银行业务、S2 真实 BYOK CLI Agent、S3 有界压力/性能/持续运行、S4 新清单闭环推进。控制链在 `docs/architecture/refactoring/batches/RF-057`；正式清单为 BANK-AGENT-ACCEPTANCE-v1。新产品验收替代继承的 Full18 数量门，旧脚本和证据只保留历史；RF-056 前文的下一步 L1/Full18 建议由本段取代。不运行旧受控门户，不删历史或关闭服务。性能目标：查询 p95≤1秒、页面 READY p95≤3秒、入账 p95≤15秒、非预期错误≤1%、资金不变量100%。缺失或失败场景保持未完成；Agent LIVE 仍需最终新身份的明确授权。A01 失败后的用户“落盘修复”批准 S2 内的 R1 错误报告、R2 认证合同/源、R3 PKCE 编译与执行、R4 质量分页、R5 离线验证及新身份准备；具体路径、合同变化和命令见 S2 task 与根因文件。每次只打开直接相关两个模块；新身份 LIVE 不包含在本次修复授权中。
+
+### 当前重构顺序（RF-048—RF-062）
+
+2026-10-09 RF064 S2-1 已落地调度 CLI 创建/查询/停用与失败读取，Journey/MCP新计划固定零自动重试、CLI复用当前身份持证脚本，重复请求查询原调度。按 Harness/MCP→CLI/Controller→CLI/MCP 分阶段控制最多两个模块；47项状态/租约与调度合同通过，并完成实际MCP传输反例。S2-2已完成实际CLI/MCP/Harness临时SQLite单链与故障暂停，并修复零重试调度租约失联的隐藏重排：原运行阻塞、原事故回读、周期暂停/单次终止，人工核对未知业务结果；完整两文件28项及最终租约15项通过。S2仍IMPLEMENTING：下一步合成验证码与原浏览器人工接管，再S3核验经验；不把隔离集成记作周期LIVE或最终验收。
+
+2026-10-09 RF-057 S3 P05 源码门：先细化独立 AgentPerformance 入口与 Harness 白名单，再落地 A01 冻结脚本的 1/2/4 并发重复执行、SQLite 排队/执行计时、失败收齐与资金只读核验；发布器逐项绑定七个真实运行。TypeScript、4项驱动与29项发布合同通过；不是 LIVE 容量验收，RF-057/S3 不标完成。继续 RF-064 调度、人工介入与验证后经验闭环及全产品 CI；全部身份相关修改结束后再冻结并核对新身份 LIVE 授权。
+
+当前唯一执行序列为 [`docs/architecture/refactoring/business-module-defect-coupling-audit-v1.md`](../../../docs/architecture/refactoring/business-module-defect-coupling-audit-v1.md) 中的 RF-048—RF-062。RF-048 先关闭身份、CI、历史 Flowise 与重复源码权威；随后按 RF-049 至 RF-062 顺序推进业务正确性、模块边界、CLI、证据、质量投影和最终发布。下方 I0—I10 内容是历史实施记录，不拥有当前排期权。
+
+当前工程状态：RF-048—RF-055 已落地并进入 `REVIEW`。RF-055 的 S1 fixture 生命周期、S2 固定身份、S3 Test Support 独立运行均通过对应验收；两轮真实 reset/seed 保留结算与审计历史，双门户浏览器登录及重启复验通过，正式 Channel 的 Test Support 路径返回 404，默认 Compose 不含 Mock Clearing。整仓 `demo.ps1 up` 已到 Agent 启动，但旧 LIVE 授权身份因源码改变失效，返回 `AGENT_LIVE_NOT_AUTHORIZED`；当前仅银行链路 READY，不宣称 Agent 或 Full18 READY。RF-054 的实现和验证证据见 [`docs/architecture/refactoring/batches/RF-054/evidence-index.md`](../../../docs/architecture/refactoring/batches/RF-054/evidence-index.md)。
+
+下一执行段：`OPS-DOCKER-001` 仅修复默认 Channel 服务的 Docker 重启策略和精确 socket 恢复说明，独立验收；然后 `RF-056` 按 S1 安全与会话、S2 身份查询、S3 Fineract 五端口、S4 客户及文档 Repository、S5 支付/EOD/审计 Repository、S6 架构与业务验收串行执行。每片先完成任务包的命令级门再进入下一片；不执行 `down`、`reset`、删卷或 Agent LIVE。所有源码修改结束后才冻结新 ReleaseIdentity，并另取该身份的 LIVE 授权。
+
+执行回灌：OPS-DOCKER-001 已通过受控重启和精确 socket 目录留存恢复，进入 REVIEW；RF-056 的 S1 安全/会话与 S2 共享身份查询已完成 Java 和真实浏览器门，当前进入 S3。全仓文档门仍有 RF-030/RF-054 既有元数据缺陷；本段不据此声称 RF-056 完成。
+
+S3 回灌：五个能力端口已返回具名业务结果，Fineract 字段解析留在端口内，旧混合 HTTP 适配器已删除；Java 21、HTTP 合同、定向镜像替换、真实 Fineract 黄金转账（交易 17、余额守恒、运营回读）及双门户刷新均通过。RF-030/RF-031 历史路径校验耦合与 RF-054 元数据错误已修复，文档门通过。S3 标记 COMPLETED，S4 解锁为 PROPOSED、尚未实施；Agent LIVE 与 Full18 未执行。
+
+S4 回灌：贷款申请与材料、收款人、通知、运营文档 SQL 已收归对应 Repository；文档状态 PATCH 改为携带当前版本并以条件更新保证并发单赢家，旧请求不保留兼容。Java 21、API 客户端 17/17、运营端构建、文档并发集成、定向三服务替换、真实文档发布/409/归档/下载和 Fineract 黄金转账（交易 18）均通过，15 个银行容器保持运行。S4 标记 COMPLETED，S5 解锁为 PROPOSED、尚未实施；Agent LIVE 与 Full18 未执行。
+
+S5 回灌：20 个 Controller/应用 Service 的直接 JDBC/DataSource 持有点已清零，EOD 编排进入 operations，支付、风险、对账、审计及 Test Support SQL 按归属迁入 Repository/只读投影。Java 21 全套测试通过；最终镜像的真实黄金转账（交易 20）通过。最终镜像对账回读请求遇到 Docker Desktop 引擎 API 消失（`com.docker.service` 停止、pipe 不存在），依首次确定性失败停止验收；S5 保持 IMPLEMENTING，S6 保持 BLOCKED。未执行 EOD 或推进 Fineract 业务日期，未执行 `down/reset`，不声称 Agent LIVE/Full18。详见 RF-056 证据索引。
+
+S5 收尾回灌（2026-09-28）：Docker 已恢复；最终 S5 镜像与最后 Java 源码修改对应。修正对账探针误用付款角色令牌的问题后，使用独立临时 ACCOUNTANT 从黄金链起点重跑：Fineract 交易 54、余额守恒、客户/运营回读通过，三条对账均 MATCHED/0 且内部/运营 API 回读一致。15 个银行容器继续运行，Mock Clearing 未启动，原有核心与 Channel PostgreSQL 命名卷仍挂载；无 reset/down/删卷/EOD 日期推进。S5 标记 COMPLETED，S6 解锁为 PROPOSED、尚未执行；不冻结 ReleaseIdentity，不声称 Agent LIVE/Full18。
+
+RF-056 S6 收尾（2026-09-28）：两项 ArchUnit 模块约束与完整 Java 回归、双门户构建、真实 PKCE/刷新、黄金转账/三条对账通过；核心 4 与 Channel 11 分组受控重启后，容器身份和挂载保持、健康恢复、双门户和银行复验通过（Fineract 56）。S6 COMPLETED，RF-056 REVIEW。默认清单生成未绑定模板身份 `92a4da26...1477b4e`；随后由现有 lifecycle 配置消费入口核实 BYOK 已配置，实际模型绑定身份为 `bf0b7ed3858e0dbb3c4fa3a504c27c3c938b174acf56f69ade79886ad43a60be`（BOUND/FROZEN），见 RF-056 绑定快照。运行绑定仍旧、服务 NOT_RUNNING，当前身份 0/18；下一硬门是该身份的单独 LIVE 授权，不自动启动服务或进入 Agent LIVE/Full18，不要求重复配置 BYOK。
 
 ## 环境交接边界
 
@@ -28,7 +272,7 @@
 - **证据不得互相冒充。** 本机 Coze 成功不证明 HiAgent 已安装、可访问或可运行；未来 HiAgent 成功也不改写本机演示的历史验收事实。
 - **外部门禁已移交。** `PLAT-V007` 目标租户容量和 `PLAT-V010` 目标 HiAgent 网络不属于当前对话剩余工作，不阻塞已完成的 I1—I7；它们只在未来 HiAgent 对话中重新进入执行状态。
 - **当前仓库只保留迁移输入。** 不在本机项目中保存 HiAgent 凭据、会话、平台数据库或运行态；所有目标环境敏感配置由新对话在现场安全注入。
-- **I9 是当前唯一新增阶段。** I8 的已完成引擎规格见 [`docs/design/regression-platform/i8-deterministic-authoring-spec-v1.md`](../../../docs/design/regression-platform/i8-deterministic-authoring-spec-v1.md)，I9 的产品化规格见 [`docs/design/regression-platform/i9-flowise-productization-spec-v1.md`](../../../docs/design/regression-platform/i9-flowise-productization-spec-v1.md)。两份规格只展开参数、代码边界和验收，不拥有全局排期权；若与本文件冲突，以本文件为准。
+- **I9 是历史阶段。** I8 的已完成引擎规格见 [`docs/design/regression-platform/i8-deterministic-authoring-spec-v1.md`](../../../docs/design/regression-platform/i8-deterministic-authoring-spec-v1.md)，I9 的产品化规格见 [`docs/design/regression-platform/i9-flowise-productization-spec-v1.md`](../../../docs/design/regression-platform/i9-flowise-productization-spec-v1.md)。这些资料只解释历史实现，不进入当前产品链或当前排期。
 
 ## Midscene 与 Playwright 强制协作契约
 
@@ -537,6 +781,29 @@ I10 的 S0—S9 及 R0—R7 已按当前本机交付边界完成。2026-08-02回
 | RF-023 | CLI 离线生产组合与发布门（AGCLI-TP08） | **CLOSED（2026-08-26）**：Controller v2 组合、DPAPI 恢复、SBOM/审计、冷回滚演练 | RF-022 CLOSED | 525项全绿；v4源码候选45f1b937（UNBOUND）；Stage9无产物；0/18未变 |
 | RF-024 | CLI Fresh Journey 与 L1 LIVE（AGCLI-TP09） | **PROPOSED；S1 COMPLETED / S2 BLOCKED**：bootstrap→hydrate 已落地 | RF-023 CLOSED | 等待新的 CLI LIVE 授权；禁止复用 Flowise 授权 |
 | RF-025 | CLI v4 18链证据与发布裁决（AGCLI-TP10） | **PROPOSED；S0/S1/S2 COMPLETED / S3-S5实现就绪但执行BLOCKED** | RF-024 S2 COMPLETED | 577项离线门全绿；等待 TP09/18链 LIVE、同身份S3、独立冷回滚与人工裁决 |
+| RF-026 | 开源银行 + CLI Agent 产品权威重基线（A01） | **CLOSED（2026-08-30）**：双产品基线、A01-A08 组合、Flowise 历史化 | RF-023 CLOSED | DOC/GOVERNANCE 四项验证全绿；运行态与身份未改变 |
+| RF-027 | 新克隆可复现运行环境（A02） | **ACCEPTED；S1/S2/S3/S4 COMPLETED；A02 REVIEW** | RF-026 CLOSED；RF-029 CLOSED | 独立干净克隆 `PREPARED → READY → READY → STOPPED`；候选身份 `3f523608...19b33`，原状态保持 |
+| RF-029 | 独立 Agent 浏览器运行时（A02-M02） | **CLOSED（2026-08-31）**：S1 COMPLETED | RF-027 S2 | Agent 自有锁文件固定 Playwright 1.59.1、Midscene 1.10.5 与 Chromium 1217；不依赖 Flowise |
+| RF-030 | A03 幂等业务种子与身份映射 | **CLOSED；S1/S2 COMPLETED** | RF-027 ACCEPTED / A02 REVIEW | 46/46；重复与重启播种全 REUSED；余额精确；持久 subject 映射 |
+| RF-031 | A03 转账幂等与余额关联证明 | **CLOSED；S1/S2/S3 COMPLETED** | RF-030 CLOSED | 51/51；Fresh 单次入账；精确 ±100 CNY；双端与 ledger 关联一致 |
+| RF-032 | A03 客户确认 API 与共享客户端 | **CLOSED；S1/S2 COMPLETED** | RF-031 CLOSED | 53/53 + 15/15；Fresh 客户确认入账；精确 ±100 CNY；页面接线转 RF-033 |
+| RF-033 | A03 Customer Portal 真实转账闭环 | **CLOSED；S1 COMPLETED** | RF-032 CLOSED | Fresh Chromium 一次创建/确认/入账；精确 ±100 CNY；VQ-03 截图证据 |
+| RF-034 | A03 Operations 关联号回读 | **CLOSED；S1 COMPLETED** | RF-033 CLOSED | Fresh OIDC；精确 correlation 唯一查询；只读详情与 VQ-04 截图证据 |
+| RF-035 | A03 根银行黄金链路 | **CLOSED；S1 COMPLETED** | RF-034 CLOSED | API-only 根编排；Fresh 连续 2 次 COMPLETED；精确余额守恒；临时身份清零 |
+| RF-036 | A03 客户登录与账户概览 | **CLOSED；S1 COMPLETED；A03 REVIEW** | RF-035 CLOSED | Fresh password OIDC；Fineract 余额 100000；掩码账号；VQ-02 浏览器证据 |
+| RF-037 | A04 Harness 只读质量投影 | **CLOSED；A04-M01 S01/S02 COMPLETED；A04 IMPLEMENTING** | RF-036 CLOSED / A03 REVIEW | 七组 GET + case detail；SQLite 单一状态源；无浏览器 token；写请求 405；2/2 合同测试 |
+| RF-038 | A04 同端口质量门户与九视图 | **CLOSED；A04-M02 S01/S02 COMPLETED；A04 IMPLEMENTING** | RF-037 CLOSED | Harness `/quality/` 静态托管；九页面；VQ-07 浏览器证据；可见写操作 0；临时状态清零 |
+| RF-039 | A04 运行身份与关联投影 | **CLOSED；A04-M03 S01 COMPLETED；A04 REVIEW** | RF-038 CLOSED | run-time ReleaseIdentity 持久绑定；Journey/Correlation/Identity 只读投影；10/10；未执行 LIVE |
+| RF-040 | A05 CLI 就绪诊断与状态合同 | **CLOSED；A05-M01 S01 COMPLETED** | RF-039 CLOSED / A04 REVIEW | 模型→Harness→MCP→Worker→浏览器→银行单次顺序探测；正式退出码；16/16 + 3/3；未执行 LIVE |
+| RF-041 | A05 CLI 会话持久化 | **CLOSED；A05-M01 S02 EVIDENCED** | RF-040 CLOSED | `session start|resume|status` 绑定 Harness Journey；DPAPI 仅保存控制器私有检查点；真实 MCP + Fresh Harness 重启恢复 1/1；注册测试 581/581；未执行 LIVE |
+| RF-042 | A05 单 BYOK 模型绑定与显式探测 | **CLOSED；A05-M02 S01 EVIDENCED** | RF-041 CLOSED | 三变量 OpenAI-compatible 单次最小探测；真实配置端点 1/1；Agent CLI 74/74；注册测试 582/582；仅输出模型名与 Base URL 哈希；未执行 Journey author 或 LIVE_E2E |
+| RF-043 | A05 Journey author 与 validate | **CLOSED；A05-M02 S02 EVIDENCED** | RF-042 CLOSED；VQ-05 CONFIRMED | 工具关闭模型调用 1 次；真实 MCP + Fresh Harness 冻结/回读 1/1；RF043 6/6；Agent CLI 81/81；注册测试 583/583；approve/execute 0 次；未执行 LIVE |
+| RF-044 | A05 Journey 显式精确批准 | **CLOSED；A05-M02 S03 EVIDENCED** | RF-043 CLOSED；VQ-05 CONFIRMED | 完整五元组；版本/proposal/hash 漂移 3/3 零写入；真实 MCP + Fresh Harness 批准/拒绝；Agent CLI 83/83；注册测试 584/584；执行调用 0；未执行 LIVE |
+| RF-045 | A05 CLI 真实浏览器执行入口 | **CLOSED；A05-M03 S01 EVIDENCED** | RF-044 CLOSED；VQ-06 CONFIRMED | 身份 `7ba381c4…3a74`：真实 BYOK author→精确批准→稳定性 4/4→Run PASSED→Worker Task 首次 SUCCEEDED→8/8 断言；3 个工件哈希一致、银行写入 0、631/631；服务已停止且卷保留；本批完成时 S02 尚未关闭；现由 RF-046 收尾，Full18 仍未执行 |
+| RF-046 | A05 CLI 完整运行证据验证 | **CLOSED；A05-M03 S02 EVIDENCED；A05 REVIEW** | RF-045 CLOSED；VQ-06 CONFIRMED | 身份 `184244a3…47cc0` 的真实 Journey 终态与 CLI VERIFIED；五类证据、7 制品字节复验、640/640 注册测试；Full18/发布不在本批 |
+| RF-047 | A06 L1 权威验收入门 | **S1 REVIEW；S2 BLOCKED 于批准后 Journey bootstrap 缺失；S3 等待 S2 PASS** | RF-046 CLOSED / A05 REVIEW；2026-09-08 用户授权冻结和 S2/S3 LIVE | 新身份 `5d01ef48…20511` 下 LOW 提案获精确批准；attempt 003 首个确定性失败为 `AGENT_L1_VARIANT_EXECUTION_FAILED`，只读诊断为 `I10_JOURNEY_NOT_FOUND`；0 条结果，未执行图片链 |
+| P0-20260921 | 演示启动观测复核与当前 CLI 产品入口修复 | **REVIEW（运行/文档门通过）** | A05 REVIEW；先于 RF-047 S2 续行 | 控制文件：[`banksystem-p0-repair-control-2026-09-21.md`](./banksystem-p0-repair-control-2026-09-21.md)；只处理运行就绪与文档，未执行 LIVE |
+| RF-028 | 大中小三层控制与逐屏视觉问答 | **CLOSED（2026-08-31）**：S1/S2 COMPLETED，VQ-01 至 VQ-08 已全部确认 | RF-026 CLOSED；与 RF-027 无运行时共享 | Backlog 进入 REVIEW；仅产生 DOC/GOVERNANCE 与 DESIGN_PREVIEW 证据 |
 
 #### 4. 通用批次执行模式（绞杀者式，每批次强制）
 
@@ -754,6 +1021,26 @@ RF-018 精确锁定 `@langchain/openai@1.5.0` 与 MCP SDK 1.30.0，新增无工�
 
 故障矩阵 19/19、Controller 65/65、完整注册测试 520/520、依赖审计及治理门通过。全部模型/传输行为均为注入式离线测试；未启动服务或请求真实端点。旧 v3 未冻结候选 `80d2c166f175c562ebb956edf5b11f622f60a6ef4b488f3cdf3c184fd8f5d640` 仍未覆盖完整 v2/adapter 集，不能用于发布；v4 身份冻结归 TP07。
 
+#### 5.30 RF-026 / A01 开源产品权威重基线（2026-08-30 CLOSED）
+
+RF-026 只把完整、可复现的复兴银行演示系统与 `hz-agent` CLI Agent 固化为当前产品目标，并登记 A01-A08 唯一组合。Flowise、Coze 与 HiAgent 只保留历史证据，不再是产品启动、恢复、CI 或发布依赖。银行与自动化的唯一数据权威、证据等级和 ReleaseIdentity 漂移规则保持强制。
+
+本批未修改产品代码、未启动服务、未调用模型、未写数据库或正式账本，也未产生 LIVE_E2E 或发布结论。RF-026 治理、时序、文档和差异检查全部退出 0；A02-A08 在各自 RF 批次、切片和命令级任务包建立前保持 BLOCKED。
+
+#### 5.31 RF-027 / A02 新克隆可复现运行环境（2026-09-03 ACCEPTED / REVIEW）
+
+RF-027 按单变化轴完成四片：S1 消除绝对数据库路径与宿主 `dist` 依赖；S2 建立根 `demo.ps1` 和本地配置；S3 证明精确 reset、空卷启动与冷重启；S4 证明当前候选源码可在独立干净克隆中从零准备并完成启动、状态回读、停止和 reset。S4 最终运行 `agent/runs/rf027-s4/20260903-144753` 返回 `PASS`，候选 ReleaseIdentity `3f523608...19b33`，原六卷与 Agent 摘要保持。A02 进入 `REVIEW`；该结果仍仅为本机 `INTEGRATION`，GitHub/另一台新机器、黄金链、LIVE 和发布验证分别归后续门。
+
+#### 5.33 RF-029 / A02-M02 独立 Agent 浏览器运行时（2026-08-31 CLOSED）
+
+RF-029 以 `runtime/package.json` 和 lockfile 为新克隆提供独立的浏览器运行时安装输入。`demo.ps1 prepare` 使用 Agent Node 20 的 npm 锁文件安装依赖，并只在固定 Chromium 缺失时执行一次同版本浏览器安装。运行时的 Worker 相对加载路径保持为 `runtime/node_modules`；Flowise 没有进入依赖、安装或验证图。合同、重构治理与文档验证全部通过。该关闭只证明依赖可重现，不证明服务启动、浏览器业务、模型调用、LIVE_E2E 或发布。
+
+#### 5.32 RF-028 / 大中小三层控制与逐屏视觉问答（2026-08-31 CLOSED）
+
+RF-028 将 A01-A08 映射为大包，将单变化轴 RF 映射为中包，将一个 slice 与一个命令级 task package 的配对映射为 1-3 天小包。机器清单同时登记银行业务常识、项目已观察易错点和 Runtime/Bank/UI/Quality/CLI/Evidence/CI/Release 八类具体实现模板；状态与顺序仍只由 backlog 和本文件提供。
+
+视觉门按 VQ-01 至 VQ-08 串行执行：每轮仅生成一张 AI 预览图，附用户角色、动作、结果和非功能边界；项目负责人以文本确认、明确要求继续或提出当前轮修改后才进入下一轮。`VQ-01` 至 `VQ-08` 已全部确认，A03、A04、A05、A08 对应视觉门已固化。S1 三级控制与 S2 视觉问答均通过命令级完成条件，RF-028 已关闭并进入 Backlog REVIEW。图片仍只是设计预览，不改变 A02 的 WSL 阻塞，不证明 UI、浏览器、LIVE、Full18、CI 或发布。
+
 #### 6. 缺陷归属登记（RF-001-B1 九项）
 
 | 缺陷 | 内容 | 归属 |
@@ -771,7 +1058,7 @@ RF-018 精确锁定 `@langchain/openai@1.5.0` 与 MCP SDK 1.30.0，新增无工�
 
 ## 排除范围
 
-`HZ-OBSERVABILITY-001` 保持 `BLOCKED`。衡准不创建或编辑案例、知识、脚本、基线、调度和恢复，也不控制 Agent 平台或 Harness。仓库 `docs/` 与 `rag/` 只服务开发，产品不包含 RAG 结构。Flowise 平台知识库保存业务与操作语义；`regression_platform.sqlite` 保存结构化执行知识和回归状态；两者只传递知识快照引用，不复制正文或状态。测试环境按同源制品把 Flowise Knowledge 重建为 HiAgent Knowledge，不读取仓库开发 RAG 作为运行时回退。
+`HZ-OBSERVABILITY-001` 已由 A04 重新纳入目标，但在 A03 完成且 A04 的 RF/切片/任务包建立前保持 `BLOCKED`。Quality Portal 只能读取 Harness/SQLite 的脱敏投影，不能创建或编辑案例、脚本、基线、调度和恢复。仓库 `docs/` 与 `rag/` 只服务开发，产品运行时不读取它们，也不以 Flowise 或 HiAgent Knowledge 作为回退。
 
 ## 验收依据
 

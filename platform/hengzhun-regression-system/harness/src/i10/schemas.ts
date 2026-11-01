@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { idempotencyKeySchema, namespaceSchema, typedBusinessInputsV1Schema } from '../schemas';
+import { idempotencyKeySchema, namespaceSchema, typedBusinessInputsV2Schema } from '../schemas';
 
 const boundedText = (maximum: number) => z.string().trim().min(1).max(maximum);
 const safeRef = z.string().trim().min(8).max(1024).regex(/^[A-Za-z0-9._:-]+$/);
@@ -49,7 +49,7 @@ export const targetProfilePrepareSchema = z.object({
   // Human-facing selection is intentionally narrower than adapterBinding:
   // Flowise may only request a registered symbolic id.  The Harness resolves
   // it to the versioned, hash-verified binding; callers cannot forge hashes.
-  adapterSelection: z.union([z.literal(''), z.literal('fuxing-bank-demo')]).optional(),
+  adapterSelection: z.enum(['','fuxing-bank-demo','fuxing-bank-operations']).optional(),
   applicationProfile: applicationProfileSchema.optional(),
   tlsPolicy: z.enum(['STRICT', 'ALLOW_SELF_SIGNED']).default('STRICT')
 }).strict();
@@ -132,6 +132,36 @@ export const credentialCaptureSchema = z.object({
   password: z.string().min(1).max(1024)
 }).strict();
 
+const bankIdSchema = z.string().regex(/^[1-9][0-9]{0,18}$/);
+export const bankValidationFixtureSchema = z.object({
+  fixtureId:z.uuid(),subject:z.uuid(),credentialRef:credentialRefSchema,
+  sourceClientId:bankIdSchema,targetClientId:bankIdSchema,
+  sourceAccountId:bankIdSchema,targetAccountId:bankIdSchema,beneficiaryRef:z.uuid(),
+  sourceBalance:z.literal('1000.00'),targetBalance:z.literal('2000.00'),currency:z.literal('CNY')
+}).strict();
+export const bankValidationFixturesSchema = z.object({
+  schemaVersion:z.literal('hengzhun-bank-validation-fixtures-v1'),
+  formalAccountIds:z.object({sourceAccountId:bankIdSchema,targetAccountId:bankIdSchema}).strict(),
+  authoring:bankValidationFixtureSchema,
+  stability:z.array(z.object({viewportId:z.enum(['DESKTOP_1440X900','NARROW_390X844']),
+    sequenceNo:z.union([z.literal(1),z.literal(2)]),fixture:bankValidationFixtureSchema}).strict()).length(4)
+}).strict().superRefine((value,context)=>{
+  const samples=[value.authoring,...value.stability.map(item=>item.fixture)];
+  const keys=value.stability.map(item=>`${item.viewportId}:${item.sequenceNo}`);
+  if(new Set(keys).size!==4)context.addIssue({code:'custom',path:['stability'],message:'资金稳定性样本必须完整覆盖两个视口各两次。'});
+  for(const field of ['fixtureId','subject','credentialRef','beneficiaryRef'] as const)
+    if(new Set(samples.map(item=>item[field])).size!==5)
+      context.addIssue({code:'custom',path:['stability'],message:`资金样本不得共用${field}。`});
+  if(new Set(samples.flatMap(item=>[item.sourceClientId,item.targetClientId])).size!==10)
+    context.addIssue({code:'custom',path:['stability'],message:'资金样本必须使用十个不同核心客户。'});
+  const accounts=samples.flatMap(item=>[item.sourceAccountId,item.targetAccountId]);
+  const formal=[value.formalAccountIds.sourceAccountId,value.formalAccountIds.targetAccountId];
+  if(new Set([...accounts,...formal]).size!==12)
+    context.addIssue({code:'custom',path:['stability'],message:'资金样本必须使用十个不同账户且不得复用正式账户。'});
+});
+export type BankValidationFixture = z.infer<typeof bankValidationFixtureSchema>;
+export type BankValidationFixtures = z.infer<typeof bankValidationFixturesSchema>;
+
 export const caseDraftSchema = z.object({
   schemaVersion: z.literal('hengzhun-i10-case-draft-v1'),
   title: boundedText(160),
@@ -151,8 +181,9 @@ export const caseDraftSchema = z.object({
   caseFacts: z.array(caseFactCandidateSchema).max(200).default([]),
   actionStepsV2: z.array(actionStepV2Schema).max(100).default([]),
   verificationRequirements: z.array(verificationRequirementSchema).max(20).default([]),
-  businessInputs: typedBusinessInputsV1Schema.optional(),
-  adapterSelection: z.literal('fuxing-bank-demo').optional(),
+  businessInputs: typedBusinessInputsV2Schema.optional(),
+  bankValidationFixtures:bankValidationFixturesSchema.optional(),
+  adapterSelection: z.enum(['fuxing-bank-demo','fuxing-bank-operations']).optional(),
   credentialRef: credentialRefSchema.optional(),
   source: z.object({
     inputType: z.enum(['NATURAL_LANGUAGE', 'CASE_FILE', 'VIDEO']),
@@ -167,6 +198,14 @@ export const caseDraftSchema = z.object({
   executionStrategy: z.literal('PLAYWRIGHT_VALIDATED_ONLY'),
   evidenceStrategy: z.literal('REDACTED_HASHED_EVIDENCE')
 }).strict().superRefine((value, context) => {
+  if(value.bankValidationFixtures) {
+    const pool=value.bankValidationFixtures;
+    const samples=[pool.authoring,...pool.stability.map(item=>item.fixture)];
+    if(pool.formalAccountIds.sourceAccountId!==value.businessInputs?.values.payerAccountId ||
+      value.businessInputs?.values.currency!=='CNY' ||
+      samples.some(item=>item.credentialRef===value.credentialRef || item.beneficiaryRef===value.businessInputs?.values.payeeRef))
+      context.addIssue({code:'custom',path:['bankValidationFixtures'],message:'资金验证样本必须独立于本案例的正式账户、收款人和凭据。'});
+  }
   if (value.confirmationStatus === 'CONFIRMED' && value.missingFields.length > 0) {
     context.addIssue({ code: 'custom', path: ['missingFields'], message: '存在信息缺口的案例不得确认。' });
   }
@@ -416,11 +455,13 @@ export const journeyPrepareSchema = z.object({
   sessionRef: safeRef,
   interactionContractVersion: z.enum(['v3', 'v4', 'v5', 'v6']).default('v3'),
   journeyId: z.string().regex(/^journey_[0-9a-f-]{36}$/).optional(),
+  validatedJourneyId: z.string().regex(/^journey_[0-9a-f-]{36}$/).optional(),
   requestIntent: interactionRequestIntentSchema,
   inputType: interactionInputTypeSchema,
   naturalLanguage: z.string().trim().max(8000).optional(),
   entryUrl: z.string().trim().max(4096).optional(),
   targetSystem: z.string().trim().max(160).optional(),
+  adapterSelection: z.enum(['fuxing-bank-demo','fuxing-bank-operations']).optional(),
   flowiseFileRef: safeRef.optional(),
   originalFilename: boundedText(260).optional(),
   credentialRef: credentialRefSchema.optional(),
@@ -434,6 +475,14 @@ export const journeyPrepareSchema = z.object({
   semanticAssessment: semanticAssessmentSchema.optional(),
   inputRevision: z.number().int().min(1).optional()
 }).strict().superRefine((value, context) => {
+  if (value.validatedJourneyId) {
+    const permitted = new Set(['namespace','idempotencyKey','sessionRef','interactionContractVersion',
+      'validatedJourneyId','requestIntent','inputType','supportingImages']);
+    if (value.interactionContractVersion !== 'v6' || value.requestIntent !== 'CASE_AUTHORING' || value.inputType !== 'NONE' || value.supportingImages.length > 0 ||
+        Object.keys(value).some(key => !permitted.has(key))) {
+      context.addIssue({code:'custom',path:['validatedJourneyId'],message:'已验证脚本复用仅接受来源旅程，不允许新业务输入。'});
+    }
+  }
   const hasPreparation = Boolean(value.preparationId);
   const hasIngestJob = Boolean(value.ingestJobId);
   if (hasPreparation !== hasIngestJob) {

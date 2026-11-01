@@ -8,17 +8,18 @@ const { parseJsonArgument } = require('../../mcp/src/rf001-contract-adapter.cjs'
 
 const root = path.resolve(__dirname, '../..')
 
-test('runtime MCP registrations equal the authoritative 35-tool contract', () => {
+test('runtime MCP registrations equal the authoritative 39-tool contract', () => {
   const source = fs.readFileSync(path.join(root, 'mcp/src/server.cjs'), 'utf8')
   const runtimeTools = [...source.matchAll(/server\.registerTool\('([^']+)'/g)].map(match => match[1]).sort()
   const contract = JSON.parse(fs.readFileSync(path.join(root, 'contracts/mcp/hengzhun-i8.json'), 'utf8'))
   const contractTools = contract.tools.map(tool => tool.name).sort()
-  assert.equal(runtimeTools.length, 35)
-  assert.equal(new Set(runtimeTools).size, 35)
+  assert.equal(runtimeTools.length, 39)
+  assert.equal(new Set(runtimeTools).size, 39)
   assert.deepEqual(runtimeTools, contractTools)
   assert.ok(runtimeTools.includes('schedule_disable'))
   assert.ok(runtimeTools.includes('artifact_download_grant'))
   assert.ok(runtimeTools.includes('journey_input_submit'))
+  assert.ok(runtimeTools.includes('journey_evidence_verify'))
   assert.ok(runtimeTools.includes('target_profile_prepare'))
   assert.ok(runtimeTools.includes('target_profile_get'))
   assert.ok(runtimeTools.includes('target_profile_decision_submit'))
@@ -37,6 +38,16 @@ test('both Journey reads and writes use the bounded Flowise response projection'
     source,
     /server\.registerTool\('journey_prepare'[\s\S]{0,12000}?compactJourneyForFlowise/,
     'journey preparation must keep the same bounded contract'
+  )
+  assert.match(
+    source,
+    /server\.registerTool\('journey_input_submit'[\s\S]{0,2400}?compactJourneyForFlowise/,
+    'journey input writes must return the same bounded state projection'
+  )
+  assert.match(
+    source,
+    /server\.registerTool\('journey_decision_submit'[\s\S]{0,2600}?compactJourneyForFlowise/,
+    'journey decision writes must not turn a committed transition into an output-budget failure'
   )
 })
 

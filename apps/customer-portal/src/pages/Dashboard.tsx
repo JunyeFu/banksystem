@@ -26,9 +26,9 @@ export function Dashboard(): JSX.Element {
       {loading ? <Skeleton active paragraph={{ rows: 12 }} /> : !error && items.length === 0 ? <div className="bank-card customer-empty"><Empty description="当前没有可展示的账户" /></div> : null}
       {!loading && !error && items.length > 0 ? <>
         <div className="dashboard-stat-grid">
-          <div className="bank-card dashboard-stat"><span>我的资产（等值 {currency}）</span><strong className="bank-accent">{money(total.toFixed(2), currency).replace(` ${currency}`, '')}</strong></div>
-          <div className="bank-card dashboard-stat"><span>账户数量</span><strong>{items.length}</strong><small>个已关联账户</small></div>
-          <div className="bank-card dashboard-stat"><span>可用余额（{currency}）</span><strong>{money(total.toFixed(2), currency).replace(` ${currency}`, '')}</strong></div>
+          <div className="bank-card dashboard-stat"><span>我的资产（等值 {currency}）</span><strong className="bank-accent" data-testid="dashboard-total-assets">{money(total.toFixed(2), currency).replace(` ${currency}`, '')}</strong></div>
+          <div className="bank-card dashboard-stat"><span>账户数量</span><strong data-testid="dashboard-account-count">{items.length}</strong><small>个已关联账户</small></div>
+          <div className="bank-card dashboard-stat"><span role="heading" aria-level={2}>可用余额（{currency}）</span><strong data-testid="dashboard-available-balance">{money(total.toFixed(2), currency).replace(` ${currency}`, '')}</strong></div>
           <button className="bank-card dashboard-stat dashboard-stat--action" onClick={() => navigate('/documents')}><span>银行文件</span><strong>▤</strong><small>查看账单与业务文件</small></button>
         </div>
         <div className="dashboard-quick bank-card" aria-label="快捷入口">
@@ -39,11 +39,14 @@ export function Dashboard(): JSX.Element {
         </div>
         <div className="dashboard-account-head"><h2>我的账户</h2><Button type="link" onClick={() => navigate('/accounts')}>查看全部　›</Button></div>
         <div className="bank-card dashboard-account-list">
-          {items.map((item) => <button key={item.accountId} onClick={() => navigate(`/accounts/${item.accountId}`)}>
-            <span className="account-roundel">◉</span><span><strong>{item.accountType ?? '银行账户'}</strong><small>{item.maskedAccountNumber}</small></span>
-            <Tag color={item.status === 'ACTIVE' || !item.status ? 'green' : 'default'}>{item.status === 'ACTIVE' || !item.status ? '正常' : item.status}</Tag>
-            <strong className="dashboard-account-balance">{money(item.balance, item.currency)}</strong><span>›</span>
-          </button>)}
+          {items.map((item) => {
+            const active = !item.status || item.status.toUpperCase() === 'ACTIVE';
+            return <button key={item.accountId} data-testid={`dashboard-account-${item.accountId}`} onClick={() => navigate(`/accounts/${item.accountId}`)}>
+              <span className="account-roundel">◉</span><span><strong>{item.accountType ?? '银行账户'}</strong><small>{item.maskedAccountNumber}</small></span>
+              <Tag color={active ? 'green' : 'default'}>{active ? '正常' : item.status}</Tag>
+              <strong className="dashboard-account-balance">{money(item.balance, item.currency)}</strong><span>›</span>
+            </button>;
+          })}
         </div>
         <Button className="dashboard-transfer-cta" size="large" onClick={() => navigate('/transfers/new')}>＋　新建转账</Button>
       </> : null}

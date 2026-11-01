@@ -2,7 +2,6 @@
 'use strict'
 
 const childProcess = require('node:child_process')
-const crypto = require('node:crypto')
 const fs = require('node:fs')
 const http = require('node:http')
 const net = require('node:net')
@@ -13,8 +12,6 @@ const releaseV4 = require('./i10-release-identity-v4.cjs')
 const productRoot = path.resolve(__dirname, '..')
 const SERVICE_ORDER = Object.freeze(['harness', 'mcp', 'worker'])
 const LIVE_AUTHORIZATION_VARIABLE = 'HENGZHUN_AUTHORIZE_AGENT_LIVE'
-const COLD_ROLLBACK_AUTHORIZATION_VARIABLE = 'HENGZHUN_AUTHORIZE_FLOWISE_COLD_ROLLBACK'
-const COLD_ROLLBACK_EVIDENCE_SCHEMA = 'hengzhun-flowise-cold-rollback-evidence/v1'
 
 class AgentLifecycleError extends Error {
   constructor(code, details) { super(code); this.code = code; this.details = details }
@@ -73,8 +70,9 @@ function environmentWithRuntimeFile({ root = productRoot, environment = process.
   const source = path.join(root, '.data', 'runtime.env')
   if (!fs.existsSync(source)) return merged
   for (const line of fs.readFileSync(source, 'utf8').split(/\r?\n/)) {
-    const match = line.match(/^(HENGZHUN_[A-Z0-9_]+)=(.*)$/)
-    if (match && !String(merged[match[1]] || '').trim()) merged[match[1]] = match[2]
+    const match = line.match(/^(HENGZHUN_[A-Z0-9_]+|VISION_MODEL_NAME|VISION_MODEL_FAMILY)=(.*)$/)
+    // Explicit product-local visual binding overrides the inherited workstation model.
+    if (match && (match[1].startsWith('VISION_') || !String(merged[match[1]] || '').trim())) merged[match[1]] = match[2]
   }
   return merged
 }
@@ -113,6 +111,11 @@ function modelIdentityFromEnvironment(environment = process.env) {
     bindingStatus: 'BOUND', providerProtocol: 'OPENAI_COMPATIBLE', profile: 'CONTROL_GENERIC', modelName,
     baseUrlHash: require('node:crypto').createHash('sha256').update(baseURL).digest('hex'),
     temperature: 0, streaming: false, toolMode: 'NONE',
+    vision: {
+      modelName: environment.VISION_MODEL_NAME || environment.MIDSCENE_MODEL_NAME || '',
+      family: environment.VISION_MODEL_FAMILY || environment.MIDSCENE_MODEL_FAMILY || '',
+      baseUrlHash: require('node:crypto').createHash('sha256').update(environment.VISION_BASE_URL || environment.MIDSCENE_MODEL_BASE_URL || '').digest('hex'),
+    },
   }
 }
 
@@ -127,6 +130,12 @@ function requiredServiceEnvironment(environment = process.env) {
   for (const [name, minimum] of [['HENGZHUN_SERVICE_TOKEN', 32], ['HENGZHUN_WORKER_TOKEN', 32], ['HENGZHUN_MCP_TOKEN', 24]]) {
     if (String(environment[name] || '').length < minimum) throw new AgentLifecycleError('AGENT_CREDENTIAL_MISSING_OR_WEAK', { variable: name })
   }
+}
+
+function bindRuntimeIdentity(environment, releaseIdentityHash) {
+  const value = String(releaseIdentityHash || '')
+  if (!/^[a-f0-9]{64}$/.test(value)) throw new AgentLifecycleError('AGENT_RELEASE_IDENTITY_INVALID')
+  return { ...environment, HENGZHUN_RELEASE_IDENTITY_HASH: value }
 }
 
 function defaultServiceEnvironment(root, component, environment = process.env) {
@@ -163,17 +172,20 @@ function defaultPortAvailable(port) {
   })
 }
 
-function httpOk(url, timeoutMs = 1500) {
+function httpOk(url, timeoutMs = 10_000, signal) {
   return new Promise((resolve) => {
-    const request = http.get(url, { timeout: timeoutMs }, (response) => { response.resume(); resolve(response.statusCode === 200) })
-    request.once('timeout', () => { request.destroy(); resolve(false) })
-    request.once('error', () => resolve(false))
+    if (signal?.aborted) return resolve(false)
+    let timer
+    const finish = value => { clearTimeout(timer); signal?.removeEventListener('abort', abort); resolve(value) }
+    const request = http.get(url, (response) => { response.resume(); response.once('end', () => finish(response.statusCode === 200)) })
+    const abort = () => { request.destroy(); finish(false) }
+    timer = setTimeout(abort, timeoutMs)
+    signal?.addEventListener('abort', abort, { once: true })
+    request.once('error', () => finish(false))
   })
 }
 
-async function defaultHealth(root, record) {
-  if (record.name === 'harness') return httpOk('http://127.0.0.1:18788/health')
-  if (record.name === 'mcp') return httpOk('http://127.0.0.1:18789/health')
+function workerHealth(root, record) {
   const { workerHealthFile } = statePaths(root)
   if (!fs.existsSync(workerHealthFile)) return false
   try {
@@ -181,6 +193,12 @@ async function defaultHealth(root, record) {
     const age = Date.now() - Date.parse(health.updatedAt)
     return health.schemaVersion === 'hengzhun-worker-health-v2' && health.status === 'HEALTHY' && health.pid === record.pid && age >= 0 && age <= 15_000
   } catch { return false }
+}
+
+async function defaultHealth(root, record, _component, { timeoutMs = 10_000, signal } = {}) {
+  if (record.name === 'harness') return httpOk('http://127.0.0.1:18788/health', timeoutMs, signal)
+  if (record.name === 'mcp') return httpOk('http://127.0.0.1:18789/health', timeoutMs, signal)
+  return workerHealth(root, record)
 }
 
 function defaultSpawn(root, component, environment) {
@@ -217,22 +235,32 @@ function recordCurrent(root, record, component, identity, info) {
     record.runtimeFingerprint === identity.groupHashes[component.name] && ownsProcess(root, info || {}, component))
 }
 
-async function managedStatus({ root = productRoot, identity, deps = {} } = {}) {
+async function inspectManagedOwnership({ root = productRoot, identity, deps = {}, signal } = {}) {
   const spec = validateManagedProcessSpec(readSpec(root))
   const state = (deps.readState || readManagedState)(root)
   const processInfo = deps.processInfo || defaultProcessInfo
-  const health = deps.health || defaultHealth
-  const sourceIdentity = releaseV4.currentReleaseIdentityV4({ productRoot: root })
+  const sourceIdentity = identity || releaseV4.currentReleaseIdentityV4({ productRoot: root })
   const effectiveIdentity = identity || { ...sourceIdentity, identityHash: state?.releaseIdentityHash || sourceIdentity.identityHash }
   const services = []
   for (const component of spec.services) {
+    if (signal?.aborted) throw new AgentLifecycleError('AGENT_READINESS_CANCELLED')
     const record = state?.services.find((item) => item.name === component.name)
     const info = record ? await processInfo(record.pid) : null
     const owned = recordCurrent(root, record, component, effectiveIdentity, info)
-    services.push({ name: component.name, pid: record?.pid || null, owned, current: owned, healthy: owned ? await health(root, record, component) : false })
+    services.push({ name: component.name, pid: record?.pid || null, alive: Boolean(info), owned, current: owned })
   }
+  return Object.freeze({ services, owned: services.every(service => service.owned) })
+}
+
+async function managedStatus({ root = productRoot, identity, deps = {}, signal } = {}) {
+  const observation = await inspectManagedOwnership({ root, identity, deps, signal })
+  const health = deps.health || defaultHealth
+  const components = readSpec(root).services
+  const services = await Promise.all(observation.services.map(async service => ({ ...service,
+    healthy: service.owned ? await health(root, service, components.find(item => item.name === service.name), { signal }) : false })))
   const healthy = services.every((service) => service.owned && service.healthy)
-  return Object.freeze({ schemaVersion: 'hengzhun-agent-lifecycle-status/v1', profile: 'NORMAL_CLI', status: healthy ? 'HEALTHY' : 'NOT_RUNNING', healthy, services })
+  const status = healthy ? 'HEALTHY' : services.some(service => service.alive) ? 'NOT_READY' : 'NOT_RUNNING'
+  return Object.freeze({ schemaVersion: 'hengzhun-agent-lifecycle-status/v1', profile: 'NORMAL_CLI', status, healthy, services })
 }
 
 async function stopRecord(root, record, component, deps = {}) {
@@ -287,14 +315,18 @@ async function startManaged({ root = productRoot, environment = process.env, aut
   try {
     for (const component of plan.services) {
       if (retained.some((record) => record.name === component.name)) continue
-      const child = await spawn(root, component, environment)
+      const child = await spawn(root, component, bindRuntimeIdentity(environment, identity.identityHash))
       if (!Number.isInteger(child?.pid) || child.pid <= 0) throw new AgentLifecycleError('AGENT_SERVICE_SPAWN_FAILED', { service: component.name })
       const record = serviceRecord(root, component, child.pid, identity, deps.now)
       spawned.push(record)
       writeState(root, { schemaVersion: 'hengzhun-agent-process-state/v1', productRoot: path.resolve(root), releaseIdentityHash: identity.identityHash, services: [...retained, ...spawned] })
       const waitHealthy = deps.waitHealthy || (async () => {
         const deadline = Date.now() + 30_000
-        while (Date.now() < deadline) { if (await health(root, record, component)) return true; await new Promise((resolve) => setTimeout(resolve, 250)) }
+        while (Date.now() < deadline) {
+          if (await health(root, record, component, { timeoutMs: Math.min(10_000, deadline - Date.now()) })) return true
+          const remaining = deadline - Date.now()
+          if (remaining > 0) await new Promise((resolve) => setTimeout(resolve, Math.min(250, remaining)))
+        }
         return false
       })
       if (!await waitHealthy(root, record, component)) throw new AgentLifecycleError('AGENT_SERVICE_STARTUP_TIMEOUT', { service: component.name, pid: record.pid })
@@ -312,12 +344,14 @@ async function startManaged({ root = productRoot, environment = process.env, aut
 }
 
 async function stopManaged({ root = productRoot, environment = process.env, authorizationValue, deps = {} } = {}) {
-  const identity = authorizedIdentity({ root, environment, authorizationValue })
   const spec = validateManagedProcessSpec(readSpec(root))
   const readState = deps.readState || readManagedState
   const state = readState(root)
   if (!state?.services.length) return Object.freeze({ status: 'ALREADY_STOPPED', profile: 'NORMAL_CLI', services: [] })
-  if (state.releaseIdentityHash !== identity.identityHash) throw new AgentLifecycleError('AGENT_PROCESS_IDENTITY_MISMATCH')
+  if (!/^[a-f0-9]{64}$/.test(String(state.releaseIdentityHash || '')) ||
+      state.services.some((record) => record.releaseIdentityHash !== state.releaseIdentityHash)) {
+    throw new AgentLifecycleError('AGENT_PROCESS_STATE_INVALID')
+  }
   const outcomes = []
   for (const record of [...state.services].reverse()) {
     const component = spec.services.find((item) => item.name === record.name)
@@ -377,157 +411,6 @@ function doctor(options = {}) {
   return Object.freeze({ ...plan, status: 'READY', nodeVersions: Object.freeze({ cli: cliVersion, services: serviceVersion }) })
 }
 
-function buildColdRollbackPlan({ root = productRoot, authorizationValue, expectedReleaseIdentity } = {}) {
-  const descriptor = JSON.parse(fs.readFileSync(path.join(root, 'agent-cli', 'flowise-cold-rollback-v1.json'), 'utf8'))
-  if (descriptor?.schemaVersion !== 'hengzhun-flowise-cold-rollback/v1' || descriptor.status !== 'DISABLED' ||
-      descriptor.sharesNormalStartSwitch !== false || descriptor.evidenceReuseAcrossProfiles !== false) {
-    throw new AgentLifecycleError('FLOWISE_COLD_ROLLBACK_DESCRIPTOR_INVALID')
-  }
-  if (typeof expectedReleaseIdentity !== 'string' || !/^[a-f0-9]{64}$/.test(expectedReleaseIdentity)) {
-    throw new AgentLifecycleError('FLOWISE_COLD_ROLLBACK_IDENTITY_INVALID')
-  }
-  if (authorizationValue !== expectedReleaseIdentity) throw new AgentLifecycleError('FLOWISE_COLD_ROLLBACK_NOT_AUTHORIZED')
-  return Object.freeze({
-    schemaVersion: 'hengzhun-flowise-cold-rollback-plan/v1', profile: 'FLOWISE_COLD_ROLLBACK',
-    implementation: descriptor.implementation, authorizedReleaseIdentity: expectedReleaseIdentity,
-    normalProfileDisabled: true, evidenceReusableByNormalProfile: false, executionPerformed: false,
-  })
-}
-
-function coldRollbackEvidencePaths(root = productRoot, releaseIdentityHash) {
-  const identity = String(releaseIdentityHash || '')
-  if (!/^[a-f0-9]{64}$/.test(identity)) throw new AgentLifecycleError('FLOWISE_COLD_ROLLBACK_IDENTITY_INVALID')
-  const evidenceRoot = path.join(root, '.data', 'evidence', 'flowise-cold-rollback-v1')
-  return Object.freeze({ evidenceRoot, evidenceFile: path.join(evidenceRoot, `${identity}.json`) })
-}
-
-function normalEvidenceHash(root = productRoot) {
-  const evidenceRoot = path.join(root, '.data', 'evidence', 'agent-v4')
-  const hash = crypto.createHash('sha256')
-  if (!fs.existsSync(evidenceRoot)) return hash.update('ABSENT').digest('hex')
-  const files = []
-  function visit(absolute, relative) {
-    for (const entry of fs.readdirSync(absolute, { withFileTypes: true })) {
-      const nextAbsolute = path.join(absolute, entry.name)
-      const nextRelative = relative ? `${relative}/${entry.name}` : entry.name
-      if (entry.isSymbolicLink()) throw new AgentLifecycleError('FLOWISE_COLD_ROLLBACK_NORMAL_EVIDENCE_SYMLINK')
-      if (entry.isDirectory()) visit(nextAbsolute, nextRelative)
-      else if (entry.isFile()) files.push([nextRelative, nextAbsolute])
-    }
-  }
-  visit(evidenceRoot, '')
-  for (const [relative, absolute] of files.sort((left, right) => left[0].localeCompare(right[0], 'en'))) {
-    hash.update(relative).update('\0').update(fs.readFileSync(absolute)).update('\0')
-  }
-  return hash.digest('hex')
-}
-
-function validateColdRollbackEvidence(value, expectedReleaseIdentity) {
-  if (value?.schemaVersion !== COLD_ROLLBACK_EVIDENCE_SCHEMA || value.profile !== 'FLOWISE_COLD_ROLLBACK' ||
-      value.status !== 'PASSED' || value.releaseIdentityHash !== expectedReleaseIdentity ||
-      value.normalProfileDisabled !== true || value.normalEvidenceUnchanged !== true ||
-      value.normalEvidenceBeforeHash !== value.normalEvidenceAfterHash || value.coldServicesStopped !== true ||
-      value.evidenceReusableByNormalProfile !== false || !Number.isFinite(Date.parse(value.completedAt)) ||
-      !/^coldrb_[a-f0-9]{32}$/.test(String(value.evidenceId || ''))) {
-    throw new AgentLifecycleError('FLOWISE_COLD_ROLLBACK_EVIDENCE_INVALID')
-  }
-  return Object.freeze({ ...value })
-}
-
-function readColdRollbackEvidence(root = productRoot, releaseIdentityHash) {
-  const { evidenceFile } = coldRollbackEvidencePaths(root, releaseIdentityHash)
-  if (!fs.existsSync(evidenceFile)) return null
-  try { return validateColdRollbackEvidence(JSON.parse(fs.readFileSync(evidenceFile, 'utf8')), releaseIdentityHash) } catch (error) {
-    if (error instanceof AgentLifecycleError) throw error
-    throw new AgentLifecycleError('FLOWISE_COLD_ROLLBACK_EVIDENCE_INVALID')
-  }
-}
-
-function writeColdRollbackEvidence(root, value) {
-  const validated = validateColdRollbackEvidence(value, value.releaseIdentityHash)
-  const { evidenceFile } = coldRollbackEvidencePaths(root, value.releaseIdentityHash)
-  if (fs.existsSync(evidenceFile)) throw new AgentLifecycleError('FLOWISE_COLD_ROLLBACK_EVIDENCE_IMMUTABLE')
-  fs.mkdirSync(path.dirname(evidenceFile), { recursive: true })
-  const temporary = `${evidenceFile}.${process.pid}.${crypto.randomUUID()}.tmp`
-  fs.writeFileSync(temporary, `${JSON.stringify(validated, null, 2)}\n`, { encoding: 'utf8', flag: 'wx' })
-  try { fs.linkSync(temporary, evidenceFile) } catch {
-    throw new AgentLifecycleError('FLOWISE_COLD_ROLLBACK_EVIDENCE_IMMUTABLE')
-  } finally { fs.rmSync(temporary, { force: true }) }
-  return validated
-}
-
-function runI9ColdCommand(root, command, environment) {
-  const executable = path.join(root, 'runtime', 'node-v24.19.0-win-x64', 'node.exe')
-  const entrypoint = path.join(root, 'scripts', 'i9-lifecycle.cjs')
-  const result = childProcess.spawnSync(executable, [entrypoint, command], {
-    cwd: root, env: { ...environment, HENGZHUN_FLOWISE_COLD_ROLLBACK: '1', HENGZHUN_PROGRESS_SUBTASK: '1' },
-    encoding: 'utf8', windowsHide: true, timeout: 180_000, maxBuffer: 8 * 1024 * 1024,
-  })
-  let output
-  try { output = JSON.parse(String(result.stdout || '')) } catch { throw new AgentLifecycleError('FLOWISE_COLD_ROLLBACK_COMMAND_INVALID', { command }) }
-  if (result.status !== 0) throw new AgentLifecycleError('FLOWISE_COLD_ROLLBACK_COMMAND_FAILED', { command, errorCode: output?.errorCode || null })
-  return output
-}
-
-async function executeColdRollbackDrill({
-  root = productRoot, environment = process.env, expectedReleaseIdentity, authorizationValue, deps = {}, now = () => new Date(),
-} = {}) {
-  const plan = buildColdRollbackPlan({ root, expectedReleaseIdentity, authorizationValue: authorizationValue ?? environment[COLD_ROLLBACK_AUTHORIZATION_VARIABLE] })
-  if (readColdRollbackEvidence(root, expectedReleaseIdentity)) throw new AgentLifecycleError('FLOWISE_COLD_ROLLBACK_ALREADY_PROVED')
-  const normalState = (deps.readNormalState || readManagedState)(root)
-  if (normalState?.services?.length) throw new AgentLifecycleError('FLOWISE_COLD_ROLLBACK_NORMAL_PROFILE_ACTIVE')
-  const readColdState = deps.readColdState || ((targetRoot) => {
-    const stateFile = path.join(targetRoot, '.data', 'runtime', 'i9-processes.json')
-    if (!fs.existsSync(stateFile)) return null
-    try { return JSON.parse(fs.readFileSync(stateFile, 'utf8')) } catch { throw new AgentLifecycleError('FLOWISE_COLD_ROLLBACK_STATE_INVALID') }
-  })
-  const coldState = await readColdState(root)
-  if (coldState?.services?.length) throw new AgentLifecycleError('FLOWISE_COLD_ROLLBACK_PREEXISTING_STATE')
-  const observe = deps.observeFlowise || discoverFlowiseObservation
-  assertFlowiseAbsent(validateManagedProcessSpec(readSpec(root)), await observe())
-  const evidenceHash = deps.normalEvidenceHash || normalEvidenceHash
-  const beforeHash = await evidenceHash(root)
-  const invoke = deps.invokeColdCommand || ((command) => runI9ColdCommand(root, command, environment))
-  let startAttempted = false
-  let startResult
-  let statusResult
-  let stopResult
-  let primaryError
-  try {
-    startAttempted = true
-    startResult = await invoke('start')
-    if (startResult?.healthy !== true || startResult.action !== 'STARTED') throw new AgentLifecycleError('FLOWISE_COLD_ROLLBACK_START_NOT_HEALTHY')
-    statusResult = await invoke('status')
-    if (statusResult?.healthy !== true) throw new AgentLifecycleError('FLOWISE_COLD_ROLLBACK_PROBE_NOT_HEALTHY')
-  } catch (error) { primaryError = error } finally {
-    if (startAttempted) {
-      try {
-        stopResult = await invoke('stop')
-        const stopped = Array.isArray(stopResult?.stopped) ? [...stopResult.stopped].sort() : []
-        if (stopResult?.status !== 'STOPPED' || JSON.stringify(stopped) !== JSON.stringify(['flowise', 'harness', 'mcp', 'worker'])) {
-          throw new AgentLifecycleError('FLOWISE_COLD_ROLLBACK_STOP_INVALID')
-        }
-      } catch (error) {
-        throw new AgentLifecycleError('FLOWISE_COLD_ROLLBACK_CLEANUP_FAILED', { primaryErrorCode: primaryError?.code || null, cleanupErrorCode: error?.code || null })
-      }
-    }
-  }
-  if (primaryError) throw primaryError
-  const finalColdState = await readColdState(root)
-  if (finalColdState?.services?.length) throw new AgentLifecycleError('FLOWISE_COLD_ROLLBACK_STOP_STATE_REMAINS')
-  assertFlowiseAbsent(validateManagedProcessSpec(readSpec(root)), await observe())
-  const afterHash = await evidenceHash(root)
-  if (beforeHash !== afterHash) throw new AgentLifecycleError('FLOWISE_COLD_ROLLBACK_NORMAL_EVIDENCE_CHANGED')
-  const basis = {
-    schemaVersion: COLD_ROLLBACK_EVIDENCE_SCHEMA, profile: plan.profile, status: 'PASSED',
-    releaseIdentityHash: expectedReleaseIdentity, normalProfileDisabled: true,
-    normalEvidenceBeforeHash: beforeHash, normalEvidenceAfterHash: afterHash, normalEvidenceUnchanged: true,
-    coldServicesStopped: true, evidenceReusableByNormalProfile: false, completedAt: now().toISOString(),
-  }
-  const evidence = Object.freeze({ ...basis, evidenceId: `coldrb_${crypto.createHash('sha256').update(JSON.stringify(basis)).digest('hex').slice(0, 32)}` })
-  return (deps.writeEvidence || writeColdRollbackEvidence)(root, evidence)
-}
-
 if (require.main === module) {
   Promise.resolve().then(async () => {
     const command = process.argv[2]
@@ -536,11 +419,6 @@ if (require.main === module) {
       : command === 'status' ? await managedStatus()
         : command === 'start' ? await startManaged({ environment })
           : command === 'stop' ? await stopManaged({ environment })
-            : command === 'cold-rollback' ? await (() => {
-              const identity = releaseV4.currentReleaseIdentityV4({ productRoot, modelConfigIdentity: modelIdentityFromEnvironment(environment) })
-              if (identity.releaseStatus !== 'FROZEN') throw new AgentLifecycleError('FLOWISE_COLD_ROLLBACK_IDENTITY_UNBOUND')
-              return executeColdRollbackDrill({ root: productRoot, environment, expectedReleaseIdentity: identity.identityHash })
-            })()
             : (() => { throw new AgentLifecycleError('AGENT_LIFECYCLE_COMMAND_INVALID') })()
     process.stdout.write(`${JSON.stringify(value)}\n`)
     if (command === 'status' && !value.healthy) process.exitCode = 3
@@ -551,11 +429,10 @@ if (require.main === module) {
 }
 
 module.exports = {
-  AgentLifecycleError, COLD_ROLLBACK_AUTHORIZATION_VARIABLE, COLD_ROLLBACK_EVIDENCE_SCHEMA, LIVE_AUTHORIZATION_VARIABLE,
-  assertFlowiseAbsent, authorizedIdentity, buildColdRollbackPlan, buildLifecyclePlan, coldRollbackEvidencePaths,
-  discoverFlowiseObservation, doctor, executeColdRollbackDrill, flowiseFindings,
-  environmentWithRuntimeFile, managedStatus, modelIdentityFromEnvironment, ownsProcess, readManagedState, recordCurrent,
-  readColdRollbackEvidence, normalEvidenceHash, validateColdRollbackEvidence,
-  requiredServiceEnvironment, serviceRecord, startManaged, statePaths, stopManaged, stopRecord,
+  AgentLifecycleError, LIVE_AUTHORIZATION_VARIABLE,
+  assertFlowiseAbsent, authorizedIdentity, buildLifecyclePlan,
+  discoverFlowiseObservation, doctor, flowiseFindings,
+  environmentWithRuntimeFile, httpOk, inspectManagedOwnership, workerHealth, managedStatus, modelIdentityFromEnvironment, ownsProcess, readManagedState, recordCurrent,
+  bindRuntimeIdentity, requiredServiceEnvironment, serviceRecord, startManaged, statePaths, stopManaged, stopRecord,
   validateManagedProcessSpec,
 }

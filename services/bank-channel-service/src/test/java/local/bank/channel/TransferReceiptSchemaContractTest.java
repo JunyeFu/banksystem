@@ -16,10 +16,25 @@ class TransferReceiptSchemaContractTest {
     try (ClassLoaderResourceAccessor resources = new ClassLoaderResourceAccessor()) {
       var changeLog = new YamlChangeLogParser().parse(
           "db/changelog/db.changelog-master.yaml", new ChangeLogParameters(), resources);
-      assertTrue(changeLog.getChangeSets().stream().anyMatch(changeSet ->
+    assertTrue(changeLog.getChangeSets().stream().anyMatch(changeSet ->
           "v8-transfer-receipt-reference-type".equals(changeSet.getId())
               && "codex".equals(changeSet.getAuthor())));
+      assertTrue(changeLog.getChangeSets().stream().anyMatch(changeSet ->
+          "v10-transfer-receipt-subject".equals(changeSet.getId())
+              && "RF-031".equals(changeSet.getAuthor())));
     }
+  }
+
+  @Test
+  void receiptEvidenceMigrationProvidesEveryProcessorColumn() throws Exception {
+    String migration;
+    try (InputStream input = resource("db/changelog/v10-transfer-receipt-evidence-columns.yaml")) {
+      migration = new String(input.readAllBytes(), StandardCharsets.UTF_8);
+    }
+
+    assertTrue(migration.contains("name: subject"));
+    assertTrue(migration.contains("name: payload"));
+    assertTrue(migration.contains("name: sha256"));
   }
 
   @Test

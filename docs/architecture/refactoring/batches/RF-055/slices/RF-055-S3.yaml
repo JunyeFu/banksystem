@@ -1,0 +1,9 @@
+id: RF-055-S3
+title: Test Support runtime isolation
+status: COMPLETED
+allowedPaths: [contracts/openapi/test-support-api.yaml, services/bank-channel-service, compose.channel.yaml, demo.ps1, infra/gateway, scripts/demo/verify-fixture-lifecycle.ps1, scripts/demo/verify-test-support-isolation.ps1, docs/architecture/refactoring/module-boundaries-v1.yaml, docs/architecture/refactoring/batches/RF-055, agent/backlog.yaml, agent/plans/active/v54-implementation-batches.md]
+forbiddenPaths: [platform/hengzhun-regression-system, postgresql, apps, packages]
+workSteps: [register Test Support only in its profile, run it on a dedicated internal listener, route demo Gateway calls to that listener, remove Mock Clearing from default Compose, prove formal listener 404]
+verification: [default Compose excludes Mock Clearing, production listener returns 404 for Test Support, dedicated listener serves authorized Test Support, retained services stay running]
+rollback: restore RF-054 Compose and listener routing and replace only affected containers
+evidence: docs/architecture/refactoring/batches/RF-055/evidence-index.md

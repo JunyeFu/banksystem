@@ -45,9 +45,12 @@ export function normalizeControllerResult(result) {
 
 function methodFor(kind) {
   return ({
-    'session-list': 'sessionList', 'session-show': 'sessionShow', 'session-fork': 'sessionFork',
-    'session-archive': 'sessionArchive', 'journey-show': 'journeyShow', evidence: 'evidence',
-    'credential-enroll': 'credentialEnroll', doctor: 'doctor', service: 'serviceStatus', version: 'version',
+    'session-start': 'sessionStart', 'session-resume': 'sessionResume', 'session-status': 'sessionStatus',
+    'journey-show': 'journeyShow', 'journey-validate': 'journeyValidate', evidence: 'evidence',
+    'credential-enroll': 'credentialEnroll', doctor: 'doctor', 'service-status': 'serviceStatus', version: 'version',
+    'schedule-create':'scheduleCreate','schedule-status':'scheduleStatus','schedule-disable':'scheduleDisable','failure-show':'failureShow',
+    'verification-status':'verificationStatus','verification-decide':'verificationDecide',
+    'feedback-record':'feedbackRecord','feedback-verify':'feedbackVerify','feedback-show':'feedbackShow',
   })[kind]
 }
 
@@ -74,17 +77,26 @@ export async function executeHeadless(command, { service, stdin, signal, emit })
   if (signal?.aborted) throw Object.assign(new Error('ABORTED'), { name: 'AbortError' })
   if (command.kind.startsWith('interactive')) throw new CliError('TUI_NOT_INSTALLED', EXIT.RUNTIME_UNAVAILABLE)
   emit({ type: 'STARTED', command: command.kind })
+  let bankValidationFixtures
+  if(command.bankValidationFixturesFile) {
+    const text=await readInput(command.bankValidationFixturesFile,stdin)
+    try {bankValidationFixtures=JSON.parse(text)} catch {throw new CliError('BANK_VALIDATION_JSON_INVALID',EXIT.INPUT_INVALID)}
+  }
   if (command.kind === 'run') {
     const input = await readInput(command.inputFile, stdin)
     const attachmentRefs = []
+    const attachmentMetadata = []
     for (const attachmentPath of command.attachments) {
       const descriptor = await preflightAttachment(attachmentPath)
       const receipt = await service.importAttachment({ ...descriptor, signal })
       const attachmentRef = safeId(receipt?.attachmentRef, 'ATTACHMENT_RECEIPT_INVALID')
       attachmentRefs.push(attachmentRef)
+      attachmentMetadata.push({ attachmentRef, originalFilename: descriptor.originalFilename })
       emit({ type: 'ATTACHMENT_IMPORTED', attachmentRef, sha256: descriptor.sha256, size: descriptor.size })
     }
-    const normalized = normalizeControllerResult(await service.start({ input, attachmentRefs, noSession: command.noSession, signal }))
+    const normalized = normalizeControllerResult(await service.start({ input, attachmentRefs, attachmentMetadata, noSession: command.noSession, signal,
+      ...(bankValidationFixtures===undefined?{}:{bankValidationFixtures}),
+    }))
     emit({ type: normalized.eventType, ...normalized, eventType: undefined, exitCode: undefined })
     return normalized.exitCode
   }
@@ -100,11 +112,62 @@ export async function executeHeadless(command, { service, stdin, signal, emit })
     emit({ type: normalized.eventType, ...normalized, eventType: undefined, exitCode: undefined })
     return normalized.exitCode
   }
+  if (command.kind === 'journey-author') {
+    const goal = await readInput(command.inputFile, stdin)
+    const result = await service.journeyAuthor({
+      sessionId: command.sessionId, goal, entryUrl: command.entryUrl, targetSystem: command.targetSystem,
+      credentialRef: command.credentialRef, adapterSelection: command.adapterSelection, signal,
+      ...(bankValidationFixtures===undefined?{}:{bankValidationFixtures}),
+    })
+    assertSafeResult(result)
+    emit({ type: 'COMMAND_RESULT', status: result.status, sessionId: result.sessionId, journeyId: result.journeyId, result })
+    return EXIT.APPROVAL_REQUIRED
+  }
+  if (['journey-approve', 'journey-reject'].includes(command.kind)) {
+    const result = await service.journeyDecision({
+      sessionId: command.sessionId, journeyId: command.journeyId, revision: command.revision,
+      proposalId: command.proposalId, contentHash: command.contentHash,
+      approved: command.kind === 'journey-approve', signal,
+    })
+    assertSafeResult(result)
+    emit({ type: 'COMMAND_RESULT', status: result.status, sessionId: result.sessionId, journeyId: result.journeyId, result })
+    return EXIT.SUCCESS
+  }
+  if (command.kind === 'journey-execute') {
+    const result = await service.journeyExecute({
+      sessionId: command.sessionId, journeyId: command.journeyId, signal,
+      ...(command.repeat ? {repeat:true} : {}),
+    })
+    assertSafeResult(result)
+    emit({ type: 'COMMAND_RESULT', status: result.status, sessionId: result.sessionId, journeyId: result.journeyId, result })
+    return EXIT.SUCCESS
+  }
+  if (command.kind === 'evidence-verify') {
+    const result = await service.evidenceVerify({ journeyId: command.journeyId, signal })
+    if (result?.verdict !== 'VERIFIED') throw new CliError(result?.errorCode || 'I10_EVIDENCE_VERIFICATION_FAILED', EXIT.EVIDENCE_GATE_FAILED)
+    assertSafeResult(result)
+    emit({ type: 'COMMAND_RESULT', status: 'VERIFIED', journeyId: command.journeyId, result })
+    return EXIT.SUCCESS
+  }
   const method = methodFor(command.kind)
+  let correction
+  if(command.kind==='feedback-record'){
+    try {correction=JSON.parse(await readInput(command.inputFile,stdin))}catch(error){if(error instanceof CliError)throw error;throw new CliError('FEEDBACK_CORRECTION_JSON_INVALID',EXIT.INPUT_INVALID)}
+  }
   if (!method || typeof service[method] !== 'function') throw new CliError('COMMAND_NOT_AVAILABLE', EXIT.RUNTIME_UNAVAILABLE)
-  const result = await service[method]({ sessionId: command.sessionId, journeyId: command.journeyId, signal })
+  const result = await service[method]({ sessionId: command.sessionId, journeyId: command.journeyId, signal,
+    ...(['feedback-record','feedback-verify','feedback-show'].includes(command.kind)?{
+      incidentId:command.incidentId,feedbackId:command.feedbackId,verificationJourneyId:command.verificationJourneyId,correction}:{}),
+    ...(['verification-status','verification-decide'].includes(command.kind)?{
+      challengeId:command.challengeId,revision:command.revision,decision:command.decision}:{}),
+    ...(['schedule-create','schedule-status','schedule-disable','failure-show'].includes(command.kind)?{
+      scheduleId:command.scheduleId,incidentId:command.incidentId,cronExpression:command.cronExpression,
+      runAt:command.runAt,timezone:command.timezone,reason:command.reason}:{}),
+  })
   assertSafeResult(result)
   emit({ type: 'COMMAND_RESULT', status: 'COMPLETED', result })
+  if (command.kind === 'doctor' && result?.status !== 'READY') return EXIT.RUNTIME_UNAVAILABLE
+  if (command.kind === 'service-status' && !['READY', 'HEALTHY'].includes(result?.status)) return EXIT.RUNTIME_UNAVAILABLE
   return EXIT.SUCCESS
 }
 

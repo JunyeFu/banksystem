@@ -1,10 +1,12 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
+import http from 'node:http'
 
 import {
   ControllerAdapterError,
   createMcpControllerAdapters,
   createOpenAIJsonInvoker,
+  modelResponseEvidence,
   stableHash,
   validateMcpLoopbackUrl,
 } from '../src/runtime-adapters.mjs'
@@ -13,6 +15,74 @@ import { createControllerRuntimeV2 } from '../src/controller-runtime.mjs'
 function textResult(payload, isError = false) {
   return { isError, content: [{ type: 'text', text: JSON.stringify(payload) }] }
 }
+
+test('model diagnostics retain format and finish reason, never body or arbitrary metadata', () => {
+  const summary = modelResponseEvidence({content:'```json\n{"secret":"must-not-leak"}\n```',
+    response_metadata:{finish_reason:'stop',reasoning_content:'private-reasoning'},
+    usage_metadata:{input_tokens:10,output_tokens:20,total_tokens:30}})
+  assert.equal(summary.frame,'FENCE')
+  assert.equal(summary.jsonValid,false)
+  assert.equal(summary.exactJsonFence,true)
+  assert.equal(summary.fencedJsonValid,true)
+  assert.equal(summary.finishReason,'stop')
+  assert.equal(summary.outputTokens,20)
+  assert.equal(JSON.stringify(summary).includes('must-not-leak'),false)
+  assert.equal(JSON.stringify(summary).includes('private-reasoning'),false)
+  const truncated=modelResponseEvidence({content:'{"steps":[',response_metadata:{finish_reason:'length'}})
+  assert.equal(truncated.objectClosed,false)
+  assert.equal(truncated.jsonValid,false)
+  assert.equal(truncated.finishReason,'length')
+  const broken=modelResponseEvidence({content:'{"secret":"private" private-other "value"}',response_metadata:{finish_reason:'stop'}})
+  assert.equal(broken.syntaxError.category,'VALUE_DELIMITER')
+  assert.equal(broken.formatSkeleton.includes('private'),false)
+  assert.equal(broken.formatSkeleton.includes('secret'),false)
+  assert.equal(broken.formatSkeleton,'{"x":"x" x "x"}')
+  assert.equal(modelResponseEvidence({content:'\uFEFF{}'}).withoutBomJsonValid,true)
+  assert.equal(modelResponseEvidence({content:[],response_metadata:{finish_reason:'unsafe-user-text'}}).finishReason,'OTHER')
+})
+
+test('model response evidence precedes content rejection with no retries or silent repair',async()=>{
+  const receipts=[];let calls=0
+  const invokeJson=createOpenAIJsonInvoker({apiKey:'test-only',baseURL:'http://model.invalid/v1',model:'m',
+    onResponseEvidence: value=>receipts.push(value),
+    modelFactory:()=>({withConfig:()=>({async invoke(){calls++;return {content:'{"x":',response_metadata:{finish_reason:'length'}}}})})})
+  assert.equal(await invokeJson({systemPrompt:'JSON',input:'{}'}),'{"x":')
+  assert.equal(calls,1)
+  assert.equal(receipts[0].finishReason,'length')
+  const invalid=createOpenAIJsonInvoker({apiKey:'test-only',baseURL:'http://model.invalid/v1',model:'m',
+    onResponseEvidence:value=>receipts.push(value),modelFactory:()=>({withConfig:()=>({async invoke(){return {content:[]}}})})})
+  await assert.rejects(invalid({systemPrompt:'JSON',input:'{}'}),error=>error.code==='AGENT_ADAPTER_MODEL_RESPONSE_INVALID')
+  assert.equal(receipts[1].contentType,'ARRAY')
+  const unwritable=createOpenAIJsonInvoker({apiKey:'test-only',baseURL:'http://model.invalid/v1',model:'m',
+    onResponseEvidence:()=>{throw new Error('private-path')},modelFactory:()=>({withConfig:()=>({async invoke(){return {content:'{}'}}})})})
+  await assert.rejects(unwritable({systemPrompt:'JSON',input:'{}'}),error=>error.code==='AGENT_ADAPTER_MODEL_EVIDENCE_WRITE_FAILED'&&!error.message.includes('private-path'))
+})
+
+test('actual ChatOpenAI HTTP request carries JSON mode and records a malformed complete response safely',async t=>{
+  let requestBody, calls=0, evidence;
+  const server=http.createServer(async(request,response)=>{
+    let body='';for await(const chunk of request)body+=chunk;
+    requestBody=JSON.parse(body);calls++;
+    response.writeHead(200,{'content-type':'application/json'});
+    response.end(JSON.stringify({id:'test-response',object:'chat.completion',created:1,model:'configured-model',
+      choices:[{index:0,finish_reason:'stop',message:{role:'assistant',content:'{"title":"private "quoted" value"}'}}],
+      usage:{prompt_tokens:10,completion_tokens:20,total_tokens:30}}));
+  });
+  await new Promise(resolve=>server.listen(0,'127.0.0.1',resolve));t.after(()=>new Promise(resolve=>server.close(resolve)));
+  const invoke=createOpenAIJsonInvoker({apiKey:'test-only',baseURL:`http://127.0.0.1:${server.address().port}/v1`,model:'configured-model',
+    onResponseEvidence:value=>{evidence=value}});
+  const content=await invoke({systemPrompt:'Return JSON',input:'{}'});
+  assert.equal(calls,1);
+  assert.deepEqual(requestBody.response_format,{type:'json_object'});
+  assert.equal(requestBody.tools,undefined);
+  assert.equal(requestBody.temperature,0);
+  assert.equal(evidence.jsonValid,false);
+  assert.equal(evidence.syntaxError.category,'VALUE_DELIMITER');
+  assert.equal(evidence.finishReason,'stop');
+  assert.equal(evidence.outputTokens,20);
+  assert.equal(JSON.stringify(evidence).includes('private'),false);
+  assert.throws(()=>JSON.parse(content));
+})
 
 function mutationCommand(overrides = {}) {
   const args = {
@@ -72,6 +142,7 @@ test('OpenAI-compatible adapter fixes JSON mode, zero retries and no tools witho
   assert.equal(await invokeJson({ systemPrompt: 'bounded', input: '{}' }), '{"type":"ANSWER","answer":"ok"}')
   assert.equal(observedConfig.maxRetries, 0)
   assert.equal(observedConfig.temperature, 0)
+  assert.equal(observedConfig.timeout, 90_000)
   assert.deepEqual(observedBinding.tools, [])
   assert.deepEqual(observedBinding.response_format, { type: 'json_object' })
   assert.equal(observedMessages.length, 2)
@@ -134,6 +205,26 @@ test('mutation sends the exact frozen payload while controller-level idempotency
   assert.deepEqual(calls[0].arguments.normalizedInput, { title: 'bounded' })
 })
 
+test('mutation uses its own bounded deadline without widening read calls or retrying', async () => {
+  let calls = 0
+  const adapter = createMcpControllerAdapters({
+    timeoutMs: 50,
+    mutationTimeoutMs: 200,
+    client: {
+      async callTool(_request, options) {
+        calls += 1
+        assert.equal(options.timeout, 200)
+        await new Promise((resolve) => setTimeout(resolve, 75))
+        return textResult({ version: 5, status: 'INPUT_ACCEPTED' })
+      },
+    },
+  })
+
+  const result = await adapter.invoke(mutationCommand())
+  assert.equal(result.harnessVersion, 5)
+  assert.equal(calls, 1)
+})
+
 test('argument hash, version and idempotency fencing fail before transport', async (t) => {
   for (const [name, command, code] of [
     ['hash', mutationCommand({ argumentsHash: '0'.repeat(64) }), 'AGENT_ADAPTER_ARGUMENT_HASH_MISMATCH'],
@@ -178,7 +269,7 @@ test('business conflict, disconnect and timeout are canonical and mutation is ne
   ]) {
     await t.test(name, async () => {
       let calls = 0
-      const adapter = createMcpControllerAdapters({ timeoutMs: 50, client: {
+      const adapter = createMcpControllerAdapters({ timeoutMs: 50, mutationTimeoutMs: 50, client: {
         async callTool(request, options) { calls += 1; return implementation(request, options) },
       } })
       await assert.rejects(adapter.invoke(mutationCommand()), (error) => error.code === code)

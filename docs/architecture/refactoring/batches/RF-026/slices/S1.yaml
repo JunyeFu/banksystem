@@ -1,0 +1,9 @@
+id: RF-026-S1
+title: Rebaseline open-source product authority
+status: COMPLETED
+allowedPaths: [AGENTS.md, agent/plans/active/banksystem-open-source-product-baseline-v1.md, agent/plans/active/banksystem-open-source-task-packages-v1.yaml, agent/plans/active/banksystem-tp-a01-authority-rebaseline-task-package.md, agent/plans/active/hengzhun-i10-cli-agent-baseline-v1.md, docs/architecture/refactoring-control-process-v1.md, docs/architecture/refactoring/batches/RF-026, agent/backlog.yaml, agent/plans/active/v54-implementation-batches.md]
+forbiddenPaths: [apps, services, infra, postgresql, contracts, platform/hengzhun-regression-system/.data, platform/hengzhun-regression-system/controller, platform/hengzhun-regression-system/harness, platform/hengzhun-regression-system/mcp, platform/hengzhun-regression-system/worker]
+workSteps: [freeze current authority facts, persist product baseline and portfolio, remove Flowise from target runtime authority, register status and order, validate governance]
+verification: [RF-026 validator exits 0, temporal validator exits 0, docs validator exits 0, git diff check exits 0]
+rollback: revert only RF-026-owned governance changes
+evidence: docs/architecture/refactoring/batches/RF-026/evidence-index.md

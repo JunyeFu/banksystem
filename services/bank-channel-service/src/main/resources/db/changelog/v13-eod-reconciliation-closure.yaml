@@ -1,0 +1,139 @@
+databaseChangeLog:
+  - changeSet:
+      id: v13-1-eod-step-checkpoint
+      author: Codex
+      changes:
+        - addUniqueConstraint:
+            tableName: eod_run
+            columnNames: business_date
+            constraintName: uq_eod_run_business_date
+        - createTable:
+            tableName: eod_run_step
+            columns:
+              - column:
+                  name: run_id
+                  type: uuid
+                  constraints:
+                    nullable: false
+                    references: eod_run(run_id)
+                    foreignKeyName: fk_eod_run_step_run
+              - column:
+                  name: step_name
+                  type: varchar(64)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: completed_at
+                  type: timestamptz
+                  defaultValueComputed: now()
+                  constraints:
+                    nullable: false
+        - addPrimaryKey:
+            tableName: eod_run_step
+            columnNames: run_id, step_name
+            constraintName: pk_eod_run_step
+
+  - changeSet:
+      id: v13-2-reconciliation-run-context
+      author: Codex
+      changes:
+        - sql:
+            sql: ALTER TABLE reconciliation_run ALTER COLUMN details TYPE jsonb USING details::jsonb
+        - addColumn:
+            tableName: reconciliation_run
+            columns:
+              - column:
+                  name: eod_run_id
+                  type: uuid
+              - column:
+                  name: business_date
+                  type: date
+              - column:
+                  name: phase
+                  type: varchar(16)
+                  defaultValue: MANUAL
+                  constraints:
+                    nullable: false
+        - addForeignKeyConstraint:
+            baseTableName: reconciliation_run
+            baseColumnNames: eod_run_id
+            referencedTableName: eod_run
+            referencedColumnNames: run_id
+            constraintName: fk_reconciliation_run_eod
+            onDelete: CASCADE
+        - addUniqueConstraint:
+            tableName: reconciliation_run
+            columnNames: eod_run_id, reconciliation_type, phase
+            constraintName: uq_reconciliation_eod_type
+        - createTable:
+            tableName: reconciliation_difference
+            columns:
+              - column:
+                  name: difference_id
+                  type: uuid
+                  constraints:
+                    primaryKey: true
+                    nullable: false
+              - column:
+                  name: run_id
+                  type: uuid
+                  constraints:
+                    nullable: false
+                    references: reconciliation_run(run_id)
+                    foreignKeyName: fk_reconciliation_difference_run
+              - column:
+                  name: transaction_id
+                  type: uuid
+              - column:
+                  name: field_name
+                  type: varchar(32)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: expected_value
+                  type: varchar(240)
+              - column:
+                  name: actual_value
+                  type: varchar(240)
+              - column:
+                  name: created_at
+                  type: timestamptz
+                  defaultValueComputed: now()
+                  constraints:
+                    nullable: false
+
+  - changeSet:
+      id: v13-3-clearing-fact-snapshot
+      author: Codex
+      changes:
+        - addColumn:
+            tableName: clearing_payment
+            columns:
+              - column:
+                  name: core_reference
+                  type: varchar(128)
+              - column:
+                  name: amount
+                  type: numeric(19,2)
+              - column:
+                  name: currency
+                  type: char(3)
+        - sql:
+            sql: >-
+              UPDATE clearing_payment c
+                 SET core_reference=t.core_reference, amount=t.amount, currency=t.currency
+                FROM transfer_order t
+              WHERE t.transfer_id=c.transfer_id
+                 AND (c.amount IS NULL OR c.currency IS NULL OR c.core_reference IS NULL)
+
+  - changeSet:
+      id: v13-4-failed-eod-rerun
+      author: Codex
+      changes:
+        - dropUniqueConstraint:
+            tableName: eod_run
+            constraintName: uq_eod_run_business_date
+        - sql:
+            sql: >-
+              CREATE UNIQUE INDEX uq_eod_active_business_date ON eod_run(business_date)
+              WHERE status IN ('RUNNING','INTERRUPTED','COMPLETED')

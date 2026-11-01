@@ -132,8 +132,10 @@ const verificationTerminalStatuses = new Set([
 
 async function waitForVerificationConfirmation(challenge, namespace) {
   const reported = await post('/internal/worker/i10/verification:report', {
-    ...challenge,
-    workerId
+    namespace, workerId, taskRef: challenge.taskRef, verificationType: challenge.verificationType,
+    actionOrdinal: challenge.actionOrdinal, detectionSummary: '原浏览器已进入需要人工完成的验证步骤。',
+    userPreparation: challenge.userPreparation,
+    policyMode: 'EXTERNAL_CONFIRM_REQUIRED', expiresAt: new Date(Date.now() + 10 * 60_000).toISOString()
   });
   const deadline = Date.now() + 10 * 60_000;
   while (Date.now() < deadline) {
@@ -296,7 +298,7 @@ async function runI8StabilityOnce() {
         evidencePath: controlledFailure.evidencePath
       }) + '\n');
     }
-    const i10Credential = claim.stabilityPolicyVersion === 'I10_2X2_V1'
+    const i10Credential = !claim.bankValidationFixtures && claim.stabilityPolicyVersion === 'I10_2X2_V1'
       ? await post('/internal/worker/i10/credentials:resolve', { namespace: claim.namespace, credentialRef: claim.credentialRef })
       : undefined;
     const completion = await executeStabilityBatch(claim, {
@@ -306,6 +308,7 @@ async function runI8StabilityOnce() {
       environment: process.env,
       onVerificationAttempt: attempt => post('/internal/worker/i10/verification:attempt', { ...attempt, workerId }),
       ...(controlledFailure ? { forceFailureValidationRunId: controlledFailure.validationRunId } : {}),
+      ...(claim.bankValidationFixtures?{resolveCredential:credentialRef=>post('/internal/worker/i10/credentials:resolve',{namespace:claim.namespace,credentialRef}),baseUrl:claim.entryUrl}:{}),
       ...(i10Credential ? { credential: i10Credential, baseUrl: claim.entryUrl } : {})
     });
     const completed = await post(`/internal/worker/i8/stability/${encodeURIComponent(claim.batchId)}:complete`, completion);

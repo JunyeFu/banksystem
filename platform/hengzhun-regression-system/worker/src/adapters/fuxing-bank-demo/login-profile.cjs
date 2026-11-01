@@ -1,6 +1,7 @@
 const fs = require('node:fs');
 const path = require('node:path');
 const { chromium } = require('../../../../runtime/node_modules/playwright');
+const {executeBankAuthentication}=require('./authentication.cjs');
 const {
   artifact, quarantinedScreenshotArtifact, throwIfLeaseAborted, bindLeaseAbortToBrowser,
   credentialEnvironmentName, resolveCredential, resolveExecutionCredential, sha256
@@ -62,11 +63,9 @@ async function executeLoginProfile(task, environment = process.env, options = {}
     throwIfLeaseAborted(options.signal);
     await page.goto(`${portalBaseUrl}/portal/login`, { waitUntil: 'domcontentloaded', timeout: 30000 });
     steps.push({ step: 'portal-login-opened', passed: true });
-    await atTarget('LOGIN_USERNAME', () => locator('LOGIN_USERNAME', () => page.getByTestId('login-username')).fill(credential.username));
-    await atTarget('LOGIN_PASSWORD', () => locator('LOGIN_PASSWORD', () => page.getByTestId('login-password')).fill(credential.password));
-    await atTarget('LOGIN_SUBMIT', () => locator('LOGIN_SUBMIT', () => page.getByTestId('login-submit')).click());
+    await executeBankAuthentication(page,credential);
     await atTarget('PROFILE_NAME', () => locator('PROFILE_NAME', () => page.getByTestId('customer-profile-name')).waitFor({ state: 'visible', timeout: 30000 }));
-    steps.push({ step: 'portal-password-login', passed: true });
+    steps.push({ step: 'keycloak-pkce-login', passed: true });
 
     await atTarget('PROFILE_LINK', () => locator('PROFILE_LINK', () => page.getByRole('link', { name: '个人资料', exact: true })).click());
     await atTarget('PROFILE_DISPLAY_NAME', () => locator('PROFILE_DISPLAY_NAME', () => page.getByTestId('profile-display-name')).waitFor({ state: 'visible', timeout: 30000 }));
@@ -167,7 +166,7 @@ async function executeLoginProfile(task, environment = process.env, options = {}
     const failureEvidence = [artifact('DIAGNOSTIC', 'application/json', 'REDACTED', 'json', JSON.stringify(diagnostic, null, 2), { containsCredentials: false })];
     const failureScreenshot = await page.screenshot({
       fullPage: true,
-      mask: [page.getByTestId('login-username'), page.getByTestId('login-password')],
+      mask: [page.locator('#username'), page.locator('#password')],
       maskColor: '#202020'
     }).catch(() => null);
     if (failureScreenshot) {

@@ -1,0 +1,9 @@
+databaseChangeLog:
+  - changeSet:
+      id: v17-eod-job-readback
+      author: Codex
+      changes:
+        - addColumn:
+            tableName: eod_run_step
+            columns:
+              - column: { name: core_job_version, type: bigint }

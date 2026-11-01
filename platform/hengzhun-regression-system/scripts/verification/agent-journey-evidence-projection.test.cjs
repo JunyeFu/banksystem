@@ -16,7 +16,7 @@ test('independent MCP preserves bounded terminal authority without URLs or secre
       credentialRef: 'credential_12345678', captureUrl: 'http://127.0.0.1/form#token=secret',
     },
     artifactCards: [{
-      artifactId: 'artifact_12345678', displayName: 'result.json', mediaType: 'application/json', sha256: 'b'.repeat(64), size: 42,
+      artifactId: 'artifact_12345678', displayName: 'result.json', mediaType: 'application/json', sha256: 'b'.repeat(64), byteSize: 42,
       href: 'http://127.0.0.1/download#token=secret', token: 'secret', downloadGrantRequired: true,
     }],
   }
@@ -36,7 +36,7 @@ test('projection is bounded and malformed artifact metadata is dropped', () => {
     terminal: false,
     references: Object.fromEntries(REFERENCE_FIELDS.map((field) => [field, 'x'.repeat(500)])),
     artifactCards: Array.from({ length: 20 }, (_, index) => ({
-      artifactId: `artifact_${String(index).padStart(8, '0')}`, displayName: `result-${index}`, sha256: 'invalid', size: -1,
+      artifactId: `artifact_${String(index).padStart(8, '0')}`, displayName: `result-${index}`, sha256: 'invalid', byteSize: -1,
     })),
   })
   assert.equal(projected.terminal, false)

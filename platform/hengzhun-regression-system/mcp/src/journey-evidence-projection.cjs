@@ -3,6 +3,7 @@
 const REFERENCE_FIELDS = Object.freeze([
   'caseId', 'preparationId', 'candidateId', 'certificateId', 'scriptId', 'scriptHash', 'planId',
   'confirmedDecisionEventId', 'taskId', 'runId', 'scheduleId', 'inboxId', 'resultArtifactId',
+  'validatedJourneyId', 'sourceRunId',
 ])
 
 function boundedText(value, limit) {
@@ -20,10 +21,16 @@ function projectJourneyEvidenceFields(body) {
     ...(boundedText(card?.displayName, 240) ? { displayName: boundedText(card.displayName, 240) } : {}),
     ...(boundedText(card?.mediaType, 160) ? { mediaType: boundedText(card.mediaType, 160) } : {}),
     ...(/^[a-f0-9]{64}$/.test(String(card?.sha256 || '')) ? { sha256: card.sha256 } : {}),
-    ...(Number.isSafeInteger(card?.size) && card.size >= 0 ? { size: card.size } : {}),
+    ...(Number.isSafeInteger(card?.byteSize) && card.byteSize >= 0 ? { size: card.byteSize } : {}),
     downloadGrantRequired: card?.downloadGrantRequired === true,
   })).filter((card) => card.artifactId && card.displayName) : []
-  return Object.freeze({ terminal: body?.terminal === true, references: Object.freeze(references), artifactCards: Object.freeze(artifactCards) })
+  const error = body?.error;
+  const safeError = error && /^(?:I10|I8|AGENT|MODEL|HARNESS|MCP|WORKER|BROWSER|BANK)_[A-Z0-9_]{1,90}$/.test(error.errorCode || '') ? {
+    errorCode: error.errorCode,
+    ...(/^[A-Z_]{1,40}$/.test(error.category || '') ? { category: error.category } : {}),
+    recoverable: error.recoverable === true,
+  } : undefined;
+  return Object.freeze({ terminal: body?.terminal === true, references: Object.freeze(references), artifactCards: Object.freeze(artifactCards), ...(safeError ? { error: Object.freeze(safeError) } : {}) })
 }
 
 module.exports = { REFERENCE_FIELDS, projectJourneyEvidenceFields }

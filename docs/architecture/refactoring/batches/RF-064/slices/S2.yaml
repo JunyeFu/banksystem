@@ -1,0 +1,10 @@
+id: RF-064-S2
+title: 调度与失败接管
+status: IMPLEMENTING
+businessGoal: 调度与失败接管
+allowedPaths: [platform/hengzhun-regression-system/agent-cli, platform/hengzhun-regression-system/mcp, platform/hengzhun-regression-system/harness, platform/hengzhun-regression-system/worker, platform/hengzhun-regression-system/controller/src/runtime-adapters.mjs, platform/hengzhun-regression-system/scripts/verification]
+forbiddenPaths: [postgresql, infra/keycloak, platform/hengzhun-regression-system/flowise]
+workSteps: [S2-1 validated script CLI scheduling and zero retries, S2-2 failure pause and explicit human handoff, S2-3 synthetic verification challenge and runtime evidence]
+verification: ['产品npm.cmd run build；npm.cmd run check:tests；新增调度/接管合同与SQLite测试']
+evidence: docs/architecture/refactoring/batches/RF-064/evidence-index.md
+

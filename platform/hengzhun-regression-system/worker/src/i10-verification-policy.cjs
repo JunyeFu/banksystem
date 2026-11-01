@@ -4,10 +4,11 @@
 // explicit adapter and may never be selected from fixture names, page text or
 // natural-language labels.
 const fuxingDemo = require('./adapters/fuxing-bank-demo/verification-policy.cjs');
+const {BANK_AUTH}=require('./adapters/fuxing-bank-demo/authentication.cjs');
 const NONE = Object.freeze({ mode: 'NONE' });
 
 function isFuxingDemoBinding(binding) {
-  return binding?.adapterId === 'fuxing-bank-demo' && binding?.adapterVersion === '1.0.0';
+  return binding?.adapterId === BANK_AUTH.adapterId && binding?.adapterVersion === BANK_AUTH.adapterVersion;
 }
 
 function policyForAction(action, fixtureProfile, adapterBinding) {

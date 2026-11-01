@@ -13,7 +13,7 @@ const { RangePicker } = DatePicker;
 const statusClass = (status: TransferStatus): string => {
   if (status === 'SETTLED') return 'success';
   if (['FAILED', 'TIMED_OUT', 'RETURNED', 'REVERSED'].includes(status)) return 'danger';
-  if (['RISK_REVIEW', 'PENDING_APPROVAL', 'REVERSAL_PENDING'].includes(status)) return 'warning';
+  if (['RISK_REVIEW', 'PENDING_APPROVAL', 'CORE_RESULT_UNKNOWN', 'RETURN_PENDING', 'RETURN_RESULT_UNKNOWN', 'REVERSAL_PENDING'].includes(status)) return 'warning';
   return 'progress';
 };
 

@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-labelledby="hengzhun-title">
+  <title id="hengzhun-title">衡准 · 校准与验证</title>
+  <rect width="64" height="64" rx="14" fill="#a6192e"/>
+  <g fill="none" stroke="#fff" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M22 14h-8v8m28-8h8v8m0 20v8h-8m-20 0h-8v-8" stroke-width="3.5"/>
+    <circle cx="32" cy="32" r="12" stroke-width="2" opacity=".45"/>
+    <path d="m25 32 5 5 10-11" stroke-width="4.5"/>
+  </g>
+</svg>

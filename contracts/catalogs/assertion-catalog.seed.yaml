@@ -28,9 +28,9 @@ assertions:
       - path: stateHistory
         minItems: 5
 
-  - assertionId: assert.ledger.balanced
-    description: Verify ledger debit equals credit
-    endpoint: /internal/test-support/v1/assertions/ledger/{correlationId}
+  - assertionId: assert.accounting-projection.balanced
+    description: Verify the channel accounting projection mirrors one balanced core transfer
+    endpoint: /internal/test-support/v1/assertions/accounting-projection/{correlationId}
     checks:
       - path: entries
         minItems: 2

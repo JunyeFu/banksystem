@@ -1,0 +1,9 @@
+id: RF-051-S1
+title: EOD checkpoint and transaction reconciliation implementation
+status: COMPLETED
+allowedPaths: [services/bank-channel-service, contracts/openapi/operations-api.yaml, packages/bank-api-client, apps/operations-console, docs/architecture/refactoring/batches/RF-051, agent/backlog.yaml, agent/plans/active/v54-implementation-batches.md]
+forbiddenPaths: [platform/hengzhun-regression-system, postgresql, infra]
+workSteps: [register EOD before work, checkpoint successful steps, compare transaction facts, block date advance on differences, verify interruption resume]
+verification: [Java tests pass, Operations Console builds, Liquibase v13 applies, read-only reconciliation and golden transfer pass, services remain running]
+rollback: preserve data and rebuild the prior Bank Channel image if an observed regression requires rollback
+evidence: docs/architecture/refactoring/batches/RF-051/evidence-index.md

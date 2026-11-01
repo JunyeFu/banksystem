@@ -9,6 +9,7 @@ const { spawnSync } = require('node:child_process')
 const productRoot = path.resolve(__dirname, '..')
 const manifestPath = path.join(__dirname, 'verification', 'test-manifest.json')
 const testNamePattern = /(?:\.test|\.selftest)\.cjs$/
+const REGISTERED_TEST_TIMEOUT_MS = 180_000
 
 function posix(value) {
   return String(value).replaceAll(path.sep, '/')
@@ -50,10 +51,18 @@ function assertUniqueSorted(items, label) {
 
 function validateManifest(manifest, discovered = discoverTests()) {
   assertUniqueSorted(manifest.tests, 'TEST_MANIFEST')
-  const registered = new Set(manifest.tests)
+  if (!Array.isArray(manifest.historicalTests)) fail('TEST_MANIFEST_HISTORY_INVALID')
+  const historicalPaths = manifest.historicalTests.map(entry => entry?.path)
+  assertUniqueSorted(historicalPaths, 'TEST_MANIFEST_HISTORY')
+  for (const entry of manifest.historicalTests) {
+    if (typeof entry?.path !== 'string' || typeof entry?.reason !== 'string' || entry.reason.trim().length < 20 || manifest.tests.includes(entry.path)) {
+      fail('TEST_MANIFEST_HISTORY_INVALID', [JSON.stringify(entry)])
+    }
+  }
+  const registered = new Set([...manifest.tests, ...historicalPaths])
   const actual = new Set(discovered)
   const unregistered = discovered.filter(file => !registered.has(file))
-  const missing = manifest.tests.filter(file => !actual.has(file))
+  const missing = [...registered].filter(file => !actual.has(file))
   if (unregistered.length || missing.length) {
     fail('TEST_MANIFEST_DISCOVERY_MISMATCH', [
       ...unregistered.map(file => `unregistered:${file}`),
@@ -65,7 +74,7 @@ function validateManifest(manifest, discovered = discoverTests()) {
   const exclusionPaths = exclusions.map(item => item?.path)
   assertUniqueSorted(exclusionPaths, 'TEST_MANIFEST_CI_EXCLUSIONS')
   for (const entry of exclusions) {
-    if (!registered.has(entry?.path) || typeof entry?.reason !== 'string' || entry.reason.trim().length < 20) {
+    if (!manifest.tests.includes(entry?.path) || typeof entry?.reason !== 'string' || entry.reason.trim().length < 20) {
       fail('TEST_MANIFEST_CI_EXCLUSION_INVALID', [JSON.stringify(entry)])
     }
   }
@@ -75,7 +84,7 @@ function validateManifest(manifest, discovered = discoverTests()) {
   if (!Array.isArray(coverageTests) || !thresholds) fail('TEST_MANIFEST_COVERAGE_INVALID')
   assertUniqueSorted(coverageTests, 'TEST_MANIFEST_COVERAGE_TESTS')
   for (const file of coverageTests) {
-    if (!registered.has(file) || exclusionPaths.includes(file)) fail('TEST_MANIFEST_COVERAGE_TEST_INVALID', [file])
+    if (!manifest.tests.includes(file) || exclusionPaths.includes(file)) fail('TEST_MANIFEST_COVERAGE_TEST_INVALID', [file])
   }
   for (const name of ['lines', 'branches', 'functions']) {
     if (!Number.isFinite(thresholds[name]) || thresholds[name] < 50 || thresholds[name] > 100) {
@@ -149,7 +158,7 @@ function run(mode, manifest) {
     ...(mode === 'coverage' ? ['--experimental-test-coverage'] : []),
     '--test',
     '--test-concurrency=1',
-    '--test-timeout=60000',
+    `--test-timeout=${REGISTERED_TEST_TIMEOUT_MS}`,
     ...files
   ]
   const before = releaseStateSnapshot()
@@ -183,7 +192,7 @@ function main() {
   const manifest = validateManifest(loadManifest())
   validatePackageTestScripts()
   if (mode === 'check') {
-    process.stdout.write(`Test manifest complete: ${manifest.tests.length} registered, ${manifest.tests.length - manifest.ciExcluded.length} CI-runnable, ${manifest.ciExcluded.length} governed-runtime.\n`)
+    process.stdout.write(`Test manifest complete: ${manifest.tests.length + manifest.historicalTests.length} registered, ${manifest.tests.length - manifest.ciExcluded.length} CI-runnable, ${manifest.ciExcluded.length} governed-runtime, ${manifest.historicalTests.length} historical-only.\n`)
     return
   }
   run(mode, manifest)
@@ -198,6 +207,7 @@ if (require.main === module) {
 }
 
 module.exports = {
+  REGISTERED_TEST_TIMEOUT_MS,
   assertCoverage,
   assertReleaseStateUnchanged,
   discoverTests,

@@ -1,9 +1,13 @@
 {
   "name": "operations-console",
   "private": true,
+  "license": "MPL-2.0",
   "version": "0.1.0",
   "type": "module",
   "scripts": {
+    "lint": "eslint src vite.config.ts --max-warnings 0",
+    "typecheck": "tsc --noEmit -p tsconfig.json",
+    "test": "vitest run",
     "dev": "vite",
     "build": "tsc -b && vite build",
     "preview": "vite preview"
@@ -17,10 +21,14 @@
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
     "react-hook-form": "^7.53.0",
-    "react-router-dom": "^6.26.2",
+    "react-router-dom": "7.18.2",
     "zod": "^3.23.8"
   },
   "devDependencies": {
+    "eslint": "10.12.0",
+    "@eslint/js": "10.0.1",
+    "typescript-eslint": "8.71.1",
+    "vitest": "4.1.11",
     "@types/node": "^20.16.5",
     "@types/react": "^18.3.11",
     "@types/react-dom": "^18.3.0",

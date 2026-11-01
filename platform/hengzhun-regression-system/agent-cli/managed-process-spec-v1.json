@@ -6,6 +6,12 @@
     "executable": "runtime/node-v24.19.0-win-x64/node.exe",
     "entrypoint": "agent-cli/bin/hz-agent.mjs"
   },
+  "runtime": {
+    "sessionRoot": ".data/sessions",
+    "harnessUrl": "http://127.0.0.1:18788",
+    "mcpUrl": "http://127.0.0.1:18789/mcp",
+    "namespace": "hengzhun-local"
+  },
   "services": [
     { "name": "harness", "executable": "runtime/node-v20.20.2-win-x64/node.exe", "entrypoint": "dist/harness/src/index.js", "port": 18788 },
     { "name": "mcp", "executable": "runtime/node-v20.20.2-win-x64/node.exe", "entrypoint": "mcp/src/server.cjs", "port": 18789 },

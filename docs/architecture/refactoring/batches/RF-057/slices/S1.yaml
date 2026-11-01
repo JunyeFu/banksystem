@@ -1,0 +1,10 @@
+id: RF-057-S1
+title: Real bank business
+status: COMPLETED
+businessGoal: Real customers and operators observe the same accounting outcome
+allowedPaths: [scripts/test, tests, scripts/demo, docs/architecture/refactoring/batches/RF-057, agent/backlog.yaml, agent/plans/active/v54-implementation-batches.md, docs/current-state/capability-matrix.md, platform/hengzhun-regression-system/scripts]
+forbiddenPaths: [services/bank-channel-service/src/main, postgresql, platform/hengzhun-regression-system/flowise]
+workSteps: ["Reuse fixture helpers", "test PKCE/refresh/logout and subject isolation", "exercise transfers/idempotency/insufficient funds", "exercise notifications/loan checker/document transitions", "reconcile and restart-readback without core date changes"]
+verification: ["powershell -NoProfile -ExecutionPolicy Bypass -File scripts/test/rf057-bank.ps1", no missing required case or synthetic runtime success]
+rollback: stop owned test driver and retain banking history and services
+evidence: docs/architecture/refactoring/batches/RF-057/evidence-index.md

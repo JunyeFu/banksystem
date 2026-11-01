@@ -1,0 +1,37 @@
+databaseChangeLog:
+  - changeSet:
+      id: v10-transfer-receipt-subject
+      author: RF-031
+      preConditions:
+        - onFail: MARK_RAN
+        - not:
+            - columnExists: {tableName: transfer_receipt, columnName: subject}
+      changes:
+        - addColumn:
+            tableName: transfer_receipt
+            columns:
+              - column: {name: subject, type: varchar(128)}
+  - changeSet:
+      id: v10-transfer-receipt-payload
+      author: RF-031
+      preConditions:
+        - onFail: MARK_RAN
+        - not:
+            - columnExists: {tableName: transfer_receipt, columnName: payload}
+      changes:
+        - addColumn:
+            tableName: transfer_receipt
+            columns:
+              - column: {name: payload, type: text}
+  - changeSet:
+      id: v10-transfer-receipt-sha256
+      author: RF-031
+      preConditions:
+        - onFail: MARK_RAN
+        - not:
+            - columnExists: {tableName: transfer_receipt, columnName: sha256}
+      changes:
+        - addColumn:
+            tableName: transfer_receipt
+            columns:
+              - column: {name: sha256, type: char(64)}

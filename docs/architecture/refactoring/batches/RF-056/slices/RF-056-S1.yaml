@@ -1,0 +1,9 @@
+id: RF-056-S1
+title: Audience-bound PKCE session
+status: COMPLETED
+allowedPaths: [infra/keycloak, services/bank-channel-service/src/main/java/local/bank/channel/SecurityConfig.java, services/bank-channel-service/src/test, apps/customer-portal/src/auth, apps/customer-portal/src/pages/Login.tsx, apps/customer-portal/src, apps/operations-console/src/auth, apps/operations-console/src/App.tsx, apps/operations-console/src/pages/Login.tsx, scripts/demo, docs/architecture/refactoring/batches/RF-056, agent/backlog.yaml, agent/plans/active/v54-implementation-batches.md]
+forbiddenPaths: [postgresql, platform/hengzhun-regression-system, services/mock-clearing-service]
+workSteps: [configure customer and internal audience issuance, inspect actual token claims, enforce issuer audience and allowed azp in Bank Channel, remove browser password grant, restore PKCE session after reload]
+verification: [valid realm tokens accepted, wrong audience or azp returns 401, both portal logins and customer reload pass]
+rollback: restore previous service config without deleting Keycloak realm or sessions
+evidence: docs/architecture/refactoring/batches/RF-056/evidence-index.md

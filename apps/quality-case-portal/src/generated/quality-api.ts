@@ -31,8 +31,7 @@ export interface paths {
         /** List quality cases */
         get: operations["listQualityCases"];
         put?: never;
-        /** Create a quality case draft */
-        post: operations["createQualityCase"];
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -75,23 +74,6 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/baselines/{baselineId}/decision": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /** Approve or reject a baseline */
-        post: operations["decideBaseline"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
     "/runs": {
         parameters: {
             query?: never;
@@ -126,23 +108,6 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/schedules/{scheduleId}/enabled": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        /** Enable or disable a schedule */
-        put: operations["setScheduleEnabled"];
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
     "/incidents": {
         parameters: {
             query?: never;
@@ -160,15 +125,15 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/knowledge/status": {
+    "/knowledge": {
         parameters: {
             query?: never;
             header?: never;
             path?: never;
             cookie?: never;
         };
-        /** Get knowledge and authoring controls */
-        get: operations["getKnowledgeStatus"];
+        /** List immutable knowledge snapshots */
+        get: operations["listKnowledgeSnapshots"];
         put?: never;
         post?: never;
         delete?: never;
@@ -223,17 +188,17 @@ export interface components {
             /** Format: date-time */
             updatedAt: string;
         };
+        QualityCasePage: {
+            items: components["schemas"]["QualityCase"][];
+            nextCursor: string | null;
+            hasMore: boolean;
+        };
         QualityCaseDetail: components["schemas"]["QualityCase"] & {
             description: string;
             steps: string[];
             baselineId: string | null;
             evidenceCount: number;
             sha256: string;
-        };
-        CreateCaseRequest: {
-            name: string;
-            domain: string;
-            description: string;
         };
         Baseline: {
             baselineId: string;
@@ -257,6 +222,9 @@ export interface components {
             startedAt: string;
             durationSeconds?: number;
             assertionSummary?: string;
+            journeyId?: string;
+            correlationId?: string;
+            releaseIdentity?: string;
         };
         Schedule: {
             scheduleId: string;
@@ -282,24 +250,23 @@ export interface components {
             /** Format: date-time */
             createdAt: string;
         };
-        KnowledgeStatus: {
-            documentCount: number;
+        KnowledgeSnapshot: {
+            snapshotId: string;
+            sourceRef: string;
+            sourceVersion: string;
+            sha256: string;
+            citationCount: number;
             /** Format: date-time */
-            indexedAt: string;
-            /** @enum {string} */
-            redactionGate: "PASS" | "BLOCKED";
-            authoringAdapter: string;
-            modelProfile: string;
-            /** @enum {string} */
-            planValidation: "PASS" | "PENDING" | "FAIL";
+            registeredAt: string;
         };
+        /** @description Identity-bound run observation; DRAFT is not a verified release. The run pass rate does not establish formal suite coverage. Evidence hash is null until a verified release package exists. */
         ReleaseEvidence: {
             releaseId: string;
             version: string;
             /** @enum {string} */
             status: "DRAFT" | "READY" | "RELEASED" | "BLOCKED";
             benchmarkPassRate: number;
-            evidenceSha256: string;
+            evidenceSha256: string | null;
             /** Format: date-time */
             createdAt: string;
         };
@@ -348,52 +315,32 @@ export interface operations {
                     "application/json": components["schemas"]["Overview"];
                 };
             };
-            401: components["responses"]["Problem"];
             default: components["responses"]["Problem"];
         };
     };
     listQualityCases: {
         parameters: {
-            query?: never;
+            query?: {
+                limit?: number;
+                /** @description Opaque cursor from the previous page. Keep filters unchanged. */
+                cursor?: string;
+                /** @description Search case ID */
+                q?: string;
+                status?: "DRAFT" | "IN_REVIEW" | "APPROVED" | "CONFLICT" | "ARCHIVED";
+            };
             header?: never;
             path?: never;
             cookie?: never;
         };
         requestBody?: never;
         responses: {
-            /** @description Cases */
+            /** @description Bounded cursor page */
             200: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["QualityCase"][];
-                };
-            };
-            401: components["responses"]["Problem"];
-            default: components["responses"]["Problem"];
-        };
-    };
-    createQualityCase: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["CreateCaseRequest"];
-            };
-        };
-        responses: {
-            /** @description Created case */
-            201: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["QualityCase"];
+                    "application/json": components["schemas"]["QualityCasePage"];
                 };
             };
             400: components["responses"]["Problem"];
@@ -442,39 +389,6 @@ export interface operations {
                     "application/json": components["schemas"]["Baseline"][];
                 };
             };
-            401: components["responses"]["Problem"];
-            default: components["responses"]["Problem"];
-        };
-    };
-    decideBaseline: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                baselineId: string;
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": {
-                    /** @enum {string} */
-                    decision: "APPROVE" | "REJECT";
-                    comment?: string;
-                };
-            };
-        };
-        responses: {
-            /** @description Updated baseline */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["Baseline"];
-                };
-            };
-            409: components["responses"]["Problem"];
             default: components["responses"]["Problem"];
         };
     };
@@ -496,7 +410,6 @@ export interface operations {
                     "application/json": components["schemas"]["RegressionRun"][];
                 };
             };
-            401: components["responses"]["Problem"];
             default: components["responses"]["Problem"];
         };
     };
@@ -518,35 +431,6 @@ export interface operations {
                     "application/json": components["schemas"]["Schedule"][];
                 };
             };
-            401: components["responses"]["Problem"];
-            default: components["responses"]["Problem"];
-        };
-    };
-    setScheduleEnabled: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                scheduleId: string;
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": {
-                    enabled: boolean;
-                };
-            };
-        };
-        responses: {
-            /** @description Updated */
-            204: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-            409: components["responses"]["Problem"];
             default: components["responses"]["Problem"];
         };
     };
@@ -568,11 +452,10 @@ export interface operations {
                     "application/json": components["schemas"]["Incident"][];
                 };
             };
-            401: components["responses"]["Problem"];
             default: components["responses"]["Problem"];
         };
     };
-    getKnowledgeStatus: {
+    listKnowledgeSnapshots: {
         parameters: {
             query?: never;
             header?: never;
@@ -581,16 +464,15 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
-            /** @description Knowledge and authoring status */
+            /** @description Knowledge snapshots */
             200: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["KnowledgeStatus"];
+                    "application/json": components["schemas"]["KnowledgeSnapshot"][];
                 };
             };
-            401: components["responses"]["Problem"];
             default: components["responses"]["Problem"];
         };
     };
@@ -612,7 +494,6 @@ export interface operations {
                     "application/json": components["schemas"]["ReleaseEvidence"][];
                 };
             };
-            401: components["responses"]["Problem"];
             default: components["responses"]["Problem"];
         };
     };

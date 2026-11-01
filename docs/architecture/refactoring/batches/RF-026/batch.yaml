@@ -1,0 +1,20 @@
+schemaVersion: 1
+id: RF-026
+title: Open-source bank and CLI Agent authority rebaseline
+status: CLOSED
+owner: project-owner
+authorizedBy: agent/plans/active/v54-implementation-batches.md
+scope:
+  includePaths: [AGENTS.md, agent/plans/active/banksystem-open-source-product-baseline-v1.md, agent/plans/active/banksystem-open-source-task-packages-v1.yaml, agent/plans/active/banksystem-tp-a01-authority-rebaseline-task-package.md, agent/plans/active/hengzhun-i10-cli-agent-baseline-v1.md, docs/architecture/refactoring-control-process-v1.md, docs/architecture/refactoring/batches/RF-026, agent/backlog.yaml, agent/plans/active/v54-implementation-batches.md]
+  excludePaths: [apps, services, infra, postgresql, contracts, platform/hengzhun-regression-system/.data, platform/hengzhun-regression-system/controller, platform/hengzhun-regression-system/harness, platform/hengzhun-regression-system/mcp, platform/hengzhun-regression-system/worker, platform/hengzhun-regression-system/flowise]
+budgets: {maxChangedFiles: 20, maxNewFiles: 15, maxChangedLines: 1200, maxContractsChanged: 0, maxMigrationsAdded: 0, maxOpenModules: 1}
+baseline: {gitCommit: 552b3b8ac517bd5991bff446e72d9f4e87ea9543, dirtyTreeManifest: docs/architecture/refactoring/batches/RF-026/baseline.md, releaseIdentity: NOT_RUNNING, capturedAt: "2026-08-30T10:36:19+08:00"}
+architecture: {businessCapability: open-source-product-governance, publicContract: agent/plans/active/banksystem-open-source-product-baseline-v1.md, dependencyManifest: docs/architecture/refactoring/module-boundaries-v1.yaml, allowedModules: [governance.refactoring], forbiddenModules: [bank.payments, frontend.customer-portal, frontend.operations-console, hengzhun.controller, hengzhun.harness, hengzhun.mcp, hengzhun.worker]}
+mustPreserve: [Fineract sole banking truth, Harness SQLite sole regression truth, historical evidence immutable, no product runtime or ledger mutation]
+verification:
+  requiredCommands:
+    - {name: refactoring-governance, command: "py -3 scripts/architecture/validate_refactoring.py --batch RF-026", expectedExitCode: 0, evidence: docs/architecture/refactoring/batches/RF-026/evidence-index.md, blocking: true}
+    - {name: refactoring-temporal, command: "py -3 scripts/architecture/validate_refactoring_temporal.py", expectedExitCode: 0, evidence: docs/architecture/refactoring/batches/RF-026/evidence-index.md, blocking: true}
+    - {name: docs-governance, command: "python scripts/docs/validate_docs.py", expectedExitCode: 0, evidence: docs/architecture/refactoring/batches/RF-026/evidence-index.md, blocking: true}
+rollback: {triggerConditions: [authority conflict, invalid task dependency, false runtime claim, governance validator failure], recoveryPoint: 552b3b8ac517bd5991bff446e72d9f4e87ea9543, maxRtoMinutes: 15, maxRpoMinutes: 0}
+exceptions: {allowedVagueNames: [], crossModule: []}

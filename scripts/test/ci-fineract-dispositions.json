@@ -1,0 +1,21 @@
+{
+  "scope": "RF065_S3_7_FIXED_DERIVED_FINERACT_ONLY",
+  "reviewedImageId": "sha256:8debc42e99189346d78dfd285068d92f9dea5d9a7fa56a1f87521914d4de8590",
+  "sourceDigest": "03fddbcad7bd7665e577eb6c43137ba0e313f41915a08c1bacc8e817d188dc8f",
+  "dispositions": [
+    {
+      "name": "commons-configuration:commons-configuration", "version": "1.10", "ecosystem": "Maven",
+      "advisories": ["GHSA-pvp8-3xj6-8c6x"], "status": "NOT_AFFECTED",
+      "reason": "The only installed external bytecode references are four ESAPI policyloader classes. The exact image config selects DefaultAccessController, not ExperimentalAccessController; there is no untrusted configuration/policy upload or mounted ESAPI configuration in the declared bank topology. Trusted immutable classpath settings do not satisfy this advisory's untrusted configuration or attacker-controlled usage precondition. This is not a claim that commons-configuration is absent.",
+      "evidence": ["docs/architecture/refactoring/batches/RF-065/dependency-remediation.md", "https://github.com/advisories/GHSA-pvp8-3xj6-8c6x", "https://github.com/ESAPI/esapi-java-legacy/blob/esapi-2.7.0.0/src/main/java/org/owasp/esapi/reference/accesscontrol/policyloader/ACRPolicyFileLoader.java"],
+      "limits": "Only this preserved image/application configuration and default bank topology. Custom plugins, external ESAPI configuration or enabling ExperimentalAccessController require a new review. No 1.x upstream fix; do not replace it with incompatible 2.x."
+    },
+    {
+      "name": "org.springframework:spring-webmvc", "version": "6.2.19", "ecosystem": "Maven",
+      "advisories": ["GHSA-j9f9-w8pj-32f8", "GHSA-pc63-qcmh-9cmg"], "status": "NOT_AFFECTED",
+      "reason": "The exact application classes and all installed non-framework JARs contain no SseEmitter, FragmentsRendering or XsltView consumers, and preserved resource configuration does not enable those views. Banking endpoints use Jersey/JSON; Swagger/Thymeleaf routes do not introduce SSE fragments or XSLT views. Neither advisory's required view feature exists in this image's bank product flow. Spring itself remains installed and vulnerable features are not claimed patched.",
+      "evidence": ["docs/architecture/refactoring/batches/RF-065/dependency-remediation.md", "https://spring.io/security/cve-2026-47890/", "https://spring.io/security/cve-2026-47884/"],
+      "limits": "Exact preserved payload and declared bank topology only. New SSE fragments/XSLT views or plugins invalidate this review; no Spring7/Boot4 migration performed."
+    }
+  ]
+}

@@ -1,0 +1,9 @@
+id: RF-034-S1
+title: Exact operations correlation lookup
+status: COMPLETED
+allowedPaths: [apps/operations-console, docs/architecture/refactoring/batches/RF-034, agent/plans/active, agent/backlog.yaml]
+forbiddenPaths: [platform, postgresql, services, contracts, packages, apps/customer-portal]
+workSteps: [add stable read-only field locators, search exact correlation, assert one row, compare authoritative detail]
+verification: [Operations build passes, Fresh browser lookup passes, VQ-04 hierarchy is preserved]
+rollback: revert RF-034 S1 paths only
+evidence: docs/architecture/refactoring/batches/RF-034/evidence-index.md

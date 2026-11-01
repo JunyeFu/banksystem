@@ -1,0 +1,9 @@
+id: RF-068-S4
+title: Model selection and local configuration
+status: DONE
+businessGoal: Manual next-task model and secret-safe versioned configuration
+allowedPaths: ["apps/quality-case-portal","scripts/test/verify-agent-workbench.ps1","platform/hengzhun-regression-system/scripts/verification","docs/architecture/refactoring/batches/RF-068"]
+forbiddenPaths: [postgresql, services/bank-channel-service, infra/keycloak, platform/hengzhun-regression-system/flowise]
+workSteps: ["wire-model-list","edit-and-check","save-default-with-conflicts","verify-immutable-binding"]
+verification: ["powershell -NoProfile -ExecutionPolicy Bypass -File scripts/test/verify-agent-workbench.ps1 -Scope Browser -Case Models"]
+evidence: docs/architecture/refactoring/batches/RF-068/evidence-index.md

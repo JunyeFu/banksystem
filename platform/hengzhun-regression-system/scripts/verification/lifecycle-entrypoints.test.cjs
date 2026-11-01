@@ -7,32 +7,29 @@ const test = require('node:test')
 
 const root = path.resolve(__dirname, '..', '..')
 const pkg = JSON.parse(fs.readFileSync(path.join(root, 'package.json'), 'utf8'))
-const lifecycle = require('../i9-lifecycle.cjs')
+const lifecycle = require('../i10-agent-lifecycle.cjs')
 
-test('declared lifecycle entrypoints exist and delegate without printing runtime environment', () => {
-  for (const command of ['start', 'status', 'stop']) {
-    const relative = `scripts/${command}-i9.ps1`
-    assert.match(pkg.scripts[`${command}:i9`], new RegExp(relative.replace('/', '\\\\')))
-    const source = fs.readFileSync(path.join(root, relative), 'utf8')
-    assert.match(source, /import-i9-runtime-env\.ps1/)
-    assert.match(source, new RegExp(`i9-lifecycle\\.cjs'\\) '${command}'`))
-    assert.doesNotMatch(source, /Write-Output\s+\$env:|Get-ChildItem\s+Env:/i)
-  }
+test('declared lifecycle entrypoints expose only the current CLI lifecycle', () => {
+  assert.match(pkg.scripts['start:agent'], /i10-agent-lifecycle\.cjs start/)
+  assert.match(pkg.scripts['status:agent'], /i10-agent-current-status\.cjs/)
+  assert.match(pkg.scripts['stop:agent'], /i10-agent-lifecycle\.cjs stop/)
+  assert.equal(pkg.scripts['start:i9'], undefined)
+  assert.equal(pkg.scripts['status:i9'], undefined)
+  assert.equal(pkg.scripts['stop:i9'], undefined)
 })
 
-test('lifecycle selects a dedicated Node24 executable only for Flowise and binds ownership to it', () => {
-  const core = lifecycle.executableFor('harness')
-  const flowise = lifecycle.executableFor('flowise')
-  assert.match(core.replaceAll('\\', '/'), /runtime\/node-v20\.20\.2-win-x64\/node\.exe$/)
-  assert.match(flowise.replaceAll('\\', '/'), /runtime\/node-v24\.19\.0-win-x64\/node\.exe$/)
-  assert.notEqual(flowise.toLowerCase(), core.toLowerCase())
-  const record = {
-    name: 'flowise',
-    pid: 123,
-    entrypoint: 'flowise/app/node_modules/flowise/bin/run',
-    startedAt: new Date().toISOString()
-  }
-  const commandLine = `"${flowise}" "${path.join(root, record.entrypoint)}" start`
-  assert.equal(lifecycle.isOwned(record, { ExecutablePath: flowise, CommandLine: commandLine }), true)
-  assert.equal(lifecycle.isOwned(record, { ExecutablePath: core, CommandLine: commandLine }), false)
+test('managed lifecycle owns exactly Harness MCP Worker and rejects Flowise as a current service', () => {
+  const spec = JSON.parse(fs.readFileSync(path.join(root, 'agent-cli', 'managed-process-spec-v1.json'), 'utf8'))
+  assert.deepEqual(spec.services.map((service) => service.name), ['harness', 'mcp', 'worker'])
+  assert.equal(spec.services.some((service) => /flowise/i.test(JSON.stringify(service))), false)
+  assert.equal(lifecycle.validateManagedProcessSpec(spec), spec)
+})
+
+test('bank customer provisioner normalizes its container shell program to LF before docker exec', () => {
+  const source = fs.readFileSync(path.resolve(root, 'scripts', 'i10-provision-fuxing-demo-customer.ps1'), 'utf8')
+  const normalization = '$containerCommand = $containerCommand.Replace("`r`n", "`n")'
+  const normalizationIndex = source.indexOf(normalization)
+  const dockerExecIndex = source.indexOf('| docker exec -e "HZ_USERNAME=$username" -i $keycloakContainer sh -lc $containerCommand')
+  assert.ok(normalizationIndex >= 0)
+  assert.ok(dockerExecIndex > normalizationIndex)
 })

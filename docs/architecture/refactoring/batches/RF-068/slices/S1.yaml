@@ -1,0 +1,10 @@
+id: RF-068-S1
+title: Separate Agent entry and generated API consumer
+status: DONE
+businessGoal: Independent Figma shell and typed same-origin client
+allowedPaths: ["apps/quality-case-portal","scripts/test/verify-agent-workbench.ps1","platform/hengzhun-regression-system/scripts/verification","docs/architecture/refactoring/batches/RF-068"]
+forbiddenPaths: [postgresql, services/bank-channel-service, infra/keycloak, platform/hengzhun-regression-system/flowise]
+workSteps: ["read-figma-context","separate-entry-build","generate-client","verify-foundation"]
+verification: ["powershell -NoProfile -ExecutionPolicy Bypass -File scripts/test/verify-agent-workbench.ps1 -Scope Browser -Case Foundation"]
+evidence: docs/architecture/refactoring/batches/RF-068/evidence-index.md
+

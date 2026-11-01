@@ -41,7 +41,7 @@
         "maxChangedLines": { "type": "integer", "minimum": 1 },
         "maxContractsChanged": { "type": "integer", "minimum": 0 },
         "maxMigrationsAdded": { "type": "integer", "minimum": 0 },
-        "maxOpenModules": { "type": "integer", "minimum": 1, "maximum": 2 }
+        "maxOpenModules": { "type": "integer", "minimum": 1, "description": "Explicit per-batch module budget; no fixed repository-wide ceiling." }
       }
     },
     "baseline": {

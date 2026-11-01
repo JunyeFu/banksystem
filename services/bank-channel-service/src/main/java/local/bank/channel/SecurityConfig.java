@@ -9,12 +9,17 @@ import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.ProviderManager;
 import org.springframework.security.oauth2.jwt.JwtValidators;
+import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.security.oauth2.jwt.NimbusJwtDecoder;
+import org.springframework.security.oauth2.core.DelegatingOAuth2TokenValidator;
+import org.springframework.security.oauth2.core.OAuth2Error;
+import org.springframework.security.oauth2.core.OAuth2TokenValidatorResult;
 import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationProvider;
 import org.springframework.security.oauth2.server.resource.authentication.JwtIssuerAuthenticationManagerResolver;
 import org.springframework.security.authentication.AuthenticationManagerResolver;
 import jakarta.servlet.http.HttpServletRequest;
 import java.util.Map;
+import java.util.Set;
 import java.util.Collection;
 import java.util.ArrayList;
 import org.springframework.security.core.GrantedAuthority;
@@ -53,7 +58,8 @@ public class SecurityConfig {
             .requestMatchers(HttpMethod.POST, "/api/operations/v1/transfers/*/reversal").hasAnyAuthority("ROLE_PAYMENT_OPERATOR", "ROLE_SYSTEM_ADMIN")
             .requestMatchers("/api/operations/v1/transfers/**").hasAnyAuthority("ROLE_PAYMENT_OPERATOR", "ROLE_PAYMENT_APPROVER", "ROLE_SYSTEM_ADMIN")
             .requestMatchers(HttpMethod.POST, "/api/operations/v1/loans/approvals/*/approve").hasAnyAuthority("ROLE_LOAN_APPROVER", "ROLE_SYSTEM_ADMIN")
-            .requestMatchers("/api/operations/v1/loans/**").hasAnyAuthority("ROLE_LOAN_OFFICER", "ROLE_SYSTEM_ADMIN")
+            .requestMatchers(HttpMethod.GET, "/api/operations/v1/loans/**").hasAnyAuthority("ROLE_LOAN_OFFICER", "ROLE_LOAN_APPROVER", "ROLE_SYSTEM_ADMIN")
+            .requestMatchers(HttpMethod.POST, "/api/operations/v1/loans/**").hasAnyAuthority("ROLE_LOAN_OFFICER", "ROLE_SYSTEM_ADMIN")
             .requestMatchers(HttpMethod.POST, "/api/operations/v1/risk/*/approve").hasAnyAuthority("ROLE_RISK_ANALYST", "ROLE_PAYMENT_APPROVER", "ROLE_SYSTEM_ADMIN")
             .requestMatchers("/api/operations/v1/risk/**").hasAnyAuthority("ROLE_RISK_ANALYST", "ROLE_PAYMENT_OPERATOR", "ROLE_SYSTEM_ADMIN")
             .requestMatchers("/api/operations/v1/clearing/**").hasAnyAuthority("ROLE_PAYMENT_OPERATOR", "ROLE_SYSTEM_ADMIN")
@@ -66,7 +72,6 @@ public class SecurityConfig {
             .requestMatchers("/internal/mock-clearing/**").hasAuthority("ROLE_SYSTEM_ADMIN")
             .requestMatchers("/internal/transfers/**").hasAnyAuthority("ROLE_PAYMENT_OPERATOR", "ROLE_SYSTEM_ADMIN")
             .requestMatchers("/api/customer/v1/loans/applications/*/core/**").denyAll()
-            .requestMatchers("/api/customer/v1/loans/applications/*/core-submit").denyAll()
             // A customer transfer enters the controlled first-confirmation
             // route before the local persisted-UKey web step. Requiring the
             // post-verification authority here makes that route unreachable
@@ -87,17 +92,26 @@ public class SecurityConfig {
 
   private AuthenticationManagerResolver<HttpServletRequest> authenticationManagerResolver() {
     Map<String, AuthenticationManager> managers = Map.of(
-        customerIssuer, manager(customerIssuer, customerJwk),
-        internalIssuer, manager(internalIssuer, internalJwk));
+        customerIssuer, manager(customerIssuer, customerJwk, Set.of("customer-portal", "bank-golden-path")),
+        internalIssuer, manager(internalIssuer, internalJwk, Set.of("operations-console", "bank-channel-service", "bank-golden-path")));
     return new JwtIssuerAuthenticationManagerResolver(issuer -> managers.get(issuer));
   }
 
-  private AuthenticationManager manager(String issuer, String jwkSetUri) {
+  private AuthenticationManager manager(String issuer, String jwkSetUri, Set<String> allowedClients) {
     NimbusJwtDecoder decoder = NimbusJwtDecoder.withJwkSetUri(jwkSetUri).build();
-    decoder.setJwtValidator(JwtValidators.createDefaultWithIssuer(issuer));
+    decoder.setJwtValidator(new DelegatingOAuth2TokenValidator<>(
+        JwtValidators.createDefaultWithIssuer(issuer), jwt -> validateApiClaims(jwt, allowedClients)));
     var provider = new JwtAuthenticationProvider(decoder);
     provider.setJwtAuthenticationConverter(jwtAuthenticationConverter());
     return new ProviderManager(provider);
+  }
+
+  static OAuth2TokenValidatorResult validateApiClaims(Jwt jwt, Set<String> allowedClients) {
+    if (jwt.getAudience().contains("bank-channel-service")
+        && allowedClients.contains(jwt.getClaimAsString("azp"))) {
+      return OAuth2TokenValidatorResult.success();
+    }
+    return OAuth2TokenValidatorResult.failure(new OAuth2Error("invalid_token", "Invalid bank API audience or authorized party", null));
   }
 
   private JwtAuthenticationConverter jwtAuthenticationConverter() {

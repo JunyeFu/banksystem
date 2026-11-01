@@ -1,0 +1,10 @@
+id: RF-057-S4
+title: Suite closure
+status: PROPOSED
+businessGoal: Reproducible current-product evidence replaces legacy release counts
+allowedPaths: [scripts/test, tests, scripts/demo, docs/architecture/refactoring/batches/RF-057, agent/backlog.yaml, agent/plans/active/v54-implementation-batches.md, docs/current-state/capability-matrix.md, platform/hengzhun-regression-system/scripts]
+forbiddenPaths: [services/bank-channel-service/src/main, postgresql, platform/hengzhun-regression-system/flowise]
+workSteps: ["Aggregate required case IDs without omission", "verify identity and artifacts", "update current-state and release references", "run governance/docs", "review every missing/failed case before marking completed"]
+verification: ["node scripts/test/rf057-report.mjs", no missing required case or synthetic runtime success]
+rollback: stop owned test driver and retain banking history and services
+evidence: docs/architecture/refactoring/batches/RF-057/evidence-index.md

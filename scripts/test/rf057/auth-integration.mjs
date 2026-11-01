@@ -1,0 +1,45 @@
+import assert from 'node:assert/strict';
+import {createRequire} from 'node:module';
+import path from 'node:path';
+import {fileURLToPath} from 'node:url';
+const require=createRequire(import.meta.url);
+const root=path.resolve(path.dirname(fileURLToPath(import.meta.url)),'../../..');
+const product=path.join(root,'platform/hengzhun-regression-system');
+const {chromium}=require(path.join(product,'runtime/node_modules/playwright'));
+const {BANK_AUTH,authLocator,executeBankAuthentication,openBankAuthentication,submitBankCredentials,waitBankAuthenticated}=require(path.join(product,'worker/src/adapters/fuxing-bank-demo/authentication.cjs'));
+const {executeAuthRejectionRecovery}=require(path.join(product,'worker/src/adapters/fuxing-bank-demo/auth-rejection-recovery.cjs'));
+let text='';for await(const chunk of process.stdin)text+=chunk;
+const config=JSON.parse(text);
+const browser=await chromium.launch({headless:true,executablePath:path.join(product,'runtime/browsers/chromium-1217/chrome-win64/chrome.exe')});
+const checks=[];
+let stage='PKCE_LOGIN';let probePage;
+try{
+  const context=await browser.newContext();const page=await context.newPage();
+  await page.goto(BANK_AUTH.portalOrigin+'/portal/login');
+  assert.equal(await page.locator('input[type="password"]').count(),0);
+  await executeBankAuthentication(page,config.identities.customer);checks.push('PKCE_LOGIN');
+  await page.reload();await waitBankAuthenticated(page,BANK_AUTH.portalOrigin);checks.push('REFRESH_SESSION');
+  const accountResponse=page.waitForResponse(r=>new URL(r.url()).pathname==='/api/customer/v1/accounts'&&r.request().method()==='GET');
+  await page.goto(BANK_AUTH.portalOrigin+'/portal/accounts');
+  assert.equal((await accountResponse).status(),200);
+  await page.locator('[data-page-id="customer.accounts"] .ant-table-tbody tr[data-row-key]').first().waitFor({state:'visible',timeout:30000});
+  checks.push('AUTHENTICATED_ACCOUNT_API');
+  await context.close();
+  stage='WRONG_PASSWORD_REJECTED';
+  const invalid=await browser.newContext();const rejected=await invalid.newPage();probePage=rejected;
+  await rejected.goto(BANK_AUTH.portalOrigin+'/portal/login');await openBankAuthentication(rejected);
+  await submitBankCredentials(rejected,{username:config.identities.customer.username,password:'rf057-intentionally-incorrect-password'});
+  await authLocator(rejected,'AUTH_ERROR').waitFor({state:'visible',timeout:30000});
+  assert.equal(new URL(rejected.url()).origin,BANK_AUTH.identityOrigin);checks.push('WRONG_PASSWORD_REJECTED');
+  stage='RECOVERY_WITH_CORRECT_PASSWORD';
+  await submitBankCredentials(rejected,config.identities.customer);await waitBankAuthenticated(rejected,BANK_AUTH.portalOrigin);checks.push('RECOVERY_WITH_CORRECT_PASSWORD');
+  await invalid.close();
+  stage='CONTROLLED_SESSION_RECOVERY';
+  const recovery=await executeAuthRejectionRecovery({caseId:'rf057-auth-integration',runId:'rf057-auth-integration',taskId:'rf057-auth-integration',execution:{fixtureNamespace:'rf057-auth-integration'}},{},{credential:config.identities.customer});
+  assert.equal(recovery.outcome,'PASSED');checks.push('CONTROLLED_SESSION_RECOVERY');
+  console.log(JSON.stringify({schemaVersion:'rf057-bank-auth-integration/v1',status:'PASSED',evidenceClass:'LIVE_BANK_AUTH',checks,agentLive:false}));
+}catch(error){
+  const controls=probePage?await probePage.evaluate(()=>({inputError:!!document.getElementById('input-error'),feedback:!!document.querySelector('.kc-feedback-text'),alert:!!document.querySelector('[role="alert"]'),username:!!document.getElementById('username'),password:!!document.getElementById('password')})):null;
+  console.log(JSON.stringify({schemaVersion:'rf057-bank-auth-integration/v1',status:'FAILED',evidenceClass:'LIVE_BANK_AUTH',checks,stage,controls,errorCode:/^[A-Z][A-Z0-9_]+$/.test(error.code??'')?error.code:'RF057_BANK_AUTH_FAILED',agentLive:false}));
+  process.exitCode=4;
+}finally{await browser.close();}

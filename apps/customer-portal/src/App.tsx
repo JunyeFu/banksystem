@@ -6,7 +6,7 @@ import { Login } from '@/pages/Login';
 function RequireCustomerAuthentication({ children }: { children: JSX.Element }): JSX.Element {
   const location = useLocation();
   if (isAuthenticated()) return children;
-  return <Navigate to="/login" replace state={{ returnTo: `${location.pathname}${location.search}` }} />;
+  return <Navigate to="/login" replace state={{ returnTo: `${location.pathname}${location.search}`, restoreSession: true }} />;
 }
 
 export function App(): JSX.Element {

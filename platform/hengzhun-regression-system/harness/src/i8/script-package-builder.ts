@@ -1,6 +1,8 @@
 import { intentPlanSchema } from '../schemas';
 import { canonicalJson, sha256 } from '../utils';
-import { isFuxingBankDemoAdapter } from './target-adapter-registry';
+import type { ReviewedAssertion } from '../feedback';
+import { accountObservation, assertBankAccountFields, assertNoPageErrors } from './page-observation';
+import { isFuxingBankDemoAdapter, authenticationForTargetAdapter, FUXING_BANK_AUTHENTICATION as bankAuthentication } from './target-adapter-registry';
 import {
   FUXING_BANK_DEMO_LOGIN_TEMPLATE as actionTemplate,
   FUXING_BANK_DEMO_REPAIR_TARGETS as REPAIR_TARGETS,
@@ -64,54 +66,15 @@ function isControlledFuxingTransferCase(intentPlan: ControlledFuxingIntentPlan &
 }): boolean {
   const snapshot = intentPlan.targetProfileSnapshot as Record<string, unknown> | undefined;
   if (!isFuxingBankDemoAdapter(intentPlan.adapterBinding ?? snapshot?.adapterBinding)) return false;
-  if (intentPlan.inputContractVersion !== 'TypedBusinessInputsV1') return false;
+  if (intentPlan.inputContractVersion !== 'TypedBusinessInputsV2') return false;
   const inputs = intentPlan.typedBusinessInputs?.values;
-  if (!inputs?.payeeRef || !inputs.amount || !inputs.currency || !inputs.purpose) return false;
+  if (!inputs?.payerAccountId || !inputs.payeeRef || !inputs.amount || !inputs.currency || !inputs.purpose) return false;
   const semanticText = [
     ...intentPlan.steps.flatMap(step => [step.action, step.expected]),
     ...intentPlan.assertions
   ].join('\n');
   return /(?:转账|汇款|transfer)/i.test(semanticText)
     && /(?:首次确认|U盾|移动证书|单号|订单|网页验证|first\s*confirm|order)/i.test(semanticText);
-}
-
-/**
- * The controller is allowed to compact a human sentence such as
- * "填写金额 1.00，用途为自动化回归测试" into one semantic step.  The controlled
- * transfer template, however, requires two concrete non-secret fixture values.
- * Recover only values that are explicitly labelled in that frozen prose; never
- * invent an amount or a purpose and never inspect credentials.
- */
-function explicitTransferFixtureValue(
-  steps: Array<{ action: string; expected: string; inputValue?: string; inputValueSource: string }>,
-  fixtureRef: 'TRANSFER.AMOUNT' | 'TRANSFER.PURPOSE'
-): string | undefined {
-  const labelled = fixtureRef === 'TRANSFER.AMOUNT'
-    ? /(?:转账)?金额\s*(?:为|是|:|：)?\s*(?:人民币|CNY)?\s*([0-9]+(?:\.[0-9]{1,2})?)/i
-    : /(?:用途|附言|摘要)\s*(?:为|是|:|：)?\s*[“"'「]?([^，,。；;\n”"』]+)/i;
-  const fieldMention = fixtureRef === 'TRANSFER.AMOUNT'
-    ? /(?:(?:转账)?金额|(?:fill[_\s-]*)?amount)/i
-    : /(?:(?:用途|附言|摘要)|(?:fill[_\s-]*)?(?:purpose|remark|memo))/i;
-  for (const step of steps) {
-    const text = `${step.action} ${step.expected}`;
-    if (step.inputValueSource === 'USER_TEXT' && step.inputValue && fieldMention.test(text)) {
-      return step.inputValue.trim();
-    }
-    // Keep action and expected text separate.  Concatenating them makes a
-    // purpose at the end of an action swallow the following expected result.
-    for (const candidate of [step.action, step.expected]) {
-      const match = candidate.match(labelled);
-      if (!match?.[1]) continue;
-      const value = match[1].trim();
-      if (fixtureRef === 'TRANSFER.AMOUNT') {
-        const numeric = Number(value);
-        if (Number.isFinite(numeric) && numeric > 0) return value;
-        continue;
-      }
-      if (value) return value;
-    }
-  }
-  return undefined;
 }
 
 export function compileExecutableActionPlan(intentPlanInput: unknown, intentPlanHash: string): ExecutableActionPlan {
@@ -134,13 +97,58 @@ export function compileExecutableActionPlan(intentPlanInput: unknown, intentPlan
     // Fuxing-specific selector or route is introduced.
     type GenericIntentStep = typeof intentPlan.steps[number] & {
       operationHint?: ExecutableActionPlan['actions'][number]['operation'];
+      routePatternHint?: string;
     };
-    const original = intentPlan.steps as GenericIntentStep[];
-    const loginIndex = original.findIndex(step =>
-      step.inputValueSource === 'CREDENTIAL_REF' && /(?:登录|login|sign[ _-]?in)/i.test(`${step.action} ${step.expected}`)
+    const readOnlyConstraints: string[] = [];
+    const isReadOnlyConstraint = (value: string) =>
+      /^(?:(?:确认|确保)(?:当前)?页面(?:处于|并保持)|保持(?:当前)?)只读(?:操作|检查状态|状态|模式)?[。]?$/u.test(value);
+    const original: GenericIntentStep[] = intentPlan.steps.flatMap(step => {
+      // A prohibition is a constraint, never the verb of an executor action.
+      // Keep a positive clause in a mixed instruction (e.g. click Query, not
+      // Transfer) rather than discarding the whole step.
+      if (isReadOnlyConstraint(step.action)) { readOnlyConstraints.push(step.action); return []; }
+      const clauses = step.action.split(/[，,；;]/u);
+      const prohibited = clauses.filter(clause => /^(?:(?:且|并|也)?(?:未|不|不得|禁止|勿|不要)(?:点击|进入|打开|修改|提交|操作|转账|执行|访问|发起)|确认未触发(?:转账|业务申请|资料|日期修改))/u.test(clause.trim()));
+      if (!prohibited.length) return [step];
+      readOnlyConstraints.push(...prohibited.map(clause => clause.trim().replace(/[。.!！]+$/u, '')));
+      const action = clauses.filter(clause => !prohibited.includes(clause)).join('，').trim();
+      if (!action || isReadOnlyConstraint(action)) {
+        readOnlyConstraints.push(step.action);
+        return [];
+      }
+      return [{ ...step, action }];
+    });
+    const loginSeedIndex = original.findIndex(step =>
+      step.inputValueSource === 'CREDENTIAL_REF' && /(?:登录|身份认证|身份验证|安全认证|认证完成|authenticat|login|sign[ _-]?in)/i.test(`${step.action} ${step.expected}`)
     );
+    const loginCluster = new Set<number>();
+    if (loginSeedIndex >= 0) {
+      const describesAuthentication = (step: GenericIntentStep) =>
+        /(?:登录|login|sign[ _-]?in|身份认证|认证完成|身份验证|安全认证|authenticat|credential|用户名|密码|username|password)/i.test(`${step.action} ${step.expected}`);
+      let firstLoginIndex = loginSeedIndex;
+      let lastLoginIndex = loginSeedIndex;
+      while (firstLoginIndex > 0 && describesAuthentication(original[firstLoginIndex - 1]!)) firstLoginIndex -= 1;
+      while (lastLoginIndex + 1 < original.length && describesAuthentication(original[lastLoginIndex + 1]!)) lastLoginIndex += 1;
+      for (let index = firstLoginIndex; index <= lastLoginIndex; index += 1) loginCluster.add(index);
+    }
+    const loginIndexes = [...loginCluster];
+    const loginIndex = loginIndexes.find(index =>
+      /(?:authenticated|redirect|登录成功|身份验证通过|认证通过|跳转|进入.*(?:主页|首页|概览|dashboard|home))/i.test(String(original[index]!.expected))
+    ) ?? loginIndexes.at(-1) ?? -1;
     const loginStep = loginIndex >= 0 ? original[loginIndex]! : undefined;
-    const source: GenericIntentStep[] = loginStep
+    const selectedAuthentication=authenticationForTargetAdapter(intentPlan.adapterBinding ?? snapshot.adapterBinding);
+    const bankLogin = Boolean(selectedAuthentication);
+    const bankLoginSteps: GenericIntentStep[] = loginStep && bankLogin
+      ? selectedAuthentication!.actions.map(item => ({
+          ...loginStep, action: item.instruction, expected: item.expected,
+          inputValueSource: item.credentialKey ? 'CREDENTIAL_REF' : 'NONE',
+          operationHint: item.operation as ExecutableActionPlan['actions'][number]['operation'],
+          ...(item.routePatternRef ? { routePatternHint: item.routePatternRef } : {})
+        })) : [];
+    const source: GenericIntentStep[] = loginStep && bankLogin
+      ? [{ ...loginStep, action: '打开银行登录页', expected: '银行登录页已加载', inputValueSource: 'NONE', operationHint: 'goto' },
+          ...bankLoginSteps, ...original.filter((step,index)=>!loginCluster.has(index)&&!/(?:入口URL|启动URL|launch\s*url)/i.test(step.action))]
+      : loginStep
       ? [
           {
             ...loginStep,
@@ -177,7 +185,7 @@ export function compileExecutableActionPlan(intentPlanInput: unknown, intentPlan
             inputValueSource: 'NONE',
             operationHint: 'waitForURL'
           },
-          ...original.filter((step, index) => index !== loginIndex && !/(?:入口URL|启动URL|launch\s*url)/i.test(step.action))
+          ...original.filter((step, index) => !loginCluster.has(index) && !/(?:入口URL|启动URL|launch\s*url)/i.test(step.action))
         ]
       : original;
     // A single visual locator can only prove one concrete page fact.  Split a
@@ -207,12 +215,13 @@ export function compileExecutableActionPlan(intentPlanInput: unknown, intentPlan
     // navigation, click, input, selection, upload, or download action.
     const isReadOnlyObservation = (step: GenericIntentStep) => {
       const text = `${step.action} ${step.expected}`;
-      return /(?:验证|检查|确认|显示|查看|浏览|读取|列出|verify|expect)/i.test(text) &&
-        !/(?:输入|填写|点击|进入|导航(?:至|到)?|前往|选择|下拉|筛选|过滤|上传|下载|fill|click|select|upload|download)/i.test(text);
+      return /(?:验证|核验|检查|确认|显示|查看|浏览|读取|列出|定位|verify|expect|inspect)/i.test(text) &&
+        !/(?:输入|填写|点击|进入|导航(?:至|到)?|前往|选择|下拉|筛选|过滤|上传|下载|fill|click|select|upload|download|navigate|go\s+to)/i.test(text);
     };
     const coalescedSource = atomicSource.reduce<GenericIntentStep[]>((items, step) => {
       const previous = items.at(-1);
-      if (previous && isReadOnlyObservation(previous) && isReadOnlyObservation(step)) {
+      if (previous && previous.intentStepId === step.intentStepId &&
+          isReadOnlyObservation(previous) && isReadOnlyObservation(step)) {
         items[items.length - 1] = {
           ...previous,
           action: `${previous.action}；${step.action}`,
@@ -232,9 +241,18 @@ export function compileExecutableActionPlan(intentPlanInput: unknown, intentPlan
       template: 'GENERIC_WEB_V2'
     });
     const executablePlanId = `eap_${sha256(seed).slice(0, 40)}`;
-    const actions: Array<Record<string, unknown> & { ordinal: number; operation: ExecutableActionPlan['actions'][number]['operation'] }> = coalescedSource.map((step, index) => {
+    const firstStep = coalescedSource[0];
+    // Loading the entry URL must not consume a user's first business check.
+    const executionSource = firstStep && !firstStep.operationHint &&
+      !/^(?:打开|访问|进入登录|前往登录|navigate\b|open\b|go\s+to\b)/i.test(firstStep.action)
+      ? [{ ...firstStep, action: '打开目标站点入口页', expected: '入口页已加载', inputValueSource: 'NONE' as const, operationHint: 'goto' as const }, ...coalescedSource]
+      : coalescedSource;
+    const actions: Array<Record<string, unknown> & { ordinal: number; operation: ExecutableActionPlan['actions'][number]['operation'] }> = executionSource.map((step, index) => {
       const text = `${step.action} ${step.expected}`;
-      const actionText = String(step.action || '').trim();
+      const stateOnly = !step.operationHint && /^(?:(?:完成(?:核对|检查|验证)|(?:核对|检查|验证)完成)后)?(?:确认|确保)?(?:当前)?(?:页面)?(?:保持|停留)/u.test(step.action) &&
+        !/(?:点击|输入|填写|选择|上传|下载|打开|进入|前往)/u.test(step.action);
+      const stayOnPage = stateOnly && String(step.action).match(/(?:保持在|停留在|页面为)([^，,；;。]+?(?:页面|页|列表|清单))[。]?$/u);
+      const actionText = stayOnPage ? `核对${stayOnPage[1]}` : String(step.action || '').trim();
       const first = index === 0;
       let operation: ExecutableActionPlan['actions'][number]['operation'] = step.operationHint ?? (first ? 'goto' : 'click');
       // A bare "查询一份文档" and "确认下载入口" describe inspection, not a
@@ -242,12 +260,17 @@ export function compileExecutableActionPlan(intentPlanInput: unknown, intentPlan
       // direct download action.  This keeps generic plans from inventing UI
       // controls that a target site never exposed.
       const readOnlyInspection = !step.operationHint && !first && (
-        /^(?:查看|浏览|读取|列出|展示|显示|确认|验证|检查|校验|核对|查询)\s*/i.test(actionText) &&
-        !/(?:点击|进入|导航(?:至|到)?|前往|输入|填写|选择|下拉|筛选|过滤|上传)/i.test(actionText) &&
+        /^(?:(?:在|于)[^，,；;]{1,80}?(?:中|内|里|页面)\s*)?(?:只读|仅)?(?:(?:查看|浏览|读取|列出|展示|显示|确认|验证|核验|检查|校验|核对|查询|查找|定位)\s*|(?:inspect|verify|check|confirm|view|read|list|show|find|locate)\b\s*)/i.test(actionText) &&
+        !/(?:点击|进入|导航(?:至|到)?|前往|输入|填写|选择|下拉|筛选|过滤|上传)|^(?:click|enter|navigate|go\s+to|fill|type|select|filter|upload)\b/i.test(actionText) &&
         !/(?:^|[\s，,；;])(?:点击)?下载(?:文件|文档|回单|报表)?(?:$|[\s，,；;])/i.test(actionText)
       );
       if (readOnlyInspection) operation = 'expectVisible';
-      else if (!step.operationHint && !first && /(?:输入|填写|fill|type)/i.test(actionText)) operation = 'fill';
+      else if (!step.operationHint && !first && /(?:输入|填写)|^(?:fill|type)\b/i.test(actionText)) operation = 'fill';
+      // When the approved instruction explicitly says to click a navigation
+      // item, a later alternative word such as “or select” describes the
+      // user's choice of that item; it does not turn the control into an HTML
+      // select element. Keep the explicit executor verb authoritative.
+      else if (!step.operationHint && !first && /(?:点击|选择并进入)|^(?:click)\b/i.test(actionText)) operation = 'click';
       else if (!step.operationHint && !first && /(?:选择|下拉|select|筛选|过滤|filter)/i.test(actionText)) operation = 'select';
       else if (!step.operationHint && !first && /(?:勾选|复选|check)/i.test(actionText)) operation = 'check';
       else if (!step.operationHint && !first && /(?:上传|upload)/i.test(actionText)) operation = 'upload';
@@ -256,13 +279,15 @@ export function compileExecutableActionPlan(intentPlanInput: unknown, intentPlan
       // Treating it as a click forces the vision locator to find a nonexistent
       // interactive control and can misidentify a similarly named top-nav item.
       // Explicit navigation and click wording still retain their side effect.
-      else if (!step.operationHint && !first && /(?:查看|浏览|读取|列出|展示.*(?:列表|信息|明细)|显示.*(?:列表|信息|明细))/i.test(actionText) &&
+      else if (!step.operationHint && !first && /(?:查看|浏览|读取|列出|定位|展示.*(?:列表|信息|明细)|显示.*(?:列表|信息|明细))/i.test(actionText) &&
         !/(?:点击|进入|导航(?:至|到)?|前往)/i.test(actionText)) operation = 'expectVisible';
       else if (!step.operationHint && !first && /(?:进入|导航(?:至|到)?|打开.*(?:页|页面)|go\s*to|navigate)/i.test(actionText)) operation = 'click';
       // Verification keywords alone do not prove a runtime challenge.  A
       // policy must be explicitly bound to an action by the deterministic plan.
-      else if (!step.operationHint && !first && /(?:验证|确认|检查|显示|一致|verify|expect)/i.test(actionText)) operation = 'expectVisible';
+      else if (!step.operationHint && !first && /(?:验证|核验|确认|检查|显示|一致|verify|expect)/i.test(actionText)) operation = 'expectVisible';
       else if (!step.operationHint && !first && /(?:等待.*(?:页面|跳转)|wait.*url)/i.test(actionText)) operation = 'waitForURL';
+      if (!step.operationHint && /错误|异常|error/i.test(actionText) && /无错误|没有错误|未出现.*(?:错误|异常)|无.*加载异常|no\s+errors?/i.test(step.expected)) operation = 'expectNoErrors';
+      const pageObservation = operation === 'expectVisible' ? accountObservation(actionText, intentPlan.adapterBinding ?? snapshot.adapterBinding) : undefined;
       const targetRef = `DYNAMIC_${String(index + 1).padStart(3, '0')}`;
       const fixtureRef = step.inputValueSource === 'CREDENTIAL_REF'
         ? (/password|密码/i.test(text) ? 'CREDENTIAL.PASSWORD' : 'CREDENTIAL.USERNAME')
@@ -288,8 +313,9 @@ export function compileExecutableActionPlan(intentPlanInput: unknown, intentPlan
         actionId,
         ordinal: index + 1,
         operation,
-        instruction: step.action,
+        instruction: stayOnPage ? actionText : step.action,
         expected: step.expected,
+        ...(pageObservation ? { pageObservation } : {}),
         ...(step.inputValue ? { inputValue: step.inputValue } : {}),
         ...(step.inputValueSource ? { inputValueSource: step.inputValueSource } : {}),
         pageSignature: {
@@ -299,11 +325,11 @@ export function compileExecutableActionPlan(intentPlanInput: unknown, intentPlan
         },
         ...(needsTarget ? { semanticTargetRef: targetRef } : {}),
         ...(operation === 'goto' ? { routeRef: 'LAUNCH_URL' } : {}),
-        ...(operation === 'waitForURL' ? { routePatternRef: 'ALLOWED_NAVIGATION' } : {}),
+        ...(operation === 'waitForURL' ? { routePatternRef: step.routePatternHint ?? 'ALLOWED_NAVIGATION' } : {}),
         ...(operation === 'select' ? { optionRef: fixtureRef } : {}),
         fixtureRefs: operation === 'fill' || operation === 'upload' ? [fixtureRef] : [],
         preconditions: index === 0 ? ['目标站点档案已由用户确认并冻结'] : ['上一动作已由 Playwright 验证'],
-        invariants: ['仅在目标站点档案允许的导航与交互源中操作', '不得记录凭据、Cookie 或 Storage State'],
+        invariants: ['仅在目标站点档案允许的导航与交互源中操作', '不得记录凭据、Cookie 或 Storage State', ...readOnlyConstraints],
         postconditions: [operation.startsWith('expect') ? '业务断言成立' : '页面事实与动作结果已记录'],
         riskLevel: step.riskLevel,
         retryPolicy: { maximumRetries: operation === 'goto' || operation === 'waitForURL' ? 1 as const : 0 as const, sideEffectFree: !['click', 'check', 'upload'].includes(operation) },
@@ -367,26 +393,16 @@ export function compileExecutableActionPlan(intentPlanInput: unknown, intentPlan
   const template = transferProfile ? transferActionTemplate : actionTemplate;
   const fixtureValues: Record<string, string> = {};
   if (transferProfile) {
-    // I10 must consume the frozen, type-checked business input object.  The
-    // prose regex below is retained only for old I9 replay plans, which are
-    // deliberately excluded from the current I10 acceptance ledger.
-    if (intentPlan.inputContractVersion === 'TypedBusinessInputsV1') {
-      const inputs = intentPlan.typedBusinessInputs?.values;
-      if (!inputs?.payeeRef || !inputs.amount || !inputs.currency || !inputs.purpose) {
-        throw new Error('I10_TYPED_BUSINESS_INPUT_REQUIRED');
-      }
-      fixtureValues['TRANSFER.PAYEE_REF'] = inputs.payeeRef;
-      fixtureValues['TRANSFER.AMOUNT'] = inputs.amount;
-      fixtureValues['TRANSFER.CURRENCY'] = inputs.currency;
-      fixtureValues['TRANSFER.PURPOSE'] = inputs.purpose;
-    } else {
-      for (const fixtureRef of ['TRANSFER.AMOUNT', 'TRANSFER.PURPOSE'] as const) {
-        const value = explicitTransferFixtureValue(source, fixtureRef);
-        if (!value) throw new Error(`I10_TRANSFER_INPUT_VALUE_REQUIRED:${fixtureRef}`);
-        fixtureValues[fixtureRef] = value;
-      }
+    const inputs = intentPlan.typedBusinessInputs?.values;
+    if (intentPlan.inputContractVersion !== 'TypedBusinessInputsV2' || !inputs?.payerAccountId || !inputs.payeeRef || !inputs.amount || !inputs.currency || !inputs.purpose) {
+      throw new Error('I10_TYPED_BUSINESS_INPUT_REQUIRED');
     }
-    fixtureValues['TRANSFER.EXPECTED_STATUS'] = '受理成功';
+    fixtureValues['TRANSFER.PAYER_ACCOUNT_ID'] = inputs.payerAccountId;
+    fixtureValues['TRANSFER.PAYEE_REF'] = inputs.payeeRef;
+    fixtureValues['TRANSFER.AMOUNT'] = inputs.amount;
+    fixtureValues['TRANSFER.CURRENCY'] = inputs.currency;
+    fixtureValues['TRANSFER.PURPOSE'] = inputs.purpose;
+    fixtureValues['TRANSFER.EXPECTED_STATUS'] = '已结算';
   }
   const seed = canonicalJson({ caseId: intentPlan.caseId, caseVersion: intentPlan.caseVersion, intentPlanHash, template: transferProfile ? 'TRANSFER_UKEY_ORDER_QUERY_V1' : 'LOGIN_PROFILE_V1' });
   const executablePlanId = `eap_${sha256(seed).slice(0, 40)}`;
@@ -402,6 +418,7 @@ export function compileExecutableActionPlan(intentPlanInput: unknown, intentPlan
       ...('comparisonTargetRef' in templateAction ? { comparisonTargetRef: templateAction.comparisonTargetRef } : {}),
       ...('routeRef' in templateAction ? { routeRef: templateAction.routeRef } : {}),
       ...('routePatternRef' in templateAction ? { routePatternRef: templateAction.routePatternRef } : {}),
+      ...('optionRef' in templateAction ? { optionRef: templateAction.optionRef } : {}),
       fixtureRefs: [...templateAction.fixture],
       preconditions: index === 0 ? ['受控客户 Fixture 已准备'] : ['上一动作已由 Playwright 验证'],
       invariants: ['仅访问复兴银行门户受控路由', '不得记录凭据、Cookie 或 Storage State'],
@@ -414,9 +431,9 @@ export function compileExecutableActionPlan(intentPlanInput: unknown, intentPlan
       ...(templateAction.target === 'TRANSFER_FIRST_CONFIRM' ? { verificationPolicy: {
         mode: 'AUTO_PERSISTED_UKEY' as const,
         triggerAfterTargetRef: 'TRANSFER_FIRST_CONFIRM',
-        expectedRoutes: ['/portal/verification', '/portal/orders/query'],
-        successRoute: '/portal/orders/query',
-        successEvidenceTargetRef: 'ORDER_NUMBER'
+        expectedRoutes: ['/portal/verification', '/portal/transfers/'],
+        successRoute: '/portal/transfers/',
+        successEvidenceTargetRef: 'TRANSFER_SETTLED'
       } } : {}),
       sourceIntentStepId
     };
@@ -455,6 +472,7 @@ function locatorFor(action: ExecutableActionPlan['actions'][number], record: Ver
 export function buildDslDocument(planInput: unknown, recordsInput: unknown): { dsl: DslDocument; locators: Record<string, CandidateLocator>; fixtures: Record<string, string>; routes: Record<string, string>; verificationPolicies: Record<string, unknown> } {
   const plan = executableActionPlanSchema.parse(planInput);
   const records = (Array.isArray(recordsInput) ? recordsInput : []).map(record => verifiedActionRecordSchema.parse(record));
+  if (plan.actions.some(action => action.pageObservation) && !isFuxingBankDemoAdapter(plan.targetProfileSnapshot?.adapterBinding)) throw new Error('BANK_OBSERVATION_BINDING_REQUIRED');
   if (records.length !== plan.actions.length) throw new Error('I8_VERIFIED_ACTION_SET_INCOMPLETE');
   const byAction = new Map(records.map(record => [record.actionId, record]));
   const generic = plan.fixtureProfile === 'GENERIC_WEB';
@@ -488,7 +506,8 @@ export function buildDslDocument(planInput: unknown, recordsInput: unknown): { d
       case 'humanVerification': return { ...base, operation: 'humanVerification' as const, verificationType: 'USER_ASSISTED' };
       case 'waitForURL': return { ...base, operation: 'waitForURL' as const, routePatternRef: action.routePatternRef!, timeoutPolicyRef: 'DEFAULT_30S' };
       case 'waitForResponse': return { ...base, operation: 'waitForResponse' as const, responsePatternRef: action.responsePatternRef!, timeoutPolicyRef: 'DEFAULT_30S' };
-      case 'expectVisible': return { ...base, operation: 'expectVisible' as const, targetRef: action.semanticTargetRef! };
+      case 'expectVisible': return { ...base, operation: 'expectVisible' as const, targetRef: action.semanticTargetRef!, ...(action.pageObservation ? { pageObservation: action.pageObservation } : {}) };
+      case 'expectNoErrors': return { ...base, operation: 'expectNoErrors' as const };
       case 'expectText': return { ...base, operation: 'expectText' as const, targetRef: action.semanticTargetRef!, expectedTextRef: action.fixtureRefs[0]! };
       case 'expectEqual': return { ...base, operation: 'expectEqual' as const, targetRef: action.semanticTargetRef!, comparisonTargetRef: action.comparisonTargetRef! };
       case 'screenshot': return { ...base, operation: 'screenshot' as const, evidenceNameRef: 'LOGIN_PROFILE_FINAL' };
@@ -504,30 +523,81 @@ export function buildDslDocument(planInput: unknown, recordsInput: unknown): { d
           .filter(Boolean)
       )).sort()
     : [];
+  const selectedAuthentication=authenticationForTargetAdapter(plan.targetProfileSnapshot?.adapterBinding)??bankAuthentication;
+  const bankRoutes = {
+    IDENTITY_PROVIDER: canonicalJson({origin:selectedAuthentication.identityOrigin,path:selectedAuthentication.issuerPath}),
+    PORTAL_AUTHENTICATED: canonicalJson({origin:new URL(String(plan.targetProfileSnapshot?.launchUrl ?? selectedAuthentication.portalOrigin)).origin,path:selectedAuthentication.authenticatedPath})
+  };
   const routes = generic
-    ? { LAUNCH_URL: launchUrl, ALLOWED_NAVIGATION: canonicalJson(allowedNavigationOrigins) }
-    : ROUTES;
+    ? { LAUNCH_URL: launchUrl, ALLOWED_NAVIGATION: canonicalJson(allowedNavigationOrigins),
+        CREDENTIAL_ORIGINS: canonicalJson(plan.targetProfileSnapshot?.credentialOrigins ?? []),
+        ...(authenticationForTargetAdapter(plan.targetProfileSnapshot?.adapterBinding) ? bankRoutes : {}) }
+    : {...ROUTES,...bankRoutes,CREDENTIAL_ORIGINS:canonicalJson([bankAuthentication.identityOrigin])};
   return { dsl: dslDocumentSchema.parse({ schemaVersion: generic ? 'HENGZHUN_DSL_V2' : 'HENGZHUN_DSL_V1', executablePlanId: plan.executablePlanId, steps }), locators, fixtures: plan.fixtureValues, routes, verificationPolicies };
 }
 
-function generatedSourceLegacy(dsl: DslDocument, locators: Record<string, CandidateLocator>, fixtures: Record<string, string>, routes: Record<string, string>, verificationPolicies: Record<string, unknown> = {}): string {
-  const embedded = canonicalJson({ dsl, locators, routes, timeouts: TIMEOUTS, fixtures, verificationPolicies });
+function generatedSourceLegacy(dsl: DslDocument, locators: Record<string, CandidateLocator>, fixtures: Record<string, string>, routes: Record<string, string>, verificationPolicies: Record<string, unknown> = {}, assertionImplementations: Record<string, string> = {}): string {
+  const embedded = canonicalJson({ dsl, locators, routes, timeouts: TIMEOUTS, fixtures, verificationPolicies, assertionImplementations });
   return `'use strict'\nconst PACKAGE = Object.freeze(${embedded})\n\nfunction locator(page, ref) {\n  const item = PACKAGE.locators[ref]\n  if (!item) throw Object.assign(new Error('Target is not allowlisted'), { code: 'CANDIDATE_TARGET_NOT_ALLOWLISTED' })\n  if (item.kind === 'TEST_ID') return page.getByTestId(item.value)\n  if (item.kind === 'LABEL') return page.getByLabel(item.value, { exact: true })\n  if (item.kind === 'PLACEHOLDER') return page.getByPlaceholder(item.value, { exact: true })\n  if (item.kind === 'TEXT') return page.getByText(item.value, { exact: true })\n  if (item.kind === 'CSS') return page.locator(item.value)\n  if (item.kind === 'ROLE') {\n    const [role, ...nameParts] = item.value.split('|'); const name = nameParts.join('|')\n    return page.getByRole(role, { name, exact: true })\n  }\n  throw Object.assign(new Error('Locator kind is not allowlisted'), { code: 'CANDIDATE_LOCATOR_KIND_INVALID' })\n}\n\nfunction routeUrl(baseUrl, routeRef) {\n  const route = PACKAGE.routes[routeRef]\n  if (!route) throw Object.assign(new Error('Route is not allowlisted'), { code: 'CANDIDATE_ROUTE_NOT_ALLOWLISTED' })\n  const base = new URL(baseUrl)\n  const resolved = new URL(route, base)\n  return resolved\n}\n\nasync function execute(context) {\n  const { page, baseUrl, fixtures, capture, afterStep, humanVerification, onStep } = context\n  const runtimeFixtures = Object.freeze({ ...PACKAGE.fixtures, ...fixtures })\n  const facts = []\n  for (const step of PACKAGE.dsl.steps) {\n    if (typeof onStep === 'function') await onStep({ phase: 'STARTED', stepId: step.stepId, operation: step.operation, targetRef: step.targetRef || null }, page)\n    if (step.operation === 'goto') await page.goto(routeUrl(baseUrl, step.routeRef).toString(), { waitUntil: 'domcontentloaded', timeout: PACKAGE.timeouts.DEFAULT_30S })\n    else if (step.operation === 'fill') await locator(page, step.targetRef).fill(runtimeFixtures[step.fixtureValueRef])\n    else if (step.operation === 'click') await locator(page, step.targetRef).click()\n    else if (step.operation === 'select') await locator(page, step.targetRef).selectOption(runtimeFixtures[step.optionRef] || step.optionRef)\n    else if (step.operation === 'check') await locator(page, step.targetRef).check()\n    else if (step.operation === 'upload') await locator(page, step.targetRef).setInputFiles(runtimeFixtures[step.fixtureValueRef])\n    else if (step.operation === 'download') { const pending = page.waitForEvent('download', { timeout: PACKAGE.timeouts[step.timeoutPolicyRef] }); await locator(page, step.targetRef).click(); await pending }\n    else if (step.operation === 'switchPage') page = context.pages?.[step.pageRef] || page\n    else if (step.operation === 'humanVerification') { if (typeof humanVerification !== 'function') throw Object.assign(new Error('Human verification is required'), { code: 'CANDIDATE_HUMAN_VERIFICATION_REQUIRED' }); await humanVerification(step, page) }\n    else if (step.operation === 'waitForURL') await page.waitForLoadState('domcontentloaded', { timeout: PACKAGE.timeouts[step.timeoutPolicyRef] })\n    else if (step.operation === 'waitForResponse') await page.waitForResponse((response) => response.url().includes(step.responsePatternRef), { timeout: PACKAGE.timeouts[step.timeoutPolicyRef] })\n    else if (step.operation === 'expectVisible' && !(await locator(page, step.targetRef).isVisible())) throw Object.assign(new Error('Expected target to be visible'), { code: 'CANDIDATE_EXPECT_VISIBLE_FAILED' })\n    else if (step.operation === 'expectText') { const actual = (await locator(page, step.targetRef).innerText()).trim(); if (actual !== runtimeFixtures[step.expectedTextRef]) throw Object.assign(new Error('Expected text did not match'), { code: 'CANDIDATE_EXPECT_TEXT_FAILED' }) }\n    else if (step.operation === 'expectEqual') { const left = (await locator(page, step.targetRef).innerText()).trim(); const right = (await locator(page, step.comparisonTargetRef).innerText()).trim(); if (left !== right) throw Object.assign(new Error('Expected values to be equal'), { code: 'CANDIDATE_EXPECT_EQUAL_FAILED' }) }\n    else if (step.operation === 'screenshot') await capture(step.evidenceNameRef, page)\n    if (typeof afterStep === 'function') await afterStep(step, page)\n    facts.push({ stepId: step.stepId, operation: step.operation, passed: true })\n    if (typeof onStep === 'function') await onStep({ phase: 'PASSED', stepId: step.stepId, operation: step.operation, targetRef: step.targetRef || null }, page)\n  }\n  return { outcome: 'PASSED', facts }\n}\n\nmodule.exports = Object.freeze({ schemaVersion: 'hengzhun-candidate-module-v2', execute })\n`;
 }
 
-export function generatedSource(dsl: DslDocument, locators: Record<string, CandidateLocator>, fixtures: Record<string, string> = {}, routes: Record<string, string> = ROUTES, verificationPolicies: Record<string, unknown> = {}): string {
-  const legacy = generatedSourceLegacy(dsl, locators, fixtures, routes, verificationPolicies);
+export function generatedSource(dsl: DslDocument, locators: Record<string, CandidateLocator>, fixtures: Record<string, string> = {}, routes: Record<string, string> = ROUTES, verificationPolicies: Record<string, unknown> = {}, assertionImplementations: Record<string, string> = {}): string {
+  const legacy = generatedSourceLegacy(dsl, locators, fixtures, routes, verificationPolicies, assertionImplementations);
+  const exactAssertion = `async function assertExact(page, step, fixtures) {
+  let left, right;
+  try {
+    const target = locator(page, step.targetRef);
+    await target.waitFor({ state: 'visible', timeout: PACKAGE.timeouts.DEFAULT_30S });
+    left = await target.elementHandle();
+    if (step.operation === 'expectEqual') {
+      const comparison = locator(page, step.comparisonTargetRef);
+      await comparison.waitFor({ state: 'visible', timeout: PACKAGE.timeouts.DEFAULT_30S });
+      right = await comparison.elementHandle();
+    }
+    const observed = await page.waitForFunction(({ left, right, expected }) => right
+      ? left.innerText.trim() === right.innerText.trim()
+      : left.innerText.trim() === expected,
+      { left, right, expected: fixtures[step.expectedTextRef] }, { timeout: PACKAGE.timeouts.DEFAULT_30S });
+    await observed.dispose();
+  } catch (error) {
+    if (error.name !== 'TimeoutError') throw error;
+    throw Object.assign(new Error('Exact assertion did not satisfy its unchanged goal'),
+      { code: step.operation === 'expectEqual' ? 'CANDIDATE_EXPECT_EQUAL_FAILED' : 'CANDIDATE_EXPECT_TEXT_FAILED' });
+  } finally {
+    if (left) await left.dispose();
+    if (right) await right.dispose();
+  }
+}
+
+`;
+  const factsAnchor = "const facts = []";
+  const factsWithNavigationBaseline = "const facts = []\n  let navigationBaseline = null";
+  const clickAnchor = "else if (step.operation === 'click') await locator(page, step.targetRef).click()";
+  const clickWithNavigationBaseline = "else if (step.operation === 'click') { if (step.targetRef === 'TRANSFER_SUBMIT' || step.targetRef === 'TRANSFER_FIRST_CONFIRM') { const form = page.getByTestId('transfer-form'); for (const [attribute, ref] of [['data-payer-account-id','TRANSFER.PAYER_ACCOUNT_ID'],['data-beneficiary-id','TRANSFER.PAYEE_REF'],['data-currency','TRANSFER.CURRENCY']]) { if (await form.getAttribute(attribute) !== runtimeFixtures[ref]) throw Object.assign(new Error('Actual transfer selection differs from bound business inputs'), {code:'CANDIDATE_TRANSFER_SELECTION_MISMATCH'}) } } const beforeClickUrl = page.url(); await locator(page, step.targetRef).click(); navigationBaseline = beforeClickUrl }";
+  const selectAnchor = "else if (step.operation === 'select') await locator(page, step.targetRef).selectOption(runtimeFixtures[step.optionRef] || step.optionRef)";
+  const explicitSelect = "else if (step.operation === 'select') { const value = runtimeFixtures[step.optionRef]; const prefix = step.targetRef === 'TRANSFER_SOURCE_ACCOUNT' ? 'transfer-source-option-' : step.targetRef === 'TRANSFER_BENEFICIARY' ? 'transfer-beneficiary-option-' : null; if (prefix) { await locator(page, step.targetRef).click(); await page.getByTestId(prefix + value).click() } else await locator(page, step.targetRef).selectOption(value || step.optionRef) }";
   const instantaneousAssertion = "else if (step.operation === 'expectVisible' && !(await locator(page, step.targetRef).isVisible())) throw Object.assign(new Error('Expected target to be visible'), { code: 'CANDIDATE_EXPECT_VISIBLE_FAILED' })";
   const boundedAssertion = "else if (step.operation === 'expectVisible') { try { await locator(page, step.targetRef).waitFor({ state: 'visible', timeout: PACKAGE.timeouts.DEFAULT_30S }) } catch { throw Object.assign(new Error('Expected target to become visible'), { code: `CANDIDATE_EXPECT_VISIBLE_FAILED_${step.targetRef}` }) } }";
   if (!legacy.includes(instantaneousAssertion)) throw new Error('CANDIDATE_TEMPLATE_EXPECT_VISIBLE_ANCHOR_MISSING');
-  const afterStepAnchor = "await afterStep(step, page)";
+  const afterStepAnchor = "if (typeof afterStep === 'function') await afterStep(step, page)";
   if (!legacy.includes(afterStepAnchor)) throw new Error('CANDIDATE_TEMPLATE_AFTER_STEP_ANCHOR_MISSING');
   const loadStateOnlyWait = "else if (step.operation === 'waitForURL') await page.waitForLoadState('domcontentloaded', { timeout: PACKAGE.timeouts[step.timeoutPolicyRef] })";
-  const boundedUrlWait = "else if (step.operation === 'waitForURL') { const configured = PACKAGE.routes[step.routePatternRef]; let allowedOrigins = []; try { const parsed = JSON.parse(configured); allowedOrigins = Array.isArray(parsed) ? parsed : [] } catch { allowedOrigins = [new URL(configured, baseUrl).origin] } const launchRouteRef = PACKAGE.routes.LAUNCH_URL ? 'LAUNCH_URL' : 'PORTAL_LOGIN'; const launchUrl = routeUrl(baseUrl, launchRouteRef).toString(); await page.waitForURL((url) => allowedOrigins.includes(url.origin) && url.toString() !== launchUrl, { timeout: PACKAGE.timeouts[step.timeoutPolicyRef] }); await page.waitForLoadState('domcontentloaded', { timeout: PACKAGE.timeouts[step.timeoutPolicyRef] }) }";
+  const boundedUrlWait = "else if (step.operation === 'waitForURL') { const configured = PACKAGE.routes[step.routePatternRef]; let rule; try { rule = JSON.parse(configured) } catch { const route = new URL(configured, baseUrl); rule = { origin: route.origin, path: route.pathname } } const baseline = navigationBaseline || page.url(); await page.waitForURL((url) => Array.isArray(rule) ? rule.includes(url.origin) && url.toString() !== baseline : url.origin === rule.origin && url.pathname.startsWith(rule.path), { timeout: PACKAGE.timeouts[step.timeoutPolicyRef] }); navigationBaseline = null; await page.waitForLoadState('domcontentloaded', { timeout: PACKAGE.timeouts[step.timeoutPolicyRef] }) }";
+  const fillAnchor = "else if (step.operation === 'fill') await locator(page, step.targetRef).fill(runtimeFixtures[step.fixtureValueRef])";
+const guardedFill = "else if (step.operation === 'fill') { if (/^(CREDENTIAL|LOGIN_PROFILE)\\./.test(step.fixtureValueRef)) { const origins = JSON.parse(PACKAGE.routes.CREDENTIAL_ORIGINS || '[]'); if (!origins.includes(new URL(page.url()).origin)) throw Object.assign(new Error('Credential origin is not approved'), { code: 'CANDIDATE_CREDENTIAL_ORIGIN_NOT_ALLOWED' }); if (PACKAGE.routes.IDENTITY_PROVIDER) { const identity = JSON.parse(PACKAGE.routes.IDENTITY_PROVIDER); const current = new URL(page.url()); if (current.origin !== identity.origin || !(current.pathname === identity.path || current.pathname.startsWith(identity.path + '/'))) throw Object.assign(new Error('Credential realm is not approved'), { code: 'CANDIDATE_CREDENTIAL_REALM_NOT_ALLOWED' }) } } await locator(page, step.targetRef).fill(runtimeFixtures[step.fixtureValueRef]) }";
+  if (!legacy.includes(factsAnchor) || !legacy.includes(clickAnchor)) throw new Error('CANDIDATE_TEMPLATE_NAVIGATION_BASELINE_ANCHOR_MISSING');
   if (!legacy.includes(loadStateOnlyWait)) throw new Error('CANDIDATE_TEMPLATE_WAIT_FOR_URL_ANCHOR_MISSING');
-  return legacy.replace(instantaneousAssertion, boundedAssertion)
+  return legacy.replace('async function execute(context)', assertBankAccountFields.toString() + '\n' + assertNoPageErrors.toString() + '\n' + exactAssertion + 'async function execute(context)')
+    .replace("else if (step.operation === 'screenshot')", "else if (step.operation === 'expectNoErrors') await assertNoPageErrors(page)\n    else if (step.operation === 'screenshot')")
+    .replace("else if (step.operation === 'expectText') {", "else if (step.operation === 'expectText' && PACKAGE.assertionImplementations[step.stepId] === 'EXACT_TEXT') await assertExact(page, step, runtimeFixtures)\n    else if (step.operation === 'expectText') {")
+    .replace("else if (step.operation === 'expectEqual') {", "else if (step.operation === 'expectEqual' && PACKAGE.assertionImplementations[step.stepId] === 'EXACT_EQUAL') await assertExact(page, step, runtimeFixtures)\n    else if (step.operation === 'expectEqual') {")
+    .replace(factsAnchor, factsWithNavigationBaseline)
+    .replace(clickAnchor, clickWithNavigationBaseline)
+    .replace(selectAnchor, explicitSelect)
+    .replace(instantaneousAssertion, boundedAssertion)
     .replace(loadStateOnlyWait, boundedUrlWait)
-    .replace(afterStepAnchor, "await afterStep(step, page, PACKAGE.verificationPolicies[step.sourceActionId])");
+    .replace(fillAnchor, guardedFill)
+    .replace(afterStepAnchor, "if (step.pageObservation) await assertBankAccountFields(page, step.pageObservation)\n    if (typeof afterStep === 'function') await afterStep(step, page, PACKAGE.verificationPolicies[step.sourceActionId])");
 }
 
 export interface CandidatePackage {
@@ -560,6 +630,15 @@ export function buildPatchedCandidatePackage(
   const { dsl: originalDsl, locators: originalLocators, fixtures, routes, verificationPolicies } = buildDslDocument(planInput, recordsInput);
   let steps = originalDsl.steps.map(step => ({ ...step }));
   const locators = { ...originalLocators };
+  const assertionImplementations: Record<string, string> = {};
+  for(const value of recordsInput as unknown[]) {
+    const record=verifiedActionRecordSchema.parse(value);
+    if(!record.assertionImplementation)continue;
+    const step=steps.find(item=>item.sourceActionId===record.actionId);
+    if(step?.operation!==(record.assertionImplementation==='EXACT_TEXT'?'expectText':'expectEqual'))
+      throw new Error('I10_ASSERTION_EXPERIENCE_EVIDENCE_REQUIRED');
+    assertionImplementations[step.stepId]=record.assertionImplementation;
+  }
   for (const operation of proposal.operations) {
     if (operation.type === 'TARGET_MAPPING') {
       const targetRef = String(operation.targetRef);
@@ -584,6 +663,8 @@ export function buildPatchedCandidatePackage(
       const step = steps.find(item => item.stepId === operation.stepId);
       const expected = step?.operation === 'expectVisible' ? 'BOUNDED_VISIBLE' : step?.operation === 'expectText' ? 'EXACT_TEXT' : step?.operation === 'expectEqual' ? 'EXACT_EQUAL' : undefined;
       if (!expected || operation.implementation !== expected) throw new Error('I8_PATCH_ASSERTION_WEAKENING_REJECTED');
+      if (expected === 'BOUNDED_VISIBLE' || assertionImplementations[step!.stepId]) throw new Error('I8_PATCH_ASSERTION_IMPLEMENTATION_NOOP');
+      assertionImplementations[step!.stepId] = expected;
     } else if (operation.type === 'STEP_ORDER') {
       const order = operation.orderedStepIds as unknown;
       if (!Array.isArray(order) || order.length !== steps.length || new Set(order).size !== steps.length || steps.some(step => !order.includes(step.stepId))) throw new Error('I8_PATCH_STEP_ORDER_INVALID');
@@ -606,13 +687,13 @@ export function buildPatchedCandidatePackage(
     attemptNo,
     sourceChainHash
   });
-  const scriptSource = `// HENGZHUN_REPAIR_PROVENANCE ${repairProvenance}\n${generatedSource(dsl, locators, fixtures, routes, verificationPolicies)}`;
+  const scriptSource = `// HENGZHUN_REPAIR_PROVENANCE ${repairProvenance}\n${generatedSource(dsl, locators, fixtures, routes, verificationPolicies, assertionImplementations)}`;
   const scriptHash = sha256(scriptSource);
   const candidateId = `candidate_${sha256(canonicalJson({ sourceChainHash, scriptHash })).slice(0, 40)}`;
   const scriptVersion = base.scriptVersion + attemptNo;
   const manifest = {
     schemaVersion: 'hengzhun-candidate-manifest-v1', candidateId, scriptId: base.scriptId, scriptVersion,
-    executablePlanId: dsl.executablePlanId, dslVersion: 'HENGZHUN_DSL_V1', dslHash,
+    executablePlanId: dsl.executablePlanId, dslVersion: dsl.schemaVersion, dslHash, assertionImplementations,
     generatorVersion: I8_GENERATOR_VERSION, sourceChainHash, repairOfCandidateId: base.candidateId,
     patchHash, repairAttempt: attemptNo, files: [{ relativePath: 'script.cjs', sha256: scriptHash }], dependencyAllowlist: [],
     verificationPolicyModes: [...new Set(Object.values(verificationPolicies).map((item: any) => String(item?.mode || 'NONE')))].sort(),
@@ -622,15 +703,26 @@ export function buildPatchedCandidatePackage(
   return { candidateId, scriptId: base.scriptId, scriptVersion, dsl, dslHash, scriptSource, scriptHash, sourceChainHash, manifest, manifestHash };
 }
 
-export function buildCandidatePackage(planInput: unknown, recordsInput: unknown, generatedAt: string): CandidatePackage {
+export function buildCandidatePackage(planInput: unknown, recordsInput: unknown, generatedAt: string, reviewedAssertions=new Map<string,ReviewedAssertion>()): CandidatePackage {
   const plan = executableActionPlanSchema.parse(planInput);
   const records = (recordsInput as unknown[]).map(record => verifiedActionRecordSchema.parse(record));
   const { dsl, locators, fixtures, routes, verificationPolicies } = buildDslDocument(plan, records);
+  const assertionImplementations:Record<string,string>={},reviewedAssertionApplications:Record<string,ReviewedAssertion & {stepId:string}>={};
+  for(const action of plan.actions) {
+    const review=reviewedAssertions.get(action.actionId);
+    if(!review)continue;
+    const operation=review.implementation==='EXACT_TEXT'?'expectText':'expectEqual';
+    if(action.operation!==operation||records.find(item=>item.actionId===action.actionId)?.assertionImplementation!==review.implementation)
+      throw new Error('I10_ASSERTION_EXPERIENCE_EVIDENCE_REQUIRED');
+    const stepId=dsl.steps.find(step=>step.sourceActionId===action.actionId)!.stepId;
+    assertionImplementations[stepId]=review.implementation;
+    reviewedAssertionApplications[action.actionId]={...review,stepId};
+  }
   const dslJson = canonicalJson(dsl);
   const dslHash = sha256(dslJson);
   const recordSetHash = sha256(canonicalJson(records));
   const sourceChainHash = sha256(canonicalJson({ intentPlanHash: plan.intentPlanHash, executablePlanHash: sha256(canonicalJson(plan)), recordSetHash, dslHash, generatorVersion: I8_GENERATOR_VERSION }));
-  const scriptSource = generatedSource(dsl, locators, fixtures, routes, verificationPolicies);
+  const scriptSource = generatedSource(dsl, locators, fixtures, routes, verificationPolicies,assertionImplementations);
   const scriptHash = sha256(scriptSource);
   const candidateId = `candidate_${sha256(canonicalJson({ sourceChainHash, scriptHash })).slice(0, 40)}`;
   const scriptId = `script_${sha256(`${plan.caseId}:i8-generated`).slice(0, 40)}`;
@@ -646,6 +738,7 @@ export function buildCandidatePackage(planInput: unknown, recordsInput: unknown,
     dslVersion: dsl.schemaVersion,
     dslHash,
     generatorVersion: I8_GENERATOR_VERSION,
+    ...(reviewedAssertions.size?{assertionImplementations,reviewedAssertionApplications}:{}),
     sourceChainHash,
     files: [{ relativePath: 'script.cjs', sha256: scriptHash }],
     dependencyAllowlist: [],

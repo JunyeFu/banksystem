@@ -7,7 +7,7 @@ const { redactFrame, redactText, sha256 } = require('./i10-video-ingest-runner.c
 const { engineName: onnxEngineName, ocrImageOnnx } = require('./i10-onnx-ocr.cjs');
 
 const productRoot = path.resolve(__dirname,'..','..');
-const ffmpegPath = path.join(productRoot,'runtime','node_modules','@ffmpeg-installer','win32-x64','ffmpeg.exe');
+const ffmpegPath = path.join(productRoot, 'runtime', require('../../config/demo-runtime-freeze.json').mediaFfmpeg.executable);
 
 function validateImageForOcr(filePath){
   const stat=fs.statSync(filePath);
@@ -87,7 +87,7 @@ function normalizeFact(raw,index,packetRefs,factPrefix='fact'){
 
 async function selectCaseFacts(packets,claim,options={}){
   if(options.selectFacts)return options.selectFacts(packets,claim);
-  const apiKey=process.env.CONTROL_API_KEY,baseUrl=process.env.CONTROL_BASE_URL,model=process.env.CONTROL_MODEL_NAME;
+  const apiKey=process.env.HENGZHUN_MODEL_API_KEY||process.env.CONTROL_API_KEY,baseUrl=process.env.HENGZHUN_MODEL_BASE_URL||process.env.CONTROL_BASE_URL,model=process.env.HENGZHUN_MODEL_NAME||process.env.CONTROL_MODEL_NAME;
   if(!apiKey||!baseUrl||!model)throw Object.assign(new Error('I10_CONTROL_CONFIGURATION_MISSING'),{code:'I10_CONTROL_CONFIGURATION_MISSING'});
   const evidence=packets.map(packet=>({provenanceRef:`image:${packet.ordinal}:${packet.sourceSha256}`,purposeHint:packet.purposeHint||'',ocrText:packet.ocrText.slice(0,12000),ocrConfidence:packet.confidence}));
   const packetRefs=new Set(evidence.map(item=>item.provenanceRef));const factPrefix=`fact_${String(claim.imageIngestId).replace(/[^A-Za-z0-9]/g,'').slice(-12)}`;

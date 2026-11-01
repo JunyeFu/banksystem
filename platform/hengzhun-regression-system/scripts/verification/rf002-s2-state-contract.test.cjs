@@ -83,7 +83,7 @@ function applyMigrations(db) {
       throw error
     }
   }
-  assert.equal(db.prepare('SELECT MAX(version) version FROM schema_migrations').get().version, 39)
+  assert.equal(db.prepare('SELECT MAX(version) version FROM schema_migrations').get().version, Number(migrations.at(-1).split('_', 1)[0]))
 }
 
 after(() => fs.rmSync(ISO, { recursive: true, force: true }))

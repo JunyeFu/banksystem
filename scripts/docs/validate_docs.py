@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import re
+import argparse
 import subprocess
 import sys
 from pathlib import Path
@@ -158,13 +159,13 @@ def validate_generated_ignored(errors: list[str]) -> None:
         errors.append(f"ignore rules incomplete: expected={sorted(expected)} actual={sorted(ignored)}")
 
 
-def validate_refactoring_governance(errors: list[str]) -> bool:
+def validate_refactoring_governance(errors: list[str], source_only: bool = False) -> bool:
     validator = ROOT / "scripts" / "architecture" / "validate_refactoring.py"
     if not validator.is_file():
         errors.append("refactoring governance validator missing")
         return False
     process = subprocess.run(
-        [sys.executable, str(validator)],
+        [sys.executable, str(validator), *(["--source-only"] if source_only else [])],
         cwd=ROOT,
         capture_output=True,
         text=True,
@@ -178,13 +179,16 @@ def validate_refactoring_governance(errors: list[str]) -> bool:
 
 
 def main() -> None:
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--source-only", action="store_true", help="Do not require private historical run outputs for source documentation checks")
+    args = parser.parse_args()
     errors: list[str] = []
     metadata_count = validate_metadata(errors)
     link_count = validate_links(errors)
     stale_count = validate_stale_paths(errors)
     order_count = validate_implementation_order(errors)
     validate_generated_ignored(errors)
-    refactoring_valid = validate_refactoring_governance(errors)
+    refactoring_valid = validate_refactoring_governance(errors, source_only=args.source_only)
     if (ROOT / "agent" / "execution-state.yaml").exists():
         errors.append("agent/execution-state.yaml must not exist outside archive")
     if errors:
@@ -194,7 +198,7 @@ def main() -> None:
         raise SystemExit(1)
     print(
         f"DOC_VALIDATION=PASS metadata={metadata_count} links={link_count} "
-        f"stale_checks={stale_count} order_files={order_count} refactoring={refactoring_valid}"
+        f"stale_checks={stale_count} order_files={order_count} refactoring={refactoring_valid} scope={'SOURCE_ONLY' if args.source_only else 'LOCAL_EVIDENCE'}"
     )
 
 

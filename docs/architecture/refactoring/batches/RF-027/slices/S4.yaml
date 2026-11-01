@@ -1,0 +1,9 @@
+id: RF-027-S4
+title: Independent clean-clone reproduction proof
+status: COMPLETED
+allowedPaths: [demo.ps1, postgresql/docker-compose.isolated.yml, compose.channel.yaml, services/bank-channel-service/src/main/resources/application.yml, scripts/deploy, agent/plans/active/banksystem-tp-a02-reproducible-runtime-task-package.md, agent/plans/active/banksystem-open-source-task-packages-v1.yaml, agent/plans/active/banksystem-three-level-development-control-v1.md, agent/plans/active/banksystem-three-level-development-control-v1.yaml, docs/architecture/refactoring/batches/RF-027, agent/backlog.yaml, agent/plans/active/v54-implementation-batches.md]
+forbiddenPaths: [apps, contracts, platform/hengzhun-regression-system/controller, platform/hengzhun-regression-system/harness, platform/hengzhun-regression-system/mcp, platform/hengzhun-regression-system/worker]
+workSteps: [freeze the current nonignored source candidate, create a temporary Git commit and independent clone, inject only the three configured BYOK values without copying credential files, isolate both Compose projects and volumes, prove no prebuilt portal dist or Agent runtime exists, execute prepare up status down reset, verify the clone remains source-clean and original state hashes remain unchanged, remove task-owned runtime and synchronize evidence upward]
+verification: [RF-027 validator exits 0, clean-clone verifier exits 0, lifecycle contract exits 0, both default Compose configs exit 0, docs validator exits 0, git diff check exits 0]
+rollback: stop only the clone-owned Agent services and isolated Compose projects; remove only the verifier-created clone seed volumes and run directories; preserve the authoritative working tree volumes credentials and evidence
+evidence: docs/architecture/refactoring/batches/RF-027/evidence-index.md

@@ -1,0 +1,74 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="815" viewBox="0 0 1600 815"><defs><marker id="target" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M1 1 L9 5 L1 9" fill="none" stroke="#207267" stroke-width="1.5"/></marker><marker id="implemented" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M1 1 L9 5 L1 9" fill="none" stroke="#416a9f" stroke-width="1.5"/></marker><marker id="partial" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M1 1 L9 5 L1 9" fill="none" stroke="#b47b16" stroke-width="1.5"/></marker><marker id="gap" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M1 1 L9 5 L1 9" fill="none" stroke="#b54d56" stroke-width="1.5"/></marker><marker id="neutral" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M1 1 L9 5 L1 9" fill="none" stroke="#8793a6" stroke-width="1.5"/></marker></defs><style>text{font-family:'Microsoft YaHei','Noto Sans CJK SC',sans-serif;fill:#23364e}.edge{font-size:11px;paint-order:stroke;stroke:#fff;stroke-width:4px;stroke-linejoin:round}</style><rect width="100%" height="100%" fill="white"/><rect width="100%" height="94" fill="#14334d"/><text x="30" y="40" style="fill:#fff" font-size="26" font-weight="700">业务能力地图｜目标承诺 × 当前实现</text><text x="30" y="72" style="fill:#d9e7f1" font-size="14">Business Capability Map · 同一布局逐项对照；颜色表示本轮源码观察，不表示 LIVE 通过</text>
+<rect x="20" y="110" width="760" height="610" rx="9" fill="#fafbfd" stroke="#8793a6" stroke-width="1"/>
+<path d="M20,146 H780" stroke="#8793a6"/>
+<text text-anchor="start" x="32" y="134" font-size="16" font-weight="700"><tspan x="32" dy="0">TARGET｜文档与约束要求</tspan></text>
+<rect x="820" y="110" width="760" height="610" rx="9" fill="#fafbfd" stroke="#8793a6" stroke-width="1"/>
+<path d="M820,146 H1580" stroke="#8793a6"/>
+<text text-anchor="start" x="832" y="134" font-size="16" font-weight="700"><tspan x="832" dy="0">AS-IS｜当前代码与业务缺口</tspan></text>
+<text text-anchor="start" x="52" y="179" font-size="16" font-weight="400"><tspan x="52" dy="0">客户核心业务 / Customer Banking</tspan></text>
+<rect x="60" y="200" width="140" height="60" rx="4" fill="#e6f2ef" stroke="#207267" stroke-width="1.4"/>
+<text text-anchor="middle" x="130" y="219" font-size="13" font-weight="400"><tspan x="130" dy="0">客户身份与会话</tspan><tspan x="130" dy="16">PKCE / 归属映射</tspan><tspan x="130" dy="16">会话刷新一致</tspan></text>
+<rect x="240" y="200" width="140" height="60" rx="4" fill="#e6f2ef" stroke="#207267" stroke-width="1.4"/>
+<text text-anchor="middle" x="310" y="219" font-size="13" font-weight="400"><tspan x="310" dy="0">账户与流水</tspan><tspan x="310" dy="16">核心余额 / 明细</tspan><tspan x="310" dy="16">只读权威事实</tspan></text>
+<rect x="420" y="200" width="140" height="60" rx="4" fill="#e6f2ef" stroke="#207267" stroke-width="1.4"/>
+<text text-anchor="middle" x="490" y="219" font-size="13" font-weight="400"><tspan x="490" dy="0">支付与收款人</tspan><tspan x="490" dy="16">受理 / 风险 / 入账</tspan><tspan x="490" dy="16">幂等与未知结果</tspan></text>
+<rect x="600" y="200" width="140" height="60" rx="4" fill="#e6f2ef" stroke="#207267" stroke-width="1.4"/>
+<text text-anchor="middle" x="670" y="219" font-size="13" font-weight="400"><tspan x="670" dy="0">贷款与还款</tspan><tspan x="670" dy="16">申请 / 审批 / 核心</tspan><tspan x="670" dy="16">条件与单位一致</tspan></text>
+<text text-anchor="start" x="52" y="314" font-size="16" font-weight="400"><tspan x="52" dy="0">运营与治理 / Operations</tspan></text>
+<rect x="60" y="335" width="140" height="60" rx="4" fill="#e6f2ef" stroke="#207267" stroke-width="1.4"/>
+<text text-anchor="middle" x="130" y="354" font-size="13" font-weight="400"><tspan x="130" dy="0">风险与复核</tspan><tspan x="130" dy="16">决策 / 双人复核</tspan><tspan x="130" dy="16">版本约束</tspan></text>
+<rect x="240" y="335" width="140" height="60" rx="4" fill="#e6f2ef" stroke="#207267" stroke-width="1.4"/>
+<text text-anchor="middle" x="310" y="354" font-size="13" font-weight="400"><tspan x="310" dy="0">运营文档</tspan><tspan x="310" dy="16">上传 / 下载 / 状态</tspan><tspan x="310" dy="16">版本冲突 409</tspan></text>
+<rect x="420" y="335" width="140" height="60" rx="4" fill="#e6f2ef" stroke="#207267" stroke-width="1.4"/>
+<text text-anchor="middle" x="490" y="354" font-size="13" font-weight="400"><tspan x="490" dy="0">账务对账</tspan><tspan x="490" dy="16">渠道 / 核心 / 总账</tspan><tspan x="490" dy="16">独立事实源</tspan></text>
+<rect x="600" y="335" width="140" height="60" rx="4" fill="#e6f2ef" stroke="#207267" stroke-width="1.4"/>
+<text text-anchor="middle" x="670" y="354" font-size="13" font-weight="400"><tspan x="670" dy="0">日终编排</tspan><tspan x="670" dy="16">固定日期 / 检查点</tspan><tspan x="670" dy="16">未知结果可收敛</tspan></text>
+<text text-anchor="start" x="52" y="449" font-size="16" font-weight="400"><tspan x="52" dy="0">共享支持业务 / Supporting Capabilities</tspan></text>
+<rect x="60" y="470" width="140" height="60" rx="4" fill="#e6f2ef" stroke="#207267" stroke-width="1.4"/>
+<text text-anchor="middle" x="130" y="489" font-size="13" font-weight="400"><tspan x="130" dy="0">审计与监控</tspan><tspan x="130" dy="16">业务变化可追溯</tspan><tspan x="130" dy="16">审计链 / 查询</tspan></text>
+<rect x="240" y="470" width="140" height="60" rx="4" fill="#e6f2ef" stroke="#207267" stroke-width="1.4"/>
+<text text-anchor="middle" x="310" y="489" font-size="13" font-weight="400"><tspan x="310" dy="0">通知与对账单</tspan><tspan x="310" dy="16">客户结果可回读</tspan><tspan x="310" dy="16">客户归属隔离</tspan></text>
+<text text-anchor="start" x="52" y="584" font-size="16" font-weight="400"><tspan x="52" dy="0">CLI 测试 Agent 产品 / Test Automation</tspan></text>
+<rect x="60" y="605" width="140" height="60" rx="4" fill="#e6f2ef" stroke="#207267" stroke-width="1.4"/>
+<text text-anchor="middle" x="130" y="624" font-size="13" font-weight="400"><tspan x="130" dy="0">测试规划</tspan><tspan x="130" dy="16">目标转为受控候选</tspan><tspan x="130" dy="16">输入意图保持</tspan></text>
+<rect x="240" y="605" width="140" height="60" rx="4" fill="#e6f2ef" stroke="#207267" stroke-width="1.4"/>
+<text text-anchor="middle" x="310" y="624" font-size="13" font-weight="400"><tspan x="310" dy="0">任务与浏览器执行</tspan><tspan x="310" dy="16">MCP / Harness / Worker</tspan><tspan x="310" dy="16">观察 → 动作 → 核验</tspan></text>
+<rect x="420" y="605" width="140" height="60" rx="4" fill="#e6f2ef" stroke="#207267" stroke-width="1.4"/>
+<text text-anchor="middle" x="490" y="624" font-size="13" font-weight="400"><tspan x="490" dy="0">证据与发布</tspan><tspan x="490" dy="16">同身份验证与判定</tspan><tspan x="490" dy="16">统一 verify 入口</tspan></text>
+<rect x="600" y="605" width="140" height="60" rx="4" fill="#e6f2ef" stroke="#207267" stroke-width="1.4"/>
+<text text-anchor="middle" x="670" y="624" font-size="13" font-weight="400"><tspan x="670" dy="0">只读质量门户</tspan><tspan x="670" dy="16">真实运行 / 失败 / 发布</tspan><tspan x="670" dy="16">无第二控制面</tspan></text>
+<text text-anchor="start" x="852" y="179" font-size="16" font-weight="400"><tspan x="852" dy="0">客户核心业务 / Customer Banking</tspan></text>
+<rect x="860" y="200" width="140" height="60" rx="4" fill="#e9f0fa" stroke="#416a9f" stroke-width="1.4"/>
+<text text-anchor="middle" x="930" y="219" font-size="13" font-weight="400"><tspan x="930" dy="0">客户身份与会话</tspan><tspan x="930" dy="16">PKCE / 映射已实现</tspan><tspan x="930" dy="16">按当前身份验收</tspan></text>
+<rect x="1040" y="200" width="140" height="60" rx="4" fill="#e9f0fa" stroke="#416a9f" stroke-width="1.4"/>
+<text text-anchor="middle" x="1110" y="219" font-size="13" font-weight="400"><tspan x="1110" dy="0">账户与流水</tspan><tspan x="1110" dy="16">五端口读取核心</tspan><tspan x="1110" dy="16">渠道不伪造余额</tspan></text>
+<rect x="1220" y="200" width="140" height="60" rx="4" fill="#fff1d5" stroke="#b47b16" stroke-width="1.4"/>
+<text text-anchor="middle" x="1290" y="219" font-size="13" font-weight="400"><tspan x="1290" dy="0">支付与收款人</tspan><tspan x="1290" dy="16">主转账链已形成</tspan><tspan x="1290" dy="16">入口职责仍混合</tspan></text>
+<rect x="1400" y="200" width="140" height="60" rx="4" fill="#fbe5e6" stroke="#b54d56" stroke-width="1.4"/>
+<text text-anchor="middle" x="1470" y="219" font-size="13" font-weight="400"><tspan x="1470" dy="0">贷款与还款</tspan><tspan x="1470" dy="16">方式 / 年率有偏差</tspan><tspan x="1470" dy="16">还款控制不完整</tspan></text>
+<text text-anchor="start" x="852" y="314" font-size="16" font-weight="400"><tspan x="852" dy="0">运营与治理 / Operations</tspan></text>
+<rect x="860" y="335" width="140" height="60" rx="4" fill="#fff1d5" stroke="#b47b16" stroke-width="1.4"/>
+<text text-anchor="middle" x="930" y="354" font-size="13" font-weight="400"><tspan x="930" dy="0">风险与复核</tspan><tspan x="930" dy="16">行锁 / maker-checker</tspan><tspan x="930" dy="16">与支付类型双向依赖</tspan></text>
+<rect x="1040" y="335" width="140" height="60" rx="4" fill="#e9f0fa" stroke="#416a9f" stroke-width="1.4"/>
+<text text-anchor="middle" x="1110" y="354" font-size="13" font-weight="400"><tspan x="1110" dy="0">运营文档</tspan><tspan x="1110" dy="16">文档状态机已形成</tspan><tspan x="1110" dy="16">审计同事务</tspan></text>
+<rect x="1220" y="335" width="140" height="60" rx="4" fill="#fbe5e6" stroke="#b54d56" stroke-width="1.4"/>
+<text text-anchor="middle" x="1290" y="354" font-size="13" font-weight="400"><tspan x="1290" dy="0">账务对账</tspan><tspan x="1290" dy="16">总账比较来源不足</tspan><tspan x="1290" dy="16">手工事务有缺口</tspan></text>
+<rect x="1400" y="335" width="140" height="60" rx="4" fill="#fff1d5" stroke="#b47b16" stroke-width="1.4"/>
+<text text-anchor="middle" x="1470" y="354" font-size="13" font-weight="400"><tspan x="1470" dy="0">日终编排</tspan><tspan x="1470" dy="16">有协调与数据库锁</tspan><tspan x="1470" dy="16">日期 / 恢复窗口</tspan></text>
+<text text-anchor="start" x="852" y="449" font-size="16" font-weight="400"><tspan x="852" dy="0">共享支持业务 / Supporting Capabilities</tspan></text>
+<rect x="860" y="470" width="140" height="60" rx="4" fill="#e9f0fa" stroke="#416a9f" stroke-width="1.4"/>
+<text text-anchor="middle" x="930" y="489" font-size="13" font-weight="400"><tspan x="930" dy="0">审计与监控</tspan><tspan x="930" dy="16">审计模块与投影</tspan><tspan x="930" dy="16">不替代主业务正确性</tspan></text>
+<rect x="1040" y="470" width="140" height="60" rx="4" fill="#e9f0fa" stroke="#416a9f" stroke-width="1.4"/>
+<text text-anchor="middle" x="1110" y="489" font-size="13" font-weight="400"><tspan x="1110" dy="0">通知与对账单</tspan><tspan x="1110" dy="16">通知 / 回执 / 账单</tspan><tspan x="1110" dy="16">依赖客户查询模块</tspan></text>
+<text text-anchor="start" x="852" y="584" font-size="16" font-weight="400"><tspan x="852" dy="0">CLI 测试 Agent 产品 / Test Automation</tspan></text>
+<rect x="860" y="605" width="140" height="60" rx="4" fill="#fbe5e6" stroke="#b54d56" stroke-width="1.4"/>
+<text text-anchor="middle" x="930" y="624" font-size="13" font-weight="400"><tspan x="930" dy="0">测试规划</tspan><tspan x="930" dy="16">真实 BYOK 规划</tspan><tspan x="930" dy="16">推导值标用户确认</tspan></text>
+<rect x="1040" y="605" width="140" height="60" rx="4" fill="#e9f0fa" stroke="#416a9f" stroke-width="1.4"/>
+<text text-anchor="middle" x="1110" y="624" font-size="13" font-weight="400"><tspan x="1110" dy="0">任务与浏览器执行</tspan><tspan x="1110" dy="16">真实浏览器链存在</tspan><tspan x="1110" dy="16">显式银行 adapter</tspan></text>
+<rect x="1220" y="605" width="140" height="60" rx="4" fill="#fbe5e6" stroke="#b54d56" stroke-width="1.4"/>
+<text text-anchor="middle" x="1290" y="624" font-size="13" font-weight="400"><tspan x="1290" dy="0">证据与发布</tspan><tspan x="1290" dy="16">证据链已有实现</tspan><tspan x="1290" dy="16">demo verify 未实现</tspan></text>
+<rect x="1400" y="605" width="140" height="60" rx="4" fill="#fff1d5" stroke="#b47b16" stroke-width="1.4"/>
+<text text-anchor="middle" x="1470" y="624" font-size="13" font-weight="400"><tspan x="1470" dy="0">只读质量门户</tspan><tspan x="1470" dy="16">大部分 SQLite 投影</tspan><tspan x="1470" dy="16">发布页仍为空</tspan></text>
+<text text-anchor="start" x="37" y="764" font-size="16" font-weight="400"><tspan x="37" dy="0">目标：绿色｜已有代码：蓝色｜边界/恢复窗口：黄色｜明确语义或功能缺口：红色</tspan></text>
+<text text-anchor="start" x="37" y="799" font-size="16" font-weight="400"><tspan x="37" dy="0">业务实现不等于发布完成；Fineract 唯一账务源；Flowise 不进入交付链。详见上一轮 M01–M17。</tspan></text>
+</svg>

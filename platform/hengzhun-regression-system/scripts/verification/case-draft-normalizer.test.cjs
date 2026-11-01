@@ -171,6 +171,7 @@ test('abstract transfer goals remain in clarification until explicit non-secret 
     'businessInput.amount',
     'businessInput.currency',
     'businessInput.payeeRef',
+    'businessInput.payerAccountId',
     'businessInput.purpose'
   ].sort())
 
@@ -181,8 +182,8 @@ test('abstract transfer goals remain in clarification until explicit non-secret 
     expectedOutcomes: ['登录成功', '新建转账页打开', '金额已填写', '备注已填写', '进入验证或单号查询页面'],
     assertions: ['进入预期流程'],
     businessInputs: {
-      schemaVersion: 'hengzhun-i10-typed-business-inputs-v1',
-      values: { payeeRef: 'payee_demo_0001', amount: '1.00', currency: 'CNY', purpose: '自动化回归测试' },
+      schemaVersion: 'hengzhun-i10-typed-business-inputs-v2',
+      values: { payerAccountId:'3', payeeRef: '11111111-1111-4111-8111-111111111111', amount: '1.00', currency: 'CNY', purpose: '自动化回归测试' },
       source: 'USER_CONFIRMED'
     },
     missingFields: []
@@ -194,8 +195,8 @@ test('abstract transfer goals remain in clarification until explicit non-secret 
   assert.equal(readyDraft.actionStepsV2[3].inputValue, '自动化回归测试')
   assert.equal(readyDraft.actionStepsV2[3].inputValueSource, 'USER_TEXT')
   assert.deepEqual(readyDraft.businessInputs, {
-    schemaVersion: 'hengzhun-i10-typed-business-inputs-v1',
-    values: { payeeRef: 'payee_demo_0001', amount: '1.00', currency: 'CNY', purpose: '自动化回归测试' },
+    schemaVersion: 'hengzhun-i10-typed-business-inputs-v2',
+    values: { payerAccountId:'3', payeeRef: '11111111-1111-4111-8111-111111111111', amount: '1.00', currency: 'CNY', purpose: '自动化回归测试' },
     source: 'USER_CONFIRMED'
   })
 })
@@ -209,8 +210,8 @@ test('transfer prose never replaces the typed business input contract', () => {
     expectedOutcomes: ['登录成功', '页面已打开', '进入验证或查询流程'],
     assertions: ['进入预期流程'],
     businessInputs: {
-      schemaVersion: 'hengzhun-i10-typed-business-inputs-v1',
-      values: { payeeRef: 'payee_demo_0002', amount: '1.00', currency: 'cny', purpose: '自动化回归测试' },
+      schemaVersion: 'hengzhun-i10-typed-business-inputs-v2',
+      values: { payerAccountId:'3', payeeRef: '22222222-2222-4222-8222-222222222222', amount: '1.00', currency: 'cny', purpose: '自动化回归测试' },
       source: 'IMPORT_CONFIRMED'
     },
     missingFields: []
@@ -220,7 +221,28 @@ test('transfer prose never replaces the typed business input contract', () => {
   assert.ok(draft.steps.some(step => step.action === '填写转账金额为 1.00'))
   assert.ok(draft.steps.some(step => step.action === '填写转账用途为 自动化回归测试'))
   assert.equal(draft.businessInputs.values.currency, 'CNY')
-  assert.equal(draft.businessInputs.values.payeeRef, 'payee_demo_0002')
+  assert.equal(draft.businessInputs.values.payeeRef, '22222222-2222-4222-8222-222222222222')
+})
+
+test('money normalization does not truncate account IDs, coerce numbers or upgrade old versions', () => {
+  const values={payerAccountId:'3',payeeRef:'11111111-1111-4111-8111-111111111111',amount:'1.00',currency:'CNY',purpose:'回归'}
+  for(const [change,version,missing] of [
+    [{payerAccountId:'12345678901234567890'},'hengzhun-i10-typed-business-inputs-v2','payerAccountId'],
+    [{payerAccountId:3},'hengzhun-i10-typed-business-inputs-v2','payerAccountId'],
+    [{amount:1},'hengzhun-i10-typed-business-inputs-v2','amount'],
+    [{},'hengzhun-i10-typed-business-inputs-v1','schemaVersion'],
+  ]) {
+    const result=normalizeFlowiseDraft({caseTitle:'转账',objective:'完成转账',summary:'核验转账',targetSystem:'银行',
+      entryUrl:'http://127.0.0.1:18082/portal/login',actions:['登录系统','填写转账并提交'],
+      expectedOutcomes:['登录成功','转账完成'],assertions:['余额正确'],missingFields:[],
+      businessInputs:{schemaVersion:version,values:{...values,...change},source:'USER_CONFIRMED'}
+    },'credential_00000000-0000-4000-8000-000000000001','入口地址：http://127.0.0.1:18082/portal/login','NONE')
+    const draft=JSON.parse(result.draftJson)
+    assert.equal(result.status,'NEEDS_CLARIFICATION')
+    assert.ok(draft.missingFields.includes(`businessInput.${missing}`))
+    assert.equal(draft.businessInputs.schemaVersion,version)
+    if(typeof change.payerAccountId==='string')assert.equal(draft.businessInputs.values.payerAccountId,change.payerAccountId)
+  }
 })
 
 test('partial model delta preserves the previous valid URL, steps and assertions', () => {

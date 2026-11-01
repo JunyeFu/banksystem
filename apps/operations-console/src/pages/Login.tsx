@@ -11,9 +11,16 @@ export function Login(): JSX.Element {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string>();
   const exchangedRef = useRef(false);
+  const restoringRef = useRef(false);
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
+    if (params.get('error') === 'login_required' || params.get('error') === 'interaction_required') {
+      sessionStorage.removeItem('ops_oidc_pkce_verifier');
+      sessionStorage.removeItem('ops_oidc_state');
+      history.replaceState({}, '', '/ops/login');
+      return;
+    }
     const code = params.get('code');
     if (!code || exchangedRef.current) return;
     exchangedRef.current = true;
@@ -29,12 +36,19 @@ export function Login(): JSX.Element {
     }).catch((reason: unknown) => setError(reason instanceof Error ? reason.message : '统一身份认证失败。')).finally(() => setLoading(false));
   }, [navigate]);
 
-  const handleLogin = async (): Promise<void> => {
+  useEffect(() => {
+    const restore = (location.state as { restoreSession?: boolean } | null)?.restoreSession;
+    if (!restore || restoringRef.current) return;
+    restoringRef.current = true;
+    void handleLogin('none');
+  }, [location.state]);
+
+  const handleLogin = async (prompt?: 'none'): Promise<void> => {
     setError(undefined); setLoading(true);
     try {
-      const returnTo = (location.state as { returnTo?: unknown } | null)?.returnTo;
+      const returnTo = (location.state as { returnTo?: unknown } | null)?.returnTo ?? sessionStorage.getItem('ops_oidc_return_to');
       sessionStorage.setItem('ops_oidc_return_to', typeof returnTo === 'string' && returnTo.startsWith('/') && !returnTo.startsWith('//') ? returnTo : '/dashboard');
-      const request = await buildAuthRequest();
+      const request = await buildAuthRequest(prompt);
       sessionStorage.setItem('ops_oidc_pkce_verifier', request.verifier); sessionStorage.setItem('ops_oidc_state', request.state);
       window.location.assign(request.authorizationUrl);
     } catch (reason) { setError(reason instanceof Error ? reason.message : '无法发起统一身份认证。'); setLoading(false); }

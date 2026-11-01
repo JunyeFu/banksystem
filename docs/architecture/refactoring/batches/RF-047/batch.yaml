@@ -1,0 +1,19 @@
+schemaVersion: 1
+id: RF-047
+title: A06 L1 authoritative evidence entry gate
+status: BLOCKED
+owner: Codex
+authorizedBy: agent/plans/active/v54-implementation-batches.md
+scope:
+  includePaths: [platform/hengzhun-regression-system/scripts/i10-agent-l1-live.cjs, platform/hengzhun-regression-system/scripts/verification/agent-l1-live.test.cjs, platform/hengzhun-regression-system/scripts/verification/agent-offline-integration.test.cjs, platform/hengzhun-regression-system/agent-cli/release-identity-v4-manifest.json, platform/hengzhun-regression-system/agent-cli/src/production-service.mjs, platform/hengzhun-regression-system/agent-cli/test, platform/hengzhun-regression-system/mcp/src/server.cjs, docs/architecture/refactoring/batches/RF-047, agent/plans/active, agent/backlog.yaml, agent/runs/rf047]
+  excludePaths: [apps, services, postgresql, platform/hengzhun-regression-system/flowise, platform/hengzhun-regression-system/.data]
+budgets: {maxChangedFiles: 14, maxNewFiles: 18, maxChangedLines: 1000, maxContractsChanged: 1, maxMigrationsAdded: 0, maxOpenModules: 2}
+baseline: {gitCommit: 552b3b8ac517bd5991bff446e72d9f4e87ea9543, dirtyTreeManifest: docs/architecture/refactoring/batches/RF-047/baseline.md, releaseIdentity: 184244a315d1d71d1c7de5c41a30a7d4e9d7857c81b076eb9552bd263e147cc0, capturedAt: "2026-09-08T10:10:00+08:00"}
+architecture: {businessCapability: authoritative-l1-acceptance, publicContract: platform/hengzhun-regression-system/scripts/i10-agent-l1-live.cjs, dependencyManifest: docs/architecture/refactoring/module-boundaries-v1.yaml, allowedModules: [hengzhun.agent-cli, hengzhun.mcp], forbiddenModules: [bank.payments]}
+mustPreserve: [Harness owns execution state and artifact verification, no live execution in S1, no Flowise, no silent retry, no historical evidence edits, text precedes image]
+verification:
+  requiredCommands:
+    - {name: l1-contract, command: "runtime/node-v20.20.2-win-x64/node.exe --test scripts/verification/agent-l1-live.test.cjs", expectedExitCode: 0, evidence: docs/architecture/refactoring/batches/RF-047/evidence-index.md, blocking: true}
+    - {name: governance, command: "py -3 scripts/architecture/validate_refactoring.py --batch RF-047", expectedExitCode: 0, evidence: docs/architecture/refactoring/batches/RF-047/evidence-index.md, blocking: true}
+rollback: {triggerConditions: [completion response accepted without verified artifacts, old identity accepted, image runs after text failure], recoveryPoint: RF-046 source baseline with retained dirty edits, maxRtoMinutes: 10, maxRpoMinutes: 0}
+exceptions: {allowedVagueNames: [], crossModule: []}

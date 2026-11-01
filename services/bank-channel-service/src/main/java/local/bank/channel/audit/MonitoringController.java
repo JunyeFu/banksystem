@@ -4,21 +4,20 @@ import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-import local.bank.channel.FineractAdapter;
+import local.bank.channel.FineractOperationsPort;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RestController;
 import java.time.OffsetDateTime;
 
 @RestController
 public class MonitoringController {
-  private final JdbcTemplate jdbc;
-  private final FineractAdapter fineract;
+  private final MonitoringProjectionRepository repository;
+  private final FineractOperationsPort fineract;
 
-  public MonitoringController(JdbcTemplate jdbc, FineractAdapter fineract) {
-    this.jdbc = jdbc;
+  public MonitoringController(MonitoringProjectionRepository repository, FineractOperationsPort fineract) {
+    this.repository = repository;
     this.fineract = fineract;
   }
 
@@ -47,32 +46,22 @@ public class MonitoringController {
       result.add(alert("CORE_OUTAGE", "P1"));
     }
 
-    Integer pending = jdbc.queryForObject(
-        "SELECT count(*) FROM transfer_order WHERE status IN ('CREATED','VALIDATING','RISK_REVIEW','PENDING_APPROVAL','PENDING_CORE_POSTING','PENDING_CLEARING')",
-        Integer.class);
-    if (pending != null && pending > 0)
+    var snapshot=repository.snapshot();
+    if (snapshot.pending() > 0)
       result.add(alert("TRANSFER_PENDING", "P2"));
 
-    Integer undelivered = jdbc.queryForObject(
-        "SELECT count(*) FROM outbox_event WHERE status = 'PENDING'", Integer.class);
-    if (undelivered != null && undelivered > 0)
+    if (snapshot.undelivered() > 0)
       result.add(alert("OUTBOX_BACKLOG", "P2"));
 
-    Integer differences = jdbc.queryForObject(
-        "SELECT count(*) FROM reconciliation_run WHERE status='DIFFERENCE'", Integer.class);
-    if (differences != null && differences > 0) {
+    if (snapshot.differences() > 0) {
       result.add(alert("RECONCILIATION_DIFFERENCE", "P1"));
     }
 
-    Integer dlq = jdbc.queryForObject("SELECT count(*) FROM dead_letter_event", Integer.class);
-    if (dlq != null && dlq > 0) {
+    if (snapshot.dlq() > 0) {
       result.add(alert("DLQ_NON_EMPTY", "P1"));
     }
 
-    Integer eodFailed = jdbc.queryForObject(
-        "SELECT count(*) FROM eod_run WHERE status='FAILED' AND created_at > now() - interval '24 hours'",
-        Integer.class);
-    if (eodFailed != null && eodFailed > 0) {
+    if (snapshot.eodFailed() > 0) {
       result.add(alert("EOD_FAILED", "P0"));
     }
     return result;

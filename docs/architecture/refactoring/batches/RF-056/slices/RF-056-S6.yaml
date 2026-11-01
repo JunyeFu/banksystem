@@ -1,0 +1,9 @@
+id: RF-056-S6
+title: Architecture and bank acceptance
+status: COMPLETED
+allowedPaths: [services/bank-channel-service, scripts/demo, scripts/test, docs/architecture/refactoring/batches/RF-056, docs/architecture/refactoring/module-boundaries-v1.yaml, agent/backlog.yaml, agent/plans/active/v54-implementation-batches.md]
+forbiddenPaths: [infra/keycloak, postgresql, platform/hengzhun-regression-system]
+workSteps: [add minimal ArchUnit forbidden-dependency rules, run Java browser and golden banking checks, verify controlled restart and reconciliation, freeze new source identity only after all changes]
+verification: [ArchUnit Java browser golden transfer EOD reconciliation and Docker gates pass, Full18 remains separately gated]
+rollback: restore S5 code without deleting runtime data
+evidence: docs/architecture/refactoring/batches/RF-056/evidence-index.md

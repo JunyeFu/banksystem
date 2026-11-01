@@ -6,8 +6,8 @@ import { BankApiError } from '@localbank/bank-api-client';
 import { operationsApi } from '@/api/client';
 
 type Action = 'approve' | 'reject';
-const statusLabels: Record<string, string> = { PENDING: '待审批', APPROVED: '已批准', REJECTED: '已拒绝' };
-const statusColors: Record<string, string> = { PENDING: 'orange', APPROVED: 'green', REJECTED: 'red' };
+const statusLabels: Record<string, string> = { PENDING: '待审批', CORE_RESULT_UNKNOWN: '核心结果待确认', CONFIRMED: '已确认冲正', REJECTED: '已拒绝' };
+const statusColors: Record<string, string> = { PENDING: 'orange', CORE_RESULT_UNKNOWN: 'gold', CONFIRMED: 'green', REJECTED: 'red' };
 
 export function Approvals(): JSX.Element {
   const queryClient = useQueryClient();
@@ -30,7 +30,7 @@ export function Approvals(): JSX.Element {
   });
   const noPermission = query.error instanceof BankApiError && query.error.status === 403;
   let state = query.isLoading ? 'LOADING' : noPermission ? 'NO_PERMISSION' : query.isError ? 'ERROR' : rows.length === 0 ? 'EMPTY' : status === 'PENDING' ? 'PENDING_APPROVAL' : 'NORMAL';
-  if (selected) state = result?.status === 'APPROVED' ? 'APPROVED_RESULT' : result?.status === 'REJECTED' ? 'REJECTED_RESULT' : mutation.isPending ? `${action === 'reject' ? 'REJECT' : 'APPROVE'}_SUBMITTING` : mutation.error instanceof BankApiError && mutation.error.status === 409 ? 'VERSION_CONFLICT' : action ? `${action === 'reject' ? 'REJECT' : 'APPROVE'}_CONFIRM_DIALOG` : reason ? 'DRAWER_REASON_FILLED' : 'DRAWER_OPEN_EMPTY_REASON';
+  if (selected) state = result?.status === 'CONFIRMED' ? 'APPROVED_RESULT' : result?.status === 'REJECTED' ? 'REJECTED_RESULT' : mutation.isPending ? `${action === 'reject' ? 'REJECT' : 'APPROVE'}_SUBMITTING` : mutation.error instanceof BankApiError && mutation.error.status === 409 ? 'VERSION_CONFLICT' : action ? `${action === 'reject' ? 'REJECT' : 'APPROVE'}_CONFIRM_DIALOG` : reason ? 'DRAWER_REASON_FILLED' : 'DRAWER_OPEN_EMPTY_REASON';
   const closeDrawer = () => { setSelected(null); setReason(''); setAction(null); setResult(null); mutation.reset(); };
   const requestAction = (kind: Action) => { if (!reason.trim()) return; setAction(kind); };
 
@@ -62,7 +62,7 @@ export function Approvals(): JSX.Element {
     </>}
 
     <Drawer title="审批详情" width={620} open={selected !== null} onClose={closeDrawer} destroyOnClose={false} data-testid="approval-drawer">
-      {selected ? result ? <Result status="success" title={result.status === 'APPROVED' ? '审批已批准' : '审批已拒绝'} subTitle={`审批版本已更新为 ${result.version}，结果已写入审计链。`} extra={<Button type="primary" onClick={closeDrawer}>返回审批队列</Button>} /> : <>
+      {selected ? result ? <Result status={result.status === 'CORE_RESULT_UNKNOWN' ? 'warning' : 'success'} title={result.status === 'CONFIRMED' ? '冲正已由核心确认' : result.status === 'CORE_RESULT_UNKNOWN' ? '核心冲正结果待确认' : '审批已拒绝'} subTitle={`审批版本为 ${result.version}，当前状态：${statusLabels[result.status] ?? result.status}。`} extra={<Button type="primary" onClick={closeDrawer}>返回审批队列</Button>} /> : <>
         <div className="ops-approval-summary"><Tag color={statusColors[selected.status]}>{statusLabels[selected.status]}</Tag><h2>转账冲正申请</h2><p>{selected.reason}</p></div>
         <Descriptions column={1} bordered size="small" items={[
           { key: 'transfer', label: '关联交易', children: selected.transferId }, { key: 'amount', label: '交易金额', children: `${selected.currency} ${Number(selected.amount).toLocaleString('zh-CN', { minimumFractionDigits: 2 })}` },

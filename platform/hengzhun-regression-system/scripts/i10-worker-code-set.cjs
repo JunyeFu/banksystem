@@ -29,7 +29,8 @@ function loadWorkerCodeSetManifest(options = {}) {
     fail('I10_WORKER_CODE_SET_MANIFEST_INVALID')
   }
   const files = value.files.map(posix)
-  if (files.length === 0 || new Set(files).size !== files.length || files.some(file => !/^(?:worker\/src|dist\/harness\/src)\/[A-Za-z0-9._/-]+$/.test(file))) {
+  const authenticationContracts = ['contracts/adapters/fuxing-bank-demo-auth-v2.json', 'contracts/adapters/fuxing-bank-operations-auth-v1.json', 'dist/contracts/adapters/fuxing-bank-demo-auth-v2.json', 'dist/contracts/adapters/fuxing-bank-operations-auth-v1.json'];
+  if (files.length === 0 || new Set(files).size !== files.length || files.some(file => !/^(?:worker\/src|dist\/harness\/src)\/[A-Za-z0-9._/-]+$/.test(file) && !authenticationContracts.includes(file))) {
     fail('I10_WORKER_CODE_SET_MANIFEST_FILES_INVALID')
   }
   const sorted = [...files].sort()

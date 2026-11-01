@@ -1,0 +1,19 @@
+schemaVersion: 1
+id: RF-053
+title: Customer read-model truthfulness
+status: OBSERVING
+owner: Codex
+authorizedBy: agent/plans/active/v54-implementation-batches.md
+scope:
+  includePaths: [services/bank-channel-service, scripts/demo/run-golden-path.ps1, apps/customer-portal, docs/architecture/refactoring/batches/RF-053, agent/backlog.yaml, agent/plans/active/v54-implementation-batches.md]
+  excludePaths: [platform/hengzhun-regression-system, postgresql, infra]
+budgets: {maxChangedFiles: 24, maxNewFiles: 14, maxChangedLines: 1800, maxContractsChanged: 0, maxMigrationsAdded: 0, maxOpenModules: 2}
+baseline: {gitCommit: 552b3b8ac517bd5991bff446e72d9f4e87ea9543, dirtyTreeManifest: docs/architecture/refactoring/batches/RF-053/baseline.md, releaseIdentity: UNFROZEN_RF053, capturedAt: "2026-09-23T00:00:00+08:00"}
+architecture: {businessCapability: customer-read-model, publicContract: contracts/openapi/customer-api.yaml, dependencyManifest: docs/architecture/refactoring/module-boundaries-v1.yaml, allowedModules: [bank.identity, bank.notifications], forbiddenModules: [hengzhun.agent-cli, hengzhun.controller, hengzhun.harness, hengzhun.mcp, hengzhun.worker]}
+mustPreserve: [Fineract remains the banking truth source, customer ownership checks remain enforced, public errors do not expose core response bodies, managed services remain running]
+verification:
+  requiredCommands:
+    - {name: java-tests, command: "docker run --rm --user 1000:1000 -e HOME=/tmp -v ${PWD}:/workspace -w /workspace/services/bank-channel-service --entrypoint mvn maven:3.9.9-eclipse-temurin-21 -q -Dmaven.repo.local=/tmp/m2 test", expectedExitCode: 0, evidence: docs/architecture/refactoring/batches/RF-053/evidence-index.md, blocking: true}
+    - {name: golden-path, command: "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/demo/run-golden-path.ps1", expectedExitCode: 0, evidence: docs/architecture/refactoring/batches/RF-053/evidence-index.md, blocking: true}
+rollback: {triggerConditions: [customer account read failure, statement balance mismatch, duplicate beneficiary rows, raw core response exposure], recoveryPoint: RF-052 REVIEW implementation, maxRtoMinutes: 30, maxRpoMinutes: 0}
+exceptions: {allowedVagueNames: [], crossModule: ["bank.notifications -> bank.identity: statement ownership check remains until RF-056", "bank.identity -> bank.beneficiaries: one customer read-model batch migrates beneficiary identity", "bank.identity -> bank.test-support: golden fixture uses the same explicit account actions"]}

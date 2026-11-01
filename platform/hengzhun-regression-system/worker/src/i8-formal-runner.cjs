@@ -1,16 +1,19 @@
 'use strict';
 
 const fs = require('node:fs');
+const os = require('node:os');
 const path = require('node:path');
 const { executeCandidatePackage } = require('./i8-candidate-runner.cjs');
 const {
   artifact, throwIfLeaseAborted, bindLeaseAbortToBrowser,
-  assertTargetUrlResolution, chromiumHostResolverRules, resolveCredential, sha256
+  assertTargetUrlResolution, chromiumHostResolverRules, resolveCredential, sha256,
+  targetRuntimeAllowedOrigins
 } = require('./i10-worker-utils.cjs');
 const { policyForAction } = require('./i10-verification-policy.cjs');
 const { requiresVisibleVerification, runVerificationPolicy } = require('./i10-verification-execution.cjs');
 
 const EMPTY_SCREENSHOT = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=', 'base64');
+const REQUIRED_EVIDENCE_KINDS = Object.freeze(['DOM', 'SCREENSHOT', 'TRACE', 'NETWORK', 'LEDGER']);
 
 function loadChromium() {
   return require('../../runtime/node_modules/playwright').chromium;
@@ -51,21 +54,7 @@ function formalBaseUrl(task, environment, options) {
 }
 
 function runtimeAllowedOrigins(task, baseUrl) {
-  const targetProfile = task.execution?.targetProfile;
-  const origins = new Set(targetProfile
-    ? [
-        ...(Array.isArray(targetProfile.allowedNavigationOrigins) ? targetProfile.allowedNavigationOrigins : []),
-        ...(Array.isArray(targetProfile.allowedInteractionOrigins) ? targetProfile.allowedInteractionOrigins : []),
-        ...(Array.isArray(targetProfile.credentialOrigins) ? targetProfile.credentialOrigins : [])
-      ]
-    : [new URL(baseUrl).origin, 'http://127.0.0.1:18443', 'http://127.0.0.1:19000']);
-  const adapter = targetProfile?.adapterBinding;
-  // A dependency origin is an adapter property, never a target-name or
-  // launch-path inference. Generic targets may only use frozen origins.
-  if (adapter?.adapterId === 'fuxing-bank-demo' && adapter?.adapterVersion === '1.0.0') {
-    origins.add('http://127.0.0.1:19000');
-  }
-  return origins;
+  return targetRuntimeAllowedOrigins(task.execution?.targetProfile, baseUrl);
 }
 
 function safePageLocation(page) {
@@ -101,10 +90,89 @@ function ordinalForStep(step) {
 
 function quarantinedScreenshotArtifact(content, metadata = {}) {
   return artifact('SCREENSHOT', 'image/png', 'QUARANTINED', 'png', content, {
+    evidenceKind: 'SCREENSHOT',
     ...metadata,
     pixelRedactionVerified: false,
     quarantineReason: 'PIXEL_REDACTION_NOT_VERIFIED'
   });
+}
+
+function buildDomEvidence(snapshot) {
+  const nodes = Array.isArray(snapshot?.nodes) ? snapshot.nodes.slice(0, 512).map(node => ({
+    tag: String(node?.tag || '').slice(0, 32),
+    role: String(node?.role || '').slice(0, 64),
+    type: String(node?.type || '').replace(/password/ig, 'secret').slice(0, 32),
+    visible: node?.visible === true,
+    attributeHash: /^[a-f0-9]{64}$/.test(String(node?.attributeHash || '')) ? node.attributeHash : sha256(''),
+    textHash: /^[a-f0-9]{64}$/.test(String(node?.textHash || '')) ? node.textHash : sha256(''),
+  })) : [];
+  return {
+    schemaVersion: 'hengzhun-dom-evidence/v1',
+    path: String(snapshot?.path || '').slice(0, 512),
+    titleHash: sha256(String(snapshot?.title || '')),
+    nodeCount: Number.isSafeInteger(snapshot?.nodeCount) ? snapshot.nodeCount : nodes.length,
+    nodes,
+  };
+}
+
+function buildNetworkEvidence(events) {
+  return {
+    schemaVersion: 'hengzhun-network-evidence/v1',
+    events: (Array.isArray(events) ? events : []).slice(0, 512).map(event => {
+      const parsed = new URL(String(event.url));
+      return {
+        phase: event.phase === 'response' ? 'response' : 'request',
+        method: String(event.method || 'GET').slice(0, 16),
+        url: `${parsed.origin}${parsed.pathname}`,
+        resourceType: String(event.resourceType || '').slice(0, 32),
+        ...(Number.isInteger(event.status) ? { status: event.status } : {}),
+      };
+    }),
+  };
+}
+
+function buildEvidenceLedger({ task, candidateId, scriptHash, entries }) {
+  return {
+    schemaVersion: 'hengzhun-execution-evidence-ledger/v1',
+    runId: task.runId,
+    taskId: task.taskId,
+    caseId: task.caseId,
+    candidateId,
+    scriptHash,
+    entries: entries.map(entry => ({
+      evidenceKind: entry.evidenceKind,
+      sha256: sha256(entry.bytes),
+      byteSize: entry.bytes.byteLength,
+    })),
+  };
+}
+
+async function captureDomEvidence(page) {
+  const snapshot = await page.evaluate(async () => {
+    const digest = async value => {
+      const bytes = new TextEncoder().encode(String(value || ''));
+      const hash = await crypto.subtle.digest('SHA-256', bytes);
+      return [...new Uint8Array(hash)].map(item => item.toString(16).padStart(2, '0')).join('');
+    };
+    const candidates = [...document.querySelectorAll('body *')];
+    const nodes = [];
+    for (const node of candidates.slice(0, 512)) {
+      const style = getComputedStyle(node);
+      const rect = node.getBoundingClientRect();
+      const attributes = ['id', 'name', 'data-testid', 'aria-label'].map(name => node.getAttribute(name) || '').join('\0');
+      nodes.push({
+        tag: node.tagName.toLowerCase(), role: node.getAttribute('role') || '', type: node.getAttribute('type') || '',
+        visible: style.visibility !== 'hidden' && style.display !== 'none' && rect.width > 0 && rect.height > 0,
+        attributeHash: await digest(attributes), textHash: await digest((node.textContent || '').replace(/\s+/g, ' ').trim().slice(0, 512)),
+      });
+    }
+    return { title: document.title || '', path: location.pathname || '', nodeCount: candidates.length, nodes };
+  });
+  return buildDomEvidence(snapshot);
+}
+
+function evidenceArtifact(evidenceKind, artifactType, mediaType, redactionStatus, extension, bytes, metadata = {}) {
+  return artifact(artifactType, mediaType, redactionStatus, extension, bytes, { evidenceKind, ...metadata });
 }
 
 async function executeI8FormalRun(task, environment = process.env, options = {}) {
@@ -146,10 +214,23 @@ async function executeI8FormalRun(task, environment = process.env, options = {})
     storageState: { cookies: [], origins: [] }, ignoreHTTPSErrors: targetProfile?.tlsPolicy === 'ALLOW_SELF_SIGNED'
   });
   const page = await context.newPage();
+  const traceDirectory = fs.mkdtempSync(path.join(os.tmpdir(), 'hengzhun-trace-'));
+  const tracePath = path.join(traceDirectory, 'trace.zip');
+  let traceActive = false;
+  const networkEvents = [];
   let screenshot = EMPTY_SCREENSHOT;
   let currentStep = null;
   try {
     throwIfLeaseAborted(options.signal);
+    await context.tracing.start({ screenshots: false, snapshots: true, sources: false });
+    traceActive = true;
+    page.on('request', request => networkEvents.push({
+      phase: 'request', method: request.method(), url: request.url(), resourceType: request.resourceType()
+    }));
+    page.on('response', response => {
+      const request = response.request();
+      networkEvents.push({ phase: 'response', method: request.method(), url: response.url(), resourceType: request.resourceType(), status: response.status() });
+    });
     await context.route('**/*', async route => {
       const url = new URL(route.request().url());
       if (['data:', 'blob:'].includes(url.protocol) || allowedOrigins.has(url.origin)) return route.continue();
@@ -193,7 +274,7 @@ async function executeI8FormalRun(task, environment = process.env, options = {})
           allowExternalFallback: visibleHandoff,
           onExternalChallenge: options.onVerificationChallenge
             ? attempts => options.onVerificationChallenge({
-              verificationType: 'USER_ASSISTED',
+              verificationType: 'UKEY',
               userPreparation: '请在当前可见浏览器会话中完成页面验证后再点击 proceed。',
               namespace: task.namespace,
               taskRef: task.taskId,
@@ -201,12 +282,26 @@ async function executeI8FormalRun(task, environment = process.env, options = {})
               attempts
             })
             : undefined,
-          assertSuccessEvidence: async targetRef => currentPage.getByTestId(targetRef === 'ORDER_NUMBER' ? 'transfer-order-number' : targetRef)
+          assertSuccessEvidence: async targetRef => (targetRef === 'TRANSFER_SETTLED'
+            ? currentPage.locator('[data-testid="transfer-result-status"][data-status="SETTLED"]') : currentPage.getByTestId(targetRef))
             .waitFor({ state: 'visible', timeout: 15_000 })
         });
       },
       onStep: async (step) => { currentStep = { ...step, pageUrl: safePageLocation(page) }; }
     });
+    screenshot = await page.screenshot({
+      fullPage: true,
+      mask: [
+        page.locator('input[type="password"]'),
+        page.locator('input[autocomplete*="username"],input[autocomplete*="email"],input[autocomplete*="tel"]')
+      ],
+      maskColor: '#202020'
+    });
+    const domEvidence = await captureDomEvidence(page);
+    const networkEvidence = buildNetworkEvidence(networkEvents);
+    await context.tracing.stop({ path: tracePath });
+    traceActive = false;
+    const trace = fs.readFileSync(tracePath);
     const facts = Array.isArray(result.facts) ? result.facts.map(item => ({ stepId: item.stepId, operation: item.operation, passed: item.passed })) : [];
     const passed = result.outcome === 'PASSED' && facts.length > 0 && facts.every(item => item.passed === true);
     const report = {
@@ -216,10 +311,26 @@ async function executeI8FormalRun(task, environment = process.env, options = {})
       freshBrowserContext: true, deterministicPlaywrightOnly: true,
       assertionSetHash: sha256(JSON.stringify(facts)), assertions: facts, passed
     };
+    const reportBytes = Buffer.from(JSON.stringify(report, null, 2));
+    const logBytes = Buffer.from(`${facts.map(item => `${item.passed ? 'PASS' : 'FAIL'} ${item.stepId} ${item.operation}`).join('\n')}\n`);
+    const domBytes = Buffer.from(JSON.stringify(domEvidence, null, 2));
+    const networkBytes = Buffer.from(JSON.stringify(networkEvidence, null, 2));
+    const ledgerEntries = [
+      { evidenceKind: 'REPORT', bytes: reportBytes }, { evidenceKind: 'SCREENSHOT', bytes: screenshot },
+      { evidenceKind: 'LOG', bytes: logBytes }, { evidenceKind: 'DOM', bytes: domBytes },
+      { evidenceKind: 'TRACE', bytes: trace }, { evidenceKind: 'NETWORK', bytes: networkBytes },
+    ];
+    const ledgerBytes = Buffer.from(JSON.stringify(buildEvidenceLedger({
+      task, candidateId: descriptor.candidateId, scriptHash: descriptor.scriptHash, entries: ledgerEntries,
+    }), null, 2));
     const evidence = [
-      artifact('REPORT', 'application/json', 'REDACTED', 'json', JSON.stringify(report, null, 2), { schemaVersion: report.schemaVersion, passed }),
+      evidenceArtifact('REPORT', 'REPORT', 'application/json', 'REDACTED', 'json', reportBytes, { schemaVersion: report.schemaVersion, passed }),
       quarantinedScreenshotArtifact(screenshot),
-      artifact('LOG', 'text/plain; charset=utf-8', 'REDACTED', 'log', `${facts.map(item => `${item.passed ? 'PASS' : 'FAIL'} ${item.stepId} ${item.operation}`).join('\n')}\n`, { containsCredentials: false })
+      evidenceArtifact('LOG', 'LOG', 'text/plain; charset=utf-8', 'REDACTED', 'log', logBytes, { containsCredentials: false }),
+      evidenceArtifact('DOM', 'JSON', 'application/json', 'REDACTED', 'json', domBytes, { schemaVersion: domEvidence.schemaVersion }),
+      evidenceArtifact('TRACE', 'TRACE', 'application/zip', 'QUARANTINED', 'zip', trace, { sourcesIncluded: false }),
+      evidenceArtifact('NETWORK', 'JSON', 'application/json', 'REDACTED', 'json', networkBytes, { schemaVersion: networkEvidence.schemaVersion }),
+      evidenceArtifact('LEDGER', 'JSON', 'application/json', 'REDACTED', 'json', ledgerBytes, { schemaVersion: 'hengzhun-execution-evidence-ledger/v1' }),
     ];
     return passed
       ? { outcome: 'PASSED', summary: '已激活脚本通过纯 Playwright 正式回归。', evidence }
@@ -249,6 +360,34 @@ async function executeI8FormalRun(task, environment = process.env, options = {})
     // locator failure from generic candidate-script logic.  No raw error text,
     // page content or credentials cross this boundary.
     error.failureDiagnostic = diagnostic;
+    if(/^CANDIDATE_EXPECT_(?:TEXT|EQUAL|VISIBLE)_FAILED(?:_|$)/.test(error.code||'')&&
+      ['expectText','expectEqual','expectVisible'].includes(currentStep?.operation)) {
+      const report={schemaVersion:'i8-formal-run-report-v1',runId:task.runId,taskId:task.taskId,
+        caseId:task.caseId,caseVersion:task.caseVersion,candidateId:descriptor.candidateId,
+        scriptHash:descriptor.scriptHash,manifestHash:descriptor.manifestHash,passed:false,
+        assertions:[{stepId:currentStep.stepId,operation:currentStep.operation,passed:false}],
+        failureReason:error.code,failureDiagnostic:diagnostic};
+      const reportBytes=Buffer.from(JSON.stringify(report));
+      const domBytes=Buffer.from(JSON.stringify(await captureDomEvidence(page)));
+      const networkBytes=Buffer.from(JSON.stringify(buildNetworkEvidence(networkEvents)));
+      const failureScreenshot=await page.screenshot({fullPage:true,mask:[
+        page.locator('input[type="password"]'),
+        page.locator('input[autocomplete*="username"],input[autocomplete*="email"],input[autocomplete*="tel"]')],maskColor:'#202020'});
+      await context.tracing.stop({path:tracePath});traceActive=false;
+      const trace=fs.readFileSync(tracePath);
+      const entries=[{evidenceKind:'REPORT',bytes:reportBytes},{evidenceKind:'DOM',bytes:domBytes},
+        {evidenceKind:'SCREENSHOT',bytes:failureScreenshot},{evidenceKind:'NETWORK',bytes:networkBytes},{evidenceKind:'TRACE',bytes:trace}];
+      const ledger=Buffer.from(JSON.stringify(buildEvidenceLedger({task,candidateId:descriptor.candidateId,scriptHash:descriptor.scriptHash,entries})));
+      return {outcome:'FAILED',summary:'冻结脚本的页面断言失败。',errorCode:'I8_FORMAL_ASSERTION_FAILED',
+        errorCategory:'TEST_FAILURE',retryable:false,userActionRequired:true,failureDiagnostic:diagnostic,evidence:[
+          evidenceArtifact('REPORT','REPORT','application/json','REDACTED','json',reportBytes,{passed:false}),
+          evidenceArtifact('DOM','JSON','application/json','REDACTED','json',domBytes),
+          quarantinedScreenshotArtifact(failureScreenshot,{captureContext:'FAILURE'}),
+          evidenceArtifact('NETWORK','JSON','application/json','REDACTED','json',networkBytes),
+          evidenceArtifact('TRACE','TRACE','application/zip','QUARANTINED','zip',trace),
+          evidenceArtifact('LEDGER','JSON','application/json','REDACTED','json',ledger),
+        ]};
+    }
     error.evidence = [
       artifact('DIAGNOSTIC', 'application/json', 'REDACTED', 'json', JSON.stringify(diagnostic, null, 2), { containsCredentials: false }),
       quarantinedScreenshotArtifact(await page.screenshot({
@@ -265,10 +404,15 @@ async function executeI8FormalRun(task, environment = process.env, options = {})
     throwIfLeaseAborted(options.signal);
     throw error;
   } finally {
+    if (traceActive) await context.tracing.stop().catch(() => {});
     detachLeaseAbort();
     await context.close().catch(() => {});
     await browser.close().catch(() => {});
+    fs.rmSync(traceDirectory, { recursive: true, force: true });
   }
 }
 
-module.exports = { executeI8FormalRun, formalBaseUrl, ordinalForStep, quarantinedScreenshotArtifact, runtimeAllowedOrigins };
+module.exports = {
+  REQUIRED_EVIDENCE_KINDS, buildDomEvidence, buildNetworkEvidence, buildEvidenceLedger,
+  executeI8FormalRun, formalBaseUrl, ordinalForStep, quarantinedScreenshotArtifact, runtimeAllowedOrigins
+};

@@ -48,7 +48,7 @@ test('RF-003-S2 static: version derives from the contract with fail-closed start
   assert.match(serverSource, /version: runtimeContractVersion/, 'health endpoint must use runtimeContractVersion')
   assert.doesNotMatch(serverSource, /version: '8\\.0\\.0'/, 'no legacy SDK version literal')
   assert.doesNotMatch(serverSource, /version: '10\\.0\\.0'/, 'no legacy health version literal')
-  assert.equal(runtimeContract.contractVersion, '10.1.0')
+  assert.equal(runtimeContract.contractVersion, '10.4.0')
 })
 
 test('RF-003-S2 isolated runtime: /health version matches the contract, tools still work', async () => {

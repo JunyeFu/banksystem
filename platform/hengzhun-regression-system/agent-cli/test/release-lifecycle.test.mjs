@@ -15,9 +15,16 @@ const fs = require('node:fs')
 
 test('normal managed process spec has one CLI and exactly Harness MCP Worker', () => {
   const plan = lifecycle.buildLifecyclePlan({ root: productRoot, processes: [], listeners: [] })
+  const spec = JSON.parse(fs.readFileSync(path.join(productRoot, 'agent-cli', 'managed-process-spec-v1.json'), 'utf8'))
   assert.equal(plan.profile, 'NORMAL_CLI')
   assert.equal(plan.interactive.name, 'hz-agent')
   assert.deepEqual(plan.services.map((service) => service.name), ['harness', 'mcp', 'worker'])
+  assert.deepEqual(spec.runtime, {
+    sessionRoot: '.data/sessions',
+    harnessUrl: 'http://127.0.0.1:18788',
+    mcpUrl: 'http://127.0.0.1:18789/mcp',
+    namespace: 'hengzhun-local',
+  })
   assert.doesNotMatch(JSON.stringify(plan.services), /flowise/i)
   assert.equal(plan.flowiseAbsent, true)
   assert.equal(plan.writeReady, true)
@@ -144,31 +151,67 @@ test('managed stop refuses an ownership mismatch and never sends a stop signal',
   assert.equal(signaled, false)
 })
 
-test('cold rollback is disabled, separately authorized and shares no normal switch', async () => {
-  const descriptor = JSON.parse(await readFile(new URL('../flowise-cold-rollback-v1.json', import.meta.url), 'utf8'))
-  assert.equal(descriptor.status, 'DISABLED')
-  assert.equal(descriptor.sharesNormalStartSwitch, false)
-  assert.equal(descriptor.evidenceReuseAcrossProfiles, false)
-  assert.equal(descriptor.authorizationVariable, 'HENGZHUN_AUTHORIZE_FLOWISE_COLD_ROLLBACK')
-  const identity = 'a'.repeat(64)
-  assert.throws(() => lifecycle.buildColdRollbackPlan({ root: productRoot, authorizationValue: 'wrong', expectedReleaseIdentity: identity }),
-    (error) => error.code === 'FLOWISE_COLD_ROLLBACK_NOT_AUTHORIZED')
-  const plan = lifecycle.buildColdRollbackPlan({ root: productRoot, authorizationValue: identity, expectedReleaseIdentity: identity })
-  assert.equal(plan.profile, 'FLOWISE_COLD_ROLLBACK')
-  assert.equal(plan.normalProfileDisabled, true)
-  assert.equal(plan.evidenceReusableByNormalProfile, false)
-  assert.equal(plan.executionPerformed, false)
+test('managed stop remains available after source identity changes and only stops recorded owned processes', async () => {
+  const component = lifecycle.buildLifecyclePlan({ root: productRoot }).services[0]
+  const priorIdentity = {
+    identityHash: 'a'.repeat(64),
+    groupHashes: { [component.name]: 'b'.repeat(64) },
+  }
+  const record = lifecycle.serviceRecord(productRoot, component, 31338, priorIdentity)
+  const signaled = []
+  let stateRemoved = false
+  const result = await lifecycle.stopManaged({
+    root: productRoot,
+    environment: {},
+    authorizationValue: 'not-the-current-source-identity',
+    deps: {
+      readState: () => ({
+        schemaVersion: 'hengzhun-agent-process-state/v1', productRoot,
+        releaseIdentityHash: priorIdentity.identityHash, services: [record],
+      }),
+      processInfo: async () => ({
+        pid: record.pid,
+        executablePath: path.resolve(productRoot, component.executable),
+        commandLine: `"${path.resolve(productRoot, component.executable)}" "${path.resolve(productRoot, component.entrypoint)}"`,
+      }),
+      signalStop: (_target, stoppedRecord) => signaled.push(stoppedRecord.name),
+      waitStopped: async () => true,
+      removeState: () => { stateRemoved = true },
+    },
+  })
+  assert.equal(result.status, 'STOPPED')
+  assert.deepEqual(signaled, [component.name])
+  assert.equal(stateRemoved, true)
 })
 
-test('ReleaseIdentity v4 covers the normal chain and excludes Flowise and user data', () => {
+test('normal lifecycle exposes no Flowise rollback entrypoint', () => {
+  assert.equal(lifecycle.executeColdRollbackDrill, undefined)
+  assert.equal(lifecycle.buildColdRollbackPlan, undefined)
+  assert.equal(lifecycle.COLD_ROLLBACK_AUTHORIZATION_VARIABLE, undefined)
+})
+
+test('ReleaseIdentity v4 covers the complete demo product and excludes Flowise and user data', () => {
   const identity = v4.currentReleaseIdentityV4({ productRoot })
   assert.equal(identity.schemaVersion, 'hengzhun-i10-release-identity-v4')
   assert.equal(identity.profile, 'NORMAL_CLI')
   assert.equal(identity.releaseStatus, 'SOURCE_FROZEN_UNBOUND')
-  for (const group of ['agentCli', 'controller', 'mcp', 'lifecycle', 'harness', 'worker']) assert.match(identity.groupHashes[group], /^[0-9a-f]{64}$/)
+  for (const group of ['agentCli', 'controller', 'mcp', 'lifecycle', 'harness', 'worker', 'bankProduct']) assert.match(identity.groupHashes[group], /^[0-9a-f]{64}$/)
   assert.ok(identity.files.includes('agent-cli/package-lock.json'))
+  for (const file of ['repo:scripts/test/verify-agent-workbench.ps1', 'repo:scripts/test/rf068-workbench-live.mjs', 'repo:scripts/test/rf068-workbench-assertions.mjs', 'repo:scripts/demo/rf068-workbench-runtime.cjs', 'agent-cli/src/product-doctor.mjs']) assert.ok(identity.files.includes(file), file)
+  for (const dependencyInput of ['package-lock.json', 'runtime/package.json', 'runtime/package-lock.json', 'config/demo-runtime-freeze.json', 'vendor/extract-zip/index.js', 'vendor/extract-zip/package.json', 'vendor/extract-zip/LICENSE']) {
+    assert.ok(identity.files.includes(dependencyInput), dependencyInput)
+  }
   assert.ok(identity.files.includes('controller/session-schema-v1.json'))
   assert.ok(identity.files.includes('scripts/i10-agent-lifecycle.cjs'))
+  assert.ok(identity.files.includes('scripts/i10-provision-fuxing-demo-customer.ps1'))
+  assert.ok(identity.files.includes('repo:apps/customer-portal/src/pages/Dashboard.tsx'))
+  assert.ok(identity.files.includes('repo:contracts/openapi/customer-api.yaml'))
+  assert.ok(identity.files.includes('repo:scripts/deploy/ensure-fineract-credentials.ps1'))
+  assert.ok(identity.files.includes('repo:scripts/deploy/write-channel-db-password-file.ps1'))
+  for (const capability of ['Customer', 'Account', 'Transfer', 'Loan', 'Operations']) {
+    assert.ok(identity.files.includes(`repo:services/bank-channel-service/src/main/java/local/bank/channel/Fineract${capability}Port.java`))
+  }
+  assert.equal(identity.files.includes('repo:services/bank-channel-service/src/main/java/local/bank/channel/FineractAdapter.java'), false)
   assert.equal(identity.files.some((file) => file.startsWith('flowise/app/') || /agentflow-v\d+\.json$/.test(file) || file.startsWith('.data/')), false)
 })
 
@@ -178,7 +221,7 @@ test('every governed v4 file causes identity drift on one-byte change', () => {
     const changed = v4.currentReleaseIdentityV4({
       productRoot,
       readFile(relative) {
-        const bytes = fs.readFileSync(path.join(productRoot, ...relative.split('/')))
+        const bytes = fs.readFileSync(v4.resolveIdentityFile(productRoot, relative))
         return relative === changedPath ? Buffer.concat([bytes, Buffer.from('\n')]) : bytes
       },
     })

@@ -1,0 +1,21 @@
+schemaVersion: 1
+id: RF-035
+title: Root API-only bank golden path
+status: CLOSED
+owner: Codex
+authorizedBy: agent/plans/active/v54-implementation-batches.md
+scope:
+  includePaths: [demo.ps1, scripts/demo/run-golden-path.ps1, scripts/deploy/verify-demo-lifecycle.ps1, compose.channel.yaml, services/bank-channel-service, contracts/openapi/test-support-api.yaml, docs/architecture/refactoring/batches/RF-035, agent/runs/rf035, agent/plans/active, agent/backlog.yaml]
+  excludePaths: [platform/hengzhun-regression-system, apps/customer-portal, apps/operations-console, apps/quality-case-portal, postgresql]
+budgets: {maxChangedFiles: 24, maxNewFiles: 12, maxChangedLines: 1200, maxContractsChanged: 1, maxMigrationsAdded: 0, maxOpenModules: 1}
+baseline: {gitCommit: 552b3b8ac517bd5991bff446e72d9f4e87ea9543, dirtyTreeManifest: docs/architecture/refactoring/batches/RF-027/baseline.md, releaseIdentity: 19e031c7, capturedAt: "2026-09-03T17:00:00+08:00"}
+architecture: {businessCapability: bank-transfer-golden-path, publicContract: contracts/openapi/test-support-api.yaml, dependencyManifest: docs/architecture/refactoring/module-boundaries-v1.yaml, allowedModules: [bank.test-support], forbiddenModules: [frontend.customer-portal, frontend.operations-console, frontend.quality-case-portal, hengzhun.controller, hengzhun.harness, hengzhun.mcp, hengzhun.worker]}
+mustPreserve: [Fineract is the only money source of truth, gateway is the only channel entry, explicit idempotency and correlation headers, exact balance conservation, no database mutation from the runner, no transfer compensation, ephemeral credentials never enter output or evidence]
+verification:
+  requiredCommands:
+    - {name: java-tests, command: "mvnw.cmd test", expectedExitCode: 0, evidence: docs/architecture/refactoring/batches/RF-035/evidence-index.md, blocking: true}
+    - {name: lifecycle-contract, command: "pwsh scripts/deploy/verify-demo-lifecycle.ps1", expectedExitCode: 0, evidence: docs/architecture/refactoring/batches/RF-035/evidence-index.md, blocking: true}
+    - {name: fresh-golden-path, command: "pwsh scripts/demo/run-golden-path.ps1", expectedExitCode: 0, evidence: agent/runs/rf035/20260903-171200/integration-result.json, blocking: true}
+    - {name: governance, command: "py -3 scripts/architecture/validate_refactoring.py --batch RF-035", expectedExitCode: 0, evidence: docs/architecture/refactoring/batches/RF-035/evidence-index.md, blocking: true}
+rollback: {triggerConditions: [balance delta differs from 100 CNY, correlation readback is not unique, runner mutates a database directly, cleanup deletes historical transfers or compensates Fineract], recoveryPoint: RF-034 closed source state, maxRtoMinutes: 15, maxRpoMinutes: 0}
+exceptions: {allowedVagueNames: [], crossModule: []}

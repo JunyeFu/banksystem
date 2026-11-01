@@ -1,0 +1,9 @@
+id: RF-056-S4
+title: Customer and document SQL ownership
+status: COMPLETED
+allowedPaths: [services/bank-channel-service/src/main, services/bank-channel-service/src/test, contracts/openapi/operations-api.yaml, packages/bank-api-client, apps/operations-console/src, docs/architecture/refactoring/batches/RF-056, agent/backlog.yaml, agent/plans/active/v54-implementation-batches.md]
+forbiddenPaths: [infra/keycloak, postgresql, platform/hengzhun-regression-system]
+workSteps: [move customer and document SQL into module repositories, require document expected version, enforce DRAFT PUBLISHED ARCHIVED transitions and 409, update API client and UI]
+verification: [document contract and concurrent update tests pass, operations UI submits current version, Java and UI builds pass]
+rollback: restore S3 code and contract as one unit without rewriting document rows
+evidence: docs/architecture/refactoring/batches/RF-056/evidence-index.md

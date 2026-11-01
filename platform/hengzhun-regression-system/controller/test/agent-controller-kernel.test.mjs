@@ -3,7 +3,7 @@ import test from 'node:test'
 
 import { FakeListChatModel } from '@langchain/core/utils/testing'
 
-import { createAgentController, createBoundedDeepAgentPlanner } from '../src/agent-controller.mjs'
+import { createAgentController, createBoundedPlanner } from '../src/agent-controller.mjs'
 
 class ObservedFakeModel extends FakeListChatModel {
   static lc_name() { return 'ChatOpenAI' }
@@ -45,7 +45,7 @@ class SyntheticHarness {
 
 function build({ harness = new SyntheticHarness(), response, now = () => 1_800_000_000_000 } = {}) {
   const observed = []
-  const planner = createBoundedDeepAgentPlanner({
+  const planner = createBoundedPlanner({
     model: new ObservedFakeModel(response ?? {
       summary: 'Submit one synthetic journey input.',
       risk: 'LOW',
@@ -80,7 +80,7 @@ function decision(started, overrides = {}) {
   }
 }
 
-test('Deep Agents plan interrupts, exact resume mutates once and reconciles', async () => {
+test('LangChain plan interrupts, exact resume mutates once and reconciles', async () => {
   const { controller, harness, observed } = build()
   const started = await controller.start(startInput())
   assert.equal(started.status, 'AWAITING_USER')
@@ -176,7 +176,7 @@ test('replaying a completed resume cannot invoke a second mutation', async () =>
   assert.equal(harness.mutations, 1)
 })
 
-test('injection text does not expose host or mutation tools to Deep Agents', async () => {
+test('injection text does not expose host or mutation tools to the planner', async () => {
   const { controller, observed } = build()
   const started = await controller.start({
     ...startInput(),

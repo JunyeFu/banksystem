@@ -1,6 +1,7 @@
 import { z } from 'zod';
 import { HarnessError } from './errors';
 import { canonicalJson } from './utils';
+import { reviewedLocatorSchema, reviewedAssertionSchema } from './feedback';
 
 export const contextLevelSchema = z.enum(['CTX-L1', 'CTX-L2', 'CTX-L3']);
 export const contextConsumerSchema = z.enum(['VISION_LLM', 'CONTROLLER_LLM']);
@@ -78,6 +79,8 @@ const currentActionSchema = z.object({
   targetRef: z.string().trim().min(1).max(160).regex(/^[A-Za-z0-9._:-]+$/),
   valueRef: z.enum(['SYNTHETIC_TEXT', 'CREDENTIAL_USERNAME', 'CREDENTIAL_PASSWORD']).nullable(),
   riskLevel: z.enum(['LOW', 'MEDIUM', 'HIGH']),
+  reviewedLocator: reviewedLocatorSchema.optional(),
+  reviewedAssertion: reviewedAssertionSchema.optional(),
   executionMode: z.enum([
     'MIDSCENE_LOCATE_PLAYWRIGHT_EXECUTE',
     'PLAYWRIGHT_ONLY'
@@ -258,6 +261,7 @@ export function buildMidscenePrompt(envelope: ActionContextEnvelope): string {
   return [
     '你是衡准受限视觉定位代理。只处理下面受控 JSON 中的 currentAction；相邻上下文只用于消歧。',
     '不得推断或输出凭据，不得操作 allowedTargets 之外的目标，不得宣称业务断言通过。',
+    ...(parsed.currentAction.reviewedLocator ? ['currentAction.reviewedLocator是同目标已核验的定位纠正，仅作为当前截图定位提示；仍须从真实截图定位，不得改变动作、输入或预期。'] : []),
     '定位坐标必须直接按当前截图的视觉相对位置归一化到0-1000；不得假设1920x1080或其他分辨率后再次缩放。必须保持提示中的空间关系，例如“页面右上角”目标的中心应位于截图右半区且靠近顶部。',
     canonicalJson(parsed)
   ].join('\n');

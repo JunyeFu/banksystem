@@ -22,13 +22,14 @@ function readJson(filePath) {
   return JSON.parse(fs.readFileSync(filePath, 'utf8'))
 }
 
-test('current 35-tool population is classified exactly once and planner projection is read-only', () => {
+test('current 39-tool population is classified exactly once and planner projection is read-only', () => {
   const policy = loadToolPolicy()
-  assert.equal(policy.activeToolCount, 35)
-  assert.equal(policy.readOnlyTools.length, 13)
-  assert.equal(policy.mutatingTools.length, 22)
-  assert.equal(policy.readOnlyTools.length + policy.mutatingTools.length, 35)
+  assert.equal(policy.activeToolCount, 39)
+  assert.equal(policy.readOnlyTools.length, 15)
+  assert.equal(policy.mutatingTools.length, 24)
+  assert.equal(policy.readOnlyTools.length + policy.mutatingTools.length, 39)
   assert.equal(policy.classify('journey_get'), 'READ_ONLY')
+  assert.equal(policy.classify('journey_evidence_verify'), 'READ_ONLY')
   assert.equal(policy.classify('schedule_create'), 'MUTATING')
   assert.equal(policy.classify('candidate_preview'), 'READ_ONLY')
   assert.equal(policy.classify('result_inbox_list'), 'READ_ONLY')

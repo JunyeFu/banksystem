@@ -18,6 +18,7 @@ export function TransferCreate(): JSX.Element {
   const [submitError, setSubmitError] = useState<string>();
   const [review, setReview] = useState<FormData>();
   const [idempotencyKey] = useState(() => crypto.randomUUID());
+  const [correlationId] = useState(() => crypto.randomUUID());
   const accounts = useQuery({ queryKey: ['accounts'], queryFn: () => customerApi.listAccounts() });
   const beneficiaries = useQuery({ queryKey: ['beneficiaries'], queryFn: () => customerApi.listBeneficiaries() });
   const { control, handleSubmit, setValue, watch } = useForm<FormData>({ resolver: zodResolver(schema), defaultValues: { sourceAccountId: '', beneficiaryId: '', amount: 0, reference: '' } });
@@ -36,7 +37,12 @@ export function TransferCreate(): JSX.Element {
     else if (!beneficiaryId && beneficiaries.data?.items.length === 1 && beneficiaries.data.items[0]) setValue('beneficiaryId', beneficiaries.data.items[0].beneficiaryId);
   }, [accounts.data, beneficiaries.data, beneficiaryId, isControlledScenario, searchParams, setValue, sourceId]);
   const mutation = useMutation({
-    mutationFn: (value: FormData) => customerApi.createTransfer({ sourceAccountId: value.sourceAccountId, beneficiaryId: value.beneficiaryId, amount: value.amount.toFixed(2), currency: account?.currency ?? 'CNY', reference: value.reference || undefined }, idempotencyKey),
+    mutationFn: (value: FormData) => {
+      const reviewedAccount = accounts.data?.items.find((item) => item.accountId === value.sourceAccountId);
+      const reviewedBeneficiary = beneficiaries.data?.items.find((item) => item.beneficiaryId === value.beneficiaryId);
+      if (!reviewedAccount?.currency || !reviewedBeneficiary) throw new Error('确认中的账户或收款人已不可用，请返回修改');
+      return customerApi.createTransfer({ sourceAccountId: value.sourceAccountId, beneficiaryId: value.beneficiaryId, amount: value.amount.toFixed(2), currency: reviewedAccount.currency, reference: value.reference || undefined }, idempotencyKey, correlationId);
+    },
     onSuccess: (result) => navigate(`/verification?transferId=${encodeURIComponent(result.transferId)}`), onError: (error: Error) => setSubmitError(error.message),
   });
   const accountOptions = useMemo(() => accounts.data?.items.map((item) => ({ value: item.accountId, label: `${item.maskedAccountNumber}（${item.accountType ?? '活期账户'}）　可用余额 ${money(item.balance, item.currency)}` })) ?? [], [accounts.data]);
@@ -46,12 +52,12 @@ export function TransferCreate(): JSX.Element {
     <PageContainer pageId="customer.transfer.create" state="READY">
       <div className="customer-breadcrumb">转账列表　/　<strong>新建转账</strong></div>
       {loading ? <Skeleton active paragraph={{ rows: 10 }} /> : <div className="customer-transfer-layout" data-view-state={mutation.isPending ? 'SUBMITTING' : submitError ? 'ERROR' : 'DEFAULT'}>
-        <form className="transfer-form-panel" onSubmit={handleSubmit((value) => { setSubmitError(undefined); setReview(value); })} data-testid="transfer-form">
+        <form className="transfer-form-panel" onSubmit={handleSubmit((value) => { setSubmitError(undefined); setReview(value); })} data-testid="transfer-form" data-payer-account-id={sourceId} data-beneficiary-id={beneficiaryId} data-currency={account?.currency ?? ''}>
           {submitError ? <Alert type="error" showIcon message="转账提交失败" description={submitError} closable onClose={() => setSubmitError(undefined)} style={{ marginBottom: 24 }} data-testid="transfer-error" /> : null}
           <Form layout="vertical" component={false}>
-            <Controller name="sourceAccountId" control={control} render={({ field, fieldState }) => <Form.Item label="转账类型" required validateStatus={fieldState.error ? 'error' : ''} help={fieldState.error?.message}><Select {...field} value={field.value || undefined} options={accountOptions} placeholder="请选择转出账户" size="large" data-testid="transfer-source-account" /></Form.Item>} />
-            <Controller name="beneficiaryId" control={control} render={({ field, fieldState }) => <Form.Item label={<span className="transfer-beneficiary-label"><span>收款人</span><a href="/portal/beneficiaries">管理收款人</a></span>} required validateStatus={fieldState.error ? 'error' : ''} help={fieldState.error?.message}><Select {...field} value={field.value || undefined} options={beneficiaryOptions} placeholder="请选择收款人" size="large" showSearch optionFilterProp="label" data-testid="transfer-beneficiary" /></Form.Item>} />
-            <Controller name="amount" control={control} render={({ field, fieldState }) => <Form.Item label="转账金额" required validateStatus={fieldState.error ? 'error' : ''} help={fieldState.error?.message}><Space.Compact style={{ width: '100%' }}><InputNumber value={field.value || undefined} onChange={(value) => field.onChange(value ?? 0)} min={0.01} precision={2} placeholder="请输入转账金额" size="large" style={{ flex: 1 }} data-testid="transfer-amount" /><Input value={account?.currency ?? 'CNY'} readOnly aria-label="币种" style={{ width: 74, textAlign: 'center' }} /></Space.Compact></Form.Item>} />
+            <Controller name="sourceAccountId" control={control} render={({ field, fieldState }) => <Form.Item label="转账类型" required validateStatus={fieldState.error ? 'error' : ''} help={fieldState.error?.message}><Select {...field} value={field.value || undefined} options={accountOptions} optionRender={(option) => <span data-testid={`transfer-source-option-${option.value}`} data-account-id={option.value}>{option.label}</span>} placeholder="请选择转出账户" size="large" data-testid="transfer-source-account" /></Form.Item>} />
+            <Controller name="beneficiaryId" control={control} render={({ field, fieldState }) => <Form.Item label={<span className="transfer-beneficiary-label"><span>收款人</span><a href="/portal/beneficiaries">管理收款人</a></span>} required validateStatus={fieldState.error ? 'error' : ''} help={fieldState.error?.message}><Select {...field} value={field.value || undefined} options={beneficiaryOptions} optionRender={(option) => <span data-testid={`transfer-beneficiary-option-${option.value}`} data-beneficiary-id={option.value}>{option.label}</span>} placeholder="请选择收款人" size="large" showSearch optionFilterProp="label" data-testid="transfer-beneficiary" /></Form.Item>} />
+            <Controller name="amount" control={control} render={({ field, fieldState }) => <Form.Item label="转账金额" required validateStatus={fieldState.error ? 'error' : ''} help={fieldState.error?.message}><Space.Compact style={{ width: '100%' }}><InputNumber value={field.value || undefined} onChange={(value) => field.onChange(value ?? 0)} min={0.01} precision={2} placeholder="请输入转账金额" size="large" style={{ flex: 1 }} data-testid="transfer-amount" /><Input value={account?.currency ?? ''} readOnly aria-label="币种" data-testid="transfer-currency" style={{ width: 74, textAlign: 'center' }} /></Space.Compact></Form.Item>} />
             <Controller name="reference" control={control} render={({ field, fieldState }) => <Form.Item label="备注" validateStatus={fieldState.error ? 'error' : ''} help={fieldState.error?.message}><Input.TextArea {...field} rows={4} placeholder="请输入转账备注（选填）" showCount maxLength={240} data-testid="transfer-description" /></Form.Item>} />
             <div className="transfer-actions"><Button onClick={() => navigate('/transfers')}>取消</Button><Button type="primary" htmlType="submit" data-testid="transfer-submit">确认转账</Button></div>
           </Form>

@@ -1,0 +1,20 @@
+schemaVersion: 1
+id: RF-056
+title: Bank security and module boundaries
+status: OBSERVING
+owner: Codex
+authorizedBy: agent/plans/active/v54-implementation-batches.md
+scope:
+  includePaths: [AGENTS.md, services/AGENTS.md, infra/keycloak, services/bank-channel-service, apps/customer-portal, apps/operations-console, packages/bank-api-client, contracts/openapi/operations-api.yaml, scripts/architecture/validate_refactoring.py, scripts/demo, scripts/test, docs/architecture/refactoring/batches/RF-054/batch.yaml, docs/architecture/refactoring/batches/RF-056, docs/architecture/refactoring/module-boundaries-v1.yaml, agent/backlog.yaml, agent/plans/active/v54-implementation-batches.md]
+  excludePaths: [platform/hengzhun-regression-system, postgresql, services/mock-clearing-service]
+budgets: {maxChangedFiles: 120, maxNewFiles: 70, maxChangedLines: 9000, maxContractsChanged: 1, maxMigrationsAdded: 0, maxOpenModules: 2}
+baseline: {gitCommit: 552b3b8ac517bd5991bff446e72d9f4e87ea9543, dirtyTreeManifest: docs/architecture/refactoring/batches/RF-056/baseline.md, releaseIdentity: UNFROZEN_RF056, capturedAt: '2026-09-23T11:36:13+08:00'}
+architecture: {businessCapability: modular-bank-channel, publicContract: contracts/openapi/operations-api.yaml, dependencyManifest: docs/architecture/refactoring/module-boundaries-v1.yaml, allowedModules: [bank.identity, bank.documents], forbiddenModules: [hengzhun.agent-cli, hengzhun.harness]}
+mustPreserve: [Fineract alone owns banking truth, transfer idempotency and unknown outcome semantics, existing account and Test Support routes, retained Docker volumes and services, no Agent LIVE claims from offline checks]
+verification:
+  requiredCommands:
+    - {name: governance, command: 'py -3 scripts/architecture/validate_refactoring.py --batch RF-056', expectedExitCode: 0, evidence: docs/architecture/refactoring/batches/RF-056/evidence-index.md, blocking: true}
+    - {name: java-tests, command: 'services/bank-channel-service/mvnw.cmd test', expectedExitCode: 0, evidence: docs/architecture/refactoring/batches/RF-056/evidence-index.md, blocking: true}
+    - {name: docs, command: 'python scripts/docs/validate_docs.py', expectedExitCode: 0, evidence: docs/architecture/refactoring/batches/RF-056/evidence-index.md, blocking: true}
+rollback: {triggerConditions: [valid bank tokens rejected, duplicate transfer posting, document concurrency accepts stale version, EOD reconciliation drift], recoveryPoint: RF-055 REVIEW source and retained volumes, maxRtoMinutes: 45, maxRpoMinutes: 0}
+exceptions: {allowedVagueNames: [], crossModule: ['bank.notifications -> bank.identity: read-only customer identity query']}

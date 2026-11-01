@@ -1,0 +1,9 @@
+id: RF-027-S1
+title: Portable Compose and frontend images
+status: COMPLETED
+allowedPaths: [postgresql/docker-compose.isolated.yml, compose.channel.yaml, infra/frontend/Dockerfile, .dockerignore, infra/versions.lock.yaml, contracts/openapi/quality-platform-api.yaml, apps/quality-case-portal/src/api.ts, apps/quality-case-portal/src/App.tsx, apps/quality-case-portal/src/pages.tsx, apps/quality-case-portal/src/types.ts, apps/quality-case-portal/src/generated/quality-api.ts, agent/plans/active/banksystem-tp-a02-reproducible-runtime-task-package.md, agent/plans/active/banksystem-open-source-task-packages-v1.yaml, docs/architecture/refactoring/batches/RF-027, agent/backlog.yaml, agent/plans/active/v54-implementation-batches.md]
+forbiddenPaths: [services, platform]
+workSteps: [replace absolute core volume, create generic pinned frontend image, replace host dist mounts, validate Compose, build three portals]
+verification: [RF-027 validator exits 0, both Compose configs exit 0, quality OpenAPI client generation exits 0, three frontend images build, docs validator exits 0, git diff check exits 0]
+rollback: revert Compose and image files without deleting volumes
+evidence: docs/architecture/refactoring/batches/RF-027/evidence-index.md

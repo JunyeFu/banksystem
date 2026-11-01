@@ -56,6 +56,90 @@ paths:
             application/json: { schema: { type: array, items: { $ref: '#/components/schemas/ApprovalRecord' } } }
         '401': { $ref: '#/components/responses/Problem' }
         '403': { $ref: '#/components/responses/Problem' }
+  /loans/applications:
+    get:
+      operationId: listOperationsLoanApplications
+      summary: List the complete local-to-core loan application workflow
+      responses:
+        '200':
+          description: Loan application queue
+          content:
+            application/json: { schema: { $ref: '#/components/schemas/OperationsLoanApplicationPage' } }
+        '401': { $ref: '#/components/responses/Problem' }
+        '403': { $ref: '#/components/responses/Problem' }
+  /loans/applications/{applicationId}:
+    parameters:
+      - { name: applicationId, in: path, required: true, schema: { type: string, format: uuid } }
+    get:
+      operationId: getOperationsLoanApplication
+      summary: Get one loan application with documents and approvals
+      responses:
+        '200':
+          description: Loan application detail
+          content:
+            application/json: { schema: { $ref: '#/components/schemas/OperationsLoanApplicationDetail' } }
+        '404': { $ref: '#/components/responses/Problem' }
+  /loans/applications/{applicationId}/score:
+    parameters:
+      - { name: applicationId, in: path, required: true, schema: { type: string, format: uuid } }
+    post:
+      operationId: scoreLoanApplication
+      summary: Move the requested submitted application version to scored
+      requestBody:
+        required: true
+        content:
+          application/json: { schema: { $ref: '#/components/schemas/VersionRequest' } }
+      responses:
+        '200':
+          description: Scored application
+          content:
+            application/json: { schema: { $ref: '#/components/schemas/OperationsLoanApplication' } }
+        '409': { $ref: '#/components/responses/Problem' }
+  /loans/applications/{applicationId}/approval:
+    parameters:
+      - { name: applicationId, in: path, required: true, schema: { type: string, format: uuid } }
+    post:
+      operationId: requestLoanApproval
+      summary: Create one pending maker-checker approval for a scored application version
+      requestBody:
+        required: true
+        content:
+          application/json: { schema: { $ref: '#/components/schemas/LoanApprovalRequest' } }
+      responses:
+        '200':
+          description: Pending approval
+          content:
+            application/json: { schema: { $ref: '#/components/schemas/LoanApproval' } }
+        '409': { $ref: '#/components/responses/Problem' }
+  /loans/approvals/{approvalId}/approve:
+    parameters:
+      - { name: approvalId, in: path, required: true, schema: { type: string, format: uuid } }
+    post:
+      operationId: approveLoanApplication
+      summary: Approve with a checker distinct from the maker
+      requestBody:
+        required: true
+        content:
+          application/json: { schema: { $ref: '#/components/schemas/LoanApprovalDecision' } }
+      responses:
+        '200':
+          description: Approved application
+          content:
+            application/json: { schema: { $ref: '#/components/schemas/OperationsLoanApplication' } }
+        '409': { $ref: '#/components/responses/Problem' }
+  /loans/applications/{applicationId}/core-submit:
+    parameters:
+      - { name: applicationId, in: path, required: true, schema: { type: string, format: uuid } }
+      - { $ref: '#/components/parameters/IdempotencyKey' }
+    post:
+      operationId: submitLoanApplicationToCore
+      summary: Submit an approved application to Fineract exactly once per bound idempotency key
+      responses:
+        '200':
+          description: Core-submitted application reference
+          content:
+            application/json: { schema: { $ref: '#/components/schemas/CoreLoanReference' } }
+        '409': { $ref: '#/components/responses/Problem' }
   /clearing/batches:
     get:
       operationId: listClearingBatches
@@ -140,6 +224,7 @@ paths:
       summary: Submit an idempotent transfer request
       parameters:
         - $ref: '#/components/parameters/IdempotencyKey'
+        - $ref: '#/components/parameters/CorrelationId'
       requestBody:
         required: true
         content:
@@ -245,8 +330,12 @@ paths:
           application/json:
             schema:
               type: object
-              required: [status]
-              properties: { status: { $ref: '#/components/schemas/DocumentStatus' } }
+              required: [status, version]
+              additionalProperties: false
+              properties:
+                status: { $ref: '#/components/schemas/DocumentStatus' }
+                version: { type: integer, minimum: 1, description: Current document version }
+              example: { status: PUBLISHED, version: 1 }
       responses:
         '200':
           description: Updated document metadata
@@ -254,6 +343,7 @@ paths:
             application/json: { schema: { $ref: '#/components/schemas/OperationsDocument' } }
         '400': { $ref: '#/components/responses/Problem' }
         '404': { $ref: '#/components/responses/Problem' }
+        '409': { $ref: '#/components/responses/Problem' }
   /documents/{documentId}/download:
     parameters:
       - { name: documentId, in: path, required: true, schema: { type: string, format: uuid } }
@@ -388,6 +478,11 @@ components:
       in: header
       required: true
       schema: { type: string, minLength: 16, maxLength: 128 }
+    CorrelationId:
+      name: X-Correlation-Id
+      in: header
+      required: true
+      schema: { type: string, minLength: 8, maxLength: 128, pattern: '^[A-Za-z0-9._:-]+$' }
     TransferId:
       name: transferId
       in: path
@@ -399,6 +494,89 @@ components:
       content:
         application/problem+json: { schema: { $ref: '#/components/schemas/Problem' } }
   schemas:
+    VersionRequest:
+      type: object
+      additionalProperties: false
+      required: [version]
+      properties:
+        version: { type: integer, minimum: 1 }
+    LoanApplicationStatus:
+      type: string
+      enum: [DRAFT, SUBMITTED, SCORED, APPROVED, CORE_SUBMITTED, DISBURSED, CLOSED, REJECTED]
+    OperationsLoanApplication:
+      type: object
+      additionalProperties: false
+      required: [applicationId, subject, amount, currency, termMonths, purpose, repaymentMethod, status, quotedAnnualInterestRate, version, createdAt, updatedAt]
+      properties:
+        applicationId: { type: string, format: uuid }
+        subject: { type: string }
+        amount: { type: string, pattern: '^[0-9]+(\.[0-9]{1,2})?$' }
+        currency: { type: string, pattern: '^[A-Z]{3}$' }
+        termMonths: { type: integer, minimum: 1 }
+        purpose: { type: string }
+        repaymentMethod: { type: string }
+        note: { type: string }
+        status: { $ref: '#/components/schemas/LoanApplicationStatus' }
+        quotedAnnualInterestRate: { type: string }
+        approvedAnnualInterestRate: { type: string }
+        approvedAmount: { type: string }
+        score: { type: integer, minimum: 0, maximum: 100 }
+        scoringReason: { type: string }
+        coreLoanId: { type: integer, format: int64 }
+        version: { type: integer, minimum: 1 }
+        createdAt: { type: string, format: date-time }
+        updatedAt: { type: string, format: date-time }
+    OperationsLoanApplicationPage:
+      type: object
+      additionalProperties: false
+      required: [items]
+      properties:
+        items: { type: array, items: { $ref: '#/components/schemas/OperationsLoanApplication' } }
+    OperationsLoanApplicationDetail:
+      allOf:
+        - $ref: '#/components/schemas/OperationsLoanApplication'
+        - type: object
+          required: [documents, approvals]
+          properties:
+            documents: { type: array, items: { type: object, additionalProperties: true } }
+            approvals: { type: array, items: { $ref: '#/components/schemas/LoanApproval' } }
+    LoanApprovalRequest:
+      type: object
+      additionalProperties: false
+      required: [version, reason]
+      properties:
+        version: { type: integer, minimum: 1 }
+        reason: { type: string, minLength: 1, maxLength: 240 }
+    LoanApprovalDecision:
+      type: object
+      additionalProperties: false
+      required: [version, approvedAmount, annualInterestRate, reason]
+      properties:
+        version: { type: integer, minimum: 1 }
+        approvedAmount: { type: string, pattern: '^[0-9]+(\.[0-9]{1,2})?$' }
+        annualInterestRate: { type: string, pattern: '^[0-9]+(\.[0-9]{1,4})?$' }
+        reason: { type: string, minLength: 1, maxLength: 240 }
+    LoanApproval:
+      type: object
+      required: [approvalId, applicationId, status, version, applicationVersion]
+      properties:
+        approvalId: { type: string, format: uuid }
+        applicationId: { type: string, format: uuid }
+        makerSubject: { type: string }
+        checkerSubject: { type: string }
+        status: { type: string, enum: [PENDING, APPROVED, REJECTED] }
+        reason: { type: string }
+        version: { type: integer, minimum: 1 }
+        applicationVersion: { type: integer, minimum: 1 }
+    CoreLoanReference:
+      type: object
+      additionalProperties: false
+      required: [applicationId, coreLoanId, status, version]
+      properties:
+        applicationId: { type: string, format: uuid }
+        coreLoanId: { type: integer, format: int64 }
+        status: { type: string, enum: [CORE_SUBMITTED] }
+        version: { type: integer, minimum: 1 }
     DocumentCategory:
       type: string
       enum: [POLICY, PROCEDURE, REPORT, COMPLIANCE, OTHER]
@@ -540,7 +718,7 @@ components:
         createdAt: { type: string, format: date-time }
     EodStatus:
       type: string
-      enum: [NOT_STARTED, RUNNING, COMPLETED, FAILED]
+      enum: [NOT_STARTED, RUNNING, INTERRUPTED, COMPLETED, FAILED]
     EodRun:
       type: object
       additionalProperties: true
@@ -556,7 +734,7 @@ components:
         completedAt: { type: [string, 'null'], format: date-time }
     ApprovalStatus:
       type: string
-      enum: [PENDING, APPROVED, REJECTED]
+      enum: [PENDING, CORE_RESULT_UNKNOWN, CONFIRMED, REJECTED]
     ApprovalRecord:
       type: object
       additionalProperties: false
@@ -647,7 +825,7 @@ components:
       pattern: '^(0|[1-9][0-9]*)(\.[0-9]{1,4})?$'
     TransferStatus:
       type: string
-      enum: [CREATED, VALIDATING, RISK_REVIEW, PENDING_APPROVAL, PENDING_CORE_POSTING, PENDING_CLEARING, SETTLED, FAILED, TIMED_OUT, RETURNED, REVERSAL_PENDING, REVERSED]
+      enum: [CREATED, VALIDATING, RISK_REVIEW, PENDING_APPROVAL, PENDING_CORE_POSTING, PENDING_CLEARING, CORE_RESULT_UNKNOWN, SETTLED, FAILED, TIMED_OUT, RETURN_PENDING, RETURN_RESULT_UNKNOWN, RETURNED, REVERSAL_PENDING, REVERSED]
     TransferRequest:
       type: object
       required: [sourceAccountId, destinationAccountId, amount, currency]

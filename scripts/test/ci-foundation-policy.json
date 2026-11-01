@@ -1,0 +1,40 @@
+{
+  "scope": "RF065_S3_8_DECLARED_RUNTIME_CANDIDATES_ONLY",
+  "subjects": {
+    "keycloak": "quay.io/keycloak/keycloak:26.3.3@sha256:6a7217a100bd3e5de4063a27a538ef999a3c5a88c4b4ec0ffc0a642aee7b2597",
+    "activemq": "apache/activemq-classic:6.1.2@sha256:75852a6d357991028e58e7c32a7dd190cb36802568236cf3cd189d2350033be1",
+    "postgres": "postgres:18.3@sha256:7e32e9833a6fb1c92c32552794cb6ed569d51b445a54907d35fc112ef39684db",
+    "webapp": "openmf/web-app:dev@sha256:d071bea02ba0b83b0a9958f8ea651b7cc50aa86dd18f71ab304955e76bbd4b03",
+    "prometheus": "prom/prometheus:v3.4.2@sha256:3b1d5be5c3eef4f027665ddaa3b1a7de8a58d96a0a6de5dd45629afd267ecaf0",
+    "grafana": "grafana/grafana:12.1.0@sha256:6ac590e7cabc2fbe8d7b8fc1ce9c9f0582177b334e0df9c927ebd9670469440f",
+    "loki": "grafana/loki:3.5.1@sha256:a74594532eec4cc313401beedc4dd2708c43674c032084b1aeb87c14a5be1745",
+    "otel": "otel/opentelemetry-collector-contrib:0.130.0@sha256:867d1074c2f750936fb9358ec9eefa009308053cf156b2c7ca1761ba5ef78452"
+  },
+  "candidateSubjects": {
+    "activemq": {"image": "sha256:1b06f7c761ced1d20ed86c536a37ebab5dbddb2351d47a7852419601d8dce12f", "reportStem": "activemq-02"},
+    "postgres": {"image": "sha256:d037885837a85f823ed46da8db216dfdb9e8e0418c22127b01c2e9002fedb441", "reportStem": "postgres-gosu-02"},
+    "webapp": {"image": "sha256:9ac01f8eb8a85311aeee483806ed9c3f3424297ce4863912674310ef51c7d862", "reportStem": "webapp-03"}
+  },
+  "webappNginxRequirement": {
+    "major": 1,
+    "minor": 31,
+    "minimumPatch": 7,
+    "package": "nginx",
+    "reviewedOn": "2026-10-17",
+    "sources": ["https://nginx.org/en/security_advisories.html"],
+    "advisories": ["CVE-2026-15176", "CVE-2026-95101", "CVE-2026-97629", "CVE-2026-97205", "CVE-2026-90439", "CVE-2026-42533", "CVE-2026-60005", "CVE-2026-56434", "CVE-2026-42530", "CVE-2026-42055", "CVE-2026-48142"],
+    "reason": "The exact webapp has upstream nginx 1.31.1. Native Alpine scanning omitted version-applicable publisher advisories. Without exact feature/config dispositions these remain blocked, even when its library-only patch has zero native findings. This gate does not authorize changing nginx or the original default topology."
+  },
+  "postgresVendorRequirement": {
+    "major": 18,
+    "minimumMinor": 6,
+    "reviewedOn": "2026-10-17",
+    "package": "postgresql-18",
+    "sources": ["https://www.postgresql.org/support/security/", "https://www.postgresql.org/docs/release/18.6/"],
+    "advisories": ["CVE-2026-16239", "CVE-2026-16238", "CVE-2026-14669", "CVE-2026-18024"],
+    "reason": "PGDG packages are not covered by the same Debian OSV source-package advisory mapping. No native finding for postgresql-18 is not proof of an up-to-date PostgreSQL server. Same-major security updates need no dump/restore, but old data or configuration migration is not authorized here."
+  },
+  "candidateVersions": {"activemq": "6.2.10", "postgres": "18.6-trixie", "keycloak": "AWAITING_FEATURE_VERSION_AUTHORIZATION"},
+  "postgresCandidateImage": "postgres:18.6-trixie@sha256:74935e72241653ca55e0414067e6d8763aceb8a810eb51b452253ec3dcfc4336",
+  "limits": "Inventory and minimum vendor coverage only. No advisory waiver or release GO. Original runtime, volumes and dates stay untouched."
+}

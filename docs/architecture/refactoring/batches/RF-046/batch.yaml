@@ -1,0 +1,19 @@
+schemaVersion: 1
+id: RF-046
+title: CLI complete runtime evidence verification
+status: CLOSED
+owner: Codex
+authorizedBy: agent/plans/active/v54-implementation-batches.md
+scope:
+  includePaths: [platform/hengzhun-regression-system/agent-cli, platform/hengzhun-regression-system/controller, platform/hengzhun-regression-system/harness, platform/hengzhun-regression-system/mcp, platform/hengzhun-regression-system/worker, platform/hengzhun-regression-system/contracts/mcp/hengzhun-i8.json, platform/hengzhun-regression-system/scripts/verification, docs/architecture/refactoring/module-boundaries-v1.yaml, docs/architecture/refactoring/batches/RF-046, agent/runs/rf046, agent/plans/active, agent/backlog.yaml]
+  excludePaths: [services, packages, postgresql, apps, contracts/openapi, platform/hengzhun-regression-system/flowise]
+budgets: {maxChangedFiles: 24, maxNewFiles: 14, maxChangedLines: 1000, maxContractsChanged: 1, maxMigrationsAdded: 0, maxOpenModules: 2}
+baseline: {gitCommit: 552b3b8ac517bd5991bff446e72d9f4e87ea9543, dirtyTreeManifest: docs/architecture/refactoring/batches/RF-027/baseline.md, releaseIdentity: 7ba381c4c026705346cb644175fbfb7064a54123ef95cb6677633b885f4e3a74, capturedAt: "2026-09-06T22:20:00+08:00"}
+architecture: {businessCapability: cli-runtime-evidence-verification, publicContract: platform/hengzhun-regression-system/agent-cli/src/contracts.mjs, dependencyManifest: docs/architecture/refactoring/module-boundaries-v1.yaml, allowedModules: [hengzhun.harness, hengzhun.worker], forbiddenModules: [bank.payments]}
+mustPreserve: [Harness SQLite is the only execution authority, CLI reads evidence only through MCP, Worker owns browser capture, no secret or local path projection, screenshot remains quarantined, no Flowise path, no Full18 or release claim]
+verification:
+  requiredCommands:
+    - {name: evidence-contract, command: "npm run generate:dist && runtime/node-v24.19.0-win-x64/node.exe --test agent-cli/test/journey-evidence-verify.test.mjs && runtime/node-v20.20.2-win-x64/node.exe --test scripts/verification/agent-journey-evidence-projection.test.cjs scripts/verification/formal-runtime-evidence.test.cjs scripts/verification/journey-evidence-verifier.test.cjs", expectedExitCode: 0, evidence: docs/architecture/refactoring/batches/RF-046/evidence-index.md, blocking: true}
+    - {name: governance, command: "py -3 scripts/architecture/validate_refactoring.py --batch RF-046", expectedExitCode: 0, evidence: docs/architecture/refactoring/batches/RF-046/evidence-index.md, blocking: true}
+rollback: {triggerConditions: [CLI reads artifact files or SQLite directly, missing evidence returns success, hash mismatch returns success, secret or local path is projected, execution is repeated after deterministic failure], recoveryPoint: RF-045 closed source state, maxRtoMinutes: 10, maxRpoMinutes: 0}
+exceptions: {allowedVagueNames: [], crossModule: [Controller MCP and agent-cli changes are bounded read-only projections of the Harness-owned verifier; they add no state owner or browser execution path]}

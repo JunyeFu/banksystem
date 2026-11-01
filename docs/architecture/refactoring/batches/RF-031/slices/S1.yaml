@@ -1,0 +1,9 @@
+id: RF-031-S1
+title: Transfer and correlation contract
+status: COMPLETED
+allowedPaths: [services/bank-channel-service/src/main/java/local/bank/channel/payments/TransferController.java, services/bank-channel-service/src/test/java/local/bank/channel, contracts/openapi/customer-api.yaml, contracts/openapi/operations-api.yaml, docs/architecture/refactoring/batches/RF-031, agent/plans/active, agent/backlog.yaml]
+forbiddenPaths: [apps, platform, postgresql, demo.ps1]
+workSteps: [require explicit correlation header, retain decimal money serialization, bind idempotency and correlation as separate values, add producer contract tests]
+verification: [bank channel tests exit 0, both OpenAPI documents parse, RF-031 validator exits 0]
+rollback: revert only RF-031 contract controller test and governance paths
+evidence: docs/architecture/refactoring/batches/RF-031/evidence-index.md

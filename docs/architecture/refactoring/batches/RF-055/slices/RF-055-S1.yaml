@@ -1,0 +1,9 @@
+id: RF-055-S1
+title: Canonical fixture lifecycle
+status: COMPLETED
+allowedPaths: [contracts/fixtures/baseline-fixtures.yaml, contracts/openapi/test-support-api.yaml, services/bank-channel-service, scripts/demo/verify-fixture-lifecycle.ps1, docs/architecture/refactoring/batches/RF-055, agent/backlog.yaml, agent/plans/active/v54-implementation-batches.md]
+forbiddenPaths: [platform/hengzhun-regression-system, postgresql, apps, packages, infra/keycloak]
+workSteps: [remove the classpath fixture copy, load the repository catalog explicitly, extract observable seed and fixture-mapping-only reset lifecycle behavior, add the idempotent loan product fixture, replace mock-call tests with lifecycle behavior tests, restore the missing project service client as a live verification prerequisite]
+verification: [Java 21 tests pass, seed reset seed reset seed uses stable IDs, no duplicate Fineract fixture entities]
+rollback: restore RF-054 controller and fixture copy while retaining external Fineract entities
+evidence: docs/architecture/refactoring/batches/RF-055/evidence-index.md

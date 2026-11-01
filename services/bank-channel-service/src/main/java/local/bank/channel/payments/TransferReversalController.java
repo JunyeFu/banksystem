@@ -1,145 +1,107 @@
 package local.bank.channel.payments;
 
-import java.math.BigDecimal;
-import java.time.OffsetDateTime;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.UUID;
+import local.bank.channel.FineractTransferPort;
+import local.bank.channel.FineractTransferPort.CoreTransferRejectedException;
+import local.bank.channel.audit.AuditService;
+import local.bank.channel.payments.statemachine.TransferStateMachine;
+import local.bank.channel.payments.statemachine.TransferStateMachine.Status;
 import org.springframework.http.HttpStatus;
-import org.springframework.jdbc.core.JdbcTemplate;
+import local.bank.channel.payments.TransferReversalRepository.ReversalWork;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.oauth2.jwt.Jwt;
+import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionOperations;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.server.ResponseStatusException;
 
-import local.bank.channel.audit.AuditService;
-import local.bank.channel.FineractAdapter;
-import local.bank.channel.payments.statemachine.TransferStateMachine;
-import local.bank.channel.payments.statemachine.TransferStateMachine.Status;
-
 @RestController
 public class TransferReversalController {
-  private final JdbcTemplate jdbc;
-  private final FineractAdapter fineract;
+  private final TransferReversalRepository repository;
+  private final FineractTransferPort fineract;
   private final AuditService audit;
   private final TransferStateMachine stateMachine;
+  private final TransactionOperations transactions;
 
-  public TransferReversalController(JdbcTemplate jdbc, FineractAdapter fineract,
-                                   AuditService audit, TransferStateMachine stateMachine) {
-    this.jdbc = jdbc;
-    this.fineract = fineract;
-    this.audit = audit;
-    this.stateMachine = stateMachine;
+  public TransferReversalController(TransferReversalRepository repository, FineractTransferPort fineract, AuditService audit,
+                                    TransferStateMachine stateMachine, TransactionOperations transactions) {
+    this.repository=repository;this.fineract=fineract;this.audit=audit;this.stateMachine=stateMachine;this.transactions=transactions;
   }
 
   @GetMapping("/api/operations/v1/approvals")
-  public List<Map<String, Object>> approvals(@RequestParam(required = false) String status) {
-    String filter = status == null || status.isBlank() ? "" : " WHERE r.status=?";
-    String sql = "SELECT r.reversal_id,r.transfer_id,r.maker_subject,r.checker_subject,r.status,r.reason,r.version,r.core_reference,r.created_at,r.updated_at,t.amount,t.currency,t.source_account_id,t.destination_account_id FROM transfer_reversal r JOIN transfer_order t ON t.transfer_id=r.transfer_id" + filter + " ORDER BY r.created_at DESC";
-    Object[] args = filter.isEmpty() ? new Object[0] : new Object[]{status};
-    return jdbc.query(sql, (rs, n) -> {
-      Map<String, Object> item = new LinkedHashMap<>();
-      String reversalId = rs.getObject(1, UUID.class).toString();
-      item.put("approvalId", reversalId); item.put("reversalId", reversalId); item.put("transferId", rs.getObject(2, UUID.class).toString());
-      item.put("creator", rs.getString(3)); item.put("checker", rs.getString(4)); item.put("status", rs.getString(5)); item.put("reason", rs.getString(6)); item.put("version", rs.getInt(7)); item.put("coreReference", rs.getString(8));
-      item.put("createdAt", rs.getObject(9, OffsetDateTime.class).toString()); item.put("updatedAt", rs.getObject(10, OffsetDateTime.class).toString());
-      item.put("amount", rs.getBigDecimal(11).toPlainString()); item.put("currency", rs.getString(12)); item.put("sourceAccountId", rs.getString(13)); item.put("destinationAccountId", rs.getString(14)); return item;
-    }, args);
+  public List<Map<String,Object>> approvals(@RequestParam(required=false) String status) {
+    return repository.approvals(status);
   }
 
   @PostMapping("/api/operations/v1/transfers/{transferId}/reversal")
-  public Map<String, Object> request(@AuthenticationPrincipal Jwt jwt, @PathVariable UUID transferId, @RequestBody Reason reason) {
-    if (reason.reason() == null || reason.reason().isBlank())
-      throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Reason is required");
-    var rows = jdbc.query("SELECT status FROM transfer_order WHERE transfer_id=?", (rs, n) -> rs.getString(1), transferId);
-    if (rows.isEmpty()) throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Transfer not found");
-    Status current = Status.of(rows.get(0));
-    if (current != Status.SETTLED)
-      throw new ResponseStatusException(HttpStatus.CONFLICT, "Only settled transfers can be reversed");
-
-    UUID id = UUID.randomUUID();
-    jdbc.update("INSERT INTO transfer_reversal(reversal_id,transfer_id,maker_subject,status,reason) VALUES(?,?,?,?,?)",
-        id, transferId, jwt.getSubject(), "PENDING", reason.reason());
-    stateMachine.transitionState(transferId, Status.SETTLED, Status.REVERSAL_PENDING,
-        "USER", jwt.getSubject(), reason.reason(), null);
-    audit.record("TRANSFER_REVERSAL_REQUESTED", "USER", jwt.getSubject(), "Transfer",
-        transferId.toString(), "REVERSE", "SUCCESS", null, Map.of("reason", reason.reason()));
-    return Map.of("reversalId", id.toString(), "status", "PENDING", "version", 1);
+  @Transactional
+  public Map<String,Object> request(@AuthenticationPrincipal Jwt jwt,@PathVariable UUID transferId,@RequestBody Reason reason) {
+    requireReason(reason);
+    var rows=repository.lockTransferStatus(transferId);
+    if(rows.isEmpty())throw new ResponseStatusException(HttpStatus.NOT_FOUND,"Transfer not found");
+    if(Status.of(rows.get(0))!=Status.SETTLED)throw new ResponseStatusException(HttpStatus.CONFLICT,"Only settled transfers can be reversed");
+    UUID id=UUID.randomUUID();
+    repository.create(id,transferId,jwt.getSubject(),reason.reason());
+    stateMachine.transitionState(transferId,Status.SETTLED,Status.REVERSAL_PENDING,"USER",jwt.getSubject(),reason.reason(),null);
+    audit.record("TRANSFER_REVERSAL_REQUESTED","USER",jwt.getSubject(),"Transfer",transferId.toString(),"REVERSE","SUCCESS",null,Map.of("reason",reason.reason()));
+    return actionResult(id,transferId,"PENDING",1,null);
   }
 
   @PostMapping("/api/operations/v1/transfers/reversals/{reversalId}/approve")
-  public Map<String, Object> approve(
-      @AuthenticationPrincipal Jwt jwt, @PathVariable UUID reversalId,
-      @RequestParam int version, @RequestBody Reason reason,
-      @RequestHeader("Idempotency-Key") String key) {
-    if (reason.reason() == null || reason.reason().isBlank())
-      throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Reason is required");
-
-    var rev = jdbc.query("SELECT transfer_id,maker_subject,status,version,core_reference FROM transfer_reversal WHERE reversal_id=? FOR UPDATE",
-        (rs, n) -> { Map<String,Object> item=new LinkedHashMap<>(); item.put("transfer",rs.getObject(1)); item.put("maker",rs.getString(2)); item.put("status",rs.getString(3)); item.put("version",rs.getInt(4)); item.put("coreReference",rs.getString(5)); return item; },
-        reversalId);
-    if (rev.isEmpty()) throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Reversal not found");
-    var r = rev.get(0);
-    if ("APPROVED".equals(r.get("status")) && (Integer) r.get("version") == version + 1)
-      return actionResult(reversalId, (UUID) r.get("transfer"), "APPROVED", version + 1, (String) r.get("coreReference"));
-    if (r.get("maker").equals(jwt.getSubject()))
-      throw new ResponseStatusException(HttpStatus.CONFLICT, "Maker cannot check own reversal");
-    if (!"PENDING".equals(r.get("status")) || (Integer) r.get("version") != version)
-      throw new ResponseStatusException(HttpStatus.CONFLICT, "Reversal version/state changed");
-
-    UUID transferId = (UUID) r.get("transfer");
-    var rows = jdbc.query("SELECT source_account_id,destination_account_id,amount,currency,status FROM transfer_order WHERE transfer_id=?",
-        (rs, n) -> Map.<String, Object>of("source", rs.getString(1), "destination", rs.getString(2),
-            "amount", rs.getBigDecimal(3), "currency", rs.getString(4), "status", rs.getString(5)), transferId);
-    if (rows.isEmpty()) throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Transfer not found");
-    var t = rows.get(0);
-    Status current = Status.of((String) t.get("status"));
-    if (current != Status.REVERSAL_PENDING)
-      throw new ResponseStatusException(HttpStatus.CONFLICT, "Transfer is not pending reversal");
-
-    Map<String, Object> core = fineract.accountTransfer(
-        Long.parseLong((String) t.get("destination")),
-        Long.parseLong((String) t.get("source")),
-        (BigDecimal) t.get("amount"),
-        (String) t.get("currency"),
-        key);
-    String ref = String.valueOf(core.getOrDefault("resourceId", core.getOrDefault("id", "")));
-
-    jdbc.update("UPDATE transfer_reversal SET checker_subject=?,status='APPROVED',version=version+1,core_reference=?,updated_at=now() WHERE reversal_id=?",
-        jwt.getSubject(), ref, reversalId);
-    stateMachine.transitionState(transferId, Status.REVERSAL_PENDING, Status.REVERSED,
-        "USER", jwt.getSubject(), reason.reason(), Map.of("coreReference", ref));
-    audit.record("TRANSFER_REVERSED", "USER", jwt.getSubject(), "Transfer",
-        transferId.toString(), "REVERSE", "SUCCESS", null, Map.of("coreReference", ref));
-    return actionResult(reversalId, transferId, "APPROVED", version + 1, ref);
+  public Map<String,Object> approve(@AuthenticationPrincipal Jwt jwt,@PathVariable UUID reversalId,
+      @RequestParam int version,@RequestBody Reason reason,@RequestHeader("Idempotency-Key") String key) {
+    requireReason(reason);
+    if(key==null||key.isBlank())throw new ResponseStatusException(HttpStatus.BAD_REQUEST,"Idempotency-Key is required");
+    ReversalWork work=transactions.execute(tx->loadForApproval(reversalId,jwt.getSubject(),version,key));
+    if(work==null)throw new IllegalStateException("Reversal preparation returned no result");
+    if("CONFIRMED".equals(work.status()))return actionResult(reversalId,work.transferId(),"CONFIRMED",work.version(),work.coreReference());
+    Long expected=parseReference(work.coreReference());boolean explicitRejection=false;String detail=null;
+    if(work.submit())try{FineractTransferPort.Submission response=fineract.accountTransfer(work.destination(),work.source(),work.amount(),work.currency(),work.idempotencyKey());expected=response.coreId();}catch(CoreTransferRejectedException rejected){explicitRejection=true;detail=concise(rejected.getMessage());}catch(RuntimeException unknown){detail=concise(unknown.getMessage());}
+    Optional<FineractTransferPort.VerifiedTransfer> core;
+    try{core=fineract.findAccountTransfer(work.idempotencyKey(),expected,work.destination(),work.source(),work.amount());}catch(RuntimeException failure){return markUnknown(work,concise(failure.getMessage()));}
+    if(core.isPresent())return confirm(work,core.get(),reason.reason());
+    if(explicitRejection)return rejectFromCore(work,detail==null?"Core reversal rejected":detail);
+    return markUnknown(work,detail==null?"Core reversal result is not visible":detail);
   }
+
+  private ReversalWork loadForApproval(UUID reversalId,String checker,int version,String key) {
+    var rows=repository.lockForApproval(reversalId);
+    if(rows.isEmpty())throw new ResponseStatusException(HttpStatus.NOT_FOUND,"Reversal not found");
+    ReversalWork work=rows.get(0);
+    if(work.maker().equals(checker))throw new ResponseStatusException(HttpStatus.CONFLICT,"Maker cannot check own reversal");
+    if(work.checker()!=null&&!work.checker().equals(checker))throw new ResponseStatusException(HttpStatus.CONFLICT,"Reversal is already owned by another checker");
+    if("CONFIRMED".equals(work.status()))return work;
+    if(work.version()!=version)throw new ResponseStatusException(HttpStatus.CONFLICT,"Reversal version/state changed");
+    if(!"PENDING".equals(work.status())&&!"CORE_RESULT_UNKNOWN".equals(work.status()))throw new ResponseStatusException(HttpStatus.CONFLICT,"Reversal is not awaiting a core result");
+    if(work.submissionStarted()&&!key.equals(work.idempotencyKey()))throw new ResponseStatusException(HttpStatus.CONFLICT,"Reversal idempotency key changed");
+    boolean submit=!work.submissionStarted();
+    if(submit)repository.claim(reversalId,checker,key);
+    return work.withSubmission(checker,key,submit);
+  }
+
+  private Map<String,Object> confirm(ReversalWork work,FineractTransferPort.VerifiedTransfer core,String reason) {
+    Long ref=core.coreId();
+    return transactions.execute(tx->{String status=lockStatus(work.reversalId());if("CONFIRMED".equals(status))return actionResult(work.reversalId(),work.transferId(),status,work.version()+1,String.valueOf(ref));requireCorePending(status);repository.confirm(work.reversalId(),String.valueOf(ref));stateMachine.transitionState(work.transferId(),Status.REVERSAL_PENDING,Status.REVERSED,"USER",work.checker(),reason,Map.of("coreReference",String.valueOf(ref)));audit.record("TRANSFER_REVERSED","USER",work.checker(),"Transfer",work.transferId().toString(),"REVERSE","SUCCESS",null,Map.of("coreReference",String.valueOf(ref)));return actionResult(work.reversalId(),work.transferId(),"CONFIRMED",work.version()+1,String.valueOf(ref));});
+  }
+
+  private Map<String,Object> markUnknown(ReversalWork work,String detail) {transactions.executeWithoutResult(tx->repository.markUnknown(work.reversalId(),detail));return actionResult(work.reversalId(),work.transferId(),"CORE_RESULT_UNKNOWN",work.version(),work.coreReference());}
+  private Map<String,Object> rejectFromCore(ReversalWork work,String detail) {return transactions.execute(tx->{String status=lockStatus(work.reversalId());requireCorePending(status);repository.rejectFromCore(work.reversalId(),detail);stateMachine.transitionState(work.transferId(),Status.REVERSAL_PENDING,Status.SETTLED,"SYSTEM","reversal-processor","CORE_REJECTED",Map.of("reason",detail));return actionResult(work.reversalId(),work.transferId(),"REJECTED",work.version()+1,null);});}
 
   @PostMapping("/api/operations/v1/transfers/reversals/{reversalId}/reject")
-  public Map<String, Object> reject(
-      @AuthenticationPrincipal Jwt jwt, @PathVariable UUID reversalId,
-      @RequestParam int version, @RequestBody Reason reason,
-      @RequestHeader("Idempotency-Key") String key) {
-    if (reason.reason() == null || reason.reason().isBlank() || reason.reason().length() > 240)
-      throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Reason is required and must not exceed 240 characters");
-    var rows = jdbc.query("SELECT transfer_id,maker_subject,status,version FROM transfer_reversal WHERE reversal_id=? FOR UPDATE",
-        (rs, n) -> Map.<String, Object>of("transfer", rs.getObject(1), "maker", rs.getString(2), "status", rs.getString(3), "version", rs.getInt(4)), reversalId);
-    if (rows.isEmpty()) throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Reversal not found");
-    var row = rows.get(0); UUID transferId = (UUID) row.get("transfer");
-    if ("REJECTED".equals(row.get("status")) && (Integer) row.get("version") == version + 1)
-      return actionResult(reversalId, transferId, "REJECTED", version + 1, null);
-    if (row.get("maker").equals(jwt.getSubject())) throw new ResponseStatusException(HttpStatus.CONFLICT, "Maker cannot check own reversal");
-    if (!"PENDING".equals(row.get("status")) || (Integer) row.get("version") != version)
-      throw new ResponseStatusException(HttpStatus.CONFLICT, "Reversal version/state changed");
-    jdbc.update("UPDATE transfer_reversal SET checker_subject=?,status='REJECTED',version=version+1,updated_at=now() WHERE reversal_id=?", jwt.getSubject(), reversalId);
-    stateMachine.transitionState(transferId, Status.REVERSAL_PENDING, Status.SETTLED, "USER", jwt.getSubject(), reason.reason(), Map.of("approval", "REJECTED"));
-    audit.record("TRANSFER_REVERSAL_REJECTED", "USER", jwt.getSubject(), "Transfer", transferId.toString(), "REVERSE", "REJECTED", null, Map.of("reason", reason.reason(), "idempotencyKeyPresent", !key.isBlank()));
-    return actionResult(reversalId, transferId, "REJECTED", version + 1, null);
+  @Transactional
+  public Map<String,Object> reject(@AuthenticationPrincipal Jwt jwt,@PathVariable UUID reversalId,@RequestParam int version,@RequestBody Reason reason,@RequestHeader("Idempotency-Key") String key) {
+    requireReason(reason);var rows=repository.lockForRejection(reversalId);if(rows.isEmpty())throw new ResponseStatusException(HttpStatus.NOT_FOUND,"Reversal not found");var row=rows.get(0);UUID transferId=(UUID)row.get("transfer");if("REJECTED".equals(row.get("status"))&&(Integer)row.get("version")==version+1)return actionResult(reversalId,transferId,"REJECTED",version+1,null);if(row.get("maker").equals(jwt.getSubject()))throw new ResponseStatusException(HttpStatus.CONFLICT,"Maker cannot check own reversal");if(!"PENDING".equals(row.get("status"))||(Integer)row.get("version")!=version||(Boolean)row.get("submitted"))throw new ResponseStatusException(HttpStatus.CONFLICT,"Reversal version/state changed");repository.rejectByChecker(reversalId,jwt.getSubject());stateMachine.transitionState(transferId,Status.REVERSAL_PENDING,Status.SETTLED,"USER",jwt.getSubject(),reason.reason(),Map.of("approval","REJECTED"));audit.record("TRANSFER_REVERSAL_REJECTED","USER",jwt.getSubject(),"Transfer",transferId.toString(),"REVERSE","REJECTED",null,Map.of("reason",reason.reason(),"idempotencyKeyPresent",key!=null&&!key.isBlank()));return actionResult(reversalId,transferId,"REJECTED",version+1,null);
   }
 
-  private static Map<String, Object> actionResult(UUID reversalId, UUID transferId, String status, int version, String coreReference) {
-    Map<String, Object> result = new LinkedHashMap<>(); result.put("reversalId", reversalId.toString()); result.put("transferId", transferId.toString()); result.put("status", status); result.put("version", version); result.put("coreReference", coreReference); return result;
-  }
-
-  public record Reason(String reason) {}
+  private String lockStatus(UUID id){var rows=repository.lockStatus(id);if(rows.isEmpty())throw new ResponseStatusException(HttpStatus.NOT_FOUND,"Reversal not found");return rows.get(0);}
+  private static void requireCorePending(String status){if(!"PENDING".equals(status)&&!"CORE_RESULT_UNKNOWN".equals(status))throw new ResponseStatusException(HttpStatus.CONFLICT,"Reversal is not awaiting a core result");}
+  private static void requireReason(Reason reason){if(reason==null||reason.reason()==null||reason.reason().isBlank()||reason.reason().length()>240)throw new ResponseStatusException(HttpStatus.BAD_REQUEST,"Reason is required and must not exceed 240 characters");}
+  private static Long parseReference(String value){if(value==null||value.isBlank())return null;try{return Long.parseLong(value);}catch(NumberFormatException ignored){return null;}}
+  private static String concise(String value){String result=value==null||value.isBlank()?"Core reversal result unavailable":value;return result.substring(0,Math.min(240,result.length()));}
+  private static Map<String,Object> actionResult(UUID reversalId,UUID transferId,String status,int version,String coreReference){Map<String,Object> result=new LinkedHashMap<>();result.put("reversalId",reversalId.toString());result.put("transferId",transferId.toString());result.put("status",status);result.put("version",version);result.put("coreReference",coreReference);return result;}
+  public record Reason(String reason){}
 }

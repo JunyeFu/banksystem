@@ -1,0 +1,45 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="950" height="680" viewBox="0 0 950 680"><defs><marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M 0 0 L 10 5 L 0 10 z" fill="#66758a"/></marker></defs><rect width="100%" height="100%" fill="white"/><style>text{font-family:'Microsoft YaHei','Noto Sans CJK SC',sans-serif;fill:#26364c} .label{font-size:12px} .edge{font-size:10px;paint-order:stroke;stroke:white;stroke-width:4px;stroke-linejoin:round}</style><text x="40" y="43" font-size="20" font-weight="700">理想责任边界：两个产品，两个状态权威</text>
+<path d="M180,120 H200 V120 H220" fill="none" stroke="#66758a" stroke-width="1.5"  marker-end="url(#arrow)"/><text class="edge" x="203" y="114">HTTP</text>
+<path d="M360,120 H380 V120 H400" fill="none" stroke="#66758a" stroke-width="1.5"  marker-end="url(#arrow)"/><text class="edge" x="383" y="114">银行 API</text>
+<path d="M540,120 H560 V120 H580" fill="none" stroke="#66758a" stroke-width="1.5"  marker-end="url(#arrow)"/><text class="edge" x="563" y="114">业务类型</text>
+<path d="M720,120 H740 V120 H760" fill="none" stroke="#66758a" stroke-width="1.5"  marker-end="url(#arrow)"/><text class="edge" x="743" y="114">REST</text>
+<path d="M470,150 V180 H470 V210" fill="none" stroke="#66758a" stroke-width="1.5"  marker-end="url(#arrow)"/><text class="edge" x="473" y="174">持久化</text>
+<path d="M540,240 H560 V240 H580" fill="none" stroke="#66758a" stroke-width="1.5"  marker-end="url(#arrow)"/><text class="edge" x="563" y="234">SQL</text>
+<path d="M180,480 H200 V480 H220" fill="none" stroke="#66758a" stroke-width="1.5"  marker-end="url(#arrow)"/><text class="edge" x="203" y="474">工具协议</text>
+<path d="M360,480 H380 V480 H400" fill="none" stroke="#66758a" stroke-width="1.5"  marker-end="url(#arrow)"/><text class="edge" x="383" y="474">控制</text>
+<path d="M540,480 H560 V480 H580" fill="none" stroke="#66758a" stroke-width="1.5"  marker-end="url(#arrow)"/><text class="edge" x="563" y="474">任务</text>
+<path d="M470,510 V540 H470 V570" fill="none" stroke="#66758a" stroke-width="1.5"  marker-end="url(#arrow)"/><text class="edge" x="473" y="534">状态 / 证据</text>
+<path d="M540,600 H560 V600 H580" fill="none" stroke="#66758a" stroke-width="1.5"  marker-end="url(#arrow)"/><text class="edge" x="563" y="594">只读</text>
+<path d="M720,480 H740 V480 H760" fill="none" stroke="#66758a" stroke-width="1.5"  marker-end="url(#arrow)"/><text class="edge" x="743" y="474">浏览器</text>
+<rect x="40" y="90" width="140" height="60" rx="8" fill="#e7f4ec" stroke="#39815d"/>
+<text class="label" text-anchor="middle" x="110" y="116"><tspan x="110" dy="0">Customer / Ops</tspan><tspan x="110" dy="16">银行门户</tspan></text>
+<rect x="220" y="90" width="140" height="60" rx="8" fill="#e7f4ec" stroke="#39815d"/>
+<text class="label" text-anchor="middle" x="290" y="116"><tspan x="290" dy="0">Gateway</tspan><tspan x="290" dy="16">认证入口 / 路由</tspan></text>
+<rect x="400" y="90" width="140" height="60" rx="8" fill="#e7f4ec" stroke="#39815d"/>
+<text class="label" text-anchor="middle" x="470" y="116"><tspan x="470" dy="0">Channel 应用服务</tspan><tspan x="470" dy="16">业务 / 事务编排</tspan></text>
+<rect x="580" y="90" width="140" height="60" rx="8" fill="#e7f4ec" stroke="#39815d"/>
+<text class="label" text-anchor="middle" x="650" y="116"><tspan x="650" dy="0">五个核心能力端口</tspan><tspan x="650" dy="16">字段 / 单位翻译</tspan></text>
+<rect x="760" y="90" width="140" height="60" rx="0" fill="#e7f4ec" stroke="#39815d"/>
+<ellipse cx="830" cy="96" rx="70" ry="6" fill="#e7f4ec" stroke="#39815d"/>
+<text class="label" text-anchor="middle" x="830" y="116"><tspan x="830" dy="0">Fineract</tspan><tspan x="830" dy="16">权威账务</tspan></text>
+<rect x="400" y="210" width="140" height="60" rx="8" fill="#e7f4ec" stroke="#39815d"/>
+<text class="label" text-anchor="middle" x="470" y="236"><tspan x="470" dy="0">业务 Repository</tspan><tspan x="470" dy="16">独占 SQL</tspan></text>
+<rect x="580" y="210" width="140" height="60" rx="0" fill="#e7f4ec" stroke="#39815d"/>
+<ellipse cx="650" cy="216" rx="70" ry="6" fill="#e7f4ec" stroke="#39815d"/>
+<text class="label" text-anchor="middle" x="650" y="236"><tspan x="650" dy="0">Channel PostgreSQL</tspan><tspan x="650" dy="16">工作流 / 投影</tspan></text>
+<rect x="40" y="450" width="140" height="60" rx="8" fill="#e7f4ec" stroke="#39815d"/>
+<text class="label" text-anchor="middle" x="110" y="476"><tspan x="110" dy="0">hz-agent / Controller</tspan><tspan x="110" dy="16">受约束 BYOK 计划</tspan></text>
+<rect x="220" y="450" width="140" height="60" rx="8" fill="#e7f4ec" stroke="#39815d"/>
+<text class="label" text-anchor="middle" x="290" y="476"><tspan x="290" dy="0">独立 MCP</tspan><tspan x="290" dy="16">控制协议</tspan></text>
+<rect x="400" y="450" width="140" height="60" rx="8" fill="#e7f4ec" stroke="#39815d"/>
+<text class="label" text-anchor="middle" x="470" y="476"><tspan x="470" dy="0">Harness</tspan><tspan x="470" dy="16">唯一执行状态写者</tspan></text>
+<rect x="580" y="450" width="140" height="60" rx="8" fill="#e7f4ec" stroke="#39815d"/>
+<text class="label" text-anchor="middle" x="650" y="476"><tspan x="650" dy="0">Worker / 浏览器</tspan><tspan x="650" dy="16">真实操作与核验</tspan></text>
+<rect x="760" y="450" width="140" height="60" rx="8" fill="#e7f4ec" stroke="#39815d"/>
+<text class="label" text-anchor="middle" x="830" y="476"><tspan x="830" dy="0">银行门户（引用）</tspan><tspan x="830" dy="16">非另一个服务</tspan></text>
+<rect x="400" y="570" width="140" height="60" rx="0" fill="#e7f4ec" stroke="#39815d"/>
+<ellipse cx="470" cy="576" rx="70" ry="6" fill="#e7f4ec" stroke="#39815d"/>
+<text class="label" text-anchor="middle" x="470" y="596"><tspan x="470" dy="0">SQLite + Evidence</tspan><tspan x="470" dy="16">运行 / 发布事实</tspan></text>
+<rect x="580" y="570" width="140" height="60" rx="8" fill="#e7f4ec" stroke="#39815d"/>
+<text class="label" text-anchor="middle" x="650" y="596"><tspan x="650" dy="0">Quality Portal</tspan><tspan x="650" dy="16">只读投影</tspan></text>
+</svg>

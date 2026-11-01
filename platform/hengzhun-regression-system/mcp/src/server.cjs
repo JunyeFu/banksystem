@@ -4,6 +4,7 @@ const crypto = require('node:crypto')
 const fs = require('node:fs')
 const path = require('node:path')
 const { projectJourneyEvidenceFields } = require('./journey-evidence-projection.cjs')
+const { createWorkbenchMetadataServer } = require('./workbench-metadata.cjs')
 const {
   createShadowObserver,
   normalizeAuthoringSubmitRequest,
@@ -341,7 +342,10 @@ function compactJourneyForFlowise(body) {
         mode: text(plan.mode, 40),
         runAt: text(plan.runAt, 80),
         cronExpression: text(plan.cronExpression, 160),
-        timezone: text(plan.timezone, 80)
+        timezone: text(plan.timezone, 80),
+        misfirePolicy:text(plan.misfirePolicy,40),
+        ...(Number.isInteger(plan.misfireGraceSeconds)?{misfireGraceSeconds:plan.misfireGraceSeconds}:{}),
+        ...(Number.isInteger(plan.maxRetries)?{maxRetries:plan.maxRetries}:{}),
       }
     }
   }
@@ -354,6 +358,7 @@ function compactJourneyForFlowise(body) {
   compact.terminal = evidence.terminal
   compact.references = { ...(compact.references || {}), ...evidence.references }
   compact.artifactCards = evidence.artifactCards
+  if (evidence.error) compact.error = evidence.error
   return compact
 }
 
@@ -572,6 +577,20 @@ function createServer() {
     inputSchema: { challengeId:safeRef, expectedVersion:z.number().int().positive(), decision:z.enum(['USER_READY','USER_ACTION_COMPLETED','CANCEL']), confirmationRef:safeRef, note:z.string().trim().max(500).optional(), sessionRef:safeRef }
   }, async ({sessionRef,...business})=>callHarness('/v1/i10/verification:decide',{namespace,idempotencyKey:idempotencyKey('verification_decision_submit',sessionRef,business),...business}))
 
+  server.registerTool('feedback_record', {
+    description:'登记原定位或断言事故的受限人工纠正；待独立验证，不直接用于执行或模型。',
+    inputSchema:{incidentId:safeRef,confirmationRef:safeRef,sessionRef:safeRef,
+      correction:z.discriminatedUnion('type',[
+        z.object({type:z.literal('TARGET_MAPPING'),targetRef:safeRef,locator:z.object({kind:z.enum(['ROLE','LABEL','TEST_ID']),value:z.string().trim().min(1).max(256)}).strict()}).strict(),
+        z.object({type:z.literal('ASSERTION_IMPLEMENTATION'),stepId:safeRef,implementation:z.enum(['EXACT_TEXT','EXACT_EQUAL'])}).strict()])}
+  },async({sessionRef,...business})=>callHarness('/v1/feedback:record',{namespace,...business}))
+  server.registerTool('feedback_verify', {
+    description:'用原候选的持证激活修复与独立成功Journey核验纠正，不发起执行。',
+    inputSchema:{feedbackId:safeRef,verificationJourneyId:safeRef,sessionRef:safeRef}
+  },async({sessionRef,...business})=>callHarness('/v1/feedback:verify',{namespace,...business}))
+  server.registerTool('feedback_get', {
+    description:'查询反馈的原事故、绑定、纠正与核验状态，不改变反馈。',inputSchema:{feedbackId:safeRef}
+  },async business=>callHarness('/v1/feedback:get',{namespace,...business}))
   server.registerTool('journey_prepare', {
     description: '创建或恢复衡准权威交互旅程。Harness确定性检查输入完整度、凭据引用和下一允许操作；未就绪时只返回缺口，不进入业务MCP筛查。',
     inputSchema: {
@@ -588,11 +607,15 @@ function createServer() {
       // the request reaches Harness.  A normal non-empty value remains
       // subject to the opaque safeRef contract.
       journeyId: z.union([safeRef, z.literal(''), z.string().regex(/^\{\{[^}]+\}\}$/)]).optional(),
+      validatedJourneyId: safeRef.optional(),
       requestIntent: z.enum(['CASE_AUTHORING','RESULT_QUERY','SCHEDULE_DISABLE','JOURNEY_RESUME','HELP','UNSUPPORTED']),
       inputType: z.enum(['NATURAL_LANGUAGE','CASE_FILE','VIDEO','NONE']),
       naturalLanguage: z.string().trim().max(8000).optional(),
       entryUrl: z.string().max(4096).optional(),
       targetSystem: z.string().trim().max(160).optional(),
+      // Explicit CLI selection; Harness resolves this registry-owned id and
+      // never accepts a caller-provided adapter hash.
+      adapterSelection: z.enum(['fuxing-bank-demo','fuxing-bank-operations']).optional(),
       ...optionalAttachmentInput,
       originalFilename: z.string().trim().max(260).optional(),
       credentialRef: z.string().trim().max(160).optional(),
@@ -627,12 +650,14 @@ function createServer() {
   }, async ({ sessionRef, draftJson, supportingImages, semanticAssessment, inputRevision, ...business }) => {
     try {
       const normalizedDraft = normalizeJourneyPrepareDraft(draftJson)
-      let normalizedSupportingImages = supportingImages
+      let normalizedSupportingImages = supportingImages ?? []
       if (typeof normalizedSupportingImages === 'string') {
         const text = normalizedSupportingImages.trim()
         normalizedSupportingImages = text ? parseJsonArgument(text, 'I10_JOURNEY_SUPPORTING_IMAGES_INVALID') : []
       }
-      if (!Array.isArray(normalizedSupportingImages)) throw new Error('I10_JOURNEY_SUPPORTING_IMAGES_INVALID')
+      if (!Array.isArray(normalizedSupportingImages)) {
+        throw Object.assign(new Error('I10_JOURNEY_SUPPORTING_IMAGES_INVALID'), { code: 'I10_JOURNEY_SUPPORTING_IMAGES_INVALID' })
+      }
       normalizedSupportingImages = normalizedSupportingImages.map(image => ({
         ...image,
         flowiseFileRef: attachmentRefFromInput(image),
@@ -680,6 +705,11 @@ function createServer() {
     waitSeconds: business.waitSeconds || 0
   }, compactJourneyForFlowise))
 
+  server.registerTool('journey_evidence_verify', {
+    description: '由Harness对一个终态Journey的完整运行证据执行字节级完整性复验，仅返回脱敏结论。',
+    inputSchema: { journeyId: z.string().regex(/^journey_[0-9a-f-]{36}$/) }
+  }, async ({ journeyId }) => callHarness('/v1/i10/journeys:evidence-verify', { namespace, journeyId }))
+
   server.registerTool('journey_input_submit', {
     description: '提交当前旅程明确要求的非秘密补充输入。输入必须先由主控模型结构化；Harness会确定性校验并冻结唯一候选，不能直接触发运行、调度、激活或停用。',
     inputSchema: {
@@ -698,7 +728,7 @@ function createServer() {
         namespace,
         idempotencyKey: idempotencyKey('journey_input_submit',sessionRef,request),
         ...request
-      })
+      }, compactJourneyForFlowise)
     } catch (error) {
       return textResult(safeProtocolFailure(error),true)
     }
@@ -731,7 +761,7 @@ function createServer() {
         namespace,
         idempotencyKey: idempotencyKey('journey_decision_submit',sessionRef,request),
         ...request
-      })
+      }, compactJourneyForFlowise)
     } catch (error) {
       return textResult(safeProtocolFailure(error),true)
     }
@@ -1079,7 +1109,7 @@ function createServer() {
       // are passed into a later Tool node. Coerce only these two bounded
       // integer fields at the MCP boundary; Harness still receives numbers.
       misfireGraceSeconds: z.coerce.number().int().min(0).max(86400).default(300),
-      maxRetries: z.coerce.number().int().min(0).max(5).default(1),
+      maxRetries: z.coerce.number().int().min(0).max(5).default(0),
       confirmationRef: safeRef,
       sessionRef: safeRef
     }
@@ -1090,7 +1120,7 @@ function createServer() {
     // frozen ONE_TIME grace deadline or override recurring SKIP semantics.
     const governedMisfirePolicy = scheduleType === 'ONE_TIME' ? 'RUN_ONCE_WITHIN_GRACE' : 'SKIP'
     const governedMisfireGraceSeconds = 300
-    const governedMaxRetries = 1
+    const governedMaxRetries = 0
     const business = { preparationId, journeyId, confirmedDecisionEventId, scheduleType, cronExpression, runAt, timezone,
       misfirePolicy: governedMisfirePolicy, misfireGraceSeconds: governedMisfireGraceSeconds,
       maxRetries: governedMaxRetries, confirmationRef }
@@ -1250,6 +1280,23 @@ app.use('/mcp', (request, response, next) => {
 })
 app.post('/mcp', async (request, response) => {
   const server = createServer()
+  const transport = new StreamableHTTPServerTransport({ sessionIdGenerator: undefined })
+  try {
+    await server.connect(transport)
+    await transport.handleRequest(request, response, request.body)
+  } catch (error) {
+    process.stderr.write(`${JSON.stringify(safeProtocolFailure(error))}\n`)
+    if (!response.headersSent) response.status(500).json({ jsonrpc: '2.0', error: { code: -32603, message: 'Internal error' }, id: null })
+  } finally {
+    response.on('close', () => {
+      transport.close().catch(() => undefined)
+      server.close().catch(() => undefined)
+    })
+  }
+})
+
+app.post('/mcp/workbench', async (request, response) => {
+  const server = createWorkbenchMetadataServer({ namespace, requestHarness, textResult })
   const transport = new StreamableHTTPServerTransport({ sessionIdGenerator: undefined })
   try {
     await server.connect(transport)

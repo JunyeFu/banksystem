@@ -1,0 +1,10 @@
+id: RF-065-S2
+title: 隔离银行与浏览器集成
+status: ACCEPTED
+businessGoal: 空库播种后真实转账及运营回读，余额守恒，浏览器路径和Agent工具合同可验证。
+allowedPaths: [scripts/test, scripts/deploy, .github/workflows, apps/customer-portal/src/auth/oidc.ts, apps/customer-portal/src/auth/oidc.test.ts, apps/operations-console/src/auth/oidc.ts, apps/operations-console/src/auth/oidc.test.ts, infra/frontend/Dockerfile, services/bank-channel-service/src/main/java/local/bank/channel/FineractLoanPort.java, services/bank-channel-service/src/test/java/local/bank/channel/FineractCapabilityHttpTest.java, services/bank-channel-service/src/main/java/local/bank/channel/TestSupportController.java, services/bank-channel-service/src/test/java/local/bank/channel/TestSupportScenarioContractTest.java]
+forbiddenPaths: [postgresql, infra/keycloak, platform/hengzhun-regression-system/flowise]
+workSteps: [baseline, counterexample, implement, verify]
+verification: ['隔离空库启动→播种→黄金链→浏览器，财务不变量通过；默认保持服务，若停止仅操作核对归属的测试拓扑。']
+evidence: docs/architecture/refactoring/batches/RF-065/evidence-index.md
+

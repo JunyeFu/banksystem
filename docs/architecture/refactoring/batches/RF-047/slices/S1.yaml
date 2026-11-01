@@ -1,0 +1,9 @@
+id: RF-047-S1
+title: Offline authoritative evidence gate
+status: CLOSED
+businessGoal: Verify one current-identity L1 outcome from Harness evidence.
+allowedPaths: [platform/hengzhun-regression-system/scripts/i10-agent-l1-live.cjs, platform/hengzhun-regression-system/scripts/verification/agent-l1-live.test.cjs, docs/architecture/refactoring/batches/RF-047, agent/plans/active, agent/backlog.yaml, agent/runs/rf047]
+forbiddenPaths: [apps, services, postgresql, platform/hengzhun-regression-system/flowise, platform/hengzhun-regression-system/.data]
+verification: [exact identity, five evidence kinds, every artifact hash and size verified, text before image, first deterministic failure stops]
+authorization: User approved offline implementation only
+evidence: docs/architecture/refactoring/batches/RF-047/evidence-index.md

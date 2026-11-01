@@ -1,4 +1,5 @@
 import crypto from 'node:crypto';
+import { FUXING_BANK_AUTHENTICATION } from '../i8/target-adapter-registry';
 import dns from 'node:dns/promises';
 import fs from 'node:fs';
 import http from 'node:http';
@@ -41,7 +42,7 @@ import {
   type TargetProfileGetInput
 } from './schemas';
 import { applyCrossSourceConflictGate } from './cross-source-conflicts';
-import { FUXING_BANK_DEMO_ADAPTER, resolveTargetAdapterBinding } from '../i8/target-adapter-registry';
+import { FUXING_BANK_DEMO_ADAPTER, FUXING_BANK_OPERATIONS_ADAPTER, authenticationForTargetAdapter, resolveTargetAdapterBinding } from '../i8/target-adapter-registry';
 
 interface RequestContext {
   requestId: string;
@@ -146,7 +147,8 @@ function nonWaivableDraftMissing(fields: string[]): string[] {
   return fields.filter(field =>
     field.startsWith('crossSourceConflict:') ||
     field === 'lowConfidenceActions' ||
-    field === 'verificationRequirements'
+    field === 'verificationRequirements' ||
+    field.startsWith('businessInputs.')
   );
 }
 
@@ -240,7 +242,8 @@ export class I10Service {
   constructor(
     private readonly database: HarnessDatabase,
     private readonly productRoot: string,
-    private readonly artifacts: ArtifactStore
+    private readonly artifacts: ArtifactStore,
+    private readonly releaseIdentityHash?: string
   ) {
     this.credentialRoot = path.join(productRoot, '.data', 'credentials');
     this.attachmentRoot = path.resolve(process.env.HENGZHUN_ATTACHMENT_ROOT ?? path.join(productRoot, '.data', 'attachments'));
@@ -492,11 +495,19 @@ export class I10Service {
       ? resolveTargetAdapterBinding(input.adapterBinding)
       : input.adapterSelection === FUXING_BANK_DEMO_ADAPTER.adapterId
         ? FUXING_BANK_DEMO_ADAPTER
+        : input.adapterSelection === FUXING_BANK_OPERATIONS_ADAPTER.adapterId ? FUXING_BANK_OPERATIONS_ADAPTER
         : undefined;
     if (input.adapterBinding && !adapterBinding) {
       throw new HarnessError(400, 'I10_TARGET_ADAPTER_BINDING_INVALID', 'CONTRACT', '目标适配器绑定未登记、版本不匹配或清单Hash不匹配。');
     }
-    const origins = [launch.origin];
+    const authentication=authenticationForTargetAdapter(adapterBinding);
+    if(adapterBinding?.adapterId===FUXING_BANK_OPERATIONS_ADAPTER.adapterId&&
+      (launch.origin!==authentication!.portalOrigin||launch.pathname!=='/ops/login'))
+      throw new HarnessError(400,'I10_OPERATIONS_LAUNCH_NOT_ALLOWED','SECURITY','运营认证仅允许明确登记的运营门户登录地址。');
+    const origins = authentication
+      ? [launch.origin, authentication.identityOrigin]
+      : [launch.origin];
+    const credentialOrigins = authentication ? [authentication.identityOrigin] : [launch.origin];
     const now = nowIso();
     const profileId = input.targetProfileId ?? opaqueId('targetprofile');
     const profilePayload = {
@@ -506,7 +517,7 @@ export class I10Service {
       launchUrl: launch.href,
       allowedNavigationOrigins: origins,
       allowedInteractionOrigins: origins,
-      credentialOrigins: [launch.origin],
+      credentialOrigins,
       redirectRules: origins.slice(1).map(origin => ({ origin, mode: 'CONFIRMED_REDIRECT' })),
       tlsPolicy: input.tlsPolicy,
       networkMode: this.targetNetworkMode(launch),
@@ -539,7 +550,7 @@ export class I10Service {
           resolved_addresses_json='{}',profile_hash=?,version=version+1,updated_at=? WHERE target_profile_id=?`)
           .run(
             input.idempotencyKey, profilePayload.displayName, profilePayload.launchUrl, launch.origin,
-            canonicalJson(origins), canonicalJson(origins), canonicalJson([launch.origin]),
+            canonicalJson(origins), canonicalJson(origins), canonicalJson(credentialOrigins),
             canonicalJson(profilePayload.redirectRules), input.credentialRef ?? existing.credential_ref,
             input.tlsPolicy, profilePayload.networkMode, canonicalJson(profilePayload.adapterBinding), profileHash, now, existing.target_profile_id
           );
@@ -551,7 +562,7 @@ export class I10Service {
         ) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,'PENDING_CONFIRMATION',?,1,?,?)`)
           .run(
             profileId, input.namespace, input.idempotencyKey, profilePayload.displayName, profilePayload.launchUrl,
-            launch.origin, canonicalJson(origins), canonicalJson(origins), canonicalJson([launch.origin]),
+            launch.origin, canonicalJson(origins), canonicalJson(origins), canonicalJson(credentialOrigins),
             canonicalJson(profilePayload.redirectRules), input.credentialRef ?? null, input.tlsPolicy,
             profilePayload.networkMode, canonicalJson(profilePayload.adapterBinding), canonicalJson({}), profileHash, now, now
           );
@@ -921,8 +932,20 @@ export class I10Service {
     const artifactIds = Array.isArray(references.artifactIds)
       ? references.artifactIds.filter((value): value is string => typeof value === 'string')
       : [];
+    const resultArtifactId = typeof references.resultArtifactId === 'string'
+      ? references.resultArtifactId
+      : undefined;
+    const reportArtifactIds = resultArtifactId && !artifactIds.includes(resultArtifactId)
+      ? [...artifactIds, resultArtifactId]
+      : artifactIds;
+    const runArtifactIds = typeof references.runId === 'string' && typeof references.taskId === 'string'
+      ? this.database.read(db => (db.prepare(`SELECT artifact_id FROM artifacts
+          WHERE namespace=? AND run_id=? AND task_id=? ORDER BY created_at,artifact_id`)
+        .all(namespace, references.runId, references.taskId) as Array<{ artifact_id: string }>).map(row => row.artifact_id))
+      : [];
+    const orderedArtifactIds = [...new Set([...reportArtifactIds, ...runArtifactIds])];
     const cards: Array<InteractionArtifactCard & { downloadGrantRequired: boolean }> = [];
-    for (const artifactId of artifactIds) {
+    for (const artifactId of orderedArtifactIds) {
       const metadata = this.artifacts.getMetadata(namespace, artifactId);
       const details = metadata.metadata as Record<string, unknown>;
       cards.push({
@@ -1360,12 +1383,15 @@ export class I10Service {
                j.job_id,j.status AS job_status,j.error_code AS job_error_code,j.updated_at AS job_updated_at,
                c.candidate_id,c.script_id,c.script_version,c.script_sha256,c.status AS candidate_status,
                c.version AS candidate_version,c.updated_at AS candidate_updated_at,
+               stability.batch_id AS stability_batch_id,stability.status AS stability_status,stability.error_code AS stability_error_code,
+               stability.updated_at AS stability_updated_at,
                cert.certificate_id,cert.status AS certificate_status,cert.issued_at,
                delivery.choice AS delivery_choice,delivery.effect AS delivery_effect,
                delivery.activated_plan_id,delivery.created_at AS delivery_created_at
         FROM i8_executable_plans p
         LEFT JOIN i8_candidate_build_jobs j ON j.executable_plan_id=p.executable_plan_id
         LEFT JOIN i8_script_candidates c ON c.executable_plan_id=p.executable_plan_id
+        LEFT JOIN i8_stability_batches stability ON stability.candidate_id=c.candidate_id
         LEFT JOIN i8_stability_certificates cert ON cert.candidate_id=c.candidate_id
         LEFT JOIN i8_script_delivery_decisions delivery ON delivery.decision_id=(
           SELECT decision_id FROM i8_script_delivery_decisions
@@ -1529,6 +1555,7 @@ export class I10Service {
         references.executablePlanId = projection.executable_plan_id;
       }
       if (projection.job_id) references.jobId = projection.job_id;
+      if (projection.stability_batch_id) references.stabilityBatchId = projection.stability_batch_id;
       references.candidateId = candidateId;
       if (!exactExecutionBinding || String(projection.candidate_id ?? '') === candidateId) {
         if (projection.certificate_id) references.certificateId = projection.certificate_id;
@@ -1670,6 +1697,17 @@ export class I10Service {
         );
         progress = { percent: 60, lastActivityAt: projection.issued_at };
         error = null;
+      } else if (projection.candidate_status === 'VALIDATION_FAILED' || projection.stability_status === 'FAILED') {
+        stage = 'FAILED_ACTIONABLE';
+        status = 'FAILED';
+        allowedActions = [];
+        nextAction = { type: 'RETRY_AUTHORING', description: '候选稳定性验证失败；修复原因后重新提交作者化。' };
+        progress = { percent: 100, lastActivityAt: projection.stability_updated_at ?? projection.candidate_updated_at };
+        error = {
+          errorCode: projection.stability_error_code ?? 'I10_STABILITY_VALIDATION_FAILED',
+          category: 'STABILITY',
+          recoverable: true
+        };
       } else if (projection.job_status === 'FAILED' || projection.plan_status === 'FAILED') {
         stage = 'FAILED_ACTIONABLE';
         status = 'FAILED';
@@ -1747,6 +1785,7 @@ export class I10Service {
         .get(row.namespace, preparationId) as { version: number; status: string } | undefined)
       : undefined;
     const artifactCards = await this.artifactCards(row.namespace, references);
+    const terminal = row.status === 'COMPLETED' && typeof references.resultArtifactId === 'string';
     const adaptive = composeInteractionResponse({
       journeyId: row.journey_id,
       version: row.version,
@@ -1823,7 +1862,8 @@ export class I10Service {
       progress,
       ...(error ? { error } : {}),
       recoverable: Boolean(row.recoverable),
-      updatedAt: row.updated_at
+      updatedAt: row.updated_at,
+      terminal
     };
   }
 
@@ -1920,19 +1960,96 @@ export class I10Service {
         throw new HarnessError(400, 'I10_RUN_AT_INVALID', 'CONTRACT', '单次定时时间必须是带时区偏移的ISO 8601时间。');
       }
       if (instant <= Date.now()) throw new HarnessError(400, 'I10_RUN_AT_NOT_FUTURE', 'DOMAIN', '单次定时时间必须晚于当前时间。');
-      return { mode, runAt, timezone, misfirePolicy: 'RUN_ONCE_WITHIN_GRACE', misfireGraceSeconds: 300, maxRetries: 1 };
+      return { mode, runAt, timezone, misfirePolicy: 'RUN_ONCE_WITHIN_GRACE', misfireGraceSeconds: 300, maxRetries: 0 };
     }
     if (mode === 'RECURRING') {
       const cronExpression = String(value.cronExpression ?? '').trim().replace(/\s+/g, ' ');
       if (cronExpression.split(' ').length !== 5 || !/^[\d*/?,\- ]+$/.test(cronExpression)) {
         throw new HarnessError(400, 'I10_CRON_INVALID', 'CONTRACT', '周期计划必须提供合法五段Cron表达式。');
       }
-      return { mode, cronExpression, timezone, misfirePolicy: 'SKIP', misfireGraceSeconds: 300, maxRetries: 1 };
+      return { mode, cronExpression, timezone, misfirePolicy: 'SKIP', misfireGraceSeconds: 300, maxRetries: 0 };
     }
     return { mode: 'ON_DEMAND' };
   }
 
+  private async prepareValidatedRepeat(input: JourneyPrepareInput, context: RequestContext): Promise<Record<string, unknown>> {
+    const journeyId = await this.database.write(db => {
+      const existing = db.prepare(`SELECT journey_id,input_envelope_json FROM i10_interaction_journeys WHERE namespace=? AND idempotency_key=?`)
+        .get(input.namespace,input.idempotencyKey) as {journey_id:string;input_envelope_json:string}|undefined;
+      if (existing) {
+        const original = JSON.parse(existing.input_envelope_json);
+        if (original.validatedJourneyId !== input.validatedJourneyId || original.sessionRef !== input.sessionRef)
+          throw new HarnessError(409,'I10_REPEAT_IDEMPOTENCY_CONFLICT','DOMAIN','复用请求的幂等键已绑定不同来源或会话。');
+        return existing.journey_id;
+      }
+      const source = db.prepare(`SELECT references_json,input_envelope_json FROM i10_interaction_journeys
+        WHERE namespace=? AND journey_id=? AND stage='COMPLETED' AND status='COMPLETED'`)
+        .get(input.namespace,input.validatedJourneyId) as {references_json:string;input_envelope_json:string}|undefined;
+      const sourceRefs = source ? JSON.parse(source.references_json) : {};
+      const binding = db.prepare(`
+        WITH activated AS (
+          SELECT ep.preparation_id,ep.case_id,ep.case_version,c.candidate_id,c.script_id,c.script_version,c.script_sha256,
+                 d.activated_plan_id,d.created_at,1 AS priority
+          FROM i8_executable_plans ep JOIN i8_script_candidates c ON c.executable_plan_id=ep.executable_plan_id
+          JOIN i8_script_delivery_decisions d ON d.candidate_id=c.candidate_id AND d.choice='ACTIVATE'
+          WHERE ep.namespace=? AND c.status='SCRIPT_VALIDATED'
+          UNION ALL
+          SELECT ep.preparation_id,ep.case_id,ep.case_version,rp.repair_candidate_id,rp.script_id,rp.script_version,rp.script_sha256,
+                 d.activated_plan_id,d.created_at,2 AS priority
+          FROM i8_script_patch_proposals rp JOIN i8_repair_decisions d ON d.proposal_id=rp.proposal_id AND d.choice='ACTIVATE'
+          JOIN i8_script_candidates base ON base.candidate_id=rp.base_candidate_id
+          JOIN i8_executable_plans ep ON ep.executable_plan_id=base.executable_plan_id
+          WHERE rp.namespace=? AND rp.status='ACTIVATED'
+        )
+        SELECT r.run_id,r.case_id,r.case_version,r.plan_id,r.candidate_id,c.script_id,c.script_version,c.script_sha256,
+               c.preparation_id
+        FROM runs r JOIN activated c ON c.candidate_id=r.candidate_id AND c.activated_plan_id=r.plan_id
+        JOIN tasks task ON task.task_id=r.task_id AND task.namespace=r.namespace AND task.run_id=r.run_id
+        JOIN scripts s ON s.script_id=c.script_id AND s.namespace=r.namespace AND s.current_version=c.script_version
+        JOIN script_versions v ON v.script_id=c.script_id AND v.version=c.script_version
+        JOIN plans plan ON plan.plan_id=r.plan_id AND plan.namespace=r.namespace AND plan.script_id=c.script_id
+        JOIN cases cases ON cases.case_id=r.case_id AND cases.namespace=r.namespace
+        WHERE r.namespace=? AND r.run_id=? AND r.task_id=? AND r.journey_id=? AND r.status='PASSED'
+          AND r.release_identity_hash=? AND s.status='SCRIPT_VALIDATED'
+          AND v.validation_status='PASSED' AND v.sha256=c.script_sha256 AND plan.status='READY'
+          AND cases.current_version=r.case_version AND cases.status='VALIDATED'
+          AND c.case_id=r.case_id AND c.case_version=r.case_version
+          AND json_extract(task.payload_json,'$.scriptId')=c.script_id
+          AND json_extract(task.payload_json,'$.scriptVersion')=c.script_version
+          AND json_extract(task.payload_json,'$.scriptHash')=c.script_sha256
+          AND c.candidate_id=(SELECT candidate_id FROM activated WHERE preparation_id=c.preparation_id ORDER BY priority DESC,created_at DESC LIMIT 1)
+      `).get(input.namespace,input.namespace,input.namespace,sourceRefs.runId,sourceRefs.taskId,input.validatedJourneyId,this.releaseIdentityHash) as
+        {run_id:string;case_id:string;case_version:number;plan_id:string;candidate_id:string;script_id:string;script_version:number;script_sha256:string;preparation_id:string}|undefined;
+      if (!source || !binding)
+        throw new HarnessError(409,'I10_REPEAT_SOURCE_NOT_ACTIVATED','EVIDENCE','来源未绑定当前身份的已通过、仍有效冻结脚本。');
+      const sourceInput = JSON.parse(source.input_envelope_json);
+      const references:Record<string,unknown> = {
+        validatedJourneyId:input.validatedJourneyId,sourceRunId:binding.run_id,
+        caseId:binding.case_id,caseVersion:binding.case_version,preparationId:binding.preparation_id,
+        candidateId:binding.candidate_id,planId:binding.plan_id,scriptId:binding.script_id,scriptHash:binding.script_sha256,
+      };
+      for (const key of ['credentialRef','targetProfileId']) if (sourceRefs[key]) references[key]=sourceRefs[key];
+      const safeInput = {...input,releaseIdentityHash:this.releaseIdentityHash,
+        ...(sourceInput.draftJson ? {draftJson:sourceInput.draftJson} : {})};
+      const id=opaqueId('journey'),now=nowIso();
+      const nextAction=this.inputRequest('EXECUTION_PLAN','按原冻结脚本执行一次。',['立即执行一次'],['executionMode']);
+      db.prepare(`INSERT INTO i10_interaction_journeys(
+        journey_id,namespace,session_ref,idempotency_key,request_intent,input_type,stage,status,
+        input_envelope_json,missing_fields_json,allowed_actions_json,next_action_json,references_json,
+        progress_json,error_json,version,recoverable,created_at,updated_at
+      ) VALUES (?,?,?,?,'CASE_AUTHORING','NONE','NEEDS_INPUT','NEEDS_INPUT',?,'[]','[]',?,?,?,NULL,1,1,?,?)`)
+        .run(id,input.namespace,input.sessionRef,input.idempotencyKey,canonicalJson(safeInput),canonicalJson(nextAction),
+          canonicalJson(references),canonicalJson({percent:0,lastActivityAt:now}),now,now);
+      db.prepare(`INSERT INTO i10_interaction_events(event_id,journey_id,sequence,event_type,from_stage,to_stage,decision,safe_payload_json,confirmation_ref,created_at)
+        VALUES (?,?,1,'PREPARED',NULL,'NEEDS_INPUT',NULL,?,NULL,?)`)
+        .run(opaqueId('journeyevent'),id,canonicalJson({requestId:context.requestId,validatedJourneyId:input.validatedJourneyId}),now);
+      return id;
+    });
+    return this.getJourney({namespace:input.namespace,journeyId,waitSeconds:0});
+  }
+
   async prepareJourney(input: JourneyPrepareInput, context: RequestContext): Promise<Record<string, unknown>> {
+    if (input.validatedJourneyId) return this.prepareValidatedRepeat(input,context);
     if (input.requestIntent === 'JOURNEY_RESUME') {
       return this.getJourney({ namespace: input.namespace, journeyId: input.journeyId, sessionRef: input.sessionRef, waitSeconds: 0 });
     }
@@ -2030,6 +2147,7 @@ export class I10Service {
     let nextAction: Record<string, unknown> = { type: 'PROVIDE_INPUT', description: '请补充缺失信息。' };
     let recoverable = 1;
     let validatedDraft: CaseDraft | undefined;
+    let collectedDraft: CaseDraft | undefined;
     let boundSemanticAssessment: Record<string, unknown> | undefined;
 
     if (input.requestIntent === 'HELP') {
@@ -2072,7 +2190,12 @@ export class I10Service {
         if (!normalizedTargetSystem) contractMissingFields.push('I10_TARGET_SYSTEM_REQUIRED');
         if (!input.draftJson) contractMissingFields.push('I10_DRAFT_REQUIRED');
         if (input.draftJson) {
-          const explicitAdapterSelection = explicitAdapterSelectionFromNaturalLanguage(input.naturalLanguage);
+          // A CLI adapter option is an explicit user choice carried as a
+          // structured field. Natural-language selection remains valid for
+          // conversational clients; a model-supplied draft field alone never
+          // selects a privileged adapter.
+          const explicitAdapterSelection = input.adapterSelection
+            ?? explicitAdapterSelectionFromNaturalLanguage(input.naturalLanguage);
           const candidatePayload: Record<string, unknown> = {
             ...completeCaseDraftContract(
               input.draftJson,
@@ -2102,6 +2225,14 @@ export class I10Service {
           }
           else {
             contractMissingFields.push(...nonWaivableDraftMissing(candidate.data.missingFields));
+            const moneyIntent=(input.naturalLanguage??'')
+              .replace(/(?:不|不得|禁止|不要)(?:发起|执行|进行|提交)?转账/gu,'')
+              .replace(/\b(?:do not|never|without|no)\s+(?:(?:initiate|execute|submit)\s+)?transfers?\b/giu,'')
+              .replace(/转账(?:记录|历史|结果)|transfer\s+(?:history|status|records)/giu,'');
+            if(/转账|\btransfer\b/iu.test(moneyIntent)) {
+              for(const field of ['payerAccountId','payeeRef','amount','currency','purpose'] as const)
+                if(!candidate.data.businessInputs?.values[field])contractMissingFields.push(`businessInputs.${field}`);
+            }
             boundSemanticAssessment = bindSemanticAssessment(
               input.semanticAssessment,
               candidate.data,
@@ -2109,6 +2240,8 @@ export class I10Service {
               input.inputRevision ?? 1
             );
             semanticMissingFields.push(...semanticQuestions(boundSemanticAssessment));
+            collectedDraft = {...candidate.data,confirmationStatus:'DRAFT',
+              missingFields:[...new Set([...contractMissingFields,...semanticMissingFields])]};
             if (contractMissingFields.length === 0 && semanticMissingFields.length === 0) {
               validatedDraft = caseDraftSchema.parse({
                 ...candidate.data,
@@ -2168,6 +2301,7 @@ export class I10Service {
     // non-resume request must receive a fresh journey identifier.
     const journeyId = opaqueId('journey');
     const safeInput = {
+      releaseIdentityHash: this.releaseIdentityHash,
       requestIntent: input.requestIntent,
       inputType: input.inputType,
       interactionContractVersion: input.interactionContractVersion,
@@ -2183,7 +2317,7 @@ export class I10Service {
       supportingImages: input.supportingImages,
       scheduleId: input.scheduleId,
       taskId: input.taskId,
-      draftJson: validatedDraft ?? input.draftJson
+      draftJson: validatedDraft ?? collectedDraft ?? input.draftJson
       ,semanticAssessment: boundSemanticAssessment ?? input.semanticAssessment
       ,inputRevision: input.inputRevision ?? 1
       ,contractMissingFields

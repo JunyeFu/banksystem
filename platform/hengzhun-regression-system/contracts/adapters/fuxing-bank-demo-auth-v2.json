@@ -1,0 +1,29 @@
+{
+  "schemaVersion": "fuxing-bank-authentication/v2",
+  "adapterId": "fuxing-bank-demo",
+  "adapterVersion": "2.0.0",
+  "executionEngine": "TARGET_ADAPTER",
+  "supportedCapabilities": ["AUTHENTICATION", "NAVIGATION", "ASSERTION", "EVIDENCE_CAPTURE"],
+  "explicitOnly": true,
+  "kind": "KEYCLOAK_PKCE",
+  "portalOrigin": "http://127.0.0.1:18082",
+  "identityOrigin": "http://127.0.0.1:19000",
+  "issuerPath": "/realms/bank-customer",
+  "callbackPath": "/portal/login/callback",
+  "authenticatedPath": "/portal/dashboard",
+  "targets": {
+    "AUTH_ERROR": {"kind":"CSS","value":".kc-feedback-text"},
+    "LOGIN_SSO_SUBMIT": { "kind": "TEST_ID", "value": "login-sso-submit" },
+    "LOGIN_USERNAME": { "kind": "CSS", "value": "#username" },
+    "LOGIN_PASSWORD": { "kind": "CSS", "value": "#password" },
+    "LOGIN_SUBMIT": { "kind": "CSS", "value": "#kc-login" }
+  },
+  "actions": [
+    { "operation": "click", "targetRef": "LOGIN_SSO_SUBMIT", "instruction": "点击统一身份认证入口", "expected": "进入银行 Keycloak 认证页面" },
+    { "operation": "waitForURL", "routePatternRef": "IDENTITY_PROVIDER", "instruction": "等待银行身份认证页", "expected": "银行身份认证页已就绪" },
+    { "operation": "fill", "targetRef": "LOGIN_USERNAME", "credentialKey": "USERNAME", "instruction": "在身份认证页填写账号", "expected": "账号已填写" },
+    { "operation": "fill", "targetRef": "LOGIN_PASSWORD", "credentialKey": "PASSWORD", "instruction": "在身份认证页填写密码", "expected": "密码已填写" },
+    { "operation": "click", "targetRef": "LOGIN_SUBMIT", "instruction": "提交身份认证表单", "expected": "身份认证成功并回到银行门户" },
+    { "operation": "waitForURL", "routePatternRef": "PORTAL_AUTHENTICATED", "instruction": "等待银行认证回调完成", "expected": "已认证银行门户已就绪" }
+  ]
+}

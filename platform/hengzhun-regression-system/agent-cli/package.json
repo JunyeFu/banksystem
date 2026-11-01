@@ -2,12 +2,13 @@
   "name": "@hengzhun/agent-cli",
   "version": "0.2.0-offline-candidate",
   "private": true,
+  "license": "MPL-2.0",
   "type": "module",
   "bin": {
     "hz-agent": "bin/hz-agent.mjs"
   },
   "scripts": {
-    "test": "\"..\\runtime\\node-v24.19.0-win-x64\\node.exe\" --test test\\headless-cli.test.mjs test\\tui.test.mjs test\\release-lifecycle.test.mjs test\\offline-integration.test.mjs"
+    "test": "\"..\\runtime\\node-v24.19.0-win-x64\\node.exe\" --test test\\headless-cli.test.mjs test\\tui.test.mjs test\\release-lifecycle.test.mjs test\\offline-integration.test.mjs test\\session-harness-integration.test.mjs test\\model-binding.test.mjs test\\journey-author-validate.test.mjs test\\journey-exact-approval.test.mjs test\\journey-execute.test.mjs test\\journey-evidence-verify.test.mjs"
   },
   "engines": {
     "node": "24.19.0"

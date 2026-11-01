@@ -1,5 +1,5 @@
 import type { components as CustomerComponents, operations as CustomerOperations } from './generated/customer';
-import type { components as OperationsComponents } from './generated/operations';
+import type { components as OperationsComponents, operations as OperationsOperations } from './generated/operations';
 
 export type TransferStatus = CustomerComponents['schemas']['TransferStatus'];
 export type Customer = CustomerComponents['schemas']['Customer'];
@@ -15,6 +15,8 @@ export type CustomerProfile = CustomerComponents['schemas']['CustomerProfile'];
 export type SecuritySettings = CustomerComponents['schemas']['SecuritySettings'];
 export type CustomerDocument = CustomerComponents['schemas']['CustomerDocument'];
 export type LoanApplication = CustomerComponents['schemas']['LoanApplication'];
+export type LoanApplicationDetail = CustomerComponents['schemas']['LoanApplicationDetail'];
+export type LoanDocument = CustomerComponents['schemas']['LoanDocument'];
 export type LoanApplicationRequest = CustomerComponents['schemas']['LoanApplicationRequest'];
 export type Transfer = CustomerComponents['schemas']['Transfer'];
 export type TransferPage = CustomerComponents['schemas']['TransferPage'];
@@ -32,6 +34,10 @@ export type OperationsRiskCaseStatus = OperationsComponents['schemas']['RiskCase
 export type OperationsApproval = OperationsComponents['schemas']['ApprovalRecord'];
 export type OperationsApprovalStatus = OperationsComponents['schemas']['ApprovalStatus'];
 export type OperationsApprovalActionResult = OperationsComponents['schemas']['ApprovalActionResult'];
+export type OperationsLoanApplication = OperationsComponents['schemas']['OperationsLoanApplication'];
+export type OperationsLoanApplicationDetail = OperationsComponents['schemas']['OperationsLoanApplicationDetail'];
+export type OperationsLoanApproval = OperationsComponents['schemas']['LoanApproval'];
+export type OperationsCoreLoanReference = OperationsComponents['schemas']['CoreLoanReference'];
 export type OperationsClearingBatch = OperationsComponents['schemas']['ClearingBatch'];
 export type OperationsClearingBatchStatus = OperationsComponents['schemas']['ClearingBatchStatus'];
 export type OperationsReconciliationRun = OperationsComponents['schemas']['ReconciliationRun'];
@@ -42,6 +48,7 @@ export type OperationsEodStatus = OperationsComponents['schemas']['EodStatus'];
 export type OperationsDocument = OperationsComponents['schemas']['OperationsDocument'];
 export type OperationsDocumentCategory = OperationsComponents['schemas']['DocumentCategory'];
 export type OperationsDocumentStatus = OperationsComponents['schemas']['DocumentStatus'];
+export type OperationsDocumentStatusRequest = NonNullable<OperationsOperations['updateOperationsDocumentStatus']['requestBody']>['content']['application/json'];
 export type OperationsAuditEvent = OperationsComponents['schemas']['AuditEvent'];
 export type OperationsAuditOutcome = OperationsComponents['schemas']['AuditOutcome'];
 export type OperationsHashChainVerification = OperationsComponents['schemas']['HashChainVerification'];
@@ -116,6 +123,21 @@ export class CustomerApiClient extends BaseClient {
   createLoanApplication(request: LoanApplicationRequest): Promise<LoanApplication> {
     return this.request('/loans/applications', { method: 'POST', body: JSON.stringify(request) });
   }
+  listLoanApplications(): Promise<{ items: LoanApplication[] }> {
+    return this.request('/loans/applications');
+  }
+  getLoanApplication(applicationId: string): Promise<LoanApplicationDetail> {
+    return this.request(`/loans/applications/${encodeURIComponent(applicationId)}`);
+  }
+  submitLoanApplication(applicationId: string, version: number): Promise<LoanApplication> {
+    return this.request(`/loans/applications/${encodeURIComponent(applicationId)}/submit`, { method: 'POST', body: JSON.stringify({ version }) });
+  }
+  addLoanDocument(applicationId: string, documentType: string): Promise<LoanDocument> {
+    return this.request(`/loans/applications/${encodeURIComponent(applicationId)}/documents`, { method: 'POST', body: JSON.stringify({ documentType }) });
+  }
+  listLoanDocuments(applicationId: string): Promise<{ items: LoanDocument[] }> {
+    return this.request(`/loans/applications/${encodeURIComponent(applicationId)}/documents`);
+  }
   listDocuments(): Promise<{ items: CustomerDocument[] }> {
     return this.request('/documents');
   }
@@ -140,10 +162,13 @@ export class CustomerApiClient extends BaseClient {
   getTransferReceiptPdf(transferId: string): Promise<Blob> {
     return this.request(`/transfers/${encodeURIComponent(transferId)}/receipt?format=pdf`, {}, 'blob');
   }
-  createTransfer(request: CustomerTransferRequest, idempotencyKey: string): Promise<TransferAccepted> {
+  createTransfer(request: CustomerTransferRequest, idempotencyKey: string, correlationId: string): Promise<TransferAccepted> {
     return this.request('/transfers', {
-      method: 'POST', headers: { 'Idempotency-Key': idempotencyKey }, body: JSON.stringify(request),
+      method: 'POST', headers: { 'Idempotency-Key': idempotencyKey, 'X-Correlation-Id': correlationId }, body: JSON.stringify(request),
     });
+  }
+  confirmTransfer(transferId: string): Promise<Transfer> {
+    return this.request(`/transfers/${encodeURIComponent(transferId)}/confirm`, { method: 'POST' });
   }
 }
 
@@ -159,6 +184,24 @@ export class OperationsApiClient extends BaseClient {
   }
   listApprovals(status?: OperationsApprovalStatus): Promise<OperationsApproval[]> {
     return this.request(`/approvals${queryString({ status })}`);
+  }
+  listLoanApplications(): Promise<{ items: OperationsLoanApplication[] }> {
+    return this.request('/loans/applications');
+  }
+  getLoanApplication(applicationId: string): Promise<OperationsLoanApplicationDetail> {
+    return this.request(`/loans/applications/${encodeURIComponent(applicationId)}`);
+  }
+  scoreLoanApplication(applicationId: string, version: number): Promise<OperationsLoanApplication> {
+    return this.request(`/loans/applications/${encodeURIComponent(applicationId)}/score`, { method: 'POST', body: JSON.stringify({ version }) });
+  }
+  requestLoanApproval(applicationId: string, version: number, reason: string): Promise<OperationsLoanApproval> {
+    return this.request(`/loans/applications/${encodeURIComponent(applicationId)}/approval`, { method: 'POST', body: JSON.stringify({ version, reason }) });
+  }
+  approveLoanApplication(approvalId: string, input: { version: number; approvedAmount: string; annualInterestRate: string; reason: string }): Promise<OperationsLoanApplication> {
+    return this.request(`/loans/approvals/${encodeURIComponent(approvalId)}/approve`, { method: 'POST', body: JSON.stringify(input) });
+  }
+  submitLoanApplicationToCore(applicationId: string, idempotencyKey: string): Promise<OperationsCoreLoanReference> {
+    return this.request(`/loans/applications/${encodeURIComponent(applicationId)}/core-submit`, { method: 'POST', headers: { 'Idempotency-Key': idempotencyKey } });
   }
   approveReversal(reversalId: string, version: number, reason: string, idempotencyKey: string): Promise<OperationsApprovalActionResult> {
     return this.request(`/transfers/reversals/${encodeURIComponent(reversalId)}/approve${queryString({ version })}`, { method: 'POST', headers: { 'Idempotency-Key': idempotencyKey }, body: JSON.stringify({ reason }) });
@@ -188,8 +231,8 @@ export class OperationsApiClient extends BaseClient {
     const form = new FormData(); form.set('file', input.file); form.set('title', input.title); form.set('category', input.category); if (input.description) form.set('description', input.description);
     return this.request('/documents', { method: 'POST', body: form });
   }
-  updateDocumentStatus(documentId: string, status: OperationsDocumentStatus): Promise<OperationsDocument> {
-    return this.request(`/documents/${encodeURIComponent(documentId)}/status`, { method: 'PATCH', body: JSON.stringify({ status }) });
+  updateDocumentStatus(documentId: string, input: OperationsDocumentStatusRequest): Promise<OperationsDocument> {
+    return this.request(`/documents/${encodeURIComponent(documentId)}/status`, { method: 'PATCH', body: JSON.stringify(input) });
   }
   downloadDocument(documentId: string): Promise<Blob> {
     return this.request(`/documents/${encodeURIComponent(documentId)}/download`, {}, 'blob');

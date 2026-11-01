@@ -1,0 +1,149 @@
+{
+  "basis": "2026-09-30 working tree; HEAD 552b3b8; static model, not LIVE evidence",
+  "legend": "绿色=目标或已核验的正确结构；蓝色=实际职责；红色=已定位差距；黄色=待故障注入的窗口。虚线=审查注释，不是运行调用。",
+  "pages": [
+    {
+      "id": "01-ideal-business", "title": "理想业务：参与者与可观察结果", "type": "use-case",
+      "note": "承诺来源：AGENTS.md、ADR-004、当前 OpenAPI。Agent 无逐次人审；银行 maker/checker 仍保留。",
+      "nodes": [
+        ["customer", "客户", 0, 0, "actor"], ["operator", "运营人员", 0, 2, "actor"],
+        ["login", "登录 / 自有账户\nPKCE + 归属", 1, 0, "case", "good"],
+        ["transfer", "转账 / 结果回读\n不重复扣款", 2, 0, "case", "good"],
+        ["loan", "申请 / 还款\n条件保持到核心", 3, 0, "case", "good"],
+        ["review", "复核 / 发布文档\n身份分离 + 版本", 1, 2, "case", "good"],
+        ["eod", "对账 / 日终\n真实来源 + 检查点", 2, 2, "case", "good"],
+        ["tester", "测试使用者", 0, 4, "actor"],
+        ["agent", "自然语言测试\n真实观察与执行", 1, 4, "case", "good"],
+        ["quality", "只读运行 / 发布\n证据而非假数据", 2, 4, "case", "good"],
+        ["core", "Fineract\n唯一账务真相", 4, 1, "db", "good"]
+      ],
+      "edges": [["customer","login",""],["customer","transfer",""],["customer","loan",""],["operator","review",""],["operator","eod",""],["tester","agent",""],["agent","quality","证据"],["transfer","core","入账核验"],["loan","core","核心贷款"]]
+    },
+    {
+      "id": "02-ideal-domain", "title": "理想领域关系：申请、业务订单与核心事实分离", "type": "conceptual-domain",
+      "note": "概念关系不是物理数据库 ER：箭头表示引用/关联。Channel 不拥有 CoreAccount 余额；LoanApplication 不等于 CoreLoan。",
+      "nodes": [
+        ["subject", "Subject\n身份主体", 0, 0, "box", "good"],
+        ["client", "CoreClient\n核心客户", 1, 0, "box", "good"],
+        ["account", "CoreAccount\n余额 / 流水", 2, 0, "box", "good"],
+        ["coreloan", "CoreLoan\n计划 / 还款事实", 3, 0, "box", "good"],
+        ["beneficiary", "Beneficiary\n客户收款人", 0, 2, "box", "good"],
+        ["transfer", "TransferOrder\n状态 / 版本 / 幂等", 1, 2, "box", "good"],
+        ["risk", "RiskDecision\n复核与版本", 2, 2, "box", "good"],
+        ["receipt", "Receipt / Reversal\n回执 / 补偿", 3, 2, "box", "good"],
+        ["application", "LoanApplication\n选择方式 / 条件", 0, 4, "box", "good"],
+        ["approval", "LoanApproval\n批准金额 / 年利率", 1, 4, "box", "good"],
+        ["events", "Outbox / Audit\n原子副作用记录", 2, 4, "db", "good"],
+        ["projection", "ChannelProjection\n不是核心总账", 3, 4, "db", "good"]
+      ],
+      "edges": [["subject","client","绑定"],["client","account","拥有 1:N"],["client","coreloan","拥有 1:N"],["subject","beneficiary","管理"],["beneficiary","transfer","目标引用"],["transfer","risk","决策"],["transfer","receipt","结果"],["application","approval","审批"],["application","coreloan","提交后关联"],["transfer","account","付款 / 收款"],["transfer","events","同事务"],["transfer","projection","核验后生成"]]
+    },
+    {
+      "id": "03-ideal-boundaries", "title": "理想责任边界：两个产品，两个状态权威", "type": "container-view",
+      "note": "Green = 已接受目标。模块化单体是基线，不引入额外微服务。银行账务和测试账本是不同权威。",
+      "nodes": [
+        ["portal", "Customer / Ops\n银行门户", 0, 0, "box", "good"],
+        ["gateway", "Gateway\n认证入口 / 路由", 1, 0, "box", "good"],
+        ["app", "Channel 应用服务\n业务 / 事务编排", 2, 0, "box", "good"],
+        ["ports", "五个核心能力端口\n字段 / 单位翻译", 3, 0, "box", "good"],
+        ["core", "Fineract\n权威账务", 4, 0, "db", "good"],
+        ["repo", "业务 Repository\n独占 SQL", 2, 1, "box", "good"],
+        ["pg", "Channel PostgreSQL\n工作流 / 投影", 3, 1, "db", "good"],
+        ["cli", "hz-agent / Controller\n受约束 BYOK 计划", 0, 3, "box", "good"],
+        ["mcp", "独立 MCP\n控制协议", 1, 3, "box", "good"],
+        ["harness", "Harness\n唯一执行状态写者", 2, 3, "box", "good"],
+        ["worker", "Worker / 浏览器\n真实操作与核验", 3, 3, "box", "good"],
+        ["target", "银行门户（引用）\n非另一个服务", 4, 3, "box", "good"],
+        ["sqlite", "SQLite + Evidence\n运行 / 发布事实", 2, 4, "db", "good"],
+        ["quality", "Quality Portal\n只读投影", 3, 4, "box", "good"]
+      ],
+      "edges": [["portal","gateway","HTTP"],["gateway","app","银行 API"],["app","ports","业务类型"],["ports","core","REST"],["app","repo","持久化"],["repo","pg","SQL"],["cli","mcp","工具协议"],["mcp","harness","控制"],["harness","worker","任务"],["harness","sqlite","状态 / 证据"],["sqlite","quality","只读"],["worker","target","浏览器"]]
+    },
+    {
+      "id": "04-actual-boundaries", "title": "实际实现：责任泄漏，而非所有跨模块依赖都错误", "type": "component-view",
+      "note": "依据 TransferController、ReconciliationService、BankModuleArchitectureTest、production-service 与 QualityReadModel。红色表示有证据的边界/功能差距。",
+      "nodes": [
+        ["api", "TransferController\nHTTP + 编排 + WHERE", 0, 0, "box", "gap"],
+        ["deps", "身份 / 收款人 / 核心\n审计 / 状态 / 处理器", 1, 0, "box"],
+        ["repo", "TransferRepository\n接收 SQL 片段", 0, 1, "box", "gap"],
+        ["processor", "TransferProcessor\n三阶段事务已实现", 2, 1, "box", "good"],
+        ["core", "Fineract 五端口\n类型 + 贷款语义缺口", 3, 0, "box", "gap"],
+        ["pg", "PostgreSQL\n业务状态 / 投影", 1, 1, "db"],
+        ["eod", "EOD 应用协调\n依赖多领域合理", 0, 3, "box", "good"],
+        ["reconcile", "名为核心总账对账\n核心转账+本地投影", 1, 3, "box", "gap"],
+        ["agent", "CLI 自动执行\n历史协议仍较长", 2, 3, "box"],
+        ["harness", "MCP / Harness\nSQLite 状态", 3, 3, "box", "good"],
+        ["quality", "Quality Releases\n空数组 / 固定待定", 3, 4, "box", "gap"],
+        ["rule", "ArchUnit 当前规则\n只检查 SQL 类依赖", 0, 4, "box", "warn"]
+      ],
+      "edges": [["api","deps","多责任"],["api","repo","WHERE"],["repo","pg","SQL"],["api","processor","确认处理"],["processor","core","事务外写"],["eod","reconcile","对账"],["reconcile","pg","投影"],["agent","harness","工具协议"],["harness","quality","只读投影"],["rule","api","无法检出字符串 SQL",true]]
+    },
+    {
+      "id": "05-loan-semantic-gap", "title": "贷款对照：同名字段没有保证同一业务含义", "type": "data-flow-comparison",
+      "note": "M01/M02/M03：选择方式没有进入核心命令；每期利率显示为年利率；计划静默限制 24 期。",
+      "nodes": [
+        ["desired", "理想输入\n等额本金 / 36 期", 0, 0, "box", "good"],
+        ["terms", "已批准条件\n方式 / 年率 / 期数", 1, 0, "box", "good"],
+        ["mapping", "端口明确映射\n核心方式 + 频率", 2, 0, "box", "good"],
+        ["desiredUI", "客户回读\n年率 / 完整计划", 3, 0, "box", "good"],
+        ["actual", "实际本地申请\n仍保留等额本金", 0, 2, "box"],
+        ["command", "核心命令\n不含 repaymentMethod", 1, 2, "box", "gap"],
+        ["fixed", "amortizationType=1\n始终等额本息", 2, 2, "box", "gap"],
+        ["read", "实际端口回读\n优先月率 / limit24", 2, 3, "box", "gap"],
+        ["ui", "页面标年利率\n无后续期数提示", 3, 3, "box", "gap"]
+      ],
+      "edges": [["desired","terms","批准"],["terms","mapping","条件保持"],["mapping","desiredUI","权威回读"],["actual","command","字段丢失"],["command","fixed","固定值"],["fixed","read","核心响应"],["read","ui","含义丢失"]]
+    },
+    {
+      "id": "06-transfer-flow", "title": "实际转账活动：正确的未知结果处理与受理缺口", "type": "activity",
+      "note": "主链已有三阶段；M04 是合法键编码缺陷，M09 是事务内核心读取。红色注释不否定后续正确实现。",
+      "nodes": [
+        ["request", "客户提交\n幂等键 / 关联号", 0, 0, "box"],
+        ["accept", "受理事务\n核心归属读取 M09", 1, 0, "box", "gap"],
+        ["record", "CREATED / Outbox\n元数据拼 JSON M04", 2, 0, "box", "gap"],
+        ["claim", "短事务领取提交权\n风险 / 行锁", 0, 2, "box", "good"],
+        ["post", "事务外核心 POST\n不持有 DB 事务", 1, 2, "box", "good"],
+        ["read", "权威回读\n是否匹配？", 2, 2, "decision", "good"],
+        ["settled", "SETTLED\n回执 / 投影 / 审计", 3, 1, "box", "good"],
+        ["unknown", "CORE_RESULT_UNKNOWN\n只核验，不盲重发", 3, 3, "box", "good"],
+        ["failed", "FAILED\n确定拒绝且回读空", 2, 4, "box"]
+      ],
+      "edges": [["request","accept",""],["accept","record",""],["record","claim","客户确认"],["claim","post","commit 后"],["post","read",""],["read","settled","匹配"],["read","unknown","未知"],["read","failed","确定拒绝"]]
+    },
+    {
+      "id": "07-eod-failure-window", "title": "实际日终：锁与检查点不等于远程 exactly-once", "type": "activity",
+      "note": "M07 日期绑定是直接逻辑缺口；M11 是需故障注入的窗口；M12 锁日步骤为空。禁止在留存演示环境验证时推进日期。",
+      "nodes": [
+        ["date", "请求 date / key\n先按请求日期锁", 0, 0, "box"],
+        ["register", "按 key 找旧 run\n不比较日期 M07", 1, 0, "box", "gap"],
+        ["lock", "LOCK_DATE 空步骤\n只读一次待办 M12", 2, 0, "box", "gap"],
+        ["reconcile", "对账 / 核心作业\n含义需校准 M06", 3, 0, "box", "gap"],
+        ["success", "远程副作用成功\n本地尚无检查点", 0, 2, "box", "warn"],
+        ["crash", "进程退出窗口\n结果如何核验？", 1, 2, "decision", "warn"],
+        ["checkpoint", "本地 completeStep\n短事务提交", 2, 2, "box", "good"],
+        ["advance", "最后推进业务日期\n受当前日期约束", 3, 2, "box", "good"],
+        ["resume", "恢复跳过已完成项\n未记项可能重执行", 1, 4, "box", "warn"]
+      ],
+      "edges": [["date","register",""],["register","lock",""],["lock","reconcile",""],["reconcile","success",""],["success","crash",""],["crash","checkpoint","未退出"],["checkpoint","advance","全部步骤后"],["crash","resume","退出"],["resume","success","不能声称恰好一次",true]]
+    },
+    {
+      "id": "08-agent-actual", "title": "实际 Agent：真实模型 + 工作流控制 + 浏览器观察", "type": "execution-pipeline",
+      "note": "有真实 Agent 能力，但非任意网站无限自治。自动提交业务协议不等于模型新增资金参数被用户确认。质量发布投影仍空。",
+      "nodes": [
+        ["goal", "用户自然语言\n目标 / 明确业务值", 0, 0, "actor"],
+        ["model", "BYOK 候选规划\n输入 goal + system", 1, 0, "box"],
+        ["values", "模型 businessInputs\n标用户确认 M13", 2, 0, "box", "gap"],
+        ["cli", "CLI 自动协议驱动\n无需逐次人工审批", 3, 0, "box", "good"],
+        ["mcp", "MCP → Harness\n版本 / 权限 / 状态", 3, 1, "box", "good"],
+        ["worker", "Worker 领取任务\n显式银行 adapter", 3, 2, "box", "good"],
+        ["visual", "Midscene 当前观察\n候选动作 / 定位", 2, 2, "box", "good"],
+        ["browser", "Playwright 浏览器\n动作 / 断言 / 网络", 1, 2, "box", "good"],
+        ["bank", "真实银行页面\nGateway → Fineract", 0, 2, "box", "good"],
+        ["ledger", "Harness SQLite\nRun / Incident / 证据", 1, 4, "db", "good"],
+        ["quality", "Quality 只读投影\n发布为空 M14", 2, 4, "box", "gap"],
+        ["stop", "失败停止\n不要求自动修复", 0, 4, "box", "good"]
+      ],
+      "edges": [["goal","model","意图"],["model","values","抽取"],["values","cli","候选"],["cli","mcp","工具协议"],["mcp","worker","任务"],["worker","visual","authoring"],["visual","browser","受控动作"],["browser","bank","真实操作"],["browser","ledger","核验结果"],["ledger","quality","投影"],["ledger","stop","确定失败"]]
+    }
+  ]
+}

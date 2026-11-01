@@ -5,22 +5,68 @@
     "harness": ["harness/src/**/*.ts", "dist/harness/src/**/*.js"],
     "worker": ["worker/src/**/*.cjs", "scripts/i10-worker-code-set-v1.json"]
   },
+  "repositoryGroups": {
+    "productAcceptance": [
+      "scripts/test/rf057",
+      "scripts/test/rf057-bank.ps1",
+      "scripts/test/rf057-transfer-fixtures.ps1",
+      "scripts/test/rf057-agent.mjs",
+      "scripts/test/rf057-report.mjs",
+      "scripts/test/verify-agent-workbench.ps1",
+      "scripts/test/rf068-workbench-live.mjs",
+      "scripts/test/rf068-workbench-assertions.mjs",
+      "scripts/demo/rf068-workbench-runtime.cjs",
+      "scripts/demo/agent-workbench.ps1"
+    ],
+    "bankProduct": [
+      ".env.example",
+      "demo.ps1",
+      "compose.channel.yaml",
+      "contracts/fixtures",
+      "contracts/openapi",
+      "infra/frontend/Dockerfile",
+      "infra/gateway",
+      "infra/keycloak/realms",
+      "infra/keycloak/themes",
+      "infra/versions.lock.yaml",
+      "postgresql/docker-compose.isolated.yml",
+      "scripts/deploy/ensure-fineract-credentials.ps1",
+      "scripts/deploy/prepare-agent-media.ps1",
+      "scripts/deploy/write-channel-db-password-file.ps1",
+      "apps/customer-portal",
+      "apps/operations-console",
+      "apps/quality-case-portal",
+      "packages/bank-api-client",
+      "packages/bank-domain-types",
+      "packages/bank-test-contracts",
+      "packages/bank-ui-kit",
+      "packages/security-utils",
+      "services/bank-channel-service",
+      "services/mock-clearing-service"
+    ]
+  },
   "groups": {
+    "bankAuthentication": ["contracts/adapters/fuxing-bank-demo-auth-v2.json", "dist/contracts/adapters/fuxing-bank-demo-auth-v2.json"],
     "agentCli": [
       "agent-cli/package.json", "agent-cli/package-lock.json", "agent-cli/cli-event-schema-v1.json",
-      "agent-cli/node-runtime-manifest-v1.json", "agent-cli/managed-process-spec-v1.json", "agent-cli/flowise-cold-rollback-v1.json", "agent-cli/offline-sbom.cdx.json",
-      "agent-cli/release-identity-v4-manifest.json", "agent-cli/bin/hz-agent.mjs",
-      "agent-cli/src/contracts.mjs", "agent-cli/src/headless-app.mjs", "agent-cli/src/preflight.mjs", "agent-cli/src/production-service.mjs",
+      "agent-cli/node-runtime-manifest-v1.json", "agent-cli/managed-process-spec-v1.json", "agent-cli/offline-sbom.cdx.json",
+      "agent-cli/release-identity-v4-manifest.json", "vendor/extract-zip/index.js", "vendor/extract-zip/package.json", "vendor/extract-zip/LICENSE", "agent-cli/bin/hz-agent.mjs",
+      "agent-cli/test-fixtures/full18/L2-TEXT_ONLY.txt",
+      "agent-cli/src/contracts.mjs", "agent-cli/src/headless-app.mjs", "agent-cli/src/preflight.mjs", "agent-cli/src/production-service.mjs", "agent-cli/src/product-doctor.mjs",
+      "agent-cli/bin/hz-agent-web.mjs", "agent-cli/src/workbench-contract.mjs", "agent-cli/src/workbench-http.mjs",
+      "agent-cli/src/workbench-application.mjs", "agent-cli/src/workbench-metadata.mjs", "agent-cli/src/workbench-production.mjs", "agent-cli/src/workbench-server.mjs",
+      "worker/src/i10-vision-readiness.cjs",
       "agent-cli/tui/model.mjs", "agent-cli/tui/runtime-bridge.mjs", "agent-cli/tui/terminal-app.mjs", "agent-cli/tui/view.mjs"
     ],
     "controller": [
       "controller/package.json", "controller/package-lock.json", "controller/controller-release-manifest-v2.json",
       "controller/prompt-v2.txt", "controller/tool-policy-v1.json", "controller/risk-policy-v2.json", "controller/session-schema-v1.json", "controller/operation-session-schema-v1.json",
       "controller/src/agent-controller-v2.mjs", "controller/src/controller-port.cjs", "controller/src/controller-runtime.mjs",
-      "controller/src/risk-policy.cjs", "controller/src/runtime-adapters.mjs", "controller/src/session-checkpointer.mjs",
-      "controller/src/session-store.mjs", "controller/src/operation-store.mjs", "controller/src/state-security.mjs", "controller/src/tool-policy.cjs"
+      "controller/src/journey-author.mjs", "controller/src/risk-policy.cjs", "controller/src/runtime-adapters.mjs", "controller/src/session-checkpointer.mjs",
+      "controller/src/session-store.mjs", "controller/src/operation-store.mjs", "controller/src/state-security.mjs", "controller/src/tool-policy.cjs",
+      "controller/src/model-key-store.mjs"
     ],
-    "mcp": ["contracts/mcp/hengzhun-i8.json", "mcp/src/server.cjs", "mcp/src/rf001-contract-adapter.cjs", "mcp/src/journey-evidence-projection.cjs"],
-    "lifecycle": ["scripts/i10-agent-acceptance-ledger-v4.cjs", "scripts/i10-agent-full18-live.cjs", "scripts/i10-agent-lifecycle.cjs", "scripts/i10-agent-l1-live.cjs", "scripts/i10-agent-offline-sbom.cjs", "scripts/i10-agent-release-decision.cjs", "scripts/i10-release-identity-v4.cjs", "scripts/i10-stage9-portable.cjs", "flowise/i10/s9-portability-policy-v1.json", "package.json"]
+    "mcp": ["contracts/mcp/hengzhun-i8.json", "contracts/mcp/workbench-metadata-v1.json", "mcp/src/server.cjs", "mcp/src/workbench-metadata.cjs", "mcp/src/rf001-contract-adapter.cjs", "mcp/src/journey-evidence-projection.cjs"],
+    "lifecycle": ["scripts/i10-agent-acceptance-ledger-v4.cjs", "scripts/i10-agent-current-status.cjs", "scripts/i10-agent-full18-live.cjs", "scripts/i10-agent-lifecycle.cjs", "scripts/i10-agent-l1-live.cjs", "scripts/i10-agent-offline-sbom.cjs", "scripts/i10-agent-release-decision.cjs", "scripts/i10-provision-fuxing-demo-customer.ps1", "scripts/i10-release-identity-v4.cjs", "scripts/i10-stage9-portable.cjs", "scripts/verification/test-manifest.json", "package.json", "package-lock.json", "runtime/package.json", "runtime/package-lock.json", "config/demo-runtime-freeze.json"]
   }
 }

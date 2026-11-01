@@ -3,7 +3,7 @@
 // RF-003-S1: version contract archaeology baseline (zero code changes).
 // Freezes the three-source version drift as machine-checkable assertions
 // (reverse anchors for S2 unification): MCP SDK registration 8.0.0 vs
-// health endpoint 10.0.0 vs runtime contract 10.1.0. Also verifies the
+// health endpoint 10.0.0 vs the then-current runtime contract. Also verifies the
 // current safety invariant: the runtime contract is part of ReleaseIdentity,
 // so an executable protocol-version change invalidates stale evidence.
 
@@ -27,7 +27,7 @@ test('S2 landed: the three version sources are unified on the contract contractV
   assert.doesNotMatch(serverSource, /version: '8\.0\.0'/, 'legacy SDK version 8.0.0 must be gone')
   assert.doesNotMatch(serverSource, /version: '10\.0\.0'/, 'legacy health version 10.0.0 must be gone')
   assert.match(serverSource, /HENGZHUN_CONTRACT_VERSION_INVALID/, 'startup must fail closed on invalid contract version')
-  assert.equal(runtimeContract.contractVersion, '10.1.0', 'contract stays the single authority')
+  assert.equal(runtimeContract.contractVersion, '10.4.0', 'contract stays the single authority')
   const sources = [runtimeContract.contractVersion, runtimeContract.contractVersion, runtimeContract.contractVersion]
   assert.equal(new Set(sources).size, 1, 'S2: the three sources must be unified (single version)')
 })

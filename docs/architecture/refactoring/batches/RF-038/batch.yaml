@@ -1,0 +1,21 @@
+schemaVersion: 1
+id: RF-038
+title: Harness-hosted read-only Quality Portal
+status: CLOSED
+owner: Codex
+authorizedBy: agent/plans/active/v54-implementation-batches.md
+scope:
+  includePaths: [platform/hengzhun-regression-system/harness, platform/hengzhun-regression-system/scripts/verification, apps/quality-case-portal, contracts/openapi/quality-platform-api.yaml, docs/architecture/refactoring/batches/RF-038, agent/runs/rf038, agent/plans/active, agent/backlog.yaml]
+  excludePaths: [services, packages, postgresql, apps/customer-portal, apps/operations-console]
+budgets: {maxChangedFiles: 20, maxNewFiles: 12, maxChangedLines: 900, maxContractsChanged: 1, maxMigrationsAdded: 0, maxOpenModules: 2}
+baseline: {gitCommit: 552b3b8ac517bd5991bff446e72d9f4e87ea9543, dirtyTreeManifest: docs/architecture/refactoring/batches/RF-027/baseline.md, releaseIdentity: 19e031c7, capturedAt: "2026-09-03T18:30:00+08:00"}
+architecture: {businessCapability: quality-browser-views, publicContract: contracts/openapi/quality-platform-api.yaml, dependencyManifest: docs/architecture/refactoring/module-boundaries-v1.yaml, allowedModules: [hengzhun.harness, frontend.quality-case-portal], forbiddenModules: [bank.payments, hengzhun.controller, hengzhun.mcp, hengzhun.worker]}
+mustPreserve: [VQ-07 visual language, same Harness loopback port, GET-only state, no browser token, no visible mutation actions, pending release without evidence]
+verification:
+  requiredCommands:
+    - {name: harness-build, command: "npm --prefix platform/hengzhun-regression-system run build", expectedExitCode: 0, evidence: docs/architecture/refactoring/batches/RF-038/evidence-index.md, blocking: true}
+    - {name: portal-build, command: "npm --prefix apps/quality-case-portal run build", expectedExitCode: 0, evidence: docs/architecture/refactoring/batches/RF-038/evidence-index.md, blocking: true}
+    - {name: browser, command: "playwright-cli Fresh /quality dashboard incidents knowledge releases", expectedExitCode: 0, evidence: agent/runs/rf038/20260903-183000/integration-result.json, blocking: true}
+    - {name: governance, command: "py -3 scripts/architecture/validate_refactoring.py --batch RF-038", expectedExitCode: 0, evidence: docs/architecture/refactoring/batches/RF-038/evidence-index.md, blocking: true}
+rollback: {triggerConditions: [static assets require a second server, browser console errors, mutation action visible, direct route refresh fails], recoveryPoint: RF-037 closed source state, maxRtoMinutes: 10, maxRpoMinutes: 0}
+exceptions: {allowedVagueNames: [], crossModule: []}

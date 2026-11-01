@@ -7,7 +7,105 @@ const path = require('node:path')
 
 const root = path.resolve(__dirname, '..', '..')
 const read = relative => fs.readFileSync(path.join(root, relative), 'utf8')
-const { genericActionTerms, genericEvidenceMatchesTerms, genericLocateInstruction, readOnlyDetailLocatorEvidence } = require('../../worker/src/i10-midscene-candidate-authoring.cjs')
+const {
+  genericActionTerms,
+  genericEvidenceMatchesTerms,
+  genericLocateInstruction,
+  readOnlyDetailLocatorEvidence,
+  boundedVisualHitOffsets,
+  composeMidscenePrompt,
+  genericLocatorMatchesAction,
+  deriveDynamicLocator
+} = require('../../worker/src/i10-midscene-candidate-authoring.cjs')
+const { stabilityAllowedOrigins } = require('../../worker/src/i8-stability-runner.cjs')
+const { targetRuntimeAllowedOrigins } = require('../../worker/src/i10-worker-utils.cjs')
+
+test('S5 navigation context is not part of the visible account control label',()=>{
+  const action={operation:'click',instruction:'从门户导航打开账户列表页面。'};
+  assert.deepEqual(genericActionTerms(action),['账户']);
+  assert.equal(genericEvidenceMatchesTerms(action,'账户'),true);
+  assert.equal(genericEvidenceMatchesTerms(action,'转账'),false);
+});
+
+test('authentication-form submission matches only the actual sign-in submit label',()=>{
+  const action={operation:'click',instruction:'提交身份认证表单'};
+  assert.deepEqual(genericActionTerms(action),['登录']);
+  assert.equal(genericEvidenceMatchesTerms(action,'登录'),true);
+  for(const label of ['取消登录','注册账号','忘记密码','确认转账','登录并转账']) assert.equal(genericEvidenceMatchesTerms(action,label),false,label);
+  assert.equal(genericEvidenceMatchesTerms({...action,instruction:'提交身份认证表单后转账'},'登录'),false);
+});
+
+test('authentication submission accepts the visually selected submit input, not cancel or register',async()=>{
+  const runtimeRequire=require('node:module').createRequire(path.join(root,'runtime/package.json'));
+  const {chromium}=runtimeRequire('playwright');const freeze=JSON.parse(read('config/demo-runtime-freeze.json'));
+  const browser=await chromium.launch({executablePath:path.join(root,'runtime',freeze.chromium.executable),headless:true});
+  try {
+    const page=await browser.newPage();
+    await page.setContent('<meta charset="utf-8"><input id="kc-login" type="submit" value="登录"><button id="cancel">取消登录</button><button id="register">注册账号</button><span id="static">登录</span>');
+    const action={operation:'click',instruction:'提交身份认证表单'};
+    assert.equal(await genericLocatorMatchesAction(page,{kind:'CSS',value:'#kc-login'},action),true);
+    for(const id of ['cancel','register','static'])assert.equal(await genericLocatorMatchesAction(page,{kind:'CSS',value:'#'+id},action),false,id);
+  } finally {await browser.close();}
+});
+
+test('S5 read-only locative qualifiers are not literal DOM text',()=>{
+  const action={operation:'expectVisible',instruction:'在账户列表中只读核对账户标识、人民币余额和账户状态字段。'};
+  assert.deepEqual(genericActionTerms(action),['账户标识']);
+  assert.equal(genericEvidenceMatchesTerms(action,'账户标识 CNY 可用余额 正常'),true);
+  assert.equal(genericEvidenceMatchesTerms(action,'通知中心'),false);
+  assert.notDeepEqual(genericActionTerms({...action,operation:'click'}),['账户标识']);
+  const collection={operation:'expectVisible',instruction:'只读检查账户列表中账户、人民币余额和账户状态字段的展示。'};
+  assert.deepEqual(genericActionTerms(collection),['账户']);
+  assert.equal(genericEvidenceMatchesTerms(collection,'账户 CNY 可用余额 正常'),true);
+  assert.deepEqual(genericActionTerms({operation:'expectVisible',instruction:'只读查看账户列表中的账户信息。'}),['账户']);
+  assert.deepEqual(genericActionTerms({operation:'expectVisible',instruction:'只读查看账户列表中的人民币余额。'}),['余额']);
+  assert.deepEqual(genericActionTerms({operation:'expectVisible',instruction:'只读查看账户列表中的账户状态。'}),['账户状态']);
+});
+
+test('SSO entry intent accepts the actual sign-in label and rejects different or compound actions', () => {
+  for (const instruction of ['点击统一身份认证入口', '打开统一身份认证入口。', '点击统一身份认证登录按钮', '点击“统一身份认证登录”按钮']) {
+    const action = { operation: 'click', instruction };
+    assert.deepEqual(genericActionTerms(action), ['统一身份认证登录']);
+    assert.equal(genericEvidenceMatchesTerms(action, '统一身份认证登录'), true);
+    for (const label of ['注册账号', '登录', '确认转账', '统一身份认证登录帮助', '取消统一身份认证登录', '统一身份认证登录并转账']) {
+      assert.equal(genericEvidenceMatchesTerms(action, label), false, label);
+    }
+  }
+  for (const instruction of ['点击统一身份认证入口并转账', '点击统一身份认证登录后提交转账']) {
+    const action = { operation: 'click', instruction };
+    assert.deepEqual(genericActionTerms(action), []);
+    assert.equal(genericEvidenceMatchesTerms(action, '统一身份认证登录'), false);
+  }
+  assert.equal(genericEvidenceMatchesTerms({ operation: 'click', instruction: '确认转账' }, '统一身份认证登录'), false);
+});
+
+test('SSO actual browser locator must remain the visually selected interactive sign-in button', async () => {
+  const runtimeRequire = require('node:module').createRequire(path.join(root, 'runtime/package.json'));
+  const { chromium } = runtimeRequire('playwright');
+  const freeze = JSON.parse(read('config/demo-runtime-freeze.json'));
+  const browser = await chromium.launch({ executablePath: path.join(root, 'runtime', freeze.chromium.executable), headless: true });
+  try {
+    const page = await browser.newPage({ viewport: { width: 1440, height: 900 } });
+    await page.setContent('<meta charset="utf-8"><section><h1>统一身份认证登录</h1><button data-testid="login-sso-submit">统一身份认证登录</button><button data-testid="register">注册账号</button><button data-testid="transfer">确认转账</button><button data-testid="help">统一身份认证登录帮助</button><span data-testid="static">统一身份认证登录</span><button data-testid="compound">统一身份认证登录并转账</button></section>');
+    const action = { operation: 'click', instruction: '点击统一身份认证入口' };
+    assert.equal(await genericLocatorMatchesAction(page, { kind: 'TEST_ID', value: 'login-sso-submit' }, action), true);
+    for (const value of ['register', 'transfer', 'help', 'static', 'compound']) {
+      assert.equal(await genericLocatorMatchesAction(page, { kind: 'TEST_ID', value }, action), false, value);
+    }
+    const box = await page.getByTestId('login-sso-submit').boundingBox();
+    const selected = await deriveDynamicLocator(page, { center: [(box.x + box.width / 2) / 2, (box.y + box.height / 2) / 2] }, { expectedTerms: genericActionTerms(action), interactionMatch: true });
+    assert.deepEqual(selected, { kind: 'TEST_ID', value: 'login-sso-submit' });
+    assert.equal(await genericLocatorMatchesAction(page, selected, action), true);
+  } finally { await browser.close(); }
+});
+
+test('observed page-qualified read-only collection anchors the business noun only', () => {
+  const action = { operation: 'expectVisible', instruction: '查看账户概览页面中的账户列表区域' }
+  assert.deepEqual(genericActionTerms(action), ['账户'])
+  assert.equal(genericEvidenceMatchesTerms(action, '我的账户 CNY 可用余额'), true)
+  assert.equal(genericEvidenceMatchesTerms(action, '消息中心'), false)
+  assert.notDeepEqual(genericActionTerms({ ...action, operation: 'click' }), ['账户'])
+})
 
 test('generic account summary assertion anchors a visible account region, not the generated card phrase', () => {
   const action = {
@@ -18,6 +116,17 @@ test('generic account summary assertion anchors a visible account region, not th
   const prompt = genericLocateInstruction(action)
   assert.match(prompt, /与“账户列表”一致/)
   assert.doesNotMatch(prompt, /账户卡片/)
+})
+
+test('generic account assertion drops an already-completed login clause before visual locating', () => {
+  const action = {
+    operation: 'expectVisible',
+    instruction: '使用测试环境预配置的安全认证方式完成登录；在账户概览页面查看账户列表区域；查找币种为人民币（CNY）的账户并核对余额显示'
+  }
+  assert.deepEqual(genericActionTerms(action), ['账户列表'])
+  const prompt = genericLocateInstruction(action)
+  assert.match(prompt, /与“账户列表”一致/)
+  assert.doesNotMatch(prompt, /完成登录/)
 })
 
 test('generic read-only detail navigation accepts a visible view affordance without widening mutation clicks', () => {
@@ -32,6 +141,225 @@ test('generic read-only detail navigation accepts a visible view affordance with
   assert.equal(readOnlyDetailLocatorEvidence(action, { tagName: 'a', clickable: true, text: '账户' }), false)
   assert.equal(readOnlyDetailLocatorEvidence(action, { tagName: 'button', clickable: true, text: '删除账户' }), false)
   assert.equal(readOnlyDetailLocatorEvidence({ operation: 'click', instruction: '创建转账并进入交易详情' }, { tagName: 'button', clickable: true, text: '查看' }), null)
+})
+
+test('generic navigation compares a quoted destination with the visible label text', () => {
+  const action = { operation: 'click', instruction: '导航至“账户概览”页面' }
+  assert.deepEqual(genericActionTerms(action), ['账户概览'])
+  assert.equal(genericEvidenceMatchesTerms(action, '账户概览'), true)
+})
+
+test('generic navigation ignores presentation words outside its quoted label', () => {
+  const action = { operation: 'click', instruction: '导航至“账户概览”功能页面' }
+  assert.deepEqual(genericActionTerms(action), ['账户概览'])
+  assert.equal(genericEvidenceMatchesTerms(action, '账户概览'), true)
+})
+
+test('generic navigation treats navigation menu as context before the enter action', () => {
+  const action = { operation: 'click', instruction: '在页面导航菜单中进入账户概览页面' }
+  assert.deepEqual(genericActionTerms(action), ['账户概览'])
+  assert.equal(genericEvidenceMatchesTerms(action, '账户概览'), true)
+})
+
+test('generic navigation removes sentence punctuation from the visible label', () => {
+  const action = { operation: 'click', instruction: '进入账户概览页面。' }
+  assert.deepEqual(genericActionTerms(action), ['账户概览'])
+  assert.equal(genericEvidenceMatchesTerms(action, '账户概览'), true)
+})
+
+test('generic navigation removes a presentation-only function suffix from the visible label', () => {
+  const action = { operation: 'click', instruction: '从主页面导航至账户概览功能' }
+  assert.deepEqual(genericActionTerms(action), ['账户概览'])
+  assert.equal(genericEvidenceMatchesTerms(action, '账户概览'), true)
+})
+
+test('generic disjunctive navigation accepts either rendered destination label', () => {
+  const action = { operation: 'click', instruction: '在门户首页找到并进入账户概览或账户列表页面' }
+  assert.deepEqual(genericActionTerms(action), ['账户概览', '账户列表'])
+  assert.match(genericLocateInstruction(action), /“账户概览”或“账户列表”/)
+  assert.equal(genericEvidenceMatchesTerms(action, '账户概览'), true)
+  assert.equal(genericEvidenceMatchesTerms(action, '账户列表'), true)
+  assert.equal(genericEvidenceMatchesTerms(action, '转账'), false)
+})
+
+test('generic click compares an explicitly quoted visible control label', () => {
+  const action = { operation: 'click', instruction: '在主页面导航栏中定位并点击“账户概览”入口' }
+  assert.deepEqual(genericActionTerms(action), ['账户概览'])
+  assert.equal(genericEvidenceMatchesTerms(action, '账户概览'), true)
+})
+
+test('generic account overview assertion compares the contained business region', () => {
+  const action = { operation: 'expectVisible', instruction: '检查账户概览中的账户列表' }
+  assert.deepEqual(genericActionTerms(action), ['账户'])
+  assert.equal(genericEvidenceMatchesTerms(action, '我的账户'), true)
+})
+
+test('generic balance assertion compares the visible fact rather than its account qualifier', () => {
+  const action = { operation: 'expectVisible', instruction: '核对人民币账户的可用余额' }
+  assert.deepEqual(genericActionTerms(action), ['可用余额'])
+  assert.equal(genericEvidenceMatchesTerms(action, '可用余额（CNY）'), true)
+})
+
+test('generic currency assertion anchors the explicit visible ISO currency code', () => {
+  const action = { operation: 'expectVisible', instruction: '检查页面中是否有币种为人民币（CNY/人民币）的账户。' }
+  assert.deepEqual(genericActionTerms(action), ['CNY'])
+  assert.match(genericLocateInstruction(action), /与“CNY”一致/)
+  assert.equal(genericEvidenceMatchesTerms(action, '可用余额（CNY）'), true)
+})
+
+test('generic RMB currency assertion maps the business name to the visible ISO code', () => {
+  const action = { operation: 'expectVisible', instruction: '查看账户列表中是否存在币种为“人民币”的账户。' }
+  assert.deepEqual(genericActionTerms(action), ['CNY'])
+  assert.match(genericLocateInstruction(action), /与“CNY”一致/)
+  assert.equal(genericEvidenceMatchesTerms(action, '可用余额（CNY）'), true)
+})
+
+test('generic direct field inspection removes the record qualifier and field suffix', () => {
+  const action = { operation: 'expectVisible', instruction: '查看该人民币账户的可用余额字段。' }
+  assert.deepEqual(genericActionTerms(action), ['可用余额'])
+  assert.match(genericLocateInstruction(action), /与“可用余额”一致/)
+  assert.equal(genericEvidenceMatchesTerms(action, '可用余额（CNY）'), true)
+})
+
+test('generic list-record field inspection anchors the rendered column label', () => {
+  const action = { operation: 'expectVisible', instruction: '查看账户列表中各账户的币种信息。' }
+  assert.deepEqual(genericActionTerms(action), ['币种'])
+  assert.match(genericLocateInstruction(action), /与“币种”一致/)
+  assert.equal(genericEvidenceMatchesTerms(action, '币种'), true)
+})
+
+test('generic combined account assertion removes the list containment suffix from its visual anchor', () => {
+  const action = {
+    operation: 'expectVisible',
+    instruction: '检查账户列表中是否存在币种为人民币（CNY）的账户；查看该人民币账户对应的可用余额字段'
+  }
+  assert.deepEqual(genericActionTerms(action), ['账户'])
+  assert.match(genericLocateInstruction(action), /与“账户”一致/)
+  assert.equal(genericEvidenceMatchesTerms(action, '我的账户'), true)
+})
+
+test('generic read-only assertion uses its explicitly quoted visible fact as the visual anchor', () => {
+  const action = {
+    operation: 'expectVisible',
+    instruction: '在账户概览页面中查找人民币账户（货币代码为CNY或显示人民币符号）；查看该人民币账户对应的“可用余额”字段'
+  }
+  assert.deepEqual(genericActionTerms(action), ['可用余额'])
+  assert.match(genericLocateInstruction(action), /与“可用余额”一致/)
+  assert.equal(genericEvidenceMatchesTerms(action, '可用余额（CNY）'), true)
+})
+
+test('generic compound lookup anchors the explicitly checked visible fact', () => {
+  const action = {
+    operation: 'expectVisible',
+    instruction: '在账户概览列表中查找币种为人民币的账户，并检查其可用余额是否可见'
+  }
+  assert.deepEqual(genericActionTerms(action), ['可用余额'])
+  assert.match(genericLocateInstruction(action), /与“可用余额”一致/)
+  assert.equal(genericEvidenceMatchesTerms(action, '可用余额（CNY）'), true)
+})
+
+test('generic compound lookup does not let a quoted qualifier replace the checked visible fact', () => {
+  const action = {
+    operation: 'expectVisible',
+    instruction: '在账户概览页面中查找币种为“人民币”的账户，并检查其可用余额是否显示。'
+  }
+  const prompt = genericLocateInstruction(action)
+  assert.deepEqual(genericActionTerms(action), ['可用余额'])
+  assert.match(prompt, /与“可用余额”一致/)
+  assert.doesNotMatch(prompt, /与“人民币”一致/)
+  assert.equal(genericEvidenceMatchesTerms(action, '可用余额（CNY）'), true)
+})
+
+test('generic semicolon assertion anchors its trailing verified fact', () => {
+  const action = {
+    operation: 'expectVisible',
+    instruction: '验证页面上至少展示一个人民币账户；验证其可用余额'
+  }
+  assert.deepEqual(genericActionTerms(action), ['可用余额'])
+  assert.match(genericLocateInstruction(action), /与“可用余额”一致/)
+  assert.equal(genericEvidenceMatchesTerms(action, '可用余额（CNY）'), true)
+})
+
+test('generic possessive conjunction assertion anchors its trailing visible fact', () => {
+  const action = {
+    operation: 'expectVisible',
+    instruction: '在账户概览中查找人民币账户及其可用余额信息。'
+  }
+  assert.deepEqual(genericActionTerms(action), ['可用余额'])
+  assert.match(genericLocateInstruction(action), /与“可用余额”一致/)
+  assert.equal(genericEvidenceMatchesTerms(action, '可用余额（CNY）'), true)
+})
+
+test('generic possessive account assertion anchors an explicit trailing balance noun', () => {
+  const action = { operation: 'expectVisible', instruction: '查看账户列表中的人民币账户及其可用余额' }
+  assert.deepEqual(genericActionTerms(action), ['可用余额'])
+  assert.match(genericLocateInstruction(action), /与“可用余额”一致/)
+  assert.equal(genericEvidenceMatchesTerms(action, '可用余额（CNY）'), true)
+})
+
+test('generic existence assertion anchors its corresponding trailing balance noun', () => {
+  const action = { operation: 'expectVisible', instruction: '验证页面上是否至少存在一个人民币账户及对应的可用余额。' }
+  assert.deepEqual(genericActionTerms(action), ['可用余额'])
+  assert.match(genericLocateInstruction(action), /与“可用余额”一致/)
+  assert.equal(genericEvidenceMatchesTerms(action, '可用余额（CNY）'), true)
+})
+
+test('generic trailing safety clause does not replace the explicitly inspected fact', () => {
+  const action = {
+    operation: 'expectVisible',
+    instruction: '检查页面展示的账户列表，确认是否存在人民币账户，并查看其可用余额，不执行任何交易操作。'
+  }
+  assert.deepEqual(genericActionTerms(action), ['可用余额'])
+  assert.match(genericLocateInstruction(action), /与“可用余额”一致/)
+  assert.equal(genericEvidenceMatchesTerms(action, '可用余额（CNY）'), true)
+})
+
+test('generic compound assertion prompt does not require every fact in one visual card', () => {
+  const action = {
+    operation: 'expectVisible',
+    instruction: '查看账户列表中是否存在币种为“人民币（CNY）”的账户，并检查其“可用余额”字段。'
+  }
+  const prompt = genericLocateInstruction(action)
+  assert.match(prompt, /与“可用余额”一致的可见文字本身或与其语义一致的直接信息区域中心/)
+  assert.match(prompt, /其余业务描述只定义断言上下文/)
+  assert.doesNotMatch(prompt, /该卡片承载/)
+})
+
+test('generic read-only prompt leads with its concrete visual anchor', () => {
+  const basePrompt = '受控上下文：目标 DYNAMIC_007 与完整业务断言'
+  const locateInstruction = '只读视觉目标：“可用余额”'
+  const prompt = composeMidscenePrompt({
+    action: { operation: 'expectVisible' },
+    basePrompt,
+    genericInstruction: locateInstruction,
+    adapterInstruction: '',
+    observationHints: '可见标题摘要'
+  })
+
+  assert.ok(prompt.indexOf(locateInstruction) < prompt.indexOf(basePrompt))
+  assert.match(prompt, /可见标题摘要/)
+})
+
+test('customer dashboard exposes the available-balance label as an accessible visual landmark', () => {
+  const dashboard = read('../../apps/customer-portal/src/pages/Dashboard.tsx')
+  assert.match(
+    dashboard,
+    /<span role="heading" aria-level=\{2\}>可用余额（\{currency\}）<\/span>/
+  )
+})
+
+test('generic interactive prompt keeps the sealed context first', () => {
+  const basePrompt = '受控上下文'
+  const locateInstruction = '点击视觉目标'
+  const prompt = composeMidscenePrompt({
+    action: { operation: 'click' },
+    basePrompt,
+    genericInstruction: locateInstruction,
+    adapterInstruction: '',
+    observationHints: ''
+  })
+
+  assert.equal(prompt.indexOf(basePrompt), 0)
 })
 
 test('generic Midscene waitForURL requires a real URL change within frozen target origins rather than a portal path fallback', () => {
@@ -103,15 +431,18 @@ test('generic screenshots preserve the reached page without inventing a visual e
   assert.match(source, /action\.semanticTargetRef && \(!generic \|\| requiresVisualLocator\(action\)\)/)
   assert.match(source, /expectedTerms: genericActionTerms\(action\)/)
   assert.match(source, /regionMatch: action\.operation === 'expectVisible'/)
-  assert.match(source, /its own ancestors; never search[\s\S]*the page for a matching term/)
+  assert.match(source, /fixed 24px cross and only each hit's own[\s\S]*never search the page for a matching term/)
 })
 
-test('formal and stability runners add the local identity dependency only through an explicit adapter', () => {
+test('formal and stability runners use only frozen profile origins', () => {
   for (const relative of ['worker/src/i8-formal-runner.cjs', 'worker/src/i8-stability-runner.cjs']) {
     const source = read(relative)
-    assert.match(source, /adapter\?\.adapterId === 'fuxing-bank-demo'/)
+    assert.match(source, /targetRuntimeAllowedOrigins/)
     assert.doesNotMatch(source, /launchOrigin === 'http:\/\/127\.0\.0\.1:18082'/)
   }
+  const sharedPolicy = read('worker/src/i10-worker-utils.cjs')
+  assert.doesNotMatch(sharedPolicy, /adapter\?\.adapterId === 'fuxing-bank-demo'/)
+  assert.match(sharedPolicy, /allowedNavigationOrigins/)
 })
 
 test('the deterministic IntentPlan compiler selects a controlled profile only from a frozen adapter binding', () => {
@@ -137,6 +468,42 @@ test('the deterministic IntentPlan compiler selects a controlled profile only fr
   assert.equal(genericResult.executionProfile, 'GENERIC_WEB')
 })
 
+test('authoring enforces the same frozen browser origin policy as stability and formal execution', () => {
+  const source = read('worker/src/i10-midscene-candidate-authoring.cjs')
+  assert.match(source, /targetRuntimeAllowedOrigins/)
+  assert.match(source, /await context\.route\('\*\*\/\*'/)
+  assert.match(source, /route\.abort\('blockedbyclient'\)/)
+})
+
+test('stability network policy admits the identity origin only when declared in the frozen profile', () => {
+  const generic = {
+    allowedNavigationOrigins: ['http://127.0.0.1:18082'],
+    allowedInteractionOrigins: ['http://127.0.0.1:18082'],
+    credentialOrigins: ['http://127.0.0.1:18082'],
+    adapterBinding: null,
+  }
+  assert.deepEqual(stabilityAllowedOrigins(generic, 'http://127.0.0.1:18082/'), ['http://127.0.0.1:18082'])
+  assert.deepEqual(stabilityAllowedOrigins({
+    ...generic,
+    adapterBinding: { adapterId: 'fuxing-bank-demo', adapterVersion: '2.0.0', manifestHash: 'a'.repeat(64) },
+  }, 'http://127.0.0.1:18082/'), ['http://127.0.0.1:18082'])
+  assert.deepEqual(stabilityAllowedOrigins({...generic,allowedNavigationOrigins:[...generic.allowedNavigationOrigins,'http://127.0.0.1:19000']},'http://127.0.0.1:18082/'),['http://127.0.0.1:18082','http://127.0.0.1:19000'])
+  assert.deepEqual([...targetRuntimeAllowedOrigins(generic, 'http://127.0.0.1:18082/')], ['http://127.0.0.1:18082'])
+})
+
+test('generic read-only region locating samples only a bounded 24px neighborhood', () => {
+  const offsets = boundedVisualHitOffsets({ regionMatch: true, expectedTermCount: 1 })
+  assert.deepEqual(offsets[0], [0, 0])
+  assert.ok(offsets.some(([x, y]) => x === 24 && y === 0))
+  assert.ok(offsets.every(([x, y]) => Math.abs(x) <= 24 && Math.abs(y) <= 24))
+  assert.deepEqual(boundedVisualHitOffsets({ regionMatch: false, expectedTermCount: 1 }), [[0, 0]])
+  assert.deepEqual(boundedVisualHitOffsets({ regionMatch: true, expectedTermCount: 0 }), [[0, 0]])
+
+  const source = read('worker/src/i10-midscene-candidate-authoring.cjs')
+  assert.match(source, /document\.elementFromPoint\(x \+ dx, y \+ dy\)/)
+  assert.doesNotMatch(source, /querySelectorAll\([^\n]*expectedTerms/)
+})
+
 test('run claims preserve the ACTIVE TargetProfile adapter binding for formal network policy', () => {
   const source = read('harness/src/service.ts')
   assert.match(source, /resolved_addresses_json: string; adapter_binding_json: string/)
@@ -147,23 +514,25 @@ test('run claims preserve the ACTIVE TargetProfile adapter binding for formal ne
 test('controlled demo routes and locators live in the explicit adapter rather than generic builder code', () => {
   const builder = read('harness/src/i8/script-package-builder.ts')
   const adapter = read('harness/src/i8/adapters/fuxing-bank-demo.ts')
-  for (const marker of ['/portal/login', 'login-username', 'transfer-first-confirm']) {
+  for (const marker of ['/portal/login', 'transfer-first-confirm']) {
     assert.doesNotMatch(builder, new RegExp(marker.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')))
     assert.match(adapter, new RegExp(marker.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')))
   }
   assert.match(builder, /isFuxingBankDemoAdapter/)
-  assert.match(builder, /PACKAGE\.routes\.LAUNCH_URL \? 'LAUNCH_URL' : 'PORTAL_LOGIN'/)
+  assert.match(adapter, /bankAuthentication\.targets\.LOGIN_USERNAME/)
+  assert.match(builder, /const baseline = navigationBaseline \|\| page\.url\(\)/)
 })
 
 test('Midscene controlled selectors and U-key behavior require an explicit adapter binding', () => {
   const authoring = read('worker/src/i10-midscene-candidate-authoring.cjs')
   const workerAdapter = read('worker/src/adapters/fuxing-bank-demo/index.cjs')
   const dispatcher = read('worker/src/i10-verification-policy.cjs')
-  for (const marker of ['/portal/login', 'login-username', 'transfer-first-confirm']) {
+  for (const marker of ['/portal/login', 'transfer-first-confirm']) {
     assert.doesNotMatch(authoring, new RegExp(marker.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')))
     assert.match(workerAdapter, new RegExp(marker.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')))
   }
   assert.match(authoring, /FUXING_BANK_DEMO_ROUTES/)
+  assert.match(workerAdapter, /BANK_AUTH\.targets\.LOGIN_USERNAME/)
   assert.match(dispatcher, /isFuxingDemoBinding\(adapterBinding\)/)
   assert.match(dispatcher, /: NONE/)
 })
@@ -176,7 +545,8 @@ test('new controlled task assembly loads the explicit adapter while legacy paths
   assert.match(worker, /adapters\/fuxing-bank-demo\/login-profile@1\.0\.0/)
   assert.match(worker, /worker\/src\/login-profile\.cjs/)
   assert.match(shim, /adapters\/fuxing-bank-demo\/login-profile\.cjs/)
-  assert.doesNotMatch(utils, /fuxing-bank-demo|portal\/login|login-username/)
+  assert.doesNotMatch(utils, /portal\/login|login-username/)
+  assert.match(utils, /targetRuntimeAllowedOrigins/)
 })
 
 test('the controlled adapter accepts an in-memory DPAPI credential while preserving the legacy alias fallback', () => {

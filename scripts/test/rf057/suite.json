@@ -1,0 +1,212 @@
+{
+  "schemaVersion": "bank-agent-acceptance-suite/v1",
+  "suite": "BANK-AGENT-ACCEPTANCE-v1",
+  "legacyFull18": "HISTORICAL_NOT_A_RELEASE_REQUIREMENT",
+  "goPolicy": "ALL_REQUIRED_CASES_HAVE_CURRENT_VERIFIED_EVIDENCE",
+  "cases": [
+    {
+      "id": "B01",
+      "title": "Customer and operator PKCE login with refresh",
+      "required": true,
+      "evidenceClass": "LIVE_BANK",
+      "command": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/test/rf057-bank.ps1"
+    },
+    {
+      "id": "B02",
+      "title": "Local logout and protected navigation",
+      "required": true,
+      "evidenceClass": "LIVE_BANK",
+      "command": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/test/rf057-bank.ps1"
+    },
+    {
+      "id": "B03",
+      "title": "Account truth and customer ownership",
+      "required": true,
+      "evidenceClass": "LIVE_BANK",
+      "command": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/test/rf057-bank.ps1"
+    },
+    {
+      "id": "B04",
+      "title": "Real bank golden transfer and operations readback",
+      "required": true,
+      "evidenceClass": "LIVE_BANK",
+      "command": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/test/rf057-bank.ps1"
+    },
+    {
+      "id": "B05",
+      "title": "Idempotent submission and response-loss replay",
+      "required": true,
+      "evidenceClass": "LIVE_BANK",
+      "command": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/test/rf057-bank.ps1"
+    },
+    {
+      "id": "B06",
+      "title": "Changed-body same-key conflict",
+      "required": true,
+      "evidenceClass": "LIVE_BANK",
+      "command": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/test/rf057-bank.ps1"
+    },
+    {
+      "id": "B07",
+      "title": "Insufficient funds without movement",
+      "required": true,
+      "evidenceClass": "LIVE_BANK",
+      "command": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/test/rf057-bank.ps1"
+    },
+    {
+      "id": "B08",
+      "title": "Foreign source and role isolation",
+      "required": true,
+      "evidenceClass": "LIVE_BANK",
+      "command": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/test/rf057-bank.ps1"
+    },
+    {
+      "id": "B09",
+      "title": "Unique subject notification and read state",
+      "required": true,
+      "evidenceClass": "LIVE_BANK",
+      "command": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/test/rf057-bank.ps1"
+    },
+    {
+      "id": "B10",
+      "title": "Beneficiary deduplication",
+      "required": true,
+      "evidenceClass": "LIVE_BANK",
+      "command": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/test/rf057-bank.ps1"
+    },
+    {
+      "id": "B11",
+      "title": "Loan materials maker-checker and Fineract submission",
+      "required": true,
+      "evidenceClass": "LIVE_BANK",
+      "command": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/test/rf057-bank.ps1"
+    },
+    {
+      "id": "B12",
+      "title": "Document concurrency state/version/download",
+      "required": true,
+      "evidenceClass": "LIVE_BANK",
+      "command": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/test/rf057-bank.ps1"
+    },
+    {
+      "id": "B13",
+      "title": "Three reconciliations",
+      "required": true,
+      "evidenceClass": "LIVE_BANK",
+      "command": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/test/rf057-bank.ps1"
+    },
+    {
+      "id": "B14",
+      "title": "Restart continuity",
+      "required": true,
+      "evidenceClass": "LIVE_BANK",
+      "command": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/test/rf057-bank.ps1"
+    },
+    {
+      "id": "A01",
+      "title": "Natural-language account browser verification",
+      "required": true,
+      "evidenceClass": "LIVE_AGENT",
+      "command": "node scripts/test/rf057-agent.mjs"
+    },
+    {
+      "id": "A02",
+      "title": "Natural-language small transfer and Fineract truth",
+      "required": true,
+      "evidenceClass": "LIVE_AGENT",
+      "command": "node scripts/test/rf057-agent.mjs"
+    },
+    {
+      "id": "A03",
+      "title": "Actual page image supplements text",
+      "required": true,
+      "evidenceClass": "LIVE_AGENT",
+      "command": "node scripts/test/rf057-agent.mjs"
+    },
+    {
+      "id": "A04",
+      "title": "Missing payee/amount does not cause a money action",
+      "required": true,
+      "evidenceClass": "LIVE_AGENT",
+      "command": "node scripts/test/rf057-agent.mjs"
+    },
+    {
+      "id": "A05",
+      "title": "CLI process resume without repeated effects",
+      "required": true,
+      "evidenceClass": "LIVE_AGENT",
+      "command": "node scripts/test/rf057-agent.mjs"
+    },
+    {
+      "id": "A06",
+      "title": "Validated repeat execution without reauthoring",
+      "required": true,
+      "evidenceClass": "LIVE_AGENT",
+      "command": "node scripts/test/rf057-agent.mjs"
+    },
+    {
+      "id": "A07",
+      "title": "Controlled real-bank assertion failure with quality evidence",
+      "expectedFailure": {"operation":"expectText","expectedText":"草稿","caseMarker":"RF057-A07"},
+      "required": true,
+      "evidenceClass": "LIVE_AGENT",
+      "command": "node scripts/test/rf057-agent.mjs"
+    },
+    {
+      "id": "P01",
+      "title": "Mixed reads 1/5/10/20 x 120sec",
+      "required": true,
+      "evidenceClass": "PERFORMANCE",
+      "command": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/test/rf057-bank.ps1 -Profile Performance"
+    },
+    {
+      "id": "P02",
+      "title": "Payments 1/5/10 x 100 at CNY1",
+      "required": true,
+      "evidenceClass": "PERFORMANCE",
+      "command": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/test/rf057-bank.ps1 -Profile Performance"
+    },
+    {
+      "id": "P03",
+      "title": "Same-key 20 concurrent submissions",
+      "required": true,
+      "evidenceClass": "PERFORMANCE",
+      "command": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/test/rf057-bank.ps1 -Profile Performance"
+    },
+    {
+      "id": "P04",
+      "title": "Same-version 20 document updates",
+      "required": true,
+      "evidenceClass": "PERFORMANCE",
+      "command": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/test/rf057-bank.ps1 -Profile Performance"
+    },
+    {
+      "id": "P05",
+      "title": "Agent queue 1/2/4 read-only tasks",
+      "required": true,
+      "evidenceClass": "PERFORMANCE",
+      "command": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/test/rf057-bank.ps1 -Profile AgentPerformance"
+    },
+    {
+      "id": "P06",
+      "title": "Thirty-minute 10-concurrent read soak",
+      "required": true,
+      "evidenceClass": "PERFORMANCE",
+      "command": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/test/rf057-bank.ps1 -Profile Performance"
+    },
+    {
+      "id": "P07",
+      "title": "Real portal READY latency",
+      "required": true,
+      "evidenceClass": "PERFORMANCE",
+      "command": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/test/rf057-bank.ps1 -Profile Performance"
+    }
+  ],
+  "thresholds": {
+    "readP95Ms": 1000,
+    "pageReadyP95Ms": 3000,
+    "settlementP95Ms": 15000,
+    "maxUnexpectedErrorRate": 0.01,
+    "moneyInvariants": "ALL"
+  }
+}

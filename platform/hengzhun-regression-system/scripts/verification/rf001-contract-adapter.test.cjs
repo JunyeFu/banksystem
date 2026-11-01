@@ -8,6 +8,12 @@ const path = require('node:path')
 const root = path.resolve(__dirname, '../..')
 const adapter = require(path.join(root, 'mcp/src/rf001-contract-adapter.cjs'))
 
+test('MCP preserves only explicit registered customer and operations selections',()=>{
+  assert.equal(adapter.normalizeRegisteredAdapterSelection('fuxing-bank-demo'),'fuxing-bank-demo');
+  assert.equal(adapter.normalizeRegisteredAdapterSelection('fuxing-bank-operations'),'fuxing-bank-operations');
+  for(const value of [undefined,'运营控制台','http://127.0.0.1:18083/ops/login','unregistered'])assert.equal(adapter.normalizeRegisteredAdapterSelection(value),undefined);
+});
+
 test('canonical error projection preserves safe recovery fields and redacts secrets', () => {
   const projected = adapter.projectCanonicalHarnessError({
     errorCode: 'I10_ENTRY_URL_INVALID',

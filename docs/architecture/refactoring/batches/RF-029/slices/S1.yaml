@@ -1,0 +1,9 @@
+id: RF-029-S1
+title: Frozen independent browser dependency install
+status: COMPLETED
+allowedPaths: [demo.ps1, platform/hengzhun-regression-system/runtime/package.json, platform/hengzhun-regression-system/runtime/package-lock.json, platform/hengzhun-regression-system/config/demo-runtime-freeze.json, scripts/deploy, docs/architecture/refactoring/batches/RF-029, agent/plans/active/banksystem-tp-a02-reproducible-runtime-task-package.md, agent/plans/active/banksystem-open-source-task-packages-v1.yaml, agent/plans/active/banksystem-three-level-development-control-v1.md, agent/plans/active/banksystem-three-level-development-control-v1.yaml, agent/backlog.yaml, agent/plans/active/v54-implementation-batches.md]
+forbiddenPaths: [platform/hengzhun-regression-system/flowise, platform/hengzhun-regression-system/worker, platform/hengzhun-regression-system/harness, services, apps]
+workSteps: [freeze runtime manifest as install input, prove absent manifest fails contract, add exact runtime lock, install exact packages and Chromium, prove independent require resolution, synchronize evidence upward]
+verification: [RF-029 validator exits 0, runtime install contract exits 0, docs validator exits 0, git diff check exits 0]
+rollback: remove only tracked runtime manifest and lock changes; preserve local ignored runtime node_modules and browsers
+evidence: docs/architecture/refactoring/batches/RF-029/evidence-index.md

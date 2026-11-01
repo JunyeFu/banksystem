@@ -1,0 +1,9 @@
+id: RF-028-S1
+title: Register three-level development hierarchy
+status: COMPLETED
+allowedPaths: [agent/plans/active/banksystem-three-level-development-control-v1.yaml, agent/plans/active/banksystem-three-level-development-control-v1.md, agent/plans/active/banksystem-open-source-product-baseline-v1.md, agent/plans/active/banksystem-open-source-task-packages-v1.yaml, docs/architecture/refactoring/batches/RF-028, agent/backlog.yaml, agent/plans/active/v54-implementation-batches.md]
+forbiddenPaths: [apps, services, infra, postgresql, contracts, platform, demo.ps1]
+workSteps: [map three management layers, register business rules and pitfalls, register implementation templates, decompose A01-A08, update order and status references]
+verification: [hierarchy YAML exits 0, RF-028 validator exits 0, docs validator exits 0, git diff check exits 0]
+rollback: revert only S1 governance files
+evidence: docs/architecture/refactoring/batches/RF-028/evidence-index.md

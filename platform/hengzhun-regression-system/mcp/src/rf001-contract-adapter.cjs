@@ -242,7 +242,7 @@ function normalizeI10NaturalDraft(draft, caseDescription, sessionRef, credential
 }
 
 function normalizeRegisteredAdapterSelection(value) {
-  return value === 'fuxing-bank-demo' ? value : undefined
+  return ['fuxing-bank-demo','fuxing-bank-operations'].includes(value) ? value : undefined
 }
 
 // alias: ingest_submit.supportingImageIngestId=NONE -> omitted (B2 contract)

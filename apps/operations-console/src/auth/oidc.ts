@@ -1,4 +1,4 @@
-const OIDC_ISSUER = 'http://127.0.0.1:19000/realms/bank-internal';
+const OIDC_ISSUER = import.meta.env.VITE_OIDC_ISSUER ?? 'http://127.0.0.1:19000/realms/bank-internal';
 const OIDC_CLIENT_ID = 'operations-console';
 const OIDC_REDIRECT_URI = `${window.location.origin}/ops/login/callback`;
 
@@ -15,11 +15,12 @@ async function createPkceChallenge(verifier: string): Promise<string> {
 
 export interface OidcAuthRequest { authorizationUrl: string; verifier: string; state: string; }
 
-export async function buildAuthRequest(): Promise<OidcAuthRequest> {
+export async function buildAuthRequest(prompt?: 'none'): Promise<OidcAuthRequest> {
   const verifier = randomString();
   const state = randomString(24);
   const url = new URL(`${OIDC_ISSUER}/protocol/openid-connect/auth`);
   url.search = new URLSearchParams({ client_id: OIDC_CLIENT_ID, redirect_uri: OIDC_REDIRECT_URI, response_type: 'code', scope: 'openid profile', state, code_challenge: await createPkceChallenge(verifier), code_challenge_method: 'S256', ui_locales: 'zh-CN' }).toString();
+  if (prompt) url.searchParams.set('prompt', prompt);
   return { authorizationUrl: url.toString(), verifier, state };
 }
 

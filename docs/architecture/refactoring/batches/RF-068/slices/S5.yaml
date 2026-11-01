@@ -1,0 +1,9 @@
+id: RF-068-S5
+title: Preserved-service real browser acceptance
+status: DONE
+businessGoal: Independent review and authorized read-only BYOK acceptance without stopping bank services
+allowedPaths: ["apps/quality-case-portal","scripts/test","scripts/demo","platform/hengzhun-regression-system/scripts/verification","docs/architecture/refactoring/batches/RF-068"]
+forbiddenPaths: [postgresql, services/bank-channel-service, infra/keycloak, platform/hengzhun-regression-system/flowise]
+workSteps: ["verify-readiness-and-owned-process","browser-restart-readback","independent-review","compare-figma","live-read-only-acceptance"]
+verification: ["powershell -NoProfile -ExecutionPolicy Bypass -File scripts/test/verify-agent-workbench.ps1 -Scope Browser -Case All","powershell -NoProfile -ExecutionPolicy Bypass -File scripts/test/verify-agent-workbench.ps1 -Scope LiveReadOnly"]
+evidence: docs/architecture/refactoring/batches/RF-068/evidence-index.md

@@ -1,0 +1,74 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="875" viewBox="0 0 1600 875"><defs><marker id="target" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M1 1 L9 5 L1 9" fill="none" stroke="#207267" stroke-width="1.5"/></marker><marker id="implemented" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M1 1 L9 5 L1 9" fill="none" stroke="#416a9f" stroke-width="1.5"/></marker><marker id="partial" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M1 1 L9 5 L1 9" fill="none" stroke="#b47b16" stroke-width="1.5"/></marker><marker id="gap" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M1 1 L9 5 L1 9" fill="none" stroke="#b54d56" stroke-width="1.5"/></marker><marker id="neutral" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M1 1 L9 5 L1 9" fill="none" stroke="#8793a6" stroke-width="1.5"/></marker></defs><style>text{font-family:'Microsoft YaHei','Noto Sans CJK SC',sans-serif;fill:#23364e}.edge{font-size:11px;paint-order:stroke;stroke:#fff;stroke-width:4px;stroke-linejoin:round}</style><rect width="100%" height="100%" fill="white"/><rect width="100%" height="94" fill="#14334d"/><text x="30" y="40" style="fill:#fff" font-size="26" font-weight="700">UML 组件分层对照｜职责在哪里实现？</text><text x="30" y="72" style="fill:#d9e7f1" font-size="14">Component Diagram · 单个 Bank Channel 容器内部；依赖箭头为虚线；右侧红线标记已观测的越层职责</text>
+<rect x="20" y="110" width="760" height="665" rx="9" fill="#fafbfd" stroke="#8793a6" stroke-width="1"/>
+<path d="M20,146 H780" stroke="#8793a6"/>
+<text text-anchor="start" x="32" y="134" font-size="16" font-weight="700"><tspan x="32" dy="0">TARGET｜组件职责与关联资源</tspan></text>
+<rect x="40" y="150" width="720" height="500" rx="9" fill="#fafbfd" stroke="#8793a6" stroke-width="1"/>
+<path d="M40,186 H760" stroke="#8793a6"/>
+<text text-anchor="start" x="52" y="174" font-size="16" font-weight="700"><tspan x="52" dy="0">«container» Bank Channel</tspan></text>
+<rect x="820" y="110" width="760" height="665" rx="9" fill="#fafbfd" stroke="#8793a6" stroke-width="1"/>
+<path d="M820,146 H1580" stroke="#8793a6"/>
+<text text-anchor="start" x="832" y="134" font-size="16" font-weight="700"><tspan x="832" dy="0">AS-IS｜组件职责与关联资源</tspan></text>
+<rect x="840" y="150" width="720" height="500" rx="9" fill="#fafbfd" stroke="#8793a6" stroke-width="1"/>
+<path d="M840,186 H1560" stroke="#8793a6"/>
+<text text-anchor="start" x="852" y="174" font-size="16" font-weight="700"><tspan x="852" dy="0">«container» Bank Channel</tspan></text>
+<path d="M330,270 L330,330" fill="none" stroke="#8793a6" stroke-width="1.5" stroke-dasharray="6 4" marker-end="url(#neutral)"/><text class="edge" x="335" y="294"></text>
+<path d="M330,390 L330,450" fill="none" stroke="#8793a6" stroke-width="1.5" stroke-dasharray="6 4" marker-end="url(#neutral)"/><text class="edge" x="335" y="414"></text>
+<path d="M285,510 L195,570" fill="none" stroke="#8793a6" stroke-width="1.5" stroke-dasharray="6 4" marker-end="url(#neutral)"/><text class="edge" x="245" y="534"></text>
+<path d="M375,510 L465,570" fill="none" stroke="#8793a6" stroke-width="1.5" stroke-dasharray="6 4" marker-end="url(#neutral)"/><text class="edge" x="425" y="534"></text>
+<path d="M145.71428571428572,630 L134.28571428571428,710" fill="none" stroke="#8793a6" stroke-width="1.5" stroke-dasharray="6 4" marker-end="url(#neutral)"/><text class="edge" x="145" y="664"></text>
+<path d="M505.7142857142857,630 L494.2857142857143,710" fill="none" stroke="#8793a6" stroke-width="1.5" stroke-dasharray="6 4" marker-end="url(#neutral)"/><text class="edge" x="505" y="664"></text>
+<path d="M1130,270 L1130,330" fill="none" stroke="#8793a6" stroke-width="1.5" stroke-dasharray="6 4" marker-end="url(#neutral)"/><text class="edge" x="1135" y="294"></text>
+<path d="M1130,390 L1130,450" fill="none" stroke="#8793a6" stroke-width="1.5" stroke-dasharray="6 4" marker-end="url(#neutral)"/><text class="edge" x="1135" y="414"></text>
+<path d="M1085,510 L995,570" fill="none" stroke="#8793a6" stroke-width="1.5" stroke-dasharray="6 4" marker-end="url(#neutral)"/><text class="edge" x="1045" y="534"></text>
+<path d="M1175,510 L1265,570" fill="none" stroke="#8793a6" stroke-width="1.5" stroke-dasharray="6 4" marker-end="url(#neutral)"/><text class="edge" x="1225" y="534"></text>
+<path d="M945.7142857142857,630 L934.2857142857143,710" fill="none" stroke="#8793a6" stroke-width="1.5" stroke-dasharray="6 4" marker-end="url(#neutral)"/><text class="edge" x="945" y="664"></text>
+<path d="M1305.7142857142858,630 L1294.2857142857142,710" fill="none" stroke="#8793a6" stroke-width="1.5" stroke-dasharray="6 4" marker-end="url(#neutral)"/><text class="edge" x="1305" y="664"></text>
+<path d="M1115,270 L965,570" fill="none" stroke="#b54d56" stroke-width="2" stroke-dasharray="6 4" marker-end="url(#gap)"/><text class="edge" x="1045" y="414">查询语法 / 直接存储</text>
+<path d="M1145,270 L1295,570" fill="none" stroke="#b54d56" stroke-width="2" stroke-dasharray="6 4" marker-end="url(#gap)"/><text class="edge" x="1225" y="414">受理事务内核心读取</text>
+<rect x="260" y="210" width="140" height="60" rx="4" fill="#e6f2ef" stroke="#207267" stroke-width="1.4"/>
+<rect x="378" y="218" width="13" height="16" fill="none" stroke="#207267"/><rect x="374" y="220" width="7" height="4" fill="#e6f2ef" stroke="#207267"/><rect x="374" y="228" width="7" height="4" fill="#e6f2ef" stroke="#207267"/>
+<text text-anchor="middle" x="318" y="237" font-size="13" font-weight="400"><tspan x="318" dy="0">银行 HTTP API</tspan><tspan x="318" dy="16">请求 / 响应 / 授权</tspan></text>
+<rect x="260" y="330" width="140" height="60" rx="4" fill="#e6f2ef" stroke="#207267" stroke-width="1.4"/>
+<rect x="378" y="338" width="13" height="16" fill="none" stroke="#207267"/><rect x="374" y="340" width="7" height="4" fill="#e6f2ef" stroke="#207267"/><rect x="374" y="348" width="7" height="4" fill="#e6f2ef" stroke="#207267"/>
+<text text-anchor="middle" x="318" y="357" font-size="13" font-weight="400"><tspan x="318" dy="0">应用服务</tspan><tspan x="318" dy="16">事务 / 跨模块编排</tspan></text>
+<rect x="260" y="450" width="140" height="60" rx="4" fill="#e6f2ef" stroke="#207267" stroke-width="1.4"/>
+<rect x="378" y="458" width="13" height="16" fill="none" stroke="#207267"/><rect x="374" y="460" width="7" height="4" fill="#e6f2ef" stroke="#207267"/><rect x="374" y="468" width="7" height="4" fill="#e6f2ef" stroke="#207267"/>
+<text text-anchor="middle" x="318" y="477" font-size="13" font-weight="400"><tspan x="318" dy="0">业务模块集合</tspan><tspan x="318" dy="16">见右侧责任清单</tspan></text>
+<rect x="80" y="570" width="140" height="60" rx="4" fill="#e6f2ef" stroke="#207267" stroke-width="1.4"/>
+<rect x="198" y="578" width="13" height="16" fill="none" stroke="#207267"/><rect x="194" y="580" width="7" height="4" fill="#e6f2ef" stroke="#207267"/><rect x="194" y="588" width="7" height="4" fill="#e6f2ef" stroke="#207267"/>
+<text text-anchor="middle" x="138" y="597" font-size="13" font-weight="400"><tspan x="138" dy="0">业务 Repository</tspan><tspan x="138" dy="16">SQL / 锁归属</tspan></text>
+<rect x="440" y="570" width="140" height="60" rx="4" fill="#e6f2ef" stroke="#207267" stroke-width="1.4"/>
+<rect x="558" y="578" width="13" height="16" fill="none" stroke="#207267"/><rect x="554" y="580" width="7" height="4" fill="#e6f2ef" stroke="#207267"/><rect x="554" y="588" width="7" height="4" fill="#e6f2ef" stroke="#207267"/>
+<text text-anchor="middle" x="498" y="597" font-size="13" font-weight="400"><tspan x="498" dy="0">五个核心能力端口</tspan><tspan x="498" dy="16">业务类型 / 单位</tspan></text>
+<rect x="60" y="710" width="140" height="60" rx="4" fill="#e9f0fa" stroke="#416a9f" stroke-width="1.4"/>
+<ellipse cx="130" cy="717" rx="70" ry="7" fill="#e9f0fa" stroke="#416a9f"/>
+<text text-anchor="middle" x="130" y="737" font-size="13" font-weight="400"><tspan x="130" dy="0">Channel PostgreSQL</tspan><tspan x="130" dy="16">工作流 / 投影</tspan></text>
+<rect x="420" y="710" width="140" height="60" rx="4" fill="#e9f0fa" stroke="#416a9f" stroke-width="1.4"/>
+<rect x="538" y="718" width="13" height="16" fill="none" stroke="#416a9f"/><rect x="534" y="720" width="7" height="4" fill="#e9f0fa" stroke="#416a9f"/><rect x="534" y="728" width="7" height="4" fill="#e9f0fa" stroke="#416a9f"/>
+<text text-anchor="middle" x="478" y="737" font-size="13" font-weight="400"><tspan x="478" dy="0">Fineract API</tspan><tspan x="478" dy="16">唯一账务权威</tspan></text>
+<text text-anchor="start" x="582" y="414" font-size="16" font-weight="400"><tspan x="582" dy="0">业务模块责任</tspan><tspan x="582" dy="16">身份 / 账户 / 收款人</tspan><tspan x="582" dy="16">支付 / 贷款 / 风险</tspan><tspan x="582" dy="16">文档 / 对账 / EOD</tspan><tspan x="582" dy="16">审计 / 通知 / 投影</tspan></text>
+<rect x="1060" y="210" width="140" height="60" rx="4" fill="#fff1d5" stroke="#b47b16" stroke-width="1.4"/>
+<rect x="1178" y="218" width="13" height="16" fill="none" stroke="#b47b16"/><rect x="1174" y="220" width="7" height="4" fill="#fff1d5" stroke="#b47b16"/><rect x="1174" y="228" width="7" height="4" fill="#fff1d5" stroke="#b47b16"/>
+<text text-anchor="middle" x="1118" y="237" font-size="13" font-weight="400"><tspan x="1118" dy="0">银行 HTTP API</tspan><tspan x="1118" dy="16">含部分业务与 WHERE</tspan></text>
+<rect x="1060" y="330" width="140" height="60" rx="4" fill="#fff1d5" stroke="#b47b16" stroke-width="1.4"/>
+<rect x="1178" y="338" width="13" height="16" fill="none" stroke="#b47b16"/><rect x="1174" y="340" width="7" height="4" fill="#fff1d5" stroke="#b47b16"/><rect x="1174" y="348" width="7" height="4" fill="#fff1d5" stroke="#b47b16"/>
+<text text-anchor="middle" x="1118" y="357" font-size="13" font-weight="400"><tspan x="1118" dy="0">应用服务已存在</tspan><tspan x="1118" dy="16">入口职责未全收敛</tspan></text>
+<rect x="1060" y="450" width="140" height="60" rx="4" fill="#e9f0fa" stroke="#416a9f" stroke-width="1.4"/>
+<rect x="1178" y="458" width="13" height="16" fill="none" stroke="#416a9f"/><rect x="1174" y="460" width="7" height="4" fill="#e9f0fa" stroke="#416a9f"/><rect x="1174" y="468" width="7" height="4" fill="#e9f0fa" stroke="#416a9f"/>
+<text text-anchor="middle" x="1118" y="477" font-size="13" font-weight="400"><tspan x="1118" dy="0">业务模块集合</tspan><tspan x="1118" dy="16">见右侧责任清单</tspan></text>
+<rect x="880" y="570" width="140" height="60" rx="4" fill="#fff1d5" stroke="#b47b16" stroke-width="1.4"/>
+<rect x="998" y="578" width="13" height="16" fill="none" stroke="#b47b16"/><rect x="994" y="580" width="7" height="4" fill="#fff1d5" stroke="#b47b16"/><rect x="994" y="588" width="7" height="4" fill="#fff1d5" stroke="#b47b16"/>
+<text text-anchor="middle" x="938" y="597" font-size="13" font-weight="400"><tspan x="938" dy="0">业务 Repository</tspan><tspan x="938" dy="16">仍接收 WHERE 片段</tspan></text>
+<rect x="1240" y="570" width="140" height="60" rx="4" fill="#fbe5e6" stroke="#b54d56" stroke-width="1.4"/>
+<rect x="1358" y="578" width="13" height="16" fill="none" stroke="#b54d56"/><rect x="1354" y="580" width="7" height="4" fill="#fbe5e6" stroke="#b54d56"/><rect x="1354" y="588" width="7" height="4" fill="#fbe5e6" stroke="#b54d56"/>
+<text text-anchor="middle" x="1298" y="597" font-size="13" font-weight="400"><tspan x="1298" dy="0">五个核心能力端口</tspan><tspan x="1298" dy="16">贷款条件 / 单位缺口</tspan></text>
+<rect x="860" y="710" width="140" height="60" rx="4" fill="#e9f0fa" stroke="#416a9f" stroke-width="1.4"/>
+<ellipse cx="930" cy="717" rx="70" ry="7" fill="#e9f0fa" stroke="#416a9f"/>
+<text text-anchor="middle" x="930" y="737" font-size="13" font-weight="400"><tspan x="930" dy="0">Channel PostgreSQL</tspan><tspan x="930" dy="16">工作流 / 投影</tspan></text>
+<rect x="1220" y="710" width="140" height="60" rx="4" fill="#e9f0fa" stroke="#416a9f" stroke-width="1.4"/>
+<rect x="1338" y="718" width="13" height="16" fill="none" stroke="#416a9f"/><rect x="1334" y="720" width="7" height="4" fill="#e9f0fa" stroke="#416a9f"/><rect x="1334" y="728" width="7" height="4" fill="#e9f0fa" stroke="#416a9f"/>
+<text text-anchor="middle" x="1278" y="737" font-size="13" font-weight="400"><tspan x="1278" dy="0">Fineract API</tspan><tspan x="1278" dy="16">唯一账务权威</tspan></text>
+<text text-anchor="start" x="1382" y="414" font-size="16" font-weight="400"><tspan x="1382" dy="0">业务模块责任</tspan><tspan x="1382" dy="16">身份 / 账户 / 收款人</tspan><tspan x="1382" dy="16">支付 / 贷款 / 风险</tspan><tspan x="1382" dy="16">文档 / 对账 / EOD</tspan><tspan x="1382" dy="16">审计 / 通知 / 投影</tspan></text>
+<text text-anchor="start" x="37" y="824" font-size="16" font-weight="400"><tspan x="37" dy="0">组件符号表示逻辑职责；内部框为渠道容器；底部 PostgreSQL / Fineract 是外部资源。具体模块耦合见 DSM。</tspan></text>
+<text text-anchor="start" x="37" y="861" font-size="16" font-weight="400"><tspan x="37" dy="0">目标要求责任分离；并不要求每一个只读投影增加应用服务，也不禁止合法的跨模块协调。</tspan></text>
+</svg>

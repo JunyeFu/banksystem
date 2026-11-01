@@ -1,13 +1,12 @@
 openapi: 3.1.0
 info:
   title: Hengzhun Read-Only Observability API
-  version: 2.0.0
-  description: Deferred read-only observability contract. It must not author Coze content or control Harness execution.
-  license: {name: Project internal demonstration, identifier: LicenseRef-Project-Internal}
+  version: 3.0.0
+  description: Loopback-only, sanitized read-only projection of Harness state. It cannot author cases or control execution.
+  license: {name: Mozilla Public License 2.0, identifier: MPL-2.0}
 servers:
   - url: /api/quality/v1
-security:
-  - bearerAuth: []
+security: []
 paths:
   /overview:
     get:
@@ -18,15 +17,19 @@ paths:
           description: Platform overview
           content: {application/json: {schema: {$ref: '#/components/schemas/Overview'}}}
         default: {$ref: '#/components/responses/Problem'}
-        '401': {$ref: '#/components/responses/Problem'}
   /cases:
     get:
       summary: List quality cases
       operationId: listQualityCases
+      parameters:
+        - {name: limit, in: query, schema: {type: integer, minimum: 1, maximum: 100, default: 20}}
+        - {name: cursor, in: query, schema: {type: string}, description: Opaque cursor from the previous page. Keep filters unchanged.}
+        - {name: q, in: query, schema: {type: string, maxLength: 200}, description: Search case ID, name and domain across the ledger.}
+        - {name: status, in: query, schema: {type: string, enum: [DRAFT, IN_REVIEW, APPROVED, CONFLICT, ARCHIVED]}}
       responses:
-        '200': {description: Cases, content: {application/json: {schema: {type: array, items: {$ref: '#/components/schemas/QualityCase'}}}}}
+        '200': {description: Bounded cursor page, content: {application/json: {schema: {$ref: '#/components/schemas/QualityCasePage'}}}}
+        '400': {$ref: '#/components/responses/Problem'}
         default: {$ref: '#/components/responses/Problem'}
-        '401': {$ref: '#/components/responses/Problem'}
   /cases/{caseId}:
     parameters: [{name: caseId, in: path, required: true, schema: {type: string}}]
     get:
@@ -43,7 +46,6 @@ paths:
       responses:
         '200': {description: Baselines, content: {application/json: {schema: {type: array, items: {$ref: '#/components/schemas/Baseline'}}}}}
         default: {$ref: '#/components/responses/Problem'}
-        '401': {$ref: '#/components/responses/Problem'}
   /runs:
     get:
       summary: List regression runs
@@ -51,7 +53,6 @@ paths:
       responses:
         '200': {description: Runs, content: {application/json: {schema: {type: array, items: {$ref: '#/components/schemas/RegressionRun'}}}}}
         default: {$ref: '#/components/responses/Problem'}
-        '401': {$ref: '#/components/responses/Problem'}
   /schedules:
     get:
       summary: List regression schedules
@@ -59,7 +60,6 @@ paths:
       responses:
         '200': {description: Schedules, content: {application/json: {schema: {type: array, items: {$ref: '#/components/schemas/Schedule'}}}}}
         default: {$ref: '#/components/responses/Problem'}
-        '401': {$ref: '#/components/responses/Problem'}
   /incidents:
     get:
       summary: List failure incidents
@@ -67,8 +67,13 @@ paths:
       responses:
         '200': {description: Incidents, content: {application/json: {schema: {type: array, items: {$ref: '#/components/schemas/Incident'}}}}}
         default: {$ref: '#/components/responses/Problem'}
-        '401': {$ref: '#/components/responses/Problem'}
-        '401': {$ref: '#/components/responses/Problem'}
+  /knowledge:
+    get:
+      summary: List immutable knowledge snapshots
+      operationId: listKnowledgeSnapshots
+      responses:
+        '200': {description: Knowledge snapshots, content: {application/json: {schema: {type: array, items: {$ref: '#/components/schemas/KnowledgeSnapshot'}}}}}
+        default: {$ref: '#/components/responses/Problem'}
   /releases:
     get:
       summary: List release evidence packages
@@ -76,10 +81,7 @@ paths:
       responses:
         '200': {description: Releases, content: {application/json: {schema: {type: array, items: {$ref: '#/components/schemas/ReleaseEvidence'}}}}}
         default: {$ref: '#/components/responses/Problem'}
-        '401': {$ref: '#/components/responses/Problem'}
 components:
-  securitySchemes:
-    bearerAuth: {type: http, scheme: bearer, bearerFormat: JWT}
   responses:
     Problem:
       description: RFC 9457 problem response
@@ -103,6 +105,13 @@ components:
       type: object
       required: [caseId, name, domain, status, version, updatedAt]
       properties: {caseId: {type: string}, name: {type: string}, domain: {type: string}, status: {type: string, enum: [DRAFT, IN_REVIEW, APPROVED, CONFLICT, ARCHIVED]}, version: {type: integer, minimum: 1}, updatedAt: {type: string, format: date-time}}
+    QualityCasePage:
+      type: object
+      required: [items, nextCursor, hasMore]
+      properties:
+        items: {type: array, maxItems: 100, items: {$ref: '#/components/schemas/QualityCase'}}
+        nextCursor: {type: [string, 'null']}
+        hasMore: {type: boolean}
     QualityCaseDetail:
       allOf:
         - {$ref: '#/components/schemas/QualityCase'}
@@ -114,7 +123,7 @@ components:
     RegressionRun:
       type: object
       required: [runId, caseName, environment, status, progress, startedAt]
-      properties: {runId: {type: string}, caseName: {type: string}, environment: {type: string}, status: {type: string, enum: [QUEUED, RUNNING, PAUSED, COMPLETED, FAILED]}, progress: {type: integer, minimum: 0, maximum: 100}, startedAt: {type: string, format: date-time}, durationSeconds: {type: integer, minimum: 0}, assertionSummary: {type: string}}
+      properties: {runId: {type: string}, caseName: {type: string}, environment: {type: string}, status: {type: string, enum: [QUEUED, RUNNING, PAUSED, COMPLETED, FAILED]}, progress: {type: integer, minimum: 0, maximum: 100}, startedAt: {type: string, format: date-time}, durationSeconds: {type: integer, minimum: 0}, assertionSummary: {type: string}, journeyId: {type: string}, correlationId: {type: string}, releaseIdentity: {type: string, pattern: '^[a-f0-9]{64}$'}}
     Schedule:
       type: object
       required: [scheduleId, name, cron, environment, enabled, nextRunAt]
@@ -123,10 +132,15 @@ components:
       type: object
       required: [incidentId, title, severity, status, runId, createdAt]
       properties: {incidentId: {type: string}, title: {type: string}, severity: {type: string, enum: [P0, P1, P2, P3]}, status: {type: string, enum: [OPEN, INVESTIGATING, RECOVERING, RESOLVED]}, runId: {type: string}, rootCause: {type: string}, recoveryOption: {type: string}, createdAt: {type: string, format: date-time}}
+    KnowledgeSnapshot:
+      type: object
+      required: [snapshotId, sourceRef, sourceVersion, sha256, citationCount, registeredAt]
+      properties: {snapshotId: {type: string}, sourceRef: {type: string}, sourceVersion: {type: string}, sha256: {type: string}, citationCount: {type: integer, minimum: 0}, registeredAt: {type: string, format: date-time}}
     ReleaseEvidence:
       type: object
       required: [releaseId, version, status, benchmarkPassRate, evidenceSha256, createdAt]
-      properties: {releaseId: {type: string}, version: {type: string}, status: {type: string, enum: [DRAFT, READY, RELEASED, BLOCKED]}, benchmarkPassRate: {type: number}, evidenceSha256: {type: string}, createdAt: {type: string, format: date-time}}
+      description: Identity-bound run observation; DRAFT is not a verified release. The run pass rate does not establish formal suite coverage. Evidence hash is null until a verified release package exists.
+      properties: {releaseId: {type: string}, version: {type: string}, status: {type: string, enum: [DRAFT, READY, RELEASED, BLOCKED]}, benchmarkPassRate: {type: number}, evidenceSha256: {type: string, nullable: true}, createdAt: {type: string, format: date-time}}
     Problem:
       type: object
       required: [title, status]

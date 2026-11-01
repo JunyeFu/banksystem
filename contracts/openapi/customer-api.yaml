@@ -56,6 +56,15 @@ paths:
         '401': { $ref: '#/components/responses/Unauthorized' }
         '404': { $ref: '#/components/responses/NotFound' }
   /loans/applications:
+    get:
+      operationId: listLoanApplications
+      summary: List the authenticated customer's local-to-core loan applications
+      responses:
+        '200':
+          description: Loan application list
+          content:
+            application/json: { schema: { $ref: '#/components/schemas/LoanApplicationPage' } }
+        '401': { $ref: '#/components/responses/Unauthorized' }
     post:
       operationId: createLoanApplication
       summary: Create loan application draft
@@ -224,7 +233,9 @@ paths:
     post:
       operationId: createCustomerTransfer
       summary: Create an internal customer transfer
-      parameters: [{ $ref: '#/components/parameters/IdempotencyKey' }]
+      parameters:
+        - { $ref: '#/components/parameters/IdempotencyKey' }
+        - { $ref: '#/components/parameters/CorrelationId' }
       requestBody:
         required: true
         content:
@@ -263,49 +274,74 @@ paths:
           content:
             application/json: { schema: { $ref: '#/components/schemas/Transfer' } }
         '401': { $ref: '#/components/responses/Unauthorized' }
+  /loans/applications/{applicationId}:
+    parameters: [{ $ref: '#/components/parameters/ApplicationId' }]
+    get:
+      operationId: getLoanApplication
+      summary: Get one authenticated customer's loan application
+      responses:
+        '200':
+          description: Loan application detail
+          content:
+            application/json: { schema: { $ref: '#/components/schemas/LoanApplicationDetail' } }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '404': { $ref: '#/components/responses/NotFound' }
+  /transfers/{transferId}/confirm:
+    parameters:
+      - name: transferId
+        in: path
+        required: true
+        schema: { type: string, format: uuid }
+    post:
+      operationId: confirmCustomerTransfer
+      summary: Confirm and post an authenticated customer's transfer
+      responses:
+        '200':
+          description: Current subject-scoped transfer after idempotent processing
+          content:
+            application/json: { schema: { $ref: '#/components/schemas/Transfer' } }
+        '401': { $ref: '#/components/responses/Unauthorized' }
         '404': { $ref: '#/components/responses/NotFound' }
   /loans/applications/{applicationId}/submit:
     parameters: [{ $ref: '#/components/parameters/ApplicationId' }]
     post:
       operationId: submitLoanApplication
       summary: Submit loan application
+      requestBody:
+        required: true
+        content:
+          application/json: { schema: { $ref: '#/components/schemas/VersionRequest' } }
       responses:
         '200':
           description: Submitted channel application
           content:
             application/json: { schema: { $ref: '#/components/schemas/LoanApplication' } }
         '401': { $ref: '#/components/responses/Unauthorized' }
-  /loans/applications/{applicationId}/core-submit:
+  /loans/applications/{applicationId}/documents:
     parameters: [{ $ref: '#/components/parameters/ApplicationId' }]
-    post:
-      operationId: submitLoanToCore
-      summary: Submit loan application to Fineract
-      parameters: [{ $ref: '#/components/parameters/IdempotencyKey' }]
+    get:
+      operationId: listLoanApplicationDocuments
+      summary: List controlled documents bound to the application
       responses:
         '200':
-          description: Core loan reference
+          description: Bound document list
           content:
-            application/json: { schema: { $ref: '#/components/schemas/CoreLoanReference' } }
+            application/json: { schema: { $ref: '#/components/schemas/LoanDocumentPage' } }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+    post:
+      operationId: addLoanApplicationDocument
+      summary: Register a controlled document for a draft application
+      requestBody:
+        required: true
+        content:
+          application/json: { schema: { $ref: '#/components/schemas/LoanDocumentRequest' } }
+      responses:
+        '200':
+          description: Bound document
+          content:
+            application/json: { schema: { $ref: '#/components/schemas/LoanDocument' } }
         '401': { $ref: '#/components/responses/Unauthorized' }
         '409': { description: Application state conflict }
-  /loans/applications/{applicationId}/core/{command}:
-    parameters:
-      - { $ref: '#/components/parameters/ApplicationId' }
-      - name: command
-        in: path
-        required: true
-        schema: { type: string, enum: [approve, disburse, reject, withdrawByApplicant, undoapproval, undodisbursal] }
-    post:
-      operationId: commandCoreLoan
-      summary: Execute core loan command
-      parameters: [{ $ref: '#/components/parameters/IdempotencyKey' }]
-      requestBody:
-        required: false
-        content:
-          application/json: { schema: { type: object, additionalProperties: true } }
-      responses:
-        '200': { description: Core command result }
-        '401': { $ref: '#/components/responses/Unauthorized' }
   /loans/applications/{applicationId}/repayment:
     parameters: [{ $ref: '#/components/parameters/ApplicationId' }]
     post:
@@ -347,6 +383,11 @@ components:
       in: header
       required: true
       schema: { type: string, minLength: 16, maxLength: 128 }
+    CorrelationId:
+      name: X-Correlation-Id
+      in: header
+      required: true
+      schema: { type: string, minLength: 8, maxLength: 128, pattern: '^[A-Za-z0-9._:-]+$' }
   responses:
     Problem:
       description: RFC 9457 problem details
@@ -368,7 +409,7 @@ components:
       examples: ['1250.00']
     TransferStatus:
       type: string
-      enum: [CREATED, VALIDATING, RISK_REVIEW, PENDING_APPROVAL, PENDING_CORE_POSTING, PENDING_CLEARING, SETTLED, FAILED, TIMED_OUT, RETURNED, REVERSAL_PENDING, REVERSED]
+      enum: [CREATED, VALIDATING, RISK_REVIEW, PENDING_APPROVAL, PENDING_CORE_POSTING, PENDING_CLEARING, CORE_RESULT_UNKNOWN, SETTLED, FAILED, TIMED_OUT, RETURN_PENDING, RETURN_RESULT_UNKNOWN, RETURNED, REVERSAL_PENDING, REVERSED]
     Beneficiary:
       type: object
       additionalProperties: false
@@ -568,25 +609,75 @@ components:
         items: { type: array, items: { $ref: '#/components/schemas/CustomerDocument' } }
     LoanApplicationRequest:
       type: object
-      required: [amount, termMonths, purpose]
+      additionalProperties: false
+      required: [amount, termMonths, purpose, repaymentMethod]
       properties:
         amount: { $ref: '#/components/schemas/Money' }
         termMonths: { type: integer, minimum: 1, maximum: 480 }
         purpose: { type: string, minLength: 1, maxLength: 240 }
+        repaymentMethod: { type: string, minLength: 1, maxLength: 64 }
+        note: { type: string, maxLength: 240 }
     LoanApplication:
       type: object
-      required: [applicationId, status]
+      additionalProperties: false
+      required: [applicationId, amount, currency, termMonths, purpose, repaymentMethod, status, quotedAnnualInterestRate, version, createdAt, updatedAt]
       properties:
         applicationId: { type: string, format: uuid }
-        status: { type: string }
-        version: { type: integer, minimum: 1 }
-    CoreLoanReference:
-      type: object
-      required: [applicationId, coreLoanId, status]
-      properties:
-        applicationId: { type: string, format: uuid }
+        amount: { $ref: '#/components/schemas/Money' }
+        currency: { type: string, pattern: '^[A-Z]{3}$' }
+        termMonths: { type: integer, minimum: 1, maximum: 480 }
+        purpose: { type: string }
+        repaymentMethod: { type: string }
+        note: { type: string }
+        status: { type: string, enum: [DRAFT, SUBMITTED, SCORED, APPROVED, CORE_SUBMITTED, DISBURSED, CLOSED, REJECTED] }
+        quotedAnnualInterestRate: { type: string, pattern: '^[0-9]+(\.[0-9]{1,4})?$' }
+        approvedAnnualInterestRate: { type: string, pattern: '^[0-9]+(\.[0-9]{1,4})?$' }
+        approvedAmount: { $ref: '#/components/schemas/Money' }
         coreLoanId: { type: integer, format: int64 }
-        status: { type: string }
+        version: { type: integer, minimum: 1 }
+        createdAt: { type: string, format: date-time }
+        updatedAt: { type: string, format: date-time }
+    LoanApplicationDetail:
+      allOf:
+        - $ref: '#/components/schemas/LoanApplication'
+        - type: object
+          required: [documents]
+          properties:
+            documents: { type: array, items: { $ref: '#/components/schemas/LoanDocument' } }
+    LoanApplicationPage:
+      type: object
+      additionalProperties: false
+      required: [items]
+      properties:
+        items: { type: array, items: { $ref: '#/components/schemas/LoanApplication' } }
+    VersionRequest:
+      type: object
+      additionalProperties: false
+      required: [version]
+      properties:
+        version: { type: integer, minimum: 1 }
+    LoanDocumentRequest:
+      type: object
+      additionalProperties: false
+      required: [documentType]
+      properties:
+        documentType: { type: string, minLength: 1, maxLength: 64 }
+    LoanDocument:
+      type: object
+      additionalProperties: false
+      required: [documentId, applicationId, documentType, status]
+      properties:
+        documentId: { type: string, format: uuid }
+        applicationId: { type: string, format: uuid }
+        documentType: { type: string }
+        status: { type: string, enum: [RECEIVED] }
+        createdAt: { type: string, format: date-time }
+    LoanDocumentPage:
+      type: object
+      additionalProperties: false
+      required: [items]
+      properties:
+        items: { type: array, items: { $ref: '#/components/schemas/LoanDocument' } }
     RepaymentRequest:
       type: object
       required: [transactionAmount]

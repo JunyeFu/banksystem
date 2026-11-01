@@ -11,8 +11,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
-import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
+import org.springframework.context.annotation.Profile;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 import java.util.HexFormat;
@@ -21,6 +21,7 @@ import local.bank.channel.payments.statemachine.TransferStateMachine;
 import local.bank.channel.payments.statemachine.TransferStateMachine.Status;
 import local.bank.channel.payments.TransferProcessor;
 
+@Profile("mock-clearing")
 @Service
 public class MockClearingService {
   private static final Logger log = LoggerFactory.getLogger(MockClearingService.class);
@@ -29,16 +30,16 @@ public class MockClearingService {
       "TIMEOUT_THEN_SUCCESS", "TIMEOUT_THEN_FAIL", "RETURN_AFTER_SETTLEMENT",
       "DUPLICATE_CALLBACK", "OUT_OF_ORDER_CALLBACK");
 
-  private final JdbcTemplate jdbc;
+  private final MockClearingRepository repository;
   private final TransferProcessor transferProcessor;
   private final TransferStateMachine stateMachine;
   private final AuditService audit;
   private final String secret;
 
-  public MockClearingService(JdbcTemplate jdbc, TransferProcessor transferProcessor,
+  public MockClearingService(MockClearingRepository repository, TransferProcessor transferProcessor,
                              TransferStateMachine stateMachine, AuditService audit,
                              @Value("${clearing.callback-secret}") String secret) {
-    this.jdbc = jdbc;
+    this.repository = repository;
     this.transferProcessor = transferProcessor;
     this.stateMachine = stateMachine;
     this.audit = audit;
@@ -51,8 +52,7 @@ public class MockClearingService {
       throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
           "Unsupported clearing scenario: " + scenario + ". Supported: " + V4_SCENARIOS);
 
-    var found = jdbc.query("SELECT clearing_id,status FROM clearing_payment WHERE idempotency_key=?",
-        (rs, n) -> Map.<String, Object>of("id", rs.getString(1), "status", rs.getString(2)), key);
+    var found=repository.byKey(key);
     if (!found.isEmpty()) return Map.of("clearingId", found.get(0).get("id"), "status", found.get(0).get("status"));
 
     UUID id = UUID.randomUUID();
@@ -60,8 +60,7 @@ public class MockClearingService {
     String failureCode = null, failureDetail = null;
 
     if (scenario.equals("REJECT_ACCOUNT_INVALID")) {
-      jdbc.update("INSERT INTO clearing_payment(clearing_id,idempotency_key,transfer_id,scenario,status) VALUES (?,?,?,?,?)",
-          id, key, transferId, scenario, "REJECTED");
+      insertPayment(id, key, transferId, scenario, "REJECTED");
       failureCode = "ACCOUNT_INVALID";
       failureDetail = "Beneficiary account does not exist at target bank";
       propagateSubmitToTransfer(transferId, "REJECTED", failureCode, failureDetail);
@@ -69,8 +68,7 @@ public class MockClearingService {
           "failureCode", failureCode, "failureDetail", failureDetail);
     }
     if (scenario.equals("REJECT_BANK_UNAVAILABLE")) {
-      jdbc.update("INSERT INTO clearing_payment(clearing_id,idempotency_key,transfer_id,scenario,status) VALUES (?,?,?,?,?)",
-          id, key, transferId, scenario, "REJECTED");
+      insertPayment(id, key, transferId, scenario, "REJECTED");
       failureCode = "BANK_UNAVAILABLE";
       failureDetail = "Target bank is not available";
       propagateSubmitToTransfer(transferId, "REJECTED", failureCode, failureDetail);
@@ -78,17 +76,19 @@ public class MockClearingService {
           "failureCode", failureCode, "failureDetail", failureDetail);
     }
 
-    jdbc.update("INSERT INTO clearing_payment(clearing_id,idempotency_key,transfer_id,scenario,status) VALUES (?,?,?,?,?)",
-        id, key, transferId, scenario, "PENDING");
+    insertPayment(id, key, transferId, scenario, "PENDING");
     propagateSubmitToTransfer(transferId, "ACCEPTED", null, null);
     return Map.of("clearingId", id.toString(), "clearingReference", clearingRef,
         "status", "ACCEPTED", "scenario", scenario);
   }
 
+  private void insertPayment(UUID id, String key, UUID transferId, String scenario, String status) {
+    repository.insertPayment(id,key,transferId,scenario,status);
+  }
+
   private void propagateSubmitToTransfer(UUID transferId, String clearingStatus,
                                          String failureCode, String failureDetail) {
-    String currentStatus = jdbc.queryForObject("SELECT status FROM transfer_order WHERE transfer_id=?",
-        String.class, transferId);
+    String currentStatus=repository.transferStatus(transferId);
     Status current = Status.of(currentStatus);
 
     if ("ACCEPTED".equals(clearingStatus)) {
@@ -123,15 +123,7 @@ public class MockClearingService {
 
   @Transactional
   public Map<String, Object> deliver(UUID clearingId, int sequence) {
-    var rows = jdbc.query("SELECT scenario,delivery_count,last_sequence,transfer_id FROM clearing_payment WHERE clearing_id=? FOR UPDATE",
-        (rs, n) -> {
-          var m = new java.util.HashMap<String, Object>();
-          m.put("scenario", rs.getString(1));
-          m.put("count", rs.getInt(2));
-          m.put("last", (Integer) rs.getObject(3));
-          m.put("transferId", rs.getObject(4));
-          return m;
-        }, clearingId);
+    var rows=repository.lockPayment(clearingId);
     if (rows.isEmpty()) throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Clearing payment not found");
 
     Map<String, Object> row = rows.get(0);
@@ -146,8 +138,7 @@ public class MockClearingService {
     String status = determineStatus(scenario, count);
 
     if (!duplicate) {
-      jdbc.update("UPDATE clearing_payment SET delivery_count=?,last_sequence=?,status=? WHERE clearing_id=?",
-          count, sequence, status, clearingId);
+      repository.delivered(clearingId,count,sequence,status);
       if (!outOfOrder)
         propagateDeliverToTransfer(transferId, status, scenario);
     }
@@ -162,8 +153,7 @@ public class MockClearingService {
   private void propagateDeliverToTransfer(UUID transferId, String clearingStatus, String scenario) {
     String currentStatus;
     try {
-      currentStatus = jdbc.queryForObject("SELECT status FROM transfer_order WHERE transfer_id=?",
-          String.class, transferId);
+      currentStatus=repository.transferStatus(transferId);
     } catch (org.springframework.dao.EmptyResultDataAccessException e) {
       log.warn("Clearing deliver for unknown transfer {}", transferId);
       return;
@@ -179,7 +169,10 @@ public class MockClearingService {
         break;
       case "RETURNED":
         if (current == Status.SETTLED) {
-          stateMachine.transitionState(transferId, Status.SETTLED, Status.RETURNED,
+          stateMachine.transitionState(transferId, Status.SETTLED, Status.RETURN_PENDING,
+              "SYSTEM", "mock-clearing", "CLEARING_RETURN_RECEIVED",
+              Map.of("scenario", scenario));
+          stateMachine.transitionState(transferId, Status.RETURN_PENDING, Status.RETURNED,
               "SYSTEM", "mock-clearing", "CLEARING_RETURNED",
               Map.of("scenario", scenario));
           audit.record("TRANSFER_RETURNED", "SYSTEM", "mock-clearing", "Transfer",
@@ -203,7 +196,8 @@ public class MockClearingService {
                               String failureCode, String failureDetail) {
     if (current == finalStatus) return;
     if (current == Status.SETTLED || current == Status.REVERSED
-        || current == Status.RETURNED || current == Status.REVERSAL_PENDING)
+        || current == Status.RETURNED || current == Status.RETURN_PENDING
+        || current == Status.RETURN_RESULT_UNKNOWN || current == Status.REVERSAL_PENDING)
       return;
     if (current != Status.PENDING_CLEARING && current != Status.TIMED_OUT
         && current != Status.CREATED && current != Status.VALIDATING
@@ -214,8 +208,7 @@ public class MockClearingService {
     }
     String reason = failureCode != null ? failureCode + ": " + failureDetail : failureDetail;
     if (reason != null && reason.length() > 240) reason = reason.substring(0, 240);
-    jdbc.update("UPDATE transfer_order SET failure_reason=? WHERE transfer_id=?",
-        reason, transferId);
+    repository.failureReason(transferId,reason);
     stateMachine.transitionState(transferId, current, finalStatus,
         "SYSTEM", "mock-clearing", failureCode, null);
     audit.record("TRANSFER_" + finalStatus.name(), "SYSTEM", "mock-clearing", "Transfer",

@@ -1,0 +1,9 @@
+id: RF-056-S5
+title: Payment EOD and audit SQL ownership
+status: COMPLETED
+allowedPaths: [services/bank-channel-service/src/main, services/bank-channel-service/src/test, docs/architecture/refactoring/batches/RF-056, agent/backlog.yaml, agent/plans/active/v54-implementation-batches.md]
+forbiddenPaths: [infra/keycloak, postgresql, platform/hengzhun-regression-system]
+workSteps: [move remaining direct SQL into owning repositories, move EOD coordination from payments to application layer, preserve transaction and database lock lifetimes]
+verification: [zero Controller or application Service SQL holders, EOD interruption recovery and reconciliation pass]
+rollback: restore S4 source without direct data surgery
+evidence: docs/architecture/refactoring/batches/RF-056/evidence-index.md

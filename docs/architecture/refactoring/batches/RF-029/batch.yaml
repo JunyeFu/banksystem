@@ -1,0 +1,20 @@
+schemaVersion: 1
+id: RF-029
+title: Independent Agent browser runtime ownership
+status: CLOSED
+owner: Codex
+authorizedBy: agent/plans/active/v54-implementation-batches.md
+scope:
+  includePaths: [demo.ps1, platform/hengzhun-regression-system/runtime/package.json, platform/hengzhun-regression-system/runtime/package-lock.json, platform/hengzhun-regression-system/config/demo-runtime-freeze.json, scripts/deploy, docs/architecture/refactoring/batches/RF-029, agent/plans/active/banksystem-tp-a02-reproducible-runtime-task-package.md, agent/plans/active/banksystem-open-source-task-packages-v1.yaml, agent/plans/active/banksystem-three-level-development-control-v1.md, agent/plans/active/banksystem-three-level-development-control-v1.yaml, agent/backlog.yaml, agent/plans/active/v54-implementation-batches.md]
+  excludePaths: [platform/hengzhun-regression-system/flowise, platform/hengzhun-regression-system/.data, platform/hengzhun-regression-system/harness, platform/hengzhun-regression-system/mcp, platform/hengzhun-regression-system/worker, services, apps]
+budgets: {maxChangedFiles: 18, maxNewFiles: 10, maxChangedLines: 1500, maxContractsChanged: 1, maxMigrationsAdded: 0, maxOpenModules: 2}
+baseline: {gitCommit: 552b3b8ac517bd5991bff446e72d9f4e87ea9543, dirtyTreeManifest: docs/architecture/refactoring/batches/RF-027/baseline.md, releaseIdentity: NOT_RUNNING, capturedAt: "2026-08-31T12:00:00+08:00"}
+architecture: {businessCapability: reproducible-agent-browser-runtime, publicContract: agent/plans/active/banksystem-tp-a02-reproducible-runtime-task-package.md, dependencyManifest: docs/architecture/refactoring/module-boundaries-v1.yaml, allowedModules: [governance.refactoring, hengzhun.worker], forbiddenModules: [bank.payments, hengzhun.controller, hengzhun.harness, hengzhun.mcp]}
+mustPreserve: [runtime packages are independent of Flowise, frozen package versions stay exact, browser install is explicit and reproducible, no BYOK value is read or written by dependency setup]
+verification:
+  requiredCommands:
+    - {name: refactoring-governance, command: "py -3 scripts/architecture/validate_refactoring.py --batch RF-029", expectedExitCode: 0, evidence: docs/architecture/refactoring/batches/RF-029/evidence-index.md, blocking: true}
+    - {name: runtime-install-contract, command: "pwsh -NoProfile -ExecutionPolicy Bypass -File scripts/deploy/verify-agent-browser-runtime.ps1", expectedExitCode: 0, evidence: docs/architecture/refactoring/batches/RF-029/evidence-index.md, blocking: true}
+    - {name: docs-governance, command: "python scripts/docs/validate_docs.py", expectedExitCode: 0, evidence: docs/architecture/refactoring/batches/RF-029/evidence-index.md, blocking: true}
+rollback: {triggerConditions: [frozen package version drift, browser package resolves from Flowise, runtime install changes unowned data], recoveryPoint: RF-027 S2 source state, maxRtoMinutes: 10, maxRpoMinutes: 0}
+exceptions: {allowedVagueNames: [], crossModule: []}

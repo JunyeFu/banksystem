@@ -1,0 +1,554 @@
+{
+  "scope": "11 production domain packages; explicit Java imports in main sources; no runtime/SQL/HTTP call-graph claim",
+  "sourceFiles": 62,
+  "modules": [
+    [
+      "payments",
+      "支付",
+      "bank.payments"
+    ],
+    [
+      "risk",
+      "风险",
+      "bank.risk"
+    ],
+    [
+      "operations",
+      "运营/EOD",
+      "bank.operations"
+    ],
+    [
+      "audit",
+      "审计",
+      "bank.audit"
+    ],
+    [
+      "reconciliation",
+      "对账",
+      "bank.reconciliation"
+    ],
+    [
+      "customerprofile",
+      "贷款",
+      "bank.customer-profile"
+    ],
+    [
+      "documents",
+      "文档",
+      "bank.documents"
+    ],
+    [
+      "notifications",
+      "通知/账单",
+      "bank.notifications"
+    ],
+    [
+      "identity",
+      "身份/查询",
+      "bank.identity"
+    ],
+    [
+      "beneficiaries",
+      "收款人",
+      "bank.beneficiaries"
+    ],
+    [
+      "accounts",
+      "账户",
+      "bank.accounts"
+    ]
+  ],
+  "registry": "docs/architecture/refactoring/module-boundaries-v1.yaml",
+  "declaredMatrix": [
+    [
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false
+    ],
+    [
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false
+    ],
+    [
+      true,
+      true,
+      false,
+      true,
+      true,
+      true,
+      false,
+      false,
+      false,
+      false,
+      false
+    ],
+    [
+      true,
+      true,
+      false,
+      false,
+      true,
+      true,
+      false,
+      false,
+      false,
+      false,
+      false
+    ],
+    [
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false
+    ],
+    [
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false
+    ],
+    [
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false
+    ],
+    [
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false
+    ],
+    [
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false
+    ],
+    [
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false
+    ],
+    [
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false
+    ]
+  ],
+  "actualMatrix": [
+    [
+      false,
+      true,
+      true,
+      true,
+      false,
+      false,
+      false,
+      true,
+      true,
+      true,
+      false
+    ],
+    [
+      true,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false
+    ],
+    [
+      true,
+      false,
+      false,
+      true,
+      true,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false
+    ],
+    [
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false
+    ],
+    [
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false
+    ],
+    [
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      true,
+      false,
+      false
+    ],
+    [
+      false,
+      false,
+      false,
+      true,
+      false,
+      true,
+      false,
+      false,
+      false,
+      false,
+      false
+    ],
+    [
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      true,
+      false,
+      false
+    ],
+    [
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false
+    ],
+    [
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false
+    ],
+    [
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false
+    ]
+  ],
+  "dependencies": [
+    {
+      "from": "payments",
+      "to": "operations",
+      "file": "services/bank-channel-service/src/main/java/local/bank/channel/payments/EodController.java",
+      "line": 5,
+      "import": "import local.bank.channel.operations.EodCoordinator;"
+    },
+    {
+      "from": "payments",
+      "to": "audit",
+      "file": "services/bank-channel-service/src/main/java/local/bank/channel/payments/MockClearingService.java",
+      "line": 7,
+      "import": "import local.bank.channel.audit.AuditService;"
+    },
+    {
+      "from": "payments",
+      "to": "audit",
+      "file": "services/bank-channel-service/src/main/java/local/bank/channel/payments/TransferController.java",
+      "line": 33,
+      "import": "import local.bank.channel.audit.AuditService;"
+    },
+    {
+      "from": "payments",
+      "to": "beneficiaries",
+      "file": "services/bank-channel-service/src/main/java/local/bank/channel/payments/TransferController.java",
+      "line": 34,
+      "import": "import local.bank.channel.beneficiaries.BeneficiaryRepository;"
+    },
+    {
+      "from": "payments",
+      "to": "identity",
+      "file": "services/bank-channel-service/src/main/java/local/bank/channel/payments/TransferController.java",
+      "line": 35,
+      "import": "import local.bank.channel.identity.CustomerIdentityRepository;"
+    },
+    {
+      "from": "payments",
+      "to": "audit",
+      "file": "services/bank-channel-service/src/main/java/local/bank/channel/payments/TransferProcessor.java",
+      "line": 10,
+      "import": "import local.bank.channel.audit.AuditService;"
+    },
+    {
+      "from": "payments",
+      "to": "notifications",
+      "file": "services/bank-channel-service/src/main/java/local/bank/channel/payments/TransferProcessor.java",
+      "line": 11,
+      "import": "import local.bank.channel.notifications.NotificationRepository;"
+    },
+    {
+      "from": "payments",
+      "to": "risk",
+      "file": "services/bank-channel-service/src/main/java/local/bank/channel/payments/TransferProcessor.java",
+      "line": 15,
+      "import": "import local.bank.channel.risk.RiskService;"
+    },
+    {
+      "from": "payments",
+      "to": "audit",
+      "file": "services/bank-channel-service/src/main/java/local/bank/channel/payments/TransferReversalController.java",
+      "line": 10,
+      "import": "import local.bank.channel.audit.AuditService;"
+    },
+    {
+      "from": "risk",
+      "to": "payments",
+      "file": "services/bank-channel-service/src/main/java/local/bank/channel/risk/RiskService.java",
+      "line": 6,
+      "import": "import local.bank.channel.payments.statemachine.TransferStateMachine;"
+    },
+    {
+      "from": "risk",
+      "to": "payments",
+      "file": "services/bank-channel-service/src/main/java/local/bank/channel/risk/RiskService.java",
+      "line": 7,
+      "import": "import local.bank.channel.payments.statemachine.TransferStateMachine.Status;"
+    },
+    {
+      "from": "operations",
+      "to": "payments",
+      "file": "services/bank-channel-service/src/main/java/local/bank/channel/operations/EodCoordinator.java",
+      "line": 9,
+      "import": "import local.bank.channel.payments.EodRepository;"
+    },
+    {
+      "from": "operations",
+      "to": "payments",
+      "file": "services/bank-channel-service/src/main/java/local/bank/channel/operations/EodCoordinator.java",
+      "line": 10,
+      "import": "import local.bank.channel.payments.TransferRepository;"
+    },
+    {
+      "from": "operations",
+      "to": "payments",
+      "file": "services/bank-channel-service/src/main/java/local/bank/channel/operations/EodCoordinator.java",
+      "line": 11,
+      "import": "import local.bank.channel.payments.EodRepository.RunRow;"
+    },
+    {
+      "from": "operations",
+      "to": "audit",
+      "file": "services/bank-channel-service/src/main/java/local/bank/channel/operations/EodCoordinator.java",
+      "line": 13,
+      "import": "import local.bank.channel.audit.AuditService;"
+    },
+    {
+      "from": "operations",
+      "to": "reconciliation",
+      "file": "services/bank-channel-service/src/main/java/local/bank/channel/operations/EodCoordinator.java",
+      "line": 14,
+      "import": "import local.bank.channel.reconciliation.ReconciliationService;"
+    },
+    {
+      "from": "customerprofile",
+      "to": "identity",
+      "file": "services/bank-channel-service/src/main/java/local/bank/channel/customerprofile/LoanWorkflowService.java",
+      "line": 14,
+      "import": "import local.bank.channel.identity.CustomerIdentityRepository;"
+    },
+    {
+      "from": "documents",
+      "to": "customerprofile",
+      "file": "services/bank-channel-service/src/main/java/local/bank/channel/documents/LoanDocumentController.java",
+      "line": 5,
+      "import": "import local.bank.channel.customerprofile.LoanWorkflowService;"
+    },
+    {
+      "from": "documents",
+      "to": "audit",
+      "file": "services/bank-channel-service/src/main/java/local/bank/channel/documents/OperationsDocumentService.java",
+      "line": 9,
+      "import": "import local.bank.channel.audit.AuditService;"
+    },
+    {
+      "from": "notifications",
+      "to": "identity",
+      "file": "services/bank-channel-service/src/main/java/local/bank/channel/notifications/StatementController.java",
+      "line": 14,
+      "import": "import local.bank.channel.identity.CustomerIdentityQuery;"
+    },
+    {
+      "from": "notifications",
+      "to": "identity",
+      "file": "services/bank-channel-service/src/main/java/local/bank/channel/notifications/StatementController.java",
+      "line": 15,
+      "import": "import local.bank.channel.identity.CustomerTransactionMapper;"
+    }
+  ],
+  "cycleGroups": [
+    [
+      "payments",
+      "risk",
+      "operations"
+    ]
+  ],
+  "undeclaredImportEdges": [
+    [
+      "payments",
+      "risk"
+    ],
+    [
+      "payments",
+      "operations"
+    ],
+    [
+      "payments",
+      "audit"
+    ],
+    [
+      "payments",
+      "notifications"
+    ],
+    [
+      "payments",
+      "identity"
+    ],
+    [
+      "payments",
+      "beneficiaries"
+    ],
+    [
+      "risk",
+      "payments"
+    ],
+    [
+      "customerprofile",
+      "identity"
+    ],
+    [
+      "documents",
+      "audit"
+    ],
+    [
+      "documents",
+      "customerprofile"
+    ],
+    [
+      "notifications",
+      "identity"
+    ]
+  ]
+}

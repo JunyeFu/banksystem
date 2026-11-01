@@ -2,6 +2,7 @@
   "name": "@localbank/bank-api-client",
   "version": "0.1.0",
   "private": true,
+  "license": "MPL-2.0",
   "type": "module",
   "main": "src/index.ts",
   "types": "src/index.ts",
@@ -10,5 +11,6 @@
     "generate": "openapi-typescript ../../contracts/openapi/customer-api.yaml -o src/generated/customer.ts && openapi-typescript ../../contracts/openapi/operations-api.yaml -o src/generated/operations.ts",
     "test": "vitest run"
   },
-  "devDependencies": { "openapi-typescript": "7.13.0", "vitest": "^3.2.4" }
+  "devDependencies": { "openapi-typescript": "7.13.0", "vite": "7.3.6", "vitest": "4.1.11" },
+  "overrides": { "@redocly/openapi-core": { "js-yaml": "4.3.2" } }
 }

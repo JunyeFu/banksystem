@@ -1,0 +1,9 @@
+id: RF-047-S2
+title: L1 TEXT_ONLY
+status: BLOCKED
+businessGoal: Verify one current-identity L1 outcome from Harness evidence.
+allowedPaths: [platform/hengzhun-regression-system/scripts/i10-agent-l1-live.cjs, platform/hengzhun-regression-system/scripts/verification/agent-l1-live.test.cjs, platform/hengzhun-regression-system/scripts/verification/agent-offline-integration.test.cjs, platform/hengzhun-regression-system/agent-cli/src/production-service.mjs, platform/hengzhun-regression-system/agent-cli/test, platform/hengzhun-regression-system/mcp/src/server.cjs, docs/architecture/refactoring/batches/RF-047, agent/plans/active, agent/backlog.yaml, agent/runs/rf047]
+forbiddenPaths: [apps, services, postgresql, platform/hengzhun-regression-system/flowise, platform/hengzhun-regression-system/.data]
+verification: [exact identity, five evidence kinds, every artifact hash and size verified, text before image, first deterministic failure stops]
+authorization: User authorized input freeze and S2/S3 LIVE on 2026-09-08; runtime writes only via governed APIs; exact proposal approvals remain human gates
+evidence: docs/architecture/refactoring/batches/RF-047/evidence-index.md

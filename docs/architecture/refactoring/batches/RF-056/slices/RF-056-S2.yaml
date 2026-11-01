@@ -1,0 +1,9 @@
+id: RF-056-S2
+title: Shared customer identity query
+status: COMPLETED
+allowedPaths: [services/bank-channel-service/src/main/java/local/bank/channel/identity, services/bank-channel-service/src/main/java/local/bank/channel/notifications, services/bank-channel-service/src/test, docs/architecture/refactoring/batches/RF-056, agent/backlog.yaml, agent/plans/active/v54-implementation-batches.md]
+forbiddenPaths: [infra/keycloak, postgresql, platform/hengzhun-regression-system]
+workSteps: [extract customer-to-Fineract identity lookup from CustomerController, inject query service into Customer and Statement controllers, preserve response mapping]
+verification: [Java Customer and Statement tests pass, no Controller imports another Controller]
+rollback: restore S1 source boundary while preserving persisted customer mapping
+evidence: docs/architecture/refactoring/batches/RF-056/evidence-index.md

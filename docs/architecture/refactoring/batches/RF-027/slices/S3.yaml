@@ -1,0 +1,9 @@
+id: RF-027-S3
+title: Empty-volume cold-start reproduction proof
+status: COMPLETED
+allowedPaths: [demo.ps1, .gitattributes, postgresql/01-init-unix.sh, scripts/deploy, agent/plans/active/banksystem-tp-a02-reproducible-runtime-task-package.md, agent/plans/active/banksystem-open-source-task-packages-v1.yaml, agent/plans/active/banksystem-three-level-development-control-v1.md, agent/plans/active/banksystem-three-level-development-control-v1.yaml, docs/architecture/refactoring/batches/RF-027, agent/backlog.yaml, agent/plans/active/v54-implementation-batches.md]
+forbiddenPaths: [apps, services, contracts, compose.channel.yaml, platform/hengzhun-regression-system/controller, platform/hengzhun-regression-system/harness, platform/hengzhun-regression-system/mcp, platform/hengzhun-regression-system/worker]
+workSteps: [freeze exact reset ownership and rollback snapshot, prove the cold-start verifier fails before implementation, restrict reset to current product state, require LF-only Linux initialization scripts, archive and hash declared volumes plus current Agent state, execute empty-volume prepare up status down up status down, restore and hash the original state including interrupted-process recovery, synchronize evidence upward]
+verification: [RF-027 validator exits 0, cold-start verifier exits 0, lifecycle contract exits 0, both Compose configs exit 0, docs validator exits 0, git diff check exits 0]
+rollback: stop only the two named Compose projects and independent Agent services; remove cold-start volumes; restore the pre-run volume and Agent-state archives; verify the recorded hashes
+evidence: docs/architecture/refactoring/batches/RF-027/evidence-index.md

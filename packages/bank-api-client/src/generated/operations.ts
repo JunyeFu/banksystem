@@ -72,6 +72,120 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/loans/applications": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List the complete local-to-core loan application workflow */
+        get: operations["listOperationsLoanApplications"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/loans/applications/{applicationId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                applicationId: string;
+            };
+            cookie?: never;
+        };
+        /** Get one loan application with documents and approvals */
+        get: operations["getOperationsLoanApplication"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/loans/applications/{applicationId}/score": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                applicationId: string;
+            };
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Move the requested submitted application version to scored */
+        post: operations["scoreLoanApplication"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/loans/applications/{applicationId}/approval": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                applicationId: string;
+            };
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Create one pending maker-checker approval for a scored application version */
+        post: operations["requestLoanApproval"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/loans/approvals/{approvalId}/approve": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                approvalId: string;
+            };
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Approve with a checker distinct from the maker */
+        post: operations["approveLoanApplication"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/loans/applications/{applicationId}/core-submit": {
+        parameters: {
+            query?: never;
+            header: {
+                "Idempotency-Key": components["parameters"]["IdempotencyKey"];
+            };
+            path: {
+                applicationId: string;
+            };
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Submit an approved application to Fineract exactly once per bound idempotency key */
+        post: operations["submitLoanApplicationToCore"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/clearing/batches": {
         parameters: {
             query?: never;
@@ -401,6 +515,76 @@ export interface paths {
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
+        VersionRequest: {
+            version: number;
+        };
+        /** @enum {string} */
+        LoanApplicationStatus: "DRAFT" | "SUBMITTED" | "SCORED" | "APPROVED" | "CORE_SUBMITTED" | "DISBURSED" | "CLOSED" | "REJECTED";
+        OperationsLoanApplication: {
+            /** Format: uuid */
+            applicationId: string;
+            subject: string;
+            amount: string;
+            currency: string;
+            termMonths: number;
+            purpose: string;
+            repaymentMethod: string;
+            note?: string;
+            status: components["schemas"]["LoanApplicationStatus"];
+            quotedAnnualInterestRate: string;
+            approvedAnnualInterestRate?: string;
+            approvedAmount?: string;
+            score?: number;
+            scoringReason?: string;
+            /** Format: int64 */
+            coreLoanId?: number;
+            version: number;
+            /** Format: date-time */
+            createdAt: string;
+            /** Format: date-time */
+            updatedAt: string;
+        };
+        OperationsLoanApplicationPage: {
+            items: components["schemas"]["OperationsLoanApplication"][];
+        };
+        OperationsLoanApplicationDetail: components["schemas"]["OperationsLoanApplication"] & {
+            documents: {
+                [key: string]: unknown;
+            }[];
+            approvals: components["schemas"]["LoanApproval"][];
+        };
+        LoanApprovalRequest: {
+            version: number;
+            reason: string;
+        };
+        LoanApprovalDecision: {
+            version: number;
+            approvedAmount: string;
+            annualInterestRate: string;
+            reason: string;
+        };
+        LoanApproval: {
+            /** Format: uuid */
+            approvalId: string;
+            /** Format: uuid */
+            applicationId: string;
+            makerSubject?: string;
+            checkerSubject?: string;
+            /** @enum {string} */
+            status: "PENDING" | "APPROVED" | "REJECTED";
+            reason?: string;
+            version: number;
+            applicationVersion: number;
+        };
+        CoreLoanReference: {
+            /** Format: uuid */
+            applicationId: string;
+            /** Format: int64 */
+            coreLoanId: number;
+            /** @enum {string} */
+            status: "CORE_SUBMITTED";
+            version: number;
+        };
         /** @enum {string} */
         DocumentCategory: "POLICY" | "PROCEDURE" | "REPORT" | "COMPLIANCE" | "OTHER";
         /** @enum {string} */
@@ -527,7 +711,7 @@ export interface components {
             createdAt: string;
         };
         /** @enum {string} */
-        EodStatus: "NOT_STARTED" | "RUNNING" | "COMPLETED" | "FAILED";
+        EodStatus: "NOT_STARTED" | "RUNNING" | "INTERRUPTED" | "COMPLETED" | "FAILED";
         EodRun: {
             /** Format: uuid */
             runId?: string;
@@ -545,7 +729,7 @@ export interface components {
             [key: string]: unknown;
         };
         /** @enum {string} */
-        ApprovalStatus: "PENDING" | "APPROVED" | "REJECTED";
+        ApprovalStatus: "PENDING" | "CORE_RESULT_UNKNOWN" | "CONFIRMED" | "REJECTED";
         ApprovalRecord: {
             /** Format: uuid */
             approvalId: string;
@@ -638,7 +822,7 @@ export interface components {
         };
         Money: string;
         /** @enum {string} */
-        TransferStatus: "CREATED" | "VALIDATING" | "RISK_REVIEW" | "PENDING_APPROVAL" | "PENDING_CORE_POSTING" | "PENDING_CLEARING" | "SETTLED" | "FAILED" | "TIMED_OUT" | "RETURNED" | "REVERSAL_PENDING" | "REVERSED";
+        TransferStatus: "CREATED" | "VALIDATING" | "RISK_REVIEW" | "PENDING_APPROVAL" | "PENDING_CORE_POSTING" | "PENDING_CLEARING" | "CORE_RESULT_UNKNOWN" | "SETTLED" | "FAILED" | "TIMED_OUT" | "RETURN_PENDING" | "RETURN_RESULT_UNKNOWN" | "RETURNED" | "REVERSAL_PENDING" | "REVERSED";
         TransferRequest: {
             sourceAccountId: string;
             destinationAccountId: string;
@@ -743,6 +927,7 @@ export interface components {
     };
     parameters: {
         IdempotencyKey: string;
+        CorrelationId: string;
         TransferId: string;
     };
     requestBodies: never;
@@ -840,6 +1025,157 @@ export interface operations {
             };
             401: components["responses"]["Problem"];
             403: components["responses"]["Problem"];
+        };
+    };
+    listOperationsLoanApplications: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Loan application queue */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OperationsLoanApplicationPage"];
+                };
+            };
+            401: components["responses"]["Problem"];
+            403: components["responses"]["Problem"];
+        };
+    };
+    getOperationsLoanApplication: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                applicationId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Loan application detail */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OperationsLoanApplicationDetail"];
+                };
+            };
+            404: components["responses"]["Problem"];
+        };
+    };
+    scoreLoanApplication: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                applicationId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["VersionRequest"];
+            };
+        };
+        responses: {
+            /** @description Scored application */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OperationsLoanApplication"];
+                };
+            };
+            409: components["responses"]["Problem"];
+        };
+    };
+    requestLoanApproval: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                applicationId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["LoanApprovalRequest"];
+            };
+        };
+        responses: {
+            /** @description Pending approval */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LoanApproval"];
+                };
+            };
+            409: components["responses"]["Problem"];
+        };
+    };
+    approveLoanApplication: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                approvalId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["LoanApprovalDecision"];
+            };
+        };
+        responses: {
+            /** @description Approved application */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OperationsLoanApplication"];
+                };
+            };
+            409: components["responses"]["Problem"];
+        };
+    };
+    submitLoanApplicationToCore: {
+        parameters: {
+            query?: never;
+            header: {
+                "Idempotency-Key": components["parameters"]["IdempotencyKey"];
+            };
+            path: {
+                applicationId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Core-submitted application reference */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CoreLoanReference"];
+                };
+            };
+            409: components["responses"]["Problem"];
         };
     };
     listClearingBatches: {
@@ -992,6 +1328,7 @@ export interface operations {
             query?: never;
             header: {
                 "Idempotency-Key": components["parameters"]["IdempotencyKey"];
+                "X-Correlation-Id": components["parameters"]["CorrelationId"];
             };
             path?: never;
             cookie?: never;
@@ -1166,6 +1503,8 @@ export interface operations {
             content: {
                 "application/json": {
                     status: components["schemas"]["DocumentStatus"];
+                    /** @description Current document version */
+                    version: number;
                 };
             };
         };
@@ -1181,6 +1520,7 @@ export interface operations {
             };
             400: components["responses"]["Problem"];
             404: components["responses"]["Problem"];
+            409: components["responses"]["Problem"];
         };
     };
     downloadOperationsDocument: {

@@ -1,5 +1,7 @@
 # Harness 契约
 
+2026-10-26：DSL V2增加版本化可选`pageObservation`（`bank-account-fields/v1`）及`expectNoErrors`操作；无此字段的原有DSL保持原语义。仅显式银行适配器的账户检查生成字段语义，Midscene负责真实定位，Playwright同时验证完整非空账户行及请求的币种/余额/状态。`expectNoErrors`读取当前页可见错误状态，不定位一个应不存在的错误标签、不导航。作者化与正式候选嵌入同一实现，均受新ReleaseIdentity约束；不增加HTTP接口、数据库迁移或运行时回退。
+
 `openapi/hengzhun-harness-v1.yaml` 是 I2 七工具的版本化 OpenAPI 3.0.3 契约，固定包含：
 
 ## 权威边界

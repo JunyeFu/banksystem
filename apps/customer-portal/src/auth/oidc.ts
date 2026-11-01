@@ -1,4 +1,4 @@
-const OIDC_ISSUER = 'http://127.0.0.1:19000/realms/bank-customer';
+const OIDC_ISSUER = import.meta.env.VITE_OIDC_ISSUER ?? 'http://127.0.0.1:19000/realms/bank-customer';
 const OIDC_CLIENT_ID = 'customer-portal';
 const OIDC_REDIRECT_URI = `${window.location.origin}/portal/login/callback`;
 
@@ -28,7 +28,7 @@ export interface OidcAuthRequest {
   state: string;
 }
 
-export async function buildAuthRequest(): Promise<OidcAuthRequest> {
+export async function buildAuthRequest(prompt?: 'none'): Promise<OidcAuthRequest> {
   const verifier = randomString();
   const state = randomString(24);
   const challenge = await createPkceChallenge(verifier);
@@ -44,6 +44,7 @@ export async function buildAuthRequest(): Promise<OidcAuthRequest> {
     code_challenge_method: 'S256',
     ui_locales: 'zh-CN',
   });
+  if (prompt) params.set('prompt', prompt);
   url.search = params.toString();
 
   return { authorizationUrl: url.toString(), verifier, state };
@@ -82,39 +83,4 @@ export async function exchangeCodeForToken(
   }
 
   throw new Error('OIDC token response missing access_token');
-}
-
-export async function exchangePasswordForToken(
-  username: string,
-  password: string,
-): Promise<string> {
-  const body = new URLSearchParams({
-    grant_type: 'password',
-    client_id: OIDC_CLIENT_ID,
-    username,
-    password,
-    scope: 'openid profile',
-  });
-
-  const res = await fetch(`${OIDC_ISSUER}/protocol/openid-connect/token`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-    body,
-  });
-
-  if (!res.ok) {
-    throw new Error('账号或密码不正确，或账号密码登录暂不可用。');
-  }
-
-  const data: unknown = await res.json();
-  if (
-    typeof data === 'object' &&
-    data !== null &&
-    'access_token' in data &&
-    typeof (data as Record<string, unknown>).access_token === 'string'
-  ) {
-    return (data as Record<string, unknown>).access_token as string;
-  }
-
-  throw new Error('身份服务未返回有效登录结果。');
 }

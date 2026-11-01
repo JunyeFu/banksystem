@@ -1,0 +1,10 @@
+id: RF-063-S5
+title: 统一验收及独立复审
+status: IMPLEMENTING
+businessGoal: 逐项复审、真实黄金链、压力性能及当前身份结果明确
+allowedPaths: [demo.ps1, scripts/test, scripts/demo, docs/current-state, infra/gateway/nginx.conf]
+forbiddenPaths: [postgresql, infra/keycloak, platform/hengzhun-regression-system/flowise]
+workSteps: [root cause counterexample, minimal fix, regression, independent review]
+verification: ['demo.ps1 status; demo.ps1 verify; RF057 current acceptance; docs validation']
+evidence: docs/architecture/refactoring/batches/RF-063/evidence-index.md
+

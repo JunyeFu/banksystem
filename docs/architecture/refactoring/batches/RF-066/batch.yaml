@@ -1,0 +1,29 @@
+schemaVersion: 1
+id: RF-066
+title: Shared Agent Controller browser transport and model configuration
+status: SHADOW_VERIFIED
+owner: Codex
+authorizedBy: agent/plans/active/v54-implementation-batches.md
+scope:
+  includePaths: [docs/architecture/refactoring/batches/RF-066, agent/backlog.yaml, agent/plans/active/v54-implementation-batches.md, contracts/openapi, platform/hengzhun-regression-system/agent-cli, platform/hengzhun-regression-system/controller/src, platform/hengzhun-regression-system/controller/test, platform/hengzhun-regression-system/scripts/verification, platform/hengzhun-regression-system/scripts/i10-agent-lifecycle.cjs, platform/hengzhun-regression-system/scripts/i10-worker-code-set-v1.json, platform/hengzhun-regression-system/worker/src/i10-midscene-candidate-authoring.cjs, platform/hengzhun-regression-system/worker/src/i10-vision-readiness.cjs, scripts/test, scripts/demo]
+  excludePaths: [postgresql, services/bank-channel-service, infra/keycloak, platform/hengzhun-regression-system/flowise]
+budgets: {maxChangedFiles: 32, maxNewFiles: 24, maxChangedLines: 6000, maxContractsChanged: 1, maxMigrationsAdded: 0, maxOpenModules: 2}
+baseline:
+  gitCommit: 552b3b8ac517bd5991bff446e72d9f4e87ea9543
+  dirtyTreeManifest: docs/architecture/refactoring/batches/RF-066/baseline.md
+  releaseIdentity: UNFROZEN_RF066
+  capturedAt: '2026-10-19T15:45:04+08:00'
+architecture:
+  businessCapability: conversational-browser-entry-to-existing-cli-agent
+  publicContract: contracts/openapi/agent-workbench-api.yaml
+  dependencyManifest: docs/architecture/refactoring/module-boundaries-v1.yaml
+  allowedModules: [hengzhun.agent-cli, hengzhun.worker]
+  forbiddenModules: [hengzhun.flowise]
+mustPreserve: [existing Docker services and volumes, Quality GET-only projection, shared CLI Controller and MCP execution path, Harness SQLite authority, encrypted checkpoint and credential boundaries, run-bound model and ReleaseIdentity, no runtime mock or fallback, unrelated dirty changes]
+verification:
+  requiredCommands:
+    - {name: governance, command: 'python scripts/architecture/validate_refactoring.py --batch RF-066', expectedExitCode: 0, evidence: docs/architecture/refactoring/batches/RF-066/evidence-index.md, blocking: true}
+    - {name: docs, command: 'python scripts/docs/validate_docs.py', expectedExitCode: 0, evidence: docs/architecture/refactoring/batches/RF-066/evidence-index.md, blocking: true}
+rollback: {triggerConditions: [credential exposure, wrong model binding, duplicated business execution, existing service disruption], recoveryPoint: revert only RF066 changes using recorded per-file baseline and stop only the newly owned Agent web process; retain original services volumes and evidence, maxRtoMinutes: 15, maxRpoMinutes: 0}
+exceptions: {allowedVagueNames: [], crossModule: []}
+

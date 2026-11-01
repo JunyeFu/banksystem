@@ -50,14 +50,15 @@ function waitForHealth(url, timeoutMs) {
 
 function applyMigrations(db) {
   db.exec('CREATE TABLE IF NOT EXISTS schema_migrations (version INTEGER PRIMARY KEY, name TEXT NOT NULL UNIQUE, checksum TEXT NOT NULL, applied_at TEXT NOT NULL) STRICT;')
-  for (const name of fs.readdirSync(path.join(root, 'harness/migrations')).filter(n => /^\d+_.+\.sql$/.test(n)).sort()) {
+  const migrations = fs.readdirSync(path.join(root, 'harness/migrations')).filter(n => /^\d+_.+\.sql$/.test(n)).sort()
+  for (const name of migrations) {
     const version = Number(name.split('_', 1)[0])
     const sql = fs.readFileSync(path.join(root, 'harness/migrations', name), 'utf8')
     db.exec('BEGIN')
     try { db.exec(sql); db.prepare('INSERT INTO schema_migrations(version,name,checksum,applied_at) VALUES (?,?,?,?)').run(version, name, sha256(sql.replaceAll('\r\n', '\n')), now()); db.exec('COMMIT') }
     catch (error) { db.exec('ROLLBACK'); throw error }
   }
-  assert.equal(db.prepare('SELECT MAX(version) version FROM schema_migrations').get().version, 39)
+  assert.equal(db.prepare('SELECT MAX(version) version FROM schema_migrations').get().version, Number(migrations.at(-1).split('_', 1)[0]))
 }
 
 function seed(db, withCredentialRef, executionDecision = 'RUN_ON_DEMAND') {

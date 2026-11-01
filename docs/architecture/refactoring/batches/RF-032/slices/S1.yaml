@@ -1,0 +1,9 @@
+id: RF-032-S1
+title: Customer confirmation command
+status: COMPLETED
+allowedPaths: [contracts/openapi/customer-api.yaml, services/bank-channel-service/src/main/java/local/bank/channel/payments/TransferController.java, services/bank-channel-service/src/test/java/local/bank/channel/payments, docs/architecture/refactoring/module-boundaries-v1.yaml, docs/architecture/refactoring/batches/RF-032, agent/plans/active, agent/backlog.yaml]
+forbiddenPaths: [apps, platform, postgresql, demo.ps1]
+workSteps: [add authenticated subject-scoped confirm endpoint, invoke processor once, return the full transfer read model, test ownership and terminal replay]
+verification: [Java tests pass, Customer OpenAPI parses, foreign subject returns 404]
+rollback: revert RF-032 S1 paths only
+evidence: docs/architecture/refactoring/batches/RF-032/evidence-index.md

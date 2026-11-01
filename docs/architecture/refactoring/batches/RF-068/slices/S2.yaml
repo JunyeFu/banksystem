@@ -1,0 +1,10 @@
+id: RF-068-S2
+title: Persistent conversation history
+status: DONE
+businessGoal: Create search paginate and reopen real conversations without replay
+allowedPaths: ["apps/quality-case-portal","scripts/test/verify-agent-workbench.ps1","platform/hengzhun-regression-system/scripts/verification","docs/architecture/refactoring/batches/RF-068"]
+forbiddenPaths: [postgresql, services/bank-channel-service, infra/keycloak, platform/hengzhun-regression-system/flowise]
+workSteps: ["wire-history-api","create-and-select","page-messages","verify-read-only-refresh"]
+verification: ["powershell -NoProfile -ExecutionPolicy Bypass -File scripts/test/verify-agent-workbench.ps1 -Scope Browser -Case History"]
+evidence: docs/architecture/refactoring/batches/RF-068/evidence-index.md
+

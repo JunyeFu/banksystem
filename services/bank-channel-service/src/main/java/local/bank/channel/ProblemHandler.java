@@ -1,6 +1,8 @@
 package local.bank.channel;
 
 import java.net.URI;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.slf4j.MDC;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ProblemDetail;
@@ -11,8 +13,10 @@ import org.springframework.web.server.ResponseStatusException;
 
 @RestControllerAdvice
 public class ProblemHandler {
+  private static final Logger log = LoggerFactory.getLogger(ProblemHandler.class);
   @ExceptionHandler(RestClientResponseException.class)
   ProblemDetail coreFailure(RestClientResponseException ex) {
+    log.warn("Fineract request failed with HTTP {}", ex.getStatusCode().value());
     ProblemDetail problem = ProblemDetail.forStatus(HttpStatus.BAD_GATEWAY);
     problem.setType(URI.create("urn:bank:error:adapter-failure"));
     problem.setTitle("Core adapter request failed");
@@ -22,9 +26,20 @@ public class ProblemHandler {
     String correlationId = MDC.get("correlationId");
     if (requestId != null) problem.setProperty("requestId", requestId);
     if (correlationId != null) problem.setProperty("correlationId", correlationId);
-    String body = ex.getResponseBodyAsString();
-    if (body != null && !body.isBlank())
-      problem.setProperty("coreResponse", body.substring(0, Math.min(body.length(), 2000)));
+    return problem;
+  }
+
+  @ExceptionHandler(CoreReadModelException.class)
+  ProblemDetail invalidCoreReadModel(CoreReadModelException ex) {
+    log.warn("Fineract read model rejected: {}", ex.getMessage());
+    ProblemDetail problem = ProblemDetail.forStatus(HttpStatus.BAD_GATEWAY);
+    problem.setType(URI.create("urn:bank:error:core-read-model-invalid"));
+    problem.setTitle("Core read model is invalid");
+    problem.setProperty("code", "FINERACT_READ_MODEL_INVALID");
+    String requestId = MDC.get("requestId");
+    String correlationId = MDC.get("correlationId");
+    if (requestId != null) problem.setProperty("requestId", requestId);
+    if (correlationId != null) problem.setProperty("correlationId", correlationId);
     return problem;
   }
 

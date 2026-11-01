@@ -29,15 +29,15 @@ const boundaryContract = readRepoJson('docs/architecture/refactoring/batches/RF-
 const serverSource = read('mcp/src/server.cjs')
 const matrixSource = readRepo('docs/architecture/refactoring/batches/RF-001/field-error-adapter-matrix.md')
 
-test('RF-016 current 35-tool surface preserves the historical RF-001 33-tool subset', () => {
+test('RF-064 current 39-tool surface preserves the historical RF-001 33-tool subset', () => {
   const contractNames = runtimeContract.tools.map(tool => tool.name).sort()
   const boundaryNames = boundaryContract.tools.map(tool => tool.name).sort()
   const registered = [...serverSource.matchAll(/registerTool\('([a-z_]+)'/g)].map(match => match[1]).sort()
-  assert.equal(contractNames.length, 35, 'runtime contract must freeze exactly 35 tools')
+  assert.equal(contractNames.length, 39, 'runtime contract must declare exactly 39 tools')
   assert.equal(boundaryNames.length, 33, 'boundary contract must freeze exactly 33 tools')
-  assert.equal(registered.length, 35, 'server.cjs must register exactly 35 tools')
+  assert.equal(registered.length, 39, 'server.cjs must register exactly 39 tools')
   assert.deepEqual(boundaryNames.filter(name => !contractNames.includes(name)), [], 'historical RF-001 tools must remain available')
-  assert.deepEqual(contractNames.filter(name => !boundaryNames.includes(name)), ['candidate_compile', 'result_inbox_ack'])
+  assert.deepEqual(contractNames.filter(name => !boundaryNames.includes(name)), ['candidate_compile', 'feedback_get', 'feedback_record', 'feedback_verify', 'journey_evidence_verify', 'result_inbox_ack'])
   assert.deepEqual(contractNames, registered, 'server.cjs must register exactly the frozen tool set')
 })
 

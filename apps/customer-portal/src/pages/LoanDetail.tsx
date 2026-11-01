@@ -22,7 +22,7 @@ export function LoanDetail(): JSX.Element {
   return <PageContainer pageId="customer.loan.detail" state="READY">
     <section className="customer-page experience-page" data-view-state={query.isLoading ? 'LOADING' : query.isError ? 'ERROR' : 'NORMAL'}>
       <div className="customer-breadcrumb">贷款　/　贷款详情</div>
-      <div className="customer-page-head"><div><h1>贷款详情</h1><p>{data?.loanProductName ?? '正在读取复兴银行贷款信息'}</p></div><div><Button onClick={() => window.print()}>打印</Button>　<Button type="primary" disabled={!data || Number(data.outstandingBalance) <= 0}>提前还款</Button></div></div>
+      <div className="customer-page-head"><div><h1>贷款详情</h1><p>{data?.loanProductName ?? '正在读取复兴银行贷款信息'}</p></div><div><Button onClick={() => window.print()}>打印</Button>　<Button disabled title="还款资金操作的一致性验收尚未完成">提前还款暂未开放</Button></div></div>
       {query.isError ? <Alert type="error" showIcon message="贷款详情加载失败" action={<Button onClick={() => query.refetch()}>重新加载</Button>} /> : null}
       {query.isLoading ? <Skeleton active paragraph={{ rows: 14 }} /> : null}
       {data ? <>

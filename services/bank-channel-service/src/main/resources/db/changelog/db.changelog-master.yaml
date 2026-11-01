@@ -23,3 +23,21 @@ databaseChangeLog:
       file: db/changelog/v7-operations-documents.yaml
   - include:
       file: db/changelog/v8-transfer-receipt-reference.yaml
+  - include:
+      file: db/changelog/v9-customer-identity-many-to-one.yaml
+  - include:
+      file: db/changelog/v10-transfer-receipt-evidence-columns.yaml
+  - include:
+      file: db/changelog/v11-transfer-core-convergence.yaml
+  - include:
+      file: db/changelog/v12-transfer-rule-closure.yaml
+  - include:
+      file: db/changelog/v13-eod-reconciliation-closure.yaml
+  - include:
+      file: db/changelog/v14-audit-outbox-closure.yaml
+  - include:
+      file: db/changelog/v15-loan-workflow-state-machine.yaml
+  - include:
+      file: db/changelog/v16-loan-core-operation.yaml
+  - include:
+      file: db/changelog/v17-eod-job-readback.yaml

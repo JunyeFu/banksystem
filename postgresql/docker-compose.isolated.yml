@@ -1,7 +1,8 @@
-name: mifos-isolated
+name: ${HENGZHUN_CORE_COMPOSE_PROJECT:-mifos-isolated}
 
 services:
   web-app:
+    profiles: [admin-tools]
     image: openmf/web-app:dev@sha256:d071bea02ba0b83b0a9958f8ea651b7cc50aa86dd18f71ab304955e76bbd4b03
     restart: unless-stopped
     environment:
@@ -29,7 +30,7 @@ services:
       FINERACT_TENANTS_DB_NAME: fineract_tenants
       FINERACT_TENANT_DEFAULT_DB_NAME: fineract_default
     volumes:
-      - "D:/Agent/banksystem/data/postgres:/var/lib/postgresql"
+      - core_postgresql_data:/var/lib/postgresql
       - ./01-init-unix.sh:/docker-entrypoint-initdb.d/01-init.sh:ro
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -q -U postgres -d postgres"]
@@ -39,7 +40,7 @@ services:
     networks: [bank_internal]
 
   activemq:
-    image: apache/activemq-classic:latest@sha256:75852a6d357991028e58e7c32a7dd190cb36802568236cf3cd189d2350033be1
+    image: apache/activemq-classic:6.1.2@sha256:75852a6d357991028e58e7c32a7dd190cb36802568236cf3cd189d2350033be1
     restart: unless-stopped
     healthcheck:
       test: ["CMD-SHELL", "code=$$(curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:8161/); test \"$$code\" = 200 -o \"$$code\" = 401"]
@@ -74,13 +75,22 @@ services:
       FINERACT_LOGGING_LEVEL: INFO
       FINERACT_MODE: WRITE
       FINERACT_MESSAGING_ACTIVEMQ_BROKER_URL: tcp://activemq:61616
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q -O /dev/null http://127.0.0.1:8080/fineract-provider/actuator/health"]
+      interval: 5s
+      timeout: 5s
+      retries: 60
+      start_period: 30s
     ports:
       - "127.0.0.1:13000:8080"
     networks: [bank_internal, bank_front]
 
 networks:
   bank_internal:
-    name: mifos_isolated_internal
+    name: ${HENGZHUN_CORE_INTERNAL_NETWORK:-mifos_isolated_internal}
     internal: true
   bank_front:
-    name: mifos_isolated_front
+    name: ${HENGZHUN_CORE_FRONT_NETWORK:-mifos_isolated_front}
+
+volumes:
+  core_postgresql_data: {}

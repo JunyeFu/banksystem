@@ -3,7 +3,7 @@ project: banksystem
 root: D:\Agent\banksystem
 defaultBranch: main
 statusSource: agent/backlog.yaml
-updatedAt: '2026-07-21T22:40:00+08:00'
+updatedAt: '2026-10-26'
 
 allowedStatuses: [PROPOSED, READY, IN_PROGRESS, BLOCKED, REVIEW, DONE, CANCELLED]
 
@@ -11,6 +11,109 @@ tracks:
   - id: GOVERNANCE
     name: knowledge-and-agent-control-plane
     workItems:
+      - id: BANKSYSTEM-RF066-AGENT-WORKBENCH-001
+        title: Approved Figma browser Agent with real conversations history and model configuration
+        status: IN_PROGRESS
+        owner: Codex
+        dependsOn: []
+        evidence: [docs/architecture/refactoring/batches/RF-066/evidence-index.md]
+        allowedPaths: [docs/architecture/refactoring/batches/RF-066/**, apps/quality-case-portal/**, contracts/openapi/agent-workbench-api.yaml, platform/hengzhun-regression-system/agent-cli/**, platform/hengzhun-regression-system/controller/src/**, platform/hengzhun-regression-system/controller/test/**, platform/hengzhun-regression-system/harness/src/**, platform/hengzhun-regression-system/harness/migrations/**, platform/hengzhun-regression-system/mcp/src/**, platform/hengzhun-regression-system/contracts/mcp/**, platform/hengzhun-regression-system/scripts/verification/**, scripts/test/**, scripts/demo/**]
+        acceptance:
+          - Browser messages use the existing real BYOK Controller MCP Harness Worker execution path.
+          - Conversation history survives refresh and process restart without replaying execution.
+          - Model configuration is local and secret-safe; selection is manual and next-task-only.
+          - Approved Figma typography and layout match actual browser screenshots and interactions.
+          - Original services volumes and read-only Quality remain intact; no mock or release GO claim.
+      - id: BANKSYSTEM-RF067-CONVERSATION-STATE-001
+        title: Harness conversation history and MCP metadata
+        status: DONE
+        owner: Codex
+        dependsOn: [BANKSYSTEM-RF066-S1-CONTRACT-001]
+        evidence: [docs/architecture/refactoring/batches/RF-067/evidence-index.md]
+        allowedPaths: [docs/architecture/refactoring/batches/RF-067/**, platform/hengzhun-regression-system/harness/src/**, platform/hengzhun-regression-system/harness/migrations/**, platform/hengzhun-regression-system/mcp/src/**, platform/hengzhun-regression-system/contracts/mcp/**, platform/hengzhun-regression-system/scripts/verification/**, scripts/test/verify-agent-workbench.ps1]
+        acceptance: [Persistent safe conversation history survives restart without replaying execution]
+      - id: BANKSYSTEM-RF068-FIGMA-FRONTEND-001
+        title: Approved Agent frontend and preserved-service browser acceptance
+        status: DONE
+        owner: Codex
+        dependsOn: [BANKSYSTEM-RF066-S2-SERVICE-001]
+        evidence: [docs/architecture/refactoring/batches/RF-068/evidence-index.md]
+        allowedPaths: [docs/architecture/refactoring/batches/RF-068/**, apps/quality-case-portal/**, scripts/test/**, scripts/demo/**, platform/hengzhun-regression-system/scripts/verification/**]
+        acceptance:
+          - All five RF068 slice work items have reviewed acceptance evidence.
+          - Real conversations history and model configuration match approved Figma with no Quality write route.
+          - Browser acceptance is distinguished from real BYOK read-only acceptance and release GO.
+      - id: BANKSYSTEM-RF068-S1-FOUNDATION-001
+        title: Separate Agent entry design tokens and generated API consumer
+        status: DONE
+        owner: Codex
+        dependsOn: [BANKSYSTEM-RF066-S2-SERVICE-001]
+        evidence: [docs/architecture/refactoring/batches/RF-068/evidence-index.md]
+        allowedPaths: [apps/quality-case-portal/**, docs/architecture/refactoring/batches/RF-068/**, scripts/test/verify-agent-workbench.ps1, platform/hengzhun-regression-system/scripts/verification/**]
+        acceptance: [Separate Agent build and generated typed consumer preserve Quality and match approved Figma tokens]
+      - id: BANKSYSTEM-RF068-S2-HISTORY-001
+        title: Persistent conversation history creation search pagination and reopening
+        status: DONE
+        owner: Codex
+        dependsOn: [BANKSYSTEM-RF068-S1-FOUNDATION-001]
+        evidence: [docs/architecture/refactoring/batches/RF-068/evidence-index.md]
+        allowedPaths: [apps/quality-case-portal/**, docs/architecture/refactoring/batches/RF-068/**, scripts/test/verify-agent-workbench.ps1, platform/hengzhun-regression-system/scripts/verification/**]
+        acceptance: [Harness history survives refresh and switching without resubmitting tasks]
+      - id: BANKSYSTEM-RF068-S3-CONVERSATION-001
+        title: Real messages continuation execution events stop and evidence
+        status: DONE
+        owner: Codex
+        dependsOn: [BANKSYSTEM-RF068-S2-HISTORY-001]
+        evidence: [docs/architecture/refactoring/batches/RF-068/evidence-index.md]
+        allowedPaths: [apps/quality-case-portal/**, docs/architecture/refactoring/batches/RF-068/**, scripts/test/verify-agent-workbench.ps1, platform/hengzhun-regression-system/scripts/verification/**]
+        acceptance: [One submission causes one task with truthful events results interruption and evidence]
+      - id: BANKSYSTEM-RF068-S4-MODELS-001
+        title: Composer model selector configuration connection check and immutable task binding
+        status: DONE
+        owner: Codex
+        dependsOn: [BANKSYSTEM-RF068-S3-CONVERSATION-001]
+        evidence: [docs/architecture/refactoring/batches/RF-068/evidence-index.md]
+        allowedPaths: [apps/quality-case-portal/**, docs/architecture/refactoring/batches/RF-068/**, scripts/test/verify-agent-workbench.ps1, platform/hengzhun-regression-system/scripts/verification/**]
+        acceptance: [Manual selection affects the next new task only and plaintext keys never enter browser persistence]
+      - id: BANKSYSTEM-RF068-S5-ACCEPTANCE-001
+        title: Preserved-service fidelity and current-identity real BYOK read-only acceptance
+        status: DONE
+        owner: Codex
+        dependsOn: [BANKSYSTEM-RF068-S4-MODELS-001]
+        evidence: [docs/architecture/refactoring/batches/RF-068/evidence-index.md, docs/architecture/refactoring/batches/RF-068/S5-repair-plan-20261023.md, docs/architecture/refactoring/batches/RF-068/S5-repair-execution-20261023.md, docs/architecture/project-policy-inventory-20261024.md, docs/architecture/refactoring/batches/RF-068/S5-live-root-cause-20261024-02.md, docs/architecture/refactoring/batches/RF-068/S5-login-match-repair-20261024.md, docs/architecture/refactoring/batches/RF-068/S5-live-root-cause-20261024-03.md, docs/architecture/refactoring/batches/RF-068/S5-continuous-repair-20261024.md]
+        allowedPaths: [apps/quality-case-portal/**, scripts/test/**, scripts/demo/**, platform/hengzhun-regression-system/scripts/verification/**, docs/architecture/refactoring/batches/RF-068/**]
+        acceptance: [Independent review browser restart readback and authorized real BYOK read-only evidence pass without altering bank services or claiming release GO]
+      - id: BANKSYSTEM-RF066-S1-CONTRACT-001
+        title: Controller browser transport contract and existing-behavior characterization
+        status: DONE
+        owner: Codex
+        dependsOn: []
+        evidence: [docs/architecture/refactoring/batches/RF-066/evidence-index.md]
+        allowedPaths: [contracts/openapi/agent-workbench-api.yaml, platform/hengzhun-regression-system/agent-cli/**, docs/architecture/refactoring/batches/RF-066/**]
+        acceptance: [HTTP contract freezes real Controller and MCP semantics without browser secrets]
+      - id: BANKSYSTEM-RF066-S2-SERVICE-001
+        title: Local model profiles and conversation-aware Controller transport
+        status: DONE
+        owner: Codex
+        dependsOn: [BANKSYSTEM-RF067-CONVERSATION-STATE-001]
+        evidence: [docs/architecture/refactoring/batches/RF-066/evidence-index.md]
+        allowedPaths: [platform/hengzhun-regression-system/agent-cli/**, platform/hengzhun-regression-system/controller/src/**, platform/hengzhun-regression-system/controller/test/**, contracts/openapi/agent-workbench-api.yaml, platform/hengzhun-regression-system/scripts/verification/**, platform/hengzhun-regression-system/scripts/i10-agent-lifecycle.cjs, platform/hengzhun-regression-system/scripts/i10-worker-code-set-v1.json, platform/hengzhun-regression-system/worker/src/i10-midscene-candidate-authoring.cjs, platform/hengzhun-regression-system/worker/src/i10-vision-readiness.cjs, scripts/test/verify-agent-workbench.ps1, scripts/demo/**, docs/architecture/refactoring/batches/RF-066/**]
+        acceptance:
+          - Real model and conversation bindings are immutable for a running task and keys never enter history.
+          - Before production acceptance reconcile installed MCP SDK with the existing declared lock; RF067 isolated SDK verification did not replace the in-use dependency tree.
+      - id: LIFECYCLE-WORKBENCH-001
+        title: Engineering lifecycle learning and evidence workbench
+        status: DONE
+        owner: 傅钧烨
+        dependsOn: []
+        evidence: [docs/current-state/lifecycle-workbench.md]
+        allowedPaths: [tools/lifecycle-workbench/**, docs/current-state/lifecycle-workbench.md, agent/backlog.yaml, agent/plans/active/v54-implementation-batches.md]
+        acceptance:
+          - Primary-source reading map covers banking, requirements, software engineering, agents and performance.
+          - Twelve lifecycle stages expose granular deliverables, evidence, gaps and acceptance criteria.
+          - Fourteen-day window is projected from the sole implementation order.
+          - Personal notes persist and export without mutating bank or Harness status.
+          - Desktop and mobile navigation, filtering and persistence are verified.
       - id: GOV-001
         title: Rebuild docs RAG and agent control planes
         status: REVIEW
@@ -523,14 +626,281 @@ tracks:
       - {id: HENGZHUN-I10-AGCLI-TP08-OFFLINE-INTEGRATION-GATES-001, title: Offline integration and release gates, status: REVIEW, owner: Codex, dependsOn: [HENGZHUN-I10-AGCLI-TP07-LIFECYCLE-RELEASE-V4-001], evidence: [docs/architecture/refactoring/batches/RF-023/evidence-index.md]}
       - {id: HENGZHUN-I10-AGCLI-TP09-L1-LIVE-001, title: CLI Agent L1 live validation, status: BLOCKED, owner: project-owner, dependsOn: [HENGZHUN-I10-AGCLI-TP08-OFFLINE-INTEGRATION-GATES-001], evidence: [docs/architecture/refactoring/batches/RF-024/evidence-index.md]}
       - {id: HENGZHUN-I10-AGCLI-TP10-FULL18-RELEASE-001, title: Full 18-chain release validation, status: BLOCKED, owner: project-owner, dependsOn: [HENGZHUN-I10-AGCLI-TP09-L1-LIVE-001], evidence: [docs/architecture/refactoring/batches/RF-025/evidence-index.md]}
+      - id: BANKSYSTEM-OSS-A01-AUTHORITY-REBASELINE-001
+        title: Rebaseline the open-source bank and CLI Agent product
+        status: REVIEW
+        owner: Codex
+        dependsOn: [HENGZHUN-I10-AGCLI-TP08-OFFLINE-INTEGRATION-GATES-001]
+        evidence: [docs/architecture/refactoring/batches/RF-026/evidence-index.md]
+        allowedPaths: [AGENTS.md, agent/plans/active/banksystem-open-source-*, agent/plans/active/banksystem-tp-a01-authority-rebaseline-task-package.md, agent/plans/active/hengzhun-i10-cli-agent-baseline-v1.md, docs/architecture/refactoring-control-process-v1.md, docs/architecture/refactoring/batches/RF-026/**, agent/backlog.yaml, agent/plans/active/v54-implementation-batches.md]
+        acceptance:
+          - The bank demo plus CLI Agent is the sole current product target.
+          - Flowise is historical evidence only and is absent from runtime, recovery, CI and release gates.
+          - A01-A08 order, evidence levels and ReleaseIdentity drift rules are machine-readable.
+          - Product code, runtime, ReleaseIdentity, ledger and publication remain unchanged.
+      - id: BANKSYSTEM-OSS-A02-REPRODUCIBLE-RUNTIME-001
+        title: Fresh-clone reproducible runtime
+        status: REVIEW
+        owner: Codex
+        dependsOn: [BANKSYSTEM-OSS-A01-AUTHORITY-REBASELINE-001]
+        evidence: [docs/architecture/refactoring/batches/RF-027/evidence-index.md]
+        allowedPaths: [postgresql/docker-compose.isolated.yml, compose.channel.yaml, infra/frontend/Dockerfile, .dockerignore, infra/versions.lock.yaml, contracts/openapi/quality-platform-api.yaml, apps/quality-case-portal/src/**, demo.ps1, .env.example, scripts/deploy/**, README.md, agent/plans/active/banksystem-*, docs/architecture/refactoring/batches/RF-027/**, agent/backlog.yaml, agent/plans/active/v54-implementation-batches.md]
+        acceptance:
+          - Fresh clone does not depend on a host absolute data path or prebuilt dist directories.
+          - Customer, operations and quality frontends have deterministic container builds.
+          - Root lifecycle owns only project Compose and CLI Agent services and never calls Flowise.
+          - Default down preserves named volumes; reset is separate and explicit.
+      - id: BANKSYSTEM-OSS-A02-AGENT-BROWSER-RUNTIME-001
+        title: Independent Agent browser runtime
+        status: COMPLETED
+        owner: Codex
+        dependsOn: [BANKSYSTEM-OSS-A01-AUTHORITY-REBASELINE-001]
+        evidence: [docs/architecture/refactoring/batches/RF-029/evidence-index.md]
+        allowedPaths: [demo.ps1, platform/hengzhun-regression-system/runtime/package.json, platform/hengzhun-regression-system/runtime/package-lock.json, scripts/deploy/**, docs/architecture/refactoring/batches/RF-029/**, agent/plans/active/banksystem-*, agent/backlog.yaml, agent/plans/active/v54-implementation-batches.md]
+        acceptance:
+          - Playwright 1.59.1, Midscene 1.10.5 and Chromium revision 1217 are installed from the Agent-owned lockfile.
+          - The Worker resolves only runtime/node_modules and never Flowise dependencies.
+          - Contract, refactoring governance, documentation and diff checks pass.
+      - id: BANKSYSTEM-OSS-VISUAL-CONFIRMATION-001
+        title: Three-level control and serial visual acceptance
+        status: REVIEW
+        owner: Codex
+        approvalOwner: project-owner
+        dependsOn: [BANKSYSTEM-OSS-A01-AUTHORITY-REBASELINE-001]
+        evidence: [docs/architecture/refactoring/batches/RF-028/evidence-index.md]
+        allowedPaths: [agent/plans/active/banksystem-three-level-development-control-v1.yaml, agent/plans/active/banksystem-three-level-development-control-v1.md, agent/plans/active/banksystem-vq01-product-combination-task-package.md, agent/plans/active/banksystem-vq02-customer-login-account-overview-task-package.md, agent/plans/active/banksystem-vq03-customer-transfer-result-task-package.md, agent/plans/active/banksystem-vq04-operations-transaction-lookup-task-package.md, agent/plans/active/banksystem-vq05-cli-author-approve-task-package.md, agent/plans/active/banksystem-vq06-cli-execution-evidence-task-package.md, agent/plans/active/banksystem-vq07-read-only-quality-portal-task-package.md, agent/plans/active/banksystem-vq08-open-source-onboarding-interview-demo-task-package.md, agent/plans/active/banksystem-open-source-product-baseline-v1.md, agent/plans/active/banksystem-open-source-task-packages-v1.yaml, docs/design/visual-acceptance/banksystem-v1/**, docs/architecture/refactoring/batches/RF-028/**, agent/backlog.yaml, agent/plans/active/v54-implementation-batches.md]
+        acceptance:
+          - A01-A08 have large-medium-small packages with inherited business rules, pitfalls, templates and machine-checkable done conditions.
+          - VQ-01 through VQ-08 are presented serially with one image and one functional description per question.
+          - The project owner textual decision and selected image hash are recorded before advancing.
+          - Design preview never becomes implementation, LIVE_E2E or release evidence.
+      - id: BANKSYSTEM-OSS-A03-BANK-GOLDEN-PATH-001
+        title: Bank transfer golden path
+        status: REVIEW
+        owner: Codex
+        dependsOn: [BANKSYSTEM-OSS-A02-REPRODUCIBLE-RUNTIME-001]
+        evidence: [docs/architecture/refactoring/batches/RF-030/evidence-index.md, docs/architecture/refactoring/batches/RF-031/evidence-index.md, docs/architecture/refactoring/batches/RF-032/evidence-index.md, docs/architecture/refactoring/batches/RF-033/evidence-index.md, docs/architecture/refactoring/batches/RF-034/evidence-index.md, docs/architecture/refactoring/batches/RF-035/evidence-index.md, docs/architecture/refactoring/batches/RF-036/evidence-index.md]
+        allowedPaths: [.env.example, compose.channel.yaml, apps/customer-portal/**, packages/bank-api-client/**, services/bank-channel-service/src/main/resources/application.yml, services/bank-channel-service/src/main/java/local/bank/channel/FineractAdapter.java, services/bank-channel-service/src/main/java/local/bank/channel/TestSupportController.java, services/bank-channel-service/src/main/java/local/bank/channel/payments/TransferController.java, services/bank-channel-service/src/main/java/local/bank/channel/payments/TransferProcessor.java, services/bank-channel-service/src/main/resources/db/changelog/**, services/bank-channel-service/src/test/java/local/bank/channel/**, services/bank-channel-service/src/main/resources/fixtures/baseline-fixtures.yaml, contracts/fixtures/baseline-fixtures.yaml, contracts/openapi/test-support-api.yaml, contracts/openapi/customer-api.yaml, contracts/openapi/operations-api.yaml, docs/architecture/refactoring/batches/RF-030/**, docs/architecture/refactoring/batches/RF-031/**, docs/architecture/refactoring/batches/RF-032/**, docs/architecture/refactoring/batches/RF-033/**, agent/plans/active/banksystem-tp-a03-bank-golden-path-task-package.md, agent/plans/active/banksystem-open-source-task-packages-v1.yaml, agent/plans/active/banksystem-three-level-development-control-v1.md, agent/plans/active/banksystem-three-level-development-control-v1.yaml, agent/backlog.yaml, agent/plans/active/v54-implementation-batches.md]
+        acceptance:
+          - Repeated fixture seed creates no duplicate Fineract clients or savings accounts.
+          - Keycloak subject mapping survives Bank Channel restart.
+          - RF-030 seed/identity and RF-031 transfer/balance/correlation are closed with Fresh integration evidence.
+          - RF-032 closes customer confirmation and shared-client integration; RF-033 and RF-034 prove customer and operations browser paths.
+          - RF-035 closes the API-only root golden runner; A03 remains open until customer login/account overview has Fresh browser evidence.
+          - RF-036 supplies that Fresh login/account evidence; A03 is engineering-complete and awaits review, not LIVE or release promotion.
+      - id: BANKSYSTEM-OSS-A04-QUALITY-READ-MODEL-001
+        title: Read-only Quality Portal
+        status: REVIEW
+        owner: Codex
+        dependsOn: [BANKSYSTEM-OSS-A03-BANK-GOLDEN-PATH-001]
+        evidence: [docs/architecture/refactoring/batches/RF-037/evidence-index.md, docs/architecture/refactoring/batches/RF-038/evidence-index.md, docs/architecture/refactoring/batches/RF-039/evidence-index.md]
+        acceptance:
+          - RF-037 closes the loopback GET-only Harness projection from SQLite and rejects writes with 405.
+          - RF-038 closes same-port static hosting, nine-view navigation and visible mutation removal with Fresh browser evidence.
+          - RF-039 binds ReleaseIdentity when a run is enqueued and projects Journey Run Correlation and identity without historical inference.
+          - A04 is engineering-complete and awaits review; its contract tests are not LIVE Full18 evidence.
+      - id: BANKSYSTEM-OSS-A05-CLI-PRODUCT-INTEGRATION-001
+        title: CLI Agent product integration
+        status: REVIEW
+        owner: Codex
+        dependsOn: [BANKSYSTEM-OSS-A04-QUALITY-READ-MODEL-001]
+        evidence: [docs/architecture/refactoring/batches/RF-040/evidence-index.md, docs/architecture/refactoring/batches/RF-041/evidence-index.md, docs/architecture/refactoring/batches/RF-042/evidence-index.md, docs/architecture/refactoring/batches/RF-043/evidence-index.md, docs/architecture/refactoring/batches/RF-044/evidence-index.md, docs/architecture/refactoring/batches/RF-045/evidence-index.md, docs/architecture/refactoring/batches/RF-046/evidence-index.md]
+        acceptance:
+          - RF-040 closes the six-step prerequisite doctor, service status grammar, and exit-code contract.
+          - RF-041 closes Harness-authoritative session start, resume, status, identity fencing, and process-restart recovery through MCP.
+          - RF-042 owns the single BYOK OpenAI-compatible model binding and explicit one-attempt probe.
+          - RF-043 closes strict model-authored Journey candidates and Harness-authoritative validation readback through real MCP and Fresh Harness.
+          - RF-044 closes explicit exact Journey approval and rejection through real MCP and Fresh Harness without execution.
+          - RF-045 closes A05-M03-S01 under ReleaseIdentity 7ba381c4...3a74: a real BYOK-authored read-only Journey passed exact approval, 4/4 stability, one-attempt Worker Playwright execution, 8/8 formal assertions, artifact hash verification, zero bank writes, and state-preserving shutdown after 631/631 registered tests.
+          - RF-046 closes A05-M03-S02 under ReleaseIdentity 184244a3...47cc0; real BYOK author and exact approval reached a terminal browser Journey, Run PASSED and Task SUCCEEDED, and CLI VERIFIED all five evidence kinds and seven artifact byte hashes.
+          - Final registered suite passed 640/640; identity remained unchanged and safe shutdown preserved volumes and the Full18 ledger. A05 is engineering-complete and enters REVIEW, not Full18, LIVE_E2E, or release GO.
+      - id: BANKSYSTEM-RF048-AUTHORITY-DEAD-CODE-001
+        title: Current v4 authority and dead-code closure
+        status: REVIEW
+        owner: Codex
+        dependsOn: [BANKSYSTEM-OSS-A05-CLI-PRODUCT-INTEGRATION-001]
+        evidence: [docs/architecture/refactoring/batches/RF-048/evidence-index.md]
+        allowedPaths: [.github/workflows/ci.yml, demo.ps1, apps/customer-web/**, apps/operations-web/**, apps/operations-console/legacy/**, services/bank-channel/**, docs/architecture/refactoring/module-boundaries-v1.yaml, docs/architecture/refactoring/business-module-defect-coupling-audit-v1.md, docs/architecture/refactoring/batches/RF-048/**, platform/hengzhun-regression-system/README.md, platform/hengzhun-regression-system/package.json, platform/hengzhun-regression-system/agent-cli/**, platform/hengzhun-regression-system/scripts/i10-agent-current-status.cjs, platform/hengzhun-regression-system/scripts/i10-agent-lifecycle.cjs, platform/hengzhun-regression-system/scripts/i10-agent-release-decision.cjs, platform/hengzhun-regression-system/scripts/verification/**, agent/backlog.yaml, agent/plans/active/v54-implementation-batches.md]
+        acceptance:
+          - Current status joins managed runtime and acceptance ledger under one ReleaseIdentity v4.
+          - Flowise has no current CI, lifecycle, rollback, release-decision or package-script entrypoint.
+          - The unreferenced legacy bank-channel and static web implementations are deleted.
+          - The dependency map marks Flowise historical read-only and names only current product commands.
+          - Focused STATIC and CONTRACT gates pass without stopping managed services.
+      - id: BANKSYSTEM-RF049-TRANSFER-RESULT-CONVERGENCE-001
+        title: Transfer core-result convergence and accounting projection
+        status: REVIEW
+        owner: Codex
+        dependsOn: [BANKSYSTEM-RF048-AUTHORITY-DEAD-CODE-001]
+        evidence: [docs/architecture/refactoring/batches/RF-049/evidence-index.md]
+        allowedPaths: [services/bank-channel-service/**, contracts/openapi/customer-api.yaml, contracts/openapi/operations-api.yaml, contracts/openapi/test-support-api.yaml, contracts/asyncapi/bank-events.yaml, contracts/catalogs/assertion-catalog.seed.yaml, packages/bank-domain-types/**, packages/bank-ui-kit/**, packages/bank-api-client/src/generated/**, apps/customer-portal/src/pages/TransferList.tsx, apps/operations-console/src/pages/PaymentDetail.tsx, apps/operations-console/src/pages/PaymentMonitoring.tsx, scripts/demo/run-golden-path.ps1, scripts/test/customer-security-e2e.ps1, scripts/test/customer-transfer-e2e.ps1, scripts/deploy/verify-demo-lifecycle.ps1, docs/architecture/adr/adr-004-deterministic-money-ops.md, docs/architecture/refactoring/module-boundaries-v1.yaml, docs/architecture/refactoring/batches/RF-049/**, agent/backlog.yaml, agent/plans/active/v54-implementation-batches.md]
+        acceptance:
+          - Fineract POST runs outside the channel database transaction.
+          - Ambiguous core outcomes enter CORE_RESULT_UNKNOWN and re-entry performs readback without a second POST.
+          - SETTLED requires authoritative Fineract readback; FAILED requires explicit rejection plus empty readback.
+          - The local debit and credit view is named transfer_accounting_projection and never treated as the ledger of record.
+           - Java, frontend, contract and fresh-database migration gates pass while managed services remain open.
+      - id: BANKSYSTEM-RF050-TRANSFER-RULE-CLOSURE-001
+        title: Transfer idempotency risk return and reversal closure
+        status: REVIEW
+        owner: Codex
+        dependsOn: [BANKSYSTEM-RF049-TRANSFER-RESULT-CONVERGENCE-001]
+        evidence: [docs/architecture/refactoring/batches/RF-050/evidence-index.md]
+        allowedPaths: [services/bank-channel-service/**, contracts/openapi/customer-api.yaml, contracts/openapi/operations-api.yaml, contracts/asyncapi/bank-events.yaml, packages/bank-domain-types/**, packages/bank-ui-kit/**, packages/bank-api-client/**, apps/customer-portal/**, apps/operations-console/**, scripts/test/**, docs/architecture/refactoring/batches/RF-050/**, docs/architecture/refactoring/module-boundaries-v1.yaml, agent/backlog.yaml, agent/plans/active/v54-implementation-batches.md]
+        acceptance:
+          - Idempotency records are isolated by subject operation and client key.
+          - Deterministic risk evaluation runs before core submission and REVIEW or BLOCK never posts to Fineract.
+          - Return status passes through pending or unknown before confirmed RETURNED.
+          - Reversal submission is single-claim readback-convergent and cannot be taken over by another checker.
+          - Java contract frontend migration and golden-transfer gates pass while managed services remain open.
+      - id: BANKSYSTEM-RF051-EOD-RECONCILIATION-001
+        title: EOD checkpointing and transaction-level reconciliation
+        status: REVIEW
+        owner: Codex
+        dependsOn: [BANKSYSTEM-RF050-TRANSFER-RULE-CLOSURE-001]
+        evidence: [docs/architecture/refactoring/batches/RF-051/evidence-index.md]
+        allowedPaths: [services/bank-channel-service/**, contracts/openapi/operations-api.yaml, packages/bank-api-client/**, apps/operations-console/**, docs/architecture/refactoring/batches/RF-051/**, agent/backlog.yaml, agent/plans/active/v54-implementation-batches.md]
+        acceptance:
+          - EOD run and idempotency key are persisted before external work.
+          - Every successful core job has a durable step checkpoint and resume skips it.
+          - Reconciliation compares each transaction reference amount and currency and persists field differences.
+          - Business date advances only after pre-job and post-job reconciliation both report zero differences.
+          - Java frontend migration read-only runtime and golden-transfer gates pass while managed services remain open.
+      - id: BANKSYSTEM-RF052-AUDIT-EVENT-DELIVERY-001
+        title: Audit chain and event delivery closure
+        status: REVIEW
+        owner: Codex
+        dependsOn: [BANKSYSTEM-RF051-EOD-RECONCILIATION-001]
+        evidence: [docs/architecture/refactoring/batches/RF-052/evidence-index.md]
+        allowedPaths: [services/bank-channel-service/**, contracts/asyncapi/bank-events.yaml, docs/architecture/refactoring/batches/RF-052/**, agent/backlog.yaml, agent/plans/active/v54-implementation-batches.md]
+        acceptance:
+          - Concurrent audit writes form one chain and version 2 hashes every persisted record field.
+          - Audit lookup or metadata serialization failures are not converted to null or empty JSON.
+          - Two publishers atomically claim distinct eligible Outbox events.
+          - Exhausted delivery is DEAD_LETTERED and never reported as PUBLISHED.
+          - Published events carry event ID and consumers deduplicate by consumer and event ID.
+          - Java migration authenticated audit verification and golden-transfer gates pass while managed services remain open.
+      - id: BANKSYSTEM-RF053-CUSTOMER-READ-MODEL-001
+        title: Customer read-model truthfulness
+        status: REVIEW
+        owner: Codex
+        dependsOn: [BANKSYSTEM-RF052-AUDIT-EVENT-DELIVERY-001]
+        evidence: [docs/architecture/refactoring/batches/RF-053/evidence-index.md]
+        allowedPaths: [services/bank-channel-service/**, scripts/demo/run-golden-path.ps1, apps/customer-portal/**, docs/architecture/refactoring/batches/RF-053/**, agent/backlog.yaml, agent/plans/active/v54-implementation-batches.md]
+        acceptance:
+          - Missing core money dates identifiers currency and unknown transaction types fail the customer read request.
+          - Statements use deterministic ordering and authoritative core running balances.
+          - Public errors never expose raw Fineract response bodies.
+          - Generic savings commands are replaced by explicit account actions using the core posting date.
+          - Beneficiary equality uses a server-keyed HMAC and repeated destination creation remains one row.
+          - Java portal and extended golden-path gates pass while managed services remain open.
+      - id: BANKSYSTEM-RF054-LOAN-WORKFLOW-001
+        title: Loan application state-machine closure
+        status: REVIEW
+        owner: Codex
+        dependsOn: [BANKSYSTEM-RF053-CUSTOMER-READ-MODEL-001]
+        evidence: [docs/architecture/refactoring/batches/RF-054/evidence-index.md]
+        allowedPaths: [services/bank-channel-service/**, contracts/openapi/customer-api.yaml, contracts/openapi/operations-api.yaml, packages/bank-api-client/**, apps/customer-portal/**, apps/operations-console/**, scripts/test/loan-scoring-maker-checker-e2e.ps1, tests/e2e/frontend-customer-experience/**, docs/architecture/refactoring/batches/RF-054/**, agent/backlog.yaml, agent/plans/active/v54-implementation-batches.md]
+        acceptance:
+          - Loan applications move only through DRAFT SUBMITTED SCORED APPROVED and CORE_SUBMITTED with expected-state version updates.
+          - Loan officer and independent loan approver roles form a maker-checker boundary.
+          - Customer and operations pages use the real fields rates state and core loan ID.
+          - Loan documents use a server-generated controlled reference bound to the owned draft.
+          - Java contract frontend browser retained migration and live Fineract core-submit gates pass while managed services remain open.
+      - id: BANKSYSTEM-RF055-TEST-SUPPORT-DEMO-IDENTITY-001
+        title: Test support and fixed demo identity closure
+        status: REVIEW
+        owner: Codex
+        dependsOn: [BANKSYSTEM-RF054-LOAN-WORKFLOW-001]
+        evidence: [docs/architecture/refactoring/batches/RF-055/evidence-index.md]
+        allowedPaths: [contracts/fixtures/baseline-fixtures.yaml, contracts/openapi/test-support-api.yaml, services/bank-channel-service/**, compose.channel.yaml, infra/gateway/**, infra/keycloak/**, demo.ps1, scripts/demo/**, scripts/deploy/**, docs/architecture/refactoring/module-boundaries-v1.yaml, docs/architecture/refactoring/batches/RF-055/**, agent/backlog.yaml, agent/plans/active/v54-implementation-batches.md]
+        acceptance:
+          - One repository fixture catalog owns repeatable savings and loan demo resources.
+          - Two reset and seed cycles reuse stable Fineract identifiers without duplicates.
+          - Fixed synthetic customer and operator identities authenticate after restart.
+          - The production Bank Channel listener returns 404 for Test Support routes.
+          - Default Compose omits Mock Clearing and managed services remain running.
+      - id: OPS-DOCKER-001
+        title: Channel managed restart and reversible socket recovery
+        status: REVIEW
+        owner: Codex
+        dependsOn: [BANKSYSTEM-RF055-TEST-SUPPORT-DEMO-IDENTITY-001]
+        evidence: [docs/operations/ops-docker-001.md]
+        allowedPaths: [compose.channel.yaml, docs/operations/ops-docker-001.md, agent/backlog.yaml, agent/plans/active/v54-implementation-batches.md]
+        acceptance:
+          - Default Channel services use unless-stopped and Mock Clearing remains opt-in.
+          - Engine recovery describes only the two observed temporary endpoint directories and preserves volumes.
+          - Controlled restart restores core and Channel health without down or reset.
+      - id: BANKSYSTEM-RF056-MODULE-BOUNDARY-001
+        title: Bank module boundary and security closure; S1-S6 verified, model-bound identity awaiting LIVE authorization
+        status: REVIEW
+        owner: Codex
+        dependsOn: [OPS-DOCKER-001]
+        evidence: [docs/architecture/refactoring/batches/RF-056/evidence-index.md]
+        allowedPaths: [AGENTS.md, services/AGENTS.md, infra/keycloak/**, services/bank-channel-service/**, apps/customer-portal/**, apps/operations-console/**, packages/bank-api-client/**, contracts/openapi/operations-api.yaml, scripts/architecture/validate_refactoring.py, scripts/demo/**, scripts/test/**, docs/architecture/refactoring/batches/RF-054/batch.yaml, docs/architecture/refactoring/batches/RF-056/**, docs/architecture/refactoring/module-boundaries-v1.yaml, agent/backlog.yaml, agent/plans/active/v54-implementation-batches.md]
+        acceptance:
+          - Audience and authorized-party claims are enforced after Keycloak signing changes.
+          - Customer login uses PKCE only and reload restores the Keycloak session.
+          - No Controller calls another Controller; Fineract has five capability ports and one HTTP transport.
+          - Controllers and application services no longer own SQL; document status is version-conditional.
+          - Java, browser, architecture and bank golden-path gates pass without Agent LIVE claims.
+      - id: BANKSYSTEM-RF057-REAL-ACCEPTANCE-001
+        # P05 source/contracts closed 2026-10-09; actual current-identity capacity and final 28-case evidence remain pending.
+        # RF063 repairs precede further RF057 acceptance, per the unique order source.
+        title: Real bank and CLI Agent business acceptance plus stress and performance
+        status: IN_PROGRESS
+        owner: Codex
+        dependsOn: [BANKSYSTEM-RF056-MODULE-BOUNDARY-001]
+        evidence: [docs/architecture/refactoring/batches/RF-057/evidence-index.md, docs/architecture/refactoring/batches/RF-057/root-cause-and-repair-a01-001.md, docs/architecture/refactoring/batches/RF-057/repair-implementation-a01-001.md, docs/architecture/refactoring/batches/RF-057/a01-live-revalidation-002.md, docs/architecture/refactoring/batches/RF-057/a02-a06-runtime-gap-repair.md]
+        allowedPaths: [scripts/test/**, tests/**, scripts/demo/**, platform/hengzhun-regression-system/scripts/**, platform/hengzhun-regression-system/agent-cli/release-identity-v4-manifest.json, platform/hengzhun-regression-system/agent-cli/src/production-service.mjs, platform/hengzhun-regression-system/agent-cli/src/contracts.mjs, platform/hengzhun-regression-system/agent-cli/src/headless-app.mjs, platform/hengzhun-regression-system/agent-cli/test/headless-cli.test.mjs, platform/hengzhun-regression-system/agent-cli/test/release-lifecycle.test.mjs, platform/hengzhun-regression-system/harness/src/schemas.ts, platform/hengzhun-regression-system/harness/src/i10/schemas.ts, platform/hengzhun-regression-system/harness/src/service.ts, platform/hengzhun-regression-system/harness/src/release-verification.ts, platform/hengzhun-regression-system/mcp/src/server.cjs, platform/hengzhun-regression-system/mcp/src/rf001-contract-adapter.cjs, platform/hengzhun-regression-system/mcp/src/journey-evidence-projection.cjs, platform/hengzhun-regression-system/agent-cli/test/journey-execute.test.mjs, platform/hengzhun-regression-system/agent-cli/test/journey-author-validate.test.mjs, platform/hengzhun-regression-system/controller/src/journey-author.mjs, platform/hengzhun-regression-system/harness/src/i10/service.ts, platform/hengzhun-regression-system/harness/src/i8/script-package-builder.ts, platform/hengzhun-regression-system/harness/src/i8/stage4-schemas.ts, platform/hengzhun-regression-system/harness/src/i8/target-adapter-registry.ts, platform/hengzhun-regression-system/harness/src/i8/adapters/fuxing-bank-demo.ts, platform/hengzhun-regression-system/harness/src/quality-read-model.ts, platform/hengzhun-regression-system/harness/src/server.ts, platform/hengzhun-regression-system/worker/src/i10-midscene-candidate-authoring.cjs, platform/hengzhun-regression-system/worker/src/i10-worker-utils.cjs, platform/hengzhun-regression-system/worker/src/index.cjs, platform/hengzhun-regression-system/worker/src/i8-stability-runner.cjs, platform/hengzhun-regression-system/worker/src/i8-formal-runner.cjs, platform/hengzhun-regression-system/worker/src/i10-verification-policy.cjs, platform/hengzhun-regression-system/worker/src/adapters/fuxing-bank-demo/**, platform/hengzhun-regression-system/contracts/adapters/fuxing-bank-demo-auth-v2.json, platform/hengzhun-regression-system/contracts/adapters/fuxing-bank-operations-auth-v1.json, contracts/openapi/quality-platform-api.yaml, apps/quality-case-portal/src/api.ts, apps/quality-case-portal/src/types.ts, apps/quality-case-portal/src/pages.tsx, apps/quality-case-portal/src/generated/quality-api.ts, docs/architecture/refactoring/batches/RF-057/**, docs/current-state/capability-matrix.md, agent/backlog.yaml, agent/plans/active/v54-implementation-batches.md, services/bank-channel-service/src/main/java/local/bank/channel/IsolatedTransferFixtureService.java, services/bank-channel-service/src/main/java/local/bank/channel/TestSupportController.java, services/bank-channel-service/src/main/java/local/bank/channel/identity/CustomerIdentityRepository.java, services/bank-channel-service/src/test/java/local/bank/channel/IsolatedTransferFixtureIntegrationTest.java, contracts/openapi/test-support-api.yaml, docs/architecture/refactoring/module-boundaries-v1.yaml, services/bank-channel-service/Dockerfile, apps/customer-portal/src/pages/TransferCreate.tsx, apps/customer-portal/src/pages/TransferResult.tsx, platform/hengzhun-regression-system/harness/src/release-case-evidence.ts]
+        acceptance:
+          - All new manifest real-bank and real-model cases have current verifiable reports.
+          - Read ramp payment contention document concurrency Agent queue and soak have measured outcomes.
+          - All funds and reconciliation invariants hold and no stage8 mock is used for bank proof.
+      - {id: BANKSYSTEM-RF047-S1-001, title: A06 L1 offline authoritative evidence gate, status: REVIEW, owner: Codex, dependsOn: [BANKSYSTEM-OSS-A05-CLI-PRODUCT-INTEGRATION-001], evidence: [docs/architecture/refactoring/batches/RF-047/evidence-index.md]}
+      - {id: BANKSYSTEM-RF047-S2-001, title: L1 LIVE repair implemented; public readback normalization fixed offline, new identity pending, status: BLOCKED, owner: Codex, dependsOn: [BANKSYSTEM-RF047-S1-001, BANKSYSTEM-P0-RUNTIME-DOCS-20260921], evidence: [docs/architecture/refactoring/batches/RF-047/evidence-index.md, docs/architecture/refactoring/batches/RF-047/root-cause-list-live-009.md, agent/runs/rf047/live-011/failure-1789979712740.json]}
+      - {id: BANKSYSTEM-RF047-S3-001, title: Frozen L1 TEXT_WITH_IMAGE LIVE after S2 PASS, status: BLOCKED, owner: Codex, dependsOn: [BANKSYSTEM-RF047-S2-001], evidence: [docs/architecture/refactoring/batches/RF-047/evidence-index.md]}
+      - {id: BANKSYSTEM-P0-RUNTIME-DOCS-20260921, title: Verify demo readiness and align current CLI product documentation, status: REVIEW, owner: Codex, dependsOn: [BANKSYSTEM-OSS-A05-CLI-PRODUCT-INTEGRATION-001], evidence: [agent/plans/active/banksystem-p0-repair-control-2026-09-21.md]}
+      - {id: BANKSYSTEM-OSS-A06-LIVE-FULL18-001, title: LIVE L1 and Full18 release evidence, status: BLOCKED, owner: project-owner, dependsOn: [BANKSYSTEM-RF047-S1-001], evidence: [docs/architecture/refactoring/batches/RF-047/evidence-index.md]}
+      # Dependencies are completion gates; offline CI implementation precedes the final identity freeze in the order source.
+      - {id: BANKSYSTEM-OSS-A07-FULL-REPO-CI-001, title: Full-repository CI and quality gate for BANK-AGENT-ACCEPTANCE-v1, status: IN_PROGRESS, owner: Codex, dependsOn: [BANKSYSTEM-RF056-MODULE-BOUNDARY-001], evidence: [docs/architecture/refactoring/batches/RF-065/evidence-index.md]}
+      # S3-8-ADM implemented per user: web-app opt-in admin-tools, no default readiness/restart dependency. Actual config default3/admin4,91 contracts and2 PS parses passed; current source/candidate/runtime receipts in admin-profile-01. Default14 services/12 images/smoke10, optional inventory and historical15/13/security evidence retained. Exact profile-only core Compose exception; no service/volume/date mutation or security waiver/LIVE/freeze. Keycloak feature candidate still needs separate authorization.
+      # Current S3-3 license-material increment: root MPL/BSD/Apache notices, exact publisher-matched wrapper3.3.2 and original LICENSE/NOTICE verified; source-license-review included/recomputed and CI-upload wired. Historical I10 inventory relabeled without deleting data; named*.env excluded before both copies, original file/index untouched. Real2455-source scan0, nine-lock native1/two ZIP advisories plus four regressions retained,89 contracts passed. Full15/13 candidate45 artifacts still BLOCKED/5/NO_GO; materials-only review is not full distribution acceptance. Non-GitHub report-data/actual binary obligations and seven image risk groups/fullCI/28 remain open. No original runtime/volume/date changes, freeze/LIVE/commit/push.
+      # Same S3-3 final review: bind all13 image roles to current registered IDs; reviewed portal swaps and clean-webapp substitution for observability rejected. New role-bound reviews/candidate-final-02 retain blockers, final source contracts86. Earlier84 remains historical; no new risk waiver or release acceptance.
+      # RF065-S3 current full-image-material increment: real candidate produce/verify covers15 default services/13 selected images, COMPLETE coverage but BLOCKED/exit5. Seven image risk groups and distribution obligations remain; unchanged Keycloak/four observers are explicitly blocked baselines, not repaired candidates. Nginx full COPY cone omission fixed;122 inputs equal prior real build snapshot before rebinding, four reviews1 accepted/no block. Fresh online Fineract scan still3/reviewed, native1 retained. Source contracts84/governance/docs/Gitleaks2453 passed. Source-only CI wired, full-image CI execution/freeze/28/remoteCI pending. S3 IMPLEMENTING/A07 IN_PROGRESS/NO_GO; original services/volumes/date and index preserved, no commit/push/LIVE.
+      # 2026-10-13 user authorizes precise ZIP patch review/licensing, then image candidate/current-identity28/remote CI; raw advisory failures remain visible, existing services/volumes stay running. No automatic commit/push/public release.
+      # RF065-S3-F1 locally reviewed: frontend findings 50->0, existing tests 57/57, real PKCE/refresh/navigation passed. Overall scan remains 30 occurrences/66 advisories/1 Critical; F2/F3 and formal acceptance remain open.
+      # RF065-S3-F2 latest: fixable findings 19->2, FFmpeg consumer omission repaired, isolated registered suite 752/752 and unchanged coverage gate passed. Overall 13 occurrences/40 advisories/1 Critical; F2 upstream remnants and F3 remain open, NO_GO.
+      # RF065-S3 latest: Channel actual native52 (old48 minus1/add5); 111 source inputs prove only Gateway image changed before restoring binding. New five GnuTLS certificate paths precisely reviewed, native1 retained; license originals0 unresolved, distribution obligations incomplete. Fixed reviewed image ID not checked and partial47 report falsely REVIEWED; real metadata-only image and missing-five report now rejected. Image contracts46/four source groups69; shared verdict rechecks four nginx subjects, each1 reviewed/no missing. Nginx same-branch patch/static evidence preserved, not banking/Agent acceptance. Candidate-inventory06 MQ57/PG116/web0, missing Keycloak/four observers; default15/13 unchanged. Other image risks/license delivery/S3-3 artifact producer/freeze/28/remoteCI pending. Management UI/Keycloak feature decisions pending. Original services/volumes/date preserved, no DB/funds/model/LIVE/commit/push. S3 IMPLEMENTING/A07 IN_PROGRESS/NO_GO.
+      - {id: BANKSYSTEM-OSS-A08-OPEN-SOURCE-RELEASE-001, title: Local interview candidate and open-source release materials; public release separate, status: BLOCKED, owner: project-owner, dependsOn: [BANKSYSTEM-OSS-A07-FULL-REPO-CI-001, BANKSYSTEM-RF057-REAL-ACCEPTANCE-001]}
+      - id: BANKSYSTEM-RF063-BUSINESS-REPAIR-001
+        title: Current business defect repair and independent usability review
+        status: IN_PROGRESS
+        owner: Codex
+        dependsOn: [BANKSYSTEM-RF056-MODULE-BOUNDARY-001]
+        evidence: [docs/architecture/refactoring/batches/RF-063/evidence-index.md]
+        acceptance:
+          - M01 through M17 have root cause, regression evidence and independent review.
+          - Real bank, CLI and performance acceptance determine product usability.
+      - id: BANKSYSTEM-RF064-NORMALIZATION-001
+        # 2026-10-09 S3-5 review fixes expired authoring ownership/context mismatch; full registered regression running; LIVE and final acceptance remain open.
+        title: Confirmed lifecycle requirements scheduled regression and verified feedback
+        status: IN_PROGRESS
+        owner: Codex
+        dependsOn: [BANKSYSTEM-RF056-MODULE-BOUNDARY-001]
+        evidence: [docs/architecture/refactoring/batches/RF-064/evidence-index.md, docs/design/product-normalization/README.md]
+        acceptance:
+          - N01 through N12 map formal sources to implementation and verified evidence.
+          - Scheduling handoff and feedback are persisted in Harness and tested without invented business inputs.
+          - Current identity acceptance capacity isolated reproduction and actual UAT determine completion.
       - id: HZ-OBSERVABILITY-001
         title: Hengzhun read-only observability implementation
-        status: BLOCKED
+        status: REVIEW
         owner: 傅钧烨
-        dependsOn: [COZE-HARNESS-CORE-001]
+        dependsOn: [BANKSYSTEM-OSS-A03-BANK-GOLDEN-PATH-001]
         allowedPaths: [platform/**, apps/**, contracts/**, tests/**, docs/**, agent/**]
         acceptance:
-          - Deferred by project-owner decision; no implementation work is authorized until explicitly resumed.
+          - RF-037 implements the read-only projection contract; RF-038 supplies same-port hosting and browser evidence.
 
   - id: FRONTEND-TRANSFER-SLICE
     name: five-page-transfer-vertical-slice

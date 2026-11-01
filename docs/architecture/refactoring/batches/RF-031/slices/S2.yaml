@@ -1,0 +1,9 @@
+id: RF-031-S2
+title: Idempotent Fineract transfer posting
+status: COMPLETED
+allowedPaths: [services/bank-channel-service/src/main/java/local/bank/channel/FineractAdapter.java, services/bank-channel-service/src/main/java/local/bank/channel/payments/TransferProcessor.java, services/bank-channel-service/src/main/resources/db/changelog, services/bank-channel-service/src/test/java/local/bank/channel, docs/architecture/refactoring/batches/RF-031, agent/plans/active, agent/backlog.yaml]
+forbiddenPaths: [apps, platform, postgresql, demo.ps1]
+workSteps: [post with explicit current transfer date, preserve derived Fineract idempotency key, return only Fineract transaction reference, stop on core rejection]
+verification: [processor unit tests exit 0, fresh Fineract integration posts exactly once, duplicate process returns terminal result]
+rollback: revert only RF-031 adapter processor test and governance paths
+evidence: docs/architecture/refactoring/batches/RF-031/evidence-index.md

@@ -1,0 +1,31 @@
+databaseChangeLog:
+  - changeSet:
+      id: v15-loan-application-contract
+      author: Codex
+      changes:
+        - addColumn:
+            tableName: loan_application
+            columns:
+              - column: { name: repayment_method, type: varchar(64), defaultValue: EQUAL_INSTALLMENTS, constraints: { nullable: false } }
+              - column: { name: customer_note, type: varchar(240) }
+              - column: { name: quoted_annual_interest_rate, type: "numeric(8,4)", defaultValueNumeric: 4.3500, constraints: { nullable: false } }
+              - column: { name: approved_annual_interest_rate, type: "numeric(8,4)" }
+              - column: { name: approved_amount, type: "numeric(19,2)" }
+        - sql:
+            sql: "ALTER TABLE loan_application ADD CONSTRAINT ck_loan_application_status CHECK (status IN ('DRAFT','SUBMITTED','SCORED','APPROVED','CORE_SUBMITTED','DISBURSED','CLOSED','REJECTED'))"
+        - sql:
+            sql: "ALTER TABLE loan_application ADD CONSTRAINT ck_loan_quoted_rate CHECK (quoted_annual_interest_rate > 0)"
+        - sql:
+            sql: "ALTER TABLE loan_application ADD CONSTRAINT ck_loan_approved_rate CHECK (approved_annual_interest_rate IS NULL OR approved_annual_interest_rate > 0)"
+  - changeSet:
+      id: v15-loan-approval-concurrency
+      author: Codex
+      changes:
+        - addColumn:
+            tableName: loan_approval
+            columns:
+              - column: { name: application_version, type: bigint, defaultValueNumeric: 1, constraints: { nullable: false } }
+        - sql:
+            sql: "ALTER TABLE loan_approval ADD CONSTRAINT ck_loan_approval_status CHECK (status IN ('PENDING','APPROVED','REJECTED'))"
+        - sql:
+            sql: "CREATE UNIQUE INDEX uq_loan_approval_pending ON loan_approval(application_id) WHERE status='PENDING'"

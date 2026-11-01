@@ -42,9 +42,7 @@ async function executeAccountOwnership(task, environment = process.env, options 
   try {
     throwIfLeaseAborted(options.signal);
     await page.goto(`${portalBaseUrl}/portal/login`, { waitUntil: 'domcontentloaded', timeout: 30000 });
-    await page.getByTestId('login-username').fill(credential.username);
-    await page.getByTestId('login-password').fill(credential.password);
-    await page.getByTestId('login-submit').click();
+    await executeBankAuthentication(page,credential);
     await page.getByTestId('customer-profile-name').waitFor({ state: 'visible', timeout: 30000 });
     await page.getByRole('link', { name: '账户', exact: true }).click();
     const table = page.locator('.customer-table-card table');
@@ -115,7 +113,7 @@ async function executeAccountOwnership(task, environment = process.env, options 
       networkSummary: network.slice(-50)
     };
     const evidence = [artifact('DIAGNOSTIC', 'application/json', 'REDACTED', 'json', JSON.stringify(diagnostic, null, 2), { containsCredentials: false })];
-    const screenshot = await page.screenshot({ fullPage: true, mask: [page.getByTestId('login-username'), page.getByTestId('login-password'), page.locator('.customer-table-card')] }).catch(() => null);
+    const screenshot = await page.screenshot({ fullPage: true, mask: [page.locator('#username'), page.locator('#password'), page.locator('.customer-table-card')] }).catch(() => null);
     if (screenshot) evidence.push(quarantinedScreenshotArtifact(screenshot, { maskedFields: ['username', 'password', 'accountTable'], captureContext: 'FAILURE' }));
     error.evidence = evidence;
     throwIfLeaseAborted(options.signal);
@@ -128,3 +126,4 @@ async function executeAccountOwnership(task, environment = process.env, options 
 }
 
 module.exports = { executeAccountOwnership };
+const {executeBankAuthentication}=require('./authentication.cjs');
