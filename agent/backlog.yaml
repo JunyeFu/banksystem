@@ -13,7 +13,7 @@ tracks:
     workItems:
       - id: BANKSYSTEM-A08-GITHUB-SHOWCASE-SYNC-20261106
         title: Publish the authorized current source snapshot to GitHub main and refresh the commercial product homepage
-        status: IN_PROGRESS
+        status: DONE
         owner: Codex
         dependsOn: [BANKSYSTEM-RF065-MQ-NATIVE-CONSUMERS-20261106]
         evidence: [docs/showcase/README.md]

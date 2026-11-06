@@ -22,6 +22,8 @@ owner: project-owner
 
 本地发布前检查：215个受控文件及一项已计划删除，约5MB；86个产品变更文件与既有验证快照一致。Gitleaks无泄露，源码9/依赖78/工件29/workflow16合同、RF065治理及文档检查通过。GitHub GFM排版经1440px桌面和390px移动端无界面截图查看，压缩首屏说明并前置真实结果画面；封面为1440×470自有向量，三张PNG原件未改。截图证明排版而非新业务验收，远端同步及CI仍按实际回读登记。
 
+同步回执：[2c17cc6](https://github.com/JunyeFu/banksystem/commit/2c17cc62dcdebd51a3cbc92a05e514473cbcc5c8)已正常非force推送，远端main与本地一致；远端树确认README/新封面/三PNG共五份资产摘要匹配，已通过真实公开GitHub页面无界面截图查看。该源码提交的[CI运行42155832286](https://github.com/JunyeFu/banksystem/actions/runs/42155832286)回读时为in_progress，未声称绿色。本次同步回执另作正常追加提交，当前CI以main对应运行最新状态为准；A08正式发布、安全、最终身份和28项仍未闭合。
+
 首页三张原始实机截图来自 RF-068 S5 报告 `606619fe-6611-4ace-99f9-9f50572c9d84`（2026-10-26），未修改页面内容或伪造运行结果。
 
 | 公开资产 | 原始截图 | 内容 |
