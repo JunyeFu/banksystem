@@ -15,6 +15,9 @@ BASELINE = yaml.safe_load((ROOT / 'docs/architecture/refactoring/batches/RF-065/
 
 
 class SourceScopeTest(unittest.TestCase):
+    def test_delivery_scope_does_not_require_machine_local_environment(self):
+        self.assertFalse('mariadb/.env' in BASELINE['scope']['includePaths'], 'Source delivery must not require mariadb/.env')
+
     def check_contract(self, evidence, include, source_only):
         data = copy.deepcopy(BASELINE)
         data['scope']['includePaths'] = [include]

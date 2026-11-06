@@ -12,6 +12,12 @@ owner: Codex
 
 # 证据索引
 
+## 2026-11-06 远端CI已证失败的候选修复
+
+[现有CI任务包的本轮回执](ci-regression-20261105.md)记录main@bc22df6的实际失败，而非把本机结果冒称远端绿色。仅去除主动源码范围的私有配置、补原生扫描夹具清单、稳定浏览器反例及按实测修正测试文件预算；30项Python合同、真实Gitleaks三场景与2680份源码0泄露、隔离Chromium/Journey/工具链48项及治理/docs通过。候选分支codex/rf065-ci-20261106，远端结果待回读，不自动合并main。
+
+原15银行容器及三个Agent进程保持，旧面试站PID已不存在，未停止/重启或冒称其保持。无银行、模型、镜像、依赖或生产行为变化；当前全产品仍NO_GO，安全/许可、最终身份与正式28项不因本片通过。
+
 ## 2026-11-06 MQ原生消费者整体映射与SQLite组件去除
 
 [MQ任务W组](mq-library-security-20261106.md)先为U剩余58项映射真实原生入口，发现gpg/keyboxd→SQLite、字体工具→fontconfig→Expat两条实际链；没有给库编写不可达豁免。在新a21890…6237b4f镜像层仅断网dpkg移除gnupg/gpg/keyboxd/libsqlite3-0，保留gpgv/其它工具、577个上游和全部厂商JRE/信任库及六版权原件。实际包无其它增删/保留版本变化，新原生60→49（移除11个SQLite、新增0），新BOM无SQLite，native1保留。

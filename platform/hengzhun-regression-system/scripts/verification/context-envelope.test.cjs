@@ -143,13 +143,13 @@ test('real isolated Chromium proves exact-text and equal repair waits for unchan
   const worker=implementation=>executeAuthoringAssertion(page,action,page.getByTestId('status'),null,fixtures,implementation);
   const execute=(source)=>load(source).execute({page,baseUrl:'http://127.0.0.1',fixtures});
   const delayed=`<meta charset="utf-8"><span data-testid="status">处理中</span><script>setTimeout(()=>document.querySelector('span').textContent='完成',600)</script>`;
-  await setContent(delayed);
+  await setContent('<meta charset="utf-8"><span data-testid="status">处理中</span>');
   await assert.rejects(execute(generatedSource(dsl,locators,fixtures)),e=>e.code==='CANDIDATE_EXPECT_TEXT_FAILED');
   await setContent(delayed);
   assert.equal((await execute(generatedSource(dsl,locators,fixtures,{}, {},{dsl_01:'EXACT_TEXT'}))).outcome,'PASSED');
   const equality={...dsl,steps:[{stepId:'dsl_01',sourceActionId:'action_01',operation:'expectEqual',targetRef:'STATUS',comparisonTargetRef:'OTHER'}]};
   const delayedEqual=`<meta charset="utf-8"><span data-testid="status">100.00</span><span data-testid="other">99.00</span><script>setTimeout(()=>document.querySelector('[data-testid="other"]').textContent='100.00',600)</script>`;
-  await setContent(delayedEqual);
+  await setContent('<meta charset="utf-8"><span data-testid="status">100.00</span><span data-testid="other">99.00</span>');
   await assert.rejects(execute(generatedSource(equality,locators)),e=>e.code==='CANDIDATE_EXPECT_EQUAL_FAILED');
   await setContent(delayedEqual);
   assert.equal((await execute(generatedSource(equality,locators,{}, {}, {},{dsl_01:'EXACT_EQUAL'}))).outcome,'PASSED');

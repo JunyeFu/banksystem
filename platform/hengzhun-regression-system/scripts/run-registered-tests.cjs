@@ -9,7 +9,8 @@ const { spawnSync } = require('node:child_process')
 const productRoot = path.resolve(__dirname, '..')
 const manifestPath = path.join(__dirname, 'verification', 'test-manifest.json')
 const testNamePattern = /(?:\.test|\.selftest)\.cjs$/
-const REGISTERED_TEST_TIMEOUT_MS = 180_000
+// The serial Journey fixture file exceeds 180s on the measured Windows CI runner.
+const REGISTERED_TEST_TIMEOUT_MS = 300_000
 
 function posix(value) {
   return String(value).replaceAll(path.sep, '/')

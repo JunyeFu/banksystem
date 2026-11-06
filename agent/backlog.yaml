@@ -11,6 +11,19 @@ tracks:
   - id: GOVERNANCE
     name: knowledge-and-agent-control-plane
     workItems:
+      - id: BANKSYSTEM-RF065-REMOTE-CI-REPAIR-20261106
+        title: Repair observed clean-clone and Agent CI fixture failures without weakening assertions or security checks
+        status: IN_PROGRESS
+        owner: Codex
+        dependsOn: [BANKSYSTEM-A08-GITHUB-SHOWCASE-SYNC-20261106]
+        evidence: [docs/architecture/refactoring/batches/RF-065/ci-regression-20261105.md]
+        allowedPaths: [scripts/test/check_ci_gitleaks.py, scripts/test/test_refactoring_source_scope.py, platform/hengzhun-regression-system/scripts/verification/context-envelope.test.cjs, platform/hengzhun-regression-system/scripts/run-registered-tests.cjs, platform/hengzhun-regression-system/scripts/verification/test-toolchain.test.cjs, docs/architecture/refactoring/batches/RF-065, agent/backlog.yaml, agent/plans/active/v54-implementation-batches.md]
+        acceptance:
+          - Remove the private mariadb/.env requirement from active source scope without reading committing creating or deleting that local file; ordinary missing-source validation remains strict.
+          - Synthetic native Gitleaks fixtures produce the exact source manifest required by the existing scanner; clean and both positive scenarios pass without weakening content checks redaction or secret detection.
+          - Browser negative fixtures remain wrong until asserted; use the measured remote aggregate duration to correct the file-level test budget without retries exclusions skipped assertions or production timeout changes.
+          - Local matching contracts governance and docs pass before redacted source scan and explicit candidate-only commit push; record the actual remote run result separately and do not automatically merge this repair to main.
+          - Preserve original bank services data volumes business date and current NO_GO; CI does not substitute for the final identity or formal28.
       - id: BANKSYSTEM-A08-GITHUB-SHOWCASE-SYNC-20261106
         title: Publish the authorized current source snapshot to GitHub main and refresh the commercial product homepage
         status: DONE

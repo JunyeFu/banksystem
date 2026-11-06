@@ -1,6 +1,7 @@
 """Exercise the real scanner against synthetic inputs, including every scoped allowance."""
 import argparse
 import importlib.util
+import json
 from pathlib import Path
 import secrets
 
@@ -42,6 +43,10 @@ def main():
             if scenario == 'inline-positive':
                 content += ' // gitleaks:allow\n'
             target.write_text(content, encoding='utf-8')
+        hashes = MODULE.file_hashes(source, PATHS)
+        (report_path / 'source-manifest.json').write_text(json.dumps({
+            'files': list(PATHS), 'fileHashes': hashes,
+            'sourceDigest': MODULE.source_digest(hashes)}, ensure_ascii=False), encoding='utf-8')
         code, report = MODULE.scan(source, report_path, args.gitleaks)
         assert code == expected, (scenario, code)
         if expected:

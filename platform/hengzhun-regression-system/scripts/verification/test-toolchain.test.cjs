@@ -13,7 +13,7 @@ const {
 } = require('../run-registered-tests.cjs')
 
 test('registered files have one measured timeout budget without retries or parallelism', () => {
-  assert.equal(REGISTERED_TEST_TIMEOUT_MS, 180_000)
+  assert.equal(REGISTERED_TEST_TIMEOUT_MS, 300_000)
 })
 
 test('nested summaries allow additional passing tests but reject skipped failed cancelled or incomplete suites', () => {

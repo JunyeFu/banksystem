@@ -12,6 +12,30 @@ owner: Codex
 
 # RF065-S3：接通本轮修复的CI回归
 
+## 2026-11-06 远端CI合同接缝修复
+
+业务目标：新克隆在不取得开发者私有配置的条件下运行治理和真实秘密检测。基线为main@bc22df6，远端运行42156679230；其余已通过job不冒称整体CI通过。
+
+已证根因：governance在RF065校验时因`includePaths: missing path mariadb/.env`退出1；source-engineering在原生Gitleaks自测时因`clean-report/source-manifest.json`缺失退出1。前者是主动源码范围混入机器配置，后者是合成输入生产者未同步扫描器已有清单合同，不是银行代码或模型错误。
+
+实现分三步：①从batch及S3切片的主动范围删除这一私有路径，补源码范围回归，保留本地文件和普通缺路径拒绝；②合成输入写完后按既有file_hashes/source_digest生成扫描所需清单，保留clean、generic-positive、inline-positive三个真实扫描场景；③执行同一CI本地入口、秘密扫描及复审后，仅向codex/rf065-ci-20261106提交/推送并记录远端结果。尚在运行的原agent job继续沿原句柄观测，不重启或取消。
+
+路径白名单：scripts/test/check_ci_gitleaks.py、scripts/test/test_refactoring_source_scope.py，以及本批batch/slices/S3/tasks/S3/evidence-index、本任务包、唯一顺序和backlog。无生产依赖、接口、迁移、镜像或运行身份变化。不读取/新增/删除私有配置，不弱化扫描器，不调用银行或模型。
+
+验收：源码范围回归须先红后绿；test_ci_scan、test_ci_workflow与source-scope合同，真实Gitleaks三场景，RF064/RF065治理和docs通过。候选源码0秘密发现才允许显式提交，远端CI状态按实际记录；未运行的依赖安全门或最终28项仍不通过，整体NO_GO。失败只修已证接缝，不全局忽略或替换业务证据。
+
+同一远端agent job127692379162随后结束：838通过/1失败/1取消/0跳过，coverage未执行。context-envelope:147的普通断言反例使用600ms自动变成功的DOM，忙碌CI可能在断言前已改值；改为静态错误反例，保留延迟成功与错误结果拒绝。Journey文件已逐项通过直到resume测试，却在整个文件180000ms截止时被取消；更正注册器文件预算为300000ms，保留串行、单次、完整断言和总工作流限制，不改生产超时。对应增补白名单为P/scripts/verification/context-envelope.test.cjs、P/scripts/run-registered-tests.cjs、P/scripts/verification/test-toolchain.test.cjs；P同上。本机定向真实Chromium/Journey与工具链通过后才推候选，远端全套结果仍另记，不以本机旧841宣称本次远端通过。
+
+### 本次修复的本机回执与复审
+
+源码范围回归实际先红，移除batch与slice的唯一私有配置要求后5/5通过，普通缺源/证据及越界仍拒绝。扫描器9/9、workflow16/16合同通过；原生Gitleaks三场景分别0/10/10发现，退出0/1/1，内联allow仍不能绕过；当前2680份受控源码的脱敏扫描退出0、无泄露。扫描器生产逻辑/策略没有改动，夹具仅补其已有必需输入。
+
+隔离既有source-snapshot只同步三个测试/注册器文件，移除测试进程模型环境变量后，用Node20执行真实Chromium/context-envelope、Journey状态机及test-toolchain，48/48通过、失败/取消/跳过/todo均0，87.305秒。错误反例不再自动变成功；成功延迟DOM、错误目标和Worker拒绝断言保留。文件预算300秒仅供测试进程，仍串行单次，未放宽覆盖率或改生产代码；远端实际耗时与结果待候选CI，不拿本机48冒充全套或旧841。
+
+RF064/RF065 SOURCE_ONLY治理与完整docs通过。原main的CI最终为失败：六job成功，治理、source-engineering、agent三job失败，coverage跳过。实际远端结果不因本机修复而覆盖；本包仍待候选提交/CI回读，不自动合并main、冻结身份或执行正式28项。
+
+保存输出位于既有scratch的ci-remote-20261106-01：policy-contract-green-01、candidate-scan-01和agent-targeted-green.tap。复核原15银行容器仍为同ID且运行，12个有健康检查的容器健康；Harness/MCP/Worker三个进程ID与启动时间不变。旧面试站PID55848已不存在，保留检查脚本因此失败；未停止或重启该站，不据此声称四个原进程均保持，也不启动未知替代进程。所有银行数据/卷/日期均未操作。
+
 ## 业务目标
 
 开发者走现有GitHub agent job与本机registered入口时，真正运行本轮新增的凭据/金额、CAS、错误分类、来源、取消与清理反例。成功不是增大通过数量，而是新增测试不漏跑、失败不被包装器掩盖。
