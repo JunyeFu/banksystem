@@ -3,7 +3,6 @@ import argparse
 import importlib.util
 import json
 from pathlib import Path
-import secrets
 
 ROOT = Path(__file__).resolve().parents[2]
 SPEC = importlib.util.spec_from_file_location('ci_scan', ROOT / 'scripts/deploy/prepare-ci-scan.py')
@@ -38,7 +37,8 @@ def main():
             target = source / relative
             target.parent.mkdir(parents=True, exist_ok=True)
             # These generated values are never issued credentials or sent to an endpoint.
-            value = secrets.token_hex(24)
+            # Balanced synthetic hex has entropy 4; random hex can fall below the rule's 3.5 floor.
+            value = '7b2f9a0c6d4e1835' * 3
             content = 'public example text\n' if expected == 0 else f'const apiKey = "{value}";'
             if scenario == 'inline-positive':
                 content += ' // gitleaks:allow\n'
@@ -51,7 +51,7 @@ def main():
         assert code == expected, (scenario, code)
         if expected:
             detected = {Path(item['File']).as_posix().removeprefix(source.as_posix() + '/') for item in report['findings'] if item['RuleID'] == 'generic-api-key'}
-            assert detected == set(PATHS), (scenario, len(detected))
+            assert detected == set(PATHS), (scenario, sorted(set(PATHS) - detected), sorted(detected - set(PATHS)))
         print(f'GITLEAKS_NATIVE_CONTRACT={scenario}:PASS expectedExit={expected} findings={report["count"]}')
 
 

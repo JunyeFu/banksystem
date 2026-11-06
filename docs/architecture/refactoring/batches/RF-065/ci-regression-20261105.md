@@ -26,6 +26,12 @@ owner: Codex
 
 同一远端agent job127692379162随后结束：838通过/1失败/1取消/0跳过，coverage未执行。context-envelope:147的普通断言反例使用600ms自动变成功的DOM，忙碌CI可能在断言前已改值；改为静态错误反例，保留延迟成功与错误结果拒绝。Journey文件已逐项通过直到resume测试，却在整个文件180000ms截止时被取消；更正注册器文件预算为300000ms，保留串行、单次、完整断言和总工作流限制，不改生产超时。对应增补白名单为P/scripts/verification/context-envelope.test.cjs、P/scripts/run-registered-tests.cjs、P/scripts/verification/test-toolchain.test.cjs；P同上。本机定向真实Chromium/Journey与工具链通过后才推候选，远端全套结果仍另记，不以本机旧841宣称本次远端通过。
 
+### 候选CI继续暴露的扫描夹具随机性
+
+候选9b718bd的CI42159223066中治理已通过，原清单缺失不再发生；原生扫描继续至generic-positive却仅检出9/10。原夹具用token_hex(24)，但固定Gitleaks8.30.1官方generic-api-key规则要求熵至少3.5，随机hex不能保证达到此值。该轮未归档漏检合成输入，不能声称取得其具体值；已确认夹具的无下界随机性与已观测漏检，改用48字符、每个hex字符恰三次的合成值（熵4）。不降低扫描阈值/断言，不增allow；失败摘要仅补缺失/意外文件名，不输出输入值。官方规则来源：https://github.com/gitleaks/gitleaks/blob/v8.30.1/config/gitleaks.toml 。当前只修同一候选分支，原CI继续沿原句柄，不取消或伪装已绿；再经真实三场景、相关合同/治理/docs和秘密扫描后追加候选提交。
+
+已用9b718bd原生产者在内存中仅替换合成值，实际固定扫描器重现低熵3.1616的positive输入退出0（本应退出1），未打印值；该受控复现不声称取得远端丢失值。改为熵4的平衡输入后，真实clean/generic/inline三场景分别0/10/10发现、退出0/1/1。红/绿输出保留为policy-contract-low-entropy-red和policy-contract-balanced-01，不改扫描策略或生产业务。
+
 ### 本次修复的本机回执与复审
 
 源码范围回归实际先红，移除batch与slice的唯一私有配置要求后5/5通过，普通缺源/证据及越界仍拒绝。扫描器9/9、workflow16/16合同通过；原生Gitleaks三场景分别0/10/10发现，退出0/1/1，内联allow仍不能绕过；当前2680份受控源码的脱敏扫描退出0、无泄露。扫描器生产逻辑/策略没有改动，夹具仅补其已有必需输入。
