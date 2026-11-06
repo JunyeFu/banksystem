@@ -2,7 +2,7 @@ id: RF-064-S1
 title: 需求和全生命周期资料
 status: IMPLEMENTING
 businessGoal: 需求和全生命周期资料
-allowedPaths: [docs/design/product-normalization, documents]
+allowedPaths: [docs/design/product-normalization, documents, docs/architecture/refactoring/module-boundaries-v1.yaml]
 forbiddenPaths: [postgresql, infra/keycloak, platform/hengzhun-regression-system/flowise]
 workSteps: [baseline, counterexample, implement, verify]
 verification: ['python scripts/docs/validate_docs.py；python scripts/architecture/validate_refactoring.py --batch RF-064']

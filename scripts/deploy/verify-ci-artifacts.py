@@ -34,6 +34,7 @@ PENDING = ['FULL_RUNTIME_IMAGE_EVIDENCE', 'REDISTRIBUTION_OBLIGATIONS',
 # Historical external manuals are scanned locally, not redistributed as product source.
 REFERENCE_LIBRARIES = ('docs/reference/hiagent-2.5.1-help/',)
 FULL_SCOPE = 'FULL_DEFAULT_RUNTIME_CANDIDATE_MATERIALS'
+DELIVERY_SCOPE = 'SOURCE_AND_FACT_SUMMARY_DELIVERY'
 FULL_PENDING = ['RUNTIME_IMAGE_RISK_REVIEW', *PENDING[1:]]
 IMAGE_FILES = {'bom': 'bom.cdx.json', 'nativeReport': 'native.json', 'review': 'review.json',
                'licenseReport': 'license-review.json', 'patchManifest': 'patch-manifest.json'}
@@ -90,7 +91,7 @@ def validate_source(repository, directory):
     return manifest
 
 
-def validate_dependencies(source, directory):
+def validate_dependencies(source, directory, *, relocated=False):
     coverage = load(directory / 'dependency-coverage.json')
     expected = [f'{package}/package-lock.json' for package in REVIEW.DEPENDENCIES.PACKAGES]
     if coverage['locks'] != expected or coverage['scope'] != 'DECLARED_PRODUCT_NPM_DEPENDENCIES':
@@ -98,11 +99,19 @@ def validate_dependencies(source, directory):
     for package in REVIEW.DEPENDENCIES.PACKAGES:
         for filename in ('package.json', 'package-lock.json'):
             relative = f'{package}/{filename}'
-            if REVIEW.digest(source / relative) != REVIEW.digest(directory / 'product-dependencies' / relative):
+            if not relocated and REVIEW.digest(source / relative) != REVIEW.digest(directory / 'product-dependencies' / relative):
                 raise ValueError('ARTIFACT_SCANNED_DEPENDENCY_DRIFT:' + relative)
     result = load(directory / 'dependency-result.json')
     recorded = load(directory / 'vulnerability-inventory.json')
-    actual = REVIEW.SCAN.inventory(load(directory / 'dependencies.json'), coverage, directory, result['scannerExitCode'])
+    native = load(directory / 'dependencies.json')
+    if relocated:
+        for row in native['results']:
+            location = row['source']['path'].replace('\\', '/').rsplit('/product-dependencies/', 1)
+            if len(location) != 2 or location[1] not in expected:
+                raise ValueError('ARTIFACT_DEPENDENCY_RELOCATED_LOCK_PATH_MISMATCH')
+            row['source']['path'] = str(source / location[1])
+    actual = REVIEW.SCAN.inventory(native, coverage, directory, result['scannerExitCode'],
+                                   source_root=source if relocated else None)
     actual['queriedAt'] = recorded['queriedAt']
     if actual != recorded or actual['status'] == 'ERROR':
         raise ValueError('ARTIFACT_DEPENDENCY_NATIVE_MISMATCH')
@@ -156,6 +165,13 @@ def source_license_materials(source, files):
     for name, expected in delivery['files'].items():
         if name not in files or REVIEW.digest(source / name) != expected:
             raise ValueError('ARTIFACT_LICENSE_MATERIAL_MISSING_OR_CHANGED:' + name)
+    fonts = delivery['fonts']
+    actual_fonts = {name for name in files if Path(name).suffix.lower() in ('.ttf', '.otf', '.woff', '.woff2')}
+    if actual_fonts != {font['path'] for font in fonts}:
+        raise ValueError('ARTIFACT_FONT_COVERAGE_MISMATCH')
+    for font in fonts:
+        if sha(source / font['path']) != font['sha256']:
+            raise ValueError('ARTIFACT_FONT_BINARY_DRIFT:' + font['path'])
     wrapper = delivery['mavenWrapper']
     if wrapper['path'] not in files or sha(source / wrapper['path']) != wrapper['sha256']:
         raise ValueError('ARTIFACT_BOOTSTRAP_BINARY_DRIFT')
@@ -182,6 +198,7 @@ def source_license_materials(source, files):
             'embeddedOriginalsPreserved': True, 'softwareBinariesInArchive': binaries,
             'vendoredSource': {'name': patch['name'], 'version': patch['version'], 'license': 'BSD-2-Clause',
                                'original': 'platform/hengzhun-regression-system/vendor/extract-zip/LICENSE'},
+            'fontMaterials': [{**font, 'licenseSha256': delivery['files'][font['licenseOriginal']]} for font in fonts],
             'runtimeImageBinaries': 'NOT_DISTRIBUTED_IN_THIS_BUNDLE',
             'fullDistributionGateCompleted': False,
             'pending': ['UPSTREAM_RUNTIME_REPORT_DATA_RIGHTS', 'RUNTIME_BINARY_DISTRIBUTION_IF_INCLUDED'],
@@ -248,11 +265,35 @@ def image_security(source, key, selection, paths, inspection, findings, controll
                 'blockingAdvisories': expected['blockingAdvisories'],
                 'missingExpectedAdvisories': expected['missingExpectedAdvisories'],
                 'policySha256': recorded['policySha256']}
-    if 'review' in paths or 'patchManifest' in paths:
-        raise ValueError('ARTIFACT_UNSUPPORTED_FOUNDATION_REVIEW:' + key)
-    result = {'status': 'BLOCKED' if findings else 'PASSED',
-              'blockingAdvisories': len({row['id'] for row in findings}),
-              'reason': 'UNREVIEWED_NATIVE_FINDINGS' if findings else 'NATIVE_SCAN_CLEAN'}
+    if key in ('bank-channel-postgres', 'activemq') and 'review' in paths and 'patchManifest' not in paths:
+        name = 'postgres' if key == 'bank-channel-postgres' else 'activemq'
+        error = 'ARTIFACT_' + name.upper() + '_REVIEW_DRIFT'
+        policy = load(FOUNDATIONS.POLICY)
+        receipt = load(paths['review'])
+        records = [row for row in receipt.get('subjects', []) if row['name'] == name]
+        if (receipt.get('scope') != policy['scope'] or len(records) != 1
+                or receipt.get('policySha256') != REVIEW.digest(FOUNDATIONS.POLICY)):
+            raise ValueError(error)
+        features = (FOUNDATIONS.postgres_features if name == 'postgres' else FOUNDATIONS.activemq_features)(inspection['Id'])
+        function = FOUNDATIONS.postgres_review if name == 'postgres' else FOUNDATIONS.activemq_review
+        expected = function(findings, inspection, features, policy[name + 'Review'])
+        recorded = records[0]
+        if (recorded.get('imageId') != inspection['Id'] or recorded.get('nativeScannerExitCode') != selection['nativeExit']
+                or recorded.get('nativeReportSha256') != sha(paths['nativeReport'])
+                or recorded.get('bomSha256') != sha(paths['bom']) or recorded.get('featureFacts') != features
+                or recorded.get('riskReview') != expected):
+            raise ValueError(error)
+        result = {'status': 'PASSED' if expected['status'] == 'REVIEWED' else 'BLOCKED',
+                  'reviewStatus': expected['status'], 'reviewedAdvisories': expected['reviewedAdvisories'],
+                  'blockingAdvisories': expected['blockingAdvisories'],
+                  'missingExpectedAdvisories': expected['missingExpectedAdvisories'],
+                  'policySha256': receipt['policySha256']}
+    else:
+        if 'review' in paths or 'patchManifest' in paths:
+            raise ValueError('ARTIFACT_UNSUPPORTED_FOUNDATION_REVIEW:' + key)
+        result = {'status': 'BLOCKED' if findings else 'PASSED',
+                  'blockingAdvisories': len({row['id'] for row in findings}),
+                  'reason': 'UNREVIEWED_NATIVE_FINDINGS' if findings else 'NATIVE_SCAN_CLEAN'}
     if key in ('bank-channel-postgres', 'web-app'):
         policy = load(FOUNDATIONS.POLICY)
         bom = load(paths['bom'])
@@ -302,7 +343,7 @@ def validate_images(source, plan, controlled=None):
                         'nativeScannerStatus': 'FAILED' if findings else 'PASSED',
                         'uniqueAdvisories': len({row['id'] for row in findings}), 'security': security,
                         'nativeReportLastModifiedAt': datetime.fromtimestamp(paths['nativeReport'].stat().st_mtime, timezone.utc).isoformat(),
-                        'licenseDistributionStatus': 'NOT_VERIFIED', 'evidence': evidence})
+                        'licenseDistributionStatus': 'NOT_DISTRIBUTED_IN_SOURCE_PROFILE', 'evidence': evidence})
     return {'scope': scope, 'records': records, 'copies': copies}
 
 
@@ -314,8 +355,8 @@ def write_manifest(output, result):
 
 
 def image_engineering_gate(records):
-    return 'PASSED' if all(row['security']['status'] == 'PASSED'
-                           and row['licenseDistributionStatus'] == 'VERIFIED' for row in records) else 'BLOCKED'
+    # Image risk and the actual exported material inventory are distinct gates.
+    return 'PASSED' if all(row['security']['status'] == 'PASSED' for row in records) else 'BLOCKED'
 
 
 def produce(repository, source_scan, dependencies, tools_path, output):
@@ -372,6 +413,7 @@ def produce_candidate(repository, source_scan, dependencies, tools_path, images_
         result['artifacts'].append({'path': relative, 'sha256': sha(destination), 'bytes': destination.stat().st_size})
     result.update({'scope': FULL_SCOPE, 'runtimeScope': images['scope'], 'images': images['records'],
                    'imageCoverageStatus': 'COMPLETE', 'imageEngineeringGate': image_engineering_gate(images['records']),
+                   'distributionMaterialGate': 'NOT_EXPORTED',
                    'pendingGates': FULL_PENDING,
                    'limits': 'All default runtime image evidence is inventoried; unresolved risks and redistribution obligations block. '
                              'No image binaries redistributed, no original runtime changes, no ReleaseIdentity/LIVE/remote-CI acceptance.'})
@@ -385,7 +427,8 @@ def verify(repository, directory):
     full = manifest['scope'] == FULL_SCOPE
     if (manifest['scope'] not in ('CONTROLLED_SOURCE_CANDIDATE_ONLY', FULL_SCOPE) or manifest['releaseIdentity'] != 'UNFROZEN'
             or manifest['releaseDecision'] != 'NO_GO' or manifest['productReady'] is not False
-            or manifest['pendingGates'] != (FULL_PENDING if full else PENDING)):
+            or manifest['pendingGates'] != (FULL_PENDING if full else PENDING)
+            or (full and manifest['distributionMaterialGate'] != 'NOT_EXPORTED')):
         raise ValueError('ARTIFACT_CANNOT_PROMOTE_SOURCE_TO_RELEASE')
     current = SOURCE.file_hashes(repository, controlled_files(repository))
     if current != manifest['sourceFiles'] or SOURCE.source_digest(current) != manifest['sourceDigest']:
@@ -425,6 +468,8 @@ def verify(repository, directory):
     licenses = source_license_materials(repository, members)
     if licenses != load(directory / LICENSE_REPORT) or manifest['sourceLicenseStatus'] != licenses['status']:
         raise ValueError('ARTIFACT_SOURCE_LICENSE_REVIEW_DRIFT')
+    if manifest['dependencies'] != validate_dependencies(repository, directory / 'reports', relocated=True):
+        raise ValueError('ARTIFACT_DEPENDENCY_REVIEW_DRIFT')
     if full:
         plan = {'subjects': [{'declaredReference': row['declaredReference'], 'imageId': row['imageId'],
                               'nativeExit': row['nativeScannerExitCode'],
@@ -440,18 +485,128 @@ def verify(repository, directory):
     return manifest
 
 
+def delivery_jsons(candidate, manifest):
+    bom = load(candidate / 'reports/source.reviewed.cdx.json')
+    scan = load(candidate / 'reports/secrets.json')
+    components = []
+    for component in bom['components']:
+        if component['type'] not in ('library', 'application', 'framework'):
+            continue
+        projected = {key: component[key] for key in ('type', 'group', 'name', 'version', 'purl') if key in component}
+        if 'licenses' in component:
+            projected['licenses'] = [
+                {'expression': row['expression']} if 'expression' in row else
+                {'license': {key: row['license'][key] for key in ('id', 'name', 'url') if key in row['license']}}
+                for row in component['licenses']]
+        components.append(projected)
+    public_bom = {'bomFormat': 'CycloneDX', 'specVersion': bom['specVersion'], 'version': 1, 'components': components}
+    full = manifest['scope'] == FULL_SCOPE
+    risk = manifest['imageEngineeringGate'] if full else 'NOT_EVALUATED'
+    summary = {'scope': DELIVERY_SCOPE, 'sourceCommit': manifest['sourceCommit'], 'sourceDigest': manifest['sourceDigest'],
+               'releaseIdentity': manifest['releaseIdentity'], 'releaseDecision': 'NO_GO', 'productReady': False,
+               'sourceScan': {key: scan[key] for key in ('status', 'scannerExitCode', 'count', 'sourceDigest')},
+               'dependencies': {key: manifest['dependencies'][key] for key in ('status', 'locks', 'nativeScannerExitCode', 'queriedAt')},
+               'dependencyCoverage': 'DECLARED_LOCK_METADATA_NOT_INSTALLED_RUNTIME',
+               'imageEngineeringGate': risk,
+               'images': [{key: row[key] for key in ('key', 'services', 'imageId', 'nativeScannerExitCode', 'uniqueAdvisories')}
+                          | {'securityStatus': row['security']['status']} for row in manifest.get('images', [])],
+               'upstreamRawRecords': 'LOCAL_ONLY_NOT_EXPORTED',
+               'sourceAttribution': ['https://osv.dev/', 'https://github.com/advisories'],
+               'pendingGates': [gate for gate in manifest['pendingGates'] if gate != 'REDISTRIBUTION_OBLIGATIONS'
+                                and not (gate == 'RUNTIME_IMAGE_RISK_REVIEW' and risk == 'PASSED')]}
+    return {'source.sbom.cdx.json': public_bom, 'evidence-summary.json': summary}
+
+
+def delivery_metadata(candidate, manifest):
+    licenses = load(candidate / LICENSE_REPORT)
+    return {'schemaVersion': 1, 'scope': DELIVERY_SCOPE, 'sourceStatus': manifest['sourceStatus'],
+            'sourceCommit': manifest['sourceCommit'], 'sourceDigest': manifest['sourceDigest'],
+            'candidateManifestSha256': sha(candidate / 'candidate-manifest.json'),
+            'sourceLicenseEvidenceSha256': sha(candidate / LICENSE_REPORT),
+            'sourceLicenseOriginals': licenses['noticeFiles'], 'fontMaterials': licenses['fontMaterials'],
+            'includedSoftwareBinaries': licenses['softwareBinariesInArchive'],
+            'runtimeImageBinaries': 'NOT_DISTRIBUTED_IN_SOURCE_PROFILE',
+            'upstreamRawRecords': 'LOCAL_ONLY_NOT_EXPORTED', 'distributionMaterialGate': 'VERIFIED',
+            'imageEngineeringGate': manifest['imageEngineeringGate'] if manifest['scope'] == FULL_SCOPE else 'NOT_EVALUATED',
+            'releaseIdentity': manifest['releaseIdentity'], 'releaseDecision': 'NO_GO', 'productReady': False}
+
+
+def json_bytes(value):
+    return json.dumps(value, ensure_ascii=False, indent=2).encode('utf-8')
+
+
+def delivery_checksums(result, manifest_bytes):
+    return '\n'.join(f"{row['sha256']}  {row['path']}" for row in result['artifacts']) + \
+        '\n' + hashlib.sha256(manifest_bytes).hexdigest() + '  delivery-manifest.json\n'
+
+
+def export_delivery(repository, candidate, output):
+    candidate, output = owned(candidate), owned(output)
+    if (output == repository or repository in output.parents or output == candidate
+            or candidate in output.parents or output in candidate.parents):
+        raise ValueError('DELIVERY_SEPARATE_OWNED_OUTPUT_REQUIRED')
+    manifest = verify(repository, candidate)
+    public = delivery_jsons(candidate, manifest)
+    output.mkdir(parents=True, exist_ok=False)
+    shutil.copyfile(candidate / 'controlled-source.zip', output / 'controlled-source.zip')
+    for name, value in public.items():
+        (output / name).write_bytes(json_bytes(value))
+    result = delivery_metadata(candidate, manifest)
+    result['artifacts'] = [{'path': name, 'sha256': sha(output / name), 'bytes': (output / name).stat().st_size}
+                           for name in ['controlled-source.zip', *public]]
+    encoded = json_bytes(result)
+    (output / 'delivery-manifest.json').write_bytes(encoded)
+    (output / 'checksums.sha256').write_text(delivery_checksums(result, encoded), encoding='utf-8')
+    return verify_delivery(repository, candidate, output)
+
+
+def verify_delivery(repository, candidate, directory):
+    candidate, directory = owned(candidate), owned(directory)
+    manifest = verify(repository, candidate)
+    public = delivery_jsons(candidate, manifest)
+    expected_names = {'controlled-source.zip', *public, 'delivery-manifest.json', 'checksums.sha256'}
+    actual_names = {p.relative_to(directory).as_posix() for p in directory.rglob('*') if p.is_file()}
+    if actual_names != expected_names or any((directory / name).is_symlink() for name in expected_names):
+        raise ValueError('DELIVERY_MEMBER_COVERAGE_MISMATCH')
+    if sha(directory / 'controlled-source.zip') != sha(candidate / 'controlled-source.zip'):
+        raise ValueError('DELIVERY_SOURCE_ARCHIVE_DRIFT')
+    for name, value in public.items():
+        if (directory / name).read_bytes() != json_bytes(value):
+            raise ValueError('DELIVERY_PROJECTION_DRIFT:' + name)
+    result = delivery_metadata(candidate, manifest)
+    result['artifacts'] = [{'path': name, 'sha256': sha(directory / name), 'bytes': (directory / name).stat().st_size}
+                           for name in ['controlled-source.zip', *public]]
+    encoded = json_bytes(result)
+    if (directory / 'delivery-manifest.json').read_bytes() != encoded:
+        raise ValueError('DELIVERY_MATERIAL_EVIDENCE_DRIFT')
+    if (directory / 'checksums.sha256').read_text(encoding='utf-8') != delivery_checksums(result, encoded):
+        raise ValueError('DELIVERY_CHECKSUM_MANIFEST_MISMATCH')
+    return result
+
+
 def main():
     parser = argparse.ArgumentParser()
     mode = parser.add_mutually_exclusive_group(required=True)
     mode.add_argument('--source-only', action='store_true')
     mode.add_argument('--candidate', action='store_true')
     mode.add_argument('--verify', type=Path)
+    mode.add_argument('--export-source', type=Path)
+    mode.add_argument('--verify-delivery', type=Path)
     parser.add_argument('--repository', type=Path, required=True)
     for name in ('source-scan', 'dependencies', 'tools', 'output'):
         parser.add_argument('--' + name, type=Path)
     parser.add_argument('--images', type=Path)
+    parser.add_argument('--source-candidate', type=Path)
     args = parser.parse_args()
-    if args.verify:
+    if args.export_source:
+        if args.output is None:
+            parser.error('source delivery requires output')
+        result = export_delivery(args.repository.resolve(), args.export_source, args.output)
+    elif args.verify_delivery:
+        if args.source_candidate is None:
+            parser.error('delivery verification requires source-candidate')
+        result = verify_delivery(args.repository.resolve(), args.source_candidate, args.verify_delivery)
+    elif args.verify:
         result = verify(args.repository.resolve(), args.verify)
     else:
         if any(getattr(args, name) is None for name in ('source_scan', 'dependencies', 'tools', 'output')):
@@ -466,8 +621,12 @@ def main():
     if result['scope'] == FULL_SCOPE:
         summary.update({key: result[key] for key in ('imageCoverageStatus', 'imageEngineeringGate')})
         summary['imageSubjects'] = len(result['images'])
+    if result['scope'] == DELIVERY_SCOPE:
+        summary.update({key: result[key] for key in ('distributionMaterialGate', 'imageEngineeringGate')})
     print(json.dumps(summary))
-    return 5 if result['scope'] == FULL_SCOPE and result['imageEngineeringGate'] == 'BLOCKED' else 0
+    if result['scope'] == FULL_SCOPE:
+        return 5 if result['imageEngineeringGate'] != 'PASSED' or result['distributionMaterialGate'] != 'VERIFIED' else 0
+    return 5 if result['scope'] == DELIVERY_SCOPE and result['imageEngineeringGate'] != 'PASSED' else 0
 
 
 if __name__ == '__main__':

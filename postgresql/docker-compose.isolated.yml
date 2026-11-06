@@ -42,6 +42,9 @@ services:
   activemq:
     image: apache/activemq-classic:6.1.2@sha256:75852a6d357991028e58e7c32a7dd190cb36802568236cf3cd189d2350033be1
     restart: unless-stopped
+    environment:
+      ACTIVEMQ_CONNECTION_USER: admin
+      ACTIVEMQ_CONNECTION_PASSWORD: ${ACTIVEMQ_PASSWORD:?ACTIVEMQ_PASSWORD is required}
     healthcheck:
       test: ["CMD-SHELL", "code=$$(curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:8161/); test \"$$code\" = 200 -o \"$$code\" = 401"]
       interval: 5s

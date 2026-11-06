@@ -4,6 +4,7 @@ const assert = require('node:assert/strict')
 const path = require('node:path')
 const { spawnSync } = require('node:child_process')
 const test = require('node:test')
+const { assertTapSuccess } = require('../run-registered-tests.cjs')
 
 test('Controller CurrentUser DPAPI session and typed operation stores pass their isolated matrix', () => {
   const productRoot = path.resolve(__dirname, '..', '..')
@@ -13,7 +14,7 @@ test('Controller CurrentUser DPAPI session and typed operation stores pass their
   ]
   const childEnv = { ...process.env }
   delete childEnv.NODE_TEST_CONTEXT
-  const result = spawnSync(process.execPath, ['--test', ...targets], {
+  const result = spawnSync(process.execPath, ['--test', '--test-reporter=tap', ...targets], {
     cwd: productRoot,
     encoding: 'utf8',
     env: childEnv,
@@ -23,6 +24,5 @@ test('Controller CurrentUser DPAPI session and typed operation stores pass their
     0,
     `Controller session matrix failed.\nSTDOUT:\n${result.stdout}\nSTDERR:\n${result.stderr}`,
   )
-  assert.match(result.stdout, /# pass 15/)
-  assert.match(result.stdout, /# fail 0/)
+  assertTapSuccess(result.stdout)
 })

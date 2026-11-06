@@ -37,6 +37,7 @@ import { feedbackRecordSchema,feedbackVerifySchema,feedbackGetSchema } from './f
 import { QualityReadModel } from './quality-read-model';
 import { ReleaseVerification } from './release-verification';
 import { WorkbenchRepository } from './workbench-repository';
+import { ControllerSessionRepository } from './controller-session-repository';
 import { workbenchOperations } from './workbench-contract';
 import { credentialFingerprint, nowIso, opaqueId } from './utils';
 import {
@@ -379,6 +380,7 @@ export async function createHarnessApplication(options: HarnessApplicationOption
   };
   const quality = new QualityReadModel(database, releaseIdentityHash, currentReleaseIdentity);
   const workbench = new WorkbenchRepository(database);
+  const controllerSessions = new ControllerSessionRepository(database);
   const releases = new ReleaseVerification(database,path.resolve(options.productRoot,'../..'),releaseIdentityHash,
     currentReleaseIdentity,(caseId,namespace,journeyId,expected)=>service.verifyReleaseCaseEvidence(caseId,namespace,journeyId,expected));
   const qualityPortalRoot = options.qualityPortalRoot ?? path.resolve(options.productRoot, '..', '..', 'apps', 'quality-case-portal', 'dist');
@@ -780,6 +782,11 @@ export async function createHarnessApplication(options: HarnessApplicationOption
         credentialFingerprint: fingerprint,
         actorType: url.pathname.startsWith('/v1/i8/') ? 'SYSTEM' as const : 'COZE' as const
       };
+      if (request.method === 'POST' && url.pathname.startsWith('/v1/controller-sessions/')) {
+        const {namespace,...input}=z.object({namespace:namespaceSchema}).passthrough().parse(await readJson(request));
+        if(namespace!==workbenchNamespace)throw new HarnessError(403,'SESSION_NAMESPACE_FORBIDDEN','AUTHORIZATION','会话命名空间不匹配。');
+        return sendJson(response,200,await controllerSessions.execute(url.pathname.slice('/v1/controller-sessions/'.length),namespace,input),'L3',requestId);
+      }
       if (request.method === 'POST' && url.pathname.startsWith('/v1/workbench/')) {
         const operation = (Object.keys(workbenchOperations) as (keyof typeof workbenchOperations)[])
           .find(name => workbenchOperations[name].route === url.pathname);

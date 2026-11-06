@@ -144,6 +144,16 @@ function assertCoverage(summary, thresholds) {
   if (failures.length) fail('TEST_COVERAGE_THRESHOLD_NOT_MET', failures)
 }
 
+function assertTapSuccess(output) {
+  const totals = Object.fromEntries([...String(output).matchAll(/^# (tests|pass|fail|cancelled|skipped|todo) (\d+)\s*$/gm)]
+    .map(([, name, value]) => [name, Number(value)]))
+  if (!(totals.tests > 0) || totals.pass !== totals.tests ||
+      ['fail', 'cancelled', 'skipped', 'todo'].some(name => totals[name] !== 0)) {
+    fail('NESTED_TEST_SUMMARY_NOT_PASSED')
+  }
+  return totals
+}
+
 function run(mode, manifest) {
   const excluded = new Set(manifest.ciExcluded.map(item => item.path))
   let files
@@ -209,6 +219,7 @@ if (require.main === module) {
 module.exports = {
   REGISTERED_TEST_TIMEOUT_MS,
   assertCoverage,
+  assertTapSuccess,
   assertReleaseStateUnchanged,
   discoverTests,
   parseCoverage,

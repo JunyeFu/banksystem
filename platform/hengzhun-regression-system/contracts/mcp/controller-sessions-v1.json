@@ -1,0 +1,11 @@
+{
+  "schemaVersion":"hengzhun-controller-sessions/v1",
+  "contractVersion":"1.0.0",
+  "endpoint":"/mcp/sessions",
+  "visibility":"CONTROLLER_ONLY",
+  "maxEnvelopeBytes":122880,
+  "maxOutputBytes":131072,
+  "operations":["save","load","list","purge","import"],
+  "writeRule":"expectedRevision CAS; import only inserts absent sessions preserving revision",
+  "encryption":"WINDOWS_DPAPI_CURRENT_USER"
+}

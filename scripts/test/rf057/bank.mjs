@@ -10,7 +10,8 @@ import evidence from './evidence.cjs';
 
 const root=path.resolve(import.meta.dirname,'../../..');
 const config=JSON.parse(await new Promise(resolve=>{let input='';process.stdin.setEncoding('utf8');process.stdin.on('data',s=>input+=s);process.stdin.on('end',()=>resolve(input.replace(/^\uFEFF/,'')));}));
-const runId=crypto.randomUUID();
+const runId=config.runId;
+if(!evidence.isRunId(runId))throw new Error('RF057_RUN_REFERENCE_REQUIRED');
 const output=path.join(root,'agent/runs/rf057',runId);
 fs.mkdirSync(output,{recursive:true});
 const report={schemaVersion:'bank-agent-acceptance-report/v1',suite:'BANK-AGENT-ACCEPTANCE-v1',runId,

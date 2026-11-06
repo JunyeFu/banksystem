@@ -55,7 +55,9 @@ export async function createPersistentControllerRuntimeV2({
     journeyId: payload.journeyId,
     releaseIdentityHash,
   })
-  const proposalVault = createSessionProposalVault({ store: sessionStore, sessionId, releaseIdentityHash })
+  const proposalVault = createSessionProposalVault({ store: sessionStore, sessionId, releaseIdentityHash,
+    onMutation: saved => { if(saved.revision-1===checkpointer.revision)checkpointer.revision=saved.revision },
+  })
   return createControllerRuntimeV2({
     modelConfig,
     mcpClient,

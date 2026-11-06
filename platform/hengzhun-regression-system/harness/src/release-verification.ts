@@ -12,13 +12,20 @@ const hash = z.string().regex(/^[a-f0-9]{64}$/);
 const reportSchema = z.object({
   schemaVersion: z.literal('bank-agent-acceptance-report/v1'), suite: z.string(), runId: z.string().uuid(),
   releaseIdentityHash: hash, suiteSha256: hash, finishedAt: z.string().datetime(),
-  cleanupRef: z.string(), status: z.enum(['PARTIAL', 'FAILED']),
+  cleanupRef: z.string(), cleanupSha256: hash, status: z.enum(['PARTIAL', 'FAILED']),
   artifacts: z.array(z.object({ path: z.string(), sha256: hash, size: z.number().int().nonnegative() })),
   cases: z.array(z.object({ id: z.string(), evidenceClass: z.string(), status: z.enum(['PASSED','FAILED']),
     assertions: z.unknown().optional() }).passthrough())
 }).passthrough();
 type Report = z.infer<typeof reportSchema>;
 type Registered = { run_id: string; report_path: string; report_sha256: string };
+const resourceSchema = z.object({ kind: z.enum(['KEYCLOAK_USER','IDENTITY_MAPPING','CUSTOMER_SCENARIO']), ref: z.string().min(1) }).strict();
+const cleanupSchema = z.object({
+  schemaVersion: z.literal('rf057-identity-cleanup/v2'), cleanupId: z.string().regex(/^[a-f0-9]{32}$/),
+  runId: z.string().uuid(), releaseIdentityHash: hash, status: z.literal('COMPLETED'), createdAt: z.string().datetime(),
+  ownedResources: z.array(resourceSchema), results: z.array(resourceSchema.extend({status:z.enum(['REMOVED','ABSENT'])})),
+  failures: z.array(z.string()).length(0)
+}).strict();
 
 /** Authenticated producers register immutable report hashes; only Harness writes release decisions. */
 export class ReleaseVerification {
@@ -60,8 +67,19 @@ export class ReleaseVerification {
         throw new Error('RELEASE_CASE_CONTRACT_MISMATCH');
       ids.add(item.id);
     }
-    const cleanup = JSON.parse(this.file(report.cleanupRef, /^agent\/runs\/rf057-cleanup\/[a-f0-9]{32}\.json$/).toString('utf8'));
+    const cleanupBytes = this.file(report.cleanupRef, /^agent\/runs\/rf057-cleanup\/[a-f0-9]{32}\.json$/);
+    const cleanup = JSON.parse(cleanupBytes.toString('utf8'));
     if (cleanup.status !== 'COMPLETED') throw new HarnessError(409, 'RELEASE_CLEANUP_INCOMPLETE', 'CONTRACT', '测试清理未完成。');
+    const parsedCleanup = cleanupSchema.safeParse(cleanup);
+    if (!parsedCleanup.success) throw new HarnessError(409,'RELEASE_CLEANUP_INVALID','CONTRACT','清理回执合同不成立。');
+    const receipt = parsedCleanup.data;
+    const keys = (resources: Array<{kind:string;ref:string}>): string[] => resources.map(r=>JSON.stringify([r.kind,r.ref])).sort();
+    const owned = keys(receipt.ownedResources), removed = keys(receipt.results);
+    if (receipt.runId !== report.runId || receipt.releaseIdentityHash !== report.releaseIdentityHash ||
+      report.cleanupRef !== `agent/runs/rf057-cleanup/${receipt.cleanupId}.json` ||
+      new Set(owned).size !== owned.length || new Set(removed).size !== removed.length ||
+      JSON.stringify(owned) !== JSON.stringify(removed) || digest(cleanupBytes) !== report.cleanupSha256)
+      throw new HarnessError(409,'RELEASE_CLEANUP_BINDING_MISMATCH','CONTRACT','清理回执归属、资源或摘要不匹配。');
     const reportDirectory = relative.slice(0, relative.lastIndexOf('/') + 1);
     for (const artifact of report.artifacts) {
       if (!artifact.path.startsWith(reportDirectory) || artifact.path.split('/').some(p => p === '..') || artifact.path === relative)

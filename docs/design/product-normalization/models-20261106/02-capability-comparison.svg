@@ -1,0 +1,57 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1500" height="940" viewBox="0 0 1500 940">
+<defs><marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M1 1 L9 5 L1 9" fill="none" stroke="#66788d"/></marker></defs>
+<style>text{font-family:"Microsoft YaHei",sans-serif;fill:#23364e;font-size:14px}.edge-label{paint-order:stroke;stroke:white;stroke-width:5px;stroke-linejoin:round}</style><rect width="100%" height="100%" fill="white"/>
+<text data-cell="target-heading" x="312.0" y="145.0" text-anchor="start"><tspan x="312.0" dy="0">目标承诺</tspan></text>
+<text data-cell="source-heading" x="862.0" y="145.0" text-anchor="start"><tspan x="862.0" dy="0">源码事实与剩余证据门</tspan></text>
+<rect x="30.0" y="185.0" width="240.0" height="65.0" rx="5" fill="#f4f6f9" stroke="#7d8ca0"/>
+<text data-cell="cap-label-0" x="150.0" y="222.5" text-anchor="middle"><tspan x="150.0" dy="0">银行主链</tspan></text>
+<rect x="300.0" y="185.0" width="480.0" height="65.0" rx="5" fill="#e6f2ef" stroke="#267368"/>
+<text data-cell="cap-target-0" x="540.0" y="222.5" text-anchor="middle"><tspan x="540.0" dy="0">登录、账户、转账、运营回读</tspan></text>
+<rect x="850.0" y="185.0" width="600.0" height="65.0" rx="5" fill="#fff2da" stroke="#a97722"/>
+<text data-cell="cap-source-0" x="1150.0" y="222.5" text-anchor="middle"><tspan x="1150.0" dy="0">五个核心端口与业务服务；最终候选银行清单待跑</tspan></text>
+<rect x="30.0" y="265.0" width="240.0" height="65.0" rx="5" fill="#f4f6f9" stroke="#7d8ca0"/>
+<text data-cell="cap-label-1" x="150.0" y="302.5" text-anchor="middle"><tspan x="150.0" dy="0">贷款语义</tspan></text>
+<rect x="300.0" y="265.0" width="480.0" height="65.0" rx="5" fill="#e6f2ef" stroke="#267368"/>
+<text data-cell="cap-target-1" x="540.0" y="302.5" text-anchor="middle"><tspan x="540.0" dy="0">审批条件、金额、年率和还款方式一致</tspan></text>
+<rect x="850.0" y="265.0" width="600.0" height="65.0" rx="5" fill="#eaf1fa" stroke="#406894"/>
+<text data-cell="cap-source-1" x="1150.0" y="302.5" text-anchor="middle"><tspan x="1150.0" dy="0">年率换算与核心条件回读已有源码，不沿用旧缺陷结论</tspan></text>
+<rect x="30.0" y="345.0" width="240.0" height="65.0" rx="5" fill="#f4f6f9" stroke="#7d8ca0"/>
+<text data-cell="cap-label-2" x="150.0" y="382.5" text-anchor="middle"><tspan x="150.0" dy="0">资金与恢复</tspan></text>
+<rect x="300.0" y="345.0" width="480.0" height="65.0" rx="5" fill="#e6f2ef" stroke="#267368"/>
+<text data-cell="cap-target-2" x="540.0" y="382.5" text-anchor="middle"><tspan x="540.0" dy="0">唯一提交权、未知只回读、核心事实核验</tspan></text>
+<rect x="850.0" y="345.0" width="600.0" height="65.0" rx="5" fill="#fff2da" stroke="#a97722"/>
+<text data-cell="cap-source-2" x="1150.0" y="382.5" text-anchor="middle"><tspan x="1150.0" dy="0">短事务领取与核验；不能由页面失败推断未入账</tspan></text>
+<rect x="30.0" y="425.0" width="240.0" height="65.0" rx="5" fill="#f4f6f9" stroke="#7d8ca0"/>
+<text data-cell="cap-label-3" x="150.0" y="462.5" text-anchor="middle"><tspan x="150.0" dy="0">账务与日终</tspan></text>
+<rect x="300.0" y="425.0" width="480.0" height="65.0" rx="5" fill="#e6f2ef" stroke="#267368"/>
+<text data-cell="cap-target-3" x="540.0" y="462.5" text-anchor="middle"><tspan x="540.0" dy="0">真实GL关联、固定日期、已完成作业不重放</tspan></text>
+<rect x="850.0" y="425.0" width="600.0" height="65.0" rx="5" fill="#fff2da" stroke="#a97722"/>
+<text data-cell="cap-source-3" x="1150.0" y="462.5" text-anchor="middle"><tspan x="1150.0" dy="0">交易腿关联总账、作业结果回读；隔离测试不等于当前运行验收</tspan></text>
+<rect x="30.0" y="505.0" width="240.0" height="65.0" rx="5" fill="#f4f6f9" stroke="#7d8ca0"/>
+<text data-cell="cap-label-4" x="150.0" y="542.5" text-anchor="middle"><tspan x="150.0" dy="0">对话与作者化</tspan></text>
+<rect x="300.0" y="505.0" width="480.0" height="65.0" rx="5" fill="#e6f2ef" stroke="#267368"/>
+<text data-cell="cap-target-4" x="540.0" y="542.5" text-anchor="middle"><tspan x="540.0" dy="0">真实模型、历史恢复、任务模型绑定</tspan></text>
+<rect x="850.0" y="505.0" width="600.0" height="65.0" rx="5" fill="#eaf1fa" stroke="#406894"/>
+<text data-cell="cap-source-4" x="1150.0" y="542.5" text-anchor="middle"><tspan x="1150.0" dy="0">共享会话CAS/轮次模型绑定已有源码；11月5日S5仅旧身份</tspan></text>
+<rect x="30.0" y="585.0" width="240.0" height="65.0" rx="5" fill="#f4f6f9" stroke="#7d8ca0"/>
+<text data-cell="cap-label-5" x="150.0" y="622.5" text-anchor="middle"><tspan x="150.0" dy="0">周期与经验</tspan></text>
+<rect x="300.0" y="585.0" width="480.0" height="65.0" rx="5" fill="#e6f2ef" stroke="#267368"/>
+<text data-cell="cap-target-5" x="540.0" y="622.5" text-anchor="middle"><tspan x="540.0" dy="0">固定脚本回归、失败接管、受核验反馈</tspan></text>
+<rect x="850.0" y="585.0" width="600.0" height="65.0" rx="5" fill="#fff2da" stroke="#a97722"/>
+<text data-cell="cap-source-5" x="1150.0" y="622.5" text-anchor="middle"><tspan x="1150.0" dy="0">CLI/调度/反馈消费者已有源码；真实改善仍未证明</tspan></text>
+<rect x="30.0" y="665.0" width="240.0" height="65.0" rx="5" fill="#f4f6f9" stroke="#7d8ca0"/>
+<text data-cell="cap-label-6" x="150.0" y="702.5" text-anchor="middle"><tspan x="150.0" dy="0">证据与发布</tspan></text>
+<rect x="300.0" y="665.0" width="480.0" height="65.0" rx="5" fill="#e6f2ef" stroke="#267368"/>
+<text data-cell="cap-target-6" x="540.0" y="702.5" text-anchor="middle"><tspan x="540.0" dy="0">认证登记、同身份验证、Quality只读</tspan></text>
+<rect x="850.0" y="665.0" width="600.0" height="65.0" rx="5" fill="#fff2da" stroke="#a97722"/>
+<text data-cell="cap-source-6" x="1150.0" y="702.5" text-anchor="middle"><tspan x="1150.0" dy="0">demo verify与SQLite判定已接通；正式28项未闭合</tspan></text>
+<rect x="30.0" y="745.0" width="240.0" height="65.0" rx="5" fill="#f4f6f9" stroke="#7d8ca0"/>
+<text data-cell="cap-label-7" x="150.0" y="782.5" text-anchor="middle"><tspan x="150.0" dy="0">容量与交付</tspan></text>
+<rect x="300.0" y="745.0" width="480.0" height="65.0" rx="5" fill="#e6f2ef" stroke="#267368"/>
+<text data-cell="cap-target-7" x="540.0" y="782.5" text-anchor="middle"><tspan x="540.0" dy="0">真实负载、可复现候选、CI和交接</tspan></text>
+<rect x="850.0" y="745.0" width="600.0" height="65.0" rx="5" fill="#fff2da" stroke="#a97722"/>
+<text data-cell="cap-source-7" x="1150.0" y="782.5" text-anchor="middle"><tspan x="1150.0" dy="0">容量驱动已实现；真实容量、安全/许可、远端CI与本人UAT待闭合</tspan></text>
+<text data-cell="view-title" x="42.0" y="30.0" text-anchor="start" style="font-size:22px;font-weight:600"><tspan x="42.0" dy="0">业务能力｜目标与当前证据</tspan></text>
+<text data-cell="view-subtitle" x="42.0" y="85.0" text-anchor="start"><tspan x="42.0" dy="0">Business Capability Map；不计算功能完成百分比，不用源码门替代业务验收</tspan></text>
+<text data-cell="view-note" x="42.0" y="875.0" text-anchor="start"><tspan x="42.0" dy="0">蓝色是源码事实，绿色是已接受目标，黄色是证据缺口；任何颜色均不代表整体GO。</tspan></text>
+</svg>

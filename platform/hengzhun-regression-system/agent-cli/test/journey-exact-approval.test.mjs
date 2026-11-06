@@ -6,7 +6,7 @@ import os from 'node:os'
 import path from 'node:path'
 import test from 'node:test'
 
-import { EncryptedSessionStore } from '../../controller/src/session-store.mjs'
+import { TestSessionStore as EncryptedSessionStore } from '../../controller/test/session-fixture.mjs'
 import { connectMcpRuntime } from '../../controller/src/runtime-adapters.mjs'
 import { createProductionService } from '../src/production-service.mjs'
 

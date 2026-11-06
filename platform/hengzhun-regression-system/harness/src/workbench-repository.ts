@@ -1,5 +1,6 @@
 import { randomUUID } from 'node:crypto';
 import { z } from 'zod';
+import sensitiveTextRule from '../../contracts/security/sensitive-text-v1.json';
 import { HarnessDatabase } from './database';
 import { HarnessError } from './errors';
 import { serializeWithinBudget } from './output-budget';
@@ -17,7 +18,7 @@ type ModelRow = { model_id: string; version: number; current_version: number; di
 const conflict = (code: string) => new HarnessError(409, code, 'CONTRACT', '会话状态或版本冲突，请读取最新状态。', false, true);
 const invalid = (code: string) => new HarnessError(400, code, 'CONTRACT', '会话元数据请求无效。', false, true);
 const missing = () => new HarnessError(404, 'AGENT_METADATA_NOT_FOUND', 'CONTRACT', '未找到本命名空间中的记录。');
-const secretPattern = /\bsk-[A-Za-z0-9_-]{8,}|\bBearer\s+\S+|\bhttps?:\/\/[^/\s]+:[^/\s]+@|\beyJ[A-Za-z0-9_-]{8,}\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+|(?:password|passwd|api[_ -]?key|secret|token|cookie|密码|密钥|令牌)\s*[:=：]\s*\S+/i;
+const secretPattern = new RegExp(sensitiveTextRule.pattern, sensitiveTextRule.flags);
 function assertSafe(value: unknown): void {
   if (typeof value === 'string' && secretPattern.test(value)) throw invalid('AGENT_SECRET_FORBIDDEN');
   if (Array.isArray(value)) value.forEach(assertSafe);

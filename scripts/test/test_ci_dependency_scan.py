@@ -1,9 +1,12 @@
 import importlib.util
 import copy
 import hashlib
+import io
 import json
+import re
 from pathlib import Path
 import tempfile
+import tarfile
 import unittest
 from unittest.mock import patch
 import zipfile
@@ -72,6 +75,27 @@ class DependencyResultTest(unittest.TestCase):
             coverage, _ = self.fixture(directory)
             result = MODULE.inventory({'results': []}, coverage, directory, 0)
             self.assertEqual(result['status'], 'ERROR')
+
+    def test_canonical_paths_match_the_same_lock_through_a_real_directory_alias(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            directory = Path(temporary)
+            coverage, report = self.fixture(directory)
+            lock = Path(report['results'][0]['source']['path'])
+            (lock.parent / 'alias').mkdir()
+            report['results'][0]['source']['path'] = str(lock.parent / 'alias' / '..' / lock.name)
+            result = MODULE.inventory(report, coverage, directory, 0)
+            self.assertEqual(result['status'], 'PASSED')
+            self.assertEqual(result['coveredLocks'], coverage['locks'])
+
+    def test_duplicate_canonical_lock_results_are_not_complete_coverage(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            directory = Path(temporary)
+            coverage, report = self.fixture(directory)
+            report['results'][0]['source']['path'] = str(Path(report['results'][0]['source']['path']).resolve())
+            report['results'].append(copy.deepcopy(report['results'][0]))
+            result = MODULE.inventory(report, coverage, directory, 0)
+            self.assertEqual(result['status'], 'ERROR')
+            self.assertFalse(result['coverageComplete'])
 
     def test_native_error_or_exit_findings_mismatch_is_not_success(self):
         with tempfile.TemporaryDirectory() as temporary:
@@ -330,20 +354,62 @@ class FineractPatchTest(unittest.TestCase):
                 FINERACT.verify(app, {'preserved': {}, 'replacements': []})
 
 
-class GosuPatchTest(unittest.TestCase):
-    def test_compiler_preflight_uses_controlled_environment_and_rejects_wrong_version(self):
+class PostgresAptPatchTest(unittest.TestCase):
+    def module(self):
+        spec = importlib.util.spec_from_file_location('postgres_apt_patch', Path(__file__).resolve().parents[1] / 'deploy/prepare-postgres-apt-patch.py')
+        module = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(module)
+        return module
+
+    def test_modified_debian_package_rejected_before_build_output(self):
+        module = self.module()
         with tempfile.TemporaryDirectory() as temporary:
             root = Path(temporary) / 'banksystem-rf065'
-            with patch.object(GOSU_PATCH.subprocess, 'run') as command:
-                command.return_value.stdout = 'go version go1.26.8 windows/amd64'
-                with self.assertRaisesRegex(ValueError, 'GOSU_COMPILER_VERSION_CHANGED'):
-                    GOSU_PATCH.prepare(root / 'archive', Path('go'), root / 'output')
-                env = command.call_args.kwargs['env']
-                self.assertEqual(env['GOENV'], 'off')
-                self.assertEqual(env['GOTOOLCHAIN'], 'local')
-                self.assertEqual(env['GOWORK'], 'off')
-                self.assertEqual(env['GOAMD64'], 'v1')
+            downloads = root / 'downloads'
+            downloads.mkdir(parents=True)
+            (downloads / 'apt_3.0.4_amd64.deb').write_bytes(b'not the official Debian package')
+            with self.assertRaisesRegex(ValueError, 'APT_PUBLISHER_PACKAGE_MISMATCH'):
+                module.prepare(root / 'gosu-context', downloads, root / 'output')
             self.assertFalse((root / 'output').exists())
+
+    def test_unowned_output_is_rejected_without_reading_inputs(self):
+        module = self.module()
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            with self.assertRaisesRegex(ValueError, 'APT_OWNED_OUTPUT_REQUIRED'):
+                module.prepare(root / 'missing-context', root / 'missing-packages', root / 'output')
+            self.assertFalse((root / 'output').exists())
+
+    def test_same_size_package_tampering_still_rejected(self):
+        module = self.module()
+        # SHA256("abc") is the independent fixed publisher-fixture value.
+        publisher = {'package.deb': {'size': 3, 'sha256': 'ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad'}}
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary) / 'banksystem-rf065'
+            downloads = root / 'downloads'
+            downloads.mkdir(parents=True)
+            (downloads / 'package.deb').write_bytes(b'abd')
+            with patch.object(module, 'PACKAGES', publisher):
+                with self.assertRaisesRegex(ValueError, 'APT_PUBLISHER_PACKAGE_MISMATCH'):
+                    module.prepare(root / 'missing-context', downloads, root / 'output')
+            self.assertFalse((root / 'output').exists())
+
+
+class GosuPatchTest(unittest.TestCase):
+    def test_compiler_preflight_uses_controlled_environment_and_rejects_wrong_version(self):
+        for version in ('1.26.8', '1.26.9'):
+            with self.subTest(version=version), tempfile.TemporaryDirectory() as temporary:
+                root = Path(temporary) / 'banksystem-rf065'
+                with patch.object(GOSU_PATCH.subprocess, 'run') as command:
+                    command.return_value.stdout = 'go version go' + version + ' windows/amd64'
+                    with self.assertRaisesRegex(ValueError, 'GOSU_COMPILER_VERSION_CHANGED'):
+                        GOSU_PATCH.prepare(root / 'archive', Path('go'), root / 'output')
+                    env = command.call_args.kwargs['env']
+                    self.assertEqual(env['GOENV'], 'off')
+                    self.assertEqual(env['GOTOOLCHAIN'], 'local')
+                    self.assertEqual(env['GOWORK'], 'off')
+                    self.assertEqual(env['GOAMD64'], 'v1')
+                self.assertFalse((root / 'output').exists())
 
     def test_changed_public_archive_rejected_before_creating_build_output(self):
         with tempfile.TemporaryDirectory() as temporary:
@@ -443,6 +509,164 @@ class GosuSymbolTest(unittest.TestCase):
         messages[0]['config']['scan_level'] = 'module'
         with self.assertRaisesRegex(ValueError, 'GOSU_ANALYSIS_MODE_CHANGED'):
             GOSU.validate(messages, extracted, GOSU.PATCH_SHA256)
+
+
+class PostgresExactReachabilityTest(unittest.TestCase):
+    def policy(self):
+        return json.loads(FOUNDATIONS.POLICY.read_text(encoding='utf-8'))['postgresReview']
+
+    def rows(self):
+        ids = [('glibc', '2.41-12+deb13u4', 'Debian:13', 'DEBIAN-CVE-2026-97399'),
+               ('glibc', '2.41-12+deb13u4', 'Debian:13', 'DEBIAN-CVE-2026-89092'),
+               ('libxml2', '2.12.7+dfsg+really2.9.14-2.1+deb13u3', 'Debian:13', 'DEBIAN-CVE-2026-11979'),
+               ('systemd', '257.13-1~deb13u1', 'Debian:13', 'DEBIAN-CVE-2026-40228'),
+               ('systemd', '257.13-1~deb13u1', 'Debian:13', 'DEBIAN-CVE-2026-16742'),
+               ('apt', '3.0.4', 'Debian:13', 'DEBIAN-CVE-2011-3374'),
+               ('systemd', '257.13-1~deb13u1', 'Debian:13', 'DEBIAN-CVE-2026-15059'),
+               ('sqlite3', '3.46.1-7+deb13u2', 'Debian:13', 'DEBIAN-CVE-2026-119586'),
+               ('sqlite3', '3.46.1-7+deb13u2', 'Debian:13', 'DEBIAN-CVE-2026-39113'),
+               ('sqlite3', '3.46.1-7+deb13u2', 'Debian:13', 'DEBIAN-CVE-2025-70873'),
+               ('util-linux', '1:2.41.5-0+deb13u1', 'Debian:13', 'DEBIAN-CVE-2022-0563'),
+               ('util-linux', '2.41.5-0+deb13u1', 'Debian:13', 'DEBIAN-CVE-2022-0563'),
+               ('util-linux', '1:4.16.0-2+really2.41.5-0+deb13u1', 'Debian:13', 'DEBIAN-CVE-2022-0563'),
+               ('bzip2', '1.0.8-6', 'Debian:13', 'DEBIAN-CVE-2026-42250'),
+               ('gnupg2', '2.4.7-21+deb13u1', 'Debian:13', 'DEBIAN-CVE-2026-24882'),
+               ('gnupg2', '2.4.7-21+deb13u1+b5', 'Debian:13', 'DEBIAN-CVE-2026-24882'),
+               ('golang.org/x/sys', '0.1.0', 'Go', 'GO-2026-5024')]
+        return [dict(zip(('name', 'version', 'ecosystem', 'id'), values), severity=[{'type': 'fixture', 'score': 'HIGH'}]) for values in ids]
+
+    def facts(self):
+        return {path: 'ABSENT' for path in ('/usr/sbin/nscd', '/usr/bin/xmlcatalog',
+                '/usr/lib/systemd/systemd-journald', '/usr/lib/systemd/systemd-homed',
+                '/usr/bin/sqlite3', '/usr/local/bin/sqlite3', '/usr/bin/apt-key', '/usr/sbin/apt-key',
+                '/usr/lib/systemd/systemd-oomd', '/usr/bin/systemd-oomd',
+                '/usr/lib/x86_64-linux-gnu/sqlite3/zipfile.so', '/usr/lib/sqlite3/zipfile.so',
+                '/usr/bin/bzip2recover', '/bin/bzip2recover',
+                '/usr/lib/gnupg/tpm2daemon', '/usr/lib/gnupg2/tpm2daemon')} | {
+                    'chfnProvider': 'passwd', 'chshProvider': 'passwd'}
+
+    def image(self):
+        return {'Id': self.policy()['imageId'],
+                'Architecture': 'amd64', 'Os': 'linux'}
+
+    def test_fourteen_exact_conditions_preserve_native_severity_and_leave_other_findings_blocking(self):
+        rows = self.rows() + [{'name': 'glibc', 'version': '2.41-12+deb13u4', 'ecosystem': 'Debian:13',
+                               'id': 'DEBIAN-CVE-2026-18374', 'severity': ['native-original']}]
+        result = FOUNDATIONS.postgres_review(rows, self.image(), self.facts(), self.policy())
+        self.assertEqual(result['reviewedAdvisories'], 14)
+        self.assertEqual(result['blockingAdvisories'], 1)
+        self.assertEqual(result['status'], 'FAILED')
+        self.assertEqual(result['blocking'][0]['severity'], ['native-original'])
+
+    def test_absent_sqlite_shell_does_not_exclude_sqlite_library_or_disputed_zlib_findings(self):
+        unreviewed = [
+            {'name': 'sqlite3', 'version': '3.46.1-7+deb13u2', 'ecosystem': 'Debian:13',
+             'id': 'DEBIAN-CVE-2026-119371', 'severity': ['native-sqlite']},
+            {'name': 'zlib', 'version': '1:1.3.dfsg+really1.3.1-1+b1', 'ecosystem': 'Debian:13',
+             'id': 'DEBIAN-CVE-2026-85091', 'severity': ['native-zlib']}]
+        result = FOUNDATIONS.postgres_review(self.rows() + unreviewed, self.image(), self.facts(), self.policy())
+        self.assertEqual((result['reviewedAdvisories'], result['blockingAdvisories']), (14, 2))
+        self.assertEqual({row['id'] for row in result['blocking']}, {row['id'] for row in unreviewed})
+
+    def test_wrong_image_architecture_or_missing_probe_cannot_reuse_the_review(self):
+        for field, value in (('Id', 'sha256:' + 'a' * 64), ('Architecture', 'arm64'), ('Os', 'windows')):
+            image = {**self.image(), field: value}
+            with self.subTest(field=field), self.assertRaises(ValueError):
+                FOUNDATIONS.postgres_review(self.rows(), image, self.facts(), self.policy())
+        for changed in [{}, *({**self.facts(), path: 'PRESENT'} for path in self.facts())]:
+            with self.assertRaises(ValueError):
+                FOUNDATIONS.postgres_review(self.rows(), self.image(), changed, self.policy())
+
+    def test_missing_expected_advisory_or_changed_package_version_does_not_get_full_review(self):
+        for rows in (self.rows()[:-1], [{**row, 'version': 'unexpected'} for row in self.rows()]):
+            result = FOUNDATIONS.postgres_review(rows, self.image(), self.facts(), self.policy())
+            self.assertEqual(result['status'], 'FAILED')
+            self.assertGreater(result['blockingAdvisories'], 0)
+
+    def test_feature_probe_is_readonly_offline_and_uses_tmpfs_instead_of_a_persistent_database(self):
+        with patch.object(FOUNDATIONS.subprocess, 'run') as run:
+            run.return_value.stdout = ''.join(f'{key}={value}\n' for key, value in self.facts().items())
+            facts = FOUNDATIONS.postgres_features(self.image()['Id'])
+        self.assertEqual(facts, self.facts())
+        command = run.call_args.args[0]
+        self.assertEqual(command[:6], ['docker', 'run', '--rm', '--read-only', '--network=none', '--tmpfs'])
+        self.assertIn('/var/lib/postgresql', command)
+        self.assertIn(self.image()['Id'], command)
+        self.assertEqual(command[-2], '-c')
+        for expected_path in self.facts():
+            self.assertIn(expected_path, command[-1])
+        self.assertNotIn('pg_ctl', command[-1])
+        self.assertNotIn('/etc/passwd', command[-1])
+        self.assertNotIn('/etc/shadow', command[-1])
+
+    def test_absent_oomd_does_not_exclude_shared_journal_or_other_systemd_findings(self):
+        unreviewed = [{'name': 'systemd', 'version': '257.13-1~deb13u1', 'ecosystem': 'Debian:13',
+                       'id': 'DEBIAN-' + cve, 'severity': ['original-native']}
+                      for cve in ('CVE-2013-4392', 'CVE-2023-31437', 'CVE-2023-31438', 'CVE-2023-31439')]
+        result = FOUNDATIONS.postgres_review(self.rows() + unreviewed, self.image(), self.facts(), self.policy())
+        self.assertEqual((result['reviewedAdvisories'], result['blockingAdvisories']), (14, 4))
+        self.assertEqual({row['id'] for row in result['blocking']}, {row['id'] for row in unreviewed})
+
+    def test_sqlite_source_scope_does_not_transfer_to_another_package_version_or_ecosystem(self):
+        targets = {'DEBIAN-CVE-2026-39113', 'DEBIAN-CVE-2025-70873'}
+        for field, value in (('version', '3.53.0-1'), ('ecosystem', 'Debian:14')):
+            rows = [{**row, field: value} if row['id'] in targets else row for row in self.rows()]
+            result = FOUNDATIONS.postgres_review(rows, self.image(), self.facts(), self.policy())
+            self.assertEqual(result['status'], 'FAILED')
+            self.assertEqual(result['reviewedAdvisories'], 12)
+            self.assertEqual({row['id'] for row in result['blocking']}, targets)
+            self.assertEqual({row['id'] for row in result['missing']}, targets)
+
+    def test_unbuilt_zipfile_does_not_exclude_other_sqlite_api_findings(self):
+        ids = {'DEBIAN-CVE-2026-119377', 'DEBIAN-CVE-2026-119378', 'DEBIAN-CVE-2021-45346'}
+        rows = self.rows() + [{'name': 'sqlite3', 'version': '3.46.1-7+deb13u2', 'ecosystem': 'Debian:13',
+                              'id': advisory, 'severity': ['original-api-risk']} for advisory in ids]
+        result = FOUNDATIONS.postgres_review(rows, self.image(), self.facts(), self.policy())
+        self.assertEqual((result['reviewedAdvisories'], result['blockingAdvisories']), (14, 3))
+        self.assertEqual({row['id'] for row in result['blocking']}, ids)
+        self.assertTrue(all(row['severity'] == ['original-api-risk'] for row in result['blocking']))
+
+    def test_passwd_provider_does_not_exclude_login_mount_or_nsenter_findings(self):
+        ids = {'DEBIAN-' + cve for cve in ('CVE-2026-3184', 'CVE-2026-76642',
+               'CVE-2026-78408', 'CVE-2026-78409', 'CVE-2026-78410')}
+        rows = self.rows() + [{'name': 'util-linux', 'version': '2.41.5-0+deb13u1',
+                              'ecosystem': 'Debian:13', 'id': advisory,
+                              'severity': ['original-util-linux-risk']} for advisory in ids]
+        result = FOUNDATIONS.postgres_review(rows, self.image(), self.facts(), self.policy())
+        self.assertEqual((result['reviewedAdvisories'], result['blockingAdvisories']), (14, 5))
+        self.assertEqual({row['id'] for row in result['blocking']}, ids)
+        self.assertTrue(all(row['severity'] == ['original-util-linux-risk'] for row in result['blocking']))
+
+    def test_provider_evidence_and_exact_util_linux_mapping_cannot_be_transferred(self):
+        for key in ('chfnProvider', 'chshProvider'):
+            for facts in ({name: value for name, value in self.facts().items() if name != key},
+                          {**self.facts(), key: 'util-linux'}):
+                with self.subTest(key=key, facts=facts), self.assertRaisesRegex(ValueError, 'FEATURE_PROOF_DRIFT'):
+                    FOUNDATIONS.postgres_review(self.rows(), self.image(), facts, self.policy())
+        for field, value in (('version', '2.42.4-1'), ('ecosystem', 'Debian:14')):
+            rows = [{**row, field: value} if row['name'] == 'util-linux' else row for row in self.rows()]
+            result = FOUNDATIONS.postgres_review(rows, self.image(), self.facts(), self.policy())
+            self.assertEqual(result['reviewedAdvisories'], 13)
+            self.assertEqual({row['id'] for row in result['blocking']}, {'DEBIAN-CVE-2022-0563'})
+            self.assertEqual({row['id'] for row in result['missing']}, {'DEBIAN-CVE-2022-0563'})
+
+    def test_absent_tpm_daemon_does_not_exclude_other_gnupg_or_changed_tool_versions(self):
+        others = {'DEBIAN-CVE-2022-3219', 'DEBIAN-CVE-2025-68972',
+                  'DEBIAN-CVE-2026-105712', 'DEBIAN-CVE-2026-57062'}
+        rows = self.rows() + [{'name': 'gnupg2', 'version': '2.4.7-21+deb13u1',
+                              'ecosystem': 'Debian:13', 'id': advisory,
+                              'severity': ['original-gnupg-risk']} for advisory in others]
+        result = FOUNDATIONS.postgres_review(rows, self.image(), self.facts(), self.policy())
+        self.assertEqual((result['reviewedAdvisories'], result['blockingAdvisories']), (14, 4))
+        self.assertEqual({row['id'] for row in result['blocking']}, others)
+        self.assertTrue(all(row['severity'] == ['original-gnupg-risk'] for row in result['blocking']))
+        targets = {'DEBIAN-CVE-2026-42250', 'DEBIAN-CVE-2026-24882'}
+        for field, value in (('version', 'unexpected'), ('ecosystem', 'Debian:14')):
+            changed = [{**row, field: value} if row['id'] in targets else row for row in self.rows()]
+            result = FOUNDATIONS.postgres_review(changed, self.image(), self.facts(), self.policy())
+            self.assertEqual(result['reviewedAdvisories'], 12)
+            self.assertEqual({row['id'] for row in result['blocking']}, targets)
+            self.assertEqual({row['id'] for row in result['missing']}, targets)
 
 
 class FoundationRuntimeScopeTest(unittest.TestCase):
@@ -545,35 +769,54 @@ class FoundationVendorTest(unittest.TestCase):
         self.assertIn('FROM nginx:1.30.6-alpine@sha256:970364228b1e4f932abc22d321932816782cca8a20b85a77552a7cfe9acfb3b5\n', text)
         self.assertIn('FROM node:20.20.2-alpine3.23@sha256:', text)
 
-    def jackson_fixture(self, root):
-        home, downloads = root / 'home', root / 'downloads'
-        (home / 'lib').mkdir(parents=True)
-        downloads.mkdir()
-        for artifact in ('jackson-core', 'jackson-databind'):
-            (home / 'lib' / (artifact + '-2.22.1.jar')).write_bytes(b'original fixture')
-            target = downloads / (artifact + '-2.22.3.jar')
-            with zipfile.ZipFile(target, 'w') as jar:
-                jar.writestr('META-INF/maven/com.fasterxml.jackson.core/' + artifact + '/pom.properties',
-                             'groupId=com.fasterxml.jackson.core\nartifactId=' + artifact + '\nversion=2.22.3\n')
-            (downloads / (target.name + '.sha512')).write_text(hashlib.sha512(target.read_bytes()).hexdigest())
-        (home / 'lib/jackson-annotations-2.22.jar').write_bytes(b'unchanged annotations')
-        return home, downloads
-
-    def test_jackson_same_branch_patch_replaces_both_old_jars_without_changing_annotations(self):
+    def test_supported_archive_preserves_required_upstream_and_excludes_only_optional_shiro(self):
         with tempfile.TemporaryDirectory() as temporary:
-            home, downloads = self.jackson_fixture(Path(temporary))
-            rows = FOUNDATION_PATCH.patch_jackson(home, downloads)
-            self.assertEqual(len(rows), 2)
-            self.assertFalse(list((home / 'lib').glob('*-2.22.1.jar')))
-            self.assertEqual((home / 'lib/jackson-annotations-2.22.jar').read_bytes(), b'unchanged annotations')
+            root = Path(temporary)
+            archive = root / 'broker.tar.gz'
+            payloads = {'lib/activemq-broker-6.3.3.jar': b'fixture broker',
+                        'lib/jackson-core-2.22.4.jar': b'fixture upstream dependency',
+                        'conf/jetty-spring.properties': b'jetty.http.host=127.0.0.1\n',
+                        'LICENSE': b'fixture license', 'NOTICE': b'fixture notice',
+                        'lib/activemq-jaas-6.3.3.jar': b'required JAAS authentication',
+                        'lib/optional/activemq-shiro-6.3.3.jar': b'optional vulnerable plugin',
+                        'lib/optional/shiro-core-2.2.1.jar': b'optional vulnerable core',
+                        'lib/optional/shiro-spring-2.2.1.jar': b'optional integration',
+                        'lib/optional/not-shiro-test.jar': b'unrelated optional module'}
+            with tarfile.open(archive, 'w:gz') as bundle:
+                for name, payload in payloads.items():
+                    item = tarfile.TarInfo('apache-activemq-6.3.3/' + name)
+                    item.size = len(payload)
+                    bundle.addfile(item, io.BytesIO(payload))
+            entrypoint = root / 'entrypoint.sh'
+            entrypoint.write_bytes(b'#!/bin/bash\nexec "$@"\n')
+            with patch.object(FOUNDATION_PATCH, 'MQ_SHA512', hashlib.sha512(archive.read_bytes()).hexdigest()), \
+                 patch.object(FOUNDATION_PATCH, 'verify_noble_packages', return_value=[]):
+                FOUNDATION_PATCH.prepare(archive, entrypoint, root / 'context', root)
+            result = json.loads((root / 'context/foundation-patch-manifest.json').read_text())
+            self.assertEqual(result['dependencyPatches'], [])
+            self.assertEqual(result['excludedRuntimePackages'], ['gnupg', 'gpg', 'keyboxd', 'libsqlite3-0'])
+            self.assertIn('/6.3.3/apache-activemq-6.3.3-bin.tar.gz', result['archiveSource'])
+            excluded = {'lib/optional/activemq-shiro-6.3.3.jar', 'lib/optional/shiro-core-2.2.1.jar',
+                        'lib/optional/shiro-spring-2.2.1.jar'}
+            self.assertEqual({row['path'] for row in result['excludedOptionalArtifacts']}, excluded)
+            for name, payload in payloads.items():
+                target = root / 'context/activemq/apache-activemq-6.3.3' / name
+                if name in excluded:
+                    self.assertFalse(target.exists())
+                    row = next(r for r in result['excludedOptionalArtifacts'] if r['path'] == name)
+                    self.assertEqual(row['sha256'], hashlib.sha256(payload).hexdigest())
+                else:
+                    self.assertEqual(target.read_bytes(), payload)
+            self.assertEqual(result['releaseDecision'], 'NO_GO')
 
-    def test_jackson_invalid_checksum_keeps_original_unpublished_context(self):
-        with tempfile.TemporaryDirectory() as temporary:
-            home, downloads = self.jackson_fixture(Path(temporary))
-            (downloads / 'jackson-core-2.22.3.jar.sha512').write_text('0' * 128)
-            with self.assertRaisesRegex(ValueError, 'MQ_JACKSON_PUBLISHER_CHECKSUM_MISMATCH'):
-                FOUNDATION_PATCH.patch_jackson(home, downloads)
-            self.assertTrue((home / 'lib/jackson-core-2.22.1.jar').is_file())
+    def test_supported_candidate_never_uses_the_inactive_line_or_old_jackson_patch(self):
+        text = (Path(__file__).resolve().parents[1] / 'deploy/prepare-ci-foundation-patches.py').read_text()
+        dockerfile = (Path(__file__).resolve().parents[1] / 'deploy/activemq-foundation.Dockerfile').read_text()
+        self.assertIn('COPY apache-activemq-6.3.3/', dockerfile)
+        self.assertNotIn('apache-activemq-6.2.10/', dockerfile)
+        self.assertNotIn('patch_jackson', text)
+        self.assertNotIn('--jackson-downloads', text)
+        self.assertEqual(FOUNDATION_PATCH.MQ_SHA512, '0dda456dfc6b0701f61f66076011c6197863697a952c3b3128b0d3809f746b49e1a04c44e14d7ae89055ed4cec35a84fd24561d496452625540bab634f26b182')
 
     def test_altered_broker_archive_rejected_before_extract_or_context_creation(self):
         with tempfile.TemporaryDirectory() as temporary:
@@ -581,8 +824,118 @@ class FoundationVendorTest(unittest.TestCase):
             archive = root / 'broker.tar.gz'
             archive.write_bytes(b'not the approved Apache archive')
             with self.assertRaisesRegex(ValueError, 'ACTIVEMQ_PUBLISHER_ARCHIVE_CHECKSUM_MISMATCH'):
-                FOUNDATION_PATCH.prepare(archive, root / 'entrypoint.sh', root / 'context', root / 'downloads')
+                FOUNDATION_PATCH.prepare(archive, root / 'entrypoint.sh', root / 'context', root / 'noble')
             self.assertFalse((root / 'context').exists())
+
+    def test_mq_noble_packages_require_the_two_exact_publisher_inputs(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            packages = {}
+            for filename, expected in FOUNDATION_PATCH.NOBLE_PACKAGES.items():
+                payload = ('CI-only package ' + filename).encode()
+                (root / filename).write_bytes(payload)
+                packages[filename] = {**expected, 'size': len(payload), 'sha256': hashlib.sha256(payload).hexdigest()}
+            with patch.dict(FOUNDATION_PATCH.NOBLE_PACKAGES, packages, clear=True):
+                rows = FOUNDATION_PATCH.verify_noble_packages(root)
+            self.assertEqual({row['filename'] for row in rows}, set(packages))
+            self.assertTrue(all(row['url'].startswith('https://security.ubuntu.com/ubuntu/pool/main/') for row in rows))
+
+    def test_mq_noble_corruption_or_missing_input_cannot_be_used(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            for filename, expected in FOUNDATION_PATCH.NOBLE_PACKAGES.items():
+                (root / filename).write_bytes(b'x' * expected['size'])
+            with self.assertRaisesRegex(ValueError, 'MQ_NOBLE_PUBLISHER_PACKAGE_MISMATCH'):
+                FOUNDATION_PATCH.verify_noble_packages(root)
+            (root / next(iter(FOUNDATION_PATCH.NOBLE_PACKAGES))).unlink()
+            with self.assertRaises(FileNotFoundError):
+                FOUNDATION_PATCH.verify_noble_packages(root)
+
+    def test_mq_noble_manifest_and_offline_dockerfile_cover_the_observed_security_updates(self):
+        text = (Path(__file__).resolve().parents[1] / 'deploy/activemq-foundation.Dockerfile').read_text()
+        expected = {
+            'libfreetype6_2.13.2+dfsg-1ubuntu0.2_amd64.deb',
+            'libpng16-16t64_1.6.43-5ubuntu0.7_amd64.deb',
+            'apt_2.8.4ubuntu0.1_amd64.deb', 'libapt-pkg6.0t64_2.8.4ubuntu0.1_amd64.deb',
+            'ca-certificates_20260816ubuntu0.24.04.2_all.deb',
+            'curl_8.5.0-2ubuntu10.16_amd64.deb', 'libcurl4t64_8.5.0-2ubuntu10.16_amd64.deb',
+            'libbrotli1_1.1.0-2ubuntu0.1_amd64.deb',
+            'liblzma5_5.6.1+really5.4.5-1ubuntu0.4_amd64.deb',
+            'libpcre2-8-0_10.42-4ubuntu2.2_amd64.deb', 'zlib1g_1.3.dfsg-3.1ubuntu2.3_amd64.deb',
+        }
+        self.assertEqual(set(FOUNDATION_PATCH.NOBLE_PACKAGES), expected)
+        runtime = {'apt_2.8.4ubuntu0.1_amd64.deb', 'libapt-pkg6.0t64_2.8.4ubuntu0.1_amd64.deb',
+                   'libpcre2-8-0_10.42-4ubuntu2.2_amd64.deb',
+                   'ca-certificates_20260816ubuntu0.24.04.2_all.deb'}
+        self.assertEqual(set(re.findall(r'^COPY packages/(\S+) /tmp/rf065-mq-packages/$', text, re.M)), runtime)
+        for filename in runtime:
+            self.assertIn('/tmp/rf065-mq-packages/' + filename, text)
+        for filename in expected - runtime:
+            self.assertNotIn(filename, text)
+        self.assertIn('FROM eclipse-temurin:21.0.13_9-jre-noble@sha256:0eda5830ed7b669abc246a8dc520ea8a23cab06f9a8d4b6964109e2f2394e46f', text)
+        self.assertIn('RUN --network=none', text)
+        self.assertIn('DEBIAN_FRONTEND=noninteractive dpkg -i', text)
+        self.assertIn('test ! -d /run/systemd/system', text)
+        self.assertNotIn('keytool -delete', text)
+        self.assertNotIn('keytool -import', text)
+        self.assertIn('dpkg --audit', text)
+        self.assertNotIn('apt-get', text)
+        self.assertNotRegex(text, r'(?:^RUN\s+|&&\s+)curl\s')
+
+    def test_ca_jks_resync_uses_the_exact_publisher_patch_without_adding_java_ca_packages(self):
+        filename = 'ca-certificates_20260816ubuntu0.24.04.2_all.deb'
+        self.assertEqual(FOUNDATION_PATCH.NOBLE_PACKAGES[filename], {
+            'size': 140064,
+            'sha256': 'f9fbacd417b515450b831032cc39d18059e9874e67525679a43c16071dabf9a0',
+            'path': 'c/ca-certificates/', 'advisory': 'USN-9001-1'})
+        self.assertNotIn('ca-certificates_20260816ubuntu0.24.04.1_all.deb', FOUNDATION_PATCH.NOBLE_PACKAGES)
+        self.assertFalse(any(name.startswith('ca-certificates-java_') for name in FOUNDATION_PATCH.NOBLE_PACKAGES))
+
+    def test_mq_removes_only_the_four_observed_unused_sqlite_consumers(self):
+        text = (Path(__file__).resolve().parents[1] / 'deploy/activemq-foundation.Dockerfile').read_text()
+        commands = re.findall(r'&& dpkg --remove ([^\\\n]+)', text)
+        self.assertEqual(len(commands), 1)
+        self.assertEqual(commands[0].split(), ['gnupg', 'gpg', 'keyboxd', 'libsqlite3-0'])
+        self.assertNotIn('--force', text)
+        self.assertNotIn('--purge', text)
+        self.assertNotIn('autoremove', text)
+        self.assertNotRegex(text, r'(?:rm|unlink)\s')
+        self.assertIn('&& dpkg --audit', text)
+        self.assertIn('RUN --network=none', text)
+
+    def test_channel_client_fixes_observed_openwire_allocation_advisories(self):
+        root = Path(__file__).resolve().parents[2]
+        pom = (root / 'services/bank-channel-service/pom.xml').read_text()
+        self.assertIn('<activemq.version>6.2.10</activemq.version>', pom)
+        self.assertIn('<java.version>21</java.version>', pom)
+        self.assertNotIn('<artifactId>activemq-all</artifactId>', pom)
+
+    def test_channel_build_fetches_exact_reviewed_noble_packages_without_host_preparation(self):
+        root = Path(__file__).resolve().parents[2]
+        text = (root / 'services/bank-channel-service/Dockerfile').read_text()
+        rows = re.findall(r'^ADD --checksum=sha256:([0-9a-f]{64}) (https://\S+) (/tmp/rf065-channel-packages/\S+)$', text, re.M)
+        still_needed = {'apt_2.8.4ubuntu0.1_amd64.deb', 'libapt-pkg6.0t64_2.8.4ubuntu0.1_amd64.deb',
+                        'libpcre2-8-0_10.42-4ubuntu2.2_amd64.deb'}
+        expected = {filename: (item['sha256'], 'https://security.ubuntu.com/ubuntu/pool/main/' + item['path'] + filename)
+                    for filename, item in FOUNDATION_PATCH.NOBLE_PACKAGES.items() if filename in still_needed}
+        expected['ca-certificates_20260816ubuntu0.24.04.2_all.deb'] = (
+            'f9fbacd417b515450b831032cc39d18059e9874e67525679a43c16071dabf9a0',
+            'https://archive.ubuntu.com/ubuntu/pool/main/c/ca-certificates/ca-certificates_20260816ubuntu0.24.04.2_all.deb')
+        self.assertEqual({Path(target).name: (checksum, url) for checksum, url, target in rows}, expected)
+        self.assertEqual(len(rows), len(expected))
+        self.assertIn('RUN --network=none test ! -d /run/systemd/system', text)
+        for filename in expected:
+            self.assertIn('/tmp/rf065-channel-packages/' + filename, text)
+        self.assertIn('FROM eclipse-temurin:21.0.13_9-jdk-noble@sha256:114cabb73033ca4ce7ceec3deb62396bc1b716282bae051ed3c1d82e38fcab2d AS dependencies', text)
+        self.assertIn('FROM eclipse-temurin:21.0.13_9-jre-noble@sha256:0eda5830ed7b669abc246a8dc520ea8a23cab06f9a8d4b6964109e2f2394e46f', text)
+        self.assertIn('COPY --from=maven-tools /usr/share/maven /usr/share/maven', text)
+        self.assertEqual(text.count('--mount=type=cache,id=banksystem-channel-maven-seeded,target=/root/.m2'), 2)
+        self.assertNotIn('keytool -import', text)
+        self.assertNotIn('apt-get', text)
+        self.assertIn('USER 10001\n', text)
+        compose = (root / 'compose.channel.yaml').read_text()
+        self.assertIn('context: ./services/bank-channel-service', compose)
+        self.assertNotIn('COPY packages/', text)
 
     def requirement(self):
         return {'major': 18, 'minimumMinor': 6, 'advisories': ['CVE-2026-16239'], 'sources': ['https://www.postgresql.org/docs/release/18.6/']}
@@ -600,6 +953,84 @@ class FoundationVendorTest(unittest.TestCase):
             FOUNDATIONS.postgres_vendor_gate(['19.0-1.pgdg13+1'], self.requirement())
         with self.assertRaisesRegex(ValueError, 'POSTGRES_SERVER_VERSION_NOT_UNIQUE'):
             FOUNDATIONS.postgres_vendor_gate([], self.requirement())
+
+
+class ActivemqFeatureReviewTest(unittest.TestCase):
+    def policy(self):
+        return json.loads(FOUNDATIONS.POLICY.read_text(encoding='utf-8'))['activemqReview']
+
+    def image(self):
+        return {'Id': self.policy()['imageId'], 'Architecture': 'amd64', 'Os': 'linux'}
+
+    def facts(self):
+        return {path: 'ABSENT' for path in self.policy()['absentPaths']}
+
+    def rows(self):
+        return [{'name': row['name'], 'version': row['version'], 'ecosystem': row['ecosystem'], 'id': advisory}
+                for row in self.policy()['dispositions'] for advisory in row['advisories']]
+
+    def test_exact_platform_and_missing_features_review_only_two_advisories(self):
+        result = FOUNDATIONS.activemq_review(self.rows(), self.image(), self.facts(), self.policy())
+        self.assertEqual(result['status'], 'REVIEWED')
+        self.assertEqual(result['reviewedAdvisories'], 2)
+        self.assertEqual(result['blockingAdvisories'], 0)
+
+    def test_other_gnupg_risks_remain_blocked_and_original_severity_is_retained(self):
+        extra = {'name': 'gnupg2', 'version': '2.4.4-2ubuntu17.6', 'ecosystem': 'Ubuntu:24.04',
+                 'id': 'UBUNTU-CVE-2026-105712', 'severity': ['original-critical']}
+        result = FOUNDATIONS.activemq_review(self.rows() + [extra], self.image(), self.facts(), self.policy())
+        self.assertEqual(result['reviewedAdvisories'], 2)
+        self.assertEqual(result['blockingAdvisories'], 1)
+        self.assertEqual(result['blocking'][0]['severity'], ['original-critical'])
+
+    def test_image_and_platform_drift_cannot_use_linux_dispositions(self):
+        for field, value in [('Id', 'sha256:' + '0' * 64), ('Os', 'windows'), ('Architecture', 'arm64')]:
+            image = {**self.image(), field: value}
+            with self.subTest(field=field), self.assertRaisesRegex(ValueError, 'ACTIVEMQ_REVIEW_(PLATFORM|IMAGE)_DRIFT'):
+                FOUNDATIONS.activemq_review(self.rows(), image, self.facts(), self.policy())
+
+    def test_feature_presence_or_missing_proof_reject_review(self):
+        for key in self.facts():
+            for action in ('present', 'missing'):
+                facts = self.facts()
+                if action == 'missing':
+                    facts.pop(key)
+                else:
+                    facts[key] = 'PRESENT'
+                with self.subTest(key=key, action=action), self.assertRaisesRegex(ValueError, 'ACTIVEMQ_REVIEW_FEATURE_PROOF_DRIFT'):
+                    FOUNDATIONS.activemq_review(self.rows(), self.image(), facts, self.policy())
+
+    def test_version_ecosystem_and_missing_advisory_cannot_be_promoted(self):
+        for field, value in [('version', 'other'), ('ecosystem', 'Debian:13')]:
+            rows = [{**row, field: value} for row in self.rows()]
+            result = FOUNDATIONS.activemq_review(rows, self.image(), self.facts(), self.policy())
+            self.assertEqual(result['status'], 'FAILED')
+            self.assertEqual(result['reviewedAdvisories'], 0)
+            self.assertEqual(result['missingExpectedAdvisories'], 2)
+
+    def test_observed_shadow_mapping_and_gpgtar_are_not_disposed_by_platform_review(self):
+        extra = [{'name': 'shadow', 'version': '1:4.13+dfsg1-4ubuntu3.2', 'ecosystem': 'Ubuntu:24.04',
+                  'id': 'UBUNTU-CVE-2024-56433'},
+                 {'name': 'gnupg2', 'version': '2.4.4-2ubuntu17.6', 'ecosystem': 'Ubuntu:24.04',
+                  'id': 'UBUNTU-CVE-2026-105712'}]
+        result = FOUNDATIONS.activemq_review(self.rows() + extra, self.image(), self.facts(), self.policy())
+        self.assertEqual(result['reviewedAdvisories'], 2)
+        self.assertEqual(result['blockingAdvisories'], 2)
+        self.assertEqual({row['id'] for row in result['blocking']}, {row['id'] for row in extra})
+        result = FOUNDATIONS.activemq_review(self.rows()[1:], self.image(), self.facts(), self.policy())
+        self.assertEqual(result['missingExpectedAdvisories'], 1)
+
+    def test_feature_inspector_uses_only_the_exact_readonly_image_and_detects_links(self):
+        with patch.object(FOUNDATIONS.subprocess, 'run') as run:
+            run.return_value.stdout = ''.join(f'{key}={value}\n' for key, value in self.facts().items())
+            result = FOUNDATIONS.activemq_features(self.image()['Id'])
+        self.assertEqual(result, self.facts())
+        command = run.call_args.args[0]
+        self.assertIn('--read-only', command)
+        self.assertIn('--network=none', command)
+        self.assertIn(self.image()['Id'], command)
+        self.assertIn('[ -L "$p" ]', command[-1])
+        self.assertNotIn('--mount', command)
 
 
 if __name__ == '__main__':

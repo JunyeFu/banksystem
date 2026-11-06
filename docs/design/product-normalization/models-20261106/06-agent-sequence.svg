@@ -1,0 +1,61 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1820" height="1120" viewBox="0 0 1820 1120">
+<defs><marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M1 1 L9 5 L1 9" fill="none" stroke="#66788d"/></marker></defs>
+<style>text{font-family:"Microsoft YaHei",sans-serif;fill:#23364e;font-size:14px}.edge-label{paint-order:stroke;stroke:white;stroke-width:5px;stroke-linejoin:round}</style><rect width="100%" height="100%" fill="white"/>
+<rect x="40.0" y="120.0" width="100.0" height="40" fill="#eaf1fa" stroke="#406894"/>
+<path d="M90.0 160.0 V1000.0" stroke="#9da9b6" stroke-dasharray="5 4"/>
+<text data-cell="user" x="90.0" y="140.0" text-anchor="middle"><tspan x="90.0" dy="0">使用者</tspan></text>
+<rect x="360.0" y="120.0" width="100.0" height="40" fill="#eaf1fa" stroke="#406894"/>
+<path d="M410.0 160.0 V1000.0" stroke="#9da9b6" stroke-dasharray="5 4"/>
+<text data-cell="controller" x="410.0" y="140.0" text-anchor="middle"><tspan x="410.0" dy="0">Controller</tspan></text>
+<rect x="680.0" y="120.0" width="100.0" height="40" fill="#eaf1fa" stroke="#406894"/>
+<path d="M730.0 160.0 V1000.0" stroke="#9da9b6" stroke-dasharray="5 4"/>
+<text data-cell="model" x="730.0" y="140.0" text-anchor="middle"><tspan x="730.0" dy="0">BYOK模型</tspan></text>
+<rect x="1000.0" y="120.0" width="100.0" height="40" fill="#eaf1fa" stroke="#406894"/>
+<path d="M1050.0 160.0 V1000.0" stroke="#9da9b6" stroke-dasharray="5 4"/>
+<text data-cell="mcp" x="1050.0" y="140.0" text-anchor="middle"><tspan x="1050.0" dy="0">MCP</tspan></text>
+<rect x="1320.0" y="120.0" width="100.0" height="40" fill="#eaf1fa" stroke="#406894"/>
+<path d="M1370.0 160.0 V1000.0" stroke="#9da9b6" stroke-dasharray="5 4"/>
+<text data-cell="harness" x="1370.0" y="140.0" text-anchor="middle"><tspan x="1370.0" dy="0">Harness</tspan></text>
+<rect x="1640.0" y="120.0" width="100.0" height="40" fill="#eaf1fa" stroke="#406894"/>
+<path d="M1690.0 160.0 V1000.0" stroke="#9da9b6" stroke-dasharray="5 4"/>
+<text data-cell="worker" x="1690.0" y="140.0" text-anchor="middle"><tspan x="1690.0" dy="0">Worker</tspan></text>
+<rect x="725.0" y="360.0" width="10.0" height="50.0" rx="5" fill="#ffffff" stroke="#7d8ca0"/>
+<rect x="725.0" y="610.0" width="10.0" height="50.0" rx="5" fill="#ffffff" stroke="#7d8ca0"/>
+<rect x="1685.0" y="560.0" width="10.0" height="150.0" rx="5" fill="#ffffff" stroke="#7d8ca0"/>
+<rect x="1365.0" y="310.0" width="10.0" height="550.0" rx="5" fill="#ffffff" stroke="#7d8ca0"/>
+<rect x="405.0" y="210.0" width="10.0" height="700.0" rx="5" fill="#ffffff" stroke="#7d8ca0"/>
+<rect x="1045.0" y="260.0" width="10.0" height="700.0" rx="5" fill="#ffffff" stroke="#7d8ca0"/>
+<text data-cell="view-title" x="42.0" y="30.0" text-anchor="start" style="font-size:22px;font-weight:600"><tspan x="42.0" dy="0">Agent时序｜目标到冻结脚本与证据</tspan></text>
+<text data-cell="view-subtitle" x="42.0" y="85.0" text-anchor="start"><tspan x="42.0" dy="0">应用逻辑时序；MCP作为受控传输显式保留，作业实际以Harness领取协议推进</tspan></text>
+<text data-cell="view-note" x="42.0" y="1055.0" text-anchor="start"><tspan x="42.0" dy="0">稳定性验证后才冻结脚本用于正式/周期执行；周期回归不每次自由规划。反馈要独立验证再匹配消费，不改写原失败或业务预期。</tspan></text>
+<path data-edge="m0" d="M90.0 210.024 L405.0 210.0" fill="none" stroke="#66788d" stroke-width="1.5" marker-end="url(#arrow)"/>
+<text class="edge-label" data-edge-label="m0" text-anchor="middle" x="247.5" y="201.012">明确目标 / 轮次ID / 模型选择</text>
+<path data-edge="m1" d="M415.0 259.98 L1045.0 260.0" fill="none" stroke="#66788d" stroke-width="1.5" marker-end="url(#arrow)"/>
+<text class="edge-label" data-edge-label="m1" text-anchor="middle" x="730.0" y="250.99">登记轮次与不可变模型绑定</text>
+<path data-edge="m2" d="M1055.0 309.98 L1365.0 310.0" fill="none" stroke="#66788d" stroke-width="1.5" marker-end="url(#arrow)"/>
+<text class="edge-label" data-edge-label="m2" text-anchor="middle" x="1210.0" y="300.99">共享状态登记与版本条件</text>
+<path data-edge="m3" d="M415.0 360.01 L725.0 360.0" fill="none" stroke="#66788d" stroke-width="1.5" marker-end="url(#arrow)"/>
+<text class="edge-label" data-edge-label="m3" text-anchor="middle" x="570.0" y="351.005">脱敏最小上下文，受约束作者化</text>
+<path data-edge="m4" d="M725.0 410.0 L415.0 409.99" fill="none" stroke="#66788d" stroke-width="1.5" marker-end="url(#arrow)" stroke-dasharray="6 4"/>
+<text class="edge-label" data-edge-label="m4" text-anchor="middle" x="570.0" y="400.995">候选Journey；缺输入则不执行</text>
+<path data-edge="m5" d="M415.0 459.96999999999997 L1045.0 459.99" fill="none" stroke="#66788d" stroke-width="1.5" marker-end="url(#arrow)"/>
+<text class="edge-label" data-edge-label="m5" text-anchor="middle" x="730.0" y="450.98">提交合同候选 / 请求执行</text>
+<path data-edge="m6" d="M1055.0 509.96999999999997 L1365.0 509.98" fill="none" stroke="#66788d" stroke-width="1.5" marker-end="url(#arrow)"/>
+<text class="edge-label" data-edge-label="m6" text-anchor="middle" x="1210.0" y="500.975">Journey、任务与执行权</text>
+<path data-edge="m7" d="M1375.0 559.975 L1685.0 560.0" fill="none" stroke="#66788d" stroke-width="1.5" marker-end="url(#arrow)" stroke-dasharray="6 4"/>
+<text class="edge-label" data-edge-label="m7" text-anchor="middle" x="1530.0" y="550.9875">领取浏览器作者化/验证作业</text>
+<path data-edge="m8" d="M1685.0 609.995 L735.0 610.0" fill="none" stroke="#66788d" stroke-width="1.5" marker-end="url(#arrow)"/>
+<text class="edge-label" data-edge-label="m8" text-anchor="middle" x="1210.0" y="600.9975">受控视觉观察；凭据不入模型</text>
+<path data-edge="m9" d="M735.0 660.0 L1685.0 660.005" fill="none" stroke="#66788d" stroke-width="1.5" marker-end="url(#arrow)" stroke-dasharray="6 4"/>
+<text class="edge-label" data-edge-label="m9" text-anchor="middle" x="1210.0" y="651.0025">定位事实或原始分类错误</text>
+<path data-edge="m10" d="M1685.0 710.0 L1375.0 710.015" fill="none" stroke="#66788d" stroke-width="1.5" marker-end="url(#arrow)" stroke-dasharray="6 4"/>
+<text class="edge-label" data-edge-label="m10" text-anchor="middle" x="1530.0" y="701.0074999999999">浏览器事实、脚本、截图/trace</text>
+<path data-edge="m11" d="M415.0 759.99 L1045.0 760.01" fill="none" stroke="#66788d" stroke-width="1.5" marker-end="url(#arrow)"/>
+<text class="edge-label" data-edge-label="m11" text-anchor="middle" x="730.0" y="751.0">查询原Journey / Run，不重派</text>
+<path data-edge="m12" d="M1055.0 809.99 L1365.0 810.005" fill="none" stroke="#66788d" stroke-width="1.5" marker-end="url(#arrow)"/>
+<text class="edge-label" data-edge-label="m12" text-anchor="middle" x="1210.0" y="800.9975">状态与证据回读</text>
+<path data-edge="m13" d="M1365.0 860.0 L1055.0 859.97" fill="none" stroke="#66788d" stroke-width="1.5" marker-end="url(#arrow)" stroke-dasharray="6 4"/>
+<text class="edge-label" data-edge-label="m13" text-anchor="middle" x="1210.0" y="850.985">真实结果或原失败分类</text>
+<path data-edge="m14" d="M405.0 910.0 L90.0 909.976" fill="none" stroke="#66788d" stroke-width="1.5" marker-end="url(#arrow)" stroke-dasharray="6 4"/>
+<text class="edge-label" data-edge-label="m14" text-anchor="middle" x="247.5" y="900.988">结果、证据和人工接管提示</text>
+</svg>

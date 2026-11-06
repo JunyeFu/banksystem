@@ -7,14 +7,24 @@ import test from 'node:test'
 import { createPersistentControllerRuntimeV2 } from '../src/controller-runtime.mjs'
 import {
   DEFAULT_RETENTION_MS,
-  EncryptedSessionStore,
   SessionStoreError,
   atomicWriteFile,
 } from '../src/session-store.mjs'
+import {TestSessionStore as EncryptedSessionStore} from './session-fixture.mjs'
 
 const RELEASE = '8'.repeat(64)
 const SESSION_A = `session-${'a'.repeat(32)}`
 const SESSION_B = `session-${'b'.repeat(32)}`
+
+test('an independently loaded checkpointer cannot overwrite a newer snapshot',async t=>{
+  const {EncryptedSessionCheckpointer}=await import('../src/session-checkpointer.mjs')
+  const {store}=await fixture(t);await createBound(store)
+  const first=await EncryptedSessionCheckpointer.create({store,sessionId:SESSION_A,releaseIdentityHash:RELEASE})
+  const second=await EncryptedSessionCheckpointer.create({store,sessionId:SESSION_A,releaseIdentityHash:RELEASE})
+  await first.persist();await first.persist()
+  await assert.rejects(second.persist(),e=>e.code==='SESSION_REVISION_CONFLICT')
+  assert.equal((await store.load(SESSION_A)).revision,3)
+})
 
 async function fixture(t, options = {}) {
   const root = await mkdtemp(path.join(os.tmpdir(), 'hengzhun-tp04-'))
@@ -49,8 +59,8 @@ test('CurrentUser DPAPI roundtrip persists sensitive payload only as ciphertext'
     expectedJourneyId: 'journey-sensitive-name',
   })
   assert.equal(payload.events[0].value, 'top-secret-input C:\\private\\case.png')
-  const envelopeText = await readFile(path.join(root, `${SESSION_A}.hzs`), 'utf8')
-  const indexText = await readFile(path.join(root, 'index-v1.json'), 'utf8')
+  const envelopeText = JSON.stringify(await store.persistence.load(SESSION_A))
+  const indexText = JSON.stringify(await store.list())
   for (const forbidden of ['top-secret-input', 'C:\\private', 'tenant-sensitive-name', 'thread-sensitive-name', 'journey-sensitive-name']) {
     assert.doesNotMatch(envelopeText, new RegExp(forbidden.replaceAll('\\', '\\\\')))
     assert.doesNotMatch(indexText, new RegExp(forbidden.replaceAll('\\', '\\\\')))
@@ -75,13 +85,13 @@ test('ciphertext tamper and simulated cross-user DPAPI failure never create repl
   const { root, store } = await fixture(t)
   await createBound(store)
   const sessionPath = path.join(root, `${SESSION_A}.hzs`)
-  const original = await readFile(sessionPath, 'utf8')
+  const original = JSON.stringify(await store.persistence.load(SESSION_A))
   const envelope = JSON.parse(original)
   envelope.ciphertextBase64 = `${envelope.ciphertextBase64[0] === 'A' ? 'B' : 'A'}${envelope.ciphertextBase64.slice(1)}`
-  await writeFile(sessionPath, JSON.stringify(envelope), 'utf8')
+  store.persistence.records.set(SESSION_A,envelope)
   await assert.rejects(store.load(SESSION_A, { expectedReleaseIdentityHash: RELEASE }), (error) => error.code === 'SESSION_CIPHERTEXT_TAMPERED')
 
-  await writeFile(sessionPath, original, 'utf8')
+  store.persistence.records.set(SESSION_A,JSON.parse(original))
   const crossUserStore = new EncryptedSessionStore({
     root,
     dpapi: { protect() { throw new Error('not used') }, unprotect() { throw new Error('different user') } },
@@ -90,37 +100,31 @@ test('ciphertext tamper and simulated cross-user DPAPI failure never create repl
     crossUserStore.load(SESSION_A, { expectedReleaseIdentityHash: RELEASE }),
     (error) => error.code === 'SESSION_DPAPI_UNPROTECT_FAILED',
   )
-  assert.equal(await readFile(sessionPath, 'utf8'), original)
+  assert.equal(JSON.stringify(await store.persistence.load(SESSION_A)), original)
 })
 
 test('schema drift fails closed without attempting a new session', async (t) => {
   const { root, store } = await fixture(t)
   await createBound(store)
   const sessionPath = path.join(root, `${SESSION_A}.hzs`)
-  const envelope = JSON.parse(await readFile(sessionPath, 'utf8'))
+  const envelope = await store.persistence.load(SESSION_A)
   envelope.schemaVersion = 'hengzhun-session-envelope/v999'
-  await writeFile(sessionPath, JSON.stringify(envelope), 'utf8')
+  store.persistence.records.set(SESSION_A,envelope)
   await assert.rejects(store.load(SESSION_A, { expectedReleaseIdentityHash: RELEASE }), (error) => error.code === 'SESSION_ENVELOPE_VERSION_INVALID')
   assert.equal((await store.list()).length, 1)
 })
 
-test('failed atomic replacement preserves the last decryptable envelope byte-for-byte', async (t) => {
-  let failSessionWrite = false
-  const writer = (target, bytes) => atomicWriteFile(target, bytes, {
-    beforeRename: async () => {
-      if (failSessionWrite && target.endsWith('.hzs')) throw new SessionStoreError('SIMULATED_POWER_LOSS')
-    },
-  })
-  const { root, store } = await fixture(t, { atomicWriter: writer })
+test('failed persistence preserves the last decryptable envelope byte-for-byte', async (t) => {
+  const { root, store } = await fixture(t)
   await createBound(store)
   const sessionPath = path.join(root, `${SESSION_A}.hzs`)
-  const before = await readFile(sessionPath)
-  failSessionWrite = true
+  const before = await store.persistence.load(SESSION_A)
+  store.persistence.failure=new SessionStoreError('SIMULATED_POWER_LOSS')
   await assert.rejects(
     store.appendEvent(SESSION_A, RELEASE, { type: 'SECOND', value: 'must-not-land' }),
     (error) => error.code === 'SIMULATED_POWER_LOSS',
   )
-  assert.deepEqual(await readFile(sessionPath), before)
+  assert.deepEqual(await store.persistence.load(SESSION_A), before)
   assert.equal((await store.load(SESSION_A, { expectedReleaseIdentityHash: RELEASE })).events.length, 1)
 })
 
@@ -130,7 +134,7 @@ test('expiry, archive, retention purge and safe index semantics are deterministi
   await createBound(store)
   await store.archive(SESSION_A, RELEASE)
   assert.equal((await store.list())[0].status, 'ARCHIVED')
-  const indexText = await readFile(path.join(root, 'index-v1.json'), 'utf8')
+  const indexText = JSON.stringify(await store.list())
   assert.doesNotMatch(indexText, /events|checkpoint|proposal|ciphertext|top-secret/)
   current += 60_000
   await assert.rejects(store.load(SESSION_A, { expectedReleaseIdentityHash: RELEASE }), (error) => error.code === 'SESSION_EXPIRED')
@@ -246,7 +250,7 @@ test('restart restores encrypted LangGraph checkpoint and proposal arguments for
     threadId: 'thread-sensitive-name', journeyId: state.journeyId, userInput: 'restart-secret-input',
   })
   assert.equal(started.status, 'AWAITING_USER')
-  const persistedBytes = await readFile(path.join(root, `${SESSION_A}.hzs`), 'utf8')
+  const persistedBytes = JSON.stringify(await store.persistence.load(SESSION_A))
   assert.doesNotMatch(persistedBytes, /restart-secret-input|restart-secret-value|normalizedInput/)
 
   const afterRestart = await createPersistentControllerRuntimeV2(common)

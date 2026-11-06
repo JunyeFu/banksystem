@@ -108,7 +108,7 @@ export function compileExecutableActionPlan(intentPlanInput: unknown, intentPlan
       // Transfer) rather than discarding the whole step.
       if (isReadOnlyConstraint(step.action)) { readOnlyConstraints.push(step.action); return []; }
       const clauses = step.action.split(/[，,；;]/u);
-      const prohibited = clauses.filter(clause => /^(?:(?:且|并|也)?(?:未|不|不得|禁止|勿|不要)(?:点击|进入|打开|修改|提交|操作|转账|执行|访问|发起)|确认未触发(?:转账|业务申请|资料|日期修改))/u.test(clause.trim()));
+      const prohibited = clauses.filter(clause => /^(?:(?:且|并|也)?(?:未|不|不得|禁止|勿|不要)(?:进行)?(?:点击|进入|打开|修改|提交|操作|转账|执行|访问|发起)|确认未触发(?:转账|业务申请|资料|日期修改))/u.test(clause.trim()));
       if (!prohibited.length) return [step];
       readOnlyConstraints.push(...prohibited.map(clause => clause.trim().replace(/[。.!！]+$/u, '')));
       const action = clauses.filter(clause => !prohibited.includes(clause)).join('，').trim();
@@ -247,11 +247,25 @@ export function compileExecutableActionPlan(intentPlanInput: unknown, intentPlan
       !/^(?:打开|访问|进入登录|前往登录|navigate\b|open\b|go\s+to\b)/i.test(firstStep.action)
       ? [{ ...firstStep, action: '打开目标站点入口页', expected: '入口页已加载', inputValueSource: 'NONE' as const, operationHint: 'goto' as const }, ...coalescedSource]
       : coalescedSource;
-    const actions: Array<Record<string, unknown> & { ordinal: number; operation: ExecutableActionPlan['actions'][number]['operation'] }> = executionSource.map((step, index) => {
+    let accountPagePlanned = false;
+    const contextualSource: GenericIntentStep[] = executionSource.flatMap(step => {
+      const navigation = step.operationHint === 'goto' || step.operationHint === 'click' ||
+        (!step.operationHint && /^(?:打开|访问|进入|导航(?:至|到)?|前往|点击)/u.test(step.action));
+      if (navigation) accountPagePlanned = /账户列表|账户页面|账户页/.test(step.action) && !/明细|详情|转账/.test(step.action);
+      if (!navigation && !accountPagePlanned && accountObservation(step.action, intentPlan.adapterBinding ?? snapshot.adapterBinding)) {
+        accountPagePlanned = true;
+        return [{ intentStepId: `${step.intentStepId}-account-navigation`, action: '导航到账户列表页面', expected: '账户列表页面可见',
+          riskLevel: 'LOW' as const, inputValueSource: 'NONE' as const, operationHint: 'click' as const }, step];
+      }
+      return [step];
+    });
+    let accountListContext = false;
+    const actions: Array<Record<string, unknown> & { ordinal: number; operation: ExecutableActionPlan['actions'][number]['operation'] }> = contextualSource.map((step, index) => {
       const text = `${step.action} ${step.expected}`;
       const stateOnly = !step.operationHint && /^(?:(?:完成(?:核对|检查|验证)|(?:核对|检查|验证)完成)后)?(?:确认|确保)?(?:当前)?(?:页面)?(?:保持|停留)/u.test(step.action) &&
         !/(?:点击|输入|填写|选择|上传|下载|打开|进入|前往)/u.test(step.action);
-      const stayOnPage = stateOnly && String(step.action).match(/(?:保持在|停留在|页面为)([^，,；;。]+?(?:页面|页|列表|清单))[。]?$/u);
+      const stayOnPage = stateOnly && (String(step.action).match(/(?:保持在|停留在|页面为)([^，,；;。]+?(?:页面|页|列表|清单))[。]?$/u)
+        || String(step.action).match(/保持(?:当前)?([^，,；;。]+?(?:页面|页|列表|清单))[。]?$/u));
       const actionText = stayOnPage ? `核对${stayOnPage[1]}` : String(step.action || '').trim();
       const first = index === 0;
       let operation: ExecutableActionPlan['actions'][number]['operation'] = step.operationHint ?? (first ? 'goto' : 'click');
@@ -287,7 +301,9 @@ export function compileExecutableActionPlan(intentPlanInput: unknown, intentPlan
       else if (!step.operationHint && !first && /(?:验证|核验|确认|检查|显示|一致|verify|expect)/i.test(actionText)) operation = 'expectVisible';
       else if (!step.operationHint && !first && /(?:等待.*(?:页面|跳转)|wait.*url)/i.test(actionText)) operation = 'waitForURL';
       if (!step.operationHint && /错误|异常|error/i.test(actionText) && /无错误|没有错误|未出现.*(?:错误|异常)|无.*加载异常|no\s+errors?/i.test(step.expected)) operation = 'expectNoErrors';
-      const pageObservation = operation === 'expectVisible' ? accountObservation(actionText, intentPlan.adapterBinding ?? snapshot.adapterBinding) : undefined;
+      if (operation === 'goto' || operation === 'click') accountListContext = /账户列表/.test(actionText) && !/明细|详情|转账/.test(actionText);
+      const observationText = accountListContext && !/账户列表/.test(actionText) ? `账户列表：${actionText}` : actionText;
+      const pageObservation = operation === 'expectVisible' ? accountObservation(observationText, intentPlan.adapterBinding ?? snapshot.adapterBinding) : undefined;
       const targetRef = `DYNAMIC_${String(index + 1).padStart(3, '0')}`;
       const fixtureRef = step.inputValueSource === 'CREDENTIAL_REF'
         ? (/password|密码/i.test(text) ? 'CREDENTIAL.PASSWORD' : 'CREDENTIAL.USERNAME')

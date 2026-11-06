@@ -152,6 +152,7 @@ export function createOpenAIJsonInvoker({
     temperature: 0,
     streaming: false,
     maxRetries: 0,
+    maxTokens: 8192,
     timeout: timeoutMs,
     configuration: { baseURL },
   })
@@ -180,6 +181,10 @@ export function createOpenAIJsonInvoker({
     } catch (error) {
       if (error instanceof ControllerAdapterError) throw error
       if (signal?.aborted) throw new ControllerAdapterError('AGENT_ADAPTER_CANCELLED')
+      if (error?.name === 'APIConnectionTimeoutError') throw new ControllerAdapterError('AGENT_ADAPTER_MODEL_TIMEOUT')
+      if (Number.isInteger(error?.status) && error.status >= 400 && error.status <= 599) {
+        throw new ControllerAdapterError(`AGENT_ADAPTER_MODEL_HTTP_${error.status >= 500 ? '5XX' : error.status}`)
+      }
       throw new ControllerAdapterError('AGENT_ADAPTER_MODEL_TRANSPORT_FAILED')
     }
   }

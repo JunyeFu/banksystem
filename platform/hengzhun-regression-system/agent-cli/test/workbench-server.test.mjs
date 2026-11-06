@@ -86,5 +86,6 @@ test('artifact binary response contains no grant URL, internal token, local path
   assert.equal(result.headers.get('content-type'), 'application/octet-stream')
   assert.equal(result.headers.get('x-content-sha256'), hash(bytes))
   assert.match(result.headers.get('content-disposition'), /^attachment;/)
-  assert.deepEqual(f.downloads, [{ turnId: id, artifactId }])
+  assert.equal(f.downloads[0].turnId,id);assert.equal(f.downloads[0].artifactId,artifactId)
+  assert.equal(f.downloads[0].signal.aborted,false)
 })

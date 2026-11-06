@@ -1,0 +1,35 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1500" height="850" viewBox="0 0 1500 850">
+<defs><marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M1 1 L9 5 L1 9" fill="none" stroke="#66788d"/></marker></defs>
+<style>text{font-family:"Microsoft YaHei",sans-serif;fill:#23364e;font-size:14px}.edge-label{paint-order:stroke;stroke:white;stroke-width:5px;stroke-linejoin:round}</style><rect width="100%" height="100%" fill="white"/>
+<rect x="40.0" y="170.0" width="260.0" height="90.0" rx="5" fill="#e6f2ef" stroke="#267368"/>
+<text data-cell="customer" x="170.0" y="220.0" text-anchor="middle"><tspan x="170.0" dy="0">Fineract客户</tspan></text>
+<rect x="400.0" y="170.0" width="260.0" height="90.0" rx="5" fill="#e6f2ef" stroke="#267368"/>
+<text data-cell="account" x="530.0" y="220.0" text-anchor="middle"><tspan x="530.0" dy="0">Fineract账户</tspan></text>
+<rect x="800.0" y="170.0" width="260.0" height="90.0" rx="5" fill="#e6f2ef" stroke="#267368"/>
+<text data-cell="coretx" x="930.0" y="220.0" text-anchor="middle"><tspan x="930.0" dy="0">核心交易与分录</tspan></text>
+<rect x="800.0" y="430.0" width="260.0" height="90.0" rx="5" fill="#eaf1fa" stroke="#406894"/>
+<text data-cell="operation" x="930.0" y="470.0" text-anchor="middle"><tspan x="930.0" dy="0">Channel转账操作</tspan><tspan x="930.0" dy="20">幂等键 / correlationId</tspan></text>
+<rect x="40.0" y="650.0" width="260.0" height="90.0" rx="5" fill="#eaf1fa" stroke="#406894"/>
+<text data-cell="conversation" x="170.0" y="690.0" text-anchor="middle"><tspan x="170.0" dy="0">Harness会话与轮次</tspan><tspan x="170.0" dy="20">模型版本 / submissionId</tspan></text>
+<rect x="400.0" y="650.0" width="260.0" height="90.0" rx="5" fill="#eaf1fa" stroke="#406894"/>
+<text data-cell="journey" x="530.0" y="690.0" text-anchor="middle"><tspan x="530.0" dy="0">Journey / Run</tspan><tspan x="530.0" dy="20">脚本版本 / 身份</tspan></text>
+<rect x="800.0" y="650.0" width="260.0" height="90.0" rx="5" fill="#eaf1fa" stroke="#406894"/>
+<text data-cell="evidence" x="930.0" y="690.0" text-anchor="middle"><tspan x="930.0" dy="0">证据与事故</tspan><tspan x="930.0" dy="20">工件引用 / 原失败</tspan></text>
+<rect x="1170.0" y="650.0" width="260.0" height="90.0" rx="5" fill="#eaf1fa" stroke="#406894"/>
+<text data-cell="verification" x="1300.0" y="690.0" text-anchor="middle"><tspan x="1300.0" dy="0">Release验证记录</tspan><tspan x="1300.0" dy="20">同身份的机器判定</tspan></text>
+<text data-cell="view-title" x="42.0" y="30.0" text-anchor="start" style="font-size:22px;font-weight:600"><tspan x="42.0" dy="0">领域关系｜关联不等于跨库外键</tspan></text>
+<text data-cell="view-subtitle" x="42.0" y="85.0" text-anchor="start"><tspan x="42.0" dy="0">逻辑领域关系，不是物理ER或完整DDL；实线标签说明关系，省略基数时不暗示数据库约束</tspan></text>
+<text data-cell="view-note" x="42.0" y="785.0" text-anchor="start"><tspan x="42.0" dy="0">资金核心、渠道流程和Harness各有状态所有者；业务correlation用于核验关联，不由平台直接SQL写核心，也不是跨库事务。</tspan></text>
+<path data-edge="e-0" d="M300.0 215.0 L400.0 215.0" fill="none" stroke="#66788d" stroke-width="1.5"/>
+<text class="edge-label" data-edge-label="e-0" text-anchor="middle" x="350.0" y="206.0">客户归属</text>
+<path data-edge="e-1" d="M660.0 215.0 L800.0 215.0" fill="none" stroke="#66788d" stroke-width="1.5"/>
+<text class="edge-label" data-edge-label="e-1" text-anchor="middle" x="730.0" y="206.0">账户交易</text>
+<path data-edge="e-2" d="M930.0 430.0 L930.0 260.0" fill="none" stroke="#66788d" stroke-width="1.5"/>
+<text class="edge-label" data-edge-label="e-2" text-anchor="middle" x="930.0" y="336.0">核心引用</text>
+<path data-edge="e-3" d="M300.0 695.0 L400.0 695.0" fill="none" stroke="#66788d" stroke-width="1.5"/>
+<text class="edge-label" data-edge-label="e-3" text-anchor="middle" x="350.0" y="686.0">绑定任务</text>
+<path data-edge="e-4" d="M660.0 695.0 L800.0 695.0" fill="none" stroke="#66788d" stroke-width="1.5"/>
+<text class="edge-label" data-edge-label="e-4" text-anchor="middle" x="730.0" y="686.0">执行证据</text>
+<path data-edge="e-5" d="M1060.0 695.0 L1170.0 695.0" fill="none" stroke="#66788d" stroke-width="1.5"/>
+<text class="edge-label" data-edge-label="e-5" text-anchor="middle" x="1115.0" y="686.0">核验输入</text>
+</svg>

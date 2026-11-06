@@ -34,11 +34,11 @@ function run(command, args, options = {}) {
 }
 
 function discoverRepositoryContext(targetProductRoot, options = {}) {
-  const resolvedProductRoot = path.resolve(targetProductRoot)
+  const resolvedProductRoot = fs.realpathSync.native(path.resolve(targetProductRoot))
   const runCommand = options.run || run
   const result = runCommand('git.exe', ['-C', resolvedProductRoot, 'rev-parse', '--show-toplevel'])
   assert.equal(result.status, 0, String(result.stderr || result.stdout || 'I10_S9_GIT_ROOT_DISCOVERY_FAILED').trim())
-  const discoveredRoot = path.resolve(String(result.stdout || '').trim())
+  const discoveredRoot = fs.realpathSync.native(path.resolve(String(result.stdout || '').trim()))
   const relative = path.relative(discoveredRoot, resolvedProductRoot)
   assert.ok(!relative.startsWith('..') && !path.isAbsolute(relative), `I10_S9_PRODUCT_OUTSIDE_GIT_ROOT:${resolvedProductRoot}`)
   return Object.freeze({

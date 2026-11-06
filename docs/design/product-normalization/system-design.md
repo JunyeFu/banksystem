@@ -5,16 +5,37 @@ document_type: reference
 domain: architecture
 status: draft
 authority: design
-version: 1.0
-effective_date: 2026-10-08
+version: 1.2
+effective_date: 2026-11-06
 owner: Codex
 ---
 
 # 系统设计与模块边界
 
+## 组件与状态归属
+
+截至2026-11-06，交付目标仍为可独立理解、联合演示的银行与测试Agent，整体NO_GO。以下说明现有主链和设计约束；源码/集成、真实运行及待验收能力的差异由[验收记录](acceptance-and-handover.md)明确区分，不因图或接口已存在就宣称全部上线。
+
 银行链：Portal→Gateway→Bank Channel→Fineract。Keycloak提供身份；Channel校验权限、对象归属、业务规则、请求绑定并持久化操作；Fineract拥有账务。核心网络调用不跨本地长事务；未知结果只回读并匹配原请求。
 
 Agent链：CLI/Controller→MCP→Harness→Worker→Playwright/Midscene→Portal。Harness SQLite保存任务/脚本/调度/证据索引，Quality只读展示。模型生成解释不能替代验证器；正式脚本回归不临场改预期或脚本。
+
+| 边界 | 所有者与调用方式 | 不得承担的职责 |
+|---|---|---|
+| 银行UI/API | 两门户经Gateway调用Channel；Keycloak PKCE身份 | 不直连核心或数据库，不伪造入账 |
+| 银行应用层 | 业务服务编排事务，Repository持有SQL，五个Fineract能力端口隔离核心解析 | 不跨网络持有本地资金长事务，不由Controller互调 |
+| Agent会话入口 | CLI及loopback工作台复用Controller，历史/模型/轮次元数据经独立MCP接Harness | 不成为第二个任务数据库或银行写入口 |
+| Controller与模型 | 唯一配置BYOK生成有合同约束的候选，凭据仅执行端解析 | 不读全仓、原账务或密钥，不直接写Harness状态 |
+| Harness/Worker | Harness持久化及领取权；Worker实际浏览器操作和证据回传 | 不把模型说明当实际执行，不在结果未知时盲重做 |
+| Quality/资料站 | Quality读同一SQLite脱敏投影；外部站仅准备资料 | 不创作/批准测试，不由自评改变工程结论 |
+
+## 会话与测试执行
+
+浏览器工作台仅保留对话、历史和模型选择/配置等核心入口，显示受控执行摘要、真实工具事件及结果证据，不展示模型内部推理作为结论。模型配置的版本、模型名、端点摘要与ReleaseIdentity绑定到轮次；本地凭据登记不把API key返回历史。Harness原子登记submission，重复ID返回原轮次，不重新发起银行业务；更改载荷沿用原ID冲突拒绝。
+
+会话恢复读取Harness共享检查点与CAS版本，历史浏览不隐式恢复/重派。CLI进程恢复、已验证脚本再次执行和业务幂等是不同边界：前者恢复原任务；A06新Journey/Run复用同一冻结脚本；金融重复提交仍由银行幂等/未知回读约束。最新源码接缝与回归见[源码门](../../architecture/refactoring/batches/RF-065/ci-complete-20261105.md)，当前绑定尚未按这些增量冻结。
+
+执行错误沿Worker→Harness→MCP→Controller→HTTP/CLI传播原分类，不吞异常伪装成功。测试是否通过只由事前目标和实际事实决定；业务成功、测试失败、Agent需要人工可以同时成立。证据生产/认证登记/验证/SQLite判定/Quality是一条链，任何后续非预期失败、身份过期或工件问题都不能继续显示旧READY为当前结论。
 
 ## 调度与反馈增量
 复用已有schedule、lease、incident与repair接口，先审计可达性和版本条件再补CLI缺口。失败暂停是人工接管，不重引入日常提案审批。反馈记录失败类别、人工纠正、目标适配器和适用版本；经验仅在匹配目标/合同条件时加入候选作者化上下文。候选通过合同与隔离验证后才可用于后续运行，原失败和正式脚本版本保留；禁止凭空生成金融参数或放宽断言。
@@ -37,11 +58,13 @@ Agent链：CLI/Controller→MCP→Harness→Worker→Playwright/Midscene→Porta
 资金幂等状态属于Channel PostgreSQL；核心账务属于Fineract；Agent执行及反馈属于Harness SQLite；外部站点只有规范资料和只读状态引用。反馈不得放在仓库docs作为产品运行时RAG。
 
 ## 设计验收
-Controller不直接SQL；Repository独占SQL；跨层通过具名业务端口。反馈启用需匹配与不匹配两类反例、重启持久化与证据复核；计划调度需单次触发、多进程领取、失败暂停和恢复反例。现有理想/实际专业图在RF064 S1核对更新，本文不声称图已更新。
+Controller不直接SQL；Repository独占SQL；跨层通过具名业务端口。反馈启用需匹配与不匹配两类反例、重启持久化与证据复核；计划调度需单次触发、多进程领取、失败暂停和恢复反例。2026-11-06已按当前源码更新[十视图图册](models-20261106/README.md)；模型只证明具名静态范围，不关闭运行验收。
 
 ## 既有专业模型与本次差异映射
 
-以下图是2026-09-30建模快照，保留作为修复前基线，不将旧图标题中的“实际”解释为当前实现。最终候选前需要重建实际图。
+当前入口为[2026-11-06专业图册](models-20261106/README.md)与[可编辑源](models-20261106/current-business-models.drawio)：用例、能力对照、银行/Agent组件、两时序、状态、逻辑领域关系、关键部署与DSM。重新提取65个Java文件/14条跨模块import，无强连通组；首次发现的贷款→审计声明缺项已由M4仅补bank.audit，实际边保留、未登记边为0。这不是运行验收或“完全解耦”结论。十九个具名锚点和每条import见图册来源JSON。
+
+以下旧图是2026-09-30建模快照，继续作为修复前基线；不要将旧图标题中的“实际”解释为当前实现，也不要复用其中verify未实现、贷款年率或旧依赖环结论。
 
 | 专业视图 | 已有源稿/预览 | 本轮必须反映的差异 |
 |---|---|---|

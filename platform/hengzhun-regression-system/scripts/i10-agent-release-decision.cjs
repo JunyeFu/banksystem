@@ -81,20 +81,30 @@ async function runDpapiRestoreDrill({ root = productRoot, releaseIdentityHash, n
   const current = identityHash(releaseIdentityHash)
   const temporaryRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'hengzhun-agent-dpapi-release-'))
   const marker = `release-drill-${crypto.randomBytes(16).toString('hex')}`
-  const sessionId = `session-${crypto.randomBytes(16).toString('hex')}`
   try {
-    const { EncryptedSessionStore } = await import(pathToFileURL(path.join(root, 'controller', 'src', 'session-store.mjs')).href)
-    const first = await new EncryptedSessionStore({ root: temporaryRoot }).initialize()
-    await first.create({
-      sessionId, namespace: 'release-gate', threadId: 'dpapi-restart-drill', journeyId: 'journey-release-gate',
-      releaseIdentityHash: current, events: [{ type: 'DPAPI_RESTORE_DRILL', marker }],
+    const moduleUrl = pathToFileURL(path.join(root, 'controller', 'src', 'session-store.mjs')).href
+    const { defaultDpapi } = await import(moduleUrl)
+    const additionalEntropy = Buffer.from(`release-drill:${current}`)
+    const encrypted = defaultDpapi().protect(Buffer.from(marker), additionalEntropy)
+    if (encrypted.includes(Buffer.from(marker))) fail('AGENT_RELEASE_DPAPI_PLAINTEXT_LEAK')
+    const probeFile = path.join(temporaryRoot, 'probe.dpapi')
+    fs.writeFileSync(probeFile, encrypted, { mode: 0o600, flag: 'wx' })
+    // A transient crypto probe is not a session store. Session state remains Harness-owned.
+    const probe = `const fs=require('node:fs'),crypto=require('node:crypto');
+import(process.argv[1]).then(({defaultDpapi})=>{
+  const input=JSON.parse(fs.readFileSync(0,'utf8'));
+  const plain=defaultDpapi().unprotect(fs.readFileSync(input.file),Buffer.from(input.entropy,'hex'));
+  process.stdout.write(crypto.createHash('sha256').update(plain).digest('hex'));
+}).catch(()=>{process.exitCode=1})`
+    const restarted = childProcess.spawnSync(process.execPath, ['-e', probe, moduleUrl], {
+      cwd: root, input: JSON.stringify({ file: probeFile, entropy: additionalEntropy.toString('hex') }),
+      encoding: 'utf8', windowsHide: true,
     })
-    const envelope = fs.readFileSync(path.join(temporaryRoot, `${sessionId}.hzs`), 'utf8')
-    if (envelope.includes(marker) || JSON.parse(envelope).cipher !== 'WINDOWS_DPAPI_CURRENT_USER') fail('AGENT_RELEASE_DPAPI_PLAINTEXT_LEAK')
-    const restarted = await new EncryptedSessionStore({ root: temporaryRoot }).initialize()
-    const restored = await restarted.load(sessionId, { expectedReleaseIdentityHash: current })
-    if (restored?.events?.[0]?.marker !== marker || restored.releaseIdentityHash !== current) fail('AGENT_RELEASE_DPAPI_RESTORE_MISMATCH')
-    return Object.freeze({ status: 'RESTORED', releaseIdentityHash: current, checkedAt: now().toISOString(), cipher: 'WINDOWS_DPAPI_CURRENT_USER' })
+    if (restarted.error || restarted.status !== 0 || restarted.stdout !== crypto.createHash('sha256').update(marker).digest('hex')) {
+      fail('AGENT_RELEASE_DPAPI_RESTORE_MISMATCH')
+    }
+    return Object.freeze({ status: 'RESTORED', releaseIdentityHash: current, checkedAt: now().toISOString(),
+      cipher: 'WINDOWS_DPAPI_CURRENT_USER', restoreScope: 'DPAPI_PRIMITIVE_NEW_PROCESS' })
   } catch (error) {
     if (error instanceof AgentReleaseDecisionError) throw error
     fail(error?.code === 'SESSION_DPAPI_PLATFORM_UNSUPPORTED' ? 'AGENT_RELEASE_DPAPI_PLATFORM_UNSUPPORTED' : 'AGENT_RELEASE_DPAPI_RESTORE_FAILED')

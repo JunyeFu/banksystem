@@ -5,6 +5,7 @@ const assert = require('node:assert/strict')
 const {
   REGISTERED_TEST_TIMEOUT_MS,
   assertCoverage,
+  assertTapSuccess,
   assertReleaseStateUnchanged,
   parseCoverage,
   validateManifest,
@@ -13,6 +14,16 @@ const {
 
 test('registered files have one measured timeout budget without retries or parallelism', () => {
   assert.equal(REGISTERED_TEST_TIMEOUT_MS, 180_000)
+})
+
+test('nested summaries allow additional passing tests but reject skipped failed cancelled or incomplete suites', () => {
+  const report = (tests, pass, changes = {}) => Object.entries({ tests, pass, fail: 0, cancelled: 0, skipped: 0, todo: 0, ...changes })
+    .map(([key, value]) => `# ${key} ${value}`).join('\n')
+  for (const size of [1, 16, 20, 42]) assert.equal(assertTapSuccess(report(size, size)).pass, size)
+  for (const output of [report(0, 0), report(3, 0, { skipped: 3 }), report(3, 2, { fail: 1 }),
+    report(3, 2, { cancelled: 1 }), report(3, 3, { todo: 1 }), '# pass 20\n# fail 0']) {
+    assert.throws(() => assertTapSuccess(output), error => error.code === 'NESTED_TEST_SUMMARY_NOT_PASSED')
+  }
 })
 
 function manifest(tests) {

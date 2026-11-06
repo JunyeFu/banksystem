@@ -85,7 +85,7 @@ def prepare(source, output, port_offset=0):
     ports = {name: (host + port_offset, container) for name, (host, container) in PORTS.items()}
     keycloak_port = ports['keycloak'][0]
     project = 'rf065ci' + uuid.uuid4().hex[:12]
-    environment = {key: 'C1!' + secrets.token_hex(24) for key in ('POSTGRES_PASSWORD', 'FINERACT_DB_PASS', 'CHANNEL_DB_PASSWORD', 'CLEARING_CALLBACK_SECRET', 'KEYCLOAK_ADMIN_PASSWORD')}
+    environment = {key: 'C1!' + secrets.token_hex(24) for key in ('POSTGRES_PASSWORD', 'FINERACT_DB_PASS', 'ACTIVEMQ_PASSWORD', 'CHANNEL_DB_PASSWORD', 'CLEARING_CALLBACK_SECRET', 'KEYCLOAK_ADMIN_PASSWORD')}
     api_password = fineract_password()
     environment.update(FINERACT_USERNAME='mifos', FINERACT_PASSWORD=api_password, FINERACT_ADMIN_USERNAME='mifos', FINERACT_ADMIN_PASSWORD=api_password, FINERACT_TENANT='default', KEYCLOAK_ADMIN_USERNAME='ci-admin', BANK_CHANNEL_PROFILES='demo', APP_LOCALE='zh-CN', FINERACT_BASE_URL='http://fineract-server:8080/fineract-provider', BANK_CUSTOMER_ISSUER_URI='http://127.0.0.1:21900/realms/bank-customer', BANK_INTERNAL_ISSUER_URI='http://127.0.0.1:21900/realms/bank-internal', BANK_CUSTOMER_JWK_SET_URI='http://keycloak:8080/realms/bank-customer/protocol/openid-connect/certs', BANK_INTERNAL_JWK_SET_URI='http://keycloak:8080/realms/bank-internal/protocol/openid-connect/certs')
     environment.update(BANK_CUSTOMER_ISSUER_URI=f'http://127.0.0.1:{keycloak_port}/realms/bank-customer', BANK_INTERNAL_ISSUER_URI=f'http://127.0.0.1:{keycloak_port}/realms/bank-internal')

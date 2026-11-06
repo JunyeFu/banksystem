@@ -63,10 +63,11 @@
       "controller/prompt-v2.txt", "controller/tool-policy-v1.json", "controller/risk-policy-v2.json", "controller/session-schema-v1.json", "controller/operation-session-schema-v1.json",
       "controller/src/agent-controller-v2.mjs", "controller/src/controller-port.cjs", "controller/src/controller-runtime.mjs",
       "controller/src/journey-author.mjs", "controller/src/risk-policy.cjs", "controller/src/runtime-adapters.mjs", "controller/src/session-checkpointer.mjs",
-      "controller/src/session-store.mjs", "controller/src/operation-store.mjs", "controller/src/state-security.mjs", "controller/src/tool-policy.cjs",
-      "controller/src/model-key-store.mjs"
+      "controller/src/explicit-transfer-input.mjs", "contracts/security/sensitive-text-v1.json", "dist/contracts/security/sensitive-text-v1.json",
+      "controller/src/session-store.mjs", "controller/src/session-persistence.mjs", "contracts/mcp/controller-sessions-v1.json", "harness/migrations/045_controller_sessions.sql", "controller/src/operation-store.mjs", "controller/src/state-security.mjs", "controller/src/tool-policy.cjs",
+      "controller/src/model-key-store.mjs", "scripts/migrate-controller-sessions.mjs"
     ],
-    "mcp": ["contracts/mcp/hengzhun-i8.json", "contracts/mcp/workbench-metadata-v1.json", "mcp/src/server.cjs", "mcp/src/workbench-metadata.cjs", "mcp/src/rf001-contract-adapter.cjs", "mcp/src/journey-evidence-projection.cjs"],
+    "mcp": ["contracts/mcp/hengzhun-i8.json", "contracts/mcp/workbench-metadata-v1.json", "mcp/src/server.cjs", "mcp/src/workbench-metadata.cjs", "mcp/src/controller-sessions.cjs", "mcp/src/rf001-contract-adapter.cjs", "mcp/src/journey-evidence-projection.cjs"],
     "lifecycle": ["scripts/i10-agent-acceptance-ledger-v4.cjs", "scripts/i10-agent-current-status.cjs", "scripts/i10-agent-full18-live.cjs", "scripts/i10-agent-lifecycle.cjs", "scripts/i10-agent-l1-live.cjs", "scripts/i10-agent-offline-sbom.cjs", "scripts/i10-agent-release-decision.cjs", "scripts/i10-provision-fuxing-demo-customer.ps1", "scripts/i10-release-identity-v4.cjs", "scripts/i10-stage9-portable.cjs", "scripts/verification/test-manifest.json", "package.json", "package-lock.json", "runtime/package.json", "runtime/package-lock.json", "config/demo-runtime-freeze.json"]
   }
 }

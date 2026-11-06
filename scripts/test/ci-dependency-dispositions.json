@@ -55,10 +55,19 @@
     "scope": "ARCHIVED_PRODUCT_SOURCE_AND_MAVEN_BOOTSTRAP_MATERIALS_ONLY",
     "files": {
       "LICENSE": "3f3d9e0024b1921b067d6f7f88deb4a60cbe7a78e76c64e3f1d7fc3b779b9d04",
-      "THIRD-PARTY-NOTICES.md": "256edc28e72ee705fab96293ac9efe44564c7df499b4d5de4da5e0b8222b0ab2",
+      "THIRD-PARTY-NOTICES.md": "b60e8b8ceecd74afd02f1cde2ef07933f8319bb6fd357f7d6a3e963387a6b512",
+      "apps/quality-case-portal/src/agent/assets/OFL.txt": "1c05c68c34f9708415aada51f17e1b0092d2cea709bf4a94cd38114f9e73d7d9",
       "scripts/test/third-party-licenses/maven-wrapper-3.3.2.LICENSE": "cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30",
       "scripts/test/third-party-licenses/maven-wrapper-3.3.2.NOTICE": "245e5af76a2d3eebcba645d21eefa3a74102d1192dc4392cf4877afd403426e3"
     },
+    "fonts": [{
+      "name": "Noto Sans SC",
+      "path": "apps/quality-case-portal/src/agent/assets/NotoSansSC-Regular.ttf",
+      "sha256": "450625c8d46ab3df97b7904ded955ec2746d17ec76740cb1e91d1ba63a0f89af",
+      "license": "OFL-1.1",
+      "licenseOriginal": "apps/quality-case-portal/src/agent/assets/OFL.txt",
+      "licenseSource": "https://raw.githubusercontent.com/google/fonts/main/ofl/notosanssc/OFL.txt"
+    }],
     "mavenWrapper": {
       "path": "services/bank-channel-service/.mvn/wrapper/maven-wrapper.jar",
       "version": "3.3.2",

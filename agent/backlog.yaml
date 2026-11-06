@@ -3,7 +3,7 @@ project: banksystem
 root: D:\Agent\banksystem
 defaultBranch: main
 statusSource: agent/backlog.yaml
-updatedAt: '2026-10-26'
+updatedAt: '2026-11-06'
 
 allowedStatuses: [PROPOSED, READY, IN_PROGRESS, BLOCKED, REVIEW, DONE, CANCELLED]
 
@@ -11,6 +11,447 @@ tracks:
   - id: GOVERNANCE
     name: knowledge-and-agent-control-plane
     workItems:
+      - id: BANKSYSTEM-A08-GITHUB-SHOWCASE-SYNC-20261106
+        title: Publish the authorized current source snapshot to GitHub main and refresh the commercial product homepage
+        status: IN_PROGRESS
+        owner: Codex
+        dependsOn: [BANKSYSTEM-RF065-MQ-NATIVE-CONSUMERS-20261106]
+        evidence: [docs/showcase/README.md]
+        allowedPaths: [README.md, docs/showcase, CHANGELOG.md, agent/backlog.yaml, agent/plans/active/v54-implementation-batches.md]
+        acceptance:
+          - User authorized GitHub merge and homepage update; synchronize only reviewed controlled source changes to github JunyeFu/banksystem main without changing origin visibility or creating a Release.
+          - Homepage contains a coherent commercial visual system real dated product screenshots current capability and local startup path; historical evidence and NO_GO are not advertised as current product release success.
+          - Exact publication files exclude credentials runtime state local evidence and generated private artifacts; current redacted secret scan scoped review source or contract checks document validation and visual inspection pass before commit and normal non-force push.
+          - Verify remote main commit and homepage assets after publication and record actual CI state separately; preserve original banking services data volumes dates and unrelated work, then return to RF065-S3 remaining gates.
+      - id: BANKSYSTEM-RF065-MQ-NATIVE-CONSUMERS-20261106
+        title: Map remaining MQ native consumers and remove unused SQLite runtime inputs in a new candidate
+        status: REVIEW
+        owner: Codex
+        dependsOn: [BANKSYSTEM-RF065-MQ-OS-SURFACE-20261106]
+        evidence: [docs/architecture/refactoring/batches/RF-065/mq-library-security-20261106.md]
+        allowedPaths: [scripts/deploy/prepare-ci-foundation-patches.py, scripts/deploy/activemq-foundation.Dockerfile, scripts/deploy/inspect-ci-foundations.py, scripts/deploy/verify-ci-artifacts.py, scripts/test/ci-foundation-policy.json, scripts/test/test_ci_dependency_scan.py, scripts/test/test_ci_artifacts.py, docs/architecture/refactoring/batches/RF-065, agent/backlog.yaml, agent/plans/active/v54-implementation-batches.md, README.md, CHANGELOG.md, docs/current-state/capability-matrix.md]
+        acceptance:
+          - All58 remaining advisory IDs are mapped to their actual required native consumer and current default MQ entry; absent current process maps alone never establish unreachable code.
+          - Actual GPG and keyboxd native SQLite consumers prevent a library exemption; only a new isolated image removes the four exact unused packages after dependency maintainer script license and product consumer review, retaining gpgv and other unproved components.
+          - Exact image platform source package version and supported topology conditions are consumed by the existing producer and verifier; source configuration payload or feature drift cannot inherit the review.
+          - Old native evidence is preserved and new image native BOM severities exact binding plus real Console JMS and persistence tests are verified; no fake SQLite exception or broad OS cleanup, with original services unchanged and no final freeze formal28 or publication.
+      - id: BANKSYSTEM-RF065-MQ-OS-SURFACE-20261106
+        title: Review exact platform and absent-feature conditions in the current MQ OS findings
+        status: REVIEW
+        owner: Codex
+        dependsOn: [BANKSYSTEM-RF065-CA-JKS-20261106]
+        evidence: [docs/architecture/refactoring/batches/RF-065/mq-library-security-20261106.md]
+        allowedPaths: [scripts/deploy/inspect-ci-foundations.py, scripts/deploy/verify-ci-artifacts.py, scripts/test/ci-foundation-policy.json, scripts/test/test_ci_dependency_scan.py, scripts/test/test_ci_artifacts.py, docs/architecture/refactoring/batches/RF-065, agent/backlog.yaml, agent/plans/active/v54-implementation-batches.md, README.md, CHANGELOG.md, docs/current-state/capability-matrix.md]
+        acceptance:
+          - Current fixed MQ image and all60 native advisories are retained; primary sources and actual image facts support only exact reviewed advisory package version and platform tuples.
+          - Windows-only GnuPG and absent journald are proved separately; actual nonempty subordinate UID ranges disprove the proposed shadow condition, so shadow and other GnuPG or OS issues remain blocked with native severities unchanged.
+          - The existing producer and candidate consumer both verify the exact image platform and fresh feature facts; missing contradictory stale or forged evidence is rejected without ignoring unreviewed findings.
+          - Relevant contracts governance documentation and external projection pass; original services data volumes dates and runtime images remain unchanged, with no final freeze formal28 or publication.
+      - id: BANKSYSTEM-RF065-CA-JKS-20261106
+        title: Audit and apply the published Noble CA JKS security update to isolated MQ and Channel candidates
+        status: REVIEW
+        owner: Codex
+        dependsOn: [BANKSYSTEM-RF065-MQ-OPTIONAL-SHIRO-20261106]
+        evidence: [docs/architecture/refactoring/batches/RF-065/mq-library-security-20261106.md]
+        allowedPaths: [scripts/deploy/prepare-ci-foundation-patches.py, scripts/deploy/activemq-foundation.Dockerfile, services/bank-channel-service/Dockerfile, scripts/test/ci-foundation-policy.json, scripts/test/ci-image-dispositions.json, scripts/test/test_ci_dependency_scan.py, scripts/test/test_ci_artifacts.py, docs/architecture/refactoring/batches/RF-065, agent/backlog.yaml, agent/plans/active/v54-implementation-batches.md, README.md, CHANGELOG.md, docs/current-state/capability-matrix.md]
+        acceptance:
+          - Official USN9001 fixed Noble CA package source checksum contents maintainer scripts and dependency impact are verified before preparing or building new candidates.
+          - Only isolated candidates receive the same-branch security update; original services volumes and host trust configuration remain unchanged.
+          - OS certificate update and vendor Java trust stores are checked separately; no claim that package version alone repairs Java trust and no unreviewed certificate import.
+          - New image native SBOM payload and exact dispositions are bound and tested with real MQ Console JMS and affected Channel checks; remaining risks still block and old evidence is rejected.
+      - id: BANKSYSTEM-RF065-MQ-OPTIONAL-SHIRO-20261106
+        title: Exclude the unused vulnerable Shiro optional plugin from the isolated MQ product candidate
+        status: REVIEW
+        owner: Codex
+        dependsOn: [BANKSYSTEM-RF065-MQ-SUPPORTED-CANDIDATE-20261106]
+        evidence: [docs/architecture/refactoring/batches/RF-065/mq-library-security-20261106.md]
+        allowedPaths: [scripts/deploy/prepare-ci-foundation-patches.py, scripts/test/ci-foundation-policy.json, scripts/test/test_ci_dependency_scan.py, docs/architecture/refactoring/batches/RF-065/mq-library-security-20261106.md, docs/architecture/refactoring/batches/RF-065/tasks/S3.md, docs/architecture/refactoring/batches/RF-065/evidence-index.md, agent/backlog.yaml, agent/plans/active/v54-implementation-batches.md, README.md, CHANGELOG.md, docs/current-state/capability-matrix.md]
+        acceptance:
+          - Only the three exact optional Shiro artifacts are omitted while preparing a new context; publisher archive old contexts images and license originals are preserved.
+          - Actual Broker simple authentication and Console JAAS paths require no Shiro replacement or runtime fallback, proven with existing6.2.10 client and real Console plus persistent restart tests.
+          - Required upstream files remain identical and the actual new image contains no Shiro class payload; native SBOM and report bind its exact identity without reusing old evidence or adding waivers.
+          - Old candidate evidence is rejected for the new image; remaining OS risk still blocks the real consumer, with contracts governance docs and original environment preservation verified.
+      - id: BANKSYSTEM-RF065-CURRENT-CONTROL-20261106
+        title: Align the current acceptance control and capability matrix with RF057 evidence
+        status: REVIEW
+        owner: Codex
+        dependsOn: []
+        evidence: [docs/architecture/refactoring/batches/RF-065/evidence-index.md]
+        allowedPaths: [agent/backlog.yaml, agent/plans/active/v54-implementation-batches.md, docs/architecture/refactoring/batches/RF-065/batch.yaml, docs/architecture/refactoring/batches/RF-065/slices/S3.yaml, docs/architecture/refactoring/batches/RF-065/tasks/S3.md, docs/architecture/refactoring/batches/RF-065/evidence-index.md, docs/current-state/capability-matrix.md]
+        acceptance:
+          - Only the five explicitly superseded legacy LIVE tasks are cancelled; their historical evidence and unsatisfied original acceptance remain intact.
+          - Stable macro A06 is retained and depends on RF057 current28 rather than RF047 or historical Full18, without a dependency cycle or weaker acceptance.
+          - The current capability matrix distinguishes Nov5 S5 from Nov6 source and isolated candidate evidence; current28 and remote CI stay unverified.
+          - Governance and documentation checks plus direct task dependency assertions pass without changing runtime services data or identity.
+      - id: BANKSYSTEM-RF065-MQ-SUPPORTED-CANDIDATE-20261106
+        title: Build and verify the authorized Apache MQ6.3.3 isolated candidate
+        status: REVIEW
+        owner: Codex
+        dependsOn: [BANKSYSTEM-RF065-MQ-HTTP-SURFACE-20261106]
+        evidence: [docs/architecture/refactoring/batches/RF-065/mq-library-security-20261106.md]
+        acceptance:
+          - The user authorized isolated MQ6.3.3 on20261106; this permits candidate review build and real compatibility tests but not original MQ or volume replacement.
+          - Official archive identity license dependency and configuration changes are reviewed without swapping an incompatible standalone Jetty major.
+          - A new Java21 immutable candidate fixes or explicitly disposes the observed parser issue and preserves raw native findings and exact evidence binding.
+          - Existing client6.2.10 authentication transaction and persistent restart behavior plus actual Console startup are verified in isolated owned state.
+          - Original MQ bank services volumes data dates and credentials remain untouched and full candidate formal28 and CI gates stay independent.
+      - id: BANKSYSTEM-RF065-MQ-HTTP-SURFACE-20261106
+        title: Verify the current MQ HTTP parser and optional security features before choosing a supported candidate line
+        status: REVIEW
+        owner: Codex
+        dependsOn: [BANKSYSTEM-RF065-PG-OPTIONAL-TOOLS-20261106]
+        evidence: [docs/architecture/refactoring/batches/RF-065/mq-library-security-20261106.md]
+        acceptance:
+          - Primary Shiro Jetty and ActiveMQ release records identify exact vulnerable features and public supported patch lines without guessing a minor fix.
+          - Current verified image Java and web configuration distinguish BASIC HTTP1.1 from Digest H2 H3 RememberMe and XSLT or SSE.
+          - A bounded non-network parser probe uses the actual immutable-image Jetty bytes to compare a valid chunked request with an illegal quoted chunk extension.
+          - Evidence is classified as library contract not bank LIVE and no vulnerability is waived or version upgraded before the required feature-version decision.
+          - Original services data volumes dates and all previous evidence remain unchanged and governance documentation passes.
+      - id: BANKSYSTEM-RF065-PG-OPTIONAL-TOOLS-20261106
+        title: Resolve two exact optional-tool native findings against actual immutable PostgreSQL image contents
+        status: REVIEW
+        owner: Codex
+        dependsOn: [BANKSYSTEM-RF065-MQ-JAVA-CPU-20261106]
+        evidence: [docs/architecture/refactoring/batches/RF-065/pg-library-surface-20261106.md]
+        acceptance:
+          - Debian primary records distinguish the bzip2recover and tpm2daemon flaws from their shared source-package libraries.
+          - Actual fixed-image offline read-only probes prove the four exact executable paths absent without starting PostgreSQL or reading bank data.
+          - Exact package and advisory matching accepts only the two newly proven conditions while unknown findings versions platforms and present or missing facts still fail.
+          - The unmodified native132 and BOM bytes are retained; the current evidence consumer reports14 reviewed and118 blocking and rejects old or altered receipts.
+          - Relevant contracts governance documentation and existing external factual projections pass while original services and data remain unchanged.
+      - id: BANKSYSTEM-RF065-MQ-JAVA-CPU-20261106
+        title: Rebuild the existing MQ candidate on the verified vendor Java21 security CPU without broker or data changes
+        status: REVIEW
+        owner: Codex
+        dependsOn: [BANKSYSTEM-RF065-CHANNEL-RUNTIME-PATCH-20261106]
+        evidence: [docs/architecture/refactoring/batches/RF-065/mq-library-security-20261106.md]
+        acceptance:
+          - The official fixed Temurin21.0.13 runtime replaces the observed old Java21 patch while broker Jetty Jackson configuration and entrypoint bytes stay unchanged.
+          - Only the three still-needed Noble packages are copied and installed offline; input manifests distinguish verified inputs from actual runtime changes.
+          - Fresh actual image native SBOM trust and license readbacks preserve all unreviewed warnings and reject superseded MQ evidence.
+          - Actual final Channel image with client6.2.10 passes isolated authentication rollback commit and persistent restart probes without original bank endpoints or data.
+          - Current product evidence consumers contracts governance docs and protected original runtime checks pass without claiming formal28 or whole-product GO.
+      - id: BANKSYSTEM-RF065-CHANNEL-RUNTIME-PATCH-20261106
+        title: Rebuild current Channel and Test Support with the vendor Java21 CPU, Noble patches and observed JMS client fixes
+        status: REVIEW
+        owner: Codex
+        dependsOn: [BANKSYSTEM-RF065-MQ-NOBLE-BULK-PATCH-20261106]
+        evidence: [docs/architecture/refactoring/batches/RF-065/channel-runtime-security-20261106.md]
+        acceptance:
+          - The unchanged service build context and Compose entry use checksum-pinned official patch bytes without host preparation or a private prebuilt base dependency.
+          - Current complete Java inputs build into the actual candidate Jar and UID10001 runtime on fixed vendor Java21 CPU images whose public trust stores reject the revoked root without ad hoc certificate imports.
+          - The two observed ActiveMQ client memory allocation advisories are fixed on the existing 6.2 line and final actual Jar regressions replace intermediate artifact assumptions.
+          - Fresh native SBOM source and payload binding replace stale candidate assumptions and only re-proven exact dispositions may be retained.
+          - Real isolated migration and JMS probes use the actual new image and packaged Jar without original bank endpoints data or model calls.
+          - Contracts governance docs and original runtime preservation pass without waiving remaining image license identity formal28 or remote CI gates.
+      - id: BANKSYSTEM-RF065-MQ-NOBLE-BULK-PATCH-20261106
+        title: Patch the seven freshly observed fixable Noble source packages without upgrading the broker or Java line
+        status: REVIEW
+        owner: Codex
+        dependsOn: [BANKSYSTEM-RF065-MQ-LIBRARY-PATCH-20261106]
+        evidence: [docs/architecture/refactoring/batches/RF-065/mq-library-security-20261106.md]
+        acceptance:
+          - Nine exact installed binary packages from seven observed source packages use official Noble security patches with reviewed dependencies scripts and licenses.
+          - The prepared context retains the two earlier library patches and no other package broker configuration or application byte changes are introduced.
+          - Real current scans consumers and JMS authentication transaction and restart readback validate the new candidate while unresolved findings stay blocking.
+          - Certificate bundle changes and the independent JRE trust store are checked explicitly without claiming all TLS consumers are fixed from an OS package version.
+          - Original services data volumes dates credentials and notes remain unchanged without formal28 or release GO claims.
+      - id: BANKSYSTEM-RF065-MQ-LIBRARY-PATCH-20261106
+        title: Apply the exact Noble FreeType and libpng security patches to an isolated MQ candidate
+        status: REVIEW
+        owner: Codex
+        dependsOn: [BANKSYSTEM-RF065-MQ-AUTH-WIRING-20261106]
+        evidence: [docs/architecture/refactoring/batches/RF-065/mq-library-security-20261106.md]
+        acceptance:
+          - Official same-branch package versions sizes digests dependencies and maintenance scripts are checked before an offline candidate-only build.
+          - Only the two affected system packages change while Java broker configuration entrypoint and licenses retain their declared bytes.
+          - Fresh native scanning and exact candidate consumers retain every unresolved finding without accepting an older partial report.
+          - Actual current Compose and Jar messaging authentication transaction and restart readback pass with only owned queues data and networks.
+          - Original services data volumes dates credentials and notes remain unchanged without formal28 or release GO claims.
+      - id: BANKSYSTEM-RF065-MQ-AUTH-WIRING-20261106
+        title: Wire default broker and bank clients to one separately generated MQ credential without database-password reuse
+        status: REVIEW
+        owner: Codex
+        dependsOn: [BANKSYSTEM-RF065-MQ-PROTOCOL-20261106]
+        evidence: [docs/architecture/refactoring/batches/RF-065/ci-complete-20261105.md]
+        acceptance:
+          - Default source topology enables existing broker authentication and Channel plus Test Support use the same separate MQ credential without a default password.
+          - Prepare creates the missing credential once preserves existing values rejects an empty value and does not output credentials.
+          - CI preparation and actual Jar configuration bind the same key and the real isolated broker rejects incorrect credentials.
+          - Fineract modes and original services credentials data dates and notes remain unchanged with no security or release waiver.
+      - id: BANKSYSTEM-RF065-MQ-PROTOCOL-20261106
+        title: Verify real JMS wire authentication rollback and restart durability on the approved isolated broker candidate
+        status: REVIEW
+        owner: Codex
+        dependsOn: [BANKSYSTEM-RF065-PG18-MIGRATION-20261106]
+        evidence: [docs/architecture/refactoring/batches/RF-065/ci-complete-20261105.md]
+        acceptance:
+          - Current Jar client sends and reads the existing text envelope and event properties through the exact approved broker.
+          - Rollback redelivery commit and restart durability are proven with only synthetic private queues and owned data.
+          - Generated candidate credentials are not exposed and wrong credentials are rejected without implying the default Compose has authentication wired.
+          - Original bank containers networks data dates and notes remain unchanged and evidence does not waive security or formal28 gates.
+      - id: BANKSYSTEM-RF065-PG18-MIGRATION-20261106
+        title: Apply the current complete Liquibase master twice on an owned empty PostgreSQL18 candidate
+        status: REVIEW
+        owner: Codex
+        dependsOn: [BANKSYSTEM-RF065-JAVA-CURRENT-GATE-20261106, BANKSYSTEM-RF065-PG-UTIL-LINUX-SCOPE-20261106]
+        evidence: [docs/architecture/refactoring/batches/RF-065/ci-complete-20261105.md]
+        acceptance:
+          - Current packaged inputs and exact PostgreSQL18.6 are used without original data configuration host ports or bank services.
+          - Real master migrations establish the final receipt schema and historical V9 records without business rows or checksum clearing.
+          - A second actual update makes no changes and no required migration remains pending.
+          - Raw outcomes failures if any owned-test cleanup and protected original runtime are verified without security release or formal28 claims.
+      - id: BANKSYSTEM-RF065-OBSERVABILITY-CANDIDATE-20261106
+        title: Upgrade the isolated observability candidates and replace the removed Loki exporter with native OTLP
+        status: PROPOSED
+        owner: Codex
+        dependsOn: [BANKSYSTEM-RF065-PG-UTIL-LINUX-SCOPE-20261106]
+        evidence: [docs/architecture/refactoring/batches/RF-065/observability-candidate-20261106.md]
+        acceptance:
+          - A confirmed functional version scope precedes immutable official candidate installation without original containers or data.
+          - Real isolated OTLP logs and metrics are readable through Loki Prometheus and Grafana with the observed label differences verified.
+          - Current native findings licenses exact identities and failed cases are consumed by existing candidate gates without unreviewed risk waivers.
+          - Original services volumes dates and notes remain unchanged and this integration does not claim formal28 LIVE or release GO.
+      - id: BANKSYSTEM-RF065-PG-UTIL-LINUX-SCOPE-20261106
+        title: Bind the exact Debian chfn and chsh provider scope without waiving other util-linux risks
+        status: REVIEW
+        owner: Codex
+        dependsOn: [BANKSYSTEM-RF065-PG-SQLITE-SCOPE-20261106]
+        evidence: [docs/architecture/refactoring/batches/RF-065/pg-library-surface-20261106.md]
+        acceptance:
+          - Official Debian evidence and fresh immutable-image metadata prove the affected util-linux tools are not the shipped passwd-provided programs.
+          - Only the observed advisory and exact package versions are reviewed while login mount nsenter SQLite and zlib risks remain blocking.
+          - Missing changed or fabricated provider facts stale policies and identity drift are rejected by actual consumers and regressions.
+          - Native reports and original services data volumes dates and publication state remain unchanged without release GO.
+      - id: BANKSYSTEM-RF065-JAVA-CURRENT-GATE-20261106
+        title: Run the current bank Java CI entry against the existing isolated source and patched dependency set
+        status: REVIEW
+        owner: Codex
+        dependsOn: [BANKSYSTEM-RF065-POST-DEPS-REGRESSION-20261106]
+        evidence: [docs/architecture/refactoring/batches/RF-065/ci-complete-20261105.md]
+        acceptance:
+          - Exact current bank source POM wrapper and tests match the existing owned source snapshot before execution.
+          - Java21 runs the existing complete Maven test entry using empty CI settings and isolated embedded PostgreSQL without original bank endpoints or configuration.
+          - Surefire results prove the actual current totals without exclusions and any observed source failure is preserved before a minimal scoped fix.
+          - The observed duplicate migration keys are rejected by regression and deduplicated without changing historical effective schema or any master changeset V9 checksum.
+          - Original services data volumes and dates remain unchanged and local results do not waive security final identity LIVE or remote CI.
+      - id: BANKSYSTEM-RF064-MODULE-DECLARATION-20261106
+        title: Register the observed loan-to-audit collaboration without altering banking code
+        status: REVIEW
+        owner: Codex
+        dependsOn: [BANKSYSTEM-A08-CURRENT-MODELS-20261106]
+        evidence: [docs/design/product-normalization/current-models-20261106.md]
+        acceptance:
+          - Only bank.audit is added to the customer-profile dependency declaration and the existing LoanOperationService audit call remains unchanged.
+          - Existing governance tests and a fresh scoped DSM show the same actual source edges with no undeclared edge in that scope.
+          - Current editable and rendered models reflect the declaration correction while prior observations and historical diagrams remain dated.
+          - Documentation and preservation checks pass without product source deployment identity LIVE or publication changes.
+      - id: BANKSYSTEM-A08-CURRENT-MODELS-20261106
+        title: Reconcile current professional business and implementation diagrams against controlled source
+        status: REVIEW
+        owner: Codex
+        dependsOn: [BANKSYSTEM-A08-RESEARCH-PRD-20261106, BANKSYSTEM-RF065-POST-DEPS-REGRESSION-20261106]
+        evidence: [docs/design/product-normalization/current-models-20261106.md]
+        acceptance:
+          - Dated current models distinguish accepted requirements actual source ownership and incomplete LIVE acceptance without overwriting historical diagrams.
+          - Editable drawio and readable same-source previews cover key actors components domains state deployment transfer and Agent interactions.
+          - Current import DSM and source anchors have bounded extraction evidence and do not imply runtime or whole-project acceptance.
+          - Structural visual and source-oriented review plus governance and document checks pass without original services data notes or publication changes.
+      - id: BANKSYSTEM-RF065-PG-SQLITE-SCOPE-20261106
+        title: Separate two exact SQLite advisory scopes from remaining reachable library risks
+        status: REVIEW
+        owner: Codex
+        dependsOn: [BANKSYSTEM-RF065-PG-ABSENT-TOOLS-20261106]
+        evidence: [docs/architecture/refactoring/batches/RF-065/pg-library-surface-20261106.md]
+        acceptance:
+          - Official Debian and upstream code evidence supports only never-shipped SQLAR code and the unbuilt zipfile extension on the exact installed package.
+          - Fresh immutable-image probes and independent negative cases reject changed package versions image identities or extension presence.
+          - Current native reports remain unchanged and all other unreviewed SQLite zlib and shared-library findings continue blocking.
+          - Actual candidate old-receipt and tamper readbacks contracts and original-service preservation pass without product GO.
+      - id: BANKSYSTEM-A08-PUBLIC-MATERIALS-20261106
+        title: Synchronize public handover sources and the external readiness view without publishing
+        status: REVIEW
+        owner: Codex
+        dependsOn: [BANKSYSTEM-RF065-POST-DEPS-REGRESSION-20261106, BANKSYSTEM-RF065-PG-ABSENT-TOOLS-20261106, BANKSYSTEM-A08-RESEARCH-PRD-20261106]
+        evidence: [docs/design/product-normalization/open-source-materials-20261106.md]
+        acceptance:
+          - Public README contribution changelog and roadmap reflect verified dated progress without implying current LIVE remote CI or release GO.
+          - The public roadmap points to the sole implementation order rather than defining a parallel sequence.
+          - External readiness cards and default interview materials show current evidence while historical screenshots and personal records remain unchanged.
+          - Static document and actual responsive browser checks pass without bank model deployment Git publication or original note writes.
+      - id: BANKSYSTEM-RF065-PG-ABSENT-TOOLS-20261106
+        title: Bind exact absent apt-key and systemd-oomd conditions without excluding shared-library findings
+        status: REVIEW
+        owner: Codex
+        dependsOn: [BANKSYSTEM-RF065-PG-APT-SECURITY-20261106]
+        evidence: [docs/architecture/refactoring/batches/RF-065/pg-library-surface-20261106.md]
+        acceptance:
+          - Official advisory scope and fresh immutable-image evidence support only the two exact absent-tool conditions.
+          - Tool presence missing proofs changed package versions images and platforms invalidate the disposition.
+          - Shared systemd journal glibc SQLite zlib and all other unreviewed findings remain blocking.
+          - Actual candidate and tamper readbacks contracts and preserved original services are verified without release GO.
+      - id: BANKSYSTEM-RF065-PG-APT-SECURITY-20261106
+        title: Apply the same-branch Debian APT 3.0.4 security update to an isolated PostgreSQL candidate
+        status: REVIEW
+        owner: Codex
+        dependsOn: [BANKSYSTEM-RF065-PG-LIBRARY-SURFACE-20261106, BANKSYSTEM-RF065-POST-DEPS-REGRESSION-20261106]
+        evidence: [docs/architecture/refactoring/batches/RF-065/pg-apt-security-20261106.md]
+        acceptance:
+          - Official exact amd64 apt and libapt packages are verified and their dependencies installation scripts and license reviewed before isolated use.
+          - The new candidate preserves PostgreSQL entrypoint gosu source boundary and all unrelated package versions without original data or services.
+          - Fresh native scans remove the identified APT advisory while remaining risks retain accurate blocking decisions.
+          - Existing risk consumers contracts and preservation checks pass without claiming full image security or formal LIVE acceptance.
+      - id: BANKSYSTEM-A08-FORMAL-DOCUMENTS-20261106
+        title: Align seven controlled lifecycle documents and produce visually reviewed local document drafts
+        status: REVIEW
+        owner: Codex
+        dependsOn: [BANKSYSTEM-A08-RESEARCH-PRD-20261106, BANKSYSTEM-RF065-POST-DEPS-REGRESSION-20261106]
+        evidence: [docs/design/product-normalization/formal-documents-20261106.md]
+        acceptance:
+          - Seven document types reference current controlled source drafts with historical evidence clearly dated and no invented acceptance.
+          - Deployment and handover instructions preserve original services and distinguish CLI scope source checks LIVE security and remote CI.
+          - Existing document tooling is reused; the user authorized an independent read-only Microsoft Word export on20261106 instead of the absent bundled DOCX renderer, followed by bundled PDF rasterization and every-page review before delivery.
+          - Catalog and external preparation materials do not become a second task authority or overwrite personal records.
+      - id: BANKSYSTEM-RF065-POST-DEPS-REGRESSION-20261106
+        title: Revalidate the complete isolated Agent source gate after SDK dependency and capacity changes
+        status: REVIEW
+        owner: Codex
+        dependsOn: [BANKSYSTEM-RF065-CI-COMPLETE-20261105, BANKSYSTEM-RF064-READONLY-CAPACITY-20261106]
+        evidence: [docs/architecture/refactoring/batches/RF-065/ci-complete-20261105.md]
+        acceptance:
+          - Current controlled source and nine declared locks are synchronized to the existing owned isolated candidate without original credentials state or writable dependency links.
+          - SDK 1.32 and installed ZIP patch provenance are verified before the six-step full registered and coverage gate.
+          - Observed failures are fixed in the authoritative source and rerun without new exclusions retries or threshold changes.
+          - Original banking services and data remain unchanged and local results do not waive pending security LIVE or remote CI gates.
+      - id: BANKSYSTEM-RF064-READONLY-CAPACITY-20261106
+        title: Implement the confirmed supplemental read-only capacity producer without changing the formal 28 cases
+        status: REVIEW
+        owner: Codex
+        dependsOn: [BANKSYSTEM-RF065-CI-COMPLETE-20261105]
+        evidence: [docs/architecture/refactoring/batches/RF-064/readonly-capacity-20261106.md]
+        acceptance:
+          - One hundred fixed-script repeats and ten tasks at each 1 2 4 admission level retain actual identities timings failures and bank readback.
+          - Two-hour platform observations use real readonly lifecycle status without model probes restart or hidden recovery.
+          - The existing authorized driver profile owns cleanup and evidence while the seven-task P05 and formal 28-case contract stay unchanged.
+          - Focused and registered CI contracts pass before real capacity is attempted under the final identity.
+      - id: BANKSYSTEM-A08-RESEARCH-PRD-20261106
+        title: Complete primary-source desk research and the confirmed dual-product PRD projection
+        status: REVIEW
+        owner: Codex
+        dependsOn: [BANKSYSTEM-A08-INTERVIEW-MATERIALS-20261106]
+        evidence: [docs/design/product-normalization/research-prd-20261106.md]
+        acceptance:
+          - Three alternative classes and selected textbooks have primary-source facts separate from project inferences and untested hypotheses.
+          - Existing N01 to N12 remain the confirmed requirements and no parallel roadmap or new release authority is created.
+          - External PRD view shows actual research and acceptance mapping without overwriting personal records or adding product APIs.
+          - Static content browser and document checks pass while owner validation product acceptance and overall GO remain open.
+      - id: BANKSYSTEM-RF065-PG-LIBRARY-SURFACE-20261106
+        title: Review exact PostgreSQL candidate SQLite and zlib entry points without broad exclusions
+        status: REVIEW
+        owner: Codex
+        dependsOn: [BANKSYSTEM-RF065-GOSU-COMPILER-20261106]
+        evidence: [docs/architecture/refactoring/batches/RF-065/pg-library-surface-20261106.md]
+        acceptance:
+          - Fixed public-image probes identify actual library consumers without reading accounts or bank data.
+          - Only the absent SQLite recover shell is added; SQLite API and unresolved zlib risks remain blocking.
+          - Current candidate verification rechecks CLI absence and rejects drifted or forged proof.
+          - Focused contracts governance and document gates pass while original services and overall NO_GO are preserved.
+      - id: BANKSYSTEM-RF065-GOSU-COMPILER-20261106
+        title: Rebuild the fixed gosu patch with the same-branch Go 1.26.10 security release
+        status: REVIEW
+        owner: Codex
+        dependsOn: [BANKSYSTEM-RF065-PG-RISK-20261106]
+        evidence: [docs/architecture/refactoring/batches/RF-065/gosu-compiler-20261106.md]
+        acceptance:
+          - Official exact compiler archive and version are verified before isolated use without global installation.
+          - Program sources modules PostgreSQL binary and entrypoint remain unchanged except declared local metadata and compiler patch.
+          - New immutable candidate scans remove the observed Go advisory and retain all other unresolved risks.
+          - Current candidate review contracts and protected original service checks pass without release GO or LIVE claims.
+      - id: BANKSYSTEM-RF065-PG-RISK-20261106
+        title: Bind exact PostgreSQL candidate feature evidence to native risk and candidate verification
+        status: REVIEW
+        owner: Codex
+        dependsOn: [BANKSYSTEM-RF065-CI-COMPLETE-20261105]
+        evidence: [docs/architecture/refactoring/batches/RF-065/postgres-risk-20261106.md]
+        acceptance:
+          - Current fixed-image scans and live public feature probes preserve original services volumes and dates.
+          - Only six source-verified platform or absent-tool conditions are reviewed; all other risks remain blocking.
+          - Candidate verifier recomputes the review and rejects missing drifted or manually forged evidence.
+          - Contract integration governance and document checks pass without claiming full image release or LIVE acceptance.
+      - id: BANKSYSTEM-A08-INTERVIEW-MATERIALS-20261106
+        title: Draft eight evidence-backed interview materials and implement external Markdown delivery
+        status: REVIEW
+        owner: Codex
+        dependsOn: []
+        evidence: [docs/design/product-normalization/interview-materials-20261106.md]
+        acceptance:
+          - Eight readable defaults distinguish current evidence historical results unmeasured goals and unverified personal contribution.
+          - Default drafts and personal edits remain separate and export together without changing engineering status or stored notes.
+          - Actual download JSON reimport and responsive browser checks use isolated synthetic preparation records.
+          - External site remains outside bank build execution state and release authority; owner practice and final A08 gates remain open.
+      - id: BANKSYSTEM-RF065-NPM-REMEDIATION-20261106
+        title: Repair current nine-lock dependency findings with isolated consumer verification
+        status: BLOCKED
+        owner: Codex
+        dependsOn: [BANKSYSTEM-RF065-CI-COMPLETE-20261105]
+        evidence: [docs/architecture/refactoring/batches/RF-065/npm-remediation-20261106.md]
+        acceptance:
+          - Preserve the actual 36-occurrence failure and remediate inspected upstream versions without new advisory waivers.
+          - Update scoped manifests and locks with scripts disabled and verify consumers only in isolated dependencies.
+          - Complete current nine-lock coverage and dependent tests before resuming license delivery production.
+          - Preserve original services data runtime dependencies and existing authorization boundaries.
+      - id: BANKSYSTEM-RF065-LICENSE-DELIVERY-20261106
+        title: Verify actual source assets and implement the candidate distribution material gate
+        status: BLOCKED
+        owner: Codex
+        dependsOn: [BANKSYSTEM-RF065-NPM-REMEDIATION-20261106]
+        evidence: [docs/architecture/refactoring/batches/RF-065/license-delivery-20261106.md]
+        acceptance:
+          - Actual bundled font source license and notices are verified alongside the existing MPL BSD and Maven bootstrap materials.
+          - Candidate material status has a real evidence producer and verification path instead of an unconditional NOT_VERIFIED assignment.
+          - Public source delivery does not include unreviewed runtime binaries or upstream raw report data; complete local evidence remains preserved.
+          - Material verification never waives unresolved image vulnerabilities current identity LIVE remote CI or project owner acceptance.
+      - id: BANKSYSTEM-RF065-CI-COMPLETE-20261105
+        title: Verify current Agent candidate with complete isolated registered and coverage gates
+        status: REVIEW
+        owner: Codex
+        dependsOn: [BANKSYSTEM-RF065-CI-REGRESSION-20261105]
+        evidence: [docs/architecture/refactoring/batches/RF-065/ci-complete-20261105.md]
+        acceptance:
+          - Current controlled source is tested in an owned isolated snapshot without original credentials data or shared writable dependencies.
+          - Build typecheck syntax discovery complete registered and unchanged coverage thresholds pass with actual commands.
+          - Observed failures receive scoped source fixes and focused regression before full verification; original failures are preserved.
+          - Original banking container identities running binding and Harness execution counts stay unchanged.
+          - Local results do not close security candidate remote CI current-identity LIVE or overall GO.
+      - id: BANKSYSTEM-RF065-CI-REGRESSION-20261105
+        title: Connect interview repair regressions to the existing registered CI entry
+        status: DONE
+        owner: Codex
+        dependsOn: [BANKSYSTEM-INTERVIEW-AUDIT-REPAIR-001]
+        evidence: [docs/architecture/refactoring/batches/RF-065/ci-regression-20261105.md]
+        acceptance:
+          - Registry discovery includes new SQLite sessions and interview regression entry without exclusions.
+          - CI invokes both pinned Node ABIs and isolated cleanup producer without BYOK or banking actions.
+          - A growing valid nested test suite is not rejected by frozen pass-count assertions; failures and all-skipped results remain rejected.
+          - Relevant registered wrappers and workflow contracts pass; original running binding and execution state stay unchanged, while the expected checklist source-identity change is recorded for later freezing.
+          - Do not mark full RF065, remote CI, the 28-case suite or overall GO complete.
+      - id: BANKSYSTEM-INTERVIEW-AUDIT-REPAIR-001
+        title: Repair nine reproduced Agent interview-audit gaps and fixed-media readiness
+        status: DONE
+        owner: Codex
+        dependsOn: []
+        evidence:
+          - docs/evidence/platform/agent-interview-audit-2026-11-05.md
+          - docs/evidence/platform/agent-interview-audit-round2-2026-11-05.md
+          - docs/architecture/refactoring/agent-interview-repair-plan-2026-11-05.md
+          - docs/evidence/platform/agent-interview-repair-2026-11-05.md
+        acceptance:
+          - User authorized sequential implementation; preserve per-batch path and budget controls without changing historical completion.
+          - F01 through F09 are closed by their reproduced predicates, retaining the passing Q6 and Q7 boundaries.
+          - E01 fixed media is verified and formerly blocked image tests reach their intended assertions.
+          - Shared checkpoints have authoritative revision writes, isolated migration and no runtime dual writing.
+          - Current-identity S5 real BYOK read-only acceptance passes with complete account evidence and no replay; observed LIVE follow-up defects are repaired without weakening assertions.
+          - Original banking services volumes data and date remain unchanged; isolated proof is not LIVE or release GO.
       - id: BANKSYSTEM-RF066-AGENT-WORKBENCH-001
         title: Approved Figma browser Agent with real conversations history and model configuration
         status: IN_PROGRESS
@@ -493,7 +934,8 @@ tracks:
           - Isolated acquisition, fork, Node24 readback, native ABI, ReleaseIdentity and full registered tests pass without service start or publication.
       - id: HENGZHUN-I10-LIVE-E2E-17-REVALIDATION-001
         title: Rebaseline and complete all 18 LIVE_E2E records under a newly frozen current ReleaseIdentity
-        status: BLOCKED
+        status: CANCELLED
+        supersededBy: BANKSYSTEM-RF057-REAL-ACCEPTANCE-001
         owner: 傅钧烨
         dependsOn: [HENGZHUN-I10-TP07-RUNTIME-HIGH-ADVISORY-CLOSURE-001]
         blockedBy: [USER_AUTHORIZATION_FOR_CURRENT_IDENTITY_BROWSER_OCR_REFRESH_AND_L1_RETRY]
@@ -624,8 +1066,8 @@ tracks:
       - {id: HENGZHUN-I10-AGCLI-TP06-TERMINAL-UI-001, title: Terminal user interface, status: REVIEW, owner: Codex, dependsOn: [HENGZHUN-I10-AGCLI-TP05-CLI-HEADLESS-001], evidence: [docs/architecture/refactoring/batches/RF-021/evidence-index.md]}
       - {id: HENGZHUN-I10-AGCLI-TP07-LIFECYCLE-RELEASE-V4-001, title: CLI lifecycle and ReleaseIdentity v4, status: REVIEW, owner: Codex, dependsOn: [HENGZHUN-I10-AGCLI-TP06-TERMINAL-UI-001], evidence: [docs/architecture/refactoring/batches/RF-022/evidence-index.md]}
       - {id: HENGZHUN-I10-AGCLI-TP08-OFFLINE-INTEGRATION-GATES-001, title: Offline integration and release gates, status: REVIEW, owner: Codex, dependsOn: [HENGZHUN-I10-AGCLI-TP07-LIFECYCLE-RELEASE-V4-001], evidence: [docs/architecture/refactoring/batches/RF-023/evidence-index.md]}
-      - {id: HENGZHUN-I10-AGCLI-TP09-L1-LIVE-001, title: CLI Agent L1 live validation, status: BLOCKED, owner: project-owner, dependsOn: [HENGZHUN-I10-AGCLI-TP08-OFFLINE-INTEGRATION-GATES-001], evidence: [docs/architecture/refactoring/batches/RF-024/evidence-index.md]}
-      - {id: HENGZHUN-I10-AGCLI-TP10-FULL18-RELEASE-001, title: Full 18-chain release validation, status: BLOCKED, owner: project-owner, dependsOn: [HENGZHUN-I10-AGCLI-TP09-L1-LIVE-001], evidence: [docs/architecture/refactoring/batches/RF-025/evidence-index.md]}
+      - {id: HENGZHUN-I10-AGCLI-TP09-L1-LIVE-001, title: CLI Agent L1 live validation, status: CANCELLED, supersededBy: BANKSYSTEM-RF057-REAL-ACCEPTANCE-001, owner: project-owner, dependsOn: [HENGZHUN-I10-AGCLI-TP08-OFFLINE-INTEGRATION-GATES-001], evidence: [docs/architecture/refactoring/batches/RF-024/evidence-index.md]}
+      - {id: HENGZHUN-I10-AGCLI-TP10-FULL18-RELEASE-001, title: Full 18-chain release validation, status: CANCELLED, supersededBy: BANKSYSTEM-RF057-REAL-ACCEPTANCE-001, owner: project-owner, dependsOn: [HENGZHUN-I10-AGCLI-TP09-L1-LIVE-001], evidence: [docs/architecture/refactoring/batches/RF-025/evidence-index.md]}
       - id: BANKSYSTEM-OSS-A01-AUTHORITY-REBASELINE-001
         title: Rebaseline the open-source bank and CLI Agent product
         status: REVIEW
@@ -858,10 +1300,19 @@ tracks:
           - Read ramp payment contention document concurrency Agent queue and soak have measured outcomes.
           - All funds and reconciliation invariants hold and no stage8 mock is used for bank proof.
       - {id: BANKSYSTEM-RF047-S1-001, title: A06 L1 offline authoritative evidence gate, status: REVIEW, owner: Codex, dependsOn: [BANKSYSTEM-OSS-A05-CLI-PRODUCT-INTEGRATION-001], evidence: [docs/architecture/refactoring/batches/RF-047/evidence-index.md]}
-      - {id: BANKSYSTEM-RF047-S2-001, title: L1 LIVE repair implemented; public readback normalization fixed offline, new identity pending, status: BLOCKED, owner: Codex, dependsOn: [BANKSYSTEM-RF047-S1-001, BANKSYSTEM-P0-RUNTIME-DOCS-20260921], evidence: [docs/architecture/refactoring/batches/RF-047/evidence-index.md, docs/architecture/refactoring/batches/RF-047/root-cause-list-live-009.md, agent/runs/rf047/live-011/failure-1789979712740.json]}
-      - {id: BANKSYSTEM-RF047-S3-001, title: Frozen L1 TEXT_WITH_IMAGE LIVE after S2 PASS, status: BLOCKED, owner: Codex, dependsOn: [BANKSYSTEM-RF047-S2-001], evidence: [docs/architecture/refactoring/batches/RF-047/evidence-index.md]}
+      - {id: BANKSYSTEM-RF047-S2-001, title: L1 LIVE repair implemented; public readback normalization fixed offline, new identity pending, status: CANCELLED, supersededBy: BANKSYSTEM-RF057-REAL-ACCEPTANCE-001, owner: Codex, dependsOn: [BANKSYSTEM-RF047-S1-001, BANKSYSTEM-P0-RUNTIME-DOCS-20260921], evidence: [docs/architecture/refactoring/batches/RF-047/evidence-index.md, docs/architecture/refactoring/batches/RF-047/root-cause-list-live-009.md, agent/runs/rf047/live-011/failure-1789979712740.json]}
+      - {id: BANKSYSTEM-RF047-S3-001, title: Frozen L1 TEXT_WITH_IMAGE LIVE after S2 PASS, status: CANCELLED, supersededBy: BANKSYSTEM-RF057-REAL-ACCEPTANCE-001, owner: Codex, dependsOn: [BANKSYSTEM-RF047-S2-001], evidence: [docs/architecture/refactoring/batches/RF-047/evidence-index.md]}
       - {id: BANKSYSTEM-P0-RUNTIME-DOCS-20260921, title: Verify demo readiness and align current CLI product documentation, status: REVIEW, owner: Codex, dependsOn: [BANKSYSTEM-OSS-A05-CLI-PRODUCT-INTEGRATION-001], evidence: [agent/plans/active/banksystem-p0-repair-control-2026-09-21.md]}
-      - {id: BANKSYSTEM-OSS-A06-LIVE-FULL18-001, title: LIVE L1 and Full18 release evidence, status: BLOCKED, owner: project-owner, dependsOn: [BANKSYSTEM-RF047-S1-001], evidence: [docs/architecture/refactoring/batches/RF-047/evidence-index.md]}
+      - id: BANKSYSTEM-OSS-A06-LIVE-FULL18-001
+        title: Current RF057 28-case bank Agent and performance release evidence
+        status: BLOCKED
+        owner: project-owner
+        dependsOn: [BANKSYSTEM-RF057-REAL-ACCEPTANCE-001]
+        evidence: [docs/architecture/refactoring/batches/RF-047/evidence-index.md, docs/architecture/refactoring/batches/RF-057/evidence-index.md, docs/architecture/refactoring/batches/RF-065/evidence-index.md]
+        acceptance:
+          - The stable historical task ID is retained but current scope is RF057 BANK-AGENT-ACCEPTANCE-v1 with14 bank7 Agent7 performance cases, not legacy Full18.
+          - One current ReleaseIdentity binds the complete real reports artifacts cleanup receipts and validator GO; historical S5 or offline test results cannot satisfy this gate.
+          - Current source image and model changes require fresh applicable evidence; independent review confirms actual runtime results before completion.
       # Dependencies are completion gates; offline CI implementation precedes the final identity freeze in the order source.
       - {id: BANKSYSTEM-OSS-A07-FULL-REPO-CI-001, title: Full-repository CI and quality gate for BANK-AGENT-ACCEPTANCE-v1, status: IN_PROGRESS, owner: Codex, dependsOn: [BANKSYSTEM-RF056-MODULE-BOUNDARY-001], evidence: [docs/architecture/refactoring/batches/RF-065/evidence-index.md]}
       # S3-8-ADM implemented per user: web-app opt-in admin-tools, no default readiness/restart dependency. Actual config default3/admin4,91 contracts and2 PS parses passed; current source/candidate/runtime receipts in admin-profile-01. Default14 services/12 images/smoke10, optional inventory and historical15/13/security evidence retained. Exact profile-only core Compose exception; no service/volume/date mutation or security waiver/LIVE/freeze. Keycloak feature candidate still needs separate authorization.

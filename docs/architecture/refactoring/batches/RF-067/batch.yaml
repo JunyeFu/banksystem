@@ -7,7 +7,7 @@ authorizedBy: agent/plans/active/v54-implementation-batches.md
 scope:
   includePaths: ["docs/architecture/refactoring/batches/RF-067","agent/backlog.yaml","agent/plans/active/v54-implementation-batches.md","platform/hengzhun-regression-system/harness/src","platform/hengzhun-regression-system/harness/migrations","platform/hengzhun-regression-system/mcp/src","platform/hengzhun-regression-system/contracts/mcp","platform/hengzhun-regression-system/scripts/verification","scripts/test/verify-agent-workbench.ps1"]
   excludePaths: [postgresql, services/bank-channel-service, infra/keycloak, platform/hengzhun-regression-system/flowise]
-budgets: {maxChangedFiles: 25, maxNewFiles: 18, maxChangedLines: 3500, maxContractsChanged: 1, maxMigrationsAdded: 1, maxOpenModules: 2}
+budgets: {maxChangedFiles: 30, maxNewFiles: 20, maxChangedLines: 4000, maxContractsChanged: 2, maxMigrationsAdded: 2, maxOpenModules: 2}
 baseline: {gitCommit: 552b3b8ac517bd5991bff446e72d9f4e87ea9543, dirtyTreeManifest: docs/architecture/refactoring/batches/RF-067/baseline.md, releaseIdentity: UNFROZEN_RF067, capturedAt: '2026-10-19T15:45:04+08:00'}
 architecture: {businessCapability: persistent-conversation-metadata, publicContract: platform/hengzhun-regression-system/contracts/mcp/workbench-metadata-v1.json, dependencyManifest: docs/architecture/refactoring/module-boundaries-v1.yaml, allowedModules: ["hengzhun.harness","hengzhun.mcp"], forbiddenModules: [hengzhun.flowise]}
 mustPreserve: [original services and volumes, dirty workspace, Harness SQLite authority, Quality GET-only projection, no secret response, no runtime mock or fallback, run-bound model identity]

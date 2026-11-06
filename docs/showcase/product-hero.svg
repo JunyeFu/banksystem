@@ -1,0 +1,47 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1440" height="470" viewBox="0 0 1440 470" role="img" aria-labelledby="title desc">
+  <title id="title">衡准 — 让测试目标，变成真实的浏览器执行。</title>
+  <desc id="desc">衡准 AI 测试 Agent 与复兴银行业务演示环境。品牌排版封面，不是运行截图。</desc>
+  <defs>
+    <linearGradient id="paper" x1="0" y1="0" x2="1" y2="1">
+      <stop stop-color="#faf9f6"/>
+      <stop offset="1" stop-color="#f1ede8"/>
+    </linearGradient>
+    <linearGradient id="mark" x1="0" y1="0" x2="1" y2="1">
+      <stop stop-color="#bc2447"/>
+      <stop offset="1" stop-color="#8f1532"/>
+    </linearGradient>
+    <filter id="shadow" x="-40%" y="-30%" width="180%" height="180%">
+      <feDropShadow dx="0" dy="16" stdDeviation="22" flood-color="#4f2730" flood-opacity="0.08"/>
+    </filter>
+    <pattern id="dots" width="22" height="22" patternUnits="userSpaceOnUse">
+      <circle cx="2" cy="2" r="1" fill="#d6cec6"/>
+    </pattern>
+  </defs>
+  <rect x="1" y="1" width="1438" height="468" rx="24" fill="url(#paper)" stroke="#e3ddd6"/>
+  <rect x="65" y="58" width="42" height="42" rx="12" fill="url(#mark)"/>
+  <path d="M75 74v-6h7m15 6v-6h-7M75 85v6h7m15-6v6h-7m-12-12 5 5 10-11" fill="none" stroke="#fff" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/>
+  <g font-family="Segoe UI, Microsoft YaHei, Noto Sans SC, sans-serif">
+    <text x="122" y="89" font-size="28" font-weight="600" fill="#232326">衡准</text>
+    <text x="196" y="88" font-size="14" letter-spacing="2.3" fill="#82766f">HENGZHUN</text>
+    <text x="66" y="155" font-size="12" letter-spacing="3.1" font-weight="600" fill="#9f1838">BROWSER TESTING · BUILT AROUND EVIDENCE</text>
+    <text x="62" y="229" font-size="53" font-weight="600" letter-spacing="-1.4" fill="#242427">让测试目标，</text>
+    <text x="62" y="296" font-size="53" font-weight="600" letter-spacing="-1.4" fill="#242427">变成真实的浏览器执行。</text>
+    <text x="66" y="343" font-size="20" fill="#71665f">AI 测试 Agent × 复兴银行业务演示环境</text>
+    <path d="M66 378h735" stroke="#ded6ce"/>
+    <text x="66" y="413" font-size="13" letter-spacing="1.5" fill="#766a63">OPEN SOURCE</text>
+    <circle cx="202" cy="408" r="2" fill="#b4a59a"/>
+    <text x="220" y="413" font-size="13" letter-spacing="1.5" fill="#766a63">WINDOWS + DOCKER</text>
+    <circle cx="409" cy="408" r="2" fill="#b4a59a"/>
+    <text x="428" y="413" font-size="13" letter-spacing="1.5" fill="#766a63">BRING YOUR OWN MODEL</text>
+  </g>
+  <rect x="965" y="52" width="405" height="357" rx="24" fill="url(#dots)" opacity="0.7"/>
+  <rect x="1006" y="79" width="300" height="299" rx="26" fill="#fffdfb" stroke="#e3d9d0" filter="url(#shadow)"/>
+  <rect x="1086" y="128" width="140" height="140" rx="39" fill="url(#mark)"/>
+  <path d="M1116 171v-16h20m60 16v-16h-20m-60 69v17h20m60-17v17h-20m-47-42 19 19 35-40" fill="none" stroke="#fff" stroke-width="6.5" stroke-linecap="round" stroke-linejoin="round"/>
+  <g font-family="Segoe UI, Microsoft YaHei, Noto Sans SC, sans-serif" text-anchor="middle">
+    <text x="1156" y="309" font-size="18" font-weight="600" fill="#423a36">Real actions. Reviewable results.</text>
+    <text x="1156" y="338" font-size="12" letter-spacing="1.5" fill="#9c8c82">CLI + CONVERSATIONAL WORKSPACE</text>
+  </g>
+  <rect x="1268" y="62" width="75" height="27" rx="13.5" fill="#eadde0"/>
+  <text x="1305.5" y="80" text-anchor="middle" font-family="Segoe UI, sans-serif" font-size="10" letter-spacing="1.5" fill="#9f1838">DEMO</text>
+</svg>

@@ -33,6 +33,7 @@ knowledge-sources/raw/
 nodejs20-midscene/
 
 # Browser and worker runtime artifacts.
+platform/hengzhun-regression-system/runtime/media/
 output/playwright/
 **/playwright-report/
 **/test-results/

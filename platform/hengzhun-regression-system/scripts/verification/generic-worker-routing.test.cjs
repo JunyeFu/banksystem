@@ -15,8 +15,20 @@ const {
   boundedVisualHitOffsets,
   composeMidscenePrompt,
   genericLocatorMatchesAction,
-  deriveDynamicLocator
+  deriveDynamicLocator,
+  waitForBusinessObservation
 } = require('../../worker/src/i10-midscene-candidate-authoring.cjs')
+
+test('bound business observation waits for its data header before visual observation',async()=>{
+  let resolveReady,done=false;
+  const readiness=new Promise(resolve=>{resolveReady=resolve});
+  const page={getByRole(role,options){assert.equal(role,'columnheader');assert.equal(options.name,'账号');return{first(){return{waitFor:()=>readiness}}}}};
+  const waiting=waitForBusinessObservation(page,{pageObservation:{fields:['IDENTIFIER','CURRENCY','BALANCE','STATUS']}}).then(()=>{done=true});
+  await Promise.resolve();assert.equal(done,false);resolveReady();await waiting;assert.equal(done,true);
+  await waitForBusinessObservation({},{});
+  await assert.rejects(waitForBusinessObservation({getByRole(){return{first(){return{waitFor:async()=>{throw Error('pending data')}}}}}},
+    {pageObservation:{fields:['IDENTIFIER']}}),error=>error.code==='BANK_ACCOUNT_VIEW_NOT_READY');
+});
 const { stabilityAllowedOrigins } = require('../../worker/src/i8-stability-runner.cjs')
 const { targetRuntimeAllowedOrigins } = require('../../worker/src/i10-worker-utils.cjs')
 

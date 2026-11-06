@@ -37,6 +37,29 @@ test('D01 explicit bank field aliases compile to a bound business observation, n
   assert.equal(s5SemanticPlan(['打开贷款申请页面','核对贷款申请的还款账号'],true).actions[1].pageObservation,undefined);
 });
 
+test('LIVE account field observation retains navigation context but never crosses another page or adapter',()=>{
+  const instruction='只读核对账户、人民币余额和账户状态';
+  const plan=s5SemanticPlan(['导航到账户列表页面',instruction],true);
+  assert.deepEqual(plan.actions.find(a=>a.instruction===instruction).pageObservation,
+    {schemaVersion:'bank-account-fields/v1',fields:['IDENTIFIER','CURRENCY','BALANCE','STATUS'],currency:'CNY'});
+  const other=s5SemanticPlan(['导航到账户列表页面','打开贷款申请页面',instruction],true);
+  assert.equal(other.actions.find(a=>a.instruction===instruction).pageObservation,undefined);
+  const generic=s5SemanticPlan(['导航到账户列表页面',instruction],false);
+  assert.equal(generic.actions.find(a=>a.instruction===instruction).pageObservation,undefined);
+});
+
+test('LIVE explicit bank field inspection expands missing page navigation once, without a runtime repair',()=>{
+  const instruction='只读核对账户列表中的账户、人民币余额和账户状态';
+  const missing=s5SemanticPlan(['打开目标站点入口页','等待银行认证回调完成',instruction],true);
+  const index=missing.actions.findIndex(a=>a.instruction===instruction);
+  assert.equal(missing.actions[index-1].operation,'click');assert.equal(missing.actions[index-1].instruction,'导航到账户列表页面');
+  assert.ok(missing.actions[index].pageObservation);
+  const explicit=s5SemanticPlan(['打开账户页面',instruction],true);
+  assert.equal(explicit.actions.filter(a=>a.instruction==='导航到账户列表页面').length,0);
+  const generic=s5SemanticPlan(['打开目标站点入口页',instruction],false);
+  assert.equal(generic.actions.filter(a=>a.instruction==='导航到账户列表页面').length,0);
+});
+
 test('D04 expected absence of page errors is not a positive error-text locator',()=>{
   const plan=s5SemanticPlan(['打开账户页面','检查页面是否出现错误提示或加载异常，并保持当前页面不变。']);
   // The semantic compiler must consult the expected outcome, not the keyword alone.
@@ -84,6 +107,14 @@ test('D02 D03 D05 real browser rejects incomplete rows empty tables and corrupte
   const render=(row)=>page.setContent('<section><h1 id="observed">账户列表</h1><table><thead><tr><th>账号</th><th>币种</th><th>可用余额</th><th>状态</th></tr></thead><tbody>'+row+'</tbody></table></section>');
   const run=()=>module.exports.execute({page,baseUrl:'https://example.test',fixtures:{},capture:async()=>{}});
   await render('<tr><td>****1234</td><td>CNY</td><td>¥100.00</td><td>正常</td></tr>');await run();
+  await t.test('LIVE Skeleton cannot satisfy observation readiness before data renders',async()=>{
+    await page.setContent('<h1>账户列表</h1><section data-view-state="LOADING"><ul><li>loading</li></ul></section>');
+    let ready=false;
+    const waiting=require('../../worker/src/i10-midscene-candidate-authoring.cjs').waitForBusinessObservation(page,{pageObservation:plan.actions[1].pageObservation}).then(()=>{ready=true});
+    await Promise.resolve();assert.equal(ready,false);
+    await render('<tr><td>****1234</td><td>CNY</td><td>¥100.00</td><td>正常</td></tr>');
+    await waiting;assert.equal(ready,true);await run();
+  });
   await t.test('D02 missing status in a compound account assertion fails',async()=>{await render('<tr><td>****1234</td><td>CNY</td><td>¥100.00</td><td></td></tr>');await assert.rejects(run,{code:'BANK_ACCOUNT_FIELDS_FAILED'});});
   await t.test('D03 a visible heading and headers cannot make an empty table pass',async()=>{await render('');await assert.rejects(run,{code:'BANK_ACCOUNT_ROWS_MISSING'});});
   await t.test('D05 formal replay preserves currency and balance assertions, not just visibility',async()=>{await render('<tr><td>****1234</td><td>USD</td><td>¥100.00</td><td>正常</td></tr>');await assert.rejects(run,{code:'BANK_ACCOUNT_CURRENCY_FAILED'});await render('<tr><td>****1234</td><td>CNY</td><td>invalid</td><td>正常</td></tr>');await assert.rejects(run,{code:'BANK_ACCOUNT_FIELDS_FAILED'});});
@@ -113,6 +144,16 @@ test('S5 prohibitions become invariants while a positive click in a mixed instru
   const policy=s5SemanticPlan(['打开账户页面',standalone]);
   assert.deepEqual(policy.actions.map(a=>a.operation),['goto','screenshot']);
   assert.ok(policy.actions[0].invariants.includes(standalone));
+});
+
+test('LIVE regression: maintaining current page with no-transfer constraints is an observation, never a click',()=>{
+  const phrase='保持当前账户列表页面，不进行转账、不提交业务申请、不修改资料或日期';
+  const plan=s5SemanticPlan(['打开账户页面',phrase],true);
+  assert.equal(plan.actions[1].operation,'expectVisible');
+  assert.equal(plan.actions[1].instruction,'核对账户列表页面');
+  assert.ok(plan.actions[1].invariants.some(value=>value.includes('不进行转账')));
+  const positive=s5SemanticPlan(['打开账户页面','点击查询按钮，不进行转账、不提交业务申请']);
+  assert.equal(positive.actions[1].operation,'click');assert.equal(positive.actions[1].instruction,'点击查询按钮');
 });
 
 test('S5 staying on a business page asserts the page without navigating to a forbidden destination',()=>{

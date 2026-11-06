@@ -10,6 +10,8 @@ effective_date: 2026-10-19
 owner: Codex
 ---
 
+2026-11-05授权面试修复增量：CLI凭据/资金参数、真实SDK分类与8192输出上限、图像来源/一次调用、HTTP下载取消及SQLite检查点客户端已实现并验证。当前H1c76996e…ca3e94d的真实只读S5完整通过；历史恢复不重派、配置/窄屏与银行快照通过。原银行15容器保持运行，未自动提交发布，正式28项未提升。详见[逐问题与逐身份回执](../../../../evidence/platform/agent-interview-repair-2026-11-05.md)。下列记录保留为其原日期的历史证据。
+
 2026-10-24本轮Worker明确SSO入口语义匹配修复完成，正反例与真实隔离DOM通过；Worker61、Contract19＋11、Integration41＋1、CLI76及源码另轮复审通过，源码门DONE。S5统一冻结H7a722b08…525239重跑遇到新的Harness认证未展开缺陷，首错停止，非本包源码门实机通过。详见[修复证据](../RF-068/S5-login-match-repair-20261024.md)及[首次失败根因](../RF-068/S5-live-root-cause-20261024-03.md)。
 
 2026-10-24回接RF068-S5专项修复：CLI/Worker视觉SDK预检、嵌套模型错误分类及首错停止、视觉绑定参与身份已完成；Contract19＋11、Integration41＋1、Worker59、CLI76、Browser5及前端45/双构建通过。源码门DONE，运行验收仍归S5。候选H618b078b…93c129的托管启动被工具自动审批拒绝，尚未绑定启动或LIVE；见[专项执行回执](../RF-068/S5-repair-execution-20261023.md)。

@@ -6,11 +6,19 @@ const fs = require('node:fs')
 const os = require('node:os')
 const path = require('node:path')
 const test = require('node:test')
-const { executeImageIngest, selectCaseFacts } = require('../../worker/src/i10-image-ingest-runner.cjs')
+const { executeImageIngest, selectCaseFacts, normalizeFact } = require('../../worker/src/i10-image-ingest-runner.cjs')
 const pngFixture = Buffer.from(
   'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=',
   'base64'
 )
+
+test('fact references must all belong to the current OCR packets',()=>{
+  const refs=new Set(['image:1:aaa','image:2:bbb']);
+  const fact=provenanceRefs=>({value:'合成页面字段',field:'ACTION',provenanceRefs});
+  for(const invalid of [undefined,[],['image:9:foreign'],['image:1:aaa','image:9:foreign']])
+    assert.throws(()=>normalizeFact(fact(invalid),0,refs),e=>e.code==='I10_IMAGE_FACT_PROVENANCE_INVALID');
+  assert.deepEqual(normalizeFact(fact(['image:1:aaa','image:2:bbb']),0,refs).provenanceRefs,['image:1:aaa','image:2:bbb']);
+});
 
 test('image ingest records local ONNX OCR plus controller invocation without a visual branch', async () => {
   const productRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'hengzhun-image-ingest-'))
@@ -133,7 +141,7 @@ test('corrupt image fails before OCR worker creation and cannot terminate the lo
   fs.rmSync(productRoot, { recursive: true, force: true })
 })
 
-test('controller retries once when OCR evidence exists but the first fact selection is empty', async () => {
+test('controller returns empty facts after exactly one invocation', async () => {
   const originalFetch = global.fetch
   const previous = {
     CONTROL_API_KEY: process.env.CONTROL_API_KEY,
@@ -166,10 +174,10 @@ test('controller retries once when OCR evidence exists but the first fact select
       [{ ordinal: 1, sourceSha256: 'hash', purposeHint: '', ocrText: '登录 登录按钮', confidence: 0.8 }],
       { imageIngestId: 'imageingest_00000000-0000-4000-8000-000000000000', primaryInputType: 'NATURAL_LANGUAGE' }
     )
-    assert.equal(calls, 2)
-    assert.equal(result.facts.length, 1)
-    assert.equal(result.controllerInvocation.inputTokens, 20)
-    assert.equal(result.controllerInvocation.outputTokens, 10)
+    assert.equal(calls, 1)
+    assert.equal(result.facts.length, 0)
+    assert.equal(result.controllerInvocation.inputTokens, 10)
+    assert.equal(result.controllerInvocation.outputTokens, 5)
   } finally {
     global.fetch = originalFetch
     for (const [key, value] of Object.entries(previous)) {

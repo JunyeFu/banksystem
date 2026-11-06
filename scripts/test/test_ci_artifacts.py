@@ -29,6 +29,8 @@ class SourceArtifactTest(unittest.TestCase):
         relatives += list(policy['zipPatch']['files'])
         relatives += [row['evidence'] for row in policy['thirdPartyLicenses']]
         relatives += list(policy['sourceDelivery']['files']) + [policy['sourceDelivery']['mavenWrapper']['path']]
+        relatives += ['apps/quality-case-portal/src/agent/assets/NotoSansSC-Regular.ttf',
+                      'apps/quality-case-portal/src/agent/assets/OFL.txt']
         relatives += ['platform/hengzhun-regression-system/scripts/verification/runtime-dependency-security.test.cjs']
         files = sorted(set(relatives))
         for relative in files:
@@ -66,7 +68,7 @@ class SourceArtifactTest(unittest.TestCase):
             value = MODULE.load(source / package / 'package.json')
             components.append({'type': 'library', 'name': value['name'], 'version': value['version'],
                                'licenses': [{'license': {'id': 'MPL-2.0'}}]})
-        bom = {'bomFormat': 'CycloneDX', 'components': components}
+        bom = {'bomFormat': 'CycloneDX', 'specVersion': '1.7', 'components': components}
         self.write(deps / 'source.cdx.json', bom)
         reviewed_bom, licenses = MODULE.REVIEW.review_licenses(bom, source, policy)
         self.write(deps / 'source.reviewed.cdx.json', reviewed_bom)
@@ -132,6 +134,16 @@ class SourceArtifactTest(unittest.TestCase):
                     self.assertEqual(MODULE.main(), 5)
                 with patch('sys.argv', ['verify-ci-artifacts.py', '--verify', str(out), '--repository', str(repo)]):
                     self.assertEqual(MODULE.main(), 5)
+                delivery = out.parent / 'full-source-delivery'
+                parent_hash = MODULE.sha(out / 'candidate-manifest.json')
+                with patch('sys.argv', ['verify-ci-artifacts.py', '--export-source', str(out), '--repository', str(repo), '--output', str(delivery)]):
+                    self.assertEqual(MODULE.main(), 5)
+                with patch('sys.argv', ['verify-ci-artifacts.py', '--verify-delivery', str(delivery), '--repository', str(repo), '--source-candidate', str(out)]):
+                    self.assertEqual(MODULE.main(), 5)
+                material = MODULE.load(delivery / 'delivery-manifest.json')
+                self.assertEqual(material['distributionMaterialGate'], 'VERIFIED')
+                self.assertEqual(material['imageEngineeringGate'], 'BLOCKED')
+                self.assertEqual(MODULE.sha(out / 'candidate-manifest.json'), parent_hash)
                 result = MODULE.load(out / 'candidate-manifest.json')
             self.assertEqual(result['scope'], MODULE.FULL_SCOPE)
             self.assertEqual(len(result['images']), 12)
@@ -139,8 +151,94 @@ class SourceArtifactTest(unittest.TestCase):
             self.assertEqual(result['imageCoverageStatus'], 'COMPLETE')
             self.assertEqual(result['imageEngineeringGate'], 'BLOCKED')
             self.assertTrue(all(row['nativeScannerExitCode'] == 1 for row in result['images']))
-            self.assertTrue(all(row['licenseDistributionStatus'] == 'NOT_VERIFIED' for row in result['images']))
+            self.assertTrue(all(row['licenseDistributionStatus'] == 'NOT_DISTRIBUTED_IN_SOURCE_PROFILE' for row in result['images']))
+            self.assertEqual(result['distributionMaterialGate'], 'NOT_EXPORTED')
             self.assertEqual(result['releaseDecision'], 'NO_GO')
+
+    def test_image_risk_gate_has_a_success_path_without_approving_runtime_binary_redistribution(self):
+        records = [{'security': {'status': 'PASSED'}, 'licenseDistributionStatus': 'NOT_DISTRIBUTED_IN_SOURCE_PROFILE'}]
+        self.assertEqual(MODULE.image_engineering_gate(records), 'PASSED')
+        records[0]['security']['status'] = 'BLOCKED'
+        self.assertEqual(MODULE.image_engineering_gate(records), 'BLOCKED')
+
+    def test_source_delivery_contains_only_verified_source_and_projected_facts(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            repo, scan, deps, tools, out, files = self.fixture(Path(temporary))
+            marker = 'UPSTREAM_DESCRIPTION_NOT_FOR_PUBLIC_DELIVERY'
+            bom = MODULE.load(deps / 'source.cdx.json')
+            bom['components'][0]['description'] = marker
+            bom['components'][0]['properties'] = [{'name': 'localPath', 'value': str(deps)}]
+            self.write(deps / 'source.cdx.json', bom)
+            reviewed, _ = MODULE.REVIEW.review_licenses(bom, scan / 'scan-source', MODULE.load(MODULE.REVIEW.POLICY_PATH))
+            self.write(deps / 'source.reviewed.cdx.json', reviewed)
+            delivery = out.parent / 'source-delivery'
+            with self.context(files), patch.object(MODULE, 'git_info', return_value={'sourceCommit': 'a' * 40, 'workingTreeDirty': True}):
+                MODULE.produce(repo, scan, deps, tools, out)
+                private_scan = MODULE.load(out / 'reports/secrets.json')
+                private_scan['upstreamParagraph'] = marker
+                self.write(out / 'reports/secrets.json', private_scan)
+                parent = MODULE.load(out / 'candidate-manifest.json')
+                for row in parent['artifacts']:
+                    if row['path'] == 'reports/secrets.json':
+                        row['sha256'] = MODULE.sha(out / row['path'])
+                        row['bytes'] = (out / row['path']).stat().st_size
+                MODULE.write_manifest(out, parent)
+                result = MODULE.export_delivery(repo, out, delivery)
+                self.assertEqual(MODULE.verify_delivery(repo, out, delivery), result)
+            self.assertEqual(result['distributionMaterialGate'], 'VERIFIED')
+            self.assertEqual(result['releaseDecision'], 'NO_GO')
+            self.assertFalse(result['productReady'])
+            self.assertEqual({p.name for p in delivery.iterdir()}, {
+                'controlled-source.zip', 'source.sbom.cdx.json', 'evidence-summary.json', 'delivery-manifest.json', 'checksums.sha256'})
+            self.assertEqual(MODULE.sha(delivery / 'controlled-source.zip'), MODULE.sha(out / 'controlled-source.zip'))
+            self.assertIn(marker, (out / 'reports/source.reviewed.cdx.json').read_text())
+            for name in ('source.sbom.cdx.json', 'evidence-summary.json', 'delivery-manifest.json'):
+                text = (delivery / name).read_text(encoding='utf-8')
+                self.assertNotIn(marker, text)
+                self.assertNotIn(str(deps), text)
+            public_bom = MODULE.load(delivery / 'source.sbom.cdx.json')
+            self.assertEqual(public_bom['components'][0]['name'], bom['components'][0]['name'])
+            self.assertEqual(public_bom['components'][0]['licenses'], bom['components'][0]['licenses'])
+
+    def test_delivery_rejects_extra_raw_report_and_rehashed_summary_tamper(self):
+        for failure in ('raw_report', 'summary'):
+            with self.subTest(failure=failure), tempfile.TemporaryDirectory() as temporary:
+                repo, scan, deps, tools, out, files = self.fixture(Path(temporary))
+                delivery = out.parent / 'source-delivery'
+                with self.context(files), patch.object(MODULE, 'git_info', return_value={'sourceCommit': 'a' * 40, 'workingTreeDirty': True}):
+                    MODULE.produce(repo, scan, deps, tools, out)
+                    MODULE.export_delivery(repo, out, delivery)
+                    if failure == 'raw_report':
+                        shutil.copyfile(out / 'reports/dependencies.json', delivery / 'native.json')
+                    else:
+                        summary = MODULE.load(delivery / 'evidence-summary.json')
+                        summary['releaseDecision'] = 'GO'
+                        self.write(delivery / 'evidence-summary.json', summary)
+                        manifest = MODULE.load(delivery / 'delivery-manifest.json')
+                        for row in manifest['artifacts']:
+                            if row['path'] == 'evidence-summary.json':
+                                row['sha256'] = MODULE.sha(delivery / row['path'])
+                                row['bytes'] = (delivery / row['path']).stat().st_size
+                        self.write(delivery / 'delivery-manifest.json', manifest)
+                    with self.assertRaisesRegex(ValueError, 'DELIVERY_'):
+                        MODULE.verify_delivery(repo, out, delivery)
+
+    def test_rehashed_local_dependency_report_cannot_bypass_native_recomputation(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            repo, scan, deps, tools, out, files = self.fixture(Path(temporary))
+            with self.context(files), patch.object(MODULE, 'git_info', return_value={'sourceCommit': 'a' * 40, 'workingTreeDirty': True}):
+                MODULE.produce(repo, scan, deps, tools, out)
+                report = MODULE.load(out / 'reports/dependency-result.json')
+                report['scannerExitCode'] = 1
+                self.write(out / 'reports/dependency-result.json', report)
+                parent = MODULE.load(out / 'candidate-manifest.json')
+                for row in parent['artifacts']:
+                    if row['path'] == 'reports/dependency-result.json':
+                        row['sha256'] = MODULE.sha(out / row['path'])
+                        row['bytes'] = (out / row['path']).stat().st_size
+                MODULE.write_manifest(out, parent)
+                with self.assertRaisesRegex(ValueError, 'ARTIFACT_DEPENDENCY_'):
+                    MODULE.verify(repo, out)
 
     def test_bank_smoke_subset_cannot_replace_default_runtime_scope(self):
         with tempfile.TemporaryDirectory() as temporary:
@@ -277,6 +375,34 @@ class SourceArtifactTest(unittest.TestCase):
                 with self.assertRaisesRegex(ValueError, 'LICENSE_MATERIAL|BOOTSTRAP_BINARY|UNREVIEWED_SOFTWARE_BINARY'):
                     MODULE.source_license_materials(source, MODULE.archive_files(files))
 
+    def test_bundled_font_has_exact_source_bytes_and_its_own_license(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            repo, scan, deps, tools, out, files = self.fixture(Path(temporary))
+            result = MODULE.source_license_materials(scan / 'scan-source', MODULE.archive_files(files))
+            self.assertEqual(len(result['fontMaterials']), 1)
+            font = result['fontMaterials'][0]
+            self.assertEqual(font['name'], 'Noto Sans SC')
+            self.assertEqual(font['license'], 'OFL-1.1')
+            self.assertEqual(font['sha256'], '450625c8d46ab3df97b7904ded955ec2746d17ec76740cb1e91d1ba63a0f89af')
+            self.assertEqual(font['licenseOriginal'], 'apps/quality-case-portal/src/agent/assets/OFL.txt')
+            self.assertEqual(font['licenseSha256'], '1c05c68c34f9708415aada51f17e1b0092d2cea709bf4a94cd38114f9e73d7d9')
+
+    def test_missing_font_license_changed_font_or_unknown_font_blocks(self):
+        for failure in ('missing_license', 'changed_font', 'unknown_font'):
+            with self.subTest(failure=failure), tempfile.TemporaryDirectory() as temporary:
+                repo, scan, deps, tools, out, files = self.fixture(Path(temporary))
+                source = scan / 'scan-source'
+                if failure == 'missing_license':
+                    files.remove('apps/quality-case-portal/src/agent/assets/OFL.txt')
+                elif failure == 'changed_font':
+                    (source / 'apps/quality-case-portal/src/agent/assets/NotoSansSC-Regular.ttf').write_bytes(b'synthetic changed font')
+                else:
+                    name = 'unreviewed-font.ttf'
+                    (source / name).write_bytes(b'synthetic unreviewed font')
+                    files = sorted([*files, name])
+                with self.assertRaisesRegex(ValueError, 'FONT_|LICENSE_MATERIAL'):
+                    MODULE.source_license_materials(source, MODULE.archive_files(files))
+
     def test_historical_inventory_cannot_claim_current_release_coverage(self):
         with tempfile.TemporaryDirectory() as temporary:
             repo, scan, deps, tools, out, files = self.fixture(Path(temporary))
@@ -342,6 +468,154 @@ class SourceArtifactTest(unittest.TestCase):
                         self.write(out / 'candidate-manifest.json', manifest)
                     with self.assertRaisesRegex(ValueError, 'BYTES_CHANGED|CANNOT_PROMOTE_SOURCE'):
                         MODULE.verify(repo, out)
+
+
+class PostgresArtifactReviewTest(unittest.TestCase):
+    def fixture(self, root):
+        policy = MODULE.load(MODULE.FOUNDATIONS.POLICY)
+        review_policy = policy['postgresReview']
+        inspection = {'Id': review_policy['imageId'], 'Architecture': 'amd64', 'Os': 'linux'}
+        features = {name: 'ABSENT' for name in review_policy['absentPaths']}
+        features.update({'chfnProvider': 'passwd', 'chshProvider': 'passwd'})
+        findings = [{'name': row['name'], 'version': row['version'], 'ecosystem': row['ecosystem'],
+                     'id': advisory, 'severity': ['original-native']} for row in review_policy['dispositions']
+                    for advisory in row['advisories']]
+        findings.append({'name': 'glibc', 'version': '2.41-12+deb13u4', 'ecosystem': 'Debian:13',
+                         'id': 'DEBIAN-CVE-2026-18374', 'severity': ['original-native']})
+        paths = {name: root / (name + '.json') for name in ('bom', 'nativeReport', 'review')}
+        paths['bom'].write_text(json.dumps({'components': [{'name': 'postgresql-18', 'version': '18.6-1.pgdg13+1'}]}))
+        paths['nativeReport'].write_text(json.dumps({'scope': 'unit-only public-image native fixture'}))
+        record = {'name': 'postgres', 'imageId': inspection['Id'], 'nativeScannerExitCode': 1,
+                  'nativeReportSha256': MODULE.sha(paths['nativeReport']), 'bomSha256': MODULE.sha(paths['bom']),
+                  'featureFacts': features, 'riskReview': MODULE.FOUNDATIONS.postgres_review(findings, inspection, features, review_policy)}
+        receipt = {'scope': policy['scope'], 'policySha256': MODULE.REVIEW.digest(MODULE.FOUNDATIONS.POLICY), 'subjects': [record]}
+        paths['review'].write_text(json.dumps(receipt))
+        return paths, inspection, findings, features, receipt
+
+    def test_postgres_candidate_consumes_partial_review_without_promoting_other_native_risks(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            paths, inspection, findings, features, _ = self.fixture(Path(temporary))
+            with patch.object(MODULE.FOUNDATIONS.subprocess, 'run') as run:
+                run.return_value.stdout = ''.join(f'{key}={value}\n' for key, value in features.items())
+                result = MODULE.image_security(ROOT, 'bank-channel-postgres', {'nativeExit': 1}, paths, inspection, findings)
+            self.assertEqual(result['status'], 'BLOCKED')
+            self.assertEqual(result['reviewedAdvisories'], 14)
+            self.assertEqual(result['blockingAdvisories'], 1)
+            self.assertEqual(result['vendorGate']['status'], 'PASSED')
+
+    def test_fresh_tool_presence_rejects_the_previous_absent_tool_receipt(self):
+        for present in ('/usr/bin/sqlite3', '/usr/local/bin/sqlite3', '/usr/bin/apt-key', '/usr/sbin/apt-key',
+                        '/usr/lib/systemd/systemd-oomd', '/usr/bin/systemd-oomd',
+                        '/usr/lib/x86_64-linux-gnu/sqlite3/zipfile.so', '/usr/lib/sqlite3/zipfile.so',
+                        '/usr/bin/bzip2recover', '/bin/bzip2recover',
+                        '/usr/lib/gnupg/tpm2daemon', '/usr/lib/gnupg2/tpm2daemon'):
+            with self.subTest(path=present), tempfile.TemporaryDirectory() as temporary:
+                paths, inspection, findings, features, _ = self.fixture(Path(temporary))
+                features[present] = 'PRESENT'
+                with patch.object(MODULE.FOUNDATIONS.subprocess, 'run') as run:
+                    run.return_value.stdout = ''.join(f'{key}={value}\n' for key, value in features.items())
+                    with self.assertRaisesRegex(ValueError, 'POSTGRES_REVIEW_FEATURE_PROOF_DRIFT'):
+                        MODULE.image_security(ROOT, 'bank-channel-postgres', {'nativeExit': 1}, paths, inspection, findings)
+
+    def test_manually_rehashed_promoted_review_or_false_feature_fact_is_rejected(self):
+        for failure in ('promotion', 'feature', 'native', 'policy', 'duplicate', 'missing'):
+            with self.subTest(failure=failure), tempfile.TemporaryDirectory() as temporary:
+                paths, inspection, findings, features, receipt = self.fixture(Path(temporary))
+                record = receipt['subjects'][0]
+                if failure == 'promotion':
+                    record['riskReview']['status'] = 'REVIEWED'
+                    record['riskReview']['blockingAdvisories'] = 0
+                elif failure == 'feature':
+                    record['featureFacts'] = {}
+                elif failure == 'native':
+                    record['nativeScannerExitCode'] = 0
+                elif failure == 'policy':
+                    receipt['policySha256'] = '0' * 64
+                elif failure == 'duplicate':
+                    receipt['subjects'].append(dict(record))
+                else:
+                    receipt['subjects'] = []
+                paths['review'].write_text(json.dumps(receipt))
+                with patch.object(MODULE.FOUNDATIONS.subprocess, 'run') as run:
+                    run.return_value.stdout = ''.join(f'{key}={value}\n' for key, value in features.items())
+                    with self.assertRaisesRegex(ValueError, 'ARTIFACT_POSTGRES_REVIEW_DRIFT'):
+                        MODULE.image_security(ROOT, 'bank-channel-postgres', {'nativeExit': 1}, paths, inspection, findings)
+
+
+class ActivemqCandidateEvidenceTest(unittest.TestCase):
+    def fixture(self, root):
+        policy = MODULE.load(MODULE.FOUNDATIONS.POLICY)
+        review_policy = policy['activemqReview']
+        image = {'Id': review_policy['imageId'], 'Architecture': 'amd64', 'Os': 'linux'}
+        facts = {path: 'ABSENT' for path in review_policy['absentPaths']}
+        findings = [{'name': row['name'], 'version': row['version'], 'ecosystem': row['ecosystem'],
+                     'id': advisory, 'severity': ['native-severity']} for row in review_policy['dispositions']
+                    for advisory in row['advisories']]
+        findings.append({'name': 'gnupg2', 'version': '2.4.4-2ubuntu17.6', 'ecosystem': 'Ubuntu:24.04',
+                         'id': 'UBUNTU-CVE-2026-105712', 'severity': ['native-severity']})
+        paths = {name: root / (name + '.json') for name in ('bom', 'nativeReport', 'review')}
+        for name in ('bom', 'nativeReport'):
+            paths[name].write_text(json.dumps({'unitOnly': name}))
+        record = {'name': 'activemq', 'imageId': image['Id'], 'nativeScannerExitCode': 1,
+                  'nativeReportSha256': MODULE.sha(paths['nativeReport']), 'bomSha256': MODULE.sha(paths['bom']),
+                  'featureFacts': facts,
+                  'riskReview': MODULE.FOUNDATIONS.activemq_review(findings, image, facts, review_policy)}
+        receipt = {'scope': policy['scope'], 'policySha256': MODULE.REVIEW.digest(MODULE.FOUNDATIONS.POLICY), 'subjects': [record]}
+        paths['review'].write_text(json.dumps(receipt))
+        return paths, image, findings, facts, receipt
+
+    def test_actual_consumer_accepts_partial_mq_review_without_promoting_remaining_risk(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            paths, image, findings, facts, _ = self.fixture(Path(temporary))
+            with patch.object(MODULE.FOUNDATIONS, 'activemq_features', return_value=facts):
+                result = MODULE.image_security(ROOT, 'activemq', {'nativeExit': 1}, paths, image, findings)
+            self.assertEqual(result['status'], 'BLOCKED')
+            self.assertEqual(result['reviewedAdvisories'], 2)
+            self.assertEqual(result['blockingAdvisories'], 1)
+
+    def test_missing_exact_review_does_not_reduce_mq_risk(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            paths, image, findings, _, _ = self.fixture(Path(temporary))
+            paths.pop('review')
+            result = MODULE.image_security(ROOT, 'activemq', {'nativeExit': 1}, paths, image, findings)
+            self.assertEqual(result['status'], 'BLOCKED')
+            self.assertEqual(result['blockingAdvisories'], 3)
+
+    def test_old_policy_false_counts_or_forged_material_receipts_are_rejected(self):
+        for failure in ('promotion', 'feature', 'native', 'policy', 'duplicate', 'missing', 'bom', 'report', 'old-record'):
+            with self.subTest(failure=failure), tempfile.TemporaryDirectory() as temporary:
+                paths, image, findings, facts, receipt = self.fixture(Path(temporary))
+                record = receipt['subjects'][0]
+                if failure == 'promotion':
+                    record['riskReview']['status'] = 'REVIEWED'
+                    record['riskReview']['blockingAdvisories'] = 0
+                elif failure == 'feature':
+                    record['featureFacts'] = {}
+                elif failure == 'native':
+                    record['nativeScannerExitCode'] = 0
+                elif failure == 'policy':
+                    receipt['policySha256'] = '0' * 64
+                elif failure == 'duplicate':
+                    receipt['subjects'].append(dict(record))
+                elif failure == 'missing':
+                    receipt['subjects'] = []
+                elif failure in ('bom', 'report'):
+                    paths['bom' if failure == 'bom' else 'nativeReport'].write_text('{"changed":true}')
+                else:
+                    record.pop('riskReview')
+                paths['review'].write_text(json.dumps(receipt))
+                with patch.object(MODULE.FOUNDATIONS, 'activemq_features', return_value=facts):
+                    with self.assertRaisesRegex(ValueError, 'ARTIFACT_ACTIVEMQ_REVIEW_DRIFT'):
+                        MODULE.image_security(ROOT, 'activemq', {'nativeExit': 1}, paths, image, findings)
+
+    def test_current_feature_change_rejects_previously_valid_receipt(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            paths, image, findings, facts, _ = self.fixture(Path(temporary))
+            for path in facts:
+                with self.subTest(path=path), patch.object(MODULE.FOUNDATIONS, 'activemq_features',
+                        return_value={**facts, path: 'PRESENT'}):
+                    with self.assertRaisesRegex(ValueError, 'ACTIVEMQ_REVIEW_FEATURE_PROOF_DRIFT'):
+                        MODULE.image_security(ROOT, 'activemq', {'nativeExit': 1}, paths, image, findings)
 
 
 if __name__ == '__main__':

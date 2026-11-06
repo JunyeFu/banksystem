@@ -12,6 +12,44 @@ owner: Codex
 
 # 规范化证据索引
 
+## 2026-11-06 七类文书本地验页闭合
+
+[正式文书包](../../../../design/product-normalization/formal-documents-20261106.md)现7/7通过：六份原已验页文件保持，立项报告的长四列叙述比较改为同属性小节，6页逐页复验通过；最终七份共35页，无用户/机构签收或产品GO代签。原稿、Word导出与PNG及修复前像保留；最终本地草稿verified-local的实际字节与各自已渲染源一致，catalog登记已验页及本地交付，任务仅REVIEW。下方6/7为此前同日过程。
+
+## 2026-11-06 用户授权Word后的逐页检查
+
+[正式文书任务包](../../../../design/product-normalization/formal-documents-20261106.md)已解除渲染方式阻塞：自有只读Word导出、捆绑PDF/PNG共36页全部查看；六份通过，立项报告跨页对照表的续页表头仍待修。本批只修真实观察的样式/行列/引用排版，源稿事实同步PG14/118与新MQ62；新旧DOCX/原失败保留，catalog当前6/7且未交付，不代签UAT或产品发布。
+
+## 2026-11-06 M4贷款审计依赖声明
+
+[模型包M4](../../../../design/product-normalization/current-models-20261106.md)仅补bank.customer-profile→bank.audit，现有LoanOperationService完成审计不变；纠正图册误列LoanWorkflowService。原65文件/14条实际import保留，当前未登记边0/强连通组0，不是删除业务耦合或运行故障修复。
+
+现有治理单测3/3、RF064及docs通过；同源十页结构/实际浏览器DOM与图册检查通过，更新DSM PNG已实看。原生源/JSON/预览一致，旧图及首轮缺项观察保留。本片REVIEW，未运行Java/银行/模型、不更新身份、部署、远端CI或GO；当前Word仍未验页草稿。
+
+## 2026-11-06 当前专业模型收口
+
+[当前模型包](../../../../design/product-normalization/current-models-20261106.md)生成十视图、可编辑多页drawio及同源SVG/实际PNG，设计源稿与总览已接入口，旧9月图保留。贷款条件/利率、核心GL关联、EOD未知回读、会话模型绑定及verify/Quality旧结论逐项对照源码纠正；19具名锚点匹配，不把图或源码门当当前LIVE。
+
+当前DSM重新提取65Java文件/14条跨模块import，无强连通组，仍有customerprofile→audit一条未登记；不是业务故障证明，必要审计调用不删。十页原生结构0错误/0警告，实际SVG DOM/PNG十图检查与两轮定向复看、图册入口及边标签/文字边界通过，外部请求0。没有Desktop/Graphviz原生导出或新依赖，预览类别明确；本包REVIEW，不关闭S1/RF064/A08整体、文书验页、安全/正式28项/容量/远端CI或GO。
+
+## 2026-11-06 开源资料与外部就绪投影
+
+[资料包](../../../../design/product-normalization/open-source-materials-20261106.md)完成根README/贡献/变更及非权威ROADMAP同步，保留10月26日截图和11月5日证据；main徽章不证明本地候选CI。站点当前摘要/四张卡/默认稿更新841/841、PG132/9/123和七Word未验页，历史记录与原60项评估保留。
+
+实际静态build、12/12记录/导出测试、语法、43根链接、治理/docs通过。既有24181服务的真实headless浏览器完成工程证据→资料默认稿→工程证据，桌面1440×1000和窄屏390×844无横溢/错误，三截图已实看；合成笔记拦截GET、POST0、原记录元数据未变。原15银行ID及三个Agent/站点PID保持。源码/浏览器回执在banksystem-rf065/interview-readiness-20261106-01；本包REVIEW，不是正式28项、当前身份LIVE、文书验页、远端CI或整体GO。
+
+## 2026-11-06 七类文书源稿与未验页导出
+
+[文书包](../../../../design/product-normalization/formal-documents-20261106.md)已收齐七个独立源稿，修正交付/验收陈旧时态，新增实际Markdown→DOCX入口而非空白模板。捆绑Python实际创建七份草稿并逐份核对内容、标题和比较表，三项拒绝边界通过；设计正文NO_GO缺失在回读时暴露后补正，旧草稿前像保留。
+
+当前Windows捆绑工具缺LibreOffice；规范renderer实际FileNotFoundError、0页，未改用桌面Office、未交付或声称视觉通过。七草稿约0.28MiB留ignored deliverables，catalog为DRAFT_LOCAL/verified0；任务保持BLOCKED，S4不关闭。外部站只更新README、不改个人笔记/页面/运行态；整体NO_GO及正式28项、容量和远端CI边界保持。工具/内容回执在banksystem-rf065/formal-documents-20261106-01。
+
+## 2026-11-06 S4补充只读容量源码
+
+[容量任务包](readonly-capacity-20261106.md)补齐已确认却未接驱动的100次固定只读回归、1/2/4各10次、2小时平台观察。公开ReadOnlyCapacity profile复用真实A01/冻结脚本CLI及Harness单旅程账本核验，P05原7任务/正式28项不变，补充JSON不决定发布。失败排空/停止准入、真实队列与执行分开、跨批绑定唯一及缺时间处理均有反例；状态读取抛错时沿用旧健康时刻的缺口已复现并修正。
+
+当前源码合同34/34、既有发布验证33/33、新registered包装1/1、PS5.1解析、112注册完整及RF064/RF065治理/docs通过。包装TAP在agent/runs/rf064-readonly-capacity-20261106；没有真实银行/模型或2小时负载执行，130次仅是CI合成合同的目标计数。原15银行服务/Agent/外部站点保持。本片REVIEW，S4整体仍IMPLEMENTING，真实性能、当前身份正式28项、用户验收及安全/候选总门不因源码完成而通过。
+
 ## 2026-10-09 S3完整回归第二轮终态与第三轮复验
 
 第二轮102个CI可运行注册文件终态：tests760/pass758/fail2，607136.7584ms，退出1。失败为运行期间已修的headless旧19计数和只读租约隐式恢复旧断言；即使定向结果通过也不覆盖本轮失败。修正状态第三轮完整同清单已启动，终态待记录。两项OCR运行时文件仍按原注册清单前提排除，不能称所有104文件均运行。RF065独立工作流源码/前端检查同期实施，不改本次Agent执行源码或重装其依赖；不冻结身份或调用BYOK，产品仍NO_GO。

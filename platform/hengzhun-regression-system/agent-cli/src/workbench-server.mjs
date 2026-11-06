@@ -13,9 +13,11 @@ export async function startWorkbenchServer({ workbench, staticRoot, port = 18790
       if (target.pathname.startsWith('/api/')) {
         const controller = new AbortController()
         request.once('aborted', () => controller.abort())
+        response.once('close',()=>{if(!response.writableEnded)controller.abort()})
         const web = new Request(target, { method: request.method, headers: request.headers, signal: controller.signal,
           ...(!['GET', 'HEAD'].includes(request.method) ? { body: Readable.toWeb(request), duplex: 'half' } : {}) })
         const result = await handle(web)
+        if(response.destroyed)return
         response.writeHead(result.status, Object.fromEntries(result.headers))
         response.end(Buffer.from(await result.arrayBuffer()))
         return
@@ -42,6 +44,7 @@ export async function startWorkbenchServer({ workbench, staticRoot, port = 18790
         'content-security-policy': "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' blob:; connect-src 'self'; object-src 'none'; base-uri 'none'; frame-ancestors 'none'" })
       response.end(request.method === 'HEAD' ? undefined : bytes)
     } catch (error) {
+      if(response.destroyed)return
       const known = error instanceof WorkbenchError
       response.writeHead(known ? error.status : 500, { 'content-type': 'application/problem+json', 'cache-control': 'no-store', 'x-content-type-options': 'nosniff' })
       response.end(JSON.stringify({ type: 'about:blank', title: known ? error.code : 'AGENT_HTTP_FAILED', status: known ? error.status : 500, code: known ? error.code : 'AGENT_HTTP_FAILED' }))

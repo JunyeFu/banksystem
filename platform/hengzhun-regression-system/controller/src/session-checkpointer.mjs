@@ -33,6 +33,7 @@ export class EncryptedSessionCheckpointer extends MemorySaver {
     this.sessionStore = store
     this.sessionId = sessionId
     this.releaseIdentityHash = releaseIdentityHash
+    this.persistQueue = Promise.resolve()
   }
 
   static async create(options) {
@@ -40,6 +41,7 @@ export class EncryptedSessionCheckpointer extends MemorySaver {
     const payload = await options.store.load(options.sessionId, {
       expectedReleaseIdentityHash: options.releaseIdentityHash,
     })
+    saver.revision = payload.revision
     if (payload.checkpointSnapshot !== null) {
       if (
         payload.checkpointSnapshot?.schemaVersion !== 'hengzhun-langgraph-checkpoint-snapshot/v1' ||
@@ -60,7 +62,13 @@ export class EncryptedSessionCheckpointer extends MemorySaver {
   }
 
   async persist() {
-    await this.sessionStore.setCheckpointSnapshot(this.sessionId, this.releaseIdentityHash, this.snapshot())
+    const snapshot=this.snapshot()
+    const operation=this.persistQueue.then(async()=>{
+      const saved=await this.sessionStore.setCheckpointSnapshot(this.sessionId,this.releaseIdentityHash,snapshot,()=>this.revision)
+      this.revision=saved.revision
+    })
+    this.persistQueue=operation
+    await operation
   }
 
   async put(...args) {

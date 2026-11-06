@@ -73,6 +73,15 @@ export function assertNoReplay(before, after, proof) {
   assert.equal(before.runs[0].claimCount, 1, 'RF068_SINGLE_CLAIM_REQUIRED');
   assert.deepEqual(after, before, 'RF068_REPLAY_DETECTED');
 }
+
+export function acceptanceFailure(error) {
+  const assertion=error.code==='ERR_ASSERTION'?/^([A-Z][A-Z0-9_]{2,100})(?:$|\s|:)/.exec(error.message)?.[1]:null;
+  const kind=['Error','TypeError','AssertionError','TimeoutError','AbortError'].includes(error.name)?error.name:'OtherError';
+  const transport=['ECONNRESET','ECONNREFUSED','ENOTFOUND','ETIMEDOUT','UND_ERR_SOCKET','UND_ERR_HEADERS_TIMEOUT','UND_ERR_CONNECT_TIMEOUT'].includes(error.cause?.code)?error.cause.code:undefined;
+  const code=assertion||(/^[A-Z][A-Z0-9_]{2,100}$/.test(error.code||'')&&error.code!=='ERR_ASSERTION'?error.code:
+    kind==='TimeoutError'?'RF068_HTTP_TIMEOUT':kind==='AbortError'?'RF068_HTTP_ABORTED':transport?'RF068_HTTP_TRANSPORT_FAILED':'RF068_LIVE_ACCEPTANCE_FAILED');
+  return {code,kind,...(transport?{transportCode:transport}:{})};
+}
 // Doctor may spend 90s on the controller and 90s on vision, then perform
 // three 10s local probes. The browser budget must cover that existing contract.
 export function acceptanceStageBudget(name) {

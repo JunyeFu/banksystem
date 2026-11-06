@@ -1,4 +1,4 @@
-"""Build the authorized gosu 1.19 Moby parser patch, never run the target."""
+"""Build the gosu 1.19 Moby and Go 1.26.10 security patch, never run the target."""
 import argparse
 import hashlib
 import json
@@ -11,7 +11,7 @@ import tarfile
 ROOT = Path(__file__).resolve().parents[2]
 COMMIT = '6456aaa0f3c854d199d0f037f068eb97515b7513'
 ARCHIVE_SHA256 = '33d7537d588ea49458b9509bcf4554bdf5ceacc66da71e5caa1058ea3b689c3b'
-PATCH_VERSION = '1.19-rf065-moby041'
+PATCH_VERSION = '1.19-rf065-moby041-go12610'
 
 
 def sha(path):
@@ -62,7 +62,7 @@ def prepare(archive, go, output):
            'GOPATH': str(output / 'tools'), 'GOOS': 'linux', 'GOARCH': 'amd64', 'CGO_ENABLED': '0'}
     tool_version = subprocess.run([str(go), 'version'], env=env, check=True,
                                   capture_output=True, text=True).stdout.strip()
-    if not tool_version.startswith('go version go1.26.9 '):
+    if not tool_version.startswith('go version go1.26.10 '):
         raise ValueError('GOSU_COMPILER_VERSION_CHANGED')
     home = prepare_source(archive, output)
     original = {name: sha(home / name) for name in ('main.go', 'setup-user.go')}
@@ -101,7 +101,7 @@ def prepare(archive, go, output):
         if (module_dir / 'NOTICE').is_file():
             shutil.copyfile(module_dir / 'NOTICE', notices / (name + '-NOTICE'))
     shutil.copytree(home, notices / 'patched-source')
-    manifest = {'scope': 'RF065_S3_8_GOSU_MOBY_DEPENDENCY_PATCH_ONLY', 'version': PATCH_VERSION,
+    manifest = {'scope': 'RF065_S3_8_GOSU_MOBY_AND_COMPILER_PATCH_ONLY', 'version': PATCH_VERSION,
                 'sourceCommit': COMMIT, 'sourceArchiveSha256': ARCHIVE_SHA256,
                 'sourceUrl': 'https://codeload.github.com/tianon/gosu/tar.gz/' + COMMIT,
                 'compiler': tool_version, 'compilerSha256': sha(go),

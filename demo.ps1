@@ -259,6 +259,7 @@ function Write-LocalEnvironment {
     $name = $Matches[1]
     $value = $Matches[2]
     $present[$name] = $true
+    if ($name -eq 'ACTIVEMQ_PASSWORD' -and [string]::IsNullOrWhiteSpace($value)) { throw 'DEMO_MQ_PASSWORD_EMPTY' }
     if ($modelValues.ContainsKey($name)) {
       if (-not [string]::IsNullOrWhiteSpace($value) -and $value -ne $modelValues[$name]) { throw "DEMO_MODEL_CONFIG_CONFLICT:$name" }
       $next = $modelValues[$name]
@@ -273,6 +274,10 @@ function Write-LocalEnvironment {
       continue
     }
     $result.Add($line)
+  }
+  if (-not $present.ContainsKey('ACTIVEMQ_PASSWORD')) {
+    $result.Add("ACTIVEMQ_PASSWORD=$(New-LocalSecret)")
+    $changed = $true
   }
   foreach ($name in @('HENGZHUN_MODEL_NAME', 'HENGZHUN_MODEL_BASE_URL', 'HENGZHUN_MODEL_API_KEY')) {
     if (-not $present.ContainsKey($name)) {

@@ -1,0 +1,350 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1500" height="940" viewBox="0 0 1500 940">
+<defs><marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M1 1 L9 5 L1 9" fill="none" stroke="#66788d"/></marker></defs>
+<style>text{font-family:"Microsoft YaHei",sans-serif;fill:#23364e;font-size:14px}.edge-label{paint-order:stroke;stroke:white;stroke-width:5px;stroke-linejoin:round}</style><rect width="100%" height="100%" fill="white"/>
+<text data-cell="声明-heading" x="42.0" y="160.0" text-anchor="start"><tspan x="42.0" dy="0">声明</tspan></text>
+<text data-cell="声明-row-0" x="42.0" y="255.0" text-anchor="start"><tspan x="42.0" dy="0">01 支付</tspan></text>
+<text data-cell="声明-col-0" x="187.0" y="205.0" text-anchor="start"><tspan x="187.0" dy="0">01</tspan></text>
+<rect x="175.0" y="235.0" width="40.0" height="40.0" rx="5" fill="#f4f6f9" stroke="#7d8ca0"/>
+<text data-cell="声明-0-0" x="195.0" y="260.0" text-anchor="middle"><tspan x="195.0" dy="0">—</tspan></text>
+<rect x="219.0" y="235.0" width="40.0" height="40.0" rx="5" fill="#eaf1fa" stroke="#406894"/>
+<text data-cell="声明-0-1" x="239.0" y="260.0" text-anchor="middle"><tspan x="239.0" dy="0">●</tspan></text>
+<rect x="263.0" y="235.0" width="40.0" height="40.0" rx="5" fill="#f4f6f9" stroke="#7d8ca0"/>
+<rect x="307.0" y="235.0" width="40.0" height="40.0" rx="5" fill="#eaf1fa" stroke="#406894"/>
+<text data-cell="声明-0-3" x="327.0" y="260.0" text-anchor="middle"><tspan x="327.0" dy="0">●</tspan></text>
+<rect x="351.0" y="235.0" width="40.0" height="40.0" rx="5" fill="#f4f6f9" stroke="#7d8ca0"/>
+<rect x="395.0" y="235.0" width="40.0" height="40.0" rx="5" fill="#f4f6f9" stroke="#7d8ca0"/>
+<rect x="439.0" y="235.0" width="40.0" height="40.0" rx="5" fill="#f4f6f9" stroke="#7d8ca0"/>
+<rect x="483.0" y="235.0" width="40.0" height="40.0" rx="5" fill="#eaf1fa" stroke="#406894"/>
+<text data-cell="声明-0-7" x="503.0" y="260.0" text-anchor="middle"><tspan x="503.0" dy="0">●</tspan></text>
+<rect x="527.0" y="235.0" width="40.0" height="40.0" rx="5" fill="#eaf1fa" stroke="#406894"/>
+<text data-cell="声明-0-8" x="547.0" y="260.0" text-anchor="middle"><tspan x="547.0" dy="0">●</tspan></text>
+<rect x="571.0" y="235.0" width="40.0" height="40.0" rx="5" fill="#eaf1fa" stroke="#406894"/>
+<text data-cell="声明-0-9" x="591.0" y="260.0" text-anchor="middle"><tspan x="591.0" dy="0">●</tspan></text>
+<rect x="615.0" y="235.0" width="40.0" height="40.0" rx="5" fill="#f4f6f9" stroke="#7d8ca0"/>
+<text data-cell="声明-row-1" x="42.0" y="299.0" text-anchor="start"><tspan x="42.0" dy="0">02 风险</tspan></text>
+<text data-cell="声明-col-1" x="231.0" y="205.0" text-anchor="start"><tspan x="231.0" dy="0">02</tspan></text>
+<rect x="175.0" y="279.0" width="40.0" height="40.0" rx="5" fill="#f4f6f9" stroke="#7d8ca0"/>
+<rect x="219.0" y="279.0" width="40.0" height="40.0" rx="5" fill="#f4f6f9" stroke="#7d8ca0"/>
+<text data-cell="声明-1-1" x="239.0" y="304.0" text-anchor="middle"><tspan x="239.0" dy="0">—</tspan></text>
+<rect x="263.0" y="279.0" width="40.0" height="40.0" rx="5" fill="#f4f6f9" stroke="#7d8ca0"/>
+<rect x="307.0" y="279.0" width="40.0" height="40.0" rx="5" fill="#f4f6f9" stroke="#7d8ca0"/>
+<rect x="351.0" y="279.0" width="40.0" height="40.0" rx="5" fill="#f4f6f9" stroke="#7d8ca0"/>
+<rect x="395.0" y="279.0" width="40.0" height="40.0" rx="5" fill="#f4f6f9" stroke="#7d8ca0"/>
+<rect x="439.0" y="279.0" width="40.0" height="40.0" rx="5" fill="#f4f6f9" stroke="#7d8ca0"/>
+<rect x="483.0" y="279.0" width="40.0" height="40.0" rx="5" fill="#f4f6f9" stroke="#7d8ca0"/>
+<rect x="527.0" y="279.0" width="40.0" height="40.0" rx="5" fill="#f4f6f9" stroke="#7d8ca0"/>
+<rect x="571.0" y="279.0" width="40.0" height="40.0" rx="5" fill="#f4f6f9" stroke="#7d8ca0"/>
+<rect x="615.0" y="279.0" width="40.0" height="40.0" rx="5" fill="#f4f6f9" stroke="#7d8ca0"/>
+<text data-cell="声明-row-2" x="42.0" y="343.0" text-anchor="start"><tspan x="42.0" dy="0">03 运营EOD</tspan></text>
+<text data-cell="声明-col-2" x="275.0" y="205.0" text-anchor="start"><tspan x="275.0" dy="0">03</tspan></text>
+<rect x="175.0" y="323.0" width="40.0" height="40.0" rx="5" fill="#eaf1fa" stroke="#406894"/>
+<text data-cell="声明-2-0" x="195.0" y="348.0" text-anchor="middle"><tspan x="195.0" dy="0">●</tspan></text>
+<rect x="219.0" y="323.0" width="40.0" height="40.0" rx="5" fill="#eaf1fa" stroke="#406894"/>
+<text data-cell="声明-2-1" x="239.0" y="348.0" text-anchor="middle"><tspan x="239.0" dy="0">●</tspan></text>
+<rect x="263.0" y="323.0" width="40.0" height="40.0" rx="5" fill="#f4f6f9" stroke="#7d8ca0"/>
+<text data-cell="声明-2-2" x="283.0" y="348.0" text-anchor="middle"><tspan x="283.0" dy="0">—</tspan></text>
+<rect x="307.0" y="323.0" width="40.0" height="40.0" rx="5" fill="#eaf1fa" stroke="#406894"/>
+<text data-cell="声明-2-3" x="327.0" y="348.0" text-anchor="middle"><tspan x="327.0" dy="0">●</tspan></text>
+<rect x="351.0" y="323.0" width="40.0" height="40.0" rx="5" fill="#eaf1fa" stroke="#406894"/>
+<text data-cell="声明-2-4" x="371.0" y="348.0" text-anchor="middle"><tspan x="371.0" dy="0">●</tspan></text>
+<rect x="395.0" y="323.0" width="40.0" height="40.0" rx="5" fill="#f4f6f9" stroke="#7d8ca0"/>
+<rect x="439.0" y="323.0" width="40.0" height="40.0" rx="5" fill="#f4f6f9" stroke="#7d8ca0"/>
+<rect x="483.0" y="323.0" width="40.0" height="40.0" rx="5" fill="#f4f6f9" stroke="#7d8ca0"/>
+<rect x="527.0" y="323.0" width="40.0" height="40.0" rx="5" fill="#f4f6f9" stroke="#7d8ca0"/>
+<rect x="571.0" y="323.0" width="40.0" height="40.0" rx="5" fill="#f4f6f9" stroke="#7d8ca0"/>
+<rect x="615.0" y="323.0" width="40.0" height="40.0" rx="5" fill="#f4f6f9" stroke="#7d8ca0"/>
+<text data-cell="声明-row-3" x="42.0" y="387.0" text-anchor="start"><tspan x="42.0" dy="0">04 审计</tspan></text>
+<text data-cell="声明-col-3" x="319.0" y="205.0" text-anchor="start"><tspan x="319.0" dy="0">04</tspan></text>
+<rect x="175.0" y="367.0" width="40.0" height="40.0" rx="5" fill="#eaf1fa" stroke="#406894"/>
+<text data-cell="声明-3-0" x="195.0" y="392.0" text-anchor="middle"><tspan x="195.0" dy="0">●</tspan></text>
+<rect x="219.0" y="367.0" width="40.0" height="40.0" rx="5" fill="#eaf1fa" stroke="#406894"/>
+<text data-cell="声明-3-1" x="239.0" y="392.0" text-anchor="middle"><tspan x="239.0" dy="0">●</tspan></text>
+<rect x="263.0" y="367.0" width="40.0" height="40.0" rx="5" fill="#f4f6f9" stroke="#7d8ca0"/>
+<rect x="307.0" y="367.0" width="40.0" height="40.0" rx="5" fill="#f4f6f9" stroke="#7d8ca0"/>
+<text data-cell="声明-3-3" x="327.0" y="392.0" text-anchor="middle"><tspan x="327.0" dy="0">—</tspan></text>
+<rect x="351.0" y="367.0" width="40.0" height="40.0" rx="5" fill="#eaf1fa" stroke="#406894"/>
+<text data-cell="声明-3-4" x="371.0" y="392.0" text-anchor="middle"><tspan x="371.0" dy="0">●</tspan></text>
+<rect x="395.0" y="367.0" width="40.0" height="40.0" rx="5" fill="#eaf1fa" stroke="#406894"/>
+<text data-cell="声明-3-5" x="415.0" y="392.0" text-anchor="middle"><tspan x="415.0" dy="0">●</tspan></text>
+<rect x="439.0" y="367.0" width="40.0" height="40.0" rx="5" fill="#f4f6f9" stroke="#7d8ca0"/>
+<rect x="483.0" y="367.0" width="40.0" height="40.0" rx="5" fill="#f4f6f9" stroke="#7d8ca0"/>
+<rect x="527.0" y="367.0" width="40.0" height="40.0" rx="5" fill="#f4f6f9" stroke="#7d8ca0"/>
+<rect x="571.0" y="367.0" width="40.0" height="40.0" rx="5" fill="#f4f6f9" stroke="#7d8ca0"/>
+<rect x="615.0" y="367.0" width="40.0" height="40.0" rx="5" fill="#f4f6f9" stroke="#7d8ca0"/>
+<text data-cell="声明-row-4" x="42.0" y="431.0" text-anchor="start"><tspan x="42.0" dy="0">05 对账</tspan></text>
+<text data-cell="声明-col-4" x="363.0" y="205.0" text-anchor="start"><tspan x="363.0" dy="0">05</tspan></text>
+<rect x="175.0" y="411.0" width="40.0" height="40.0" rx="5" fill="#f4f6f9" stroke="#7d8ca0"/>
+<rect x="219.0" y="411.0" width="40.0" height="40.0" rx="5" fill="#f4f6f9" stroke="#7d8ca0"/>
+<rect x="263.0" y="411.0" width="40.0" height="40.0" rx="5" fill="#f4f6f9" stroke="#7d8ca0"/>
+<rect x="307.0" y="411.0" width="40.0" height="40.0" rx="5" fill="#f4f6f9" stroke="#7d8ca0"/>
+<rect x="351.0" y="411.0" width="40.0" height="40.0" rx="5" fill="#f4f6f9" stroke="#7d8ca0"/>
+<text data-cell="声明-4-4" x="371.0" y="436.0" text-anchor="middle"><tspan x="371.0" dy="0">—</tspan></text>
+<rect x="395.0" y="411.0" width="40.0" height="40.0" rx="5" fill="#f4f6f9" stroke="#7d8ca0"/>
+<rect x="439.0" y="411.0" width="40.0" height="40.0" rx="5" fill="#f4f6f9" stroke="#7d8ca0"/>
+<rect x="483.0" y="411.0" width="40.0" height="40.0" rx="5" fill="#f4f6f9" stroke="#7d8ca0"/>
+<rect x="527.0" y="411.0" width="40.0" height="40.0" rx="5" fill="#f4f6f9" stroke="#7d8ca0"/>
+<rect x="571.0" y="411.0" width="40.0" height="40.0" rx="5" fill="#f4f6f9" stroke="#7d8ca0"/>
+<rect x="615.0" y="411.0" width="40.0" height="40.0" rx="5" fill="#f4f6f9" stroke="#7d8ca0"/>
+<text data-cell="声明-row-5" x="42.0" y="475.0" text-anchor="start"><tspan x="42.0" dy="0">06 贷款</tspan></text>
+<text data-cell="声明-col-5" x="407.0" y="205.0" text-anchor="start"><tspan x="407.0" dy="0">06</tspan></text>
+<rect x="175.0" y="455.0" width="40.0" height="40.0" rx="5" fill="#f4f6f9" stroke="#7d8ca0"/>
+<rect x="219.0" y="455.0" width="40.0" height="40.0" rx="5" fill="#f4f6f9" stroke="#7d8ca0"/>
+<rect x="263.0" y="455.0" width="40.0" height="40.0" rx="5" fill="#f4f6f9" stroke="#7d8ca0"/>
+<rect x="307.0" y="455.0" width="40.0" height="40.0" rx="5" fill="#eaf1fa" stroke="#406894"/>
+<text data-cell="声明-5-3" x="327.0" y="480.0" text-anchor="middle"><tspan x="327.0" dy="0">●</tspan></text>
+<rect x="351.0" y="455.0" width="40.0" height="40.0" rx="5" fill="#f4f6f9" stroke="#7d8ca0"/>
+<rect x="395.0" y="455.0" width="40.0" height="40.0" rx="5" fill="#f4f6f9" stroke="#7d8ca0"/>
+<text data-cell="声明-5-5" x="415.0" y="480.0" text-anchor="middle"><tspan x="415.0" dy="0">—</tspan></text>
+<rect x="439.0" y="455.0" width="40.0" height="40.0" rx="5" fill="#f4f6f9" stroke="#7d8ca0"/>
+<rect x="483.0" y="455.0" width="40.0" height="40.0" rx="5" fill="#f4f6f9" stroke="#7d8ca0"/>
+<rect x="527.0" y="455.0" width="40.0" height="40.0" rx="5" fill="#eaf1fa" stroke="#406894"/>
+<text data-cell="声明-5-8" x="547.0" y="480.0" text-anchor="middle"><tspan x="547.0" dy="0">●</tspan></text>
+<rect x="571.0" y="455.0" width="40.0" height="40.0" rx="5" fill="#f4f6f9" stroke="#7d8ca0"/>
+<rect x="615.0" y="455.0" width="40.0" height="40.0" rx="5" fill="#f4f6f9" stroke="#7d8ca0"/>
+<text data-cell="声明-row-6" x="42.0" y="519.0" text-anchor="start"><tspan x="42.0" dy="0">07 文档</tspan></text>
+<text data-cell="声明-col-6" x="451.0" y="205.0" text-anchor="start"><tspan x="451.0" dy="0">07</tspan></text>
+<rect x="175.0" y="499.0" width="40.0" height="40.0" rx="5" fill="#f4f6f9" stroke="#7d8ca0"/>
+<rect x="219.0" y="499.0" width="40.0" height="40.0" rx="5" fill="#f4f6f9" stroke="#7d8ca0"/>
+<rect x="263.0" y="499.0" width="40.0" height="40.0" rx="5" fill="#f4f6f9" stroke="#7d8ca0"/>
+<rect x="307.0" y="499.0" width="40.0" height="40.0" rx="5" fill="#eaf1fa" stroke="#406894"/>
+<text data-cell="声明-6-3" x="327.0" y="524.0" text-anchor="middle"><tspan x="327.0" dy="0">●</tspan></text>
+<rect x="351.0" y="499.0" width="40.0" height="40.0" rx="5" fill="#f4f6f9" stroke="#7d8ca0"/>
+<rect x="395.0" y="499.0" width="40.0" height="40.0" rx="5" fill="#eaf1fa" stroke="#406894"/>
+<text data-cell="声明-6-5" x="415.0" y="524.0" text-anchor="middle"><tspan x="415.0" dy="0">●</tspan></text>
+<rect x="439.0" y="499.0" width="40.0" height="40.0" rx="5" fill="#f4f6f9" stroke="#7d8ca0"/>
+<text data-cell="声明-6-6" x="459.0" y="524.0" text-anchor="middle"><tspan x="459.0" dy="0">—</tspan></text>
+<rect x="483.0" y="499.0" width="40.0" height="40.0" rx="5" fill="#f4f6f9" stroke="#7d8ca0"/>
+<rect x="527.0" y="499.0" width="40.0" height="40.0" rx="5" fill="#f4f6f9" stroke="#7d8ca0"/>
+<rect x="571.0" y="499.0" width="40.0" height="40.0" rx="5" fill="#f4f6f9" stroke="#7d8ca0"/>
+<rect x="615.0" y="499.0" width="40.0" height="40.0" rx="5" fill="#f4f6f9" stroke="#7d8ca0"/>
+<text data-cell="声明-row-7" x="42.0" y="563.0" text-anchor="start"><tspan x="42.0" dy="0">08 通知</tspan></text>
+<text data-cell="声明-col-7" x="495.0" y="205.0" text-anchor="start"><tspan x="495.0" dy="0">08</tspan></text>
+<rect x="175.0" y="543.0" width="40.0" height="40.0" rx="5" fill="#f4f6f9" stroke="#7d8ca0"/>
+<rect x="219.0" y="543.0" width="40.0" height="40.0" rx="5" fill="#f4f6f9" stroke="#7d8ca0"/>
+<rect x="263.0" y="543.0" width="40.0" height="40.0" rx="5" fill="#f4f6f9" stroke="#7d8ca0"/>
+<rect x="307.0" y="543.0" width="40.0" height="40.0" rx="5" fill="#f4f6f9" stroke="#7d8ca0"/>
+<rect x="351.0" y="543.0" width="40.0" height="40.0" rx="5" fill="#f4f6f9" stroke="#7d8ca0"/>
+<rect x="395.0" y="543.0" width="40.0" height="40.0" rx="5" fill="#f4f6f9" stroke="#7d8ca0"/>
+<rect x="439.0" y="543.0" width="40.0" height="40.0" rx="5" fill="#f4f6f9" stroke="#7d8ca0"/>
+<rect x="483.0" y="543.0" width="40.0" height="40.0" rx="5" fill="#f4f6f9" stroke="#7d8ca0"/>
+<text data-cell="声明-7-7" x="503.0" y="568.0" text-anchor="middle"><tspan x="503.0" dy="0">—</tspan></text>
+<rect x="527.0" y="543.0" width="40.0" height="40.0" rx="5" fill="#eaf1fa" stroke="#406894"/>
+<text data-cell="声明-7-8" x="547.0" y="568.0" text-anchor="middle"><tspan x="547.0" dy="0">●</tspan></text>
+<rect x="571.0" y="543.0" width="40.0" height="40.0" rx="5" fill="#f4f6f9" stroke="#7d8ca0"/>
+<rect x="615.0" y="543.0" width="40.0" height="40.0" rx="5" fill="#f4f6f9" stroke="#7d8ca0"/>
+<text data-cell="声明-row-8" x="42.0" y="607.0" text-anchor="start"><tspan x="42.0" dy="0">09 身份</tspan></text>
+<text data-cell="声明-col-8" x="539.0" y="205.0" text-anchor="start"><tspan x="539.0" dy="0">09</tspan></text>
+<rect x="175.0" y="587.0" width="40.0" height="40.0" rx="5" fill="#f4f6f9" stroke="#7d8ca0"/>
+<rect x="219.0" y="587.0" width="40.0" height="40.0" rx="5" fill="#f4f6f9" stroke="#7d8ca0"/>
+<rect x="263.0" y="587.0" width="40.0" height="40.0" rx="5" fill="#f4f6f9" stroke="#7d8ca0"/>
+<rect x="307.0" y="587.0" width="40.0" height="40.0" rx="5" fill="#f4f6f9" stroke="#7d8ca0"/>
+<rect x="351.0" y="587.0" width="40.0" height="40.0" rx="5" fill="#f4f6f9" stroke="#7d8ca0"/>
+<rect x="395.0" y="587.0" width="40.0" height="40.0" rx="5" fill="#f4f6f9" stroke="#7d8ca0"/>
+<rect x="439.0" y="587.0" width="40.0" height="40.0" rx="5" fill="#f4f6f9" stroke="#7d8ca0"/>
+<rect x="483.0" y="587.0" width="40.0" height="40.0" rx="5" fill="#f4f6f9" stroke="#7d8ca0"/>
+<rect x="527.0" y="587.0" width="40.0" height="40.0" rx="5" fill="#f4f6f9" stroke="#7d8ca0"/>
+<text data-cell="声明-8-8" x="547.0" y="612.0" text-anchor="middle"><tspan x="547.0" dy="0">—</tspan></text>
+<rect x="571.0" y="587.0" width="40.0" height="40.0" rx="5" fill="#f4f6f9" stroke="#7d8ca0"/>
+<rect x="615.0" y="587.0" width="40.0" height="40.0" rx="5" fill="#f4f6f9" stroke="#7d8ca0"/>
+<text data-cell="声明-row-9" x="42.0" y="651.0" text-anchor="start"><tspan x="42.0" dy="0">10 收款人</tspan></text>
+<text data-cell="声明-col-9" x="583.0" y="205.0" text-anchor="start"><tspan x="583.0" dy="0">10</tspan></text>
+<rect x="175.0" y="631.0" width="40.0" height="40.0" rx="5" fill="#f4f6f9" stroke="#7d8ca0"/>
+<rect x="219.0" y="631.0" width="40.0" height="40.0" rx="5" fill="#f4f6f9" stroke="#7d8ca0"/>
+<rect x="263.0" y="631.0" width="40.0" height="40.0" rx="5" fill="#f4f6f9" stroke="#7d8ca0"/>
+<rect x="307.0" y="631.0" width="40.0" height="40.0" rx="5" fill="#f4f6f9" stroke="#7d8ca0"/>
+<rect x="351.0" y="631.0" width="40.0" height="40.0" rx="5" fill="#f4f6f9" stroke="#7d8ca0"/>
+<rect x="395.0" y="631.0" width="40.0" height="40.0" rx="5" fill="#f4f6f9" stroke="#7d8ca0"/>
+<rect x="439.0" y="631.0" width="40.0" height="40.0" rx="5" fill="#f4f6f9" stroke="#7d8ca0"/>
+<rect x="483.0" y="631.0" width="40.0" height="40.0" rx="5" fill="#f4f6f9" stroke="#7d8ca0"/>
+<rect x="527.0" y="631.0" width="40.0" height="40.0" rx="5" fill="#f4f6f9" stroke="#7d8ca0"/>
+<rect x="571.0" y="631.0" width="40.0" height="40.0" rx="5" fill="#f4f6f9" stroke="#7d8ca0"/>
+<text data-cell="声明-9-9" x="591.0" y="656.0" text-anchor="middle"><tspan x="591.0" dy="0">—</tspan></text>
+<rect x="615.0" y="631.0" width="40.0" height="40.0" rx="5" fill="#f4f6f9" stroke="#7d8ca0"/>
+<text data-cell="声明-row-10" x="42.0" y="695.0" text-anchor="start"><tspan x="42.0" dy="0">11 账户</tspan></text>
+<text data-cell="声明-col-10" x="627.0" y="205.0" text-anchor="start"><tspan x="627.0" dy="0">11</tspan></text>
+<rect x="175.0" y="675.0" width="40.0" height="40.0" rx="5" fill="#f4f6f9" stroke="#7d8ca0"/>
+<rect x="219.0" y="675.0" width="40.0" height="40.0" rx="5" fill="#f4f6f9" stroke="#7d8ca0"/>
+<rect x="263.0" y="675.0" width="40.0" height="40.0" rx="5" fill="#f4f6f9" stroke="#7d8ca0"/>
+<rect x="307.0" y="675.0" width="40.0" height="40.0" rx="5" fill="#f4f6f9" stroke="#7d8ca0"/>
+<rect x="351.0" y="675.0" width="40.0" height="40.0" rx="5" fill="#f4f6f9" stroke="#7d8ca0"/>
+<rect x="395.0" y="675.0" width="40.0" height="40.0" rx="5" fill="#f4f6f9" stroke="#7d8ca0"/>
+<rect x="439.0" y="675.0" width="40.0" height="40.0" rx="5" fill="#f4f6f9" stroke="#7d8ca0"/>
+<rect x="483.0" y="675.0" width="40.0" height="40.0" rx="5" fill="#f4f6f9" stroke="#7d8ca0"/>
+<rect x="527.0" y="675.0" width="40.0" height="40.0" rx="5" fill="#f4f6f9" stroke="#7d8ca0"/>
+<rect x="571.0" y="675.0" width="40.0" height="40.0" rx="5" fill="#f4f6f9" stroke="#7d8ca0"/>
+<rect x="615.0" y="675.0" width="40.0" height="40.0" rx="5" fill="#f4f6f9" stroke="#7d8ca0"/>
+<text data-cell="声明-10-10" x="635.0" y="700.0" text-anchor="middle"><tspan x="635.0" dy="0">—</tspan></text>
+<text data-cell="实际import-heading" x="792.0" y="160.0" text-anchor="start"><tspan x="792.0" dy="0">实际import</tspan></text>
+<text data-cell="实际import-row-0" x="792.0" y="255.0" text-anchor="start"><tspan x="792.0" dy="0">01 支付</tspan></text>
+<text data-cell="实际import-col-0" x="937.0" y="205.0" text-anchor="start"><tspan x="937.0" dy="0">01</tspan></text>
+<rect x="925.0" y="235.0" width="40.0" height="40.0" rx="5" fill="#f4f6f9" stroke="#7d8ca0"/>
+<text data-cell="实际import-0-0" x="945.0" y="260.0" text-anchor="middle"><tspan x="945.0" dy="0">—</tspan></text>
+<rect x="969.0" y="235.0" width="40.0" height="40.0" rx="5" fill="#eaf1fa" stroke="#406894"/>
+<text data-cell="实际import-0-1" x="989.0" y="260.0" text-anchor="middle"><tspan x="989.0" dy="0">●</tspan></text>
+<rect x="1013.0" y="235.0" width="40.0" height="40.0" rx="5" fill="#f4f6f9" stroke="#7d8ca0"/>
+<rect x="1057.0" y="235.0" width="40.0" height="40.0" rx="5" fill="#eaf1fa" stroke="#406894"/>
+<text data-cell="实际import-0-3" x="1077.0" y="260.0" text-anchor="middle"><tspan x="1077.0" dy="0">●</tspan></text>
+<rect x="1101.0" y="235.0" width="40.0" height="40.0" rx="5" fill="#f4f6f9" stroke="#7d8ca0"/>
+<rect x="1145.0" y="235.0" width="40.0" height="40.0" rx="5" fill="#f4f6f9" stroke="#7d8ca0"/>
+<rect x="1189.0" y="235.0" width="40.0" height="40.0" rx="5" fill="#f4f6f9" stroke="#7d8ca0"/>
+<rect x="1233.0" y="235.0" width="40.0" height="40.0" rx="5" fill="#eaf1fa" stroke="#406894"/>
+<text data-cell="实际import-0-7" x="1253.0" y="260.0" text-anchor="middle"><tspan x="1253.0" dy="0">●</tspan></text>
+<rect x="1277.0" y="235.0" width="40.0" height="40.0" rx="5" fill="#eaf1fa" stroke="#406894"/>
+<text data-cell="实际import-0-8" x="1297.0" y="260.0" text-anchor="middle"><tspan x="1297.0" dy="0">●</tspan></text>
+<rect x="1321.0" y="235.0" width="40.0" height="40.0" rx="5" fill="#eaf1fa" stroke="#406894"/>
+<text data-cell="实际import-0-9" x="1341.0" y="260.0" text-anchor="middle"><tspan x="1341.0" dy="0">●</tspan></text>
+<rect x="1365.0" y="235.0" width="40.0" height="40.0" rx="5" fill="#f4f6f9" stroke="#7d8ca0"/>
+<text data-cell="实际import-row-1" x="792.0" y="299.0" text-anchor="start"><tspan x="792.0" dy="0">02 风险</tspan></text>
+<text data-cell="实际import-col-1" x="981.0" y="205.0" text-anchor="start"><tspan x="981.0" dy="0">02</tspan></text>
+<rect x="925.0" y="279.0" width="40.0" height="40.0" rx="5" fill="#f4f6f9" stroke="#7d8ca0"/>
+<rect x="969.0" y="279.0" width="40.0" height="40.0" rx="5" fill="#f4f6f9" stroke="#7d8ca0"/>
+<text data-cell="实际import-1-1" x="989.0" y="304.0" text-anchor="middle"><tspan x="989.0" dy="0">—</tspan></text>
+<rect x="1013.0" y="279.0" width="40.0" height="40.0" rx="5" fill="#f4f6f9" stroke="#7d8ca0"/>
+<rect x="1057.0" y="279.0" width="40.0" height="40.0" rx="5" fill="#f4f6f9" stroke="#7d8ca0"/>
+<rect x="1101.0" y="279.0" width="40.0" height="40.0" rx="5" fill="#f4f6f9" stroke="#7d8ca0"/>
+<rect x="1145.0" y="279.0" width="40.0" height="40.0" rx="5" fill="#f4f6f9" stroke="#7d8ca0"/>
+<rect x="1189.0" y="279.0" width="40.0" height="40.0" rx="5" fill="#f4f6f9" stroke="#7d8ca0"/>
+<rect x="1233.0" y="279.0" width="40.0" height="40.0" rx="5" fill="#f4f6f9" stroke="#7d8ca0"/>
+<rect x="1277.0" y="279.0" width="40.0" height="40.0" rx="5" fill="#f4f6f9" stroke="#7d8ca0"/>
+<rect x="1321.0" y="279.0" width="40.0" height="40.0" rx="5" fill="#f4f6f9" stroke="#7d8ca0"/>
+<rect x="1365.0" y="279.0" width="40.0" height="40.0" rx="5" fill="#f4f6f9" stroke="#7d8ca0"/>
+<text data-cell="实际import-row-2" x="792.0" y="343.0" text-anchor="start"><tspan x="792.0" dy="0">03 运营EOD</tspan></text>
+<text data-cell="实际import-col-2" x="1025.0" y="205.0" text-anchor="start"><tspan x="1025.0" dy="0">03</tspan></text>
+<rect x="925.0" y="323.0" width="40.0" height="40.0" rx="5" fill="#eaf1fa" stroke="#406894"/>
+<text data-cell="实际import-2-0" x="945.0" y="348.0" text-anchor="middle"><tspan x="945.0" dy="0">●</tspan></text>
+<rect x="969.0" y="323.0" width="40.0" height="40.0" rx="5" fill="#eaf1fa" stroke="#406894"/>
+<text data-cell="实际import-2-1" x="989.0" y="348.0" text-anchor="middle"><tspan x="989.0" dy="0">●</tspan></text>
+<rect x="1013.0" y="323.0" width="40.0" height="40.0" rx="5" fill="#f4f6f9" stroke="#7d8ca0"/>
+<text data-cell="实际import-2-2" x="1033.0" y="348.0" text-anchor="middle"><tspan x="1033.0" dy="0">—</tspan></text>
+<rect x="1057.0" y="323.0" width="40.0" height="40.0" rx="5" fill="#eaf1fa" stroke="#406894"/>
+<text data-cell="实际import-2-3" x="1077.0" y="348.0" text-anchor="middle"><tspan x="1077.0" dy="0">●</tspan></text>
+<rect x="1101.0" y="323.0" width="40.0" height="40.0" rx="5" fill="#eaf1fa" stroke="#406894"/>
+<text data-cell="实际import-2-4" x="1121.0" y="348.0" text-anchor="middle"><tspan x="1121.0" dy="0">●</tspan></text>
+<rect x="1145.0" y="323.0" width="40.0" height="40.0" rx="5" fill="#f4f6f9" stroke="#7d8ca0"/>
+<rect x="1189.0" y="323.0" width="40.0" height="40.0" rx="5" fill="#f4f6f9" stroke="#7d8ca0"/>
+<rect x="1233.0" y="323.0" width="40.0" height="40.0" rx="5" fill="#f4f6f9" stroke="#7d8ca0"/>
+<rect x="1277.0" y="323.0" width="40.0" height="40.0" rx="5" fill="#f4f6f9" stroke="#7d8ca0"/>
+<rect x="1321.0" y="323.0" width="40.0" height="40.0" rx="5" fill="#f4f6f9" stroke="#7d8ca0"/>
+<rect x="1365.0" y="323.0" width="40.0" height="40.0" rx="5" fill="#f4f6f9" stroke="#7d8ca0"/>
+<text data-cell="实际import-row-3" x="792.0" y="387.0" text-anchor="start"><tspan x="792.0" dy="0">04 审计</tspan></text>
+<text data-cell="实际import-col-3" x="1069.0" y="205.0" text-anchor="start"><tspan x="1069.0" dy="0">04</tspan></text>
+<rect x="925.0" y="367.0" width="40.0" height="40.0" rx="5" fill="#f4f6f9" stroke="#7d8ca0"/>
+<rect x="969.0" y="367.0" width="40.0" height="40.0" rx="5" fill="#f4f6f9" stroke="#7d8ca0"/>
+<rect x="1013.0" y="367.0" width="40.0" height="40.0" rx="5" fill="#f4f6f9" stroke="#7d8ca0"/>
+<rect x="1057.0" y="367.0" width="40.0" height="40.0" rx="5" fill="#f4f6f9" stroke="#7d8ca0"/>
+<text data-cell="实际import-3-3" x="1077.0" y="392.0" text-anchor="middle"><tspan x="1077.0" dy="0">—</tspan></text>
+<rect x="1101.0" y="367.0" width="40.0" height="40.0" rx="5" fill="#f4f6f9" stroke="#7d8ca0"/>
+<rect x="1145.0" y="367.0" width="40.0" height="40.0" rx="5" fill="#f4f6f9" stroke="#7d8ca0"/>
+<rect x="1189.0" y="367.0" width="40.0" height="40.0" rx="5" fill="#f4f6f9" stroke="#7d8ca0"/>
+<rect x="1233.0" y="367.0" width="40.0" height="40.0" rx="5" fill="#f4f6f9" stroke="#7d8ca0"/>
+<rect x="1277.0" y="367.0" width="40.0" height="40.0" rx="5" fill="#f4f6f9" stroke="#7d8ca0"/>
+<rect x="1321.0" y="367.0" width="40.0" height="40.0" rx="5" fill="#f4f6f9" stroke="#7d8ca0"/>
+<rect x="1365.0" y="367.0" width="40.0" height="40.0" rx="5" fill="#f4f6f9" stroke="#7d8ca0"/>
+<text data-cell="实际import-row-4" x="792.0" y="431.0" text-anchor="start"><tspan x="792.0" dy="0">05 对账</tspan></text>
+<text data-cell="实际import-col-4" x="1113.0" y="205.0" text-anchor="start"><tspan x="1113.0" dy="0">05</tspan></text>
+<rect x="925.0" y="411.0" width="40.0" height="40.0" rx="5" fill="#f4f6f9" stroke="#7d8ca0"/>
+<rect x="969.0" y="411.0" width="40.0" height="40.0" rx="5" fill="#f4f6f9" stroke="#7d8ca0"/>
+<rect x="1013.0" y="411.0" width="40.0" height="40.0" rx="5" fill="#f4f6f9" stroke="#7d8ca0"/>
+<rect x="1057.0" y="411.0" width="40.0" height="40.0" rx="5" fill="#f4f6f9" stroke="#7d8ca0"/>
+<rect x="1101.0" y="411.0" width="40.0" height="40.0" rx="5" fill="#f4f6f9" stroke="#7d8ca0"/>
+<text data-cell="实际import-4-4" x="1121.0" y="436.0" text-anchor="middle"><tspan x="1121.0" dy="0">—</tspan></text>
+<rect x="1145.0" y="411.0" width="40.0" height="40.0" rx="5" fill="#f4f6f9" stroke="#7d8ca0"/>
+<rect x="1189.0" y="411.0" width="40.0" height="40.0" rx="5" fill="#f4f6f9" stroke="#7d8ca0"/>
+<rect x="1233.0" y="411.0" width="40.0" height="40.0" rx="5" fill="#f4f6f9" stroke="#7d8ca0"/>
+<rect x="1277.0" y="411.0" width="40.0" height="40.0" rx="5" fill="#f4f6f9" stroke="#7d8ca0"/>
+<rect x="1321.0" y="411.0" width="40.0" height="40.0" rx="5" fill="#f4f6f9" stroke="#7d8ca0"/>
+<rect x="1365.0" y="411.0" width="40.0" height="40.0" rx="5" fill="#f4f6f9" stroke="#7d8ca0"/>
+<text data-cell="实际import-row-5" x="792.0" y="475.0" text-anchor="start"><tspan x="792.0" dy="0">06 贷款</tspan></text>
+<text data-cell="实际import-col-5" x="1157.0" y="205.0" text-anchor="start"><tspan x="1157.0" dy="0">06</tspan></text>
+<rect x="925.0" y="455.0" width="40.0" height="40.0" rx="5" fill="#f4f6f9" stroke="#7d8ca0"/>
+<rect x="969.0" y="455.0" width="40.0" height="40.0" rx="5" fill="#f4f6f9" stroke="#7d8ca0"/>
+<rect x="1013.0" y="455.0" width="40.0" height="40.0" rx="5" fill="#f4f6f9" stroke="#7d8ca0"/>
+<rect x="1057.0" y="455.0" width="40.0" height="40.0" rx="5" fill="#eaf1fa" stroke="#406894"/>
+<text data-cell="实际import-5-3" x="1077.0" y="480.0" text-anchor="middle"><tspan x="1077.0" dy="0">●</tspan></text>
+<rect x="1101.0" y="455.0" width="40.0" height="40.0" rx="5" fill="#f4f6f9" stroke="#7d8ca0"/>
+<rect x="1145.0" y="455.0" width="40.0" height="40.0" rx="5" fill="#f4f6f9" stroke="#7d8ca0"/>
+<text data-cell="实际import-5-5" x="1165.0" y="480.0" text-anchor="middle"><tspan x="1165.0" dy="0">—</tspan></text>
+<rect x="1189.0" y="455.0" width="40.0" height="40.0" rx="5" fill="#f4f6f9" stroke="#7d8ca0"/>
+<rect x="1233.0" y="455.0" width="40.0" height="40.0" rx="5" fill="#f4f6f9" stroke="#7d8ca0"/>
+<rect x="1277.0" y="455.0" width="40.0" height="40.0" rx="5" fill="#eaf1fa" stroke="#406894"/>
+<text data-cell="实际import-5-8" x="1297.0" y="480.0" text-anchor="middle"><tspan x="1297.0" dy="0">●</tspan></text>
+<rect x="1321.0" y="455.0" width="40.0" height="40.0" rx="5" fill="#f4f6f9" stroke="#7d8ca0"/>
+<rect x="1365.0" y="455.0" width="40.0" height="40.0" rx="5" fill="#f4f6f9" stroke="#7d8ca0"/>
+<text data-cell="实际import-row-6" x="792.0" y="519.0" text-anchor="start"><tspan x="792.0" dy="0">07 文档</tspan></text>
+<text data-cell="实际import-col-6" x="1201.0" y="205.0" text-anchor="start"><tspan x="1201.0" dy="0">07</tspan></text>
+<rect x="925.0" y="499.0" width="40.0" height="40.0" rx="5" fill="#f4f6f9" stroke="#7d8ca0"/>
+<rect x="969.0" y="499.0" width="40.0" height="40.0" rx="5" fill="#f4f6f9" stroke="#7d8ca0"/>
+<rect x="1013.0" y="499.0" width="40.0" height="40.0" rx="5" fill="#f4f6f9" stroke="#7d8ca0"/>
+<rect x="1057.0" y="499.0" width="40.0" height="40.0" rx="5" fill="#eaf1fa" stroke="#406894"/>
+<text data-cell="实际import-6-3" x="1077.0" y="524.0" text-anchor="middle"><tspan x="1077.0" dy="0">●</tspan></text>
+<rect x="1101.0" y="499.0" width="40.0" height="40.0" rx="5" fill="#f4f6f9" stroke="#7d8ca0"/>
+<rect x="1145.0" y="499.0" width="40.0" height="40.0" rx="5" fill="#eaf1fa" stroke="#406894"/>
+<text data-cell="实际import-6-5" x="1165.0" y="524.0" text-anchor="middle"><tspan x="1165.0" dy="0">●</tspan></text>
+<rect x="1189.0" y="499.0" width="40.0" height="40.0" rx="5" fill="#f4f6f9" stroke="#7d8ca0"/>
+<text data-cell="实际import-6-6" x="1209.0" y="524.0" text-anchor="middle"><tspan x="1209.0" dy="0">—</tspan></text>
+<rect x="1233.0" y="499.0" width="40.0" height="40.0" rx="5" fill="#f4f6f9" stroke="#7d8ca0"/>
+<rect x="1277.0" y="499.0" width="40.0" height="40.0" rx="5" fill="#f4f6f9" stroke="#7d8ca0"/>
+<rect x="1321.0" y="499.0" width="40.0" height="40.0" rx="5" fill="#f4f6f9" stroke="#7d8ca0"/>
+<rect x="1365.0" y="499.0" width="40.0" height="40.0" rx="5" fill="#f4f6f9" stroke="#7d8ca0"/>
+<text data-cell="实际import-row-7" x="792.0" y="563.0" text-anchor="start"><tspan x="792.0" dy="0">08 通知</tspan></text>
+<text data-cell="实际import-col-7" x="1245.0" y="205.0" text-anchor="start"><tspan x="1245.0" dy="0">08</tspan></text>
+<rect x="925.0" y="543.0" width="40.0" height="40.0" rx="5" fill="#f4f6f9" stroke="#7d8ca0"/>
+<rect x="969.0" y="543.0" width="40.0" height="40.0" rx="5" fill="#f4f6f9" stroke="#7d8ca0"/>
+<rect x="1013.0" y="543.0" width="40.0" height="40.0" rx="5" fill="#f4f6f9" stroke="#7d8ca0"/>
+<rect x="1057.0" y="543.0" width="40.0" height="40.0" rx="5" fill="#f4f6f9" stroke="#7d8ca0"/>
+<rect x="1101.0" y="543.0" width="40.0" height="40.0" rx="5" fill="#f4f6f9" stroke="#7d8ca0"/>
+<rect x="1145.0" y="543.0" width="40.0" height="40.0" rx="5" fill="#f4f6f9" stroke="#7d8ca0"/>
+<rect x="1189.0" y="543.0" width="40.0" height="40.0" rx="5" fill="#f4f6f9" stroke="#7d8ca0"/>
+<rect x="1233.0" y="543.0" width="40.0" height="40.0" rx="5" fill="#f4f6f9" stroke="#7d8ca0"/>
+<text data-cell="实际import-7-7" x="1253.0" y="568.0" text-anchor="middle"><tspan x="1253.0" dy="0">—</tspan></text>
+<rect x="1277.0" y="543.0" width="40.0" height="40.0" rx="5" fill="#eaf1fa" stroke="#406894"/>
+<text data-cell="实际import-7-8" x="1297.0" y="568.0" text-anchor="middle"><tspan x="1297.0" dy="0">●</tspan></text>
+<rect x="1321.0" y="543.0" width="40.0" height="40.0" rx="5" fill="#f4f6f9" stroke="#7d8ca0"/>
+<rect x="1365.0" y="543.0" width="40.0" height="40.0" rx="5" fill="#f4f6f9" stroke="#7d8ca0"/>
+<text data-cell="实际import-row-8" x="792.0" y="607.0" text-anchor="start"><tspan x="792.0" dy="0">09 身份</tspan></text>
+<text data-cell="实际import-col-8" x="1289.0" y="205.0" text-anchor="start"><tspan x="1289.0" dy="0">09</tspan></text>
+<rect x="925.0" y="587.0" width="40.0" height="40.0" rx="5" fill="#f4f6f9" stroke="#7d8ca0"/>
+<rect x="969.0" y="587.0" width="40.0" height="40.0" rx="5" fill="#f4f6f9" stroke="#7d8ca0"/>
+<rect x="1013.0" y="587.0" width="40.0" height="40.0" rx="5" fill="#f4f6f9" stroke="#7d8ca0"/>
+<rect x="1057.0" y="587.0" width="40.0" height="40.0" rx="5" fill="#f4f6f9" stroke="#7d8ca0"/>
+<rect x="1101.0" y="587.0" width="40.0" height="40.0" rx="5" fill="#f4f6f9" stroke="#7d8ca0"/>
+<rect x="1145.0" y="587.0" width="40.0" height="40.0" rx="5" fill="#f4f6f9" stroke="#7d8ca0"/>
+<rect x="1189.0" y="587.0" width="40.0" height="40.0" rx="5" fill="#f4f6f9" stroke="#7d8ca0"/>
+<rect x="1233.0" y="587.0" width="40.0" height="40.0" rx="5" fill="#f4f6f9" stroke="#7d8ca0"/>
+<rect x="1277.0" y="587.0" width="40.0" height="40.0" rx="5" fill="#f4f6f9" stroke="#7d8ca0"/>
+<text data-cell="实际import-8-8" x="1297.0" y="612.0" text-anchor="middle"><tspan x="1297.0" dy="0">—</tspan></text>
+<rect x="1321.0" y="587.0" width="40.0" height="40.0" rx="5" fill="#f4f6f9" stroke="#7d8ca0"/>
+<rect x="1365.0" y="587.0" width="40.0" height="40.0" rx="5" fill="#f4f6f9" stroke="#7d8ca0"/>
+<text data-cell="实际import-row-9" x="792.0" y="651.0" text-anchor="start"><tspan x="792.0" dy="0">10 收款人</tspan></text>
+<text data-cell="实际import-col-9" x="1333.0" y="205.0" text-anchor="start"><tspan x="1333.0" dy="0">10</tspan></text>
+<rect x="925.0" y="631.0" width="40.0" height="40.0" rx="5" fill="#f4f6f9" stroke="#7d8ca0"/>
+<rect x="969.0" y="631.0" width="40.0" height="40.0" rx="5" fill="#f4f6f9" stroke="#7d8ca0"/>
+<rect x="1013.0" y="631.0" width="40.0" height="40.0" rx="5" fill="#f4f6f9" stroke="#7d8ca0"/>
+<rect x="1057.0" y="631.0" width="40.0" height="40.0" rx="5" fill="#f4f6f9" stroke="#7d8ca0"/>
+<rect x="1101.0" y="631.0" width="40.0" height="40.0" rx="5" fill="#f4f6f9" stroke="#7d8ca0"/>
+<rect x="1145.0" y="631.0" width="40.0" height="40.0" rx="5" fill="#f4f6f9" stroke="#7d8ca0"/>
+<rect x="1189.0" y="631.0" width="40.0" height="40.0" rx="5" fill="#f4f6f9" stroke="#7d8ca0"/>
+<rect x="1233.0" y="631.0" width="40.0" height="40.0" rx="5" fill="#f4f6f9" stroke="#7d8ca0"/>
+<rect x="1277.0" y="631.0" width="40.0" height="40.0" rx="5" fill="#f4f6f9" stroke="#7d8ca0"/>
+<rect x="1321.0" y="631.0" width="40.0" height="40.0" rx="5" fill="#f4f6f9" stroke="#7d8ca0"/>
+<text data-cell="实际import-9-9" x="1341.0" y="656.0" text-anchor="middle"><tspan x="1341.0" dy="0">—</tspan></text>
+<rect x="1365.0" y="631.0" width="40.0" height="40.0" rx="5" fill="#f4f6f9" stroke="#7d8ca0"/>
+<text data-cell="实际import-row-10" x="792.0" y="695.0" text-anchor="start"><tspan x="792.0" dy="0">11 账户</tspan></text>
+<text data-cell="实际import-col-10" x="1377.0" y="205.0" text-anchor="start"><tspan x="1377.0" dy="0">11</tspan></text>
+<rect x="925.0" y="675.0" width="40.0" height="40.0" rx="5" fill="#f4f6f9" stroke="#7d8ca0"/>
+<rect x="969.0" y="675.0" width="40.0" height="40.0" rx="5" fill="#f4f6f9" stroke="#7d8ca0"/>
+<rect x="1013.0" y="675.0" width="40.0" height="40.0" rx="5" fill="#f4f6f9" stroke="#7d8ca0"/>
+<rect x="1057.0" y="675.0" width="40.0" height="40.0" rx="5" fill="#f4f6f9" stroke="#7d8ca0"/>
+<rect x="1101.0" y="675.0" width="40.0" height="40.0" rx="5" fill="#f4f6f9" stroke="#7d8ca0"/>
+<rect x="1145.0" y="675.0" width="40.0" height="40.0" rx="5" fill="#f4f6f9" stroke="#7d8ca0"/>
+<rect x="1189.0" y="675.0" width="40.0" height="40.0" rx="5" fill="#f4f6f9" stroke="#7d8ca0"/>
+<rect x="1233.0" y="675.0" width="40.0" height="40.0" rx="5" fill="#f4f6f9" stroke="#7d8ca0"/>
+<rect x="1277.0" y="675.0" width="40.0" height="40.0" rx="5" fill="#f4f6f9" stroke="#7d8ca0"/>
+<rect x="1321.0" y="675.0" width="40.0" height="40.0" rx="5" fill="#f4f6f9" stroke="#7d8ca0"/>
+<rect x="1365.0" y="675.0" width="40.0" height="40.0" rx="5" fill="#f4f6f9" stroke="#7d8ca0"/>
+<text data-cell="实际import-10-10" x="1385.0" y="700.0" text-anchor="middle"><tspan x="1385.0" dy="0">—</tspan></text>
+<text data-cell="dsm-summary" x="42.0" y="790.0" text-anchor="start"><tspan x="42.0" dy="0">扫描65文件 / 14条跨模块边 / 0条未声明；强连通组：未发现</tspan></text>
+<text data-cell="view-title" x="42.0" y="30.0" text-anchor="start" style="font-size:22px;font-weight:600"><tspan x="42.0" dy="0">DSM｜当前显式import与声明边界</tspan></text>
+<text data-cell="view-subtitle" x="42.0" y="85.0" text-anchor="start"><tspan x="42.0" dy="0">行模块依赖列模块；重新提取当前11个生产领域包，不包含根核心端口/反射/SQL/运行HTTP</tspan></text>
+<text data-cell="view-note" x="42.0" y="875.0" text-anchor="start"><tspan x="42.0" dy="0">强连通组只证明编译依赖环，不证明死锁或资金损坏。声明允许也不自动证明每次具体调用合理；按源码证据逐边解释。</tspan></text>
+</svg>

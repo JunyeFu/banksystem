@@ -5,12 +5,27 @@ document_type: reference
 domain: current-state
 status: verified
 authority: evidence
-version: 1.8
-effective_date: 2026-07-31
+version: 1.9
+effective_date: 2026-11-06
 owner: project-owner
 ---
 
 # Current capability matrix
+
+## 当前入口（2026-11-06）
+
+整体仍为 **NO_GO**。本节覆盖下方旧时间点的“当前”表述；唯一实施顺序与状态分别在[实施顺序](../../agent/plans/active/v54-implementation-batches.md)及[backlog](../../agent/backlog.yaml)。当前正式验收为 **RF057：14项银行＋7项Agent＋7项性能，共28项**；历史Flowise/L1/Full18不再是交付门，旧证据不删除，也不换算为当前通过。
+
+| 范围 | 最近已核实证据 | 未完成边界 |
+| --- | --- | --- |
+| Agent会话与真实只读测试 | [11月5日实机回执](../evidence/platform/agent-interview-repair-2026-11-05.md)，身份`1c76996e…ca3e94d` | 后续源码已变化；不能提升为当前身份28项或任意模型通过 |
+| Agent当前源码 | [完整隔离门](../architecture/refactoring/batches/RF-065/ci-complete-20261105.md)：注册841/841，失败/取消/跳过0；行/分支/函数覆盖59.80%/74.37%/62.53% | 源码与受控集成证据，不是原运行依赖已切换，也不是远端CI |
+| 银行当前源码与候选 | [Channel运行层回执](../architecture/refactoring/batches/RF-065/channel-runtime-security-20261106.md)：Java21全套121/121；实际新Jar的PG18.6双迁移、MQ认证/事务/持久重建通过 | 原部署未替换；迁移与协议合同不能代替完整银行黄金链/账务验收 |
+| 安全候选 | [MQ W组](../architecture/refactoring/batches/RF-065/mq-library-security-20261106.md)：新a21890…6237b4f仅移除四个未消费GPG/SQLite包，原生60→49/新增0，2已审/47阻断；577上游/JRE/信任库/许可保持，新Broker真实认证/事务/持久重建/Console通过。Channel b339ed…9333e05仍62/0，[PG](../architecture/refactoring/batches/RF-065/pg-library-surface-20261106.md)仍132/14/118 | 当前消费者退出5并拒绝旧/手改证据；字体Expat、shadow及gpgtar等余项继续阻断，未动原部署，未冒领Java/PG18重跑或正式28；其它镜像/待选版本/npm/分发许可未闭合 |
+| 发布单入口 | [RF057报告/验证器修复](../architecture/refactoring/batches/RF-057/evidence-index.md)和[RF065候选消费者](../architecture/refactoring/batches/RF-065/evidence-index.md)已有实际合同与缺项拒绝证据 | 最终统一构建/冻结、当前28项、真实性能、远端CI、隔离复现和本地候选交付尚待；没有当前GO |
+| 面试与正式资料 | 外部站点已有成稿/导出；[七份现状文书](../design/product-normalization/formal-documents-20261106.md)经授权只读Word导出、35页逐页查看通过并本地交付，风险数字截点为V组62项 | 本地草稿验页不等于本人/机构签收；后续风险进展以本节/回执为准，最终候选文书再同步；贡献、UAT、演示与面试演练不能由AI代签 |
+
+仅五条已被RF057替代的历史LIVE待办取消，A06保留稳定编号并转接当前28项；A07/A08及真实验收要求不取消。具体控制修正见[RF065证据索引](../architecture/refactoring/batches/RF-065/evidence-index.md)。
 
 ## 公开源码同步（2026-11-01）
 

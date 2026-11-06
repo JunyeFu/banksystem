@@ -10,6 +10,8 @@ effective_date: 2026-10-19
 owner: Codex
 ---
 
+2026-11-05授权会话增量：新增045与专用/mcp/sessions，Harness SQLite为密文/revision唯一写入者，原11项元数据工具及主执行工具目录不扩给模型。隔离双进程CAS、迁入与分页通过，原库备份后切至45/45，101份密文导入且原文件摘要不变。最终H1c76996e…ca3e94d的真实S5刷新/重启不重派通过。详见[修复回执](../../../../evidence/platform/agent-interview-repair-2026-11-05.md)；不改写以下历史SDK/隔离记录，不提升正式发布。
+
 2026-10-24补充MCP Journey error脱敏投影：保留errorCode/category/recoverable，剔除供应商正文；真实MCP隔离传输及Controller错误消费回归通过，Integration41＋1、CLI76通过。无新增工具/迁移/银行写入。实机验收归RF068-S5，当前因工具拒绝托管启动而未运行新身份LIVE；见[专项执行回执](../RF-068/S5-repair-execution-20261023.md)。
 
 # RF-067 Evidence

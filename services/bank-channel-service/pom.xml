@@ -11,7 +11,7 @@
     <java.version>21</java.version>
     <tomcat.version>10.1.61</tomcat.version>
     <jackson-bom.version>2.21.7</jackson-bom.version>
-    <activemq.version>6.2.4</activemq.version>
+    <activemq.version>6.2.10</activemq.version>
     <commons-lang3.version>3.18.0</commons-lang3.version>
     <log4j2.version>2.25.5</log4j2.version>
     <postgresql.version>42.7.12</postgresql.version>

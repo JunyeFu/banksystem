@@ -6,10 +6,11 @@ import { createRequire } from 'node:module'
 import { fileURLToPath } from 'node:url'
 
 import { createPersistentControllerRuntimeV2 } from '../../controller/src/controller-runtime.mjs'
-import { createJourneyCandidateAuthor } from '../../controller/src/journey-author.mjs'
+import { createJourneyCandidateAuthor, assertSafeAgentText } from '../../controller/src/journey-author.mjs'
 import { EncryptedOperationStore } from '../../controller/src/operation-store.mjs'
 import { connectMcpRuntime, createMcpControllerAdapters, createOpenAIJsonInvoker, stableHash } from '../../controller/src/runtime-adapters.mjs'
 import { EncryptedSessionStore } from '../../controller/src/session-store.mjs'
+import { connectSessionPersistence } from '../../controller/src/session-persistence.mjs'
 import { CliError, EXIT } from './contracts.mjs'
 import { probeProductReadiness } from './product-doctor.mjs'
 
@@ -498,6 +499,7 @@ export function createProductionService({
       return sessionAuthority(payload, journey, { resumed: true })
     },
     async journeyAuthor({ sessionId, goal, entryUrl, targetSystem, credentialRef, adapterSelection, bankValidationFixtures, signal } = {}) {
+      assertSafeAgentText(goal, targetSystem)
       await gate()
       const payload = await sessionStore.load(sessionId, { expectedReleaseIdentityHash: releaseIdentityHash })
       if (payload.status !== 'ACTIVE') throw serviceError('SESSION_NOT_ACTIVE')
@@ -531,6 +533,7 @@ export function createProductionService({
       return { sessionId, ...candidate }
     },
     async start({ input, attachmentRefs = [], attachmentMetadata = [], noSession, bankValidationFixtures, signal }) {
+      assertSafeAgentText(input)
       if (noSession) throw serviceError('DURABLE_SESSION_REQUIRED', EXIT.INPUT_INVALID)
       await gate()
       if(bankValidationFixtures!==undefined && !directExecution)throw serviceError('BANK_VALIDATION_POOL_REQUIRES_DIRECT_EXECUTION',EXIT.INPUT_INVALID)
@@ -657,6 +660,7 @@ export function createProductionService({
     },
 
     async continueDirectJourney({ sessionId, journeyId, input, signal }) {
+      assertSafeAgentText(input)
       await gate()
       if (!directExecution) throw serviceError('JOURNEY_DIRECT_EXECUTION_REQUIRED')
       await sessionStore.load(sessionId, { expectedReleaseIdentityHash: releaseIdentityHash, expectedJourneyId: journeyId })
@@ -781,6 +785,7 @@ export function createProductionService({
     },
 
     async continueSession({ sessionId, input, attachmentRefs = [], signal }) {
+      assertSafeAgentText(input)
       await gate()
       if (attachmentRefs.length) throw serviceError('ATTACHMENT_REQUIRES_NEW_SESSION', EXIT.INPUT_INVALID)
       const source = await sessionStore.load(sessionId, { expectedReleaseIdentityHash: releaseIdentityHash })
@@ -1280,7 +1285,8 @@ export async function createEnvironmentProductionService({ env = process.env, pr
     baseUrlHash: createHash('sha256').update(baseURL).digest('hex'), temperature: 0, streaming: false, toolMode: 'NONE',
   }
   const identity = releaseV4.currentReleaseIdentityV4({ productRoot: root, modelConfigIdentity })
-  const store = await new EncryptedSessionStore({ root: sessionRoot }).initialize()
+  const sessionPersistence=await connectSessionPersistence({url:mcpUrl,token:mcpToken})
+  const store = await new EncryptedSessionStore({ persistence:sessionPersistence }).initialize()
   const operationStore = await new EncryptedOperationStore({ root: path.join(sessionRoot, 'operations-v1') }).initialize()
   const mcpClient = await connectMcpRuntime({ url: mcpUrl, token: mcpToken })
   return createProductionService({

@@ -13,6 +13,19 @@ const legacy = require('../../scripts/i10-release-identity.cjs')
 const stage9 = require('../../scripts/i10-stage9-portable.cjs')
 const fs = require('node:fs')
 
+test('release identity binds both source and compiled shared sensitive-text rules',()=>{
+  const baseline=v4.currentReleaseIdentityV4({productRoot})
+  for(const target of ['contracts/security/sensitive-text-v1.json','dist/contracts/security/sensitive-text-v1.json']) {
+    let read=false
+    const changed=v4.currentReleaseIdentityV4({productRoot,readFile(relative,absolute){
+      const bytes=fs.readFileSync(absolute)
+      if(relative===target){read=true;return Buffer.concat([bytes,Buffer.from('\n')])}
+      return bytes
+    }})
+    assert.equal(read,true,target);assert.notEqual(changed.identityHash,baseline.identityHash,target)
+  }
+})
+
 test('normal managed process spec has one CLI and exactly Harness MCP Worker', () => {
   const plan = lifecycle.buildLifecyclePlan({ root: productRoot, processes: [], listeners: [] })
   const spec = JSON.parse(fs.readFileSync(path.join(productRoot, 'agent-cli', 'managed-process-spec-v1.json'), 'utf8'))

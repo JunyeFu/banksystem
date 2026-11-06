@@ -1,8 +1,8 @@
 id: RF-064-S4
 title: 容量候选与交接
-status: PROPOSED
+status: IMPLEMENTING
 businessGoal: 容量候选与交接
-allowedPaths: [scripts/test, scripts/deploy, docs/design/product-normalization, documents]
+allowedPaths: [scripts/test, scripts/deploy, docs/design/product-normalization, documents, platform/hengzhun-regression-system/scripts/verification/rf064-readonly-capacity.test.cjs, platform/hengzhun-regression-system/scripts/verification/test-manifest.json, docs/architecture/refactoring/batches/RF-064, agent/backlog.yaml, agent/plans/active/v54-implementation-batches.md, scripts/documents/export_normalization.py, README.md, CONTRIBUTING.md, CHANGELOG.md, ROADMAP.md]
 forbiddenPaths: [postgresql, infra/keycloak, platform/hengzhun-regression-system/flowise]
 workSteps: [baseline, counterexample, implement, verify]
 verification: ['RF057 28项+容量报告；隔离prepare/up/golden/verify；实际UAT；docs校验']

@@ -1,4 +1,4 @@
-"""Inspect exact foundation reports and the observed PGDG advisory coverage gap."""
+"""Inspect exact foundation reports, platform conditions and vendor coverage gaps."""
 import argparse
 import ast
 import importlib.util
@@ -73,6 +73,65 @@ def postgres_vendor_gate(versions, requirement):
             'advisories': requirement['advisories'], 'sources': requirement['sources']}
 
 
+POSTGRES_ABSENT_PATHS = ('/usr/sbin/nscd', '/usr/bin/xmlcatalog',
+                         '/usr/lib/systemd/systemd-journald', '/usr/lib/systemd/systemd-homed',
+                         '/usr/bin/sqlite3', '/usr/local/bin/sqlite3', '/usr/bin/apt-key', '/usr/sbin/apt-key',
+                         '/usr/lib/systemd/systemd-oomd', '/usr/bin/systemd-oomd',
+                         '/usr/lib/x86_64-linux-gnu/sqlite3/zipfile.so', '/usr/lib/sqlite3/zipfile.so',
+                         '/usr/bin/bzip2recover', '/bin/bzip2recover',
+                         '/usr/lib/gnupg/tpm2daemon', '/usr/lib/gnupg2/tpm2daemon')
+
+
+def postgres_features(image_id):
+    command = ('for p in ' + ' '.join(POSTGRES_ABSENT_PATHS)
+               + '; do if [ -e "$p" ]; then printf "%s=PRESENT\\n" "$p"; '
+                 'else printf "%s=ABSENT\\n" "$p"; fi; done; '
+                 'chfn_owner=$(dpkg-query -S /usr/bin/chfn) || exit 1; '
+                 'printf "chfnProvider=%s\\n" "${chfn_owner%%:*}"; '
+                 'chsh_owner=$(dpkg-query -S /usr/bin/chsh) || exit 1; '
+                 'printf "chshProvider=%s\\n" "${chsh_owner%%:*}"')
+    result = subprocess.run(['docker', 'run', '--rm', '--read-only', '--network=none',
+                             '--tmpfs', '/var/lib/postgresql', '--entrypoint', '/bin/sh',
+                             image_id, '-c', command], check=True, capture_output=True, text=True)
+    return dict(line.split('=', 1) for line in result.stdout.strip().splitlines())
+
+
+def postgres_review(findings, inspection, features, policy):
+    if inspection['Architecture'] != policy['architecture'] or inspection['Os'] != policy['os']:
+        raise ValueError('POSTGRES_REVIEW_PLATFORM_DRIFT')
+    expected = {path: 'ABSENT' for path in policy['absentPaths']}
+    expected.update({'chfnProvider': 'passwd', 'chshProvider': 'passwd'})
+    if features != expected:
+        raise ValueError('POSTGRES_REVIEW_FEATURE_PROOF_DRIFT')
+    # Reuse exact finding matching, bound to immutable image content rather than Java source.
+    return IMAGE.review(findings, {**policy, 'sourceDigest': policy['imageId']}, inspection['Id'])
+
+
+ACTIVEMQ_ABSENT_PATHS = ('/usr/lib/systemd/systemd-journald', '/lib/systemd/systemd-journald',
+                         '/usr/sbin/systemd-journald', '/run/systemd/system')
+
+
+def activemq_features(image_id):
+    command = ('for p in ' + ' '.join(ACTIVEMQ_ABSENT_PATHS)
+               + '; do if [ -e "$p" ] || [ -L "$p" ]; then printf "%s=PRESENT\\n" "$p"; '
+                 'else printf "%s=ABSENT\\n" "$p"; fi; done')
+    result = subprocess.run(['docker', 'run', '--rm', '--read-only', '--network=none',
+                             '--entrypoint', '/bin/sh', image_id, '-c', command],
+                            check=True, capture_output=True, text=True)
+    return dict(line.split('=', 1) for line in result.stdout.strip().splitlines())
+
+
+def activemq_review(findings, inspection, features, policy):
+    if inspection['Architecture'] != policy['architecture'] or inspection['Os'] != policy['os']:
+        raise ValueError('ACTIVEMQ_REVIEW_PLATFORM_DRIFT')
+    if inspection['Id'] != policy['imageId']:
+        raise ValueError('ACTIVEMQ_REVIEW_IMAGE_DRIFT')
+    expected = {path: 'ABSENT' for path in policy['absentPaths']}
+    if features != expected:
+        raise ValueError('ACTIVEMQ_REVIEW_FEATURE_PROOF_DRIFT')
+    return IMAGE.review(findings, {**policy, 'sourceDigest': policy['imageId']}, inspection['Id'])
+
+
 def package_inventory(native):
     grouped = {}
     for result in native['results']:
@@ -131,10 +190,19 @@ def inspect(name, reference, directory, native_exit, policy, stem):
               'bomSha256': IMAGE.sha(bom_path), 'nativeReportSha256': IMAGE.sha(native_path),
               'uniqueAdvisories': len({r['id'] for r in findings}),
               'affectedPackages': package_inventory(native), 'status': 'UNDER_INVESTIGATION'}
+    if name == 'activemq' and image['Id'] == policy['activemqReview']['imageId']:
+        result['featureFacts'] = activemq_features(image['Id'])
+        result['riskReview'] = activemq_review(findings, image, result['featureFacts'], policy['activemqReview'])
+        result['status'] = 'REVIEWED' if result['riskReview']['status'] == 'REVIEWED' else 'BLOCKED'
     if name == 'postgres':
         requirement = policy['postgresVendorRequirement']
         versions = [c['version'] for c in bom['components'] if c['name'] == requirement['package']]
         result['vendorGate'] = postgres_vendor_gate(versions, requirement)
+        if image['Id'] == policy['postgresReview']['imageId']:
+            result['featureFacts'] = postgres_features(image['Id'])
+            result['riskReview'] = postgres_review(findings, image, result['featureFacts'], policy['postgresReview'])
+            result['status'] = ('REVIEWED' if result['riskReview']['status'] == 'REVIEWED'
+                                and result['vendorGate']['status'] == 'PASSED' else 'BLOCKED')
     if name == 'webapp':
         requirement = policy['webappNginxRequirement']
         versions = [c['version'] for c in bom['components'] if c['name'] == requirement['package']]
@@ -148,10 +216,15 @@ def main():
     parser.add_argument('--native-exit', action='append', required=True, help='Exact subject=exit-code, once per subject')
     parser.add_argument('--output', type=Path, required=True)
     parser.add_argument('--candidate', action='store_true', help='Inspect only the exact already-built candidate IDs, not original images')
+    parser.add_argument('--postgres-only', action='store_true', help='Inspect the fixed PostgreSQL candidate only; this is not full image coverage')
     args = parser.parse_args()
     policy = json.loads(POLICY.read_text(encoding='utf-8'))
     subjects = policy['candidateSubjects'] if args.candidate else {
         name: {'image': reference, 'reportStem': name} for name, reference in policy['subjects'].items()}
+    if args.postgres_only:
+        if not args.candidate:
+            raise ValueError('POSTGRES_REVIEW_CANDIDATE_REQUIRED')
+        subjects = {'postgres': subjects['postgres']}
     exits = dict(value.split('=', 1) for value in args.native_exit)
     if set(exits) != set(subjects):
         raise ValueError('FOUNDATION_SUBJECT_COVERAGE_INCOMPLETE')

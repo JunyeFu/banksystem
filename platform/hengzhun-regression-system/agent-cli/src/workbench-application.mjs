@@ -16,9 +16,9 @@ export function createWorkbenchApplication({ metadata, keyStore, namespace, iden
   probeModel, importAttachment, downloadArtifact }) {
   const active = new Map(), updates = new Map()
   let runtimeFault
-  const call = (name, input = {}) => metadata.call(name, input)
-  const profileFor = (id, version) => call('model_get', { modelId: id, ...(version ? { version } : {}) })
-  const loadTurn = turnId => call('turn_get', { turnId })
+  const call = (name, input = {}, options) => metadata.call(name, input, options)
+  const profileFor = (id, version, signal) => call('model_get', { modelId: id, ...(version ? { version } : {}) }, {signal})
+  const loadTurn = (turnId,signal) => call('turn_get', { turnId }, {signal})
   const context = (conversationId, identifier) => call('submission_get', { conversationId, ...identifier })
 
   // Serialize this process's event/cancel writes. Harness still arbitrates optimistic versions.
@@ -36,8 +36,8 @@ export function createWorkbenchApplication({ metadata, keyStore, namespace, iden
     next.finally(() => { if (updates.get(turnId) === next) updates.delete(turnId) }).catch(() => undefined)
     return next
   }
-  async function configuration(turn) {
-    const profile = await profileFor(turn.modelBinding.profileId, turn.modelBinding.profileVersion)
+  async function configuration(turn, signal) {
+    const profile = await profileFor(turn.modelBinding.profileId, turn.modelBinding.profileVersion, signal)
     const apiKey = await keyStore.get(namespace, profile.keyRef)
     return { profile, modelConfig: { model: profile.model, baseURL: profile.baseUrl, apiKey }, releaseIdentityHash: turn.modelBinding.releaseIdentityHash }
   }
@@ -226,15 +226,16 @@ export function createWorkbenchApplication({ metadata, keyStore, namespace, iden
       const receipt = await importAttachment({ bytes, nameBase64Url: Buffer.from(filename).toString('base64url'), sha256: sha256(bytes), signal })
       return { ...receipt, originalFilename: filename, mediaType }
     },
-    async getAgentTurnEvidence({ turnId }) {
-      const turn = await loadTurn(turnId)
+    async getAgentTurnEvidence({ turnId, signal }) {
+      const turn = await loadTurn(turnId, signal)
       if (!turn.journeyId) fail('AGENT_EVIDENCE_NOT_FOUND', 404)
-      return (await serviceFor(await configuration(turn))).evidence({ journeyId: turn.journeyId })
+      signal?.throwIfAborted()
+      return (await serviceFor(await configuration(turn, signal))).evidence({ journeyId: turn.journeyId, signal })
     },
-    async downloadAgentArtifact({ turnId, artifactId }) {
-      const evidence = await app.getAgentTurnEvidence({ turnId })
+    async downloadAgentArtifact({ turnId, artifactId, signal }) {
+      const evidence = await app.getAgentTurnEvidence({ turnId, signal })
       if (!evidence.artifactCards.some(card => card.artifactId === artifactId)) fail('AGENT_ARTIFACT_NOT_FOUND', 404)
-      return downloadArtifact({ artifactId })
+      return downloadArtifact({ artifactId, signal })
     },
     async close() {
       for (const entry of active.values()) entry.control.abort()

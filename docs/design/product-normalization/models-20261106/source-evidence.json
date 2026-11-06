@@ -1,0 +1,383 @@
+{
+  "asOf": "2026-11-06",
+  "scope": "CURRENT_SOURCE_MODEL_NOT_DEPLOYMENT_OR_LIVE_ACCEPTANCE",
+  "sources": {
+    "requirements": {
+      "path": "docs/design/product-normalization/requirements.md",
+      "line": 60,
+      "anchor": "UC-A01"
+    },
+    "transfer": {
+      "path": "services/bank-channel-service/src/main/java/local/bank/channel/payments/TransferProcessor.java",
+      "line": 57,
+      "anchor": "claimCoreSubmission"
+    },
+    "state": {
+      "path": "services/bank-channel-service/src/main/java/local/bank/channel/payments/statemachine/TransferStateMachine.java",
+      "line": 16,
+      "anchor": "CORE_RESULT_UNKNOWN"
+    },
+    "loan": {
+      "path": "services/bank-channel-service/src/main/java/local/bank/channel/FineractLoanPort.java",
+      "line": 105,
+      "anchor": "command.annualInterestRate().divide"
+    },
+    "reconciliation": {
+      "path": "services/bank-channel-service/src/main/java/local/bank/channel/reconciliation/ReconciliationService.java",
+      "line": 159,
+      "anchor": "coreTransactionId()"
+    },
+    "eod": {
+      "path": "services/bank-channel-service/src/main/java/local/bank/channel/operations/EodCoordinator.java",
+      "line": 66,
+      "anchor": "CORE_JOB_OUTCOME_UNKNOWN"
+    },
+    "document": {
+      "path": "services/bank-channel-service/src/main/java/local/bank/channel/documents/OperationsDocumentService.java",
+      "line": 66,
+      "anchor": "repository.transition(id,current,next,version)"
+    },
+    "controller": {
+      "path": "platform/hengzhun-regression-system/agent-cli/src/production-service.mjs",
+      "line": 8,
+      "anchor": "createPersistentControllerRuntimeV2"
+    },
+    "workbench": {
+      "path": "platform/hengzhun-regression-system/agent-cli/src/workbench-production.mjs",
+      "line": 7,
+      "anchor": "connectSessionPersistence"
+    },
+    "metadata": {
+      "path": "platform/hengzhun-regression-system/harness/src/workbench-repository.ts",
+      "line": 13,
+      "anchor": "model_binding_json"
+    },
+    "session": {
+      "path": "platform/hengzhun-regression-system/controller/src/session-persistence.mjs",
+      "line": 25,
+      "anchor": "expectedRevision"
+    },
+    "worker": {
+      "path": "platform/hengzhun-regression-system/worker/src/i10-midscene-candidate-authoring.cjs",
+      "line": 16,
+      "anchor": "I10_MIDSCENE_MAX_LOCATE_ATTEMPTS = 1"
+    },
+    "release": {
+      "path": "platform/hengzhun-regression-system/harness/src/release-verification.ts",
+      "line": 233,
+      "anchor": "INSERT INTO release_verifications"
+    },
+    "quality": {
+      "path": "platform/hengzhun-regression-system/harness/src/quality-read-model.ts",
+      "line": 47,
+      "anchor": "releaseBlocked"
+    },
+    "demo": {
+      "path": "demo.ps1",
+      "line": 762,
+      "anchor": "scripts\\test\\rf057-report.mjs"
+    },
+    "compose": {
+      "path": "compose.channel.yaml",
+      "line": 48,
+      "anchor": "bank-channel-service:"
+    },
+    "core-compose": {
+      "path": "postgresql/docker-compose.isolated.yml",
+      "line": 5,
+      "anchor": "admin-tools"
+    },
+    "source-gate": {
+      "path": "docs/architecture/refactoring/batches/RF-065/ci-complete-20261105.md",
+      "line": 31,
+      "anchor": "registered841/841"
+    },
+    "capacity": {
+      "path": "docs/architecture/refactoring/batches/RF-064/readonly-capacity-20261106.md",
+      "line": 25,
+      "anchor": "ReadOnlyCapacity"
+    }
+  },
+  "views": [
+    {
+      "id": "01-use-cases",
+      "refs": [
+        "requirements"
+      ]
+    },
+    {
+      "id": "02-capability-comparison",
+      "refs": [
+        "requirements",
+        "loan",
+        "reconciliation",
+        "eod",
+        "release",
+        "quality",
+        "source-gate",
+        "capacity"
+      ]
+    },
+    {
+      "id": "03-bank-components",
+      "refs": [
+        "transfer",
+        "loan",
+        "reconciliation",
+        "eod",
+        "document",
+        "compose"
+      ]
+    },
+    {
+      "id": "04-agent-components",
+      "refs": [
+        "controller",
+        "workbench",
+        "metadata",
+        "session",
+        "worker",
+        "release",
+        "quality"
+      ]
+    },
+    {
+      "id": "05-transfer-sequence",
+      "refs": [
+        "transfer",
+        "state",
+        "reconciliation"
+      ]
+    },
+    {
+      "id": "06-agent-sequence",
+      "refs": [
+        "controller",
+        "workbench",
+        "metadata",
+        "session",
+        "worker",
+        "release",
+        "quality"
+      ]
+    },
+    {
+      "id": "07-state-boundaries",
+      "refs": [
+        "state",
+        "transfer",
+        "document",
+        "requirements"
+      ]
+    },
+    {
+      "id": "08-domain-ownership",
+      "refs": [
+        "requirements",
+        "transfer",
+        "metadata",
+        "session",
+        "release"
+      ]
+    },
+    {
+      "id": "09-deployment",
+      "refs": [
+        "compose",
+        "core-compose",
+        "workbench",
+        "requirements"
+      ]
+    },
+    {
+      "id": "10-dependency-dsm",
+      "refs": [
+        "transfer",
+        "eod"
+      ]
+    }
+  ],
+  "dsm": {
+    "sourceFiles": 65,
+    "importEdges": 14,
+    "undeclaredEdges": [],
+    "cycleGroups": [],
+    "dependencies": [
+      {
+        "from": "payments",
+        "to": "audit",
+        "path": "services/bank-channel-service/src/main/java/local/bank/channel/payments/MockClearingService.java",
+        "line": 7,
+        "import": "import local.bank.channel.audit.AuditService;"
+      },
+      {
+        "from": "payments",
+        "to": "audit",
+        "path": "services/bank-channel-service/src/main/java/local/bank/channel/payments/TransferController.java",
+        "line": 34,
+        "import": "import local.bank.channel.audit.AuditService;"
+      },
+      {
+        "from": "payments",
+        "to": "beneficiaries",
+        "path": "services/bank-channel-service/src/main/java/local/bank/channel/payments/TransferController.java",
+        "line": 35,
+        "import": "import local.bank.channel.beneficiaries.BeneficiaryRepository;"
+      },
+      {
+        "from": "payments",
+        "to": "identity",
+        "path": "services/bank-channel-service/src/main/java/local/bank/channel/payments/TransferController.java",
+        "line": 36,
+        "import": "import local.bank.channel.identity.CustomerIdentityRepository;"
+      },
+      {
+        "from": "payments",
+        "to": "audit",
+        "path": "services/bank-channel-service/src/main/java/local/bank/channel/payments/TransferProcessor.java",
+        "line": 10,
+        "import": "import local.bank.channel.audit.AuditService;"
+      },
+      {
+        "from": "payments",
+        "to": "notifications",
+        "path": "services/bank-channel-service/src/main/java/local/bank/channel/payments/TransferProcessor.java",
+        "line": 11,
+        "import": "import local.bank.channel.notifications.NotificationRepository;"
+      },
+      {
+        "from": "payments",
+        "to": "risk",
+        "path": "services/bank-channel-service/src/main/java/local/bank/channel/payments/TransferProcessor.java",
+        "line": 15,
+        "import": "import local.bank.channel.risk.RiskService;"
+      },
+      {
+        "from": "payments",
+        "to": "audit",
+        "path": "services/bank-channel-service/src/main/java/local/bank/channel/payments/TransferReversalController.java",
+        "line": 10,
+        "import": "import local.bank.channel.audit.AuditService;"
+      },
+      {
+        "from": "operations",
+        "to": "payments",
+        "path": "services/bank-channel-service/src/main/java/local/bank/channel/operations/EodCoordinator.java",
+        "line": 9,
+        "import": "import local.bank.channel.payments.EodRepository;"
+      },
+      {
+        "from": "operations",
+        "to": "payments",
+        "path": "services/bank-channel-service/src/main/java/local/bank/channel/operations/EodCoordinator.java",
+        "line": 10,
+        "import": "import local.bank.channel.payments.TransferRepository;"
+      },
+      {
+        "from": "operations",
+        "to": "payments",
+        "path": "services/bank-channel-service/src/main/java/local/bank/channel/operations/EodCoordinator.java",
+        "line": 11,
+        "import": "import local.bank.channel.payments.EodRepository.RunRow;"
+      },
+      {
+        "from": "operations",
+        "to": "audit",
+        "path": "services/bank-channel-service/src/main/java/local/bank/channel/operations/EodCoordinator.java",
+        "line": 13,
+        "import": "import local.bank.channel.audit.AuditService;"
+      },
+      {
+        "from": "operations",
+        "to": "reconciliation",
+        "path": "services/bank-channel-service/src/main/java/local/bank/channel/operations/EodCoordinator.java",
+        "line": 14,
+        "import": "import local.bank.channel.reconciliation.ReconciliationService;"
+      },
+      {
+        "from": "operations",
+        "to": "risk",
+        "path": "services/bank-channel-service/src/main/java/local/bank/channel/operations/RiskApprovalService.java",
+        "line": 5,
+        "import": "import local.bank.channel.risk.RiskService;"
+      },
+      {
+        "from": "operations",
+        "to": "payments",
+        "path": "services/bank-channel-service/src/main/java/local/bank/channel/operations/RiskApprovalService.java",
+        "line": 6,
+        "import": "import local.bank.channel.payments.statemachine.TransferStateMachine;"
+      },
+      {
+        "from": "operations",
+        "to": "payments",
+        "path": "services/bank-channel-service/src/main/java/local/bank/channel/operations/RiskApprovalService.java",
+        "line": 7,
+        "import": "import local.bank.channel.payments.statemachine.TransferStateMachine.Status;"
+      },
+      {
+        "from": "operations",
+        "to": "risk",
+        "path": "services/bank-channel-service/src/main/java/local/bank/channel/operations/RiskController.java",
+        "line": 8,
+        "import": "import local.bank.channel.risk.RiskRepository.DecisionRow;"
+      },
+      {
+        "from": "operations",
+        "to": "risk",
+        "path": "services/bank-channel-service/src/main/java/local/bank/channel/operations/RiskController.java",
+        "line": 9,
+        "import": "import local.bank.channel.risk.RiskRepository;"
+      },
+      {
+        "from": "operations",
+        "to": "risk",
+        "path": "services/bank-channel-service/src/main/java/local/bank/channel/operations/RiskController.java",
+        "line": 10,
+        "import": "import local.bank.channel.risk.RiskService;"
+      },
+      {
+        "from": "customerprofile",
+        "to": "audit",
+        "path": "services/bank-channel-service/src/main/java/local/bank/channel/customerprofile/LoanOperationService.java",
+        "line": 12,
+        "import": "import local.bank.channel.audit.AuditService;"
+      },
+      {
+        "from": "customerprofile",
+        "to": "identity",
+        "path": "services/bank-channel-service/src/main/java/local/bank/channel/customerprofile/LoanWorkflowService.java",
+        "line": 15,
+        "import": "import local.bank.channel.identity.CustomerIdentityRepository;"
+      },
+      {
+        "from": "documents",
+        "to": "customerprofile",
+        "path": "services/bank-channel-service/src/main/java/local/bank/channel/documents/LoanDocumentController.java",
+        "line": 5,
+        "import": "import local.bank.channel.customerprofile.LoanWorkflowService;"
+      },
+      {
+        "from": "documents",
+        "to": "audit",
+        "path": "services/bank-channel-service/src/main/java/local/bank/channel/documents/OperationsDocumentService.java",
+        "line": 9,
+        "import": "import local.bank.channel.audit.AuditService;"
+      },
+      {
+        "from": "notifications",
+        "to": "identity",
+        "path": "services/bank-channel-service/src/main/java/local/bank/channel/notifications/StatementController.java",
+        "line": 14,
+        "import": "import local.bank.channel.identity.CustomerIdentityQuery;"
+      },
+      {
+        "from": "notifications",
+        "to": "identity",
+        "path": "services/bank-channel-service/src/main/java/local/bank/channel/notifications/StatementController.java",
+        "line": 15,
+        "import": "import local.bank.channel.identity.CustomerTransactionMapper;"
+      }
+    ]
+  }
+}

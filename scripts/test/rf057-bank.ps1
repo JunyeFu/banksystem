@@ -1,15 +1,18 @@
 [CmdletBinding()]
-param([ValidateSet('Business','Performance','Agent','AgentPerformance','Authentication')][string]$Profile='Business')
+param([ValidateSet('Business','Performance','Agent','AgentPerformance','ReadOnlyCapacity','Authentication')][string]$Profile='Business')
 $ErrorActionPreference='Stop'
 $repositoryRoot=(Resolve-Path (Join-Path $PSScriptRoot '../..')).Path
 $node=Join-Path $repositoryRoot 'platform/hengzhun-regression-system/runtime/node-v24.19.0-win-x64/node.exe'
-if($Profile -in @('Agent','AgentPerformance')) {
+$acceptanceRunId=[Guid]::NewGuid().ToString()
+$acceptanceIdentity=& $node -e "process.stdout.write(require(process.argv[1]).currentIdentity())" (Join-Path $PSScriptRoot 'rf057/evidence.cjs')
+if($LASTEXITCODE -ne 0 -or $acceptanceIdentity -notmatch '^[a-f0-9]{64}$'){throw 'RF057_IDENTITY_REQUIRED'}
+if($Profile -in @('Agent','AgentPerformance','ReadOnlyCapacity')) {
   & $node (Join-Path $PSScriptRoot 'rf057-agent.mjs') --check-authority
   if($LASTEXITCODE -ne 0){throw 'RF057_AGENT_LIVE_AUTHORIZATION_REQUIRED'}
 }
 # Read-only Agent setup imports helper definitions, not the golden transfer
 # workflow. Business/performance retain the proven golden entrypoint.
-if($Profile -in @('Agent','AgentPerformance','Authentication')) {
+if($Profile -in @('Agent','AgentPerformance','ReadOnlyCapacity','Authentication')) {
   $EnvironmentPath=Join-Path $repositoryRoot '.env'
   $GatewayBaseUrl='http://127.0.0.1:18443';$KeycloakBaseUrl='http://127.0.0.1:19000'
   $FineractBaseUrl='http://127.0.0.1:13000/fineract-provider'
@@ -30,12 +33,16 @@ if($Profile -in @('Agent','AgentPerformance','Authentication')) {
 $createdUsers=New-Object 'System.Collections.Generic.List[object]'
 $bankSampleSubjects=New-Object 'System.Collections.Generic.List[string]'
 $cleanupFailures=New-Object 'System.Collections.Generic.List[string]'
+$cleanupResults=New-Object 'System.Collections.Generic.List[object]'
 $probeCustomerId=$null
 $cleanupId=[Guid]::NewGuid().ToString('N')
 $cleanupPath=Join-Path $repositoryRoot "agent/runs/rf057-cleanup/$cleanupId.json"
 function Save-CleanupState([string]$Status) {
   [IO.Directory]::CreateDirectory((Split-Path $cleanupPath)) | Out-Null
-  $state=@{schemaVersion='rf057-identity-cleanup/v1';status=$Status;createdAt=[DateTime]::UtcNow.ToString('o');users=@($createdUsers.ToArray());customerSubject=$probeCustomerId;bankSampleSubjects=@($bankSampleSubjects.ToArray());failures=@($cleanupFailures.ToArray())}
+  $owned=@($createdUsers | ForEach-Object { @{kind='KEYCLOAK_USER';ref=($_.realm+':'+$_.id)} })
+  $owned+=@($bankSampleSubjects | ForEach-Object { @{kind='IDENTITY_MAPPING';ref=$_} })
+  if($null -ne $probeCustomerId){$owned+=@(@{kind='IDENTITY_MAPPING';ref=$probeCustomerId},@{kind='CUSTOMER_SCENARIO';ref=$probeCustomerId})}
+  $state=@{schemaVersion='rf057-identity-cleanup/v2';cleanupId=$cleanupId;runId=$acceptanceRunId;releaseIdentityHash=$acceptanceIdentity;status=$Status;createdAt=[DateTime]::UtcNow.ToString('o');ownedResources=@($owned);results=@($cleanupResults.ToArray());failures=@($cleanupFailures.ToArray())}
   [IO.File]::WriteAllText($cleanupPath,($state | ConvertTo-Json -Depth 5),[Text.UTF8Encoding]::new($false))
 }
 function New-BankSampleIdentities {
@@ -66,23 +73,32 @@ function Remove-OwnedRegressionIdentities {
       try {
         $clear=@{subject=$probeCustomerId;logicalCustomerRef='customer.alice';destinationCustomerRef='customer.bob'} | ConvertTo-Json -Compress
         Invoke-RestMethod -Method Post -Uri "$GatewayBaseUrl/internal/test-support/v1/customer-scenario:clear" -Headers $testHeaders -Body $clear | Out-Null
+        $cleanupResults.Add(@{kind='CUSTOMER_SCENARIO';ref=$probeCustomerId;status='REMOVED'})
       } catch {$cleanupFailures.Add('CUSTOMER_SCENARIO_CLEAR')}
     }
     $mappingSubjects=@($bankSampleSubjects.ToArray())
     if($null -ne $probeCustomerId){$mappingSubjects+=@($probeCustomerId)}
     foreach($subject in $mappingSubjects) {
-      try {Invoke-RestMethod -Method Delete -Uri "$GatewayBaseUrl/internal/test-support/v1/identities/$subject" -Headers $testHeaders | Out-Null}
+      try {Invoke-RestMethod -Method Delete -Uri "$GatewayBaseUrl/internal/test-support/v1/identities/$subject" -Headers $testHeaders | Out-Null;$cleanupResults.Add(@{kind='IDENTITY_MAPPING';ref=$subject;status='REMOVED'})}
       catch {$cleanupFailures.Add('IDENTITY_MAPPING:'+ $subject)}
     }
   }
   if($adminReady) {
     foreach($identity in $createdUsers) {
-      try {Remove-KeycloakObject $identity.realm 'users' $identity.id}
+      try {Remove-KeycloakObject $identity.realm 'users' $identity.id;$cleanupResults.Add(@{kind='KEYCLOAK_USER';ref=($identity.realm+':'+$identity.id);status='REMOVED'})}
       catch {$cleanupFailures.Add('KEYCLOAK_USER:'+ $identity.id)}
     }
   }
   $cleanupStatus=if($cleanupFailures.Count){'FAILED'}else{'COMPLETED'}
   Save-CleanupState $cleanupStatus
+  if($Profile -ne 'Authentication') {
+    $family=if($Profile -in @('Agent','AgentPerformance','ReadOnlyCapacity')){'rf057-agent'}else{'rf057'}
+    $reportPath=Join-Path $repositoryRoot "agent/runs/$family/$acceptanceRunId/report.json"
+    if(Test-Path -LiteralPath $reportPath) {
+      & $node (Join-Path $PSScriptRoot 'rf057/evidence.cjs') $family $acceptanceRunId
+      if($LASTEXITCODE -ne 0){throw 'RF057_CLEANUP_SEAL_FAILED'}
+    }
+  }
   Write-Output "RF057_IDENTITY_CLEANUP=$cleanupStatus state=agent/runs/rf057-cleanup/$cleanupId.json"
   if($cleanupFailures.Count){throw 'RF057_IDENTITY_CLEANUP_INCOMPLETE'}
 }
@@ -110,7 +126,7 @@ try {
   $probeCustomerId=$identities.customer.id
   $bankSampleIdentities=@()
   if($Profile -eq 'Agent'){$bankSampleIdentities=@(New-BankSampleIdentities)}
-  if($Profile -in @('Agent','AgentPerformance','Authentication')) {
+  if($Profile -in @('Agent','AgentPerformance','ReadOnlyCapacity','Authentication')) {
     $operatorToken=$identities.operator.token
     $testHeaders=@{Authorization="Bearer $operatorToken";'Content-Type'='application/json';'X-Regression-Namespace'='rf057-agent';'X-Regression-Run-Id'=$cleanupId}
     $sourceFixture=Invoke-RestMethod -Uri "$GatewayBaseUrl/internal/test-support/v1/fixtures/account.alice.primarySavings" -Headers $testHeaders
@@ -122,12 +138,12 @@ try {
   $scenarioBody=@{subject=$probeCustomerId;logicalCustomerRef='customer.alice';destinationCustomerRef='customer.bob'} | ConvertTo-Json -Compress
   $scenario=Invoke-RestMethod -Method Post -Uri "$GatewayBaseUrl/internal/test-support/v1/customer-scenario:seed" -Headers $testHeaders -Body $scenarioBody
   if($scenario.status -ne 'READY'){throw 'RF057_SCENARIO_NOT_READY'}
-  $config=@{profile=$Profile;cleanupId=$cleanupId;gateway=$GatewayBaseUrl;keycloak=$KeycloakBaseUrl;fineract=$FineractBaseUrl;identities=$identities;bankSampleIdentities=$bankSampleIdentities;beneficiaryRef=[string]$scenario.beneficiaryId;
+  $config=@{profile=$Profile;runId=$acceptanceRunId;cleanupId=$cleanupId;gateway=$GatewayBaseUrl;keycloak=$KeycloakBaseUrl;fineract=$FineractBaseUrl;identities=$identities;bankSampleIdentities=$bankSampleIdentities;beneficiaryRef=[string]$scenario.beneficiaryId;
     fineractUser=(Require-Value $values 'FINERACT_USERNAME');fineractPassword=(Require-Value $values 'FINERACT_PASSWORD');
     fineractTenant=(Require-Value $values 'FINERACT_TENANT');golden=$golden;testToken=$operatorToken;
     contractHashes=@{operations=(Get-FileHash (Join-Path $repositoryRoot 'contracts/openapi/operations-api.yaml') -Algorithm SHA256).Hash}}
-  $entry=if($Profile -in @('Agent','AgentPerformance')){'rf057-agent.mjs'}elseif($Profile -eq 'Authentication'){'rf057/auth-integration.mjs'}else{'rf057/bank.mjs'}
-  $driverArguments=if($Profile -eq 'AgentPerformance'){@('--performance')}else{@()}
+  $entry=if($Profile -in @('Agent','AgentPerformance','ReadOnlyCapacity')){'rf057-agent.mjs'}elseif($Profile -eq 'Authentication'){'rf057/auth-integration.mjs'}else{'rf057/bank.mjs'}
+  $driverArguments=if($Profile -eq 'AgentPerformance'){@('--performance')}elseif($Profile -eq 'ReadOnlyCapacity'){@('--readonly-capacity')}else{@()}
   $config | ConvertTo-Json -Depth 8 -Compress | & $node (Join-Path $PSScriptRoot $entry) @driverArguments
   if($LASTEXITCODE -ne 0){throw 'RF057_BANK_SUITE_FAILED'}
 } finally {

@@ -1,6 +1,16 @@
 import { createHash } from 'node:crypto'
+import { createRequire } from 'node:module'
 
 import { z } from 'zod'
+import { explicitTransferInput, transferInputMatches } from './explicit-transfer-input.mjs'
+
+const rule = createRequire(import.meta.url)('../../contracts/security/sensitive-text-v1.json')
+const sensitiveText = new RegExp(rule.pattern, rule.flags)
+export function assertSafeAgentText(...values) {
+  if (values.some(value => typeof value === 'string' && sensitiveText.test(value))) {
+    throw new JourneyAuthorError('AGENT_SECRET_FORBIDDEN')
+  }
+}
 
 const boundedText = (maximum) => z.string().trim().min(1).max(maximum)
 
@@ -36,6 +46,7 @@ export class JourneyAuthorError extends Error {
 }
 
 function requireAuthorInput({ goal, entryUrl, targetSystem, credentialRef, adapterSelection }) {
+  assertSafeAgentText(goal, targetSystem)
   if (typeof goal !== 'string' || !goal.trim() || goal.length > 8000) throw new JourneyAuthorError('JOURNEY_GOAL_INVALID')
   if (typeof targetSystem !== 'string' || !targetSystem.trim() || targetSystem.length > 160) throw new JourneyAuthorError('JOURNEY_TARGET_SYSTEM_INVALID')
   if (!/^credential_[0-9a-f-]{36}$/.test(String(credentialRef || ''))) throw new JourneyAuthorError('JOURNEY_CREDENTIAL_REF_INVALID')
@@ -44,6 +55,7 @@ function requireAuthorInput({ goal, entryUrl, targetSystem, credentialRef, adapt
   if (!['http:', 'https:'].includes(url.protocol) || url.username || url.password || url.href.length > 2048) {
     throw new JourneyAuthorError('JOURNEY_ENTRY_URL_INVALID')
   }
+  assertSafeAgentText(entryUrl)
   if (adapterSelection !== undefined && !['fuxing-bank-demo','fuxing-bank-operations'].includes(adapterSelection)) {
     throw new JourneyAuthorError('JOURNEY_TARGET_ADAPTER_INVALID')
   }
@@ -92,15 +104,16 @@ export function createJourneyCandidateAuthor({ invokeJson } = {}) {
       })
       if (typeof content !== 'string') throw new JourneyAuthorError('JOURNEY_CANDIDATE_MODEL_OUTPUT_INVALID_NON_STRING')
       const modelCandidate = parseModelCandidate(content)
+      const explicit = explicitTransferInput(fixed.goal)
       // The model may extract literal input, but it cannot supply business values on the user's behalf.
       if (modelCandidate.businessInputs) {
         const inputs=modelCandidate.businessInputs
         if (inputs.transfer) {
-          const payerBindings = [...fixed.goal.matchAll(/(?:付款账户|\bpayerAccountId\b|\bpayer\s+account\b)\s*(?:为|是|:|：|=|#)?\s*([1-9][0-9]{0,18})(?![0-9])/giu)]
-          if (!payerBindings.length || payerBindings.some(match => match[1] !== inputs.transfer.payerAccountId))
+          if (!explicit.missingFields.length && !transferInputMatches(inputs.transfer, explicit.values))
             throw new JourneyAuthorError('JOURNEY_BUSINESS_INPUT_NOT_USER_EXPLICIT')
+          if (explicit.missingFields.length) delete inputs.transfer
         }
-        const values=[inputs.dateRange,inputs.filter,...Object.values(inputs.transfer || {})].filter(value=>value!==undefined)
+        const values=[inputs.dateRange,inputs.filter].filter(value=>value!==undefined)
         for(const value of values) {
           const escaped=value.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')
           if(!new RegExp(`(?<![A-Za-z0-9_.])${escaped}(?![A-Za-z0-9_.])`,'u').test(fixed.goal))
@@ -121,7 +134,8 @@ export function createJourneyCandidateAuthor({ invokeJson } = {}) {
         .replace(/转账(?:记录|历史|结果)|transfer\s+(?:history|status|records)/giu,'')
       const transferRequested=/转账|\btransfer\b/iu.test(moneyIntent)
       const missingFields=transferRequested&&!modelCandidate.businessInputs?.transfer
-        ? ['payerAccountId','payeeRef','amount','currency','purpose'].map(field=>`businessInputs.${field}`):[]
+        ? (explicit.missingFields.length ? explicit.missingFields : ['payerAccountId','payeeRef','amount','currency','purpose'].map(field=>`businessInputs.${field}`)):[]
+      if (!transferRequested && modelCandidate.businessInputs?.transfer) throw new JourneyAuthorError('JOURNEY_BUSINESS_INPUT_NOT_USER_EXPLICIT')
       return {
         schemaVersion: 'hengzhun-i10-case-draft-v1',
         title: modelCandidate.title,

@@ -1,10 +1,17 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { createHash } from 'node:crypto';
-import { runAcceptanceCli, verifiedArtifactJson, assertAccountGoal, assertNoReplay } from './rf068-workbench-assertions.mjs';
+import { runAcceptanceCli, verifiedArtifactJson, assertAccountGoal, assertNoReplay, acceptanceFailure } from './rf068-workbench-assertions.mjs';
 const sha = value => createHash('sha256').update(value).digest('hex');
 const event = (type, fields = {}) => ({ schemaVersion: 'hengzhun-cli-event/v1', sequence: 1, type, ...fields });
 const command = (line, exitCode = 0) => ['-e', `process.stdout.write(${JSON.stringify(line)});process.exitCode=${exitCode}`];
+
+test('LIVE failure diagnostics preserve timeout and network categories without raw message or cause',()=>{
+  for(const [error,code] of [[{name:'TimeoutError',message:'private-secret',code:23},'RF068_HTTP_TIMEOUT'],
+    [{name:'TypeError',message:'private-secret',cause:{code:'ECONNRESET',message:'private-secret'}},'RF068_HTTP_TRANSPORT_FAILED']]) {
+    const summary=acceptanceFailure(error);assert.equal(summary.code,code);assert.equal(JSON.stringify(summary).includes('private-secret'),false);
+  }
+});
 
 test('real child exit 0/4/5 preserves terminal result or safe verifier failure', async () => {
   const invoke = args => runAcceptanceCli({ file: process.execPath, args, stage: 'EVIDENCE', timeoutMs: 10000 });

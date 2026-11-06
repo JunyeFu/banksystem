@@ -7,7 +7,7 @@ import { promisify } from 'node:util';
 import { execFile } from 'node:child_process';
 import { workbenchOperations, workbenchPrefix } from '../../platform/hengzhun-regression-system/agent-cli/src/workbench-contract.mjs';
 import { assertAgentEvidence } from './rf057/agent-assertions.mjs';
-import { runAcceptanceCli, assertAccountGoal, assertNoReplay, acceptanceStageBudget } from './rf068-workbench-assertions.mjs';
+import { runAcceptanceCli, assertAccountGoal, assertNoReplay, acceptanceStageBudget, acceptanceFailure } from './rf068-workbench-assertions.mjs';
 
 const root = path.resolve(import.meta.dirname, '../..'), product = path.join(root, 'platform/hengzhun-regression-system');
 const require = createRequire(import.meta.url), execute = promisify(execFile);
@@ -23,11 +23,12 @@ const report = { schemaVersion: 'rf068-s5-browser-live/v1', status: 'RUNNING', e
 const save = () => fs.writeFileSync(path.join(output, 'report.json'), JSON.stringify(report, null, 2));
 const hash = value => createHash('sha256').update(JSON.stringify(value)).digest('hex');
 let browser, page, csrfToken, lastTurn, stage = 'AUTHORITY', terminalId;
+let operation='AUTHORITY';
 let stageStarted = Date.now(), stageDeadline = stageStarted + 90_000;
 report.steps = [];
 function beginStage(name) {
   report.steps.push({ stage, status: 'PASSED', durationMs: Date.now() - stageStarted });
-  stage = name; stageStarted = Date.now(); stageDeadline = stageStarted + acceptanceStageBudget(name); save();
+  stage = name; operation=name; stageStarted = Date.now(); stageDeadline = stageStarted + acceptanceStageBudget(name); save();
 }
 const requestSignal = deadline => AbortSignal.timeout(Math.max(1, Math.min(10_000, (deadline || stageDeadline) - Date.now())));
 const errors = [], warnings = [], submissions = [], events = new Map();
@@ -127,16 +128,19 @@ try {
   if (!config.DEMO_CUSTOMER_USERNAME || !config.DEMO_CUSTOMER_PASSWORD) fail('RF068_DEMO_CUSTOMER_CONFIGURATION_REQUIRED');
   const bankContext = await browser.newContext(), bankPage = await bankContext.newPage();
   const tokenResponse = bankPage.waitForResponse(value => value.url().includes('/realms/bank-customer/protocol/openid-connect/token'));
-  await bankPage.goto('http://127.0.0.1:18082/portal/login'); await bankPage.getByTestId('login-sso-submit').click();
+  operation='BANK_PORTAL_NAVIGATE';await bankPage.goto('http://127.0.0.1:18082/portal/login'); await bankPage.getByTestId('login-sso-submit').click();
+  operation='BANK_IDP_LOGIN';
   await bankPage.locator('#username').fill(config.DEMO_CUSTOMER_USERNAME); await bankPage.locator('#password').fill(config.DEMO_CUSTOMER_PASSWORD); await bankPage.locator('#kc-login').click();
-  let bankToken = (await (await tokenResponse).json()).access_token;
+  operation='BANK_TOKEN_RESPONSE';let bankToken = (await (await tokenResponse).json()).access_token;
+  operation='BANK_DASHBOARD_READY';
   await bankPage.locator('[data-page-id="customer.dashboard"][data-page-state="READY"]').waitFor();
   async function bankSnapshot() {
     const get = async route => { const response = await fetch('http://127.0.0.1:18443' + route, { signal: requestSignal(), headers: { authorization: `Bearer ${bankToken}` } }); if (!response.ok) fail(`RF068_BANK_READ_HTTP_${response.status}`); return response.json(); };
-    const accounts = (await get('/api/customer/v1/accounts')).items;
+    operation='BANK_ACCOUNT_LIST';const accounts = (await get('/api/customer/v1/accounts')).items;
     assert.ok(accounts.length > 0, 'RF068_BANK_ACCOUNTS_MISSING');
     const snapshot = [];
-    for (const account of accounts) { const detail = await get(`/api/customer/v1/accounts/${encodeURIComponent(account.accountId)}`); assert.equal(detail.balance, account.balance, 'RF068_BANK_BASELINE_BALANCE_MISMATCH'); snapshot.push({ ...account, transactions: detail.transactions }); }
+    for (const account of accounts) { operation='BANK_ACCOUNT_DETAIL';const detail = await get(`/api/customer/v1/accounts/${encodeURIComponent(account.accountId)}`); assert.equal(detail.balance, account.balance, 'RF068_BANK_BASELINE_BALANCE_MISMATCH'); snapshot.push({ ...account, transactions: detail.transactions }); }
+    operation='BANK_ACCOUNTS_SORT';
     return snapshot.sort((a, b) => a.accountId.localeCompare(b.accountId));
   }
   const beforeBank = await bankSnapshot(); report.bankBefore = { accounts: beforeBank.length, sha256: hash(beforeBank) }; save();
@@ -244,8 +248,7 @@ try {
   console.log(JSON.stringify({ status: 'PASSED', evidenceClass: report.evidenceClass, releaseIdentityHash: report.releaseIdentityHash, journeyId: completed.journeyId, runId: proof.runId, taskId: proof.taskId, report: path.relative(root, output), bankWritesRequested: false }));
 } catch (error) {
   report.status = 'FAILED'; report.stage = stage;
-  const assertion = error.code === 'ERR_ASSERTION' ? /^([A-Z][A-Z0-9_]{2,100})(?:$|\s|:)/.exec(error.message)?.[1] : null;
-  report.code = assertion || (/^[A-Z][A-Z0-9_]{2,100}$/.test(error.code || '') && error.code !== 'ERR_ASSERTION' ? error.code : 'RF068_LIVE_ACCEPTANCE_FAILED');
+  report.failure=acceptanceFailure(error);report.failureOperation=operation;report.code=report.failure.code;
   report.steps.push({ stage, status: 'FAILED', code: report.code, durationMs: Date.now() - stageStarted });
   report.completedAt = new Date().toISOString(); if (Number.isInteger(error.exitCode)) report.exitCode = error.exitCode;
   report.console = { errors: errors.length, warnings: warnings.length };

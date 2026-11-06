@@ -7,6 +7,9 @@ import path from 'node:path'
 import test from 'node:test'
 
 import { EncryptedSessionStore } from '../../controller/src/session-store.mjs'
+import { connectSessionPersistence } from '../../controller/src/session-persistence.mjs'
+import { importLegacySessions } from '../../scripts/migrate-controller-sessions.mjs'
+import { mkdir, writeFile, readFile } from 'node:fs/promises'
 import { connectMcpRuntime } from '../../controller/src/runtime-adapters.mjs'
 import { createProductionService } from '../src/production-service.mjs'
 
@@ -91,7 +94,9 @@ test('real MCP and Fresh Harness preserve CLI session authority across process r
   const storedCredential = await storedCredentialResponse.json()
   assert.match(storedCredential.credentialRef, /^credential_[0-9a-f-]{36}$/)
   const sessionRoot = path.join(root, 'sessions')
-  const firstStore = await new EncryptedSessionStore({ root: sessionRoot }).initialize()
+  const persistence=await connectSessionPersistence({url:`http://127.0.0.1:${mcpPort}/mcp`,token})
+  t.after(()=>persistence.close())
+  const firstStore = await new EncryptedSessionStore({ persistence }).initialize()
   const options = {
     releaseIdentityHash, modelConfig: { apiKey: 'unused-test-key', baseURL: 'http://model.invalid/v1', model: 'unused' },
     modelFactory: () => ({ withConfig: () => ({ async invoke() { return { content: JSON.stringify({
@@ -108,7 +113,7 @@ test('real MCP and Fresh Harness preserve CLI session authority across process r
   assert.match(created.sessionId, /^session-/)
   assert.match(created.journeyId, /^journey_/)
 
-  const secondStore = await new EncryptedSessionStore({ root: sessionRoot }).initialize()
+  const secondStore = await new EncryptedSessionStore({ persistence }).initialize()
   const restarted = createProductionService({ ...options, sessionStore: secondStore })
   const status = await restarted.sessionStatus({ sessionId: created.sessionId })
   const resumed = await restarted.sessionResume({ sessionId: created.sessionId })
@@ -129,4 +134,35 @@ test('real MCP and Fresh Harness preserve CLI session authority across process r
   const bootstrapStatus = await restarted.sessionStatus({ sessionId: pending.sessionId })
   assert.equal(bootstrapStatus.journeyId, bootstrapped.journeyId)
   assert.equal(bootstrapStatus.status, 'AWAITING_USER')
+
+  const racers=['A','B'].map(writer=>spawn(process.execPath,['controller/test/session-race-writer.mjs'],{
+    cwd:productRoot,windowsHide:true,stdio:['ignore','pipe','pipe','ipc'],env:{...process.env,
+      TEST_SESSION_MCP_URL:`http://127.0.0.1:${mcpPort}/mcp`,TEST_SESSION_MCP_TOKEN:token,
+      TEST_SESSION_ID:created.sessionId,TEST_SESSION_IDENTITY:releaseIdentityHash,TEST_SESSION_WRITER:writer}}))
+  t.after(()=>racers.forEach(p=>{if(p.exitCode===null)p.kill()}))
+  await Promise.all(racers.map(p=>new Promise((resolve,reject)=>{p.once('message',resolve);p.once('error',reject);p.once('exit',code=>{if(code)reject(Error('RACE_WRITER_EXIT'))})})))
+  const results=await Promise.all(racers.map(p=>new Promise(resolve=>{p.once('message',resolve);p.send('GO')})))
+  assert.equal(results.filter(r=>r.status==='SAVED').length,1)
+  assert.equal(results.filter(r=>r.code==='SESSION_REVISION_CONFLICT').length,1)
+  await firstStore.setCheckpointSnapshot(pending.sessionId,releaseIdentityHash,{
+    schemaVersion:'hengzhun-langgraph-checkpoint-snapshot/v1',storage:{},writes:{}})
+  const envelope=await persistence.load(pending.sessionId)
+  assert.equal((await firstStore.load(created.sessionId)).events.filter(e=>e.type==='A'||e.type==='B').length,1)
+  const legacy=path.join(root,'legacy');await mkdir(legacy)
+  const {indexEntry}=await import('../../controller/src/session-store.mjs')
+  await writeFile(path.join(legacy,'index-v1.json'),JSON.stringify({schemaVersion:'hengzhun-session-index/v1',sessions:[indexEntry(envelope)]}))
+  const original=JSON.stringify(envelope),file=path.join(legacy,`${pending.sessionId}.hzs`)
+  await writeFile(file,original)
+  // Restore into a distinct isolated session ID is not valid: preserve all encrypted bindings.
+  await assert.rejects(importLegacySessions({directory:legacy,namespace,persistence}),e=>e.code==='SESSION_REVISION_CONFLICT')
+  const extra=['c','d'].map(c=>`session-${c.repeat(32)}`)
+  await Promise.all(extra.map(sessionId=>new EncryptedSessionStore({persistence}).create({sessionId,namespace,
+    threadId:sessionId,journeyId:'journey-isolated-create',releaseIdentityHash})))
+  const listed=await firstStore.list();assert.ok(extra.every(id=>listed.some(e=>e.sessionId===id)))
+  await persistence.purge('2099-01-01T00:00:00.000Z')
+  assert.deepEqual(await importLegacySessions({directory:legacy,namespace,persistence}),{imported:1,originalFilesUnchanged:true})
+  const restored=await new EncryptedSessionStore({persistence}).load(pending.sessionId,{expectedNamespace:namespace,expectedReleaseIdentityHash:releaseIdentityHash})
+  assert.equal(restored.journeyId,bootstrapped.journeyId)
+  assert.ok(restored.checkpointSnapshot)
+  assert.equal(await readFile(file,'utf8'),original)
 })

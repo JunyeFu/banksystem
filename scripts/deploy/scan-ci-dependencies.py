@@ -16,15 +16,16 @@ def write_json(path, value):
     path.write_text(json.dumps(value, ensure_ascii=False, indent=2), encoding='utf-8')
 
 
-def inventory(report, coverage, directory, scanner_exit):
-    expected = {str((directory / 'product-dependencies' / lock).resolve()).replace('\\', '/'): lock for lock in coverage['locks']}
-    observed = {item['source']['path'].replace('\\', '/'): item for item in report['results']}
+def inventory(report, coverage, directory, scanner_exit, *, source_root=None):
+    lock_root = directory / 'product-dependencies' if source_root is None else source_root
+    expected = {str((lock_root / lock).resolve()).replace('\\', '/'): lock for lock in coverage['locks']}
+    observed = [(str(Path(item['source']['path']).resolve()).replace('\\', '/'), item) for item in report['results']]
     rows = []
-    for path, result in observed.items():
+    for path, result in observed:
         if path not in expected:
             continue
         lock = expected[path]
-        entries = json.loads((directory / 'product-dependencies' / lock).read_text(encoding='utf-8'))['packages']
+        entries = json.loads((lock_root / lock).read_text(encoding='utf-8'))['packages']
         root = entries['']
         for item in result['packages']:
             advisories = item.get('vulnerabilities', [])
@@ -43,13 +44,13 @@ def inventory(report, coverage, directory, scanner_exit):
                                 'fixedVersions': sorted({event['fixed'] for affected in v.get('affected', []) if affected.get('package', {}).get('name') == package['name'] for r in affected.get('ranges', []) for event in r.get('events', []) if 'fixed' in event})}
                                for v in advisories],
             })
-    complete = set(observed) == set(expected)
+    complete = len(observed) == len(expected) and {path for path, _ in observed} == set(expected)
     status = 'PASSED' if scanner_exit == 0 and not rows and complete else 'FAILED'
     if scanner_exit not in (0, 1) or not complete or (scanner_exit == 0 and rows) or (scanner_exit == 1 and not rows):
         status = 'ERROR'
     return {'status': status, 'scannerExitCode': scanner_exit, 'queriedAt': datetime.now(timezone.utc).isoformat(),
             'scope': 'DECLARED_PRODUCT_NPM_DEPENDENCIES', 'installedRuntimeProven': False,
-            'expectedLocks': coverage['locks'], 'coveredLocks': sorted(expected[path] for path in observed if path in expected),
+            'expectedLocks': coverage['locks'], 'coveredLocks': sorted({expected[path] for path, _ in observed if path in expected}),
             'coverageComplete': complete, 'vulnerablePackageOccurrences': len(rows),
             'uniquePackageVersions': len({(r['name'], r['version']) for r in rows}),
             'uniqueAdvisories': len({v['id'] for r in rows for v in r['advisories']}), 'findings': rows}

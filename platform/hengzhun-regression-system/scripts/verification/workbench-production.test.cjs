@@ -57,6 +57,15 @@ test('S5 dependency failure code reaches the persisted turn without dispatch', a
   }
 })
 
+test('classified model failures reach persisted conversation unchanged',async t=>{
+  for(const code of ['AGENT_ADAPTER_MODEL_HTTP_401','AGENT_ADAPTER_MODEL_HTTP_429','AGENT_ADAPTER_MODEL_HTTP_5XX']) {
+    const f=await fixture(t,{serviceFor:async()=>({async start(){throw Object.assign(new Error(code),{code})}})})
+    const submitted=await f.app.submitAgentMessage(f.input());await f.app.waitForIdle()
+    const turn=await f.app.getAgentTurn({turnId:submitted.id})
+    assert.equal(turn.status,'FAILED');assert.equal(turn.failureCode,code);assert.equal(turn.humanInterventionRequired,true)
+  }
+})
+
 test('S5 stop aborts pending readiness and prevents all Controller dispatch', async t => {
   let entered, observed
   const started = new Promise(resolve => { entered = resolve })
@@ -246,7 +255,7 @@ test('review: transport ambiguity is INTERRUPTED; an explicit tool rejection is 
 })
 
 test('actual production Controller continuation uses same checkpoint/Journey without fork or approval gate', async t => {
-  const { EncryptedSessionStore } = await load('controller/src/session-store.mjs')
+  const { TestSessionStore:EncryptedSessionStore } = await load('controller/test/session-fixture.mjs')
   const { createProductionService } = await load('agent-cli/src/production-service.mjs')
   const { observeMcpClient } = await load('agent-cli/src/workbench-production.mjs')
   const f = await store(t), sessions = await new EncryptedSessionStore({ root: path.join(f.root, 'sessions') }).initialize()
@@ -298,7 +307,7 @@ test('real Harness + production MCP + production Controller persist an actual NE
   const child = spawn(process.execPath, [path.join(productRoot, 'mcp/src/server.cjs')], { cwd: productRoot,
     env: { NODE_ENV: 'test', SystemRoot: process.env.SystemRoot, TEMP: process.env.TEMP, TMP: process.env.TMP,
       HENGZHUN_HARNESS_URL: f.url, HENGZHUN_SERVICE_TOKEN: token, HENGZHUN_MCP_TOKEN: 'isolated-mcp-token-at-least-32-characters', HENGZHUN_NAMESPACE: ns, HENGZHUN_MCP_PORT: port }, stdio: ['ignore', 'pipe', 'pipe'] })
-  let metadata, client, app
+  let metadata, client, app, sessionPersistence
   try {
     await new Promise((resolve, reject) => {
       const timer = setTimeout(() => reject(new Error('MCP_START_FAILED')), 15000)
@@ -310,6 +319,7 @@ test('real Harness + production MCP + production Controller persist an actual NE
     const { createWorkbenchApplication } = await load('agent-cli/src/workbench-application.mjs')
     const { ModelKeyStore } = await load('controller/src/model-key-store.mjs')
     const { EncryptedSessionStore } = await load('controller/src/session-store.mjs')
+    const { connectSessionPersistence } = await load('controller/src/session-persistence.mjs')
     const { createProductionService } = await load('agent-cli/src/production-service.mjs')
     const { observeMcpClient } = await load('agent-cli/src/workbench-production.mjs')
     const options = { url: `${reservation.url}/mcp`, token: 'isolated-mcp-token-at-least-32-characters' }
@@ -336,7 +346,8 @@ test('real Harness + production MCP + production Controller persist an actual NE
       assert.match(imported.attachmentRef, /^att_/)
       assert.equal(fs.existsSync(path.join(f.root, 'attachments', imported.attachmentRef)), true)
     } finally { await composed.close() }
-    const sessions = await new EncryptedSessionStore({ root: path.join(f.root, 'sessions') }).initialize()
+    sessionPersistence=await connectSessionPersistence(options)
+    const sessions = await new EncryptedSessionStore({ persistence:sessionPersistence }).initialize()
     app = createWorkbenchApplication({ metadata, keyStore: new ModelKeyStore({ root: path.join(f.root, 'keys') }), namespace: ns, identityFor: () => release,
       downloadArtifact: createArtifactProxy({client,harnessUrl:f.url}),
       readiness: async () => ({ status: 'READY' }), serviceFor: async config => createProductionService({
@@ -368,7 +379,7 @@ test('real Harness + production MCP + production Controller persist an actual NE
     assert.equal(f.app.database.read(db => db.prepare('SELECT count(*) n FROM runs').get()).n, 0)
     assert.equal(f.app.database.read(db => db.prepare('SELECT count(*) n FROM workbench_turns').get()).n, 1)
   } finally {
-    await app?.close(); if (!app) await metadata?.close(); await client?.close()
+    await app?.close(); if (!app) await metadata?.close(); await client?.close();await sessionPersistence?.close()
     if (child.exitCode === null && child.signalCode === null) await new Promise(resolve => { child.once('exit', resolve); child.kill() })
   }
 })

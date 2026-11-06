@@ -59,6 +59,22 @@ test('frozen metadata contract is exactly the generated strict producer contract
   }
 })
 
+test('metadata UTC timestamps require RFC3339 seconds and nullable cursors retain their meaning', () => {
+  const contract = JSON.parse(fs.readFileSync(path.join(productRoot, 'contracts/mcp/workbench-metadata-v1.json'), 'utf8'))
+  const timestamp = contract.tools.find(tool => tool.name === 'workbench_conversation_create').outputSchema.properties.createdAt
+  const conversation = { id: randomUUID(), title: '隔离测试', status: 'IDLE', createdAt: '2026-11-06T10:20:30Z', updatedAt: '2026-11-06T10:20:30Z', lastTurnId: null }
+  for (const [value, accepted] of [
+    ['2026-11-06T10:20:30Z', true], ['2026-11-06T10:20:30.123Z', true],
+    ['2026-11-06T10:20Z', false], ['2026-11-06T10:20:30', false], ['2026-02-30T10:20:30Z', false],
+  ]) {
+    assert.equal(workbenchOperations.workbench_conversation_create.output.safeParse({ ...conversation, createdAt: value }).success, accepted, value)
+    assert.equal(new RegExp(timestamp.pattern).test(value), accepted, value)
+  }
+  for (const [nextCursor, accepted] of [[null, true], ['cursor_next', true], [17, false]]) {
+    assert.equal(workbenchOperations.workbench_conversation_list.output.safeParse({ conversations: [conversation], nextCursor }).success, accepted)
+  }
+})
+
 test('044 upgrades a populated pre-044 SQLite and preserves old rows and migration checksums', async t => {
   const root = temporary(), migrationRoot = path.join(root, 'old-migrations')
   fs.mkdirSync(migrationRoot)
@@ -71,7 +87,7 @@ test('044 upgrades a populated pre-044 SQLite and preserves old rows and migrati
   const before = db.read(sql => sql.prepare('SELECT version,name,checksum FROM schema_migrations ORDER BY version').all())
   await db.close()
   db = await HarnessDatabase.open(options(root))
-  assert.equal(db.migrationStatus().appliedVersion, 44)
+  assert.equal(db.migrationStatus().appliedVersion, 45)
   assert.deepEqual(db.read(sql => sql.prepare('SELECT version,name,checksum FROM schema_migrations WHERE version<=43 ORDER BY version').all()), before)
   assert.equal(db.read(sql => sql.prepare("SELECT count(*) n FROM namespaces WHERE namespace='preserved-test'").get()).n, 1)
   assert.equal(fs.readdirSync(path.join(root, 'backups')).some(name => name.includes('pre-migration-44')), true)

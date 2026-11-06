@@ -1,0 +1,121 @@
+{
+  "status": "PASSED",
+  "scope": "LOCAL_SAME_XML_GEOMETRY_PREVIEWS_NOT_DRAWIO_NATIVE_EXPORT",
+  "asOf": "2026-11-06",
+  "views": [
+    {
+      "id": "01-use-cases",
+      "width": 1500,
+      "height": 850,
+      "texts": 12,
+      "paths": 6,
+      "straightPathSegments": true,
+      "clipped": [],
+      "overlappingLabels": [],
+      "nonempty": true
+    },
+    {
+      "id": "02-capability-comparison",
+      "width": 1500,
+      "height": 940,
+      "texts": 29,
+      "paths": 0,
+      "straightPathSegments": true,
+      "clipped": [],
+      "overlappingLabels": [],
+      "nonempty": true
+    },
+    {
+      "id": "03-bank-components",
+      "width": 1500,
+      "height": 860,
+      "texts": 18,
+      "paths": 7,
+      "straightPathSegments": true,
+      "clipped": [],
+      "overlappingLabels": [],
+      "nonempty": true
+    },
+    {
+      "id": "04-agent-components",
+      "width": 1600,
+      "height": 900,
+      "texts": 23,
+      "paths": 10,
+      "straightPathSegments": true,
+      "clipped": [],
+      "overlappingLabels": [],
+      "nonempty": true
+    },
+    {
+      "id": "05-transfer-sequence",
+      "width": 1500,
+      "height": 1020,
+      "texts": 21,
+      "paths": 13,
+      "straightPathSegments": true,
+      "clipped": [],
+      "overlappingLabels": [],
+      "nonempty": true
+    },
+    {
+      "id": "06-agent-sequence",
+      "width": 1820,
+      "height": 1120,
+      "texts": 24,
+      "paths": 15,
+      "straightPathSegments": true,
+      "clipped": [],
+      "overlappingLabels": [],
+      "nonempty": true
+    },
+    {
+      "id": "07-state-boundaries",
+      "width": 1600,
+      "height": 930,
+      "texts": 19,
+      "paths": 8,
+      "straightPathSegments": true,
+      "clipped": [],
+      "overlappingLabels": [],
+      "nonempty": true
+    },
+    {
+      "id": "08-domain-ownership",
+      "width": 1500,
+      "height": 850,
+      "texts": 17,
+      "paths": 6,
+      "straightPathSegments": true,
+      "clipped": [],
+      "overlappingLabels": [],
+      "nonempty": true
+    },
+    {
+      "id": "09-deployment",
+      "width": 1500,
+      "height": 900,
+      "texts": 19,
+      "paths": 7,
+      "straightPathSegments": true,
+      "clipped": [],
+      "overlappingLabels": [],
+      "nonempty": true
+    },
+    {
+      "id": "10-dependency-dsm",
+      "width": 1500,
+      "height": 940,
+      "texts": 104,
+      "paths": 0,
+      "straightPathSegments": true,
+      "clipped": [],
+      "overlappingLabels": [],
+      "nonempty": true
+    }
+  ],
+  "browser": "147.0.7727.15",
+  "externalRequests": 0,
+  "pageErrors": [],
+  "productDecision": "NO_GO"
+}

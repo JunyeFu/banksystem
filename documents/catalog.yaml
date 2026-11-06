@@ -4,7 +4,7 @@ implementationOrderAuthority: agent/plans/active/v54-implementation-batches.md
 generatedOutputRoot: deliverables
 generatedOutputsIndexedByRag: false
 normalizationSourceSet:
-  version: '2026-10-08'
+  version: '2026-11-06'
   status: DRAFT_LOCAL
   sourceRoot: docs/design/product-normalization
   sources:
@@ -14,8 +14,17 @@ normalizationSourceSet:
     TEST_PLAN_AND_REPORT: docs/design/product-normalization/verification.md
     RELEASE_AND_DEPLOYMENT: docs/design/product-normalization/delivery.md
     ACCEPTANCE_REPORT: docs/design/product-normalization/acceptance-and-handover.md
-    HANDOVER_PACKAGE: docs/design/product-normalization/acceptance-and-handover.md
-  note: Reviewed Markdown sources; rendered DOCX/PDF and final acceptance are not yet complete.
+    HANDOVER_PACKAGE: docs/design/product-normalization/handover.md
+  rendering:
+    draftsCreated: 7
+    draftOutputRoot: deliverables/normalization-20261106/verified-local
+    verifiedDocuments: 7
+    requiredDocumentTypes: 7
+    docxDelivered: true
+    reasonCode: LOCAL_DRAFTS_VISUALLY_REVIEWED_NOT_PRODUCT_ACCEPTANCE
+    renderer: USER_AUTHORIZED_WORD_READ_ONLY_WITH_BUNDLED_PDF_RASTERIZER
+    inspectedPages: 35
+  note: Seven current local DOCX drafts have passed every-page visual review and are delivered locally; the corrected initiation report is6 pages. This does not record user/institution acceptance or product release GO.
 documentTypes:
   - id: PROJECT_INITIATION
     name: 立项报告
@@ -24,31 +33,31 @@ documentTypes:
     outputPattern: 衡准自动化回归测试平台立项报告_*.docx
   - id: REQUIREMENTS_SPECIFICATION
     name: 需求规格说明书
-    status: PLANNED
+    status: DRAFT_LOCAL
     sourceRoots: [docs/current-state, docs/design, contracts]
     outputPattern: 衡准自动化回归测试平台需求规格说明书_*.docx
   - id: SYSTEM_DESIGN
     name: 系统设计说明书
-    status: PLANNED
+    status: DRAFT_LOCAL
     sourceRoots: [docs/architecture, docs/design, contracts]
     outputPattern: 衡准自动化回归测试平台系统设计说明书_*.docx
   - id: TEST_PLAN_AND_REPORT
     name: 测试方案与测试报告
-    status: PLANNED
+    status: DRAFT_LOCAL
     sourceRoots: [tests, docs/evidence, docs/architecture/v54-coze-harness-acceptance-matrix.md]
     outputPattern: 衡准自动化回归测试平台测试文书_*.docx
   - id: RELEASE_AND_DEPLOYMENT
     name: 发布与部署说明
-    status: PLANNED
+    status: DRAFT_LOCAL
     sourceRoots: [docs/operations, platform/hengzhun-regression-system]
     outputPattern: 衡准自动化回归测试平台发布部署说明_*.docx
   - id: ACCEPTANCE_REPORT
     name: 验收报告
-    status: PLANNED
+    status: DRAFT_LOCAL
     sourceRoots: [docs/evidence, docs/current-state, agent/backlog.yaml]
     outputPattern: 衡准自动化回归测试平台验收报告_*.docx
   - id: HANDOVER_PACKAGE
     name: 交付与运维交接文书
-    status: PLANNED
+    status: DRAFT_LOCAL
     sourceRoots: [docs/operations, docs/evidence, documents/catalog.yaml]
     outputPattern: 衡准自动化回归测试平台交付运维交接_*.docx

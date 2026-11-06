@@ -1,15 +1,55 @@
 package local.bank.channel;
 
+import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
+import java.util.List;
+import java.util.Map;
+import liquibase.ChecksumVersion;
 import liquibase.changelog.ChangeLogParameters;
 import liquibase.parser.core.yaml.YamlChangeLogParser;
 import liquibase.resource.ClassLoaderResourceAccessor;
 import org.junit.jupiter.api.Test;
+import org.yaml.snakeyaml.LoaderOptions;
+import org.yaml.snakeyaml.Yaml;
+import org.yaml.snakeyaml.constructor.SafeConstructor;
 
 class TransferReceiptSchemaContractTest {
+
+  @Test
+  void masterAndIncludedMigrationsRejectDuplicateYamlKeys() throws Exception {
+    var options = new LoaderOptions();
+    options.setAllowDuplicateKeys(false);
+    var yaml = new Yaml(new SafeConstructor(options));
+    Map<?, ?> master;
+    try (InputStream input = resource("db/changelog/db.changelog-master.yaml")) {
+      master = yaml.load(input);
+    }
+    for (Object entry : (List<?>) master.get("databaseChangeLog")) {
+      var include = (Map<?, ?>) ((Map<?, ?>) entry).get("include");
+      String path = (String) include.get("file");
+      try (InputStream input = resource(path)) {
+        assertDoesNotThrow(() -> { yaml.load(input); }, path);
+      }
+    }
+  }
+
+  @Test
+  void initialReceiptRetainsItsPreviouslyEffectiveMigrationChecksum() throws Exception {
+    try (ClassLoaderResourceAccessor resources = new ClassLoaderResourceAccessor()) {
+      var changeLog = new YamlChangeLogParser().parse(
+          "db/changelog/v1-initial-schema.yaml", new ChangeLogParameters(), resources);
+      var receipt = changeLog.getChangeSets().stream()
+          .filter(changeSet -> "v1-transfer-receipt".equals(changeSet.getId()))
+          .findFirst().orElseThrow();
+      // Captured before deduplication: char(64)/not-null; V8 performs the UUID/FK repair.
+      assertEquals("9:27e26966dc713618283f1f333221987d",
+          receipt.generateCheckSum(ChecksumVersion.V9).toString());
+    }
+  }
 
   @Test
   void masterChangelogParsesWithReceiptRepairIncluded() throws Exception {

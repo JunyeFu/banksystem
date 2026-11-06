@@ -6,7 +6,7 @@ import path from 'node:path'
 import test from 'node:test'
 import { fileURLToPath } from 'node:url'
 
-import { EncryptedSessionStore } from '../../controller/src/session-store.mjs'
+import { TestSessionStore as EncryptedSessionStore } from '../../controller/test/session-fixture.mjs'
 import { EncryptedOperationStore } from '../../controller/src/operation-store.mjs'
 import { createHarnessAttachmentImporter, createLazyEnvironmentService, createLocalCaptureLauncher, createProductionService } from '../src/production-service.mjs'
 
@@ -131,7 +131,7 @@ test('real CurrentUser DPAPI restores an exact pending approval into one offline
   assert.equal(pending.status, 'AWAITING_USER')
   assert.equal(mutations.length, 0)
 
-  const envelopeText = await readFile(path.join(root, `${SESSION}.hzs`), 'utf8')
+  const envelopeText = JSON.stringify(await store.persistence.load(SESSION))
   for (const secret of ['perform the bounded write', 'sensitive-offline-input', 'offline-tenant']) assert.equal(envelopeText.includes(secret), false)
   assert.equal(JSON.parse(envelopeText).cipher, 'WINDOWS_DPAPI_CURRENT_USER')
 

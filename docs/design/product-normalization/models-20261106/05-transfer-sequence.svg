@@ -1,0 +1,55 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1500" height="1020" viewBox="0 0 1500 1020">
+<defs><marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M1 1 L9 5 L1 9" fill="none" stroke="#66788d"/></marker></defs>
+<style>text{font-family:"Microsoft YaHei",sans-serif;fill:#23364e;font-size:14px}.edge-label{paint-order:stroke;stroke:white;stroke-width:5px;stroke-linejoin:round}</style><rect width="100%" height="100%" fill="white"/>
+<rect x="40.0" y="120.0" width="100.0" height="40" fill="#eaf1fa" stroke="#406894"/>
+<path d="M90.0 160.0 V900.0" stroke="#9da9b6" stroke-dasharray="5 4"/>
+<text data-cell="user" x="90.0" y="140.0" text-anchor="middle"><tspan x="90.0" dy="0">客户页面</tspan></text>
+<rect x="360.0" y="120.0" width="100.0" height="40" fill="#eaf1fa" stroke="#406894"/>
+<path d="M410.0 160.0 V900.0" stroke="#9da9b6" stroke-dasharray="5 4"/>
+<text data-cell="api" x="410.0" y="140.0" text-anchor="middle"><tspan x="410.0" dy="0">渠道API</tspan></text>
+<rect x="680.0" y="120.0" width="100.0" height="40" fill="#eaf1fa" stroke="#406894"/>
+<path d="M730.0 160.0 V900.0" stroke="#9da9b6" stroke-dasharray="5 4"/>
+<text data-cell="processor" x="730.0" y="140.0" text-anchor="middle"><tspan x="730.0" dy="0">转账处理器</tspan></text>
+<rect x="1000.0" y="120.0" width="100.0" height="40" fill="#eaf1fa" stroke="#406894"/>
+<path d="M1050.0 160.0 V900.0" stroke="#9da9b6" stroke-dasharray="5 4"/>
+<text data-cell="repo" x="1050.0" y="140.0" text-anchor="middle"><tspan x="1050.0" dy="0">渠道存储</tspan></text>
+<rect x="1320.0" y="120.0" width="100.0" height="40" fill="#eaf1fa" stroke="#406894"/>
+<path d="M1370.0 160.0 V900.0" stroke="#9da9b6" stroke-dasharray="5 4"/>
+<text data-cell="core" x="1370.0" y="140.0" text-anchor="middle"><tspan x="1370.0" dy="0">Fineract</tspan></text>
+<rect x="1045.0" y="260.0" width="10.0" height="50.0" rx="5" fill="#ffffff" stroke="#7d8ca0"/>
+<rect x="1045.0" y="410.0" width="10.0" height="50.0" rx="5" fill="#ffffff" stroke="#7d8ca0"/>
+<rect x="1365.0" y="510.0" width="10.0" height="50.0" rx="5" fill="#ffffff" stroke="#7d8ca0"/>
+<rect x="1365.0" y="610.0" width="10.0" height="50.0" rx="5" fill="#ffffff" stroke="#7d8ca0"/>
+<rect x="725.0" y="360.0" width="10.0" height="400.0" rx="5" fill="#ffffff" stroke="#7d8ca0"/>
+<rect x="405.0" y="210.0" width="10.0" height="600.0" rx="5" fill="#ffffff" stroke="#7d8ca0"/>
+<rect x="1045.0" y="710.0" width="10.0" height="150.0" rx="5" fill="#ffffff" stroke="#7d8ca0"/>
+<text data-cell="view-title" x="42.0" y="30.0" text-anchor="start" style="font-size:22px;font-weight:600"><tspan x="42.0" dy="0">转账时序｜提交权、核心调用与回读</tspan></text>
+<text data-cell="view-subtitle" x="42.0" y="85.0" text-anchor="start"><tspan x="42.0" dy="0">应用逻辑时序；省略认证握手/投影细节。每个TX独立提交，不跨网络持有本地事务</tspan></text>
+<text data-cell="view-note" x="42.0" y="955.0" text-anchor="start"><tspan x="42.0" dy="0">无领取权、5xx或网络故障不盲重发POST；明确4xx也先核原操作。页面超时但核心成功时，业务成功与测试失败可同时成立。</tspan></text>
+<path data-edge="m0" d="M90.0 210.012 L405.0 210.0" fill="none" stroke="#66788d" stroke-width="1.5" marker-end="url(#arrow)"/>
+<text class="edge-label" data-edge-label="m0" text-anchor="middle" x="247.5" y="201.006">目标参数 + 幂等键 + 关联号</text>
+<path data-edge="m1" d="M415.0 259.98 L1045.0 260.0" fill="none" stroke="#66788d" stroke-width="1.5" marker-end="url(#arrow)"/>
+<text class="edge-label" data-edge-label="m1" text-anchor="middle" x="730.0" y="250.99">受理并绑定原请求</text>
+<path data-edge="m2" d="M1045.0 310.0 L415.0 310.02" fill="none" stroke="#66788d" stroke-width="1.5" marker-end="url(#arrow)" stroke-dasharray="6 4"/>
+<text class="edge-label" data-edge-label="m2" text-anchor="middle" x="730.0" y="301.01">原/新操作ID</text>
+<path data-edge="m3" d="M415.0 360.0 L725.0 360.0" fill="none" stroke="#66788d" stroke-width="1.5" marker-end="url(#arrow)"/>
+<text class="edge-label" data-edge-label="m3" text-anchor="middle" x="570.0" y="351.0">处理已受理操作</text>
+<path data-edge="m4" d="M735.0 410.0 L1045.0 410.0" fill="none" stroke="#66788d" stroke-width="1.5" marker-end="url(#arrow)"/>
+<text class="edge-label" data-edge-label="m4" text-anchor="middle" x="890.0" y="401.0">TX1 校验、风险与领取提交权</text>
+<path data-edge="m5" d="M1045.0 460.0 L735.0 460.0" fill="none" stroke="#66788d" stroke-width="1.5" marker-end="url(#arrow)" stroke-dasharray="6 4"/>
+<text class="edge-label" data-edge-label="m5" text-anchor="middle" x="890.0" y="451.0">提交短事务；唯一领取结果</text>
+<path data-edge="m6" d="M735.0 510.0 L1365.0 510.0" fill="none" stroke="#66788d" stroke-width="1.5" marker-end="url(#arrow)"/>
+<text class="edge-label" data-edge-label="m6" text-anchor="middle" x="1050.0" y="501.0">有领取权才POST；原幂等键</text>
+<path data-edge="m7" d="M1365.0 560.0 L735.0 560.0" fill="none" stroke="#66788d" stroke-width="1.5" marker-end="url(#arrow)" stroke-dasharray="6 4"/>
+<text class="edge-label" data-edge-label="m7" text-anchor="middle" x="1050.0" y="551.0">核心ID / 明确拒绝 / 结果未知</text>
+<path data-edge="m8" d="M735.0 610.0 L1365.0 610.0" fill="none" stroke="#66788d" stroke-width="1.5" marker-end="url(#arrow)"/>
+<text class="edge-label" data-edge-label="m8" text-anchor="middle" x="1050.0" y="601.0">按原键/ID回读并匹配账户金额</text>
+<path data-edge="m9" d="M1365.0 660.0 L735.0 660.0" fill="none" stroke="#66788d" stroke-width="1.5" marker-end="url(#arrow)" stroke-dasharray="6 4"/>
+<text class="edge-label" data-edge-label="m9" text-anchor="middle" x="1050.0" y="651.0">已核事实 / 无法确认</text>
+<path data-edge="m10" d="M735.0 710.0 L1045.0 710.0" fill="none" stroke="#66788d" stroke-width="1.5" marker-end="url(#arrow)"/>
+<text class="edge-label" data-edge-label="m10" text-anchor="middle" x="890.0" y="701.0">TX2 核验后SETTLED；否则拒绝或UNKNOWN</text>
+<path data-edge="m11" d="M725.0 760.0 L415.0 760.02" fill="none" stroke="#66788d" stroke-width="1.5" marker-end="url(#arrow)" stroke-dasharray="6 4"/>
+<text class="edge-label" data-edge-label="m11" text-anchor="middle" x="570.0" y="751.01">业务状态与核心引用</text>
+<path data-edge="m12" d="M405.0 810.0 L90.0 809.988" fill="none" stroke="#66788d" stroke-width="1.5" marker-end="url(#arrow)" stroke-dasharray="6 4"/>
+<text class="edge-label" data-edge-label="m12" text-anchor="middle" x="247.5" y="800.994">原关联号结果回读</text>
+</svg>

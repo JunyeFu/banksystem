@@ -86,7 +86,8 @@ export function createAgentWorkbenchHandler({ workbench, origin }) {
       const input = match.input?.safeParse(raw)
       if (input && !input.success) throw new WorkbenchError('AGENT_REQUEST_INVALID', 400)
       if (!match.input && url.searchParams.size) throw new WorkbenchError('AGENT_QUERY_INVALID', 400)
-      const value = await workbench[match.operationId]({ ...params.data, ...(match.binaryInput ? raw : input?.data ?? {}) })
+      const value = await workbench[match.operationId]({ ...params.data, ...(match.binaryInput ? raw : input?.data ?? {}),
+        ...(match.binaryOutput?{signal:request.signal}:{}) })
       if (match.binaryOutput) {
         if (!Buffer.isBuffer(value?.bytes) || typeof value.filename !== 'string' || !/^[a-f0-9]{64}$/.test(value.sha256)) throw new WorkbenchError('AGENT_RESPONSE_INVALID', 500)
         return new Response(value.bytes, { status: 200, headers: { ...headers, 'content-type': 'application/octet-stream',

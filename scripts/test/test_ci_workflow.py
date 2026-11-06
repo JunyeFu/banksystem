@@ -12,6 +12,14 @@ WORKFLOW = yaml.load(SOURCE, Loader=yaml.BaseLoader)
 
 
 class ProductWorkflowTest(unittest.TestCase):
+    def test_demo_credentials_run_under_windows_powershell51_in_the_source_job(self):
+        job = WORKFLOW['jobs']['source-engineering']
+        self.assertEqual(job['runs-on'], 'windows-latest')
+        step = next(row for row in job['steps'] if row.get('name') == 'Verify demo credential preparation on Windows PowerShell 5.1')
+        self.assertIn('powershell.exe -NoProfile -NonInteractive', step['run'])
+        self.assertIn('-File scripts/test/test-demo-credentials.ps1', step['run'])
+        self.assertIn('if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }', step['run'])
+
     def test_source_engineering_installs_fixed_yaml_before_importing_scan_contracts(self):
         steps = WORKFLOW['jobs']['source-engineering']['steps']
         runs = '\n'.join(step.get('run', '') for step in steps)
@@ -84,7 +92,7 @@ class ProductWorkflowTest(unittest.TestCase):
 
     def test_quality_has_real_read_only_quality_commands_in_the_frontend_matrix(self):
         package = json.loads((ROOT / 'apps/quality-case-portal/package.json').read_text(encoding='utf-8'))
-        self.assertEqual(package['scripts']['lint'], 'eslint src vite.config.ts --max-warnings 0')
+        self.assertEqual(package['scripts']['lint'], 'eslint src vite.config.ts vite.agent.config.ts --max-warnings 0')
         self.assertEqual(package['scripts']['typecheck'], 'tsc --noEmit -p tsconfig.app.json && tsc --noEmit -p tsconfig.node.json')
         self.assertEqual(package['scripts']['test'], 'vitest run')
         steps = WORKFLOW['jobs']['frontend-build']['steps']

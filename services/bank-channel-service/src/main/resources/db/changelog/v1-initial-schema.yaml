@@ -265,12 +265,7 @@ databaseChangeLog:
                     nullable: false
               - column:
                   name: transfer_id
-                  type: uuid
-                  constraints:
-                    nullable: false
-                    unique: true
-                    references: transfer(transfer_id)
-                    foreignKeyName: fk_transfer_receipt_transfer
+                  # Preserve V1's effective definition; V8 repairs the UUID reference.
                   type: char(64)
                   constraints:
                     nullable: false

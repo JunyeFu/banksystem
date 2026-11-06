@@ -832,6 +832,15 @@ async function genericLocatorMatchesAction(page, locatorProposal, action) {
     terms);
 }
 
+async function waitForBusinessObservation(page, action) {
+  if (!action.pageObservation) return;
+  try {
+    await page.getByRole('columnheader', { name: ACCOUNT_FIELD_LABELS[action.pageObservation.fields[0]], exact: true }).first().waitFor({ state: 'visible', timeout: 30_000 });
+  } catch {
+    throw Object.assign(new Error('BANK_ACCOUNT_VIEW_NOT_READY'), { code: 'BANK_ACCOUNT_VIEW_NOT_READY' });
+  }
+}
+
 function isReadOnlyDetailNavigation(action) {
   const instruction = String(action?.instruction || '').trim();
   return action?.operation === 'click' &&
@@ -991,6 +1000,7 @@ async function executeI10MidsceneCandidate(claim, credential, options={}) {
   let genericNavigationBaseline = null;
   try {
     for (const action of claim.plan.actions) {
+      await waitForBusinessObservation(page, action);
       if(claim.validationFixture)assertBankValidationLease(claim);
       let visual = { invoked: false };
       let contextItem;
@@ -1391,6 +1401,7 @@ module.exports = {
   composeMidscenePrompt,
   requiresVisualLocator,
   genericLocatorMatchesAction,
+  waitForBusinessObservation,
   identityEvidenceMatches,
   requiresInteractiveLocator,
   withMidsceneLocateTimeout,

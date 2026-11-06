@@ -2,7 +2,7 @@ import assert from 'node:assert/strict'
 import { readFile } from 'node:fs/promises'
 import { createRequire } from 'node:module'
 import test from 'node:test'
-import { agentWorkbenchOpenApi, workbenchOperations } from '../src/workbench-contract.mjs'
+import { agentWorkbenchOpenApi, conversationSchema, workbenchOperations } from '../src/workbench-contract.mjs'
 import { createAgentWorkbenchHandler, WorkbenchError } from '../src/workbench-http.mjs'
 
 const { parse } = createRequire(new URL('../../package.json', import.meta.url))('yaml')
@@ -68,6 +68,24 @@ test('the frozen OpenAPI artifact is generated from the actual HTTP schemas', as
   assert.equal(JSON.stringify(artifact.paths['/models'].get.responses['200']).includes('apiKey'), false)
   for (const route of workbenchOperations.filter((route) => route.method !== 'GET')) {
     assert.deepEqual(artifact.paths[route.path][route.method.toLowerCase()].security, [{ LocalCsrf: [] }])
+  }
+})
+
+test('frozen UTC timestamps require RFC3339 seconds and history accepts null or string cursors', async () => {
+  const artifact = parse(await readFile(new URL('../../../../contracts/openapi/agent-workbench-api.yaml', import.meta.url), 'utf8'))
+  const timestamp = artifact.paths['/conversations'].post.responses['201'].content['application/json'].schema.properties.createdAt
+  for (const [value, accepted] of [
+    ['2026-11-06T10:20:30Z', true], ['2026-11-06T10:20:30.123Z', true],
+    ['2026-11-06T10:20Z', false], ['2026-11-06T10:20:30', false], ['2026-02-30T10:20:30Z', false],
+  ]) {
+    assert.equal(conversationSchema.safeParse({ ...conversation, createdAt: value }).success, accepted, value)
+    assert.equal(new RegExp(timestamp.pattern).test(value), accepted, value)
+  }
+  for (const [nextCursor, status] of [[null, 200], ['cursor_next', 200], [17, 500]]) {
+    const f = fixture({ listAgentConversations: async () => ({ conversations: [conversation], nextCursor }) })
+    const response = await f.handle(f.request('/conversations'))
+    assert.equal(response.status, status)
+    if (status === 200) assert.equal((await response.json()).nextCursor, nextCursor)
   }
 })
 

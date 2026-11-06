@@ -1,0 +1,39 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="930" viewBox="0 0 1600 930">
+<defs><marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M1 1 L9 5 L1 9" fill="none" stroke="#66788d"/></marker></defs>
+<style>text{font-family:"Microsoft YaHei",sans-serif;fill:#23364e;font-size:14px}.edge-label{paint-order:stroke;stroke:white;stroke-width:5px;stroke-linejoin:round}</style><rect width="100%" height="100%" fill="white"/>
+<rect x="50.0" y="180.0" width="260.0" height="90.0" rx="5" fill="#eaf1fa" stroke="#406894"/>
+<text data-cell="pending" x="180.0" y="220.0" text-anchor="middle"><tspan x="180.0" dy="0">PENDING_CORE_POSTING</tspan><tspan x="180.0" dy="20">尚未领取核心提交</tspan></text>
+<rect x="500.0" y="180.0" width="260.0" height="90.0" rx="5" fill="#eaf1fa" stroke="#406894"/>
+<text data-cell="claimed" x="630.0" y="220.0" text-anchor="middle"><tspan x="630.0" dy="0">PENDING_CLEARING</tspan><tspan x="630.0" dy="20">已领取，核心结果待核</tspan></text>
+<rect x="1000.0" y="180.0" width="260.0" height="90.0" rx="5" fill="#e6f2ef" stroke="#267368"/>
+<text data-cell="settled" x="1130.0" y="220.0" text-anchor="middle"><tspan x="1130.0" dy="0">SETTLED</tspan><tspan x="1130.0" dy="20">核心事实已核验</tspan></text>
+<rect x="500.0" y="420.0" width="260.0" height="90.0" rx="5" fill="#fff2da" stroke="#a97722"/>
+<text data-cell="unknown" x="630.0" y="460.0" text-anchor="middle"><tspan x="630.0" dy="0">CORE_RESULT_UNKNOWN</tspan><tspan x="630.0" dy="20">保留原键，只回读</tspan></text>
+<rect x="50.0" y="420.0" width="260.0" height="90.0" rx="5" fill="#f4f6f9" stroke="#7d8ca0"/>
+<text data-cell="failed" x="180.0" y="460.0" text-anchor="middle"><tspan x="180.0" dy="0">FAILED</tspan><tspan x="180.0" dy="20">明确拒绝且回读未成功</tspan></text>
+<rect x="50.0" y="670.0" width="260.0" height="90.0" rx="5" fill="#eaf1fa" stroke="#406894"/>
+<text data-cell="draft" x="180.0" y="710.0" text-anchor="middle"><tspan x="180.0" dy="0">DRAFT</tspan><tspan x="180.0" dy="20">文档当前版本</tspan></text>
+<rect x="500.0" y="670.0" width="260.0" height="90.0" rx="5" fill="#eaf1fa" stroke="#406894"/>
+<text data-cell="published" x="630.0" y="710.0" text-anchor="middle"><tspan x="630.0" dy="0">PUBLISHED</tspan><tspan x="630.0" dy="20">版本条件更新并递增</tspan></text>
+<rect x="1000.0" y="670.0" width="260.0" height="90.0" rx="5" fill="#eaf1fa" stroke="#406894"/>
+<text data-cell="archived" x="1130.0" y="710.0" text-anchor="middle"><tspan x="1130.0" dy="0">ARCHIVED</tspan><tspan x="1130.0" dy="20">不允许跳级或回退</tspan></text>
+<text data-cell="view-title" x="42.0" y="30.0" text-anchor="start" style="font-size:22px;font-weight:600"><tspan x="42.0" dy="0">状态图｜业务状态不等于测试结论</tspan></text>
+<text data-cell="view-subtitle" x="42.0" y="85.0" text-anchor="start"><tspan x="42.0" dy="0">UML状态常用子集；上半为转账核心收敛片段，下半为完整文档状态路径</tspan></text>
+<text data-cell="view-note" x="42.0" y="865.0" text-anchor="start"><tspan x="42.0" dy="0">上方混合标出矩阵允许边与核心处理主路径；UNKNOWN处理本身只回读，不因暂未查到转FAILED。另有风险/退汇/撤销状态未展开；文档陈旧版本或非法转换409。</tspan></text>
+<path data-edge="e-0" d="M310.0 225.0 L500.0 225.0" fill="none" stroke="#66788d" stroke-width="1.5" marker-end="url(#arrow)"/>
+<text class="edge-label" data-edge-label="e-0" text-anchor="middle" x="405.0" y="216.0">领取权</text>
+<path data-edge="e-1" d="M760.0 225.0 L1000.0 225.0" fill="none" stroke="#66788d" stroke-width="1.5" marker-end="url(#arrow)"/>
+<text class="edge-label" data-edge-label="e-1" text-anchor="middle" x="880.0" y="216.0">核验成功</text>
+<path data-edge="e-2" d="M630.0 270.0 L630.0 420.0" fill="none" stroke="#66788d" stroke-width="1.5" marker-end="url(#arrow)"/>
+<text class="edge-label" data-edge-label="e-2" text-anchor="middle" x="630.0" y="336.0">结果未知</text>
+<path data-edge="e-3" d="M723.75 420.0 L1036.25 270.0" fill="none" stroke="#66788d" stroke-width="1.5" marker-end="url(#arrow)"/>
+<text class="edge-label" data-edge-label="e-3" text-anchor="middle" x="880.0" y="336.0">原键核验</text>
+<path data-edge="e-4" d="M545.625 270.0 L264.375 420.0" fill="none" stroke="#66788d" stroke-width="1.5" marker-end="url(#arrow)"/>
+<text class="edge-label" data-edge-label="e-4" text-anchor="middle" x="405.0" y="336.0">明确拒绝</text>
+<path data-edge="e-5" d="M500.0 465.0 L310.0 465.0" fill="none" stroke="#66788d" stroke-width="1.5" marker-end="url(#arrow)"/>
+<text class="edge-label" data-edge-label="e-5" text-anchor="middle" x="405.0" y="456.0">矩阵允许</text>
+<path data-edge="e-6" d="M310.0 715.0 L500.0 715.0" fill="none" stroke="#66788d" stroke-width="1.5" marker-end="url(#arrow)"/>
+<text class="edge-label" data-edge-label="e-6" text-anchor="middle" x="405.0" y="706.0">当前version</text>
+<path data-edge="e-7" d="M760.0 715.0 L1000.0 715.0" fill="none" stroke="#66788d" stroke-width="1.5" marker-end="url(#arrow)"/>
+<text class="edge-label" data-edge-label="e-7" text-anchor="middle" x="880.0" y="706.0">当前version</text>
+</svg>

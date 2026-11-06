@@ -11,6 +11,10 @@ owner: Codex
 ---
 # Evidence
 
+## 2026-11-05 清理回执与只读编译接缝修复
+
+F09父子run绑定、v2清理资源结果、cleanupSha256与唯一验证器34项通过；原PowerShell清理函数无网络成功/失败两例通过。实机跟进修复停留/禁止语句误编click、账户字段观察上下文与遗漏导航，98项相关回归通过。H1c76996e…ca3e94d的S5真实只读完整通过，账户完整行与银行状态不变性有真实证据。见[回执](../../../../evidence/platform/agent-interview-repair-2026-11-05.md)。本轮不运行正式28项/性能资金清单，不将局部S5标为整体GO。
+
 ## 2026-10-09 P05 bounded Agent capacity source closure (not LIVE)
 
 Control refinement: S3 task admits the explicit AgentPerformance launcher and exact Harness paths before implementation; only hengzhun.harness is open. The suite command now uses the owned PowerShell credential/cleanup lifecycle. AgentPerformance prepares no five-user financial pool and runs A01 plus P05 only. The driver handles --performance rather than silently running A02-A07. Completed subset reports use PARTIAL, matching the existing report-admission contract; only the shared release verifier may produce GO.

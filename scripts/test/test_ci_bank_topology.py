@@ -10,6 +10,20 @@ SPEC.loader.exec_module(MODULE)
 
 
 class BankTopologyTest(unittest.TestCase):
+    def test_default_mq_authentication_uses_one_separate_credential_for_broker_and_channel_clients(self):
+        environment = {key: 'synthetic' for key in ('CHANNEL_DB_PASSWORD', 'FINERACT_USERNAME', 'FINERACT_PASSWORD', 'CLEARING_CALLBACK_SECRET', 'FINERACT_BASE_URL', 'FINERACT_TENANT', 'BANK_CUSTOMER_ISSUER_URI', 'BANK_CUSTOMER_JWK_SET_URI', 'BANK_INTERNAL_ISSUER_URI', 'BANK_INTERNAL_JWK_SET_URI', 'BANK_CHANNEL_PROFILES', 'APP_LOCALE', 'KEYCLOAK_ADMIN_USERNAME', 'KEYCLOAK_ADMIN_PASSWORD', 'POSTGRES_PASSWORD', 'FINERACT_DB_PASS', 'ACTIVEMQ_PASSWORD')}
+        environment['ACTIVEMQ_PASSWORD'] = 'synthetic-independent-mq-secret'
+        result = MODULE.topology(ROOT, Path('owned-synthetic'), 'rf065ciauth', environment)
+        self.assertEqual(result['services']['activemq'].get('environment', {}), {
+            'ACTIVEMQ_CONNECTION_USER': 'admin', 'ACTIVEMQ_CONNECTION_PASSWORD': 'synthetic-independent-mq-secret'})
+        for name in ('bank-channel-service', 'test-support-service'):
+            self.assertEqual(result['services'][name]['environment']['ACTIVEMQ_PASSWORD'], 'synthetic-independent-mq-secret')
+        config = MODULE.yaml.safe_load((ROOT / 'services/bank-channel-service/src/main/resources/application.yml').read_text(encoding='utf-8'))
+        self.assertEqual(config['spring']['activemq']['password'], '${ACTIVEMQ_PASSWORD}')
+        del environment['ACTIVEMQ_PASSWORD']
+        with self.assertRaisesRegex(KeyError, 'ACTIVEMQ_PASSWORD'):
+            MODULE.topology(ROOT, Path('owned-synthetic'), 'rf065ciauth', environment)
+
     def test_core_password_matches_observed_fresh_core_policy(self):
         password = MODULE.fineract_password()
         self.assertEqual(len(password), 40)
@@ -19,7 +33,7 @@ class BankTopologyTest(unittest.TestCase):
         self.assertTrue(all(left != right for left, right in zip(password, password[1:])))
 
     def test_owned_topology_has_no_original_network_or_secret_bind(self):
-        environment = {key: 'synthetic' for key in ('CHANNEL_DB_PASSWORD', 'FINERACT_USERNAME', 'FINERACT_PASSWORD', 'CLEARING_CALLBACK_SECRET', 'FINERACT_BASE_URL', 'FINERACT_TENANT', 'BANK_CUSTOMER_ISSUER_URI', 'BANK_CUSTOMER_JWK_SET_URI', 'BANK_INTERNAL_ISSUER_URI', 'BANK_INTERNAL_JWK_SET_URI', 'BANK_CHANNEL_PROFILES', 'APP_LOCALE', 'KEYCLOAK_ADMIN_USERNAME', 'KEYCLOAK_ADMIN_PASSWORD', 'POSTGRES_PASSWORD', 'FINERACT_DB_PASS')}
+        environment = {key: 'synthetic' for key in ('CHANNEL_DB_PASSWORD', 'FINERACT_USERNAME', 'FINERACT_PASSWORD', 'CLEARING_CALLBACK_SECRET', 'FINERACT_BASE_URL', 'FINERACT_TENANT', 'BANK_CUSTOMER_ISSUER_URI', 'BANK_CUSTOMER_JWK_SET_URI', 'BANK_INTERNAL_ISSUER_URI', 'BANK_INTERNAL_JWK_SET_URI', 'BANK_CHANNEL_PROFILES', 'APP_LOCALE', 'KEYCLOAK_ADMIN_USERNAME', 'KEYCLOAK_ADMIN_PASSWORD', 'POSTGRES_PASSWORD', 'FINERACT_DB_PASS', 'ACTIVEMQ_PASSWORD')}
         with tempfile.TemporaryDirectory() as directory:
             result = MODULE.topology(ROOT, Path(directory), 'rf065cisynthetic', environment)
         self.assertEqual(set(result['services']), set(MODULE.CORE + MODULE.CHANNEL))
@@ -50,7 +64,7 @@ class BankTopologyTest(unittest.TestCase):
 
     def test_linux_local_port_offset_applies_to_ports_and_frontend_issuer(self):
         ports = {name: (host + 1000, container) for name, (host, container) in MODULE.PORTS.items()}
-        environment = {key: 'synthetic' for key in ('CHANNEL_DB_PASSWORD', 'FINERACT_USERNAME', 'FINERACT_PASSWORD', 'CLEARING_CALLBACK_SECRET', 'FINERACT_BASE_URL', 'FINERACT_TENANT', 'BANK_CUSTOMER_ISSUER_URI', 'BANK_CUSTOMER_JWK_SET_URI', 'BANK_INTERNAL_ISSUER_URI', 'BANK_INTERNAL_JWK_SET_URI', 'BANK_CHANNEL_PROFILES', 'APP_LOCALE', 'KEYCLOAK_ADMIN_USERNAME', 'KEYCLOAK_ADMIN_PASSWORD', 'POSTGRES_PASSWORD', 'FINERACT_DB_PASS')}
+        environment = {key: 'synthetic' for key in ('CHANNEL_DB_PASSWORD', 'FINERACT_USERNAME', 'FINERACT_PASSWORD', 'CLEARING_CALLBACK_SECRET', 'FINERACT_BASE_URL', 'FINERACT_TENANT', 'BANK_CUSTOMER_ISSUER_URI', 'BANK_CUSTOMER_JWK_SET_URI', 'BANK_INTERNAL_ISSUER_URI', 'BANK_INTERNAL_JWK_SET_URI', 'BANK_CHANNEL_PROFILES', 'APP_LOCALE', 'KEYCLOAK_ADMIN_USERNAME', 'KEYCLOAK_ADMIN_PASSWORD', 'POSTGRES_PASSWORD', 'FINERACT_DB_PASS', 'ACTIVEMQ_PASSWORD')}
         result = MODULE.topology(ROOT, Path('owned'), 'rf065cisynthetic', environment, ports)
         for name, (host, container) in ports.items():
             self.assertEqual(result['services'][name]['ports'], [f'127.0.0.1:{host}:{container}'])

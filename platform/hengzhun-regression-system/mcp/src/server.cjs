@@ -5,6 +5,7 @@ const fs = require('node:fs')
 const path = require('node:path')
 const { projectJourneyEvidenceFields } = require('./journey-evidence-projection.cjs')
 const { createWorkbenchMetadataServer } = require('./workbench-metadata.cjs')
+const { createControllerSessionServer } = require('./controller-sessions.cjs')
 const {
   createShadowObserver,
   normalizeAuthoringSubmitRequest,
@@ -1295,8 +1296,8 @@ app.post('/mcp', async (request, response) => {
   }
 })
 
-app.post('/mcp/workbench', async (request, response) => {
-  const server = createWorkbenchMetadataServer({ namespace, requestHarness, textResult })
+for(const [endpoint,factory] of [['/mcp/workbench',createWorkbenchMetadataServer],['/mcp/sessions',createControllerSessionServer]])app.post(endpoint, async (request, response) => {
+  const server = factory({ namespace, requestHarness, textResult })
   const transport = new StreamableHTTPServerTransport({ sessionIdGenerator: undefined })
   try {
     await server.connect(transport)

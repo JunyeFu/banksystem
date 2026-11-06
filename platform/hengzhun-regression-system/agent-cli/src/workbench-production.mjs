@@ -4,6 +4,7 @@ import { createHash } from 'node:crypto'
 import { createRequire } from 'node:module'
 import { fileURLToPath } from 'node:url'
 import { EncryptedSessionStore } from '../../controller/src/session-store.mjs'
+import { connectSessionPersistence } from '../../controller/src/session-persistence.mjs'
 import { EncryptedOperationStore } from '../../controller/src/operation-store.mjs'
 import { ModelKeyStore } from '../../controller/src/model-key-store.mjs'
 import { connectMcpRuntime } from '../../controller/src/runtime-adapters.mjs'
@@ -52,8 +53,8 @@ export function observeMcpClient(client, observe) {
 export function createArtifactProxy({ client, harnessUrl, fetchFn = fetch }) {
   const base = new URL(harnessUrl)
   if (base.protocol !== 'http:' || base.hostname !== '127.0.0.1' || base.username || base.password) throw new WorkbenchError('AGENT_HARNESS_URL_INVALID', 400)
-  return async ({ artifactId }) => {
-    const response = await client.callTool({ name: 'artifact_download_grant', arguments: { artifactId } })
+  return async ({ artifactId, signal }) => {
+    const response = await client.callTool({ name: 'artifact_download_grant', arguments: { artifactId } },{signal})
     let grant
     try { grant = JSON.parse(response.content.find(item => item.type === 'text').text) } catch { throw new WorkbenchError('AGENT_ARTIFACT_GRANT_INVALID', 503) }
     if (response.isError || grant.artifactId !== artifactId || !/^[a-f0-9]{64}$/.test(grant.sha256) ||
@@ -63,7 +64,7 @@ export function createArtifactProxy({ client, harnessUrl, fetchFn = fetch }) {
     if (target.protocol !== 'http:' || !['127.0.0.1', 'localhost', '[::1]'].includes(target.hostname) ||
       target.username || target.password || target.search || target.hash || !/^\/v1\/i10\/artifacts\/download_[0-9a-f-]{36}$/.test(target.pathname)) throw new WorkbenchError('AGENT_ARTIFACT_GRANT_INVALID', 503)
     // Pin the configured loopback origin; never follow a grant/HTTP redirect to another destination.
-    const downloaded = await fetchFn(new URL(target.pathname, base), { redirect: 'error' })
+    const downloaded = await fetchFn(new URL(target.pathname, base), { redirect: 'error', signal })
     if (!downloaded.ok) throw new WorkbenchError('AGENT_ARTIFACT_DOWNLOAD_FAILED', 503)
     const chunks = []; let length = 0
     for await (const chunk of downloaded.body ?? []) {
@@ -85,10 +86,12 @@ export async function createEnvironmentWorkbench({ productRoot, env } = {}) {
   if (!path.isAbsolute(environment.HENGZHUN_AGENT_SESSION_ROOT || '')) throw new WorkbenchError('AGENT_SESSION_ROOT_REQUIRED', 400)
   const metadata = await connectWorkbenchMetadata({ url: environment.HENGZHUN_MCP_URL, token: environment.HENGZHUN_MCP_TOKEN })
   let client
+  let sessionPersistence
   try {
     client = await connectMcpRuntime({ url: environment.HENGZHUN_MCP_URL, token: environment.HENGZHUN_MCP_TOKEN })
     const sessionRoot = environment.HENGZHUN_AGENT_SESSION_ROOT
-    const sessionStore = await new EncryptedSessionStore({ root: sessionRoot }).initialize()
+    sessionPersistence = await connectSessionPersistence({url:environment.HENGZHUN_MCP_URL,token:environment.HENGZHUN_MCP_TOKEN})
+    const sessionStore = await new EncryptedSessionStore({ persistence:sessionPersistence }).initialize()
     const operationStore = await new EncryptedOperationStore({ root: path.join(sessionRoot, 'operations-v1') }).initialize()
     const keyStore = new ModelKeyStore({ root: path.join(sessionRoot, 'model-keys-v1') })
     const spec = JSON.parse(fs.readFileSync(path.join(root, 'agent-cli/managed-process-spec-v1.json'), 'utf8'))
@@ -120,9 +123,9 @@ export async function createEnvironmentWorkbench({ productRoot, env } = {}) {
         baseUrl: environment.HENGZHUN_MODEL_BASE_URL, apiKey: environment.HENGZHUN_MODEL_API_KEY })
       await app.setDefaultAgentModel({ modelId: profile.id, version: profile.version })
     }
-    return { ...app, async close() { await app.close(); await client.close() } }
+    return { ...app, async close() { await app.close(); await client.close(); await sessionPersistence.close() } }
   } catch (error) {
-    await metadata.close(); await client?.close()
+    await metadata.close(); await client?.close(); await sessionPersistence?.close()
     throw error
   }
 }

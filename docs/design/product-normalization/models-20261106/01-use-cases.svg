@@ -1,0 +1,31 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1500" height="850" viewBox="0 0 1500 850">
+<defs><marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M1 1 L9 5 L1 9" fill="none" stroke="#66788d"/></marker></defs>
+<style>text{font-family:"Microsoft YaHei",sans-serif;fill:#23364e;font-size:14px}.edge-label{paint-order:stroke;stroke:white;stroke-width:5px;stroke-linejoin:round}</style><rect width="100%" height="100%" fill="white"/>
+<circle cx="110.0" cy="207.0" r="9" fill="white" stroke="#7d8ca0"/><path d="M110.0 216.0 v25 m-20 -13 h40 m-20 13 l-18 20 m18 -20 l18 20" fill="none" stroke="#7d8ca0"/>
+<text data-cell="customer" x="110.0" y="278.0" text-anchor="middle"><tspan x="110.0" dy="0">合成客户</tspan></text>
+<circle cx="110.0" cy="567.0" r="9" fill="white" stroke="#7d8ca0"/><path d="M110.0 576.0 v25 m-20 -13 h40 m-20 13 l-18 20 m18 -20 l18 20" fill="none" stroke="#7d8ca0"/>
+<text data-cell="operator" x="110.0" y="638.0" text-anchor="middle"><tspan x="110.0" dy="0">运营人员</tspan></text>
+<circle cx="1220.0" cy="387.0" r="9" fill="white" stroke="#7d8ca0"/><path d="M1220.0 396.0 v25 m-20 -13 h40 m-20 13 l-18 20 m18 -20 l18 20" fill="none" stroke="#7d8ca0"/>
+<text data-cell="tester" x="1220.0" y="458.0" text-anchor="middle"><tspan x="1220.0" dy="0">测试人员</tspan></text>
+<ellipse cx="480.0" cy="215.0" rx="130.0" ry="45.0" fill="#eaf1fa" stroke="#406894"/>
+<text data-cell="bank-login" x="480.0" y="220.0" text-anchor="middle"><tspan x="480.0" dy="0">登录与查询账户</tspan></text>
+<ellipse cx="480.0" cy="395.0" rx="130.0" ry="45.0" fill="#eaf1fa" stroke="#406894"/>
+<text data-cell="bank-transfer" x="480.0" y="400.0" text-anchor="middle"><tspan x="480.0" dy="0">转账与交易回读</tspan></text>
+<ellipse cx="480.0" cy="575.0" rx="130.0" ry="45.0" fill="#eaf1fa" stroke="#406894"/>
+<text data-cell="bank-ops" x="480.0" y="580.0" text-anchor="middle"><tspan x="480.0" dy="0">审批、对账与文档</tspan></text>
+<ellipse cx="930.0" cy="215.0" rx="130.0" ry="45.0" fill="#eaf1fa" stroke="#406894"/>
+<text data-cell="agent-author" x="930.0" y="220.0" text-anchor="middle"><tspan x="930.0" dy="0">描述目标与执行测试</tspan></text>
+<ellipse cx="930.0" cy="395.0" rx="130.0" ry="45.0" fill="#fff2da" stroke="#a97722"/>
+<text data-cell="agent-schedule" x="930.0" y="400.0" text-anchor="middle"><tspan x="930.0" dy="0">固定脚本周期回归</tspan></text>
+<ellipse cx="930.0" cy="575.0" rx="130.0" ry="45.0" fill="#fff2da" stroke="#a97722"/>
+<text data-cell="agent-feedback" x="930.0" y="580.0" text-anchor="middle"><tspan x="930.0" dy="0">失败接管与反馈复验</tspan></text>
+<text data-cell="view-title" x="42.0" y="30.0" text-anchor="start" style="font-size:22px;font-weight:600"><tspan x="42.0" dy="0">用例图｜谁使用两个产品</tspan></text>
+<text data-cell="view-subtitle" x="42.0" y="85.0" text-anchor="start"><tspan x="42.0" dy="0">UML 用例常用子集；表示已接受需求，不表示这些用例已全部实测通过</tspan></text>
+<text data-cell="view-note" x="42.0" y="785.0" text-anchor="start"><tspan x="42.0" dy="0">银行业务状态、测试结论、Agent执行状态分开；验证码和经验改善的机构环境效果仍待真实验收。</tspan></text>
+<path data-edge="e-0" d="M160.0 232.2972972972973 L350.0 222.02702702702703" fill="none" stroke="#66788d" stroke-width="1.5"/>
+<path data-edge="e-1" d="M160.0 256.6216216216216 L375.9375 350.0" fill="none" stroke="#66788d" stroke-width="1.5"/>
+<path data-edge="e-2" d="M160.0 592.2972972972973 L350.0 582.027027027027" fill="none" stroke="#66788d" stroke-width="1.5"/>
+<path data-edge="e-3" d="M1170.0 380.51724137931035 L995.25 260.0" fill="none" stroke="#66788d" stroke-width="1.5"/>
+<path data-edge="e-4" d="M1170.0 411.55172413793105 L1060.0 403.9655172413793" fill="none" stroke="#66788d" stroke-width="1.5"/>
+<path data-edge="e-5" d="M1170.0 442.58620689655174 L1011.5625 530.0" fill="none" stroke="#66788d" stroke-width="1.5"/>
+</svg>

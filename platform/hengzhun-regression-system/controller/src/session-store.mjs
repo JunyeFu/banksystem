@@ -1,6 +1,6 @@
 import { createHash, randomBytes } from 'node:crypto'
 import { constants as fsConstants } from 'node:fs'
-import { mkdir, open, readFile, rename, rm } from 'node:fs/promises'
+import { mkdir, open, rename, rm } from 'node:fs/promises'
 import path from 'node:path'
 
 import { Dpapi, isPlatformSupported } from '@primno/dpapi'
@@ -135,59 +135,24 @@ function indexEntry(envelope) {
 
 export class EncryptedSessionStore {
   constructor({
-    root,
+    persistence,
     dpapi,
     now = () => Date.now(),
     retentionMs = DEFAULT_RETENTION_MS,
     sessionIdFactory = () => `session-${randomBytes(16).toString('hex')}`,
-    atomicWriter = atomicWriteFile,
   } = {}) {
-    if (!path.isAbsolute(String(root || ''))) throw new SessionStoreError('SESSION_ROOT_INVALID')
+    if (!persistence?.save || !persistence?.load || !persistence?.list) throw new SessionStoreError('SESSION_PERSISTENCE_REQUIRED')
     if (!Number.isInteger(retentionMs) || retentionMs < 60_000) throw new SessionStoreError('SESSION_RETENTION_INVALID')
-    this.root = path.resolve(root)
+    this.persistence = persistence
     this.dpapi = dpapi ?? defaultDpapi()
     this.now = now
     this.retentionMs = retentionMs
     this.sessionIdFactory = sessionIdFactory
-    this.atomicWriter = atomicWriter
-    this.indexPath = path.join(this.root, 'index-v1.json')
     this.mutationQueue = Promise.resolve()
   }
 
-  sessionPath(sessionId) {
-    return path.join(this.root, `${assertSessionId(sessionId)}.hzs`)
-  }
-
   async initialize() {
-    await mkdir(this.root, { recursive: true })
-    try { await readFile(this.indexPath) } catch (error) {
-      if (error?.code !== 'ENOENT') throw new SessionStoreError('SESSION_INDEX_READ_FAILED')
-      await this.#writeIndex([])
-    }
     return this
-  }
-
-  async #readIndex() {
-    let parsed
-    try { parsed = JSON.parse(await readFile(this.indexPath, 'utf8')) } catch {
-      throw new SessionStoreError('SESSION_INDEX_INVALID')
-    }
-    if (parsed?.schemaVersion !== INDEX_SCHEMA || !Array.isArray(parsed.sessions)) {
-      throw new SessionStoreError('SESSION_INDEX_INVALID')
-    }
-    return parsed.sessions
-  }
-
-  async #writeIndex(sessions) {
-    const document = { schemaVersion: INDEX_SCHEMA, sessions: [...sessions].sort((a, b) => b.updatedAt.localeCompare(a.updatedAt)) }
-    await this.atomicWriter(this.indexPath, Buffer.from(`${JSON.stringify(document, null, 2)}\n`, 'utf8'))
-  }
-
-  async #upsertIndex(envelope) {
-    const sessions = await this.#readIndex()
-    const next = sessions.filter((item) => item.sessionId !== envelope.sessionId)
-    next.push(indexEntry(envelope))
-    await this.#writeIndex(next)
   }
 
   #seal(payload) {
@@ -214,10 +179,9 @@ export class EncryptedSessionStore {
     })
   }
 
-  async #writePayload(payload) {
+  async #writePayload(payload, expectedRevision) {
     const envelope = this.#seal(payload)
-    await this.atomicWriter(this.sessionPath(payload.sessionId), Buffer.from(`${JSON.stringify(envelope, null, 2)}\n`, 'utf8'))
-    await this.#upsertIndex(envelope)
+    await this.persistence.save(envelope, expectedRevision)
     return indexEntry(envelope)
   }
 
@@ -242,17 +206,18 @@ export class EncryptedSessionStore {
       checkpointSnapshot: null,
       proposalArguments: {},
     }
-    await this.#writePayload(payload)
+    await this.#writePayload(payload, 0)
     return Object.freeze({ sessionId, revision: 1, status: 'ACTIVE' })
   }
 
   async load(sessionId, { expectedReleaseIdentityHash, expectedNamespace, expectedThreadId, expectedJourneyId, allowExpired = false } = {}) {
     let envelope
-    try { envelope = validateEnvelope(JSON.parse(await readFile(this.sessionPath(sessionId), 'utf8'))) } catch (error) {
+    try { envelope = validateEnvelope(await this.persistence.load(assertSessionId(sessionId))) } catch (error) {
       if (error instanceof SessionStoreError) throw error
       if (error?.code === 'ENOENT') throw new SessionStoreError('SESSION_NOT_FOUND')
       throw new SessionStoreError('SESSION_ENVELOPE_INVALID')
     }
+    if(envelope.sessionId !== sessionId)throw new SessionStoreError('SESSION_BINDING_HASH_MISMATCH')
     if (expectedReleaseIdentityHash && envelope.releaseIdentityHash !== expectedReleaseIdentityHash) {
       throw new SessionStoreError('SESSION_RELEASE_IDENTITY_CONFLICT')
     }
@@ -278,17 +243,19 @@ export class EncryptedSessionStore {
     return structuredClone(payload)
   }
 
-  async update(sessionId, expectedReleaseIdentityHash, mutator) {
+  async update(sessionId, expectedReleaseIdentityHash, mutator, expectedRevision) {
     const operation = this.mutationQueue.then(async () => {
       const payload = await this.load(sessionId, { expectedReleaseIdentityHash })
       const originalRevision = payload.revision
+      const requiredRevision=typeof expectedRevision==='function'?expectedRevision():expectedRevision
+      if(requiredRevision !== undefined && requiredRevision !== originalRevision)throw new SessionStoreError('SESSION_REVISION_CONFLICT')
       const next = await mutator(structuredClone(payload))
       if (!next || next.sessionId !== sessionId || next.revision !== originalRevision) {
         throw new SessionStoreError('SESSION_UPDATE_INVALID')
       }
       next.revision += 1
       next.updatedAt = new Date(this.now()).toISOString()
-      await this.#writePayload(next)
+      await this.#writePayload(next, originalRevision)
       return structuredClone(next)
     })
     this.mutationQueue = operation.catch(() => undefined)
@@ -302,16 +269,16 @@ export class EncryptedSessionStore {
     })
   }
 
-  async setCheckpointSnapshot(sessionId, releaseIdentityHash, snapshot) {
+  async setCheckpointSnapshot(sessionId, releaseIdentityHash, snapshot, expectedRevision) {
     return this.update(sessionId, releaseIdentityHash, (payload) => {
       payload.checkpointSnapshot = structuredClone(snapshot)
       return payload
-    })
+    }, expectedRevision)
   }
 
   async putProposalArguments(sessionId, releaseIdentityHash, proposalId, args) {
     assertString(proposalId, 'SESSION_PROPOSAL_ID_INVALID')
-    await this.update(sessionId, releaseIdentityHash, (payload) => {
+    return this.update(sessionId, releaseIdentityHash, (payload) => {
       payload.proposalArguments[proposalId] = structuredClone(args)
       return payload
     })
@@ -323,7 +290,7 @@ export class EncryptedSessionStore {
   }
 
   async deleteProposalArguments(sessionId, releaseIdentityHash, proposalId) {
-    await this.update(sessionId, releaseIdentityHash, (payload) => {
+    return this.update(sessionId, releaseIdentityHash, (payload) => {
       delete payload.proposalArguments[proposalId]
       return payload
     })
@@ -365,22 +332,17 @@ export class EncryptedSessionStore {
   }
 
   async list() {
-    return Object.freeze((await this.#readIndex()).map((item) => Object.freeze({ ...item })))
+    const sessions=[]
+    let cursor
+    do {
+      const page=await this.persistence.list(cursor?{cursor}:{})
+      sessions.push(...page.sessions);cursor=page.nextCursor
+    } while(cursor)
+    return Object.freeze(sessions.sort((a,b)=>b.updatedAt.localeCompare(a.updatedAt)).map(item=>Object.freeze({...item})))
   }
 
   async purgeExpired() {
-    const sessions = await this.#readIndex()
-    const retained = []
-    let deleted = 0
-    for (const entry of sessions) {
-      if (this.now() < Date.parse(entry.expiresAt)) retained.push(entry)
-      else {
-        await rm(this.sessionPath(entry.sessionId), { force: true })
-        deleted += 1
-      }
-    }
-    await this.#writeIndex(retained)
-    return deleted
+    return (await this.persistence.purge(new Date(this.now()).toISOString())).deleted
   }
 }
 
@@ -393,12 +355,12 @@ export function createInMemoryProposalVault() {
   })
 }
 
-export function createSessionProposalVault({ store, sessionId, releaseIdentityHash }) {
+export function createSessionProposalVault({ store, sessionId, releaseIdentityHash, onMutation }) {
   return Object.freeze({
-    put: (proposalId, args) => store.putProposalArguments(sessionId, releaseIdentityHash, proposalId, args),
+    async put(proposalId,args) { const saved=await store.putProposalArguments(sessionId,releaseIdentityHash,proposalId,args);onMutation?.(saved) },
     get: (proposalId) => store.getProposalArguments(sessionId, releaseIdentityHash, proposalId),
-    delete: (proposalId) => store.deleteProposalArguments(sessionId, releaseIdentityHash, proposalId),
+    async delete(proposalId) { const saved=await store.deleteProposalArguments(sessionId,releaseIdentityHash,proposalId);onMutation?.(saved) },
   })
 }
 
-export { CIPHER, DEFAULT_RETENTION_MS, ENVELOPE_SCHEMA, INDEX_SCHEMA, PAYLOAD_SCHEMA }
+export { CIPHER, DEFAULT_RETENTION_MS, ENVELOPE_SCHEMA, INDEX_SCHEMA, PAYLOAD_SCHEMA, validateEnvelope, validatePayload, defaultDpapi, entropy, indexEntry }

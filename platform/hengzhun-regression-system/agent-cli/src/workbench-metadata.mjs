@@ -13,9 +13,9 @@ export async function connectWorkbenchMetadata({ url, token }) {
   })
   try { await client.connect(transport) } catch { await transport.close(); throw new WorkbenchError('AGENT_METADATA_UNAVAILABLE', 503) }
   return {
-    async call(name, args = {}) {
+    async call(name, args = {}, options) {
       let result
-      try { result = await client.callTool({ name: `workbench_${name}`, arguments: args }) }
+      try { result = await client.callTool({ name: `workbench_${name}`, arguments: args }, undefined, options) }
       catch { throw new WorkbenchError('AGENT_METADATA_UNAVAILABLE', 503) }
       const blocks = result?.content?.filter(item => item.type === 'text')
       let value

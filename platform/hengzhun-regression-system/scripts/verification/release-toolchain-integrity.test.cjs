@@ -201,8 +201,14 @@ test('Stage9 discovers an arbitrary repository root and includes non-ignored unt
     childProcess.execFileSync('git.exe', ['-c', 'core.autocrlf=false', '-C', repositoryRoot, 'add', '.gitignore', 'one/two/product/harness/src/tracked.js'], { windowsHide: true })
 
     const context = stage9.discoverRepositoryContext(nestedProduct)
-    assert.equal(path.resolve(context.repoRoot), path.resolve(repositoryRoot))
+    assert.equal(context.repoRoot, fs.realpathSync.native(repositoryRoot))
+    assert.equal(context.productRoot, fs.realpathSync.native(nestedProduct))
     assert.equal(context.productRepoPath, 'one/two/product')
+    const outside = path.join(temporaryRoot, 'outside')
+    fs.mkdirSync(outside)
+    assert.throws(() => stage9.discoverRepositoryContext(outside, {
+      run: () => ({ status: 0, stdout: repositoryRoot }),
+    }), /I10_S9_PRODUCT_OUTSIDE_GIT_ROOT/)
     const files = stage9.worktreeFilesFor(['harness/src'], context)
       .map(file => posix(path.relative(context.repoRoot, path.join(context.repoRoot, ...file.split('/')))))
     assert.ok(files.includes('one/two/product/harness/src/tracked.js'))

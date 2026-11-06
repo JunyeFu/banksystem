@@ -489,7 +489,10 @@ test('candidate DSL version migration preserves populated old records, reference
   assert.deepEqual(db.pragma('foreign_key_check'),[]);
   assert.throws(()=>db.prepare("UPDATE i8_script_candidates SET dsl_json='{}' WHERE candidate_id='candidate_rf057'").run(),/I8_SCRIPT_CANDIDATE_IMMUTABLE/);
   assert.throws(()=>db.prepare("DELETE FROM i8_script_candidates WHERE candidate_id='candidate_rf057'").run(),/I8_SCRIPT_CANDIDATE_IMMUTABLE/);
-  assert.equal(f.database.migrationStatus().appliedVersion,44);
+  const expectedVersions=fs.readdirSync(currentMigrations).filter(name=>/^\d+_.+\.sql$/.test(name))
+    .map(name=>Number(name.split('_')[0])).sort((a,b)=>a-b);
+  assert.deepEqual(db.prepare('SELECT version FROM schema_migrations ORDER BY version').all().map(row=>row.version),expectedVersions);
+  assert.equal(f.database.migrationStatus().appliedVersion,Math.max(...expectedVersions));
 });
 
 for(const assertionCorrection of [false,true])test(`authoring matches only verified scoped experience and proves completed candidate consumption (${assertionCorrection?'assertion':'locator'})`,async t=>{

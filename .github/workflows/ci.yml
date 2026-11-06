@@ -29,6 +29,10 @@ jobs:
         run: |
           python -m pip install PyYAML==6.0.3
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+      - name: Verify demo credential preparation on Windows PowerShell 5.1
+        run: |
+          powershell.exe -NoProfile -NonInteractive -ExecutionPolicy Bypass -File scripts/test/test-demo-credentials.ps1 -OutputDirectory "$env:RUNNER_TEMP/banksystem-demo-credentials"
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
       - name: Prepare fixed verified security tools
         run: |
           ./scripts/deploy/prepare-ci-security-tools.ps1 -OutputPath "$env:GITHUB_WORKSPACE/banksystem-rf065/engineering/tools"

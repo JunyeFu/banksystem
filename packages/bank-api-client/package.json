@@ -11,6 +11,6 @@
     "generate": "openapi-typescript ../../contracts/openapi/customer-api.yaml -o src/generated/customer.ts && openapi-typescript ../../contracts/openapi/operations-api.yaml -o src/generated/operations.ts",
     "test": "vitest run"
   },
-  "devDependencies": { "openapi-typescript": "7.13.0", "vite": "7.3.6", "vitest": "4.1.11" },
+  "devDependencies": { "openapi-typescript": "7.13.0", "vite": "7.3.7", "vitest": "4.1.12" },
   "overrides": { "@redocly/openapi-core": { "js-yaml": "4.3.2" } }
 }

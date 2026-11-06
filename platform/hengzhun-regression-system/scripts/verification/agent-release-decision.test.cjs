@@ -89,11 +89,24 @@ test('unbound source cannot consult the ledger', async () => {
   assert.equal(ledgerCalled, false)
 })
 
-test('default DPAPI drill performs real CurrentUser restart under bundled Node 24', () => {
+test('DPAPI primitive probe restores in a fresh CurrentUser Node 24 process without a file session store', () => {
   const executable = path.join(root, 'runtime', 'node-v24.19.0-win-x64', 'node.exe')
-  const source = `require('./scripts/i10-agent-release-decision.cjs').runDpapiRestoreDrill({releaseIdentityHash:'${IDENTITY}'}).then(v=>{if(v.status!=='RESTORED'||v.releaseIdentityHash!=='${IDENTITY}')process.exit(2)}).catch(e=>{console.error(e.code||e.message);process.exit(1)})`
+  const source = `require('./scripts/i10-agent-release-decision.cjs').runDpapiRestoreDrill({releaseIdentityHash:'${IDENTITY}'}).then(v=>{if(v.status!=='RESTORED'||v.releaseIdentityHash!=='${IDENTITY}'||v.restoreScope!=='DPAPI_PRIMITIVE_NEW_PROCESS')process.exit(2)}).catch(e=>{console.error(e.code||e.message);process.exit(1)})`
   const result = childProcess.spawnSync(executable, ['-e', source], { cwd: root, encoding: 'utf8', windowsHide: true })
   assert.equal(result.status, 0, result.stderr)
+})
+
+test('a fresh-process DPAPI decrypt failure cannot report restored', async t => {
+  const fixture = fs.mkdtempSync(path.join(os.tmpdir(), 'hengzhun-dpapi-negative-'))
+  t.after(() => fs.rmSync(fixture, { recursive: true, force: true }))
+  const directory = path.join(fixture, 'controller', 'src')
+  fs.mkdirSync(directory, { recursive: true })
+  fs.writeFileSync(path.join(directory, 'session-store.mjs'), `export const defaultDpapi=()=>({
+    protect:()=>Buffer.from('synthetic-ciphertext-only'),
+    unprotect:()=>{throw new Error('synthetic child decrypt failure')}
+  })`)
+  await assert.rejects(release.runDpapiRestoreDrill({ root: fixture, releaseIdentityHash: IDENTITY }),
+    error => error.code === 'AGENT_RELEASE_DPAPI_RESTORE_MISMATCH')
 })
 
 test('release decision source has no Flowise route, auto approval or human GO writer', () => {

@@ -140,7 +140,7 @@ test('A02 latest valid evidence cannot conceal an older admitted invalid money o
   const verifier=new ReleaseVerification(f.database,f.root,IDENTITY,()=>IDENTITY,financialProof);
   await verifier.register(f.reportPath);
   const report=structuredClone(f.report);report.runId=crypto.randomUUID();report.cases[0].assertions=financialFacts();
-  const nextPath=`agent/runs/rf057-agent/${report.runId}/report.json`;f.write(nextPath,report);await verifier.register(nextPath);
+  const nextPath=`agent/runs/rf057-agent/${report.runId}/report.json`;f.bindCleanup(report);f.write(nextPath,report);await verifier.register(nextPath);
   assert.equal((await verifier.verify()).decision,'NO_GO');
 });
 
@@ -177,15 +177,48 @@ async function fixture(t, assertions, caseId='B07', evidenceClass='LIVE_BANK') {
   const runId=crypto.randomUUID(), cleanupId=crypto.randomUUID().replaceAll('-','');
   const reportPath=`agent/runs/${evidenceClass==='LIVE_AGENT'?'rf057-agent':'rf057'}/${runId}/report.json`;
   const cleanupRef=`agent/runs/rf057-cleanup/${cleanupId}.json`;
-  write(cleanupRef,{status:'COMPLETED'});
+  const cleanup={schemaVersion:'rf057-identity-cleanup/v2',cleanupId,runId,releaseIdentityHash:IDENTITY,status:'COMPLETED',
+    createdAt:new Date().toISOString(),ownedResources:[],results:[],failures:[]};
+  write(cleanupRef,cleanup);
   const report={schemaVersion:'bank-agent-acceptance-report/v1',suite:suite.suite,runId,
     releaseIdentityHash:IDENTITY,suiteSha256:digest(JSON.stringify(suite)),finishedAt:new Date().toISOString(),
-    cleanupRef,status:'PARTIAL',artifacts:[],cases:[{id:caseId,evidenceClass,status:'PASSED',assertions}]};
+    cleanupRef,cleanupSha256:digest(JSON.stringify(cleanup)),status:'PARTIAL',artifacts:[],cases:[{id:caseId,evidenceClass,status:'PASSED',assertions}]};
   write(reportPath,report);
   let current=IDENTITY;
   const verifier=new ReleaseVerification(database,root,IDENTITY,()=>current,()=>{throw Error('No Agent proof in bank fixture');});
-  return {root,database,write,report,reportPath,cleanupRef,verifier,setIdentity:value=>{current=value;}};
+  const bindCleanup=report=>{
+    const id=crypto.randomUUID().replaceAll('-','');
+    const next={...cleanup,cleanupId:id,runId:report.runId};
+    report.cleanupRef=`agent/runs/rf057-cleanup/${id}.json`;report.cleanupSha256=digest(JSON.stringify(next));write(report.cleanupRef,next);
+  };
+  return {root,database,write,report,reportPath,cleanupRef,cleanup,bindCleanup,verifier,setIdentity:value=>{current=value;}};
 }
+
+test('cleanup ownership, completeness and digest are enforced together',async t=>{
+  for(const mutate of [c=>{c.runId=crypto.randomUUID()},c=>{c.releaseIdentityHash='b'.repeat(64)},c=>{delete c.schemaVersion},
+    c=>{c.failures=['NOT_REMOVED']},c=>{c.ownedResources=[{kind:'KEYCLOAK_USER',ref:'synthetic:user'}]},
+    c=>{c.results=[{kind:'KEYCLOAK_USER',ref:'unowned',status:'REMOVED'}]}]){
+    const f=await fixture(t,{status:'FAILED',noMoneyMovement:true,balances:{before:{source:'10000',target:'20000'},after:{source:'10000',target:'20000'}}});
+    const c=structuredClone(f.cleanup);mutate(c);f.write(f.cleanupRef,c);
+    f.report.cleanupSha256=digest(JSON.stringify(c));f.write(f.reportPath,f.report);
+    await assert.rejects(f.verifier.register(f.reportPath));
+  }
+});
+
+test('a registered report detects later cleanup changes',async t=>{
+  const f=await fixture(t,{status:'FAILED',noMoneyMovement:true,balances:{before:{source:'10000',target:'20000'},after:{source:'10000',target:'20000'}}});
+  await f.verifier.register(f.reportPath);
+  f.write(f.cleanupRef,{...f.cleanup,createdAt:new Date(Date.now()+1000).toISOString()});
+  await assert.rejects(f.verifier.verify(),e=>e.errorCode==='RELEASE_CLEANUP_BINDING_MISMATCH');
+});
+
+test('the actual required 28-case suite cannot get GO from one valid case',async t=>{
+  const f=await fixture(t,{status:'FAILED',noMoneyMovement:true,balances:{before:{source:'10000',target:'20000'},after:{source:'10000',target:'20000'}}});
+  const suite=JSON.parse(fs.readFileSync(path.resolve(__dirname,'../../../../scripts/test/rf057/suite.json'),'utf8'));
+  f.write('scripts/test/rf057/suite.json',suite);f.report.suiteSha256=digest(JSON.stringify(suite));f.write(f.reportPath,f.report);
+  await f.verifier.register(f.reportPath);const decision=await f.verifier.verify();
+  assert.equal(decision.required,28);assert.equal(decision.decision,'NO_GO');assert.equal(decision.passed,1);
+});
 
 test('a PASSED label cannot admit an insufficient-funds case that moved money',async t=>{
   const f=await fixture(t,{status:'FAILED',noMoneyMovement:false});

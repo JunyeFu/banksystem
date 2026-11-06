@@ -9,7 +9,7 @@ scope:
   excludePaths: [postgresql, infra/keycloak, platform/hengzhun-regression-system/flowise]
 budgets: {maxChangedFiles: 70, maxNewFiles: 45, maxChangedLines: 8000, maxContractsChanged: 4, maxMigrationsAdded: 0, maxOpenModules: 2}
 baseline: {gitCommit: 552b3b8ac517bd5991bff446e72d9f4e87ea9543, dirtyTreeManifest: docs/architecture/refactoring/batches/RF-057/baseline.md, releaseIdentity: bf0b7ed3858e0dbb3c4fa3a504c27c3c938b174acf56f69ade79886ad43a60be, capturedAt: '2026-09-28T15:50:00+08:00'}
-architecture: {businessCapability: real-product-acceptance, publicContract: contracts/openapi/operations-api.yaml, dependencyManifest: docs/architecture/refactoring/module-boundaries-v1.yaml, allowedModules: [hengzhun.harness], forbiddenModules: []}
+architecture: {businessCapability: real-product-acceptance, publicContract: contracts/openapi/operations-api.yaml, dependencyManifest: docs/architecture/refactoring/module-boundaries-v1.yaml, allowedModules: [hengzhun.harness, hengzhun.worker], forbiddenModules: []}
 mustPreserve: [Fineract is the only accounting truth, live tests have no response mocks, keep services and volumes running, existing credentials never enter reports, historical evidence is immutable]
 verification:
   requiredCommands:

@@ -1,0 +1,162 @@
+{
+  "asOf": "2026-11-06",
+  "scope": "CURRENT_SOURCE_MODEL_NOT_DEPLOYMENT_OR_LIVE_ACCEPTANCE",
+  "sources": {
+    "requirements": ["docs/design/product-normalization/requirements.md", "UC-A01"],
+    "transfer": ["services/bank-channel-service/src/main/java/local/bank/channel/payments/TransferProcessor.java", "claimCoreSubmission"],
+    "state": ["services/bank-channel-service/src/main/java/local/bank/channel/payments/statemachine/TransferStateMachine.java", "CORE_RESULT_UNKNOWN"],
+    "loan": ["services/bank-channel-service/src/main/java/local/bank/channel/FineractLoanPort.java", "command.annualInterestRate().divide"],
+    "reconciliation": ["services/bank-channel-service/src/main/java/local/bank/channel/reconciliation/ReconciliationService.java", "coreTransactionId()"],
+    "eod": ["services/bank-channel-service/src/main/java/local/bank/channel/operations/EodCoordinator.java", "CORE_JOB_OUTCOME_UNKNOWN"],
+    "document": ["services/bank-channel-service/src/main/java/local/bank/channel/documents/OperationsDocumentService.java", "repository.transition(id,current,next,version)"],
+    "controller": ["platform/hengzhun-regression-system/agent-cli/src/production-service.mjs", "createPersistentControllerRuntimeV2"],
+    "workbench": ["platform/hengzhun-regression-system/agent-cli/src/workbench-production.mjs", "connectSessionPersistence"],
+    "metadata": ["platform/hengzhun-regression-system/harness/src/workbench-repository.ts", "model_binding_json"],
+    "session": ["platform/hengzhun-regression-system/controller/src/session-persistence.mjs", "expectedRevision"],
+    "worker": ["platform/hengzhun-regression-system/worker/src/i10-midscene-candidate-authoring.cjs", "I10_MIDSCENE_MAX_LOCATE_ATTEMPTS = 1"],
+    "release": ["platform/hengzhun-regression-system/harness/src/release-verification.ts", "INSERT INTO release_verifications"],
+    "quality": ["platform/hengzhun-regression-system/harness/src/quality-read-model.ts", "releaseBlocked"],
+    "demo": ["demo.ps1", "scripts\\test\\rf057-report.mjs"],
+    "compose": ["compose.channel.yaml", "bank-channel-service:"],
+    "core-compose": ["postgresql/docker-compose.isolated.yml", "admin-tools"],
+    "source-gate": ["docs/architecture/refactoring/batches/RF-065/ci-complete-20261105.md", "registered841/841"],
+    "capacity": ["docs/architecture/refactoring/batches/RF-064/readonly-capacity-20261106.md", "ReadOnlyCapacity"]
+  },
+  "views": [
+    {
+      "id": "01-use-cases", "title": "用例图｜谁使用两个产品", "type": "graph", "width": 1500, "height": 850,
+      "subtitle": "UML 用例常用子集；表示已接受需求，不表示这些用例已全部实测通过", "refs": ["requirements"],
+      "nodes": [
+        ["customer", "合成客户", 60, 190, "actor", "neutral"], ["operator", "运营人员", 60, 550, "actor", "neutral"], ["tester", "测试人员", 1170, 370, "actor", "neutral"],
+        ["bank-login", "登录与查询账户", 350, 170, "usecase", "code"], ["bank-transfer", "转账与交易回读", 350, 350, "usecase", "code"], ["bank-ops", "审批、对账与文档", 350, 530, "usecase", "code"],
+        ["agent-author", "描述目标与执行测试", 800, 170, "usecase", "code"], ["agent-schedule", "固定脚本周期回归", 800, 350, "usecase", "pending"], ["agent-feedback", "失败接管与反馈复验", 800, 530, "usecase", "pending"]
+      ],
+      "edges": [["customer","bank-login","","association"],["customer","bank-transfer","","association"],["operator","bank-ops","","association"],["tester","agent-author","","association"],["tester","agent-schedule","","association"],["tester","agent-feedback","","association"]],
+      "note": "银行业务状态、测试结论、Agent执行状态分开；验证码和经验改善的机构环境效果仍待真实验收。"
+    },
+    {
+      "id": "02-capability-comparison", "title": "业务能力｜目标与当前证据", "type": "capabilities", "width": 1500, "height": 940,
+      "subtitle": "Business Capability Map；不计算功能完成百分比，不用源码门替代业务验收", "refs": ["requirements","loan","reconciliation","eod","release","quality","source-gate","capacity"],
+      "rows": [
+        ["银行主链", "登录、账户、转账、运营回读", "五个核心端口与业务服务；最终候选银行清单待跑"],
+        ["贷款语义", "审批条件、金额、年率和还款方式一致", "年率换算与核心条件回读已有源码，不沿用旧缺陷结论"],
+        ["资金与恢复", "唯一提交权、未知只回读、核心事实核验", "短事务领取与核验；不能由页面失败推断未入账"],
+        ["账务与日终", "真实GL关联、固定日期、已完成作业不重放", "交易腿关联总账、作业结果回读；隔离测试不等于当前运行验收"],
+        ["对话与作者化", "真实模型、历史恢复、任务模型绑定", "共享会话CAS/轮次模型绑定已有源码；11月5日S5仅旧身份"],
+        ["周期与经验", "固定脚本回归、失败接管、受核验反馈", "CLI/调度/反馈消费者已有源码；真实改善仍未证明"],
+        ["证据与发布", "认证登记、同身份验证、Quality只读", "demo verify与SQLite判定已接通；正式28项未闭合"],
+        ["容量与交付", "真实负载、可复现候选、CI和交接", "容量驱动已实现；真实容量、安全/许可、远端CI与本人UAT待闭合"]
+      ],
+      "note": "蓝色是源码事实，绿色是已接受目标，黄色是证据缺口；任何颜色均不代表整体GO。"
+    },
+    {
+      "id": "03-bank-components", "title": "UML组件｜银行职责与状态所有权", "type": "graph", "width": 1500, "height": 860,
+      "subtitle": "单个Bank Channel内部逻辑组件不是独立微服务；箭头为静态职责依赖", "refs": ["transfer","loan","reconciliation","eod","document","compose"],
+      "nodes": [
+        ["portal", "客户与运营门户\nReact / TypeScript", 40, 200, "component", "code"], ["gateway", "Gateway\n正式银行API入口", 350, 200, "component", "code"],
+        ["application", "Bank Channel应用层\n事务、资金与EOD编排", 680, 200, "component", "code"], ["ports", "五个Fineract业务端口\n解析、单位、回读语义", 1050, 200, "component", "code"],
+        ["repos", "业务Repository\nSQL、锁、条件更新", 680, 450, "component", "code"], ["channel-db", "Channel PostgreSQL\n工作流 / 幂等 / 审计", 680, 650, "database", "authority"],
+        ["core", "Fineract API\n唯一核心账务源", 1050, 450, "component", "authority"], ["identity", "Keycloak\nPKCE / issuer / aud / azp", 350, 450, "component", "code"]
+      ],
+      "edges": [["portal","gateway","银行API","dependency"],["gateway","application","路由","dependency"],["application","ports","业务能力","dependency"],["ports","core","核心HTTP","dependency"],["application","repos","持久化","dependency"],["repos","channel-db","SQL","dependency"],["portal","identity","PKCE","dependency"]],
+      "note": "Controller不直接SQL；只读投影可直接用具名Repository。渠道账务投影不是Fineract总账；公网生产部署不在本图承诺内。"
+    },
+    {
+      "id": "04-agent-components", "title": "UML组件｜Agent控制、执行与投影", "type": "graph", "width": 1600, "height": 900,
+      "subtitle": "Harness拥有共享执行与会话状态；本地密钥/恢复辅助文件不是第二个任务真相源", "refs": ["controller","workbench","metadata","session","worker","release","quality"],
+      "nodes": [
+        ["entry", "CLI / 会话工作台\n目标、历史、模型配置", 30, 150, "component", "code"], ["controller", "Agent Controller\n目标与受约束Journey", 350, 150, "component", "code"],
+        ["mcp", "独立MCP\n工具 / 会话 / 元数据合同", 710, 150, "component", "code"], ["harness", "Harness\n领取、验证、SQLite写入", 1100, 150, "component", "authority"],
+        ["model", "BYOK模型\n作者化与受控视觉协议", 350, 400, "component", "neutral"], ["worker", "Worker\nPlaywright / Midscene", 1100, 400, "component", "code"],
+        ["bank-ui", "银行页面\n实际目标与业务结果", 1100, 650, "component", "neutral"], ["state", "Harness SQLite + Evidence\n会话、Run、反馈与判定", 710, 650, "database", "authority"],
+        ["quality", "Quality只读投影\n无创作/批准控制面", 350, 650, "component", "code"], ["keys", "本地密钥登记\n仅引用，不进入模型", 30, 400, "component", "neutral"]
+      ],
+      "edges": [["entry","controller","请求","dependency"],["controller","mcp","受控工具","dependency"],["mcp","harness","认证接口","dependency"],["controller","model","作者化","dependency"],["harness","worker","执行作业","dependency"],["worker","model","视觉定位","dependency"],["worker","bank-ui","浏览器","dependency"],["harness","state","状态/证据","dependency"],["quality","state","只读","dependency"],["entry","keys","登记引用","dependency"]],
+      "note": "工具活动摘要不是隐藏思维链。普通历史读取不重派任务；Flowise/仓库docs-RAG均不进入产品运行链。"
+    },
+    {
+      "id": "05-transfer-sequence", "title": "转账时序｜提交权、核心调用与回读", "type": "sequence", "refs": ["transfer","state","reconciliation"],
+      "subtitle": "应用逻辑时序；省略认证握手/投影细节。每个TX独立提交，不跨网络持有本地事务",
+      "participants": [{"id":"user","label":"客户页面"},{"id":"api","label":"渠道API"},{"id":"processor","label":"转账处理器"},{"id":"repo","label":"渠道存储"},{"id":"core","label":"Fineract"}],
+      "messages": [
+        {"from":"user","to":"api","label":"目标参数 + 幂等键 + 关联号"},
+        {"from":"api","to":"repo","label":"受理并绑定原请求"},
+        {"from":"repo","to":"api","label":"原/新操作ID","return":true},
+        {"from":"api","to":"processor","label":"处理已受理操作"},
+        {"from":"processor","to":"repo","label":"TX1 校验、风险与领取提交权"},
+        {"from":"repo","to":"processor","label":"提交短事务；唯一领取结果","return":true},
+        {"from":"processor","to":"core","label":"有领取权才POST；原幂等键"},
+        {"from":"core","to":"processor","label":"核心ID / 明确拒绝 / 结果未知","return":true},
+        {"from":"processor","to":"core","label":"按原键/ID回读并匹配账户金额"},
+        {"from":"core","to":"processor","label":"已核事实 / 无法确认","return":true},
+        {"from":"processor","to":"repo","label":"TX2 核验后SETTLED；否则拒绝或UNKNOWN"},
+        {"from":"processor","to":"api","label":"业务状态与核心引用","return":true},
+        {"from":"api","to":"user","label":"原关联号结果回读","return":true}
+      ],
+      "note": "无领取权、5xx或网络故障不盲重发POST；明确4xx也先核原操作。页面超时但核心成功时，业务成功与测试失败可同时成立。"
+    },
+    {
+      "id": "06-agent-sequence", "title": "Agent时序｜目标到冻结脚本与证据", "type": "sequence", "refs": ["controller","workbench","metadata","session","worker","release","quality"],
+      "subtitle": "应用逻辑时序；MCP作为受控传输显式保留，作业实际以Harness领取协议推进",
+      "participants": [{"id":"user","label":"使用者"},{"id":"controller","label":"Controller"},{"id":"model","label":"BYOK模型"},{"id":"mcp","label":"MCP"},{"id":"harness","label":"Harness"},{"id":"worker","label":"Worker"}],
+      "messages": [
+        {"from":"user","to":"controller","label":"明确目标 / 轮次ID / 模型选择"},
+        {"from":"controller","to":"mcp","label":"登记轮次与不可变模型绑定"},
+        {"from":"mcp","to":"harness","label":"共享状态登记与版本条件"},
+        {"from":"controller","to":"model","label":"脱敏最小上下文，受约束作者化"},
+        {"from":"model","to":"controller","label":"候选Journey；缺输入则不执行","return":true},
+        {"from":"controller","to":"mcp","label":"提交合同候选 / 请求执行"},
+        {"from":"mcp","to":"harness","label":"Journey、任务与执行权"},
+        {"from":"harness","to":"worker","label":"领取浏览器作者化/验证作业","async":true},
+        {"from":"worker","to":"model","label":"受控视觉观察；凭据不入模型"},
+        {"from":"model","to":"worker","label":"定位事实或原始分类错误","return":true},
+        {"from":"worker","to":"harness","label":"浏览器事实、脚本、截图/trace","return":true},
+        {"from":"controller","to":"mcp","label":"查询原Journey / Run，不重派"},
+        {"from":"mcp","to":"harness","label":"状态与证据回读"},
+        {"from":"harness","to":"mcp","label":"真实结果或原失败分类","return":true},
+        {"from":"controller","to":"user","label":"结果、证据和人工接管提示","return":true}
+      ],
+      "note": "稳定性验证后才冻结脚本用于正式/周期执行；周期回归不每次自由规划。反馈要独立验证再匹配消费，不改写原失败或业务预期。"
+    },
+    {
+      "id": "07-state-boundaries", "title": "状态图｜业务状态不等于测试结论", "type": "graph", "width": 1600, "height": 930,
+      "subtitle": "UML状态常用子集；上半为转账核心收敛片段，下半为完整文档状态路径", "refs": ["state","transfer","document","requirements"],
+      "nodes": [
+        ["pending", "PENDING_CORE_POSTING\n尚未领取核心提交", 50, 180, "state", "code"], ["claimed", "PENDING_CLEARING\n已领取，核心结果待核", 500, 180, "state", "code"],
+        ["settled", "SETTLED\n核心事实已核验", 1000, 180, "state", "authority"], ["unknown", "CORE_RESULT_UNKNOWN\n保留原键，只回读", 500, 420, "state", "pending"], ["failed", "FAILED\n明确拒绝且回读未成功", 50, 420, "state", "neutral"],
+        ["draft", "DRAFT\n文档当前版本", 50, 670, "state", "code"], ["published", "PUBLISHED\n版本条件更新并递增", 500, 670, "state", "code"], ["archived", "ARCHIVED\n不允许跳级或回退", 1000, 670, "state", "code"]
+      ],
+      "edges": [["pending","claimed","领取权","state"],["claimed","settled","核验成功","state"],["claimed","unknown","结果未知","state"],["unknown","settled","原键核验","state"],["claimed","failed","明确拒绝","state"],["unknown","failed","矩阵允许","state"],["draft","published","当前version","state"],["published","archived","当前version","state"]],
+      "note": "上方混合标出矩阵允许边与核心处理主路径；UNKNOWN处理本身只回读，不因暂未查到转FAILED。另有风险/退汇/撤销状态未展开；文档陈旧版本或非法转换409。"
+    },
+    {
+      "id": "08-domain-ownership", "title": "领域关系｜关联不等于跨库外键", "type": "graph", "width": 1500, "height": 850,
+      "subtitle": "逻辑领域关系，不是物理ER或完整DDL；实线标签说明关系，省略基数时不暗示数据库约束", "refs": ["requirements","transfer","metadata","session","release"],
+      "nodes": [
+        ["customer", "Fineract客户", 40, 170, "entity", "authority"], ["account", "Fineract账户", 400, 170, "entity", "authority"], ["coretx", "核心交易与分录", 800, 170, "entity", "authority"],
+        ["operation", "Channel转账操作\n幂等键 / correlationId", 800, 430, "entity", "code"], ["conversation", "Harness会话与轮次\n模型版本 / submissionId", 40, 650, "entity", "code"],
+        ["journey", "Journey / Run\n脚本版本 / 身份", 400, 650, "entity", "code"], ["evidence", "证据与事故\n工件引用 / 原失败", 800, 650, "entity", "code"], ["verification", "Release验证记录\n同身份的机器判定", 1170, 650, "entity", "code"]
+      ],
+      "edges": [["customer","account","客户归属","association"],["account","coretx","账户交易","association"],["operation","coretx","核心引用","association"],["conversation","journey","绑定任务","association"],["journey","evidence","执行证据","association"],["evidence","verification","核验输入","association"]],
+      "note": "资金核心、渠道流程和Harness各有状态所有者；业务correlation用于核验关联，不由平台直接SQL写核心，也不是跨库事务。"
+    },
+    {
+      "id": "09-deployment", "title": "部署视图｜Docker银行与Windows Agent", "type": "graph", "width": 1500, "height": 900,
+      "subtitle": "关键产品部署声明（非完整Compose清单，也不是当前运行盘点）；省略监控和消息辅助容器", "refs": ["compose","core-compose","workbench","requirements"],
+      "nodes": [
+        ["browser", "本机浏览器\n客户 / 运营 / Agent工作台", 40, 160, "component", "neutral"], ["portals", "Docker门户 + Gateway\n18082 / 18083", 420, 160, "component", "code"],
+        ["channel", "Docker Bank Channel\nJava21 / 私有网络", 820, 160, "component", "code"], ["core", "Docker Fineract\nAPI + 核心PostgreSQL", 1170, 400, "component", "authority"],
+        ["iam", "Docker Keycloak\n授权码 + PKCE", 420, 400, "component", "code"], ["channel-db", "Docker渠道PostgreSQL\n渠道独占持久化", 820, 400, "database", "authority"],
+        ["entry", "Windows Agent入口\nCLI / loopback网页", 40, 650, "component", "code"], ["harness", "Windows MCP + Harness\nSQLite / Evidence / Quality", 420, 650, "component", "authority"], ["worker", "Windows Worker\n受控浏览器 / 本地凭据引用", 820, 650, "component", "code"]
+      ],
+      "edges": [["browser","portals","本机HTTP","dependency"],["portals","channel","银行API","dependency"],["channel","core","核心API","dependency"],["channel","channel-db","JDBC","dependency"],["portals","iam","OIDC","dependency"],["entry","harness","MCP","dependency"],["harness","worker","作业协议","dependency"]],
+      "note": "Mifos原生管理页为可选admin-tools，Mock Clearing不在默认链。原在用15容器保留，不因新默认拓扑14服务而删除；外部面试站不在产品部署中。"
+    },
+    {
+      "id": "10-dependency-dsm", "title": "DSM｜当前显式import与声明边界", "type": "dsm", "width": 1500, "height": 940,
+      "subtitle": "行模块依赖列模块；重新提取当前11个生产领域包，不包含根核心端口/反射/SQL/运行HTTP", "refs": ["transfer","eod"],
+      "modules": [["payments","支付","bank.payments"],["risk","风险","bank.risk"],["operations","运营EOD","bank.operations"],["audit","审计","bank.audit"],["reconciliation","对账","bank.reconciliation"],["customerprofile","贷款","bank.customer-profile"],["documents","文档","bank.documents"],["notifications","通知","bank.notifications"],["identity","身份","bank.identity"],["beneficiaries","收款人","bank.beneficiaries"],["accounts","账户","bank.accounts"]],
+      "note": "强连通组只证明编译依赖环，不证明死锁或资金损坏。声明允许也不自动证明每次具体调用合理；按源码证据逐边解释。"
+    }
+  ]
+}

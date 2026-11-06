@@ -11,6 +11,7 @@ import {registerBankCredential,prepareBankValidationPool} from './rf057/bank-val
 import evidence from './rf057/evidence.cjs';
 import {executeControlledDocumentFailure} from './rf057/controlled-document-failure.mjs';
 import {executeAgentCapacity} from './rf057/agent-capacity.mjs';
+import {executeReadOnlyCapacity} from './rf057/readonly-capacity.mjs';
 
 const root=path.resolve(import.meta.dirname,'../..');
 const product=path.join(root,'platform/hengzhun-regression-system');
@@ -25,6 +26,7 @@ const suiteFile=path.join(root,'scripts/test/rf057/suite.json');
 const suiteHash=crypto.createHash('sha256').update(fs.readFileSync(suiteFile)).digest('hex');
 const args=process.argv.slice(2);
 const performanceOnly=args.includes('--performance');
+const capacityOnly=args.includes('--readonly-capacity');
 
 function printGate(status,code){console.log(JSON.stringify({status,code,releaseIdentityHash:identity.identityHash,suiteSha256:suiteHash,executionPerformed:false}));}
 if(args.includes('--preflight')) {
@@ -37,11 +39,13 @@ catch(error){printGate('NOT_AUTHORIZED',error.code);process.exit(3);}
 if(args.includes('--check-authority')){printGate('AUTHORIZED','EXACT_IDENTITY_MATCH');process.exit(0);}
 
 const config=JSON.parse(await new Promise(resolve=>{let text='';process.stdin.setEncoding('utf8');process.stdin.on('data',s=>text+=s);process.stdin.on('end',()=>resolve(text.replace(/^\uFEFF/,'')));}));
-const runId=crypto.randomUUID(),output=path.join(root,'agent/runs/rf057-agent',runId);
+const runId=config.runId;
+if(!evidence.isRunId(runId))throw new Error('RF057_RUN_REFERENCE_REQUIRED');
+const output=path.join(root,'agent/runs/rf057-agent',runId);
 fs.mkdirSync(output,{recursive:true});
 const report={schemaVersion:'bank-agent-acceptance-report/v1',suite:'BANK-AGENT-ACCEPTANCE-v1',suiteSha256:suiteHash,
   ...evidence.beginEvidence(config.cleanupId),
-  runId,profile:performanceOnly?'PERFORMANCE':'LIVE_AGENT',releaseIdentityHash:identity.identityHash,startedAt:new Date().toISOString(),
+  runId,profile:capacityOnly?'CAPACITY_SUPPLEMENT':performanceOnly?'PERFORMANCE':'LIVE_AGENT',releaseIdentityHash:identity.identityHash,startedAt:new Date().toISOString(),
   sourceCommit:execFileSync('git',['rev-parse','HEAD'],{cwd:root,encoding:'utf8'}).trim(),cases:[],status:'RUNNING'};
 const save=()=>fs.writeFileSync(path.join(output,'report.json'),JSON.stringify(report,null,2));
 const terminalProofs=[];
@@ -148,7 +152,20 @@ try{
     terminalProofs.push({journeyId,sessionId:value.sessionId});
     return {journeyId,sessionId:value.sessionId,runId:proof.runId,taskId:proof.taskId,targetOrigin:'http://127.0.0.1:18082',artifacts:proof.artifacts,qualityReadback:true};
   });
-  if(performanceOnly){
+  if(capacityOnly){
+    phase='READONLY_CAPACITY';
+    const file=path.join(output,'readonly-capacity.json');
+    const capacity=await executeReadOnlyCapacity({source:report.cases.find(item=>item.id==='A01').assertions,
+      identity:identity.identityHash,cli:publicCli,harness,snapshot:coreMoneySnapshot,
+      readStatus:async()=>{
+        const value=await lifecycle.managedStatus({root:product,identity});
+        return {observedAt:new Date().toISOString(),status:value.status,healthy:value.healthy,
+          services:value.services.map(service=>({name:service.name,owned:service.owned,alive:service.alive,healthy:service.healthy}))};
+      },checkpoint:async facts=>{fs.writeFileSync(file,JSON.stringify(facts,null,2));}});
+    report.supplementalCapacity={status:capacity.status,report:path.relative(root,file).replaceAll('\\','/'),
+      fixedCompleted:capacity.fixed.completed,levels:capacity.levels.map(stage=>({concurrency:stage.concurrency,completed:stage.completed})),
+      observationMs:capacity.observation.elapsedMs,publicationDecision:capacity.publicationDecision};
+  }else if(performanceOnly){
     await runCase('P05',()=>executeAgentCapacity({source:report.cases.find(item=>item.id==='A01').assertions,
       identity:identity.identityHash,cli:publicCli,harness,snapshot:coreMoneySnapshot,
       checkpoint:async facts=>{fs.writeFileSync(path.join(output,'p05-drained-tasks.json'),JSON.stringify(facts,null,2));}}));
@@ -356,8 +373,8 @@ try{
   });
   assert.equal(release.currentReleaseIdentityV4({productRoot:product,modelConfigIdentity:lifecycle.modelIdentityFromEnvironment(environment)}).identityHash,identity.identityHash,'RF057_SOURCE_CHANGED_DURING_AGENT_TEST');
   }
-  assert.deepEqual(report.cases.map(item=>item.id),performanceOnly?['A01','P05']:['A01','A02','A03','A04','A05','A06','A07']);
-  report.status='PARTIAL';evidence.finishEvidence(report,output);console.log(JSON.stringify({runId,status:report.status,passed:report.cases.length,report:path.relative(root,path.join(output,'report.json')),remainingAgentCases:performanceOnly?['A02','A03','A04','A05','A06','A07']:[]}));
+  assert.deepEqual(report.cases.map(item=>item.id),capacityOnly?['A01']:performanceOnly?['A01','P05']:['A01','A02','A03','A04','A05','A06','A07']);
+  report.status='PARTIAL';evidence.finishEvidence(report,output);console.log(JSON.stringify({runId,status:report.status,passed:report.cases.length,report:path.relative(root,path.join(output,'report.json')),remainingAgentCases:performanceOnly||capacityOnly?['A02','A03','A04','A05','A06','A07']:[],...(capacityOnly?{supplementalCapacity:report.supplementalCapacity}:{})}));
 }catch(error){
   if(report.status==='RUNNING'){
     report.status='FAILED';report.failure=failureMetadata(error,phase);save();
